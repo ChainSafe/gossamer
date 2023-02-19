@@ -186,8 +186,8 @@ func TestTipSyncer_handleTick_case1(t *testing.T) {
 	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Unix(0, 0)
 	require.Equal(t, expected, w)
-	require.False(t, s.pendingBlocks.hasBlock(common.Hash{0xa}))
-	require.True(t, s.pendingBlocks.hasBlock(common.Hash{0xb}))
+	require.False(t, s.pendingBlocks.(*disjointBlockSet).hasBlock(common.Hash{0xa}))
+	require.True(t, s.pendingBlocks.(*disjointBlockSet).hasBlock(common.Hash{0xb}))
 }
 
 func TestTipSyncer_handleTick_case2(t *testing.T) {
@@ -223,7 +223,7 @@ func TestTipSyncer_handleTick_case2(t *testing.T) {
 	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
-	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
+	require.True(t, s.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 }
 func TestTipSyncer_handleTick_case3(t *testing.T) {
 	s := newTestTipSyncer(t)
@@ -246,7 +246,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	w, err := s.handleTick()
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
-	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
+	require.False(t, s.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 	readyBlockData, err := s.readyBlocks.pop(context.Background())
 	require.Equal(t, block.ToBlockData(), readyBlockData)
 	require.NoError(t, err)
@@ -290,7 +290,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	assert.Greater(t, w[0].pendingBlock.clearAt, time.Now())
 	w[0].pendingBlock.clearAt = time.Time{}
 	require.Equal(t, expected, w)
-	require.True(t, s.pendingBlocks.hasBlock(header.Hash()))
+	require.True(t, s.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 
 	// add parent block to readyBlocks, should move block to readyBlocks
 	s.readyBlocks.push(&types.BlockData{
@@ -299,7 +299,7 @@ func TestTipSyncer_handleTick_case3(t *testing.T) {
 	w, err = s.handleTick()
 	require.NoError(t, err)
 	require.Equal(t, []*worker(nil), w)
-	require.False(t, s.pendingBlocks.hasBlock(header.Hash()))
+	require.False(t, s.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 	_, _ = s.readyBlocks.pop(context.Background()) // first pop will remove parent
 	readyBlockData, err = s.readyBlocks.pop(context.Background())
 	require.NoError(t, err)

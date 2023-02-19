@@ -1,6 +1,6 @@
 # Gossamer Devnet
 
-Docker container and Docker Compose for a Gossamer Devnet currently with three authority nodes running the `gssmr` chain with keys `alice`, `bob` and `charlie`.
+Docker container and Docker Compose for a Gossamer Devnet currently with three authority nodes running the `westend` chain with keys `alice`, `bob` and `charlie`.
 
 ## Requirements
 

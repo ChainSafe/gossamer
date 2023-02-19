@@ -41,7 +41,7 @@ type chainProcessor struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
-	telemetry          telemetry.Client
+	telemetry          Telemetry
 }
 
 type chainProcessorConfig struct {
@@ -54,7 +54,7 @@ type chainProcessorConfig struct {
 	babeVerifier       BabeVerifier
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
-	telemetry          telemetry.Client
+	telemetry          Telemetry
 }
 
 func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
@@ -284,12 +284,12 @@ func (s *chainProcessor) handleJustification(header *types.Header, justification
 	logger.Debugf("handling justification for block %d...", header.Number)
 
 	headerHash := header.Hash()
-	returnedJustification, err := s.finalityGadget.VerifyBlockJustification(headerHash, justification)
+	err = s.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
 		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
 
-	err = s.blockState.SetJustification(headerHash, returnedJustification)
+	err = s.blockState.SetJustification(headerHash, justification)
 	if err != nil {
 		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 	}

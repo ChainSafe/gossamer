@@ -17,6 +17,10 @@ type GrandpaAuthoritiesRaw struct {
 	ID  uint64
 }
 
+func (g GrandpaAuthoritiesRaw) String() string {
+	return fmt.Sprintf("GrandpaAuthoritiesRaw{Key=0x%x, ID=%d}", g.Key, g.ID)
+}
+
 // FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
 func (a *Authority) FromRawEd25519(raw GrandpaAuthoritiesRaw) error {
@@ -145,7 +149,7 @@ func EncodeGrandpaVoters(voters GrandpaVoters) ([]byte, error) {
 
 // DecodeGrandpaVoters returns a decoded GrandpaVoters
 func DecodeGrandpaVoters(in []byte) (GrandpaVoters, error) {
-	dec := []voter{}
+	var dec []voter
 	err := scale.Unmarshal(in, &dec)
 	if err != nil {
 		return nil, err
@@ -189,7 +193,69 @@ type GrandpaVote struct {
 	Number uint32
 }
 
-// String returns the Vote as a string
-func (v *GrandpaVote) String() string {
+func (v GrandpaVote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
+}
+
+// GrandpaEquivocation is used to create a proof of equivocation
+// https://github.com/paritytech/finality-grandpa/blob/19d251d0b0105d51a79d3c4532a9aae75a5035bd/src/lib.rs#L213 //nolint:lll
+type GrandpaEquivocation struct {
+	RoundNumber     uint64
+	ID              [32]byte
+	FirstVote       GrandpaVote
+	FirstSignature  [64]byte
+	SecondVote      GrandpaVote
+	SecondSignature [64]byte
+}
+
+// GrandpaEquivocationEnum is a wrapper object for GRANDPA equivocation proofs, useful for unifying prevote
+// and precommit equivocations under a common type.
+// https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L272 //nolint:lll
+type GrandpaEquivocationEnum scale.VaryingDataType
+
+// Set sets a VaryingDataTypeValue using the underlying VaryingDataType
+func (ge *GrandpaEquivocationEnum) Set(value scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*ge)
+	err = vdt.Set(value)
+	if err != nil {
+		return err
+	}
+	*ge = GrandpaEquivocationEnum(vdt)
+	return nil
+}
+
+// Value will return the value from the underlying VaryingDataType
+func (ge *GrandpaEquivocationEnum) Value() (value scale.VaryingDataTypeValue, err error) {
+	vdt := scale.VaryingDataType(*ge)
+	return vdt.Value()
+}
+
+// NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
+func NewGrandpaEquivocation() *GrandpaEquivocationEnum {
+	vdt := scale.MustNewVaryingDataType(PreVote{}, PreCommit{})
+	ge := GrandpaEquivocationEnum(vdt)
+	return &ge
+}
+
+// PreVote equivocation type for a prevote
+type PreVote GrandpaEquivocation
+
+// Index returns VDT index
+func (PreVote) Index() uint { return 0 }
+
+// PreCommit equivocation type for a precommit
+type PreCommit GrandpaEquivocation
+
+// Index returns VDT index
+func (PreCommit) Index() uint { return 1 }
+
+// GrandpaOpaqueKeyOwnershipProof contains a key ownership proof for reporting equivocations
+// https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L533 //nolint:lll
+type GrandpaOpaqueKeyOwnershipProof []byte
+
+// GrandpaEquivocationProof is used to report grandpa equivocations
+// https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L238 //nolint:lll
+type GrandpaEquivocationProof struct {
+	SetID        uint64
+	Equivocation GrandpaEquivocationEnum
 }

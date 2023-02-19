@@ -394,12 +394,7 @@ type RuntimeVersionListener struct {
 	subID         uint32
 	runtimeUpdate chan runtime.Version
 	channelID     uint32
-	coreAPI       modules.CoreAPI
-}
-
-// VersionListener interface defining methods that version listener must implement
-type VersionListener interface {
-	GetChannelID() uint32
+	coreAPI       CoreAPI
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes

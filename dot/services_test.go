@@ -18,7 +18,7 @@ import (
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
@@ -53,7 +53,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
@@ -75,7 +75,7 @@ func Test_createSystemService(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				service: stateSrvc,
 			},
@@ -122,13 +122,10 @@ func Test_newInMemoryDB(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mock_babe_builder_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/babe ServiceIFace
-//go:generate mockgen -destination=mock_service_builder_test.go -package $GOPACKAGE . ServiceBuilder
-
 func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	t.Helper()
 
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
@@ -138,7 +135,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 

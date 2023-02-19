@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,17 +33,17 @@ func Test_chainSyncState_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "case bootstrap",
+			name: "case_bootstrap",
 			s:    bootstrap,
 			want: "bootstrap",
 		},
 		{
-			name: "case tip",
+			name: "case_tip",
 			s:    tip,
 			want: "tip",
 		},
 		{
-			name: "case unknown",
+			name: "case_unknown",
 			s:    3,
 			want: "unknown",
 		},
@@ -75,7 +75,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 		expectedPeerIDToPeerState map[peer.ID]*peerState
 		expectedQueuedPeerStates  []*peerState
 	}{
-		"best block header error": {
+		"best_block_header_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().BestBlockHeader().Return(nil, errTest)
@@ -97,7 +97,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number smaller than best block number get hash by number error": {
+		"number_smaller_than_best_block_number_get_hash_by_number_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 2}
@@ -122,7 +122,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number smaller than best block number and same hash": {
+		"number_smaller_than_best_block_number_and_same_hash": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 2}
@@ -144,7 +144,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number smaller than best block number get highest finalised header error": {
+		"number_smaller_than_best_block_number_get_highest_finalised_header_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 2}
@@ -170,7 +170,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number smaller than best block number and finalised number equal than number": {
+		"number_smaller_than_best_block_number_and_finalised_number_equal_than_number": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 2}
@@ -203,7 +203,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number smaller than best block number and finalised number bigger than number": {
+		"number_smaller_than_best_block_number_and_finalised_number_bigger_than_number": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 2}
@@ -238,7 +238,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 		},
 		"number smaller than best block number and " +
 			"finalised number smaller than number and " +
-			"has header error": {
+			"has_header_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 3}
@@ -268,7 +268,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 		},
 		"number smaller than best block number and " +
 			"finalised number smaller than number and " +
-			"has the hash": {
+			"has_the_hash": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 3}
@@ -294,7 +294,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number bigger than the head number add hash and number error": {
+		"number_bigger_than_the_head_number_add_hash_and_number_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 1}
@@ -321,7 +321,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				},
 			},
 		},
-		"number bigger than the head number success": {
+		"number_bigger_than_the_head_number_success": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				bestBlockHeader := &types.Header{Number: 1}
@@ -401,7 +401,6 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     0,
 		Max:           &max,
 	})
@@ -527,7 +526,7 @@ func TestWorkerToRequests(t *testing.T) {
 	)
 
 	testCases := map[string]testCase{
-		"test 0": {
+		"test_0": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(1 + maxResponseSize),
@@ -538,13 +537,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 			},
 		},
-		"test 1": {
+		"test_1": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(1 + (maxResponseSize * 2)),
@@ -555,20 +553,18 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 			},
 		},
-		"test 2": {
+		"test_2": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(10),
@@ -579,13 +575,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 			},
 		},
-		"test 3": {
+		"test_3": {
 			w: &worker{
 				startNumber:  uintPtr(10),
 				targetNumber: uintPtr(1),
@@ -596,13 +591,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(10),
-					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max9,
 				},
 			},
 		},
-		"test 4": {
+		"test_4": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(1 + maxResponseSize + (maxResponseSize / 2)),
@@ -613,20 +607,18 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize),
-					EndBlockHash:  nil,
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 			},
 		},
-		"test 5": {
+		"test_5": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				targetNumber: uintPtr(10),
@@ -638,13 +630,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1),
-					EndBlockHash:  &(common.Hash{0xa}),
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 			},
 		},
-		"test 6": {
+		"test_6": {
 			w: &worker{
 				startNumber:  uintPtr(1),
 				startHash:    common.Hash{0xb},
@@ -657,13 +648,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{0xb}),
-					EndBlockHash:  &(common.Hash{0xc}),
 					Direction:     network.Ascending,
 					Max:           &max128,
 				},
 			},
 		},
-		"test 7": {
+		"test_7": {
 			w: &worker{
 				startNumber:  uintPtr(10),
 				targetNumber: uintPtr(10),
@@ -679,7 +669,7 @@ func TestWorkerToRequests(t *testing.T) {
 				},
 			},
 		},
-		"test 8": {
+		"test_8": {
 			w: &worker{
 				startNumber:  uintPtr(1 + maxResponseSize + (maxResponseSize / 2)),
 				targetNumber: uintPtr(1),
@@ -690,14 +680,12 @@ func TestWorkerToRequests(t *testing.T) {
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + (maxResponseSize / 2)),
-					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max64,
 				},
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(1 + maxResponseSize + (maxResponseSize / 2)),
-					EndBlockHash:  nil,
 					Direction:     network.Descending,
 					Max:           &max128,
 				},
@@ -725,7 +713,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 		resp              *network.BlockResponseMessage
 		expectedError     error
 	}{
-		"nil req, nil resp": {
+		"nil_req,_nil_resp": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -736,7 +724,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 			},
 			expectedError: errEmptyBlockData,
 		},
-		"handle error response is not chain, has header": {
+		"handle_error_response_is_not_chain,_has_header": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -767,7 +755,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 			},
 			expectedError: errResponseIsNotChain,
 		},
-		"handle justification-only request, unknown block": {
+		"handle_justification-only_request,_unknown_block": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -794,7 +782,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 			},
 			expectedError: errUnknownBlockForJustification,
 		},
-		"handle error unknown parent": {
+		"handle_error_unknown_parent": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -825,7 +813,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 			},
 			expectedError: errUnknownParent,
 		},
-		"no error": {
+		"no_error": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -894,7 +882,6 @@ func TestChainSync_doSync(t *testing.T) {
 	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 		StartingBlock: *variadic.MustNewUint32OrHash(1),
-		EndBlockHash:  nil,
 		Direction:     network.Ascending,
 		Max:           &max,
 	}
@@ -917,7 +904,6 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     0,
 		Max:           &max1,
 	})
@@ -943,7 +929,6 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     0,
 		Max:           &max1,
 	}).Return(resp, nil)
@@ -985,7 +970,6 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
-		EndBlockHash:  nil,
 		Direction:     1,
 		Max:           &max1,
 	}).Return(resp, nil)
@@ -1052,10 +1036,10 @@ func TestHandleReadyBlock(t *testing.T) {
 
 	cs.handleReadyBlock(block1.ToBlockData())
 
-	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
-	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))
-	require.False(t, cs.pendingBlocks.hasBlock(header3.Hash()))
-	require.True(t, cs.pendingBlocks.hasBlock(header2NotDescendant.Hash()))
+	require.False(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header1.Hash()))
+	require.False(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header2.Hash()))
+	require.False(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header3.Hash()))
+	require.True(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header2NotDescendant.Hash()))
 
 	blockData1, err := readyBlocks.pop(context.Background())
 	require.NoError(t, err)
@@ -1138,7 +1122,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 		fields fields
 	}{
 		{
-			name: "state bootstrap",
+			name: "state_bootstrap",
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
@@ -1156,7 +1140,7 @@ func Test_chainSync_logSyncSpeed(t *testing.T) {
 			},
 		},
 		{
-			name: "case tip",
+			name: "case_tip",
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
@@ -1215,7 +1199,7 @@ func Test_chainSync_start(t *testing.T) {
 		fields fields
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			fields: fields{
 				blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 					mockBlockState := NewMockBlockState(ctrl)
@@ -1270,7 +1254,7 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 		args             args
 		wantErr          error
 	}{
-		"base case": {
+		"base_case": {
 			wantErr: blocktree.ErrBlockExists,
 			args: args{
 				header: &types.Header{Number: 2},
@@ -1409,7 +1393,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 		res              *worker
 		err              error
 	}{
-		"res.err == nil": {
+		"res.err_==_nil": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				return chainSync{
 					workerState: newWorkerState(),
@@ -1417,7 +1401,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			},
 			res: &worker{},
 		},
-		"res.err.err.Error() == context.Canceled": {
+		"res.err.err.Error()_==_context.Canceled": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				return chainSync{
 					workerState: newWorkerState(),
@@ -1430,7 +1414,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"res.err.err.Error() == context.DeadlineExceeded": {
+		"res.err.err.Error()_==_context.DeadlineExceeded": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockNetwork := NewMockNetwork(ctrl)
 				mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{Value: -1024, Reason: "Request timeout"},
@@ -1450,7 +1434,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"res.err.err.Error() dial backoff": {
+		"res.err.err.Error()_dial_backoff": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				return chainSync{
 					workerState: newWorkerState(),
@@ -1463,7 +1447,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"res.err.err.Error() == errNoPeers": {
+		"res.err.err.Error()_==_errNoPeers": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				return chainSync{
 					workerState: newWorkerState(),
@@ -1476,7 +1460,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"res.err.err.Error() == protocol not supported": {
+		"res.err.err.Error()_==_protocol_not_supported": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockNetwork := NewMockNetwork(ctrl)
 				mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{Value: -2147483648,
@@ -1494,7 +1478,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"no error, no retries": {
+		"no_error,_no_retries": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(result, nil)
@@ -1510,7 +1494,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"handle work result error, no retries": {
+		"handle_work_result_error,_no_retries": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(nil, mockError)
@@ -1527,7 +1511,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 			},
 			err: mockError,
 		},
-		"handle work result nil, no retries": {
+		"handle_work_result_nil,_no_retries": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(nil, nil)
@@ -1543,7 +1527,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				},
 			},
 		},
-		"no error, maxWorkerRetries 2": {
+		"no_error,_maxWorkerRetries_2": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(result, nil)
@@ -1564,7 +1548,7 @@ func Test_chainSync_handleResult(t *testing.T) {
 				pendingBlock: newPendingBlock(common.Hash{}, 1, nil, nil, time.Now()),
 			},
 		},
-		"no error": {
+		"no_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller, result *worker) chainSync {
 				mockWorkHandler := NewMockworkHandler(ctrl)
 				mockWorkHandler.EXPECT().handleWorkerResult(result).Return(result, nil)

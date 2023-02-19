@@ -16,14 +16,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/golang/mock/gomock"
 
 	"github.com/gorilla/websocket"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWSConn_HandleConn(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	wsconn, c, cancel := setupWSConn(t)
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
@@ -42,7 +45,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 		`"error":{"code":null,"message":"error StorageAPI not set"},`+
 		`"id":1}`+"\n"), msg)
 
-	wsconn.StorageAPI = modules.NewMockeryStorageAPI(t)
+	wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
 
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)
@@ -168,7 +171,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = modules.NewMockeryBlockAPI(t)
+	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
 
 	res, err = wsconn.initBlockListener(1, nil)
 	require.NoError(t, err)
@@ -198,7 +201,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = modules.NewMockeryBlockAPI(t)
+	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
 
 	res, err = wsconn.initBlockFinalizedListener(1, nil)
 	require.NoError(t, err)
@@ -209,9 +212,14 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
 
 	// test initExtrinsicWatch
-	wsconn.CoreAPI = modules.NewMockCoreAPI(t)
+	wsconn.CoreAPI = modules.NewMockAnyAPI(ctrl)
 	wsconn.BlockAPI = nil
-	wsconn.TxStateAPI = modules.NewMockTransactionStateAPI(t)
+
+	transactionStateAPI := NewMockTransactionStateAPI(ctrl)
+	transactionStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
+	transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	wsconn.TxStateAPI = transactionStateAPI
+
 	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
 	require.Nil(t, listner)
@@ -220,7 +228,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.EqualError(t, err, "error BlockAPI not set")
 	require.Nil(t, listner)
 
-	wsconn.BlockAPI = modules.NewMockeryBlockAPI(t)
+	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
 	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
 	require.NotNil(t, listner)
@@ -236,8 +244,8 @@ func TestWSConn_HandleConn(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, err)
-	coreAPI := mocks.NewCoreAPI(t)
-	coreAPI.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).
+	coreAPI := mocks.NewMockCoreAPI(ctrl)
+	coreAPI.EXPECT().HandleSubmittedExtrinsic(gomock.Any()).
 		Return(invalidTransaction)
 	wsconn.CoreAPI = coreAPI
 	listner, err = wsconn.initExtrinsicWatch(0,
@@ -261,14 +269,14 @@ func TestWSConn_HandleConn(t *testing.T) {
 	mockedJustBytes, err := scale.Marshal(mockedJust)
 	require.NoError(t, err)
 
-	wsconn.CoreAPI = modules.NewMockCoreAPI(t)
-	BlockAPI := mocks.NewBlockAPI(t)
+	wsconn.CoreAPI = modules.NewMockAnyAPI(ctrl)
+	BlockAPI := mocks.NewMockBlockAPI(ctrl)
 
 	fCh := make(chan *types.FinalisationInfo, 5)
-	BlockAPI.On("GetFinalisedNotifierChannel").Return(fCh)
+	BlockAPI.EXPECT().GetFinalisedNotifierChannel().Return(fCh)
 
-	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-	BlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
+	BlockAPI.EXPECT().GetJustification(gomock.Any()).Return(mockedJustBytes, nil)
+	BlockAPI.EXPECT().FreeFinalisedNotifierChannel(gomock.Any())
 
 	wsconn.BlockAPI = BlockAPI
 	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
@@ -301,6 +309,8 @@ func TestWSConn_HandleConn(t *testing.T) {
 }
 
 func TestSubscribeAllHeads(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	wsconn, c, cancel := setupWSConn(t)
 	wsconn.Subscriptions = make(map[uint32]Listener)
 	defer cancel()
@@ -314,15 +324,15 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI := mocks.NewBlockAPI(t)
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
 
 	wsconn.BlockAPI = mockBlockAPI
 
 	iCh := make(chan *types.Block)
-	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(iCh).Once()
+	mockBlockAPI.EXPECT().GetImportedBlockNotifierChannel().Return(iCh)
 
 	fCh := make(chan *types.FinalisationInfo)
-	mockBlockAPI.On("GetFinalisedNotifierChannel").Return(fCh).Once()
+	mockBlockAPI.EXPECT().GetFinalisedNotifierChannel().Return(fCh)
 
 	l, err := wsconn.initAllBlocksListerner(1, nil)
 	require.NoError(t, err)
@@ -377,11 +387,10 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(expected+"\n"), msg)
 
-	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
-	mockBlockAPI.On("FreeFinalisedNotifierChannel", mock.AnythingOfType("chan *types.FinalisationInfo"))
+	mockBlockAPI.EXPECT().FreeImportedBlockNotifierChannel(gomock.Any())
+	mockBlockAPI.EXPECT().FreeFinalisedNotifierChannel(gomock.Any())
 
 	require.NoError(t, l.Stop())
-	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 }
 
 func TestWSConn_CheckWebsocketInvalidData(t *testing.T) {

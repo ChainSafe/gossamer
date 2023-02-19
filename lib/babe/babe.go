@@ -49,7 +49,7 @@ type Service struct {
 	sync.RWMutex
 	pause chan struct{}
 
-	telemetry telemetry.Client
+	telemetry Telemetry
 }
 
 // ServiceConfig represents a BABE configuration
@@ -65,7 +65,7 @@ type ServiceConfig struct {
 	IsDev              bool
 	Authority          bool
 	Lead               bool
-	Telemetry          telemetry.Client
+	Telemetry          Telemetry
 }
 
 // Validate returns error if config does not contain required attributes
@@ -77,22 +77,11 @@ func (sc *ServiceConfig) Validate() error {
 	return nil
 }
 
-// ServiceIFace interface that defines methods available to BabeService
-type ServiceIFace interface {
-	Start() error
-	Stop() error
-	EpochLength() uint64
-	Pause() error
-	IsPaused() bool
-	Resume() error
-	SlotDuration() uint64
-}
-
 // Builder struct to hold babe builder functions
 type Builder struct{}
 
 // NewServiceIFace returns a new Babe Service using the provided VRF keys and runtime
-func (Builder) NewServiceIFace(cfg *ServiceConfig) (ServiceIFace, error) {
+func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("could not verify service config: %w", err)
 	}
@@ -227,29 +216,24 @@ func (b *Service) waitForFirstBlock() error {
 
 	const firstBlockTimeout = time.Minute * 5
 	timer := time.NewTimer(firstBlockTimeout)
-	cleanup := func() {
-		if !timer.Stop() {
-			<-timer.C
-		}
-	}
 
 	// loop until block 1
 	for {
 		select {
 		case block, ok := <-ch:
 			if !ok {
-				cleanup()
+				timer.Stop()
 				return errChannelClosed
 			}
 
 			if ok && block.Header.Number > 0 {
-				cleanup()
+				timer.Stop()
 				return nil
 			}
 		case <-timer.C:
 			return errFirstBlockTimeout
 		case <-b.ctx.Done():
-			cleanup()
+			timer.Stop()
 			return b.ctx.Err()
 		}
 	}
@@ -419,28 +403,23 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 
 	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
-	cleanup := func() {
-		if !epochTimer.Stop() {
-			<-epochTimer.C
-		}
-	}
 
 	errCh := make(chan error)
 	go b.epochHandler.run(ctx, errCh)
 
 	select {
 	case <-b.ctx.Done():
-		cleanup()
+		epochTimer.Stop()
 		return 0, b.ctx.Err()
 	case <-b.pause:
-		cleanup()
+		epochTimer.Stop()
 		return 0, errServicePaused
 	case <-epochTimer.C:
 		// stop current epoch handler
 		cancel()
 	case err := <-errCh:
 		// TODO: errEpochPast is sent on this channel, but it doesnot get logged here
-		cleanup()
+		epochTimer.Stop()
 		logger.Errorf("error from epochHandler: %s", err)
 	}
 
@@ -464,7 +443,7 @@ func (b *Service) getParentForBlockAuthoring(slotNum uint64) (*types.Header, err
 		return nil, errNilParentHeader
 	}
 
-	atGenesisBlock := b.blockState.GenesisHash().Equal(parentHeader.Hash())
+	atGenesisBlock := b.blockState.GenesisHash() == parentHeader.Hash()
 	if !atGenesisBlock {
 		bestBlockSlotNum, err := b.blockState.GetSlotForBlock(parentHeader.Hash())
 		if err != nil {
@@ -499,19 +478,13 @@ func (b *Service) getParentForBlockAuthoring(slotNum uint64) (*types.Header, err
 	return parent, nil
 }
 
-func (b *Service) handleSlot(epoch, slotNum uint64,
+func (b *Service) handleSlot(epoch uint64, slot Slot,
 	authorityIndex uint32,
 	preRuntimeDigest *types.PreRuntimeDigest,
 ) error {
-	currentSlot := Slot{
-		start:    time.Now(),
-		duration: b.constants.slotDuration,
-		number:   slotNum,
-	}
-
-	parent, err := b.getParentForBlockAuthoring(slotNum)
+	parent, err := b.getParentForBlockAuthoring(slot.number)
 	if err != nil {
-		return fmt.Errorf("could not get parent for claiming slot %d: %w", slotNum, err)
+		return fmt.Errorf("could not get parent for claiming slot %d: %w", slot.number, err)
 	}
 	b.storageState.Lock()
 	defer b.storageState.Unlock()
@@ -531,14 +504,14 @@ func (b *Service) handleSlot(epoch, slotNum uint64,
 
 	rt.SetContextStorage(ts)
 
-	block, err := b.buildBlock(parent, currentSlot, rt, authorityIndex, preRuntimeDigest)
+	block, err := b.buildBlock(parent, slot, rt, authorityIndex, preRuntimeDigest)
 	if err != nil {
 		return err
 	}
 
 	logger.Infof(
 		"built block %d with hash %s, state root %s, epoch %d and slot %d",
-		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slotNum)
+		block.Header.Number, block.Header.Hash(), block.Header.StateRoot, epoch, slot.number)
 	logger.Tracef(
 		"built block with parent hash %s, header %s and body %s",
 		parent.Hash(), block.Header.String(), block.Body)

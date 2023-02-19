@@ -98,7 +98,7 @@ func (d *InherentData) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	keys := [][8]byte{}
+	keys := make([][8]byte, 0, len(d.Data))
 	for key := range d.Data {
 		keys = append(keys, key)
 	}

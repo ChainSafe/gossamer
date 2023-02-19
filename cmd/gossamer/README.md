@@ -49,10 +49,10 @@ This subcommand provides capabilities that are similar to
 
 ### Import Runtime Subcommand
 
-This subcommand takes a [Wasm runtime binary](https://wiki.polkadot.network/docs/learn-wasm) and uses it to generate a
+This subcommand takes a [Wasm runtime binary](https://wiki.polkadot.network/docs/learn-wasm) and appends it to a
 [genesis](https://wiki.polkadot.network/docs/glossary#genesis) configuration file; it does not require any flags, but
-expects the path to a Wasm file to be provided as a command-line parameter (example:
-`./bin/gossamer import-runtime runtime.wasm > genesis.json`). The `import-runtime` subcommand invokes the
+expects both the path to a Wasm file and a genesis configuration file to be provided as a command-line parameter (example:
+`./bin/gossamer import-runtime runtime.wasm genesis.json > updated_genesis.json`). The `import-runtime` subcommand invokes the
 `importRuntimeAction` function defined in [`main.go`](main.go).
 
 ### Build Spec Subcommand

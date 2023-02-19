@@ -22,7 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,7 +73,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	t.Log(gss[0].blockState.BlocktreeAsString())
+	t.Log(gss[0].blockState.(*state.BlockState).BlocktreeAsString())
 	finalised := gss[0].head.Hash()
 
 	for _, gs := range gss[:1] {
@@ -252,7 +252,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				// In this test it is not important to assert the arguments
 				// to the telemetry SendMessage mocked func
 				// the TestSendingVotesInRightStage does it properly
-				telemetryMock := NewMockClient(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
 				grandpaService.telemetry = telemetryMock
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
@@ -261,7 +261,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				var equivocatedVoteMessage *VoteMessage
 				_, isEquivocator := tt.whoEquivocates[idx]
 				if isEquivocator {
-					leaves := grandpaService.blockState.Leaves()
+					leaves := grandpaService.blockState.(*state.BlockState).Leaves()
 
 					vote, err := NewVoteFromHash(leaves[1], grandpaService.blockState)
 					require.NoError(t, err)
@@ -289,7 +289,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 			var latestHash common.Hash = grandpaServices[0].head.Hash()
 			for _, grandpaService := range grandpaServices[1:] {
 				serviceFinalizedHash := grandpaService.head.Hash()
-				eql := serviceFinalizedHash.Equal(latestHash)
+				eql := serviceFinalizedHash == latestHash
 				if !eql {
 					t.Errorf("miss match service finalized hash\n\texpecting %s\n\tgot%s\n",
 						latestHash, serviceFinalizedHash)
@@ -297,7 +297,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				latestHash = serviceFinalizedHash
 			}
 
-			var latestCommit *CommitMessage = producedCommitMessages[0]
+			latestCommit := producedCommitMessages[0]
 			for _, commitMessage := range producedCommitMessages[1:] {
 				require.NotNil(t, commitMessage)
 				require.GreaterOrEqual(t, len(commitMessage.Precommits), len(tt.voters)/2)
@@ -432,7 +432,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 			// In this test it is not important to assert the arguments
 			// to the telemetry SendMessage mocked func
 			// the TestSendingVotesInRightStage does it properly
-			telemetryMock := NewMockClient(ctrl)
+			telemetryMock := NewMockTelemetry(ctrl)
 			grandpaService.telemetry = telemetryMock
 			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
@@ -455,7 +455,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		assertSamefinalisationAndChainGrowth(t, grandpaServices,
 			uint64(currentRound), setID)
 
-		var latestCommit *CommitMessage = producedCommitMessages[0]
+		latestCommit := producedCommitMessages[0]
 		for _, commitMessage := range producedCommitMessages[1:] {
 			require.NotNil(t, commitMessage)
 			require.GreaterOrEqual(t, len(commitMessage.Precommits), len(voters)/2)
@@ -513,7 +513,7 @@ func assertSamefinalisationAndChainGrowth(t *testing.T, services []*Service, cur
 
 	var latestFinalized common.Hash = finalizedHeaderCurrentRound[0].Hash()
 	for _, finalizedHead := range finalizedHeaderCurrentRound[1:] {
-		eq := finalizedHead.Hash().Equal(latestFinalized)
+		eq := finalizedHead.Hash() == latestFinalized
 		if !eq {
 			t.Errorf("miss match finalized hash\n\texpected %s\n\tgot%s\n",
 				latestFinalized, finalizedHead)
@@ -645,7 +645,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		grandpaVoters[2].PublicKeyBytes().String(),
 	)
 
-	mockedTelemetry := NewMockClient(ctrl)
+	mockedTelemetry := NewMockTelemetry(ctrl)
 	mockedTelemetry.EXPECT().
 		SendMessage(expectedAlicePrevoteTelemetryMessage)
 	mockedTelemetry.EXPECT().

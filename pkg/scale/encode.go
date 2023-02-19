@@ -47,6 +47,15 @@ func Marshal(v interface{}) (b []byte, err error) {
 	return
 }
 
+// MustMarshal runs Marshal and panics on error.
+func MustMarshal(v interface{}) (b []byte) {
+	b, err := Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 type encodeState struct {
 	io.Writer
 	*fieldScaleIndicesCache

@@ -67,20 +67,21 @@ func confirmMessage(msg string) bool {
 }
 
 // newTestConfig returns a new test configuration using the provided basepath
-func newTestConfig(t *testing.T) *dot.Config {
+func newTestConfig(t *testing.T, chainConfig *dot.Config) *dot.Config {
 	dir := t.TempDir()
 
+	//westendDevConfig := dot.WestendDevConfig()
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:           dot.GssmrConfig().Global.Name,
-			ID:             dot.GssmrConfig().Global.ID,
+			Name:           chainConfig.Global.Name,
+			ID:             chainConfig.Global.ID,
 			BasePath:       dir,
 			LogLvl:         log.Info,
-			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
-			MetricsAddress: dot.GssmrConfig().Global.MetricsAddress,
-			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
-			Pruning:        dot.GssmrConfig().Global.Pruning,
-			TelemetryURLs:  dot.GssmrConfig().Global.TelemetryURLs,
+			PublishMetrics: chainConfig.Global.PublishMetrics,
+			MetricsAddress: chainConfig.Global.MetricsAddress,
+			RetainBlocks:   chainConfig.Global.RetainBlocks,
+			Pruning:        chainConfig.Global.Pruning,
+			TelemetryURLs:  chainConfig.Global.TelemetryURLs,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.Info,
@@ -93,23 +94,23 @@ func newTestConfig(t *testing.T) *dot.Config {
 			BlockProducerLvl:  log.Info,
 			FinalityGadgetLvl: log.Info,
 		},
-		Init:    dot.GssmrConfig().Init,
-		Account: dot.GssmrConfig().Account,
-		Core:    dot.GssmrConfig().Core,
-		Network: dot.GssmrConfig().Network,
-		RPC:     dot.GssmrConfig().RPC,
-		System:  dot.GssmrConfig().System,
-		Pprof:   dot.GssmrConfig().Pprof,
+		Init:    chainConfig.Init,
+		Account: chainConfig.Account,
+		Core:    chainConfig.Core,
+		Network: chainConfig.Network,
+		RPC:     chainConfig.RPC,
+		System:  chainConfig.System,
+		Pprof:   chainConfig.Pprof,
 	}
 
 	return cfg
 }
 
 // newTestConfigWithFile returns a new test configuration and a temporary configuration file
-func newTestConfigWithFile(t *testing.T) (cfg *dot.Config, configPath string) {
+func newTestConfigWithFile(t *testing.T, chainConfig *dot.Config) (cfg *dot.Config, configPath string) {
 	t.Helper()
 
-	cfg = newTestConfig(t)
+	cfg = newTestConfig(t, chainConfig)
 
 	tomlCfg := dotConfigToToml(cfg)
 

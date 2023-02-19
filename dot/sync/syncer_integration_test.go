@@ -27,7 +27,7 @@ import (
 func newTestSyncer(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
 
-	mockTelemetryClient := NewMockClient(ctrl)
+	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	wasmer.DefaultTestLogLvl = log.Warn
@@ -43,7 +43,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -73,13 +73,14 @@ func newTestSyncer(t *testing.T) *Service {
 		require.NoError(t, err)
 	}
 
-	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	instance, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
+	bestBlockHash := cfg.BlockState.(*state.BlockState).BestBlockHash()
+	cfg.BlockState.(*state.BlockState).StoreRuntime(bestBlockHash, instance)
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
 		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
@@ -108,8 +109,8 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.LogLvl = log.Trace
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
 	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(hash common.Hash, justification []byte) ([]byte, error) {
-		return justification, nil
+		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(hash common.Hash, justification []byte) error {
+		return nil
 	}).AnyTimes()
 
 	cfg.FinalityGadget = mockFinalityGadget
@@ -120,11 +121,11 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genesisPtr
@@ -159,7 +160,7 @@ func TestHighestBlock(t *testing.T) {
 	}
 	tests := []test{
 		{
-			name: "when *chainSync.getHighestBlock() returns 0, error should return 0",
+			name: "when_*chainSync.getHighestBlock()_returns_0,_error_should_return_0",
 			in: input{
 				highestBlock: 0,
 				err:          errors.New("fake error"),
@@ -169,7 +170,7 @@ func TestHighestBlock(t *testing.T) {
 			},
 		},
 		{
-			name: "when *chainSync.getHighestBlock() returns 0, nil should return 0",
+			name: "when_*chainSync.getHighestBlock()_returns_0,_nil_should_return_0",
 			in: input{
 				highestBlock: 0,
 				err:          nil,
@@ -179,7 +180,7 @@ func TestHighestBlock(t *testing.T) {
 			},
 		},
 		{
-			name: "when *chainSync.getHighestBlock() returns 50, nil should return 50",
+			name: "when_*chainSync.getHighestBlock()_returns_50,_nil_should_return_50",
 			in: input{
 				highestBlock: 50,
 				err:          nil,

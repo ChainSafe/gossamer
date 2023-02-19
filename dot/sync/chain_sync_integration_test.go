@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,7 +80,7 @@ func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 
 	err := cs.validateResponse(req, resp, "")
 	require.True(t, errors.Is(err, errUnknownParent))
-	require.True(t, cs.pendingBlocks.hasBlock(header.Hash()))
+	require.True(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 	bd := cs.pendingBlocks.getBlock(header.Hash())
 	require.NotNil(t, bd.header)
 	require.NotNil(t, bd.body)

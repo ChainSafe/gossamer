@@ -42,7 +42,7 @@ func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importe
 		announcingHash := forced.announcingHeader.Hash()
 		effectiveNumber := forced.effectiveNumber()
 
-		if importedHash.Equal(announcingHash) && effectiveNumber == importedNumber {
+		if importedHash == announcingHash && effectiveNumber == importedNumber {
 			return true, nil
 		}
 
@@ -81,7 +81,7 @@ func (oc *orderedPendingChanges) importChange(pendingChange pendingChange, isDes
 	for _, change := range *oc {
 		changeBlockHash := change.announcingHeader.Hash()
 
-		if changeBlockHash.Equal(announcingHeader) {
+		if changeBlockHash == announcingHeader {
 			return fmt.Errorf("%w: %s", errDuplicateHashes, changeBlockHash)
 		}
 
@@ -144,7 +144,7 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 	isDescendantOf isDescendantOfFunc) (imported bool, err error) {
 	announcingHash := c.change.announcingHeader.Hash()
 
-	if blockHash.Equal(announcingHash) {
+	if blockHash == announcingHash {
 		return false, fmt.Errorf("%w: %s", errDuplicateHashes, blockHash)
 	}
 
@@ -265,7 +265,7 @@ func (ct changeTree) findApplicableChange(hash common.Hash, number uint,
 		}
 
 		changeNodeHash := pcn.change.announcingHeader.Hash()
-		if !hash.Equal(changeNodeHash) {
+		if hash != changeNodeHash {
 			isDescendant, err := isDescendantOf(changeNodeHash, hash)
 			if err != nil {
 				return false, fmt.Errorf("cannot verify ancestry: %w", err)

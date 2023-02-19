@@ -28,7 +28,7 @@ func Test_marshalYAML(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "zero case options",
+			name: "zero_case_options",
 			args: args{opts: options{}},
 			wantYml: mustMarshal(
 				conf{
@@ -46,7 +46,7 @@ func Test_marshalYAML(t *testing.T) {
 			),
 		},
 		{
-			name: "options with ns and tags",
+			name: "options_with_ns_and_tags",
 			args: args{opts: options{
 				Namespace: "SomeNamespace",
 				Tags:      []string{"some", "tags"},

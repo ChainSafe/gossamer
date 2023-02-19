@@ -16,7 +16,7 @@ import (
 )
 
 func TestNewEpochHandler(t *testing.T) {
-	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32,
+	testHandleSlotFunc := func(epoch uint64, slot Slot, authorityIndex uint32,
 		preRuntimeDigest *types.PreRuntimeDigest,
 	) error {
 		return nil
@@ -52,14 +52,14 @@ func TestEpochHandler_run(t *testing.T) {
 	startSlot := getCurrentSlot(sd)
 
 	var callsToHandleSlot, firstExecutedSlot uint64
-	testHandleSlotFunc := func(epoch, slotNum uint64, authorityIndex uint32,
+	testHandleSlotFunc := func(epoch uint64, slot Slot, authorityIndex uint32,
 		preRuntimeDigest *types.PreRuntimeDigest,
 	) error {
 		require.Equal(t, uint64(1), epoch)
 		if callsToHandleSlot == 0 {
-			firstExecutedSlot = slotNum
+			firstExecutedSlot = slot.number
 		} else {
-			require.Equal(t, firstExecutedSlot+callsToHandleSlot, slotNum)
+			require.Equal(t, firstExecutedSlot+callsToHandleSlot, slot.number)
 		}
 		require.Equal(t, uint32(0), authorityIndex)
 		require.NotNil(t, preRuntimeDigest)
@@ -92,9 +92,7 @@ func TestEpochHandler_run(t *testing.T) {
 	case <-timer.C:
 		require.Equal(t, epochLength-(firstExecutedSlot-startSlot), callsToHandleSlot)
 	case err := <-errCh:
-		if !timer.Stop() {
-			<-timer.C
-		}
+		timer.Stop()
 		require.NoError(t, err)
 	}
 }

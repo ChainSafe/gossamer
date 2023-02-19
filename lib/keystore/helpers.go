@@ -21,7 +21,7 @@ import (
 )
 
 // PrivateKeyToKeypair returns a public, private keypair given a private key
-func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp crypto.Keypair, err error) {
+func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp KeyPair, err error) {
 	if key, ok := priv.(*sr25519.PrivateKey); ok {
 		kp, err = sr25519.NewKeypairFromPrivate(key)
 	} else if key, ok := priv.(*ed25519.PrivateKey); ok {
@@ -51,7 +51,7 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 }
 
 // DecodeKeyPairFromHex turns an hex-encoded private key into a keypair
-func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp crypto.Keypair, err error) {
+func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp KeyPair, err error) {
 	switch keytype {
 	case crypto.Sr25519Type:
 		kp, err = sr25519.NewKeypairFromSeed(keystr)
@@ -67,7 +67,7 @@ func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp crypto.Keyp
 // GenerateKeypair create a new keypair with the corresponding type and saves
 // it to basepath/keystore/[public key].key in json format encrypted using the
 // specified password and returns the resulting filepath of the new key
-func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, password []byte) (string, error) {
+func GenerateKeypair(keytype string, kp PublicPrivater, basepath string, password []byte) (string, error) {
 	if keytype == "" {
 		keytype = crypto.Sr25519Type
 	}
@@ -111,54 +111,46 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 	return fp, nil
 }
 
+// KeyRing is the key ring with multiple named keypairs.
+type KeyRing interface {
+	Alice() KeyPair
+	Bob() KeyPair
+	Charlie() KeyPair
+	Dave() KeyPair
+	Eve() KeyPair
+	Ferdie() KeyPair
+	George() KeyPair
+	Heather() KeyPair
+	Ian() KeyPair
+}
+
 // LoadKeystore loads a new keystore and inserts the test key into the keystore
-func LoadKeystore(key string, ks Keystore) error {
-	if key != "" {
-
-		var kr Keyring
-		var err error
-
-		switch ks.Type() {
-		case crypto.Ed25519Type:
-			kr, err = NewEd25519Keyring()
-			if err != nil {
-				return fmt.Errorf("failed to create keyring: %s", err)
-			}
-		default:
-			kr, err = NewSr25519Keyring()
-			if err != nil {
-				return fmt.Errorf("failed to create keyring: %s", err)
-			}
-		}
-
-		switch strings.ToLower(key) {
-		// Insert can error only if kestore type do not match with key
-		// type do not match. Since we have created keyring based on ks.Type(),
-		// Insert would never error here. Thus, ignoring those errors.
-		case "alice":
-			_ = ks.Insert(kr.Alice())
-		case "bob":
-			_ = ks.Insert(kr.Bob())
-		case "charlie":
-			_ = ks.Insert(kr.Charlie())
-		case "dave":
-			_ = ks.Insert(kr.Dave())
-		case "eve":
-			_ = ks.Insert(kr.Eve())
-		case "ferdie":
-			_ = ks.Insert(kr.Ferdie())
-		case "george":
-			_ = ks.Insert(kr.George())
-		case "heather":
-			_ = ks.Insert(kr.Heather())
-		case "ian":
-			_ = ks.Insert(kr.Ian())
-		default:
-			return fmt.Errorf("invalid test key provided")
-		}
+func LoadKeystore(key string, keyStore TyperInserter, keyRing KeyRing) (err error) {
+	switch strings.ToLower(key) {
+	// Insert can error only if kestore type do not match with key
+	// type do not match. Since we have created keyring based on ks.Type(),
+	// Insert would never error here. Thus, ignoring those errors.
+	case "alice":
+		return keyStore.Insert(keyRing.Alice())
+	case "bob":
+		return keyStore.Insert(keyRing.Bob())
+	case "charlie":
+		return keyStore.Insert(keyRing.Charlie())
+	case "dave":
+		return keyStore.Insert(keyRing.Dave())
+	case "eve":
+		return keyStore.Insert(keyRing.Eve())
+	case "ferdie":
+		return keyStore.Insert(keyRing.Ferdie())
+	case "george":
+		return keyStore.Insert(keyRing.George())
+	case "heather":
+		return keyStore.Insert(keyRing.Heather())
+	case "ian":
+		return keyStore.Insert(keyRing.Ian())
+	default:
+		return fmt.Errorf("invalid test key provided")
 	}
-
-	return nil
 }
 
 // ImportKeypair imports a key specified by its filename into a subdirectory
@@ -196,7 +188,7 @@ func ImportKeypair(fp, dir string) (string, error) {
 
 // ImportRawPrivateKey imports a raw private key and saves it to the keystore directory
 func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string, error) {
-	var kp crypto.Keypair
+	var kp PublicPrivater
 	var err error
 
 	if keytype == "" {
@@ -225,7 +217,7 @@ func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string
 
 // UnlockKeys unlocks keys specified by the --unlock flag with the passwords given by --password
 // and places them into the keystore
-func UnlockKeys(ks Keystore, dir, unlock, password string) error {
+func UnlockKeys(ks Inserter, dir, unlock, password string) error {
 	var indices []int
 	var passwords []string
 	var err error
@@ -288,22 +280,13 @@ func UnlockKeys(ks Keystore, dir, unlock, password string) error {
 }
 
 // DetermineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
-//  and returns the crypto.KeyType
+// and returns the crypto.KeyType
 func DetermineKeyType(t string) crypto.KeyType {
 	switch t {
-	case "babe":
-		return crypto.Sr25519Type
 	case "gran":
 		return crypto.Ed25519Type
-	case "acco":
-		return crypto.Sr25519Type
-	case "aura":
-		return crypto.Sr25519Type
-	case "imon":
-		return crypto.Sr25519Type
-	case "audi":
-		return crypto.Sr25519Type
-	case "dumy":
+	case "acco", "babe", "para", "asgn",
+		"aura", "imon", "audi", "dumy":
 		return crypto.Sr25519Type
 	}
 	return crypto.UnknownType
@@ -311,7 +294,7 @@ func DetermineKeyType(t string) crypto.KeyType {
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
 // are issues decoding string
-func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
+func HasKey(pubKeyStr, keyType string, keystore AddressKeypairGetter) (bool, error) {
 	keyBytes, err := common.HexToBytes(pubKeyStr)
 	if err != nil {
 		return false, err

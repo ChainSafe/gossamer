@@ -108,4 +108,4 @@ Gossamer is an implementation of the Polkadot Host in Go. To learn more about Go
 
 #### Articles
 
-- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@gavofyork/why-we-need-web-3-0-5da4f2bf95ab">Why Wy Need Web 3.0</a> - September 12th 2018
+- <a target="_blank" rel="noopener noreferrer" href="https://medium.com/@gavofyork/why-we-need-web-3-0-5da4f2bf95ab">Why We Need Web 3.0</a> - September 12th 2018

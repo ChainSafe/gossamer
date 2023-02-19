@@ -28,7 +28,11 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
-	t.Put(key, childHash.ToBytes())
+	err = t.Put(key, childHash.ToBytes())
+	if err != nil {
+		return fmt.Errorf("putting child trie root hash %s in trie: %w", childHash, err)
+	}
+
 	t.childTries[childHash] = child
 	return nil
 }
@@ -59,7 +63,11 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 		return err
 	}
 
-	child.Put(key, value)
+	err = child.Put(key, value)
+	if err != nil {
+		return fmt.Errorf("putting into child trie located at key 0x%x: %w", keyToChild, err)
+	}
+
 	childHash, err := child.Hash()
 	if err != nil {
 		return err
@@ -88,12 +96,16 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 }
 
 // DeleteChild deletes the child storage trie
-func (t *Trie) DeleteChild(keyToChild []byte) {
+func (t *Trie) DeleteChild(keyToChild []byte) (err error) {
 	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
-	t.Delete(key)
+	err = t.Delete(key)
+	if err != nil {
+		return fmt.Errorf("deleting child trie located at key 0x%x: %w", keyToChild, err)
+	}
+	return nil
 }
 
 // ClearFromChild removes the child storage entry
@@ -105,6 +117,11 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 	if child == nil {
 		return fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
-	child.Delete(key)
+
+	err = child.Delete(key)
+	if err != nil {
+		return fmt.Errorf("deleting from child trie located at key 0x%x: %w", keyToChild, err)
+	}
+
 	return nil
 }

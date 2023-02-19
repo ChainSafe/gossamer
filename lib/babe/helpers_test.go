@@ -4,13 +4,16 @@
 package babe
 
 import (
+	"bytes"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -18,14 +21,42 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	defaultTestLogLvl = log.Info
+	testEpochIndex    = uint64(0)
+)
+
+var (
+	emptyHash    = trie.EmptyHash
+	maxThreshold = scale.MaxUint128
+
+	emptyHeader = &types.Header{
+		Number: 0,
+		Digest: types.NewDigest(),
+	}
+
+	genesisBABEConfig = &types.BabeConfiguration{
+		SlotDuration:       1000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{},
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+)
+
 // NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
+func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
+	genesisTrie trie.Trie, genesisHeader types.Header) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
@@ -48,12 +79,9 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
-
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
-		cfg.TransactionState == nil || cfg.EpochState == nil ||
-		cfg.CodeSubstitutedState == nil {
-		telemetryMock := NewMockClient(ctrl)
+		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
@@ -65,7 +93,7 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+		err := stateSrvc.Initialise(&genesis, &genesisHeader, &genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -84,10 +112,6 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
 
-	if cfg.EpochState == nil {
-		cfg.EpochState = stateSrvc.Epoch
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
@@ -98,7 +122,7 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -138,12 +162,205 @@ func NewTestService(t *testing.T, cfg *core.Config) *core.Service {
 	return s
 }
 
-// newDevGenesisWithTrieAndHeader generates test dev genesis, genesis trie and genesis header
-func newDevGenesisWithTrieAndHeader(t *testing.T) (
+func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
+	genesisTrie trie.Trie, genesisHeader types.Header) *Service {
+	wasmer.DefaultTestLogLvl = log.Error
+
+	if cfg.Keypair == nil {
+		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
+	}
+
+	if cfg.AuthData == nil {
+		auth := types.Authority{
+			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		}
+		cfg.AuthData = []types.Authority{auth}
+	}
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	cfg.Telemetry = telemetryMock
+
+	testDatadirPath := t.TempDir()
+
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
+	}
+	dbSrv := state.NewService(config)
+	dbSrv.UseMemDB()
+
+	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
+
+	cfg.BlockState = dbSrv.Block
+	cfg.StorageState = dbSrv.Storage
+	cfg.EpochState = dbSrv.Epoch
+	cfg.TransactionState = dbSrv.Transaction
+
+	var rtCfg wasmer.Config
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+
+	storageState := cfg.StorageState.(*state.StorageState)
+	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
+	require.NoError(t, err)
+
+	nodeStorage := runtime.NodeStorage{}
+	nodeStorage.BaseDB = dbSrv.Base
+
+	rtCfg.NodeStorage = nodeStorage
+	runtime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
+
+	cfg.IsDev = true
+	cfg.LogLvl = defaultTestLogLvl
+	babeService, err := NewService(&cfg)
+	require.NoError(t, err)
+
+	if cfg.BlockImportHandler == nil {
+		mockNetwork := mocks.NewMockNetwork(ctrl)
+		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
+
+		coreConfig := core.Config{
+			BlockState:           dbSrv.Block,
+			StorageState:         storageState,
+			TransactionState:     dbSrv.Transaction,
+			Runtime:              runtime,
+			Keystore:             rtCfg.Keystore,
+			Network:              mockNetwork,
+			CodeSubstitutedState: dbSrv.Base,
+			CodeSubstitutes:      make(map[common.Hash]string),
+		}
+
+		babeService.blockImportHandler = NewTestService(t, &coreConfig, genesis,
+			genesisTrie, genesisHeader)
+	}
+
+	return babeService
+}
+
+func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
+	genesisTrie trie.Trie, genesisHeader types.Header) (*Service, *state.EpochState, *types.BabeConfiguration) {
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	testDatadirPath := t.TempDir()
+
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
+	}
+	dbSrv := state.NewService(config)
+	dbSrv.UseMemDB()
+
+	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
+
+	rtCfg := wasmer.Config{
+		Storage: rtstorage.NewTrieState(&genesisTrie),
+	}
+
+	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+
+	genCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	s := &Service{
+		epochState: dbSrv.Epoch,
+	}
+
+	return s, dbSrv.Epoch, genCfg
+}
+
+func createSecondaryVRFPreDigest(t *testing.T,
+	keypair *sr25519.Keypair, index uint32,
+	slot, epoch uint64, randomness Randomness,
+) *types.BabeSecondaryVRFPreDigest {
+	transcript := makeTranscript(randomness, slot, epoch)
+	out, proof, err := keypair.VrfSign(transcript)
+	require.NoError(t, err)
+
+	return types.NewBabeSecondaryVRFPreDigest(index, slot, out, proof)
+}
+
+func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
+	bestBlockHash common.Hash) types.Extrinsic {
+	runtimeVersion := rt.Version()
+	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
+	require.NoError(t, err)
+	var extrinsicParts [][]byte
+	switch txQueueVersion {
+	case 3:
+		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext, bestBlockHash.ToBytes()}
+	case 2:
+		extrinsicParts = [][]byte{{byte(types.TxnLocal)}, ext}
+	}
+	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
+}
+
+func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
+	t.Helper()
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	currentSlot := uint64(timestamp.UnixMilli()) / babeConfig.SlotDuration
+	return Slot{
+		start:    timestamp,
+		duration: time.Duration(babeConfig.SlotDuration) * time.Millisecond,
+		number:   currentSlot,
+	}
+}
+
+func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
+	exts [][]byte, epoch uint64, epochData *epochData, slot Slot) *types.Block {
+	for _, ext := range exts {
+		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
+		_, err := babeService.transactionState.Push(validTransaction)
+		require.NoError(t, err)
+	}
+
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochData, babeService.keypair)
+	require.NoError(t, err)
+
+	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
+	require.NoError(t, err)
+
+	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
+	return block
+}
+
+// newWestendLocalGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
+func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
-	genesisPath := utils.GetDevV3SubstrateGenesisPath(t)
 
+	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genesisPtr
@@ -157,11 +374,12 @@ func newDevGenesisWithTrieAndHeader(t *testing.T) (
 	return gen, genesisTrie, genesisHeader
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+// newWestendDevGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genesisPtr
@@ -169,13 +387,8 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := trie.EmptyHash
-	const number = 0
-	digest := types.NewDigest()
-	genesisHeader = *types.NewHeader(parentHash,
-		stateRoot, extrinsicRoot, number, digest)
+	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
+		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }

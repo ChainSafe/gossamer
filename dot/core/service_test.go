@@ -180,7 +180,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
 
 	errTest := errors.New("test error")
-	validRuntimeCode := getGssmrRuntimeCode(t)
+	validRuntimeCode := getWestendDevRuntimeCode(t)
 
 	testCases := map[string]struct {
 		serviceBuilder func(ctrl *gomock.Controller) *Service
@@ -189,7 +189,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		errWrapped     error
 		errMessage     string
 	}{
-		"non existent block hash substitute": {
+		"non_existent_block_hash_substitute": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				return &Service{
 					codeSubstitute: map[common.Hash]string{
@@ -199,7 +199,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			},
 			blockHash: common.Hash{0x01},
 		},
-		"empty runtime code error": {
+		"empty_runtime_code_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				return &Service{
 					codeSubstitute: map[common.Hash]string{
@@ -212,7 +212,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errMessage: "new :code is empty: for hash " +
 				"0x0100000000000000000000000000000000000000000000000000000000000000",
 		},
-		"block state get runtime error": {
+		"block_state_get_runtime_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
@@ -228,7 +228,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errWrapped: errTest,
 			errMessage: "getting runtime from block state: test error",
 		},
-		"instance creation error": {
+		"instance_creation_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockRuntimeInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
@@ -255,7 +255,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errMessage: "creating new runtime instance: setting up VM: " +
 				"wasm decompression failed: unexpected EOF",
 		},
-		"store code substitution block hash error": {
+		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockRuntimeInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
@@ -808,7 +808,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return([]common.Hash{}, errDummyErr)
 
 		service := &Service{
 			blockState: mockBlockState,
@@ -822,7 +822,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return([]common.Hash{}, nil)
 
 		service := &Service{
 			blockState: mockBlockState,
@@ -836,7 +836,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(nil, errDummyErr)
 
@@ -869,7 +869,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockErr, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
@@ -908,7 +908,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
 			Return(testAncestorHash, nil)
-		mockBlockState.EXPECT().SubChain(testAncestorHash, testPrevHash).Return(testSubChain, nil)
+		mockBlockState.EXPECT().RangeInMemory(testAncestorHash, testPrevHash).Return(testSubChain, nil)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockOk, nil)
 		mockBlockState.EXPECT().GetBlockBody(testCurrentHash).Return(nil, errDummyErr)
@@ -934,7 +934,7 @@ func TestServiceInsertKey(t *testing.T) {
 	keyring, _ := keystore.NewSr25519Keyring()
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 	type args struct {
-		kp           crypto.Keypair
+		kp           KeyPair
 		keystoreType string
 	}
 	tests := []struct {
@@ -945,7 +945,7 @@ func TestServiceInsertKey(t *testing.T) {
 		expErrMsg string
 	}{
 		{
-			name: "ok case",
+			name: "ok_case",
 			service: &Service{
 				keys: &keyStore,
 			},
@@ -955,7 +955,7 @@ func TestServiceInsertKey(t *testing.T) {
 			},
 		},
 		{
-			name: "err case",
+			name: "err_case",
 			service: &Service{
 				keys: &keyStore,
 			},
@@ -1002,7 +1002,7 @@ func TestServiceHasKey(t *testing.T) {
 		expErrMsg string
 	}{
 		{
-			name: "ok case",
+			name: "ok_case",
 			service: &Service{
 				keys: &keyStore,
 			},
@@ -1012,7 +1012,7 @@ func TestServiceHasKey(t *testing.T) {
 			},
 		},
 		{
-			name: "err case",
+			name: "err_case",
 			service: &Service{
 				keys: &keyStore,
 			},

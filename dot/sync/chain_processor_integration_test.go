@@ -13,32 +13,124 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
+func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
+	parent *types.Header, currentSlot, timestamp uint64) *types.Block {
+	t.Helper()
+
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, currentSlot).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash:     parent.Hash(),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Number:         parent.Number + 1,
+		Digest:         digest,
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
+	require.NoError(t, err)
+
+	parachainInherent := inherents.ParachainInherentData{
+		ParentHeader: *parent,
+	}
+
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	encodedInherentData, err := inherentData.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
+	encodedInherentExtrinsics, err := instance.InherentExtrinsics(encodedInherentData)
+	require.NoError(t, err)
+
+	var inherentExtrinsics [][]byte
+	err = scale.Unmarshal(encodedInherentExtrinsics, &inherentExtrinsics)
+	require.NoError(t, err)
+
+	for _, inherent := range inherentExtrinsics {
+		encodedInherent, err := scale.Marshal(inherent)
+		require.NoError(t, err)
+
+		applyExtrinsicResult, err := instance.ApplyExtrinsic(encodedInherent)
+		require.NoError(t, err)
+		require.Equal(t, applyExtrinsicResult, []byte{0, 0})
+	}
+
+	finalisedHeader, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	body := types.Body(types.BytesArrayToExtrinsics(inherentExtrinsics))
+
+	finalisedHeader.Number = header.Number
+	finalisedHeader.Hash()
+
+	return &types.Block{
+		Header: *finalisedHeader,
+		Body:   body,
+	}
+}
+
+func buildAndAddBlocksToState(t *testing.T, runtime state.Runtime, blockState *state.BlockState, amount uint) {
+	t.Helper()
+
+	parent, err := blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	babeConfig, err := runtime.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeConfig.SlotDuration
+
+	for i := uint(0); i < amount; i++ {
+		// calculate the exact slot for each produced block
+		currentSlot := timestamp / slotDuration
+
+		block := buildBlockWithSlotAndTimestamp(t, runtime, parent, currentSlot, timestamp)
+		err = blockState.AddBlock(block)
+		require.NoError(t, err)
+		parent = &block.Header
+
+		// increase the timestamp by the slot duration
+		// so we will get a different slot for the next block
+		timestamp += slotDuration
+	}
+
+}
+
 func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	syncer := newTestSyncer(t)
 	responder := newTestSyncer(t)
 
-	// get responder to build valid chain
-	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
+	bestBlockHash := responder.blockState.(*state.BlockState).BestBlockHash()
+	runtimeInstance, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	bestBlockHash := responder.blockState.BestBlockHash()
-	rt, err := responder.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	for i := 0; i < maxResponseSize*2; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
-		require.NoError(t, err)
-		parent = &block.Header
-	}
+	buildAndAddBlocksToState(t, runtimeInstance,
+		responder.blockState.(*state.BlockState), maxResponseSize*2)
 
 	// syncer makes request for chain
 	startNum := 1
@@ -81,39 +173,22 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	}
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncer := newTestSyncer(t)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	bestBlockHash := syncer.blockState.(*state.BlockState).BestBlockHash()
+	syncerRuntime, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	bestBlockHash := syncer.blockState.BestBlockHash()
-	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	for i := 0; i < 4; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = syncer.blockState.AddBlock(block)
-		require.NoError(t, err)
-		parent = &block.Header
-	}
+	const syncerAmountOfBlocks = 4
+	buildAndAddBlocksToState(t, syncerRuntime, syncer.blockState.(*state.BlockState), syncerAmountOfBlocks)
 
 	responder := newTestSyncer(t)
-
-	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
+	responderRuntime, err := responder.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	rt, err = syncer.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	for i := 0; i < 16; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
-		require.NoError(t, err)
-		parent = &block.Header
-	}
+	const responderAmountOfBlocks = 16
+	buildAndAddBlocksToState(t, responderRuntime, responder.blockState.(*state.BlockState), responderAmountOfBlocks)
 
 	startNum := 15
 	start, err := variadic.NewUint32OrHash(startNum)
@@ -153,18 +228,24 @@ func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) 
 	require.Nil(t, inQueue, "queue should be empty")
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, err := syncer.blockState.GetRuntime(parent.Hash())
+	runtimeInstance, err := syncer.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	babeConfig, err := runtimeInstance.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeConfig.SlotDuration
+
+	// calculate the exact slot for each produced block
+	currentSlot := timestamp / slotDuration
+	block := buildBlockWithSlotAndTimestamp(t, runtimeInstance, parent, currentSlot, timestamp)
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
@@ -184,26 +265,32 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 	}
 }
 
-// TODO: add test against latest gssmr runtime
-// See https://github.com/ChainSafe/gossamer/issues/2703
 func TestChainProcessor_ExecuteBlock(t *testing.T) {
 	syncer := newTestSyncer(t)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	bestBlockHash := syncer.blockState.BestBlockHash()
-	rt, err := syncer.blockState.GetRuntime(bestBlockHash)
+	bestBlockHash := syncer.blockState.(*state.BlockState).BestBlockHash()
+	runtimeInstance, err := syncer.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	babeConfig, err := runtimeInstance.BabeConfiguration()
+	require.NoError(t, err)
+
+	timestamp := uint64(time.Now().Unix())
+	slotDuration := babeConfig.SlotDuration
+
+	// calculate the exact slot for each produced block
+	currentSlot := timestamp / slotDuration
+	block := buildBlockWithSlotAndTimestamp(t, runtimeInstance, parent, currentSlot, timestamp)
 
 	// reset parentState
 	parentState, err := syncer.chainProcessor.(*chainProcessor).storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
-	rt.SetContextStorage(parentState)
+	runtimeInstance.SetContextStorage(parentState)
 
-	_, err = rt.ExecuteBlock(block)
+	_, err = runtimeInstance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -224,7 +311,7 @@ func TestChainProcessor_HandleJustification(t *testing.T) {
 
 	just := []byte("testjustification")
 
-	err = syncer.blockState.AddBlock(&types.Block{
+	err = syncer.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *header,
 		Body:   types.Body{},
 	})
@@ -254,5 +341,5 @@ func TestChainProcessor_processReadyBlocks_errFailedToGetParent(t *testing.T) {
 	})
 
 	time.Sleep(time.Millisecond * 100)
-	require.True(t, processor.pendingBlocks.hasBlock(header.Hash()))
+	require.True(t, processor.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
 }

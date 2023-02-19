@@ -22,7 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -77,8 +77,9 @@ type Service struct {
 
 	// channels for communication with other services
 	finalisedCh chan *types.FinalisationInfo
+	//receivedCommit chan *CommitMessage
 
-	telemetry telemetry.Client
+	telemetry Telemetry
 }
 
 // Config represents a GRANDPA service configuration
@@ -91,7 +92,7 @@ type Config struct {
 	Keypair      *ed25519.Keypair
 	Authority    bool
 	Interval     time.Duration
-	Telemetry    telemetry.Client
+	Telemetry    Telemetry
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -199,16 +200,18 @@ func (s *Service) Stop() error {
 }
 
 // authorities returns the current grandpa authorities
-func (s *Service) authorities() []*types.Authority {
-	ad := make([]*types.Authority, len(s.state.voters))
-	for i := 0; i < len(s.state.voters); i++ {
-		ad[i] = &types.Authority{
-			Key:    &s.state.voters[i].Key,
-			Weight: s.state.voters[i].ID,
+func (s *Service) authorityKeySet() (authorityKeys map[string]struct{}) {
+	authorityKeys = make(map[string]struct{}, len(s.state.voters))
+	for _, voter := range s.state.voters {
+		authority := &types.Authority{
+			Key:    &voter.Key,
+			Weight: voter.ID,
 		}
+		encodedKey := authority.Key.Encode()
+		authorityKeys[string(encodedKey)] = struct{}{}
 	}
 
-	return ad
+	return authorityKeys
 }
 
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
@@ -1212,7 +1215,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 
 	// check justification here
 	err = verifyCommitMessageJustification(*commitMessage, s.state.setID,
-		s.state.threshold(), s.authorities(), s.blockState)
+		s.state.threshold(), s.authorityKeySet(), s.blockState)
 	if err != nil {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// we haven't synced the committed block yet, add this to the tracker for later processing
@@ -1241,7 +1244,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 }
 
 func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64, threshold uint64,
-	authorities []*types.Authority, blockState BlockState) error {
+	authorityKeySet map[string]struct{}, blockState BlockState) error {
 	if len(commitMessage.Precommits) != len(commitMessage.AuthData) {
 		return fmt.Errorf("%w: precommits len: %d, authorities len: %d",
 			ErrPrecommitSignatureMismatch, len(commitMessage.Precommits), len(commitMessage.AuthData))
@@ -1276,9 +1279,9 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 			AuthorityID: commitMessage.AuthData[i].AuthorityID,
 		}
 
-		err := verifyJustification(justification, commitMessage.Round, setID, precommit, authorities)
+		err := verifyJustification(justification, commitMessage.Round, setID, precommit, authorityKeySet)
 		if err != nil {
-			logger.Errorf("verifying justification: %", err)
+			logger.Errorf("verifying justification: %s", err)
 			continue
 		}
 
@@ -1322,7 +1325,7 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 }
 
 func verifyJustification(justification *SignedVote, round, setID uint64,
-	stage Subround, authorities []*types.Authority) error {
+	stage Subround, authorityKeys map[string]struct{}) error {
 	fullVote := FullVote{
 		Stage: stage,
 		Vote:  justification.Vote,
@@ -1354,10 +1357,9 @@ func verifyJustification(justification *SignedVote, round, setID uint64,
 		return fmt.Errorf("encoding authority key: %w", err)
 	}
 
-	for _, auth := range authorities {
-		if bytes.Equal(auth.Key.Encode(), justificationKey) {
-			return nil
-		}
+	_, has := authorityKeys[string(justificationKey)]
+	if has {
+		return nil
 	}
 
 	return fmt.Errorf("%w: authority ID 0x%x", ErrVoterNotFound, justificationKey)

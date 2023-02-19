@@ -17,10 +17,12 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -31,7 +33,7 @@ import (
 )
 
 // NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) chaindb.Database {
+func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
 	testDatadirPath := t.TempDir()
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
@@ -55,8 +57,14 @@ var (
 // GetRuntime returns the runtime file path located in the
 // /tmp/gossamer/runtimes directory (depending on OS and environment).
 // If the file did not exist, the runtime WASM blob is downloaded to that file.
+// If the runtime argument is not defined in the constants.go and is a valid
+// file path, the runtime argument is returned.
 func GetRuntime(ctx context.Context, runtime string) (
 	runtimePath string, err error) {
+	if utils.PathExists(runtime) {
+		return runtime, nil
+	}
+
 	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
 	const perm = os.FileMode(0777)
 	err = os.MkdirAll(basePath, perm)
@@ -205,9 +213,16 @@ func generateEd25519Signatures(t *testing.T, n int) []*crypto.SignatureInfo {
 	return signs
 }
 
+// MetadataVersioner is an interface for getting metadata
+// and version from a runtime.
+type MetadataVersioner interface {
+	Metadataer
+	Versioner
+}
+
 // NewTestExtrinsic builds a new extrinsic using centrifuge pkg
-func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
-	nonce uint64, call string, args ...interface{}) string {
+func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash common.Hash,
+	nonce uint64, keyRingPair signature.KeyringPair, call string, args ...interface{}) string {
 	t.Helper()
 
 	rawMeta, err := rt.Metadata()
@@ -239,7 +254,7 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	}
 
 	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = ext.Sign(keyRingPair, o)
 	require.NoError(t, err)
 
 	extEnc, err := codec.EncodeToHex(ext)
@@ -248,80 +263,128 @@ func NewTestExtrinsic(t *testing.T, rt Instance, genHash, blockHash common.Hash,
 	return extEnc
 }
 
+// Instance is the interface to interact with the runtime.
+type Instance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() NodeStorage
+	NetworkService() BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s Storage)
+	GetCodeHash() common.Hash
+	Versioner
+	Metadataer
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
+	BabeGenerateKeyOwnershipProof(slot uint64, offenderPublicKey [32]byte) (types.OpaqueKeyOwnershipProof, error)
+	BabeSubmitReportEquivocationUnsignedExtrinsic(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error
+	CheckInherents()
+	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
+		types.GrandpaOpaqueKeyOwnershipProof, error)
+	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
+	) error
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+}
+
+// Versioner returns the version from the runtime.
+// This should return the cached version and be cheap to execute.
+type Versioner interface {
+	Version() (version Version)
+}
+
+// Metadataer returns the metadata from the runtime.
+type Metadataer interface {
+	Metadata() (metadata []byte, err error)
+}
+
 // InitializeRuntimeToTest sets a new block using the runtime functions to set initial data into the host
-func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHash common.Hash) *types.Block {
+func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *types.Header) *types.Block {
 	t.Helper()
 
-	header := &types.Header{
-		ParentHash: parentHash,
-		Number:     1,
-		Digest:     types.NewDigest(),
-	}
-
-	err := instance.InitializeBlock(header)
+	babeConfig, err := instance.BabeConfiguration()
 	require.NoError(t, err)
 
-	idata := types.NewInherentData()
-	err = idata.SetInherent(types.Timstap0, uint64(1))
-	require.NoError(t, err)
-
-	err = idata.SetInherent(types.Babeslot, uint64(1))
-	require.NoError(t, err)
-
-	ienc, err := idata.Encode()
-	require.NoError(t, err)
-
-	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ienc)
-	require.NoError(t, err)
-
-	// decode inherent extrinsics
-	var exts [][]byte
-	err = scale.Unmarshal(inherentExts, &exts)
-	require.NoError(t, err)
-
-	// apply each inherent extrinsic
-	for _, ext := range exts {
-		in, err := scale.Marshal(ext)
-		require.NoError(t, err)
-
-		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
-		require.NoError(t, err, in)
-		require.Equal(t, ret, []byte{0, 0})
-	}
-
-	res, err := instance.FinalizeBlock()
-	require.NoError(t, err)
-
-	res.Number = header.Number
+	slotDuration := babeConfig.SlotDuration
+	timestamp := uint64(time.Now().UnixMilli())
+	currentSlot := timestamp / slotDuration
 
 	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{}))
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
-	data, err := scale.Marshal(babeDigest)
+
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
 	require.NoError(t, err)
-	preDigest := *types.NewBABEPreRuntimeDigest(data)
+	preDigest := *types.NewBABEPreRuntimeDigest(encodedBabeDigest)
 
 	digest := types.NewDigest()
+	require.NoError(t, err)
 	err = digest.Add(preDigest)
 	require.NoError(t, err)
-	res.Digest = digest
 
-	expected := &types.Header{
-		ParentHash: header.ParentHash,
-		Number:     1,
+	header := &types.Header{
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
 		Digest:     digest,
 	}
 
-	require.Equal(t, expected.ParentHash, res.ParentHash)
-	require.Equal(t, expected.Number, res.Number)
-	require.Equal(t, expected.Digest, res.Digest)
-	require.False(t, res.StateRoot.IsEmpty())
-	require.False(t, res.ExtrinsicsRoot.IsEmpty())
-	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
+	require.NoError(t, err)
+
+	parachainInherent := inherents.ParachainInherentData{
+		ParentHeader: *parentHeader,
+	}
+
+	err = inherentData.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Newheads, []byte{0})
+	require.NoError(t, err)
+
+	encodedInnherents, err := inherentData.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(encodedInnherents)
+	require.NoError(t, err)
+
+	var extrinsics [][]byte
+	err = scale.Unmarshal(inherentExts, &extrinsics)
+	require.NoError(t, err)
+
+	for _, ext := range extrinsics {
+		encodedExtrinsic, err := scale.Marshal(ext)
+		require.NoError(t, err)
+
+		wasmResult, err := instance.ApplyExtrinsic(encodedExtrinsic)
+		require.NoError(t, err, encodedExtrinsic)
+		require.Equal(t, wasmResult, []byte{0, 0})
+	}
+
+	finalizedBlockHeader, err := instance.FinalizeBlock()
+	require.NoError(t, err)
 
 	return &types.Block{
-		Header: *res,
-		Body:   *types.NewBody(types.BytesArrayToExtrinsics(exts)),
+		Header: *finalizedBlockHeader,
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(extrinsics)),
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,12 +19,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
+// newTestGenesisFile returns a human-readable test genesis file using "westend-dev" human readable data
 func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 	t.Helper()
 
-	fp := utils.GetGssmrV3SubstrateGenesisPathTest(t)
-	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
+	fp := utils.GetWestendDevRawGenesisPath(t)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
@@ -33,7 +32,7 @@ func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
 		ID:         cfg.Global.ID,
 		Bootnodes:  cfg.Network.Bootnodes,
 		ProtocolID: cfg.Network.ProtocolID,
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 
 	b, err := json.Marshal(gen)
@@ -57,19 +56,19 @@ func TestCreateJSONRawFile(t *testing.T) {
 		expectedHash string
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				bs: &BuildSpec{genesis: NewTestGenesis(t)},
 				fp: filepath.Join(t.TempDir(), "/test.json"),
 			},
-			expectedHash: "9e61b166bdee6ae5da7f7fe65eb7e3888f715c34cb817575d1fbd268bc3f0d66",
+			expectedHash: "f7f1b82c0ba16b20e36bfb462d7899af2c76728918f639f5c5ef0e91ff3e7077",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			CreateJSONRawFile(tt.args.bs, tt.args.fp)
 
-			b, err := ioutil.ReadFile(tt.args.fp)
+			b, err := os.ReadFile(tt.args.fp)
 			require.NoError(t, err)
 			digest := sha256.Sum256(b)
 			hexDigest := fmt.Sprintf("%x", digest)
@@ -90,12 +89,12 @@ func TestNewTestConfig(t *testing.T) {
 		want *Config
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{t: t},
 			want: &Config{
 				Global: GlobalConfig{
-					Name:           "Gossamer",
-					ID:             "gssmr",
+					Name:           "Westend",
+					ID:             "westend_dev",
 					BasePath:       incBasePath,
 					LogLvl:         3,
 					PublishMetrics: false,
@@ -116,7 +115,8 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Init: InitConfig{Genesis: "./chain/gssmr/genesis.json"},
+				Account: AccountConfig{Key: "alice"},
+				Init:    InitConfig{Genesis: "./chain/westend-dev/westend-dev-spec-raw.json"},
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,
@@ -131,13 +131,11 @@ func TestNewTestConfig(t *testing.T) {
 					ProtocolID:        "",
 					NoBootstrap:       false,
 					NoMDNS:            false,
-					MinPeers:          1,
-					MaxPeers:          50,
 					PersistentPeers:   nil,
 					DiscoveryInterval: 10000000000,
 				},
 				RPC: RPCConfig{
-					Enabled:        false,
+					Enabled:        true,
 					External:       false,
 					Unsafe:         false,
 					UnsafeExternal: false,
@@ -146,7 +144,7 @@ func TestNewTestConfig(t *testing.T) {
 					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
 						"childstate", "syncstate", "payment"},
 					WSPort:           8546,
-					WS:               false,
+					WS:               true,
 					WSExternal:       false,
 					WSUnsafe:         false,
 					WSUnsafeExternal: false,
@@ -158,7 +156,7 @@ func TestNewTestConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewTestConfig(tt.args.t)
+			got := NewWestendDevConfig(tt.args.t)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -175,7 +173,7 @@ func TestNewTestGenesisFile(t *testing.T) {
 		want *os.File
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{
 				t:   t,
 				cfg: &Config{},
@@ -199,7 +197,7 @@ func TestRandomNodeName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 		},
 	}
 	for _, tt := range tests {
@@ -210,35 +208,34 @@ func TestRandomNodeName(t *testing.T) {
 	}
 }
 
-// NewTestConfig returns a new test configuration using the provided basepath
-func NewTestConfig(t *testing.T) *Config {
+// NewWestendDevConfig returns a new test configuration
+func NewWestendDevConfig(t *testing.T) *Config {
 	dir := t.TempDir()
 
 	cfg := &Config{
 		Global: GlobalConfig{
-			Name:        GssmrConfig().Global.Name,
-			ID:          GssmrConfig().Global.ID,
+			Name:        WestendDevConfig().Global.Name,
+			ID:          WestendDevConfig().Global.ID,
 			BasePath:    dir,
 			LogLvl:      log.Info,
 			NoTelemetry: true,
 		},
-		Log:     GssmrConfig().Log,
-		Init:    GssmrConfig().Init,
-		Account: GssmrConfig().Account,
-		Core:    GssmrConfig().Core,
-		Network: GssmrConfig().Network,
-		RPC:     GssmrConfig().RPC,
+		Log:     WestendDevConfig().Log,
+		Init:    WestendDevConfig().Init,
+		Account: WestendDevConfig().Account,
+		Core:    WestendDevConfig().Core,
+		Network: WestendDevConfig().Network,
+		RPC:     WestendDevConfig().RPC,
 	}
 
 	return cfg
 }
 
-// NewTestGenesis returns a test genesis instance using "gssmr" raw data
+// NewTestGenesis returns a test genesis instance using "westend-dev" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
-	fp, err := utils.GetGssmrGenesisRawPath()
-	require.NoError(t, err)
+	fp := utils.GetWestendDevRawGenesisPath(t)
 
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	return &genesis.Genesis{
@@ -246,6 +243,6 @@ func NewTestGenesis(t *testing.T) *genesis.Genesis {
 		ID:         "test",
 		Bootnodes:  []string(nil),
 		ProtocolID: "/gossamer/test/0",
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 }

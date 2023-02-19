@@ -8,13 +8,23 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
+// BuildBlockRuntime is the runtime interface to interact with
+// blocks and extrinsics.
+type BuildBlockRuntime interface {
+	InitializeBlock(header *types.Header) error
+	FinalizeBlock() (*types.Header, error)
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+}
+
 // BuildBlock ...
-func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
+func BuildBlock(t *testing.T, instance BuildBlockRuntime, parent *types.Header, ext types.Extrinsic) *types.Block {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)

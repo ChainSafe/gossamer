@@ -4,7 +4,6 @@
 package types
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -48,13 +47,10 @@ func TestBodyFromEncodedBytes(t *testing.T) {
 }
 
 func TestBodyFromExtrinsicStrings(t *testing.T) {
-	extStrings := []string{}
-
-	for _, ext := range exts {
-		extStrings = append(extStrings, common.BytesToHex(ext))
+	extStrings := make([]string, len(exts))
+	for i := range exts {
+		extStrings[i] = common.BytesToHex(exts[i])
 	}
-
-	fmt.Println(extStrings)
 
 	bodyFromByteExtrinsics := NewBody(exts)
 	bodyFromStringExtrinsics, err := NewBodyFromExtrinsicStrings(extStrings)

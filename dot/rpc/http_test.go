@@ -14,7 +14,7 @@ import (
 	"time"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -30,12 +30,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRegisterModules(t *testing.T) {
-	rpcapiMocks := mocks.NewRPCAPI(t)
+	ctrl := gomock.NewController(t)
+	rpcapiMocks := NewMockAPI(ctrl)
 
 	mods := []string{
 		"system", "author", "chain",
@@ -44,7 +44,7 @@ func TestRegisterModules(t *testing.T) {
 	}
 
 	for _, modName := range mods {
-		rpcapiMocks.On("BuildMethodNames", mock.Anything, modName).Once()
+		rpcapiMocks.EXPECT().BuildMethodNames(gomock.Any(), modName)
 	}
 
 	cfg := &HTTPServerConfig{
@@ -97,6 +97,8 @@ func TestUnsafeRPCProtection(t *testing.T) {
 	}
 }
 func TestRPCUnsafeExpose(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	data := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":["%s"],"id":1}`,
 		"system_addReservedPeer",
@@ -106,8 +108,8 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	_, err := buf.Write(data)
 	require.NoError(t, err)
 
-	netmock := mocks.NewNetworkAPI(t)
-	netmock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil)
+	netmock := mocks.NewMockNetworkAPI(ctrl)
+	netmock.EXPECT().AddReservedPeers(gomock.Any()).Return(nil)
 
 	cfg := &HTTPServerConfig{
 		Modules:           []string{"system"},
@@ -174,6 +176,8 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 }
 
 func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	unsafeData := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":["%s"],"id":1}`,
 		"system_addReservedPeer",
@@ -187,8 +191,8 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	safebuf := new(bytes.Buffer)
 	safebuf.Write(safeData)
 
-	netmock := mocks.NewNetworkAPI(t)
-	netmock.On("NetworkState").Return(common.NetworkState{
+	netmock := mocks.NewMockNetworkAPI(ctrl)
+	netmock.EXPECT().NetworkState().Return(common.NetworkState{
 		PeerID: "peer id",
 	})
 
@@ -290,18 +294,15 @@ func externalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
-//go:generate mockgen -destination=mock_network_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/core Network
-
 func newCoreServiceTest(t *testing.T) *core.Service {
 	t.Helper()
 
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
@@ -324,7 +325,6 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	cfg := &core.Config{
 		LogLvl:               log.Warn,
-		EpochState:           stateSrvc.Epoch,
 		BlockState:           stateSrvc.Block,
 		StorageState:         stateSrvc.Storage,
 		TransactionState:     stateSrvc.Transaction,
@@ -342,7 +342,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
-	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{

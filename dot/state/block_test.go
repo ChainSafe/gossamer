@@ -4,10 +4,13 @@
 package state
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -26,7 +29,7 @@ var testGenesisHeader = &types.Header{
 
 func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	db := NewInMemoryDB(t)
@@ -193,6 +196,125 @@ func TestGetSlotForBlock(t *testing.T) {
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
 	require.NoError(t, err)
 	require.Equal(t, expectedSlot, res)
+}
+
+func TestGetHashesByNumber(t *testing.T) {
+	t.Parallel()
+
+	// create two blocks with the same block number and test if GetHashesByNumber gets us
+	// both the blocks
+	bs := newTestBlockState(t, newTriesEmpty())
+	slot := uint64(77)
+
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	err = bs.AddBlock(block)
+	require.NoError(t, err)
+
+	babeHeader2 := types.NewBabeDigest()
+	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data2, err := scale.Marshal(babeHeader2)
+	require.NoError(t, err)
+	preDigest2 := types.NewBABEPreRuntimeDigest(data2)
+
+	digest2 := types.NewDigest()
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
+	block2 := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest2,
+		},
+		Body: types.Body{},
+	}
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+
+	blocks, err := bs.GetHashesByNumber(1)
+	require.NoError(t, err)
+	require.ElementsMatch(t, blocks, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
+}
+
+func TestGetAllDescendants(t *testing.T) {
+	t.Parallel()
+
+	bs := newTestBlockState(t, newTriesEmpty())
+	slot := uint64(77)
+
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest,
+		},
+		Body: sampleBlockBody,
+	}
+
+	err = bs.AddBlockWithArrivalTime(block, time.Now())
+	require.NoError(t, err)
+
+	babeHeader2 := types.NewBabeDigest()
+	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data2, err := scale.Marshal(babeHeader2)
+	require.NoError(t, err)
+	preDigest2 := types.NewBABEPreRuntimeDigest(data2)
+
+	digest2 := types.NewDigest()
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
+	block2 := &types.Block{
+		Header: types.Header{
+			ParentHash: block.Header.Hash(),
+			Number:     2,
+			Digest:     digest2,
+		},
+		Body: sampleBlockBody,
+	}
+	err = bs.AddBlockWithArrivalTime(block2, time.Now())
+	require.NoError(t, err)
+
+	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1)
+	require.NoError(t, err)
+
+	// can't fetch given block's descendants since the given block get removed from memory after
+	// being finalised, using blocktree.GetAllDescendants
+	_, err = bs.bt.GetAllDescendants(block.Header.Hash())
+	require.ErrorIs(t, err, blocktree.ErrNodeNotFound)
+
+	// can fetch given finalised block's descendants using disk, using using blockstate.GetAllDescendants
+	blockHashes, err := bs.GetAllDescendants(block.Header.Hash())
+	require.NoError(t, err)
+	require.ElementsMatch(t, blockHashes, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
 }
 
 func TestGetBlockHashesBySlot(t *testing.T) {
@@ -598,4 +720,362 @@ func TestNumberIsFinalised(t *testing.T) {
 	fin, err = bs.NumberIsFinalised(100)
 	require.NoError(t, err)
 	require.False(t, fin)
+}
+
+func TestRange(t *testing.T) {
+	t.Parallel()
+
+	loadHeaderFromDiskErr := errors.New("[mocked] cannot read, database closed ex")
+	testcases := map[string]struct {
+		blocksToCreate        int
+		blocksToPersistAtDisk int
+
+		newBlockState func(t *testing.T, ctrl *gomock.Controller,
+			genesisHeader *types.Header) *BlockState
+		wantErr   error
+		stringErr string
+
+		expectedHashes   func(hashesCreated []common.Hash) (expected []common.Hash)
+		executeRangeCall func(blockState *BlockState,
+			hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error)
+	}{
+		"all_blocks_stored_in_disk": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 128,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return hashesCreated
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[0]
+				endHash := hashesCreated[len(hashesCreated)-1]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"all_blocks_persisted_in_blocktree": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 0,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return hashesCreated
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[0]
+				endHash := hashesCreated[len(hashesCreated)-1]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"half_blocks_placed_in_blocktree_half_stored_in_disk": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 64,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return hashesCreated
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[0]
+				endHash := hashesCreated[len(hashesCreated)-1]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"error_while_loading_header_from_disk": {
+			blocksToCreate:        2,
+			blocksToPersistAtDisk: 0,
+			wantErr:               loadHeaderFromDiskErr,
+			stringErr: "retrieving end hash from database: " +
+				"querying database: [mocked] cannot read, database closed ex",
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+
+				mockedDb := NewMockBlockStateDatabase(ctrl)
+				// cannot assert the exact hash type since the block header
+				// hash is generate by the running test case
+				mockedDb.EXPECT().Get(gomock.AssignableToTypeOf([]byte{})).
+					Return(nil, loadHeaderFromDiskErr)
+				blockState.db = mockedDb
+
+				require.NoError(t, err)
+				return blockState
+			},
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return nil
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[0]
+				endHash := hashesCreated[len(hashesCreated)-1]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"using_same_hash_as_parameters": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 0,
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return []common.Hash{hashesCreated[0]}
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[0]
+				endHash := hashesCreated[0]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"start_hash_greater_than_end_hash_in_database": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 128,
+			wantErr:               ErrStartGreaterThanEnd,
+			stringErr:             "start greater than end",
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return nil
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[10]
+				endHash := hashesCreated[0]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"start_hash_greater_than_end_hash_in_memory": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 0,
+			wantErr:               blocktree.ErrStartGreaterThanEnd,
+			stringErr: "retrieving range from in-memory blocktree: " +
+				"getting blocks in range: start greater than end",
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return nil
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[10]
+				endHash := hashesCreated[0]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+
+		"start_hash_in_memory_while_end_hash_in_database": {
+			blocksToCreate:        128,
+			blocksToPersistAtDisk: 64,
+			wantErr:               chaindb.ErrKeyNotFound,
+			stringErr: "range start should be in database: " +
+				"querying database: Key not found",
+			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
+				genesisHeader *types.Header) *BlockState {
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+				db := NewInMemoryDB(t)
+
+				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				require.NoError(t, err)
+
+				return blockState
+			},
+
+			// execute the Range call. All the values returned must
+			// match the hashes we previsouly created
+			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
+				return nil
+			},
+			executeRangeCall: func(blockState *BlockState,
+				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
+				startHash := hashesCreated[len(hashesCreated)-1]
+				// since we finalized 64 of 128 blocks the end hash is one of
+				// those blocks persisted at database, while start hash is
+				// one of those blocks that keeps in memory
+				endHash := hashesCreated[0]
+
+				return blockState.Range(startHash, endHash)
+			},
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			require.LessOrEqualf(t, tt.blocksToPersistAtDisk, tt.blocksToCreate,
+				"blocksToPersistAtDisk should be lower or equal blocksToCreate")
+
+			ctrl := gomock.NewController(t)
+			genesisHeader := &types.Header{
+				Number:    0,
+				StateRoot: trie.EmptyHash,
+				Digest:    types.NewDigest(),
+			}
+
+			blockState := tt.newBlockState(t, ctrl, genesisHeader)
+
+			testBlockBody := *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+			hashesCreated := make([]common.Hash, 0, tt.blocksToCreate)
+			previousHeaderHash := genesisHeader.Hash()
+			for blockNumber := 1; blockNumber <= tt.blocksToCreate; blockNumber++ {
+				currentHeader := &types.Header{
+					Number:     uint(blockNumber),
+					Digest:     createPrimaryBABEDigest(t),
+					ParentHash: previousHeaderHash,
+				}
+
+				block := &types.Block{
+					Header: *currentHeader,
+					Body:   testBlockBody,
+				}
+
+				err := blockState.AddBlock(block)
+				require.NoError(t, err)
+
+				hashesCreated = append(hashesCreated, currentHeader.Hash())
+				previousHeaderHash = currentHeader.Hash()
+			}
+
+			if tt.blocksToPersistAtDisk > 0 {
+				hashIndexToSetAsFinalized := tt.blocksToPersistAtDisk - 1
+				selectedHash := hashesCreated[hashIndexToSetAsFinalized]
+
+				err := blockState.SetFinalisedHash(selectedHash, 0, 0)
+				require.NoError(t, err)
+			}
+
+			expectedHashes := tt.expectedHashes(hashesCreated)
+			retrievedHashes, err := tt.executeRangeCall(blockState, hashesCreated)
+			require.ErrorIs(t, err, tt.wantErr)
+			if tt.stringErr != "" {
+				require.EqualError(t, err, tt.stringErr)
+			}
+
+			require.Equal(t, expectedHashes, retrievedHashes)
+		})
+	}
+}
+
+func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	db := NewInMemoryDB(t)
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigest(),
+	}
+
+	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
+
+	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())
+	require.NoError(t, err)
+	require.Equal(t, genesisHeader.Hash(), header.Hash())
 }

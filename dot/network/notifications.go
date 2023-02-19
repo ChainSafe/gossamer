@@ -9,9 +9,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 )
@@ -362,9 +362,7 @@ func (s *Service) sendHandshake(peer peer.ID, hs Handshake, info *notificationsP
 		closeOutboundStream(info, peer, stream)
 		return nil, errHandshakeTimeout
 	case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder, info.maxSize):
-		if !hsTimer.Stop() {
-			<-hsTimer.C
-		}
+		hsTimer.Stop()
 
 		if hsResponse.err != nil {
 			logger.Tracef("failed to read handshake from peer %s using protocol %s: %s", peer, info.protocolID, hsResponse.err)

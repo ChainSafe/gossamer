@@ -10,7 +10,7 @@ import (
 
 type txpoolImportTM TxpoolImport
 
-var _ Message = (*TxpoolImport)(nil)
+var _ json.Marshaler = (*TxpoolImport)(nil)
 
 // TxpoolImport holds `txpool.import` telemetry message, which is supposed to be
 // sent when a new transaction gets imported in the transaction pool.

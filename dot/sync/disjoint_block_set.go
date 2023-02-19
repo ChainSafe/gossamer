@@ -33,10 +33,8 @@ type DisjointBlockSet interface {
 	addJustification(common.Hash, []byte) error
 	removeBlock(common.Hash)
 	removeLowerBlocks(num uint)
-	hasBlock(common.Hash) bool
 	getBlock(common.Hash) *pendingBlock
 	getBlocks() []*pendingBlock
-	getChildren(common.Hash) map[common.Hash]struct{}
 	getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData
 	size() int
 }

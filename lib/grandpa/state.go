@@ -4,8 +4,9 @@
 package grandpa
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -21,23 +22,20 @@ type BlockState interface {
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
-	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
+	GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
-	BestBlockHash() common.Hash
-	Leaves() []common.Hash
 	GetHighestFinalisedHeader() (*types.Header, error)
-	BlocktreeAsString() string
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	SetJustification(hash common.Hash, data []byte) error
-	HasJustification(hash common.Hash) (bool, error)
-	GetJustification(hash common.Hash) ([]byte, error)
-	GetHashByNumber(num uint) (common.Hash, error)
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
+	BestBlockHash() common.Hash
+	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state

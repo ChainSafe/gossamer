@@ -5,7 +5,6 @@ package dot
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -22,127 +21,7 @@ func TestConfig(t *testing.T) {
 		configMaker func() *Config
 	}{
 		{
-			name: "dev default",
-			want: &Config{
-				Global: GlobalConfig{
-					Name:           "Gossamer",
-					ID:             "dev",
-					BasePath:       "~/.gossamer/dev",
-					LogLvl:         log.Info,
-					MetricsAddress: ":9876",
-					RetainBlocks:   512,
-					Pruning:        "archive",
-				},
-				Log: LogConfig{
-					CoreLvl:           log.Info,
-					DigestLvl:         log.Info,
-					SyncLvl:           log.Info,
-					NetworkLvl:        log.Info,
-					RPCLvl:            log.Info,
-					StateLvl:          log.Info,
-					RuntimeLvl:        log.Info,
-					BlockProducerLvl:  log.Info,
-					FinalityGadgetLvl: log.Info,
-				},
-				Init: InitConfig{
-					Genesis: "./chain/dev/genesis.json",
-				},
-				Account: AccountConfig{
-					Key: "alice",
-				},
-				Core: CoreConfig{
-					Roles:            common.AuthorityRole,
-					BabeAuthority:    true,
-					BABELead:         true,
-					GrandpaAuthority: true,
-					WasmInterpreter:  "wasmer",
-					GrandpaInterval:  0,
-				},
-				Network: NetworkConfig{
-					Port: 7001,
-				},
-				RPC: RPCConfig{
-					Enabled:        true,
-					External:       false,
-					Unsafe:         false,
-					UnsafeExternal: false,
-					Port:           8545,
-					Host:           "localhost",
-					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
-						"childstate", "syncstate", "payment"},
-					WSPort: 8546,
-					WS:     true,
-				},
-				Pprof: PprofConfig{
-					Settings: pprof.Settings{
-						ListeningAddress: "localhost:6060",
-					},
-				},
-			},
-			configMaker: DevConfig,
-		},
-		{
-			name: "gossamer default",
-			want: &Config{
-				Global: GlobalConfig{
-					Name:           "Gossamer",
-					ID:             "gssmr",
-					BasePath:       "~/.gossamer/gssmr",
-					LogLvl:         log.Info,
-					MetricsAddress: "localhost:9876",
-					RetainBlocks:   512,
-					Pruning:        "archive",
-				},
-				Log: LogConfig{
-					CoreLvl:           log.Info,
-					DigestLvl:         log.Info,
-					SyncLvl:           log.Info,
-					NetworkLvl:        log.Info,
-					RPCLvl:            log.Info,
-					StateLvl:          log.Info,
-					RuntimeLvl:        log.Info,
-					BlockProducerLvl:  log.Info,
-					FinalityGadgetLvl: log.Info,
-				},
-				Init: InitConfig{
-					Genesis: "./chain/gssmr/genesis.json",
-				},
-				Account: AccountConfig{},
-				Core: CoreConfig{
-					Roles:            common.AuthorityRole,
-					BabeAuthority:    true,
-					GrandpaAuthority: true,
-					WasmInterpreter:  "wasmer",
-					GrandpaInterval:  time.Second,
-				},
-				Network: NetworkConfig{
-					Port:              7001,
-					MinPeers:          1,
-					MaxPeers:          50,
-					DiscoveryInterval: time.Second * 10,
-				},
-				RPC: RPCConfig{
-					Port: 8545,
-					Host: "localhost",
-					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
-						"childstate", "syncstate", "payment"},
-					WSPort:           8546,
-					WS:               false,
-					WSExternal:       false,
-					WSUnsafe:         false,
-					WSUnsafeExternal: false,
-				},
-				Pprof: PprofConfig{
-					Settings: pprof.Settings{
-						ListeningAddress: "localhost:6060",
-						BlockProfileRate: 0,
-					},
-				},
-			},
-			configMaker: GssmrConfig,
-		},
-		{
-			name: "kusama default",
+			name: "kusama_default",
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Kusama",
@@ -202,7 +81,7 @@ func TestConfig(t *testing.T) {
 			configMaker: KusamaConfig,
 		},
 		{
-			name: "polkadot default",
+			name: "polkadot_default",
 			want: &Config{
 				Global: GlobalConfig{
 					Name:           "Polkadot",
@@ -358,8 +237,8 @@ func Test_networkServiceEnabled(t *testing.T) {
 		want   bool
 	}{
 		{
-			name:   "dev config",
-			config: DevConfig(),
+			name:   "kusama config",
+			config: KusamaConfig(),
 			want:   true,
 		},
 		{
@@ -368,7 +247,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 			want:   false,
 		},
 		{
-			name: "core roles 0",
+			name: "core_roles_0",
 			config: &Config{
 				Core: CoreConfig{
 					Roles: 0,
@@ -377,7 +256,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "core roles 1",
+			name: "core_roles_1",
 			config: &Config{
 				Core: CoreConfig{
 					Roles: 1,
@@ -409,7 +288,7 @@ func TestRPCConfig_String(t *testing.T) {
 				"=false wsexternal=false wsunsafe=false wsunsafeexternal=false",
 		},
 		{
-			name: "fields changed",
+			name: "fields_changed",
 			rpcConfig: RPCConfig{
 				Enabled:          true,
 				External:         true,
@@ -448,7 +327,7 @@ func TestLogConfig_String(t *testing.T) {
 				"state: CRITICAL, runtime: CRITICAL, block producer: CRITICAL, finality gadget: CRITICAL",
 		},
 		{
-			name: "change fields case",
+			name: "change_fields_case",
 			logConfig: LogConfig{
 				CoreLvl:           log.Debug,
 				DigestLvl:         log.Info,

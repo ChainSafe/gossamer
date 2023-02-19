@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/golang/mock/gomock"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,7 +60,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	gs.state.voters = gs.state.voters[:1]
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	telemetryMock.

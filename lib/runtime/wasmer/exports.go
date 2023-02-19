@@ -4,9 +4,11 @@
 package wasmer
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -84,6 +86,55 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	}
 
 	return types.GrandpaAuthoritiesRawToAuthorities(gar)
+}
+
+// BabeGenerateKeyOwnershipProof returns the babe key ownership proof from the runtime.
+func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
+	types.OpaqueKeyOwnershipProof, error) {
+
+	// scale encoded slot uint64 + scale encoded array of 32 bytes
+	const maxBufferLength = 8 + 33
+	buffer := bytes.NewBuffer(make([]byte, 0, maxBufferLength))
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(slot)
+	if err != nil {
+		return nil, fmt.Errorf("encoding slot: %w", err)
+	}
+	err = encoder.Encode(authorityID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding authority id: %w", err)
+	}
+
+	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
+	}
+
+	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
+	err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProof)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
+	}
+
+	return keyOwnershipProof, nil
+}
+
+// BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
+func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(
+	equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
+) error {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(equivocationProof)
+	if err != nil {
+		return fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	err = encoder.Encode(keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+	_, err = in.Exec(runtime.BabeAPISubmitReportEquivocationUnsignedExtrinsic, buffer.Bytes())
+	return err
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
@@ -223,7 +274,59 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 	return dispatchInfo, nil
 }
 
-func (in *Instance) CheckInherents()      {} //nolint:revive
+// CheckInherents checks inherents in the block verification process.
+// TODO: use this in block verification process (#1873)
+func (in *Instance) CheckInherents() {}
+
+// GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
+func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
+	types.GrandpaOpaqueKeyOwnershipProof, error) {
+	const bufferSize = 8 + 32 // authSetID uint64 + ed25519.PublicKeyBytes
+	buffer := bytes.NewBuffer(make([]byte, 0, bufferSize))
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(authSetID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding auth set id: %w", err)
+	}
+	err = encoder.Encode(authorityID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding authority id: %w", err)
+	}
+	encodedOpaqueKeyOwnershipProof, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	keyOwnershipProof := types.GrandpaOpaqueKeyOwnershipProof{}
+	err = scale.Unmarshal(encodedOpaqueKeyOwnershipProof, &keyOwnershipProof)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return keyOwnershipProof, nil
+}
+
+// GrandpaSubmitReportEquivocationUnsignedExtrinsic reports an equivocation report to the runtime.
+func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
+) error {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(equivocationProof)
+	if err != nil {
+		return fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	err = encoder.Encode(keyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+	_, err = in.Exec(runtime.GrandpaSubmitReportEquivocation, buffer.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive

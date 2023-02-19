@@ -17,6 +17,7 @@ import (
 )
 
 func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -38,14 +39,15 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range newTestVoters(t) {
-		equivocated := gs.checkForEquivocation(&v, &SignedVote{
+		err = gs.checkAndReportEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, prevote)
-		require.False(t, equivocated)
+		require.NoError(t, err)
 	}
 }
 
 func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -61,7 +63,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	vote1, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
@@ -76,10 +78,10 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
-	require.True(t, equivocated)
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
@@ -87,6 +89,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 }
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -102,7 +105,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	vote1, err := NewVoteFromHash(leaves[1], gs.blockState)
 	require.NoError(t, err)
@@ -117,20 +120,20 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
-	require.True(t, equivocated)
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
 	vote3 := vote1
 
-	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
 	}, prevote)
-	require.True(t, equivocated)
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
@@ -138,6 +141,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 }
 
 func TestValidateMessage_Valid(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -170,6 +174,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 }
 
 func TestValidateMessage_InvalidSignature(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -204,6 +209,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 }
 
 func TestValidateMessage_SetIDMismatch(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -236,6 +242,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 }
 
 func TestValidateMessage_Equivocation(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -255,7 +262,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
@@ -276,10 +283,10 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrEquivocation)
-	require.EqualError(t, err, ErrEquivocation.Error())
 }
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -315,6 +322,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 }
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {
+	t.Parallel()
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -335,7 +343,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	branches := map[uint]int{6: 1}
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.Leaves()
+	leaves := gs.blockState.(*state.BlockState).Leaves()
 
 	gs.head, err = gs.blockState.GetHeader(leaves[0])
 	require.NoError(t, err)

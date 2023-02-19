@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
-	sync "github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -37,9 +36,8 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	mockBabeIFace := NewMockServiceIFace(ctrl)
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	ks := keystore.NewGlobalKeystore()
 	ks2 := keystore.NewGlobalKeystore()
@@ -50,18 +48,18 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 	type args struct {
 		cfg              *Config
 		initStateService bool
-		ks               keystore.Keystore
+		ks               KeyStore
 		cs               *core.Service
-		telemetryMailer  telemetry.Client
+		telemetryMailer  Telemetry
 	}
 	tests := []struct {
 		name     string
 		args     args
-		expected babe.ServiceIFace
+		expected *babe.Service
 		err      error
 	}{
 		{
-			name: "invalid keystore",
+			name: "invalid_keystore",
 			args: args{
 				cfg:              cfg,
 				initStateService: true,
@@ -71,7 +69,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			err:      ErrInvalidKeystoreType,
 		},
 		{
-			name: "empty keystore",
+			name: "empty_keystore",
 			args: args{
 				cfg:              cfg,
 				initStateService: true,
@@ -81,13 +79,13 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			err:      ErrNoKeysProvided,
 		},
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				cfg:              cfg,
 				initStateService: true,
 				ks:               ks2.Babe,
 			},
-			expected: mockBabeIFace,
+			expected: &babe.Service{},
 			err:      nil,
 		},
 	}
@@ -99,12 +97,13 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			stateSrvc := newStateService(t, ctrl)
 			mockBabeBuilder := NewMockServiceBuilder(ctrl)
 			mockBabeBuilder.EXPECT().NewServiceIFace(
-				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).DoAndReturn(func(cfg *babe.ServiceConfig) (babe.
-				ServiceIFace, error) {
-				return mockBabeIFace, nil
-			}).AnyTimes()
+				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
+				DoAndReturn(
+					func(cfg *babe.ServiceConfig) (*babe.Service, error) {
+						return &babe.Service{}, nil
+					}).AnyTimes()
 			builder := nodeBuilder{}
-			var got babe.ServiceIFace
+			var got *babe.Service
 			if tt.args.initStateService {
 				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, stateSrvc, tt.args.ks, tt.args.cs,
 					tt.args.telemetryMailer, mockBabeBuilder)
@@ -141,7 +140,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				ks:  ks,
 				net: networkService,
@@ -155,7 +154,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 
@@ -196,7 +195,7 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
 			got, err := no.createNetworkService(cfg, stateSrvc, nil)
@@ -231,7 +230,7 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
@@ -263,7 +262,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 	require.NoError(t, err)
 	tests := []struct {
 		name      string
-		ks        keystore.Keystore
+		ks        KeyStore
 		expectNil bool
 		err       error
 	}{
@@ -285,7 +284,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			networkConfig := &network.Config{
@@ -312,7 +311,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 
 func Test_createRuntime(t *testing.T) {
 	t.Parallel()
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	type args struct {
 		cfg *Config
@@ -325,7 +324,7 @@ func Test_createRuntime(t *testing.T) {
 		err          error
 	}{
 		{
-			name: "wasmer runtime",
+			name: "wasmer_runtime",
 			args: args{
 				cfg: cfg,
 				ns:  runtime.NodeStorage{},
@@ -360,11 +359,11 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 	t.Parallel()
 	finalityGadget := &grandpa.Service{}
 	type args struct {
-		fg              sync.FinalityGadget
+		fg              BlockJustificationVerifier
 		verifier        *babe.VerificationManager
 		cs              *core.Service
 		net             *network.Service
-		telemetryMailer telemetry.Client
+		telemetryMailer Telemetry
 	}
 	tests := []struct {
 		name      string
@@ -373,7 +372,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		err       error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				fg:              finalityGadget,
 				verifier:        nil,
@@ -390,7 +389,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			cfg := NewWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
@@ -407,7 +406,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 }
 
 func TestCreateStateService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -432,7 +431,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -471,7 +470,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 }
 
 func TestCreateCoreService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -502,7 +501,7 @@ func TestCreateCoreService(t *testing.T) {
 }
 
 func TestCreateBlockVerifier(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -520,7 +519,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 }
 
 func TestCreateSyncService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -548,7 +547,7 @@ func TestCreateSyncService(t *testing.T) {
 }
 
 func TestCreateNetworkService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -566,7 +565,7 @@ func TestCreateNetworkService(t *testing.T) {
 }
 
 func TestCreateRPCService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -615,7 +614,7 @@ func TestCreateRPCService(t *testing.T) {
 }
 
 func TestCreateBABEService_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -650,7 +649,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 }
 
 func TestCreateGrandpaService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -690,7 +689,7 @@ func TestCreateGrandpaService(t *testing.T) {
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-	const addr = "localhost:8546"
+	const addr = "localhost:9546"
 	testCalls := []struct {
 		call     []byte
 		expected []byte
@@ -717,7 +716,7 @@ func TestNewWebSocketServer(t *testing.T) {
 			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	}
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -727,6 +726,8 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Init.Genesis = genFile
 	cfg.RPC.External = false
 	cfg.RPC.WS = true
+	cfg.RPC.Port = 9545
+	cfg.RPC.WSPort = 9546
 	cfg.RPC.WSExternal = false
 	cfg.System.SystemName = "gossamer"
 
@@ -811,7 +812,7 @@ func Test_createPprofService(t *testing.T) {
 }
 
 func Test_createDigestHandler(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 

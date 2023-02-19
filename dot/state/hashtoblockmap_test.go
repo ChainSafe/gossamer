@@ -33,7 +33,7 @@ func Test_hashToBlockMap_getBlock(t *testing.T) {
 		hash  common.Hash
 		block *types.Block
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			htb: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{4, 5, 6}: {},
@@ -41,7 +41,7 @@ func Test_hashToBlockMap_getBlock(t *testing.T) {
 			},
 			hash: common.Hash{1, 2, 3},
 		},
-		"hash exists": {
+		"hash_exists": {
 			htb: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{1, 2, 3}: {Header: types.Header{ParentHash: common.Hash{1}}},
@@ -72,7 +72,7 @@ func Test_hashToBlockMap_getBlockHeader(t *testing.T) {
 		hash   common.Hash
 		header *types.Header
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			htb: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{4, 5, 6}: {},
@@ -80,7 +80,7 @@ func Test_hashToBlockMap_getBlockHeader(t *testing.T) {
 			},
 			hash: common.Hash{1, 2, 3},
 		},
-		"hash exists": {
+		"hash_exists": {
 			htb: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{1, 2, 3}: {Header: types.Header{ParentHash: common.Hash{1}}},
@@ -111,7 +111,7 @@ func Test_hashToBlockMap_getBlockBody(t *testing.T) {
 		hash common.Hash
 		body *types.Body
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			htb: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{4, 5, 6}: {},
@@ -119,7 +119,7 @@ func Test_hashToBlockMap_getBlockBody(t *testing.T) {
 			},
 			hash: common.Hash{1, 2, 3},
 		},
-		"hash exists": {
+		"hash_exists": {
 			htb: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{1, 2, 3}: {Body: types.Body{}},
@@ -155,7 +155,7 @@ func Test_hashToBlockMap_store(t *testing.T) {
 		block       *types.Block
 		expectedMap *hashToBlockMap
 	}{
-		"override block": {
+		"override_block": {
 			initialMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{
@@ -178,7 +178,7 @@ func Test_hashToBlockMap_store(t *testing.T) {
 				},
 			},
 		},
-		"store new block": {
+		"store_new_block": {
 			initialMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{},
 			},
@@ -219,7 +219,7 @@ func Test_hashToBlockMap_delete(t *testing.T) {
 		deletedHeader *types.Header
 		expectedMap   *hashToBlockMap
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			initialMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{},
 			},
@@ -228,7 +228,7 @@ func Test_hashToBlockMap_delete(t *testing.T) {
 				mapping: map[common.Hash]*types.Block{},
 			},
 		},
-		"hash deleted": {
+		"hash_deleted": {
 			initialMap: &hashToBlockMap{
 				mapping: map[common.Hash]*types.Block{
 					{1, 2, 3}: {Header: types.Header{ParentHash: common.Hash{1, 2, 3}}},

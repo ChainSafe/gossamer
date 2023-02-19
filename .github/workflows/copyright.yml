@@ -12,13 +12,13 @@ on:
 
 jobs:
   copyright-check:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v3
 
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
           stable: true
           check-latest: true
 

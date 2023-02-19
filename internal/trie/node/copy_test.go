@@ -28,7 +28,7 @@ func Test_Node_Copy(t *testing.T) {
 		settings     CopySettings
 		expectedNode *Node
 	}{
-		"empty branch": {
+		"empty_branch": {
 			node: &Node{
 				Children: make([]*Node, ChildrenCapacity),
 			},
@@ -36,7 +36,7 @@ func Test_Node_Copy(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 		},
-		"non empty branch": {
+		"non_empty_branch": {
 			node: &Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3, 4},
@@ -62,7 +62,7 @@ func Test_Node_Copy(t *testing.T) {
 				Dirty: true,
 			},
 		},
-		"branch with children copied": {
+		"branch_with_children_copied": {
 			node: &Node{
 				Children: padRightChildren([]*Node{
 					nil, nil, {
@@ -83,7 +83,7 @@ func Test_Node_Copy(t *testing.T) {
 				}),
 			},
 		},
-		"deep copy branch": {
+		"deep_copy_branch": {
 			node: &Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3, 4},
@@ -110,7 +110,7 @@ func Test_Node_Copy(t *testing.T) {
 				MerkleValue: []byte{5},
 			},
 		},
-		"non empty leaf": {
+		"non_empty_leaf": {
 			node: &Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3, 4},
@@ -124,7 +124,7 @@ func Test_Node_Copy(t *testing.T) {
 				Dirty:        true,
 			},
 		},
-		"deep copy leaf": {
+		"deep_copy_leaf": {
 			node: &Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3, 4},

@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var (
@@ -36,7 +36,7 @@ func (*BlockAnnounceMessage) Type() byte {
 	return blockAnnounceMsgType
 }
 
-// string formats a BlockAnnounceMessage as a string
+// String formats a BlockAnnounceMessage as a string
 func (bm *BlockAnnounceMessage) String() string {
 	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v",
 		bm.ParentHash,
@@ -164,7 +164,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return fmt.Errorf("%w: %d", errInvalidRole, bhs.Roles)
 	}
 
-	if !bhs.GenesisHash.Equal(s.blockState.GenesisHash()) {
+	if bhs.GenesisHash != s.blockState.GenesisHash() {
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.GenesisMismatch,
 			Reason: peerset.GenesisMismatchReason,

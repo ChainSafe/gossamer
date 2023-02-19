@@ -65,7 +65,7 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
     go test <file_you_are_working_on>
     ```
 
-    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` pacakge, the comment would be:
+    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` package, the comment would be:
 
     ```go
     //go:generate mockgen -destination=mock_myinterface_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
@@ -75,8 +75,6 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
     in your current package since it's written to a `_test.go` file. We prefer to generate mocks locally where they are needed instead of sharing them to reduce package dependency and the Go API 'noise'.
 
     Generate the mock code with `go generate -run "mockgen" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `go generate -run "mockgen" ./...` from the repository root. Note this does not log anything out.
-
-    ⚠️ We are still using `mockery` instead of `gomock` for older mocks, so you need to run `go generate -run "mockery|mockgen" ./...` to update all the existing mocks. We are slowly migrating our mocks and test code to use `gomock`.
 
     > To execute `//go:generate` commands that are placed at files with `//go:build integration` remember to add `-tags integration` in the `go generate` command eg. `go generate -tags integration ...`
 

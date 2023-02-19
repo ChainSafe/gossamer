@@ -4,6 +4,8 @@ package mocks
 
 import (
 	common "github.com/ChainSafe/gossamer/lib/common"
+	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 
 	mock "github.com/stretchr/testify/mock"
@@ -205,6 +207,43 @@ func (_m *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	}
 
 	return r0, r1
+}
+
+// GrandpaGenerateKeyOwnershipProof provides a mock function with given fields: authSetID, authorityID
+func (_m *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
+	ret := _m.Called(authSetID, authorityID)
+
+	var r0 types.GrandpaOpaqueKeyOwnershipProof
+	if rf, ok := ret.Get(0).(func(uint64, ed25519.PublicKeyBytes) types.GrandpaOpaqueKeyOwnershipProof); ok {
+		r0 = rf(authSetID, authorityID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.GrandpaOpaqueKeyOwnershipProof)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(uint64, ed25519.PublicKeyBytes) error); ok {
+		r1 = rf(authSetID, authorityID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GrandpaSubmitReportEquivocationUnsignedExtrinsic provides a mock function with given fields: equivocationProof, keyOwnershipProof
+func (_m *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof) error {
+	ret := _m.Called(equivocationProof, keyOwnershipProof)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(types.GrandpaEquivocationProof, types.GrandpaOpaqueKeyOwnershipProof) error); ok {
+		r0 = rf(equivocationProof, keyOwnershipProof)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // InherentExtrinsics provides a mock function with given fields: data

@@ -12,7 +12,7 @@ import (
 
 type preparedBlockForProposingTM PreparedBlockForProposing
 
-var _ Message = (*PreparedBlockForProposing)(nil)
+var _ json.Marshaler = (*PreparedBlockForProposing)(nil)
 
 // PreparedBlockForProposing holds a 'prepared_block_for_proposing' telemetry
 // message, which is supposed to be sent when a new block is built.

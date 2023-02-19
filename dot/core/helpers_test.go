@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -70,7 +71,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	testDatadirPath := t.TempDir()
 
 	// Set up block and storage state
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
@@ -107,16 +108,16 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgRuntime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
+	cfgRuntime.GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfgRuntime.(*wasmer.Instance).GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
+	cfgRuntime.GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 
 	// Hash of encrypted centrifuge extrinsic
 	testCallArguments := []byte{0xab, 0xcd}
 	extHex := runtime.NewTestExtrinsic(t, cfgRuntime, genesisHeader.Hash(), cfgBlockState.BestBlockHash(),
-		0, "System.remark", testCallArguments)
+		0, signature.TestKeyringPairAlice, "System.remark", testCallArguments)
 	encodedExtrinsic = common.MustHexToBytes(extHex)
 
 	cfgCodeSubstitutes := make(map[common.Hash]string)
@@ -136,7 +137,6 @@ func createTestService(t *testing.T, genesisFilePath string,
 		BlockState:           cfgBlockState,
 		StorageState:         cfgStorageState,
 		TransactionState:     stateSrvc.Transaction,
-		EpochState:           stateSrvc.Epoch,
 		CodeSubstitutedState: cfgCodeSubstitutedState,
 		Runtime:              cfgRuntime,
 		Network:              new(network.Service),
@@ -172,12 +172,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
-		cfg.TransactionState == nil || cfg.EpochState == nil ||
-		cfg.CodeSubstitutedState == nil {
-		telemetryMock := NewMockClient(ctrl)
+		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
@@ -208,10 +207,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
 
-	if cfg.EpochState == nil {
-		cfg.EpochState = stateSrvc.Epoch
-	}
-
 	if cfg.CodeSubstitutedState == nil {
 		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
@@ -222,7 +217,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -262,11 +257,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	return s
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
 	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genPtr
@@ -285,16 +280,14 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	return gen, genesisTrie, genesisHeader
 }
 
-func getGssmrRuntimeCode(t *testing.T) (code []byte) {
+func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
-	path, err := utils.GetGssmrGenesisRawPath()
+	path := utils.GetWestendDevRawGenesisPath(t)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
-	require.NoError(t, err)
-
-	genesisTrie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
+	genesisTrie, err := wasmer.NewTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
 	trieState := rtstorage.NewTrieState(&genesisTrie)

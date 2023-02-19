@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -24,7 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,8 +88,8 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	require.NoError(t, err)
 
 	// Used to define the state root of new block for testing
-	parentHash := s.blockState.GenesisHash()
-	genesisBlock, err := s.blockState.GetBlockByHash(parentHash)
+	parentHash := s.blockState.(*state.BlockState).GenesisHash()
+	genesisBlock, err := s.blockState.(*state.BlockState).GetBlockByHash(parentHash)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -135,7 +134,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks.Acco.Insert(kp)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	net := NewMockNetwork(ctrl)
@@ -153,7 +152,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
-	genHash := s.blockState.GenesisHash()
+	genHash := s.blockState.(*state.BlockState).GenesisHash()
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -165,7 +164,13 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	currentTimestamp := uint64(time.Now().UnixMilli())
+	currentSlot := currentTimestamp / babeConfig.SlotDuration
+
+	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlot, currentTimestamp)
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

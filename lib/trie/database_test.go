@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -161,70 +162,76 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 func Test_PopulateNodeHashes(t *testing.T) {
 	t.Parallel()
 
-	const (
-		merkleValue32Zeroes = "00000000000000000000000000000000"
-		merkleValue32Ones   = "11111111111111111111111111111111"
-		merkleValue32Twos   = "22222222222222222222222222222222"
-		merkleValue32Threes = "33333333333333333333333333333333"
+	var (
+		merkleValue32Zeroes = common.Hash{}
+		merkleValue32Ones   = common.Hash{
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+		merkleValue32Twos = common.Hash{
+			2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+			2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
+		merkleValue32Threes = common.Hash{
+			3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+			3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
 	)
 
 	testCases := map[string]struct {
 		node       *Node
-		nodeHashes map[string]struct{}
+		nodeHashes map[common.Hash]struct{}
 		panicValue interface{}
 	}{
-		"nil node": {
-			nodeHashes: map[string]struct{}{},
+		"nil_node": {
+			nodeHashes: map[common.Hash]struct{}{},
 		},
-		"inlined leaf node": {
+		"inlined_leaf_node": {
 			node:       &Node{MerkleValue: []byte("a")},
-			nodeHashes: map[string]struct{}{},
+			nodeHashes: map[common.Hash]struct{}{},
 		},
-		"leaf node": {
-			node: &Node{MerkleValue: []byte(merkleValue32Zeroes)},
-			nodeHashes: map[string]struct{}{
+		"leaf_node": {
+			node: &Node{MerkleValue: merkleValue32Zeroes.ToBytes()},
+			nodeHashes: map[common.Hash]struct{}{
 				merkleValue32Zeroes: {},
 			},
 		},
-		"leaf node without Merkle value": {
+		"leaf_node_without_Merkle_value": {
 			node:       &Node{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			panicValue: "node with partial key 0x01 has no Merkle value computed",
 		},
-		"inlined branch node": {
+		"inlined_branch_node": {
 			node: &Node{
 				MerkleValue: []byte("a"),
 				Children: padRightChildren([]*Node{
 					{MerkleValue: []byte("b")},
 				}),
 			},
-			nodeHashes: map[string]struct{}{},
+			nodeHashes: map[common.Hash]struct{}{},
 		},
-		"branch node": {
+		"branch_node": {
 			node: &Node{
-				MerkleValue: []byte(merkleValue32Zeroes),
+				MerkleValue: merkleValue32Zeroes.ToBytes(),
 				Children: padRightChildren([]*Node{
-					{MerkleValue: []byte(merkleValue32Ones)},
+					{MerkleValue: merkleValue32Ones.ToBytes()},
 				}),
 			},
-			nodeHashes: map[string]struct{}{
+			nodeHashes: map[common.Hash]struct{}{
 				merkleValue32Zeroes: {},
 				merkleValue32Ones:   {},
 			},
 		},
-		"nested branch node": {
+		"nested_branch_node": {
 			node: &Node{
-				MerkleValue: []byte(merkleValue32Zeroes),
+				MerkleValue: merkleValue32Zeroes.ToBytes(),
 				Children: padRightChildren([]*Node{
-					{MerkleValue: []byte(merkleValue32Ones)},
+					{MerkleValue: merkleValue32Ones.ToBytes()},
 					{
-						MerkleValue: []byte(merkleValue32Twos),
+						MerkleValue: merkleValue32Twos.ToBytes(),
 						Children: padRightChildren([]*Node{
-							{MerkleValue: []byte(merkleValue32Threes)},
+							{MerkleValue: merkleValue32Threes.ToBytes()},
 						}),
 					},
 				}),
 			},
-			nodeHashes: map[string]struct{}{
+			nodeHashes: map[common.Hash]struct{}{
 				merkleValue32Zeroes: {},
 				merkleValue32Ones:   {},
 				merkleValue32Twos:   {},
@@ -238,7 +245,7 @@ func Test_PopulateNodeHashes(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nodeHashes := make(map[string]struct{})
+			nodeHashes := make(map[common.Hash]struct{})
 
 			if testCase.panicValue != nil {
 				assert.PanicsWithValue(t, testCase.panicValue, func() {

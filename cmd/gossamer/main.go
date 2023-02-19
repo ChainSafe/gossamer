@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	_ "time/tzdata"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -31,7 +32,7 @@ const (
 
 // app is the cli application
 var app = cli.NewApp()
-var logger log.LeveledLogger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
+var logger Logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 
 var (
 	// exportCommand defines the "export" subcommand (ie, `gossamer export`)
@@ -92,12 +93,12 @@ var (
 	importRuntimeCommand = cli.Command{
 		Action:    FixFlagOrder(importRuntimeAction),
 		Name:      importRuntimeCommandName,
-		Usage:     "Generates a genesis file given a .wasm runtime binary",
+		Usage:     "Appends the given .wasm runtime binary to a genesis file",
 		ArgsUsage: "",
 		Flags:     RootFlags,
 		Category:  "IMPORT-RUNTIME",
-		Description: "The import-runtime command generates a genesis file given a .wasm runtime binary.\n" +
-			"\tUsage: gossamer import-runtime runtime.wasm > genesis.json\n",
+		Description: "The import-runtime command appends the given .wasm runtime binary to a genesis file.\n" +
+			"\tUsage: gossamer import-runtime runtime.wasm genesis.json > updated_genesis.json\n",
 	}
 
 	importStateCommand = cli.Command{
@@ -185,12 +186,14 @@ func importStateAction(ctx *cli.Context) error {
 // importRuntimeAction generates a genesis file given a .wasm runtime binary.
 func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
-	if len(arguments) == 0 {
-		return fmt.Errorf("no args provided, please provide wasm file")
+	if len(arguments) != 2 {
+		return fmt.Errorf("please provide a wasm file and the genesis spec file")
 	}
 
 	fp := arguments[0]
-	out, err := createGenesisWithRuntime(fp)
+	genesisChainSpec := arguments[1]
+
+	out, err := createGenesisWithRuntime(fp, genesisChainSpec)
 	if err != nil {
 		return err
 	}
@@ -247,23 +250,12 @@ func gossamerAction(ctx *cli.Context) error {
 	}
 
 	ks := keystore.NewGlobalKeystore()
-	// load built-in test keys if specified by `cfg.Account.Key`
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
-	if err != nil {
-		logger.Errorf("failed to load account keystore: %s", err)
-		return err
-	}
 
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Babe)
-	if err != nil {
-		logger.Errorf("failed to load BABE keystore: %s", err)
-		return err
-	}
-
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Gran)
-	if err != nil {
-		logger.Errorf("failed to load grandpa keystore: %s", err)
-		return err
+	if cfg.Account.Key != "" {
+		err = loadBuiltInTestKeys(cfg.Account.Key, *ks)
+		if err != nil {
+			return fmt.Errorf("loading built-in test keys: %s", err)
+		}
 	}
 
 	// load user keys if specified
@@ -297,6 +289,35 @@ func gossamerAction(ctx *cli.Context) error {
 	err = node.Start()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func loadBuiltInTestKeys(accountKey string, ks keystore.GlobalKeystore) (err error) {
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	if err != nil {
+		return fmt.Errorf("creating sr22519 keyring: %s", err)
+	}
+
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
+	if err != nil {
+		return fmt.Errorf("creating ed25519 keyring: %s", err)
+	}
+
+	err = keystore.LoadKeystore(accountKey, ks.Acco, sr25519keyRing)
+	if err != nil {
+		return fmt.Errorf("loading account keystore: %w", err)
+	}
+
+	err = keystore.LoadKeystore(accountKey, ks.Babe, sr25519keyRing)
+	if err != nil {
+		return fmt.Errorf("loading babe keystore: %w", err)
+	}
+
+	err = keystore.LoadKeystore(accountKey, ks.Gran, ed25519keyRing)
+	if err != nil {
+		return fmt.Errorf("loading grandpa keystore: %w", err)
 	}
 
 	return nil
@@ -418,13 +439,7 @@ func pruneState(ctx *cli.Context) error {
 		return err
 	}
 
-	inputDBPath := tomlCfg.Global.BasePath
-	prunedDBPath := ctx.GlobalString(DBPathFlag.Name)
-	if prunedDBPath == "" {
-		return fmt.Errorf("path not specified for badger db")
-	}
-
-	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
+	inputDBPath := filepath.Join(tomlCfg.Global.BasePath, "db")
 
 	const uint32Max = ^uint32(0)
 	flagValue := ctx.GlobalUint64(RetainBlockNumberFlag.Name)
@@ -435,7 +450,7 @@ func pruneState(ctx *cli.Context) error {
 
 	retainBlocks := uint32(flagValue)
 
-	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewOfflinePruner(inputDBPath, retainBlocks)
 	if err != nil {
 		return err
 	}

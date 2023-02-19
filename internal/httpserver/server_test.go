@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//go:generate mockgen -destination=logger_mock_test.go -package $GOPACKAGE . Logger
-
 func Test_New(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,8 +26,6 @@ const (
 )
 
 const allocTimeDuration = 2 * time.Second
-
-//go:generate mockgen -destination=mock_message_processor_test.go -package $GOPACKAGE . MessageProcessor
 
 func newTestPeerSet(t *testing.T, maxIn, maxOut uint32, bootNodes,
 	reservedPeers []peer.ID, reservedOnly bool) *Handler {

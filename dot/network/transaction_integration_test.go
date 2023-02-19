@@ -11,7 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +28,6 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 	require.Equal(t, testHandshake, msg)
 }
 
-//go:generate mockgen -destination=mock_transaction_handler_test.go -package $GOPACKAGE . TransactionHandler
 func TestHandleTransactionMessage(t *testing.T) {
 	t.Parallel()
 

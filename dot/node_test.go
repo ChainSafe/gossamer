@@ -5,6 +5,7 @@ package dot
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +25,7 @@ import (
 )
 
 func TestInitNode(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 	tests := []struct {
 		name   string
@@ -95,10 +96,6 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	}
 }
 
-//go:generate mockgen -destination=mock_service_registry_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/services Service,ServiceRegisterer
-
-//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network BlockState
-
 func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -121,14 +118,14 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 	cfg.SlotDuration = time.Second
 
 	if cfg.Telemetry == nil {
-		telemetryMock := NewMockClient(ctrl)
+		telemetryMock := NewMockTelemetry(ctrl)
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 		cfg.Telemetry = telemetryMock
 	}
 }
 
 func TestNodeInitialized(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -162,16 +159,28 @@ func TestNodeInitialized(t *testing.T) {
 	}
 }
 
-func initKeystore(t *testing.T, cfg *Config) (*keystore.GlobalKeystore, error) {
+func initKeystore(t *testing.T, cfg *Config) (
+	globalKeyStore *keystore.GlobalKeystore, err error) {
 	ks := keystore.NewGlobalKeystore()
+
+	sr25519KeyRing, err := keystore.NewSr25519Keyring()
+	if err != nil {
+		return nil, fmt.Errorf("creating sr25519 keyring: %w", err)
+	}
+
 	// load built-in test keys if specified by `cfg.Account.Key`
-	err := keystore.LoadKeystore(cfg.Account.Key, ks.Acco)
+	err = keystore.LoadKeystore(cfg.Account.Key, ks.Acco, sr25519KeyRing)
 	require.NoError(t, err)
 
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Babe)
+	err = keystore.LoadKeystore(cfg.Account.Key, ks.Babe, sr25519KeyRing)
 	require.NoError(t, err)
 
-	err = keystore.LoadKeystore(cfg.Account.Key, ks.Gran)
+	ed25519KeyRing, err := keystore.NewEd25519Keyring()
+	if err != nil {
+		return nil, fmt.Errorf("creating ed25519 keyring: %w", err)
+	}
+
+	err = keystore.LoadKeystore(cfg.Account.Key, ks.Gran, ed25519KeyRing)
 	require.NoError(t, err)
 
 	// if authority node, should have at least 1 key in keystore
@@ -196,7 +205,7 @@ func TestNode_StartStop(t *testing.T) {
 		err    error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			fields: fields{
 				Name:     "Node",
 				Services: services.NewServiceRegistry(serviceRegistryLogger),

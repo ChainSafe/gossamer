@@ -29,7 +29,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 		expErr          error
 		exp             ProveFinalityResponse
 	}{
-		"error during get hash by number": {
+		"error_during_get_hash_by_number": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, mockError)
@@ -40,7 +40,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			expErr: mockError,
 		},
-		"error during has justification": {
+		"error_during_has_justification": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{2}, nil)
@@ -52,7 +52,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			expErr: mockError,
 		},
-		"has justification is false": {
+		"has_justification_is_false": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{2}, nil)
@@ -64,7 +64,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			exp: ProveFinalityResponse{"GRANDPA prove finality rpc failed: Block not covered by authority set changes"},
 		},
-		"error during getJustification": {
+		"error_during_getJustification": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(3)).Return(common.Hash{3}, nil)
@@ -77,7 +77,7 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 			},
 			expErr: mockError,
 		},
-		"happy path": {
+		"happy_path": {
 			blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
 				mockBlockAPI := NewMockBlockAPI(ctrl)
 				mockBlockAPI.EXPECT().GetHashByNumber(uint(4)).Return(common.Hash{4}, nil)
@@ -112,6 +112,8 @@ func TestGrandpaModule_ProveFinality(t *testing.T) {
 }
 
 func TestGrandpaModule_RoundState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	var kr, _ = keystore.NewEd25519Keyring()
 	var voters grandpa.Voters
 
@@ -122,18 +124,18 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		})
 	}
 
-	mockBlockAPI := mocks.NewBlockAPI(t)
-	mockBlockFinalityAPI := mocks.NewBlockFinalityAPI(t)
-	mockBlockFinalityAPI.On("GetVoters").Return(voters)
-	mockBlockFinalityAPI.On("GetSetID").Return(uint64(0))
-	mockBlockFinalityAPI.On("GetRound").Return(uint64(2))
-	mockBlockFinalityAPI.On("PreVotes").Return([]ed25519.PublicKeyBytes{
+	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
+	mockBlockFinalityAPI := mocks.NewMockBlockFinalityAPI(ctrl)
+	mockBlockFinalityAPI.EXPECT().GetVoters().Return(voters)
+	mockBlockFinalityAPI.EXPECT().GetSetID().Return(uint64(0))
+	mockBlockFinalityAPI.EXPECT().GetRound().Return(uint64(2))
+	mockBlockFinalityAPI.EXPECT().PreVotes().Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
 	})
-	mockBlockFinalityAPI.On("PreCommits").Return([]ed25519.PublicKeyBytes{
+	mockBlockFinalityAPI.EXPECT().PreCommits().Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 	})
@@ -154,7 +156,7 @@ func TestGrandpaModule_RoundState(t *testing.T) {
 		exp    RoundStateResponse
 	}{
 		{
-			name: "GetJustification Error",
+			name: "GetJustification_Error",
 			fields: fields{
 				mockBlockAPI,
 				mockBlockFinalityAPI,

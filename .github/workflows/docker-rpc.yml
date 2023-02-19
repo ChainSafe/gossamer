@@ -18,11 +18,11 @@ name: docker-rpc
 
 jobs:
   docker-rpc-tests:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     env:
       DOCKER_BUILDKIT: "1"
     steps:
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v4
         with:
           load: true
           target: builder

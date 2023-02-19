@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,16 +24,10 @@ import (
 
 var (
 	// DefaultCfg is the default configuration for the node.
-	DefaultCfg                = dot.GssmrConfig
-	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
-	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
-	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
-	defaultDevConfigPath      = "./chain/dev/config.toml"
-
-	gossamerName = "gssmr"
-	kusamaName   = "kusama"
-	polkadotName = "polkadot"
-	devName      = "dev"
+	DefaultCfg                  = dot.PolkadotConfig
+	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
+	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
+	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -43,7 +35,7 @@ var (
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 	cfgPath := ctx.GlobalString(ConfigFlag.Name)
 	if cfgPath == "" {
-		return loadConfig(cfg, defaultGssmrConfigPath)
+		return loadConfig(cfg, defaultPolkadotConfigPath)
 	}
 
 	logger.Info("loading toml configuration from " + cfgPath + "...")
@@ -70,25 +62,21 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
-		case gossamerName:
-			logger.Info("loading toml configuration from " + defaultGssmrConfigPath + "...")
-			tomlCfg = &ctoml.Config{}
-			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
-		case kusamaName:
+		case "kusama":
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
-		case polkadotName:
+		case "polkadot":
 			logger.Info("loading toml configuration from " + defaultPolkadotConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
-		case devName:
-			logger.Info("loading toml configuration from " + defaultDevConfigPath + "...")
+		case "westend-dev":
+			logger.Info("loading toml configuration from " + defaultWestendDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
-			cfg = dot.DevConfig()
-			err = loadConfig(tomlCfg, defaultDevConfigPath)
+			cfg = dot.WestendDevConfig()
+			err = loadConfig(tomlCfg, defaultWestendDevConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -158,11 +146,13 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	if !cfg.Global.Pruning.IsValid() {
-		return nil, fmt.Errorf("--%s must be either %s or %s", PruningFlag.Name, pruner.Full, pruner.Archive)
+		return nil, fmt.Errorf("--%s must be %s", PruningFlag.Name, pruner.Archive)
 	}
 
-	if cfg.Global.RetainBlocks < dev.DefaultRetainBlocks {
-		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, dev.DefaultRetainBlocks)
+	const minRetainBlocks = uint32(512)
+
+	if cfg.Global.RetainBlocks < minRetainBlocks {
+		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, minRetainBlocks)
 	}
 
 	// set log config
@@ -316,7 +306,7 @@ func setLogConfig(flagsKVStore stringKVStore, tomlConfig *ctoml.Config,
 		tomlConfig = new(ctoml.Config)
 	}
 
-	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, tomlConfig.Global.LogLvl, gssmr.DefaultLvl)
+	globalCfg.LogLvl, err = getLogLevel(flagsKVStore, LogFlag.Name, tomlConfig.Global.LogLvl, log.Info)
 	if err != nil {
 		return fmt.Errorf("cannot get global log level: %w", err)
 	}
@@ -466,7 +456,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 
 	// check if cfg.BasePath his been set, if not set to default
 	if cfg.BasePath == "" {
-		cfg.BasePath = dot.GssmrConfig().Global.BasePath
+		cfg.BasePath = dot.WestendDevConfig().Global.BasePath
 	}
 
 	// check --log flag
@@ -624,11 +614,9 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	switch tomlCfg.WasmInterpreter {
 	case wasmer.Name:
 		cfg.WasmInterpreter = wasmer.Name
-	case "":
-		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
 	default:
-		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
-		logger.Warn("invalid wasm interpreter set in config, defaulting to " + gssmr.DefaultWasmInterpreter)
+		cfg.WasmInterpreter = wasmer.Name
+		logger.Warn("invalid wasm interpreter set in config, defaulting to " + wasmer.Name)
 	}
 
 	logger.Debugf(
@@ -718,10 +706,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	cfg.WSUnsafeExternal = tomlCfg.WSUnsafeExternal
 
 	// check --rpc flag and update node configuration
-	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
-		cfg.Enabled = true
-	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
-		cfg.Enabled = false
+	rpcFlagIsSet := ctx.IsSet(RPCEnabledFlag.Name)
+
+	// if rpc flag is set then set its value otherwise keep
+	// cfg.Enabled as it is
+	if rpcFlagIsSet {
+		cfg.Enabled = ctx.GlobalBool(RPCEnabledFlag.Name)
 	}
 
 	// check --rpc-external flag and update node configuration
@@ -774,10 +764,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if WS := ctx.GlobalBool(WSFlag.Name); WS || cfg.WS {
-		cfg.WS = true
-	} else if ctx.IsSet(WSFlag.Name) && !WS {
-		cfg.WS = false
+	wsFlagIsSet := ctx.IsSet(WSFlag.Name)
+
+	// if ws flag is set then set its value otherwise keep
+	// cfg.WS as it is
+	if wsFlagIsSet {
+		cfg.WS = ctx.GlobalBool(WSFlag.Name)
 	}
 
 	if wsExternal := ctx.GlobalBool(WSExternalFlag.Name); wsExternal {

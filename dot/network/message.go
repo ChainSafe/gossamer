@@ -27,8 +27,6 @@ const (
 // Message must be implemented by all network messages
 type Message interface {
 	Encode() ([]byte, error)
-	Decode([]byte) error
-	String() string
 }
 
 // NotificationsMessage must be implemented by all messages sent over a notifications protocol
@@ -75,48 +73,32 @@ func (sd SyncDirection) String() string {
 type BlockRequestMessage struct {
 	RequestedData byte
 	StartingBlock variadic.Uint32OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (uint32)
-	EndBlockHash  *common.Hash
-	Direction     SyncDirection // 0 = ascending, 1 = descending
+	Direction     SyncDirection         // 0 = ascending, 1 = descending
 	Max           *uint32
 }
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	hash := common.Hash{}
 	max := uint32(0)
-	if bm.EndBlockHash != nil {
-		hash = *bm.EndBlockHash
-	}
 	if bm.Max != nil {
 		max = *bm.Max
 	}
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v EndBlockHash=%s Direction=%d Max=%d",
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v Direction=%d Max=%d",
 		bm.RequestedData,
 		bm.StartingBlock,
-		hash.String(),
 		bm.Direction,
 		max)
 }
 
 // Encode returns the protobuf encoded BlockRequestMessage
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	var (
-		toBlock []byte
-		max     uint32
-	)
-
-	if bm.EndBlockHash != nil {
-		hash := bm.EndBlockHash
-		toBlock = hash[:]
-	}
-
+	var max uint32
 	if bm.Max != nil {
 		max = *bm.Max
 	}
 
 	msg := &pb.BlockRequest{
 		Fields:    uint32(bm.RequestedData) << 24, // put byte in most significant byte of uint32
-		ToBlock:   toBlock,
 		Direction: pb.Direction(bm.Direction),
 		MaxBlocks: max,
 	}
@@ -149,7 +131,6 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 
 	var (
 		startingBlock *variadic.Uint32OrHash
-		endBlockHash  *common.Hash
 		max           *uint32
 	)
 
@@ -171,13 +152,6 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 		return err
 	}
 
-	if len(msg.ToBlock) != 0 {
-		hash := common.NewHash(msg.ToBlock)
-		endBlockHash = &hash
-	} else {
-		endBlockHash = nil
-	}
-
 	if msg.MaxBlocks != 0 {
 		max = &msg.MaxBlocks
 	} else {
@@ -186,7 +160,6 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 
 	bm.RequestedData = byte(msg.Fields >> 24)
 	bm.StartingBlock = *startingBlock
-	bm.EndBlockHash = endBlockHash
 	bm.Direction = SyncDirection(byte(msg.Direction))
 	bm.Max = max
 

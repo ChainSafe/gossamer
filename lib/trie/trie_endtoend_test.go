@@ -314,14 +314,24 @@ func TestTrieDiff(t *testing.T) {
 	for _, test := range tests {
 		newTrie.Put(test.key, test.value)
 	}
-	deletedMerkleValues := newTrie.deletedMerkleValues
-	require.Len(t, deletedMerkleValues, 3)
+
+	deletedNodeHashes := newTrie.deltas.Deleted()
+	expectedDeletedNodeHashes := map[common.Hash]struct{}{
+		// root branch hash which was modified (by its descendants).
+		// Other nodes result in an encoding of less than 32B so they are not
+		// tracked since they are inlined in the branch.
+		{0xa9, 0x76, 0xfa, 0x55, 0x6d, 0x65, 0x24, 0x3c,
+			0x3, 0x80, 0x89, 0xd4, 0x15, 0xd, 0xb1, 0x9a,
+			0xe4, 0xb6, 0x8a, 0x60, 0xe5, 0x4d, 0xea, 0x68,
+			0x9c, 0xab, 0xbf, 0xbb, 0xc0, 0xfc, 0x72, 0x48}: {},
+	}
+	assert.Equal(t, expectedDeletedNodeHashes, deletedNodeHashes)
 
 	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
-	for deletedMerkleValue := range deletedMerkleValues {
-		err = storageDB.Del([]byte(deletedMerkleValue))
+	for deletedNodeHash := range deletedNodeHashes {
+		err = storageDB.Del(deletedNodeHash[:])
 		require.NoError(t, err)
 	}
 
@@ -837,7 +847,8 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 				trieClearPrefix.Put(test.key, test.value)
 			}
 
-			num, allDeleted := trieClearPrefix.ClearPrefixLimit(prefix, uint32(lim))
+			num, allDeleted, err := trieClearPrefix.ClearPrefixLimit(prefix, uint32(lim))
+			require.NoError(t, err)
 			deleteCount := uint32(0)
 			isAllDeleted := true
 
@@ -961,7 +972,8 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				require.Equal(t, tHash, dcTrieHash)
 				require.Equal(t, dcTrieHash, ssTrieHash)
 
-				num, allDeleted := ssTrie.ClearPrefixLimit(prefix, uint32(lim))
+				num, allDeleted, err := ssTrie.ClearPrefixLimit(prefix, uint32(lim))
+				require.NoError(t, err)
 				deleteCount := uint32(0)
 				isAllDeleted := true
 

@@ -33,7 +33,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 		expectedDisjointBlockSet *disjointBlockSet
 		err                      error
 	}{
-		"add block beyond capacity": {
+		"add_block_beyond_capacity": {
 			disjointBlockSet: &disjointBlockSet{},
 			block: &types.Block{
 				Header: types.Header{
@@ -43,7 +43,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 			expectedDisjointBlockSet: &disjointBlockSet{},
 			err:                      errSetAtLimit,
 		},
-		"add block": {
+		"add_block": {
 			disjointBlockSet: &disjointBlockSet{
 				limit:            1,
 				blocks:           make(map[common.Hash]*pendingBlock),
@@ -75,7 +75,7 @@ func Test_disjointBlockSet_addBlock(t *testing.T) {
 				},
 			},
 		},
-		"has block": {
+		"has_block": {
 			disjointBlockSet: &disjointBlockSet{
 				limit: 1,
 				blocks: map[common.Hash]*pendingBlock{
@@ -147,7 +147,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 		expectedDisjointBlockSet *disjointBlockSet
 		err                      error
 	}{
-		"add header beyond capactiy": {
+		"add_header_beyond_capactiy": {
 			disjointBlockSet: &disjointBlockSet{},
 			header: &types.Header{
 				Number: 1,
@@ -155,7 +155,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 			expectedDisjointBlockSet: &disjointBlockSet{},
 			err:                      errors.New("cannot add block; set is at capacity"),
 		},
-		"add header": {
+		"add_header": {
 			disjointBlockSet: &disjointBlockSet{
 				blocks:           make(map[common.Hash]*pendingBlock),
 				limit:            1,
@@ -183,7 +183,7 @@ func Test_disjointBlockSet_addHeader(t *testing.T) {
 				},
 			},
 		},
-		"has header": {
+		"has_header": {
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					hashHeader(types.Header{Number: 1, ParentHash: common.Hash{1}}): {
@@ -241,7 +241,7 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 		remaining        map[common.Hash]*pendingBlock
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			disjointBlockSet: &disjointBlockSet{
 				limit: 0,
 				blocks: map[common.Hash]*pendingBlock{
@@ -255,7 +255,7 @@ func Test_disjointBlockSet_clearBlocks(t *testing.T) {
 			remaining: map[common.Hash]*pendingBlock{},
 		},
 		{
-			name: "remove clear one block",
+			name: "remove_clear_one_block",
 			disjointBlockSet: &disjointBlockSet{
 				limit: 0,
 				blocks: map[common.Hash]*pendingBlock{
@@ -304,7 +304,7 @@ func Test_disjointBlockSet_getBlocks(t *testing.T) {
 			wantDisjointBlockSet: &disjointBlockSet{},
 		},
 		{
-			name: "base case",
+			name: "base_case",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{}: {},
@@ -340,7 +340,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 		wantDisjointBlockSet *disjointBlockSet
 	}{
 		{
-			name: "number 0",
+			name: "number_0",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}: {
@@ -378,7 +378,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			},
 		},
 		{
-			name: "number 1",
+			name: "number_1",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}: {
@@ -407,7 +407,7 @@ func Test_disjointBlockSet_removeLowerBlocks(t *testing.T) {
 			},
 		},
 		{
-			name: "number 11",
+			name: "number_11",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}: {
@@ -447,14 +447,14 @@ func Test_disjointBlockSet_size(t *testing.T) {
 		want             int
 	}{
 		{
-			name: "expect 0",
+			name: "expect_0",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{},
 			},
 			want: 0,
 		},
 		{
-			name: "expect 1",
+			name: "expect_1",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}: {hash: common.Hash{1}, number: 1},
@@ -463,7 +463,7 @@ func Test_disjointBlockSet_size(t *testing.T) {
 			want: 1,
 		},
 		{
-			name: "expect 2",
+			name: "expect_2",
 			disjointBlockSet: &disjointBlockSet{
 				blocks: map[common.Hash]*pendingBlock{
 					{1}:  {hash: common.Hash{1}, number: 1},

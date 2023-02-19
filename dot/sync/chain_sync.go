@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
@@ -292,7 +292,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 			return fmt.Errorf("get block hash by number: %w", err)
 		}
 
-		if ourHash.Equal(ps.hash) {
+		if ourHash == ps.hash {
 			return nil
 		}
 
@@ -827,9 +827,9 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 // validateResponse performs pre-validation of a block response before placing it into either the
 // pendingBlocks or readyBlocks set.
 // It checks the following:
-// 	- the response is not empty
-//  - the response contains all the expected fields
-//  - each block has the correct parent, ie. the response constitutes a valid chain
+//   - the response is not empty
+//   - the response contains all the expected fields
+//   - each block has the correct parent, ie. the response constitutes a valid chain
 func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 	resp *network.BlockResponseMessage, p peer.ID) error {
 	if resp == nil || len(resp.BlockData) == 0 {
@@ -896,7 +896,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 
 		// otherwise, check that this response forms a chain
 		// ie. curr's parent hash is hash of previous header, and curr's number is previous number + 1
-		if !prev.Hash().Equal(curr.ParentHash) || curr.Number != prev.Number+1 {
+		if prev.Hash() != curr.ParentHash || curr.Number != prev.Number+1 {
 			// the response is missing some blocks, place blocks from curr onwards into pending blocks set
 			for _, bd := range resp.BlockData[i:] {
 				if err := cs.pendingBlocks.addBlock(&types.Block{
@@ -1038,17 +1038,9 @@ func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 			}
 		}
 
-		var end *common.Hash
-		if !w.targetHash.IsEmpty() && i == numRequests-1 {
-			// if we're on our last request (which should contain the target hash),
-			// then add it
-			end = &w.targetHash
-		}
-
 		reqs[i] = &network.BlockRequestMessage{
 			RequestedData: w.requestData,
 			StartingBlock: *start,
-			EndBlockHash:  end,
 			Direction:     w.direction,
 			Max:           &max,
 		}

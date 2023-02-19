@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +27,7 @@ func TestNewService(t *testing.T) {
 		err        error
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			cfgBuilder: func(ctrl *gomock.Controller) *Config {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetFinalisedNotifierChannel().
@@ -79,7 +79,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			fields: fields{
 				chainSync: newMockChainSync(ctrl),
 			},
@@ -207,7 +207,7 @@ func TestService_IsSynced(t *testing.T) {
 			},
 			synced: true,
 		},
-		"not tip": {
+		"not_tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
 				chainSync := NewMockChainSync(ctrl)
 				chainSync.EXPECT().syncState().Return(bootstrap)
@@ -291,7 +291,7 @@ func Test_reverseBlockData(t *testing.T) {
 		expected args
 	}{
 		{
-			name: "working example",
+			name: "working_example",
 			args: args{data: []*types.BlockData{
 				{
 					Hash: common.MustHexToHash("0x01"),

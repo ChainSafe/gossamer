@@ -13,12 +13,14 @@ import (
 type UnknownTransaction scale.VaryingDataType
 
 // Index returns the VDT index
-func (UnknownTransaction) Index() uint {
+func (UnknownTransaction) Index() uint { //skipcq: GO-W1029
 	return 1
 }
 
+func (u UnknownTransaction) String() string { return u.Error() } //skipcq: GO-W1029
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
+func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*u)
 	err = vdt.Set(val)
 	if err != nil {
@@ -29,12 +31,12 @@ func (u *UnknownTransaction) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Value will return value from the underying VaryingDataType
-func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue, err error) {
+func (u *UnknownTransaction) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*u)
 	return vdt.Value()
 }
 
-func (u UnknownTransaction) Error() string {
+func (u UnknownTransaction) Error() string { //skipcq: GO-W1029
 	value, err := u.Value()
 	if err != nil {
 		return fmt.Sprintf("getting unknown transaction value: %s", err)
@@ -61,6 +63,8 @@ type ValidityCannotLookup struct{}
 // Index returns the VDT index
 func (ValidityCannotLookup) Index() uint { return 0 }
 
+func (v ValidityCannotLookup) String() string { return v.Error() }
+
 // Error returns the error message associated with the ValidityCannotLookup
 func (ValidityCannotLookup) Error() string {
 	return "lookup failed"
@@ -72,6 +76,8 @@ type NoUnsignedValidator struct{}
 // Index returns the VDT index
 func (NoUnsignedValidator) Index() uint { return 1 }
 
+func (n NoUnsignedValidator) String() string { return n.Error() }
+
 // Error returns the error message associated with the NoUnsignedValidator
 func (NoUnsignedValidator) Error() string {
 	return "validator not found"
@@ -82,6 +88,8 @@ type UnknownCustom uint8
 
 // Index returns the VDT index
 func (UnknownCustom) Index() uint { return 2 }
+
+func (m UnknownCustom) String() string { return m.Error() }
 
 // Error returns the error message associated with the UnknownCustom
 func (m UnknownCustom) Error() string {
