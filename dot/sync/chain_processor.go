@@ -92,8 +92,8 @@ func (s *chainProcessor) processReadyBlocks() {
 
 		if err := s.processBlockData(*bd); err != nil {
 			// depending on the error, we might want to save this block for later
-			if !errors.Is(err, errFailedToGetParent) {
-				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
+			if !errors.Is(err, errFailedToGetParent) && !errors.Is(err, blocktree.ErrParentNotFound) {
+				logger.Tracef("block data processing for block with hash %s failed: %s", bd.Hash, err)
 				continue
 			}
 
