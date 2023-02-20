@@ -84,7 +84,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 func TestImportState_Integration(t *testing.T) {
 	basepath := os.TempDir()
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -120,7 +120,7 @@ func TestImportState(t *testing.T) {
 
 	basepath := t.TempDir()
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 

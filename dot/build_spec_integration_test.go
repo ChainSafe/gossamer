@@ -20,7 +20,7 @@ import (
 const codeHex = "0x3a636f6465"
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
 
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
@@ -59,7 +59,7 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)

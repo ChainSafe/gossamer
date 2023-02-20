@@ -8,17 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/westend"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 // TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
@@ -186,64 +184,65 @@ func (p PprofConfig) String() string {
 	return p.Settings.String()
 }
 
-// GssmrConfig returns a new test configuration using the provided basepath
-func GssmrConfig() *Config {
+// WestendDevConfig returns a westend node configuration
+func WestendDevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:           gssmr.DefaultName,
-			ID:             gssmr.DefaultID,
-			BasePath:       gssmr.DefaultBasePath,
-			LogLvl:         gssmr.DefaultLvl,
-			MetricsAddress: gssmr.DefaultMetricsAddress,
-			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
-			TelemetryURLs:  gssmr.DefaultTelemetryURLs,
+			Name:           "Westend",
+			ID:             "westend_dev",
+			BasePath:       "~/.gossamer/westend-dev",
+			LogLvl:         log.Info,
+			MetricsAddress: ":9876",
+			RetainBlocks:   512,
+			Pruning:        pruner.Archive,
 		},
 		Log: LogConfig{
-			CoreLvl:           gssmr.DefaultLvl,
-			DigestLvl:         gssmr.DefaultLvl,
-			SyncLvl:           gssmr.DefaultLvl,
-			NetworkLvl:        gssmr.DefaultLvl,
-			RPCLvl:            gssmr.DefaultLvl,
-			StateLvl:          gssmr.DefaultLvl,
-			RuntimeLvl:        gssmr.DefaultLvl,
-			BlockProducerLvl:  gssmr.DefaultLvl,
-			FinalityGadgetLvl: gssmr.DefaultLvl,
+			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
 		},
 		Init: InitConfig{
-			Genesis: gssmr.DefaultGenesis,
+			Genesis: "./chain/westend-dev/westend-dev-spec-raw.json",
 		},
 		Account: AccountConfig{
-			Key:    gssmr.DefaultKey,
-			Unlock: gssmr.DefaultUnlock,
+			Key:    "alice",
+			Unlock: "",
 		},
 		Core: CoreConfig{
-			Roles:            gssmr.DefaultRoles,
-			BabeAuthority:    gssmr.DefaultBabeAuthority,
-			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
-			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
-			GrandpaInterval:  gssmr.DefaultGrandpaInterval,
+			Roles:            common.AuthorityRole,
+			WasmInterpreter:  wasmer.Name,
+			BabeAuthority:    true,
+			GrandpaAuthority: true,
+			GrandpaInterval:  time.Second,
 		},
 		Network: NetworkConfig{
-			Port:              gssmr.DefaultNetworkPort,
-			Bootnodes:         gssmr.DefaultNetworkBootnodes,
-			NoBootstrap:       gssmr.DefaultNoBootstrap,
-			NoMDNS:            gssmr.DefaultNoMDNS,
-			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
-			MinPeers:          gssmr.DefaultMinPeers,
-			MaxPeers:          gssmr.DefaultMaxPeers,
+			Port:              7001,
+			Bootnodes:         []string(nil),
+			NoBootstrap:       false,
+			NoMDNS:            false,
+			DiscoveryInterval: 10 * time.Second,
 		},
 		RPC: RPCConfig{
-			Port:    gssmr.DefaultRPCHTTPPort,
-			Host:    gssmr.DefaultRPCHTTPHost,
-			Modules: gssmr.DefaultRPCModules,
-			WSPort:  gssmr.DefaultRPCWSPort,
+			WS:      true,
+			Enabled: true,
+			Port:    8545,
+			Host:    "localhost",
+			Modules: []string{
+				"system", "author", "chain", "state", "rpc",
+				"grandpa", "offchain", "childstate", "syncstate", "payment"},
+			WSPort: 8546,
 		},
 		Pprof: PprofConfig{
 			Settings: pprof.Settings{
-				ListeningAddress: gssmr.DefaultPprofListeningAddress,
-				BlockProfileRate: gssmr.DefaultPprofBlockRate,
-				MutexProfileRate: gssmr.DefaultPprofMutexRate,
+				ListeningAddress: "localhost:6060",
+				BlockProfileRate: 0,
+				MutexProfileRate: 0,
 			},
 		},
 	}
@@ -258,8 +257,8 @@ func KusamaConfig() *Config {
 			BasePath:       kusama.DefaultBasePath,
 			LogLvl:         kusama.DefaultLvl,
 			MetricsAddress: kusama.DefaultMetricsAddress,
-			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
+			RetainBlocks:   kusama.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(kusama.DefaultPruningMode),
 			TelemetryURLs:  kusama.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
@@ -314,9 +313,9 @@ func PolkadotConfig() *Config {
 			ID:             polkadot.DefaultID,
 			BasePath:       polkadot.DefaultBasePath,
 			LogLvl:         polkadot.DefaultLvl,
-			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
-			MetricsAddress: gssmr.DefaultMetricsAddress,
+			RetainBlocks:   polkadot.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(polkadot.DefaultPruningMode),
+			MetricsAddress: polkadot.DefaultMetricsAddress,
 			TelemetryURLs:  polkadot.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
@@ -358,125 +357,6 @@ func PolkadotConfig() *Config {
 				ListeningAddress: polkadot.DefaultPprofListeningAddress,
 				BlockProfileRate: polkadot.DefaultPprofBlockRate,
 				MutexProfileRate: polkadot.DefaultPprofMutexRate,
-			},
-		},
-	}
-}
-
-// DevConfig returns the configuration for a development chain
-func DevConfig() *Config {
-	return &Config{
-		Global: GlobalConfig{
-			Name:           dev.DefaultName,
-			ID:             dev.DefaultID,
-			BasePath:       dev.DefaultBasePath,
-			LogLvl:         dev.DefaultLvl,
-			MetricsAddress: dev.DefaultMetricsAddress,
-			RetainBlocks:   dev.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(dev.DefaultPruningMode),
-			TelemetryURLs:  dev.DefaultTelemetryURLs,
-		},
-		Log: LogConfig{
-			CoreLvl:           dev.DefaultLvl,
-			DigestLvl:         dev.DefaultLvl,
-			SyncLvl:           dev.DefaultLvl,
-			NetworkLvl:        dev.DefaultLvl,
-			RPCLvl:            dev.DefaultLvl,
-			StateLvl:          dev.DefaultLvl,
-			RuntimeLvl:        dev.DefaultLvl,
-			BlockProducerLvl:  dev.DefaultLvl,
-			FinalityGadgetLvl: dev.DefaultLvl,
-		},
-		Init: InitConfig{
-			Genesis: dev.DefaultGenesis,
-		},
-		Account: AccountConfig{
-			Key:    dev.DefaultKey,
-			Unlock: dev.DefaultUnlock,
-		},
-		Core: CoreConfig{
-			Roles:            dev.DefaultRoles,
-			BabeAuthority:    dev.DefaultBabeAuthority,
-			GrandpaAuthority: dev.DefaultGrandpaAuthority,
-			WasmInterpreter:  dev.DefaultWasmInterpreter,
-			BABELead:         dev.DefaultBabeAuthority,
-		},
-		Network: NetworkConfig{
-			Port:        dev.DefaultNetworkPort,
-			Bootnodes:   dev.DefaultNetworkBootnodes,
-			NoBootstrap: dev.DefaultNoBootstrap,
-			NoMDNS:      dev.DefaultNoMDNS,
-		},
-		RPC: RPCConfig{
-			Port:    dev.DefaultRPCHTTPPort,
-			Host:    dev.DefaultRPCHTTPHost,
-			Modules: dev.DefaultRPCModules,
-			WSPort:  dev.DefaultRPCWSPort,
-			Enabled: dev.DefaultRPCEnabled,
-			WS:      dev.DefaultWSEnabled,
-		},
-		Pprof: PprofConfig{
-			Settings: pprof.Settings{
-				ListeningAddress: dev.DefaultPprofListeningAddress,
-				BlockProfileRate: dev.DefaultPprofBlockRate,
-				MutexProfileRate: dev.DefaultPprofMutexRate,
-			},
-		},
-	}
-}
-
-// WestendConfig returns a "westend" node configuration
-func WestendConfig() *Config {
-	return &Config{
-		Global: GlobalConfig{
-			Name:           westend.DefaultName,
-			ID:             westend.DefaultID,
-			BasePath:       westend.DefaultBasePath,
-			LogLvl:         westend.DefaultLvl,
-			RetainBlocks:   gssmr.DefaultRetainBlocks,
-			Pruning:        pruner.Mode(gssmr.DefaultPruningMode),
-			MetricsAddress: gssmr.DefaultMetricsAddress,
-			TelemetryURLs:  westend.DefaultTelemetryURLs,
-		},
-		Log: LogConfig{
-			CoreLvl:           westend.DefaultLvl,
-			DigestLvl:         westend.DefaultLvl,
-			SyncLvl:           westend.DefaultLvl,
-			NetworkLvl:        westend.DefaultLvl,
-			RPCLvl:            westend.DefaultLvl,
-			StateLvl:          westend.DefaultLvl,
-			RuntimeLvl:        westend.DefaultLvl,
-			BlockProducerLvl:  westend.DefaultLvl,
-			FinalityGadgetLvl: westend.DefaultLvl,
-		},
-		Init: InitConfig{
-			Genesis: westend.DefaultGenesis,
-		},
-		Account: AccountConfig{
-			Key:    westend.DefaultKey,
-			Unlock: westend.DefaultUnlock,
-		},
-		Core: CoreConfig{
-			Roles:           westend.DefaultRoles,
-			WasmInterpreter: westend.DefaultWasmInterpreter,
-		},
-		Network: NetworkConfig{
-			Port:        westend.DefaultNetworkPort,
-			Bootnodes:   westend.DefaultNetworkBootnodes,
-			NoBootstrap: westend.DefaultNoBootstrap,
-			NoMDNS:      westend.DefaultNoMDNS,
-		},
-		RPC: RPCConfig{
-			Port:    westend.DefaultRPCHTTPPort,
-			Host:    westend.DefaultRPCHTTPHost,
-			Modules: westend.DefaultRPCModules,
-			WSPort:  westend.DefaultRPCWSPort,
-		},
-		Pprof: PprofConfig{
-			Settings: pprof.Settings{
-				ListeningAddress: westend.DefaultPprofListeningAddress,
-				BlockProfileRate: westend.DefaultPprofBlockRate,
-				MutexProfileRate: westend.DefaultPprofMutexRate,
 			},
 		},
 	}

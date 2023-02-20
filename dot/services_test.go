@@ -18,7 +18,7 @@ import (
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
@@ -53,7 +53,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
 
