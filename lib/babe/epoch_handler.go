@@ -14,7 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-type handleSlotFunc = func(epoch, slotNum uint64, authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) error
+type handleSlotFunc = func(epoch uint64, slot Slot, authorityIndex uint32,
+	preRuntimeDigest *types.PreRuntimeDigest) error
 
 var (
 	errEpochPast = errors.New("cannot run epoch that has already passed")
@@ -103,15 +104,6 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
 	}
 
-	defer func() {
-		// cleanup timers if ctx was cancelled
-		for _, swt := range slotTimeTimers {
-			if !swt.timer.Stop() {
-				<-swt.timer.C
-			}
-		}
-	}()
-
 	logger.Debugf("authoring in %d slots in epoch %d", len(slotTimeTimers), h.epochNumber)
 
 	for _, swt := range slotTimeTimers {
@@ -119,6 +111,9 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 		select {
 		case <-ctx.Done():
+			for _, swt := range slotTimeTimers {
+				swt.timer.Stop()
+			}
 			return
 		case <-swt.timer.C:
 			// we must do a time correction as the slot timer sometimes is triggered
@@ -135,7 +130,12 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))
 			}
 
-			err := h.handleSlot(h.epochNumber, swt.slotNum, h.epochData.authorityIndex, h.slotToPreRuntimeDigest[swt.slotNum])
+			currentSlot := Slot{
+				start:    swt.startTime,
+				duration: h.constants.slotDuration,
+				number:   swt.slotNum,
+			}
+			err := h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, h.slotToPreRuntimeDigest[swt.slotNum])
 			if err != nil {
 				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
 				continue

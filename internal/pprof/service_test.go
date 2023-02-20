@@ -30,8 +30,6 @@ func Test_NewService(t *testing.T) {
 	assert.NotNil(t, service.done)
 }
 
-//go:generate mockgen -destination=runner_mock_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/internal/httpserver Runner
-
 func Test_Service_StartStop_success(t *testing.T) {
 	t.Parallel()
 
@@ -44,16 +42,16 @@ func Test_Service_StartStop_success(t *testing.T) {
 		stopDoneErr  error
 		stopErr      error
 	}{
-		"start nil error": {
+		"start_nil_error": {
 			startDone: true,
 			startErr:  ErrServerDoneBeforeReady,
 		},
-		"start error": {
+		"start_error": {
 			startDone:    true,
 			startDoneErr: errDummy,
 			startErr:     errDummy,
 		},
-		"stop error": {
+		"stop_error": {
 			stopDoneErr: errDummy,
 			stopErr:     errDummy,
 		},

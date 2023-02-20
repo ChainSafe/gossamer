@@ -24,6 +24,8 @@ var (
 	AccoName Name = "acco"
 	AuraName Name = "aura"
 	ImonName Name = "imon"
+	ParaName Name = "para"
+	AsgnName Name = "asgn"
 	AudiName Name = "audi"
 	DumyName Name = "dumy"
 )
@@ -31,13 +33,29 @@ var (
 // Keystore provides key management functionality
 type Keystore interface {
 	Name() Name
-	Type() crypto.KeyType
-	Insert(kp crypto.Keypair) error
-	GetKeypairFromAddress(pub common.Address) crypto.Keypair
-	GetKeypair(pub crypto.PublicKey) crypto.Keypair
+	Typer
+	Inserter
+	AddressKeypairGetter
+	Keypairs() []KeyPair
+	GetKeypair(pub crypto.PublicKey) KeyPair
 	PublicKeys() []crypto.PublicKey
-	Keypairs() []crypto.Keypair
 	Size() int
+}
+
+// AddressKeypairGetter gets a keypair from an address.
+type AddressKeypairGetter interface {
+	GetKeypairFromAddress(pub common.Address) KeyPair
+}
+
+// TyperInserter has the Type and Insert methods.
+type TyperInserter interface {
+	Typer
+	Inserter
+}
+
+// Inserter inserts a keypair.
+type Inserter interface {
+	Insert(kp KeyPair) error
 }
 
 // GlobalKeystore defines the various keystores used by the node
@@ -46,6 +64,8 @@ type GlobalKeystore struct {
 	Gran Keystore
 	Acco Keystore
 	Aura Keystore
+	Para Keystore
+	Asgn Keystore
 	Imon Keystore
 	Audi Keystore
 	Dumy Keystore
@@ -58,6 +78,8 @@ func NewGlobalKeystore() *GlobalKeystore {
 		Gran: NewBasicKeystore(GranName, crypto.Ed25519Type),
 		Acco: NewGenericKeystore(AccoName), // TODO: which type is used? can an account be either type? (#1872)
 		Aura: NewBasicKeystore(AuraName, crypto.Sr25519Type),
+		Para: NewBasicKeystore(ParaName, crypto.Sr25519Type),
+		Asgn: NewBasicKeystore(AsgnName, crypto.Sr25519Type),
 		Imon: NewBasicKeystore(ImonName, crypto.Sr25519Type),
 		Audi: NewBasicKeystore(AudiName, crypto.Sr25519Type),
 		Dumy: NewGenericKeystore(DumyName),
@@ -78,6 +100,10 @@ func (k *GlobalKeystore) GetKeystore(name []byte) (Keystore, error) {
 		return k.Aura, nil
 	case ImonName:
 		return k.Imon, nil
+	case ParaName:
+		return k.Para, nil
+	case AsgnName:
+		return k.Asgn, nil
 	case AudiName:
 		return k.Audi, nil
 	case DumyName:

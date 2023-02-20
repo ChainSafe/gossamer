@@ -7,7 +7,6 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
@@ -23,19 +22,6 @@ var sr25519PrivateKeys = []string{
 	"0xcdb035129162df39b70e604ab75162084e176f48897cdafb7d72c4a542a86dda",
 	"0x51079fc9e1817f8d4f245d66b325a94d9cafdb8691acbfe85415dce3ae7a62b9",
 	"0x7c04eea9d31ce0d9ee256d7c561dc29f20d1119a125e95713c967dcd8d14f22d",
-}
-
-// Keyring represents a test keyring
-type Keyring interface {
-	Alice() crypto.Keypair
-	Bob() crypto.Keypair
-	Charlie() crypto.Keypair
-	Dave() crypto.Keypair
-	Eve() crypto.Keypair
-	Ferdie() crypto.Keypair
-	George() crypto.Keypair
-	Heather() crypto.Keypair
-	Ian() crypto.Keypair
 }
 
 // Sr25519Keyring represents a test keyring
@@ -80,47 +66,47 @@ func NewSr25519Keyring() (*Sr25519Keyring, error) {
 }
 
 // Alice returns Alice's key
-func (kr *Sr25519Keyring) Alice() crypto.Keypair {
+func (kr *Sr25519Keyring) Alice() KeyPair {
 	return kr.KeyAlice
 }
 
 // Bob returns Bob's key
-func (kr *Sr25519Keyring) Bob() crypto.Keypair {
+func (kr *Sr25519Keyring) Bob() KeyPair {
 	return kr.KeyBob
 }
 
 // Charlie returns Charlie's key
-func (kr *Sr25519Keyring) Charlie() crypto.Keypair {
+func (kr *Sr25519Keyring) Charlie() KeyPair {
 	return kr.KeyCharlie
 }
 
 // Dave returns Dave's key
-func (kr *Sr25519Keyring) Dave() crypto.Keypair {
+func (kr *Sr25519Keyring) Dave() KeyPair {
 	return kr.KeyDave
 }
 
 // Eve returns Eve's key
-func (kr *Sr25519Keyring) Eve() crypto.Keypair {
+func (kr *Sr25519Keyring) Eve() KeyPair {
 	return kr.KeyEve
 }
 
 // Ferdie returns Ferdie's key
-func (kr *Sr25519Keyring) Ferdie() crypto.Keypair {
+func (kr *Sr25519Keyring) Ferdie() KeyPair {
 	return kr.KeyFerdie
 }
 
 // George returns George's key
-func (kr *Sr25519Keyring) George() crypto.Keypair {
+func (kr *Sr25519Keyring) George() KeyPair {
 	return kr.KeyGeorge
 }
 
 // Heather returns Heather's key
-func (kr *Sr25519Keyring) Heather() crypto.Keypair {
+func (kr *Sr25519Keyring) Heather() KeyPair {
 	return kr.KeyHeather
 }
 
 // Ian returns Ian's key
-func (kr *Sr25519Keyring) Ian() crypto.Keypair {
+func (kr *Sr25519Keyring) Ian() KeyPair {
 	return kr.KeyIan
 }
 
@@ -172,46 +158,46 @@ func NewEd25519Keyring() (*Ed25519Keyring, error) {
 }
 
 // Alice returns Alice's key
-func (kr *Ed25519Keyring) Alice() crypto.Keypair {
+func (kr *Ed25519Keyring) Alice() KeyPair {
 	return kr.KeyAlice
 }
 
 // Bob returns Bob's key
-func (kr *Ed25519Keyring) Bob() crypto.Keypair {
+func (kr *Ed25519Keyring) Bob() KeyPair {
 	return kr.KeyBob
 }
 
 // Charlie returns Charlie's key
-func (kr *Ed25519Keyring) Charlie() crypto.Keypair {
+func (kr *Ed25519Keyring) Charlie() KeyPair {
 	return kr.KeyCharlie
 }
 
 // Dave returns Dave's key
-func (kr *Ed25519Keyring) Dave() crypto.Keypair {
+func (kr *Ed25519Keyring) Dave() KeyPair {
 	return kr.KeyDave
 }
 
 // Eve returns Eve's key
-func (kr *Ed25519Keyring) Eve() crypto.Keypair {
+func (kr *Ed25519Keyring) Eve() KeyPair {
 	return kr.KeyEve
 }
 
 // Ferdie returns Ferdie's key
-func (kr *Ed25519Keyring) Ferdie() crypto.Keypair {
+func (kr *Ed25519Keyring) Ferdie() KeyPair {
 	return kr.KeyFerdie
 }
 
 // George returns George's key
-func (kr *Ed25519Keyring) George() crypto.Keypair {
+func (kr *Ed25519Keyring) George() KeyPair {
 	return kr.KeyGeorge
 }
 
 // Heather returns Heather's key
-func (kr *Ed25519Keyring) Heather() crypto.Keypair {
+func (kr *Ed25519Keyring) Heather() KeyPair {
 	return kr.KeyHeather
 }
 
 // Ian returns Ian's key
-func (kr *Ed25519Keyring) Ian() crypto.Keypair {
+func (kr *Ed25519Keyring) Ian() KeyPair {
 	return kr.KeyIan
 }

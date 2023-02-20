@@ -5,6 +5,7 @@ package peerset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var (
@@ -165,12 +166,6 @@ func (r ReputationChange) String() string {
 
 func newReputationChange(value Reputation, reason string) ReputationChange {
 	return ReputationChange{value, reason}
-}
-
-// MessageProcessor interface allows the network layer to receive and
-// process messages from the peerstate layer
-type MessageProcessor interface {
-	Process(Message)
 }
 
 // PeerSet is a container for all the components of a peerSet.
@@ -641,7 +636,11 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		} else {
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
-				logger.Errorf("cannot accept incomming peer %s: %s", pid, err)
+				if errors.Is(err, ErrIncomingSlotsUnavailable) {
+					logger.Debugf("cannot accept incoming peer %s: %s", pid, err)
+				} else {
+					logger.Errorf("cannot accept incoming peer %s: %s", pid, err)
+				}
 				message.Status = Reject
 			} else {
 				logger.Debugf("incoming connection accepted from peer %s", pid)

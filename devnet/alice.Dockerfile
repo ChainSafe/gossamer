@@ -1,13 +1,10 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM golang:1.18
+FROM golang:1.19
 
-ARG POLKADOT_VERSION=v0.9.10
-
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
 ARG DD_API_KEY=somekey
+ARG CHAIN=westend-local
 
 ENV DD_API_KEY=${DD_API_KEY}
 
@@ -22,8 +19,8 @@ COPY . .
 
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
-# use modified genesis-spec.json with only 3 authority nodes
-RUN cp -f devnet/chain/$CHAIN/genesis-raw.json chain/gssmr/genesis-spec.json
+# use the 3 node westend local network
+RUN cp -f chain/$CHAIN/$CHAIN-spec-raw.json chain/$CHAIN/$CHAIN-spec.json
 
 RUN gossamer --key=alice init
 

@@ -11,10 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/network"
+	network "github.com/ChainSafe/gossamer/dot/network"
+	peerset "github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	telemetry "github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -37,13 +39,14 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstace func(*testing.T, *storage.TrieState) runtime.Instance
+type useRuntimeInstance func(*testing.T, *storage.TrieState) Runtime
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
 	t.Helper()
 
 	cfg := wasmer.Config{
@@ -60,7 +63,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
 	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0910)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
@@ -159,7 +162,7 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -171,7 +174,8 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{0xab, 0xcd})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	extBytes := common.MustHexToBytes(extHex)
 
@@ -190,12 +194,12 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority: 39325240425794630,
+			Priority: 36074,
 			Requires: nil,
 			Provides: [][]byte{
 				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
-			Longevity: 18446744073709551614,
+			Longevity: 18446744073709551613,
 			Propagate: true,
 		},
 	}
@@ -209,15 +213,25 @@ func TestAuthorModule_SubmitExtrinsic_Integration(t *testing.T) {
 	require.Equal(t, expectedHash, *res)
 }
 
-func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_bad_proof(t *testing.T) {
 	t.Parallel()
+	testInvalidKeyringPairAlice := signature.KeyringPair{
+		URI: "//Alice",
+		PublicKey: []byte{0xd5, 0x36, 0x13, 0xc7, 0x15, 0xfd, 0xd3,
+			0x1c, 0x61, 0x14, 0x1a, 0xb4, 0x4, 0xa9, 0x9f, 0xd6, 0x82,
+			0x2c, 0x85, 0x58, 0x85, 0x2c, 0xcd, 0xe3, 0x9a, 0x56, 0x84,
+			0xe7, 0xa5, 0x6d, 0x12, 0x7d},
+		Address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	genesisHash := integrationTestController.genesisHeader.Hash()
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		testInvalidKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
 
 	ctrl := gomock.NewController(t)
 	net2test := NewMockNetwork(ctrl)
@@ -230,7 +244,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 
 	res := new(ExtrinsicHashResponse)
 	err := auth.SubmitExtrinsic(nil, &Extrinsic{extHex}, res)
-	require.EqualError(t, err, "ancient birth block")
+	require.EqualError(t, err, "bad proof")
 
 	txOnPool := integrationTestController.stateSrv.Transaction.PendingInPool()
 	require.Len(t, txOnPool, 0)
@@ -254,7 +268,7 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 	integrationTestController := setupStateAndRuntime(t, t.TempDir(), useInstanceFromGenesis)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -266,10 +280,10 @@ func TestAuthorModule_SubmitExtrinsic_AlreadyInPool(t *testing.T) {
 
 	// creating an extrisinc to the System.remark call using a sample argument
 	extHex := runtime.NewTestExtrinsic(t,
-		integrationTestController.runtime, genesisHash, genesisHash, 0, "System.remark", []byte{})
+		integrationTestController.runtime, genesisHash, genesisHash, 0,
+		signature.TestKeyringPairAlice, "System.remark", []byte{})
 	extBytes := common.MustHexToBytes(extHex)
 
-	integrationTestController.storageState = &state.StorageState{}
 	integrationTestController.network = NewMockNetwork(nil)
 
 	// setup auth module
@@ -315,26 +329,26 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 		kp           interface{}
 		waitErr      error
 	}{
-		"insert a valid babe key type": {
+		"insert_a_valid_babe_key_type": {
 			ksType: "babe",
 			seed:   seed,
 			kp:     babeKp,
 		},
 
-		"insert a valid gran key type": {
+		"insert_a_valid_gran_key_type": {
 			ksType: "gran",
 			seed:   seed,
 			kp:     grandKp,
 		},
 
-		"invalid babe key type": {
+		"invalid_babe_key_type": {
 			ksType:  "babe",
 			seed:    seed,
 			kp:      "0x0000000000000000000000000000000000000000000000000000000000000000",
 			waitErr: ErrProvidedKeyDoesNotMatch,
 		},
 
-		"unknown key type": {
+		"unknown_key_type": {
 			ksType:  "someothertype",
 			seed:    seed,
 			kp:      grandKp,
@@ -347,10 +361,14 @@ func TestAuthorModule_InsertKey_Integration(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			var expectedKp crypto.Keypair
+			type keyPair interface {
+				Public() crypto.PublicKey
+			}
+
+			var expectedKp keyPair
 			var pubkey string
 
-			if kp, ok := tt.kp.(crypto.Keypair); ok {
+			if kp, ok := tt.kp.(keyPair); ok {
 				expectedKp = kp
 				pubkey = kp.Public().Hex()
 			} else {
@@ -399,25 +417,25 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 		hasKey       bool
 		waitErr      error
 	}{
-		"key exists and should return true": {
+		"key_exists_and_should_return_true": {
 			pub:     kr.Alice().Public().Hex(),
 			keytype: "babe",
 			hasKey:  true,
 		},
 
-		"key does not exists and should return false": {
+		"key_does_not_exists_and_should_return_false": {
 			pub:     kr.Bob().Public().Hex(),
 			keytype: "babe",
 			hasKey:  false,
 		},
 
-		"invalid key should return error": {
+		"invalid_key_should_return_error": {
 			pub:     "0xaa11",
 			keytype: "babe",
 			hasKey:  false,
 			waitErr: errors.New("cannot create public key: input is not 32 bytes"),
 		},
-		"invalid key type should return error": {
+		"invalid_key_type_should_return_error": {
 			pub:     kr.Alice().Public().Hex(),
 			keytype: "xxxx",
 			hasKey:  false,
@@ -450,11 +468,11 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
 
-	const granSeed = "0xf25586ceb64a043d887631fa08c2ed790ef7ae3c7f28de5172005f8b9469e529"
-	const granPubK = "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c"
+	const aliceGrandpaSeed = "0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115"
+	const aliceGrandpaPublicKey = "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"
 
-	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
-	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+	const sr25519AliceSeed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
+	const sr25519AlicePublicKey = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
 
 	insertSessionKeys := []struct {
 		ktype      []string
@@ -462,13 +480,13 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}{
 		{
 			ktype: []string{"gran"},
-			seed:  granSeed,
-			pubk:  granPubK,
+			seed:  aliceGrandpaSeed,
+			pubk:  aliceGrandpaPublicKey,
 		},
 		{
-			ktype: []string{"babe", "imon", "audi"},
-			seed:  sr25519Seed,
-			pubk:  sr25519Pubk,
+			ktype: []string{"babe", "imon", "para", "asgn", "audi"},
+			seed:  sr25519AliceSeed,
+			pubk:  sr25519AlicePublicKey,
 		},
 	}
 
@@ -477,33 +495,39 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 		expect         bool
 		waitErr        error
 	}{
-		"public keys are in the right order, should return true": {
-			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // gran
+		"public_keys_are_in_the_right_order,_should_return_true": {
+			pubSessionKeys: "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // babe
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // para
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // asgn
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
 			expect: true,
 		},
-		"unknown public keys in the right order, should return false": {
+		"unknown_public_keys_in_the_right_order,_should_return_false": {
 			pubSessionKeys: "0x740550da19ef14023ea3e903545a6700160a55be2e4b733b577c91b053e38b8d" + // gran
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // babe
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // imon
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // para
+				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845" + // asgn
 				"de6fa0da51c52cc117d77aeb329595b15070db444e7ed4c4adec714b291c1845", // audi
 			expect: false,
 		},
-		"public keys are not in the right order, should return false": {
-			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
-				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+		"public_keys_are_not_in_the_right_order,_should_return_false": {
+			pubSessionKeys: "0x6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c" + // babe
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
 				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // imon
-				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // audi
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // audi
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // para
+				"d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d", // asgn
 			expect: false,
 		},
-		"incomplete keys": {
+		"incomplete_keys": {
 			pubSessionKeys: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d" + // gran
 				"6b802349d948444d41397da09ec597fbd8ae8fdd3dfa153b2bb2bddcf020457c", // babe
 			expect: false,
 		},
-		"empty public keys": {
+		"empty_public_keys": {
 			pubSessionKeys: "", // babe
 			expect:         false,
 			waitErr:        errors.New("could not byteify non 0x prefixed string: "),
@@ -551,7 +575,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewTxpoolImport(0, 1),
@@ -596,24 +620,38 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	require.Equal(t, expectedHash, *res)
 }
 
+type coreNetwork interface {
+	GossipMessage(network.NotificationsMessage)
+	IsSynced() bool
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
+}
+
+type coreStorageState interface {
+	TrieState(root *common.Hash) (*storage.TrieState, error)
+	StoreTrie(*storage.TrieState, *types.Header) error
+	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
+	sync.Locker
+}
+
 type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
-	runtime       runtime.Instance
+	runtime       Runtime
 	stateSrv      *state.Service
-	network       core.Network
-	storageState  core.StorageState
+	network       coreNetwork
+	storageState  coreStorageState
 	keystore      *keystore.GlobalKeystore
 }
 
-func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstace) *integrationTestController {
+func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
@@ -667,13 +705,13 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 }
 
 func setupStateAndPopulateTrieState(t *testing.T, basepath string,
-	useInstance useRuntimeInstace) *integrationTestController {
+	useInstance useRuntimeInstance) *integrationTestController {
 	t.Helper()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(
 			telemetry.NewNotifyFinalized(
@@ -724,7 +762,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		genesisHash := genesisHeader.Hash()
 		state2test.Block.StoreRuntime(genesisHash, rt)
 
-		b := runtime.InitializeRuntimeToTest(t, rt, genesisHash)
+		b := runtime.InitializeRuntimeToTest(t, rt, &genesisHeader)
 
 		err = state2test.Block.AddBlock(b)
 		require.NoError(t, err)

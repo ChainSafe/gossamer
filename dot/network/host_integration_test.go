@@ -12,8 +12,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -690,7 +690,7 @@ func TestPeerReputation(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	rep, err := nodeA.host.cm.peerSetHandler.PeerReputation(addrInfoB.ID)
+	rep, err := nodeA.host.cm.peerSetHandler.(*peerset.Handler).PeerReputation(addrInfoB.ID)
 	require.NoError(t, err)
 	require.Greater(t, rep, int32(0))
 }

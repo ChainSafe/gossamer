@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
+	"github.com/ChainSafe/gossamer/internal/trie/tracking"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,4 +119,30 @@ func padRightChildren(slice []*Node) (paddedSlice []*Node) {
 	paddedSlice = make([]*Node, node.ChildrenCapacity)
 	copy(paddedSlice, slice)
 	return paddedSlice
+}
+
+func checkMerkleValuesAreSet(t *testing.T, n *Node) {
+	t.Helper()
+
+	if n == nil {
+		return
+	}
+
+	require.NotEmpty(t, n.MerkleValue)
+	if n.Kind() == node.Leaf {
+		return
+	}
+
+	for _, child := range n.Children {
+		checkMerkleValuesAreSet(t, child)
+	}
+}
+
+func newDeltas(deletedNodeHashesHex ...string) (deltas *tracking.Deltas) {
+	deltas = tracking.New()
+	for _, deletedNodeHashHex := range deletedNodeHashesHex {
+		nodeHash := common.MustHexToHash(deletedNodeHashHex)
+		deltas.RecordDeleted(nodeHash)
+	}
+	return deltas
 }

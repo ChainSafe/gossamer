@@ -66,9 +66,6 @@ func Test_Tries_SetTrie(t *testing.T) {
 	assert.Equal(t, expectedTries, tries)
 }
 
-//go:generate mockgen -destination=mock_gauge_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Gauge
-//go:generate mockgen -destination=mock_counter_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Counter
-
 func Test_Tries_softSet(t *testing.T) {
 	t.Parallel()
 
@@ -79,7 +76,7 @@ func Test_Tries_softSet(t *testing.T) {
 		triesGaugeInc      bool
 		expectedRootToTrie map[common.Hash]*trie.Trie
 	}{
-		"set new in map": {
+		"set_new_in_map": {
 			rootToTrie:    map[common.Hash]*trie.Trie{},
 			root:          common.Hash{1, 2, 3},
 			trie:          trie.NewEmptyTrie(),
@@ -88,7 +85,7 @@ func Test_Tries_softSet(t *testing.T) {
 				{1, 2, 3}: trie.NewEmptyTrie(),
 			},
 		},
-		"do not override in map": {
+		"do_not_override_in_map": {
 			rootToTrie: map[common.Hash]*trie.Trie{
 				{1, 2, 3}: {},
 			},
@@ -139,7 +136,7 @@ func Test_Tries_delete(t *testing.T) {
 		expectedRootToTrie map[common.Hash]*trie.Trie
 		triesGaugeSet      float64
 	}{
-		"not found": {
+		"not_found": {
 			rootToTrie: map[common.Hash]*trie.Trie{
 				{3, 4, 5}: {},
 			},
@@ -197,7 +194,7 @@ func Test_Tries_get(t *testing.T) {
 		root  common.Hash
 		trie  *trie.Trie
 	}{
-		"found in map": {
+		"found_in_map": {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewTrie(&node.Node{
@@ -212,7 +209,7 @@ func Test_Tries_get(t *testing.T) {
 				StorageValue: []byte{1},
 			}),
 		},
-		"not found in map": {
+		"not_found_in_map": {
 			// similar to not found in database
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
@@ -240,12 +237,12 @@ func Test_Tries_len(t *testing.T) {
 		tries  *Tries
 		length int
 	}{
-		"empty map": {
+		"empty_map": {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 		},
-		"non empty map": {
+		"non_empty_map": {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: {},

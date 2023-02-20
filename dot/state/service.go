@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
@@ -27,7 +26,7 @@ var logger = log.NewFromGlobal(
 type Service struct {
 	dbPath      string
 	logLvl      log.Level
-	db          chaindb.Database
+	db          *chaindb.BadgerDB
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Base        *BaseState
 	Storage     *StorageState
@@ -38,7 +37,7 @@ type Service struct {
 	closeCh     chan interface{}
 
 	PrunerCfg pruner.Config
-	Telemetry telemetry.Client
+	Telemetry Telemetry
 
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
@@ -50,7 +49,7 @@ type Config struct {
 	Path      string
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
-	Telemetry telemetry.Client
+	Telemetry Telemetry
 	Metrics   metrics.IntervalConfig
 }
 
@@ -79,7 +78,7 @@ func (s *Service) UseMemDB() {
 }
 
 // DB returns the Service's database
-func (s *Service) DB() chaindb.Database {
+func (s *Service) DB() *chaindb.BadgerDB {
 	return s.db
 }
 
@@ -131,13 +130,8 @@ func (s *Service) Start() (err error) {
 	stateRoot := bestHeader.StateRoot
 	logger.Debugf("start with latest state root: %s", stateRoot)
 
-	pr, err := s.Base.loadPruningData()
-	if err != nil {
-		return err
-	}
-
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries, pr)
+	s.Storage, err = NewStorageState(s.db, s.Block, tries)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

@@ -5,28 +5,26 @@ package blocktree
 
 import (
 	"sync"
-
-	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 type hashToRuntime struct {
 	mutex   sync.RWMutex
-	mapping map[Hash]runtime.Instance
+	mapping map[Hash]Runtime
 }
 
 func newHashToRuntime() *hashToRuntime {
 	return &hashToRuntime{
-		mapping: make(map[Hash]runtime.Instance),
+		mapping: make(map[Hash]Runtime),
 	}
 }
 
-func (h *hashToRuntime) get(hash Hash) (instance runtime.Instance) {
+func (h *hashToRuntime) get(hash Hash) (instance Runtime) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 	return h.mapping[hash]
 }
 
-func (h *hashToRuntime) set(hash Hash, instance runtime.Instance) {
+func (h *hashToRuntime) set(hash Hash, instance Runtime) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	h.mapping[hash] = instance

@@ -4,10 +4,10 @@
 package modules
 
 import (
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -15,8 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
-
-//go:generate mockery --name StorageAPI --structname StorageAPI --case underscore --keeptree
 
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
@@ -30,8 +28,6 @@ type StorageAPI interface {
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)
 }
-
-//go:generate mockery --name BlockAPI --structname BlockAPI --case underscore --keeptree
 
 // BlockAPI is the interface for the block state
 type BlockAPI interface {
@@ -47,13 +43,11 @@ type BlockAPI interface {
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
-	SubChain(start, end common.Hash) ([]common.Hash, error)
+	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
 }
-
-//go:generate mockery --name NetworkAPI --structname NetworkAPI --case underscore --keeptree
 
 // NetworkAPI interface for network state methods
 type NetworkAPI interface {
@@ -63,13 +57,10 @@ type NetworkAPI interface {
 	NodeRoles() common.Roles
 	Stop() error
 	Start() error
-	IsStopped() bool
 	StartingBlock() int64
 	AddReservedPeers(addrs ...string) error
 	RemoveReservedPeers(addrs ...string) error
 }
-
-//go:generate mockery --name BlockProducerAPI --structname BlockProducerAPI --case underscore --keeptree
 
 // BlockProducerAPI is the interface for BlockProducer methods
 type BlockProducerAPI interface {
@@ -79,20 +70,14 @@ type BlockProducerAPI interface {
 	SlotDuration() uint64
 }
 
-//go:generate mockery --name TransactionStateAPI --structname TransactionStateAPI --case underscore --keeptree
-
 // TransactionStateAPI ...
 type TransactionStateAPI interface {
 	Pending() []*transaction.ValidTransaction
-	GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status
-	FreeStatusNotifierChannel(ch chan transaction.Status)
 }
-
-//go:generate mockery --name CoreAPI --structname CoreAPI --case underscore --keeptree
 
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
-	InsertKey(kp crypto.Keypair, keystoreType string) error
+	InsertKey(kp core.KeyPair, keystoreType string) error
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
@@ -101,15 +86,10 @@ type CoreAPI interface {
 	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)
 }
 
-//go:generate mockery --name RPCAPI --structname RPCAPI --case underscore --keeptree
-
 // RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
-	BuildMethodNames(rcvr interface{}, name string)
 }
-
-//go:generate mockery --name SystemAPI --structname SystemAPI --case underscore --keeptree
 
 // SystemAPI is the interface for handling system methods
 type SystemAPI interface {
@@ -120,8 +100,6 @@ type SystemAPI interface {
 	ChainName() string
 }
 
-//go:generate mockery --name BlockFinalityAPI --structname BlockFinalityAPI --case underscore --keeptree
-
 // BlockFinalityAPI is the interface for handling block finalisation methods
 type BlockFinalityAPI interface {
 	GetSetID() uint64
@@ -131,8 +109,6 @@ type BlockFinalityAPI interface {
 	PreCommits() []ed25519.PublicKeyBytes
 }
 
-//go:generate mockery --name RuntimeStorageAPI --structname RuntimeStorageAPI --case underscore --keeptree
-
 // RuntimeStorageAPI is the interface to interacts with the node storage
 type RuntimeStorageAPI interface {
 	SetLocal(k, v []byte) error
@@ -141,14 +117,10 @@ type RuntimeStorageAPI interface {
 	GetPersistent(k []byte) ([]byte, error)
 }
 
-//go:generate mockery --name SyncStateAPI --structname SyncStateAPI --case underscore --keeptree
-
 // SyncStateAPI is the interface to interact with sync state.
 type SyncStateAPI interface {
 	GenSyncSpec(raw bool) (*genesis.Genesis, error)
 }
-
-//go:generate mockgen -destination=mock_sync_api_test.go -package $GOPACKAGE . SyncAPI
 
 // SyncAPI is the interface to interact with the sync service
 type SyncAPI interface {

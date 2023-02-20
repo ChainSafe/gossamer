@@ -13,7 +13,7 @@ import (
 
 type systemIntervalTM SystemInterval
 
-var _ Message = (*SystemInterval)(nil)
+var _ json.Marshaler = (*SystemInterval)(nil)
 
 // SystemInterval struct to hold system interval telemetry messages
 type SystemInterval struct {

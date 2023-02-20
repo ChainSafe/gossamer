@@ -4,7 +4,6 @@
 package main
 
 import (
-	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/urfave/cli"
 )
 
@@ -344,34 +343,19 @@ var (
 
 // State Prune flags
 var (
-	// BloomFilterSizeFlag size for bloom filter, valid for the use with prune-state subcommand
-	BloomFilterSizeFlag = cli.IntFlag{
-		Name:  "bloom-size",
-		Usage: "Megabytes of memory allocated to bloom-filter for pruning",
-		Value: 2048,
-	}
-
-	// DBPathFlag data directory for pruned DB, valid for the use with prune-state subcommand
-	DBPathFlag = cli.StringFlag{
-		Name:  "pruned-db-path",
-		Usage: "Data directory for the output DB",
-	}
-
 	// RetainBlockNumberFlag retain number of block from latest block while pruning,
 	// valid for the use with prune-state subcommand
 	RetainBlockNumberFlag = cli.Uint64Flag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
-		Value: uint64(dev.DefaultRetainBlocks),
+		Value: 512,
 	}
 
 	// PruningFlag triggers the online pruning of historical state tries.
-	// It's either full or archive.
-	// To enable pruning the value should be set to `full`.
 	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
-		Usage: `State trie online pruning ("full", "archive")`,
-		Value: dev.DefaultPruningMode,
+		Usage: `State trie online pruning ("archive")`,
+		Value: "archive",
 	}
 )
 
@@ -406,8 +390,6 @@ var (
 		PprofBlockRateFlag,
 		PprofMutexRateFlag,
 		RewindFlag,
-		DBPathFlag,
-		BloomFilterSizeFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
@@ -502,8 +484,6 @@ var (
 	PruningFlags = []cli.Flag{
 		ChainFlag,
 		ConfigFlag,
-		DBPathFlag,
-		BloomFilterSizeFlag,
 		RetainBlockNumberFlag,
 	}
 )

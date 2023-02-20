@@ -71,7 +71,7 @@ func NewChainModule(api BlockAPI) *ChainModule {
 }
 
 // GetBlock Get header and body of a relay chain block. If no block hash is provided,
-//  the latest block body will be returned.
+// the latest block body will be returned.
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) error {
 	hash := cm.hashLookup(req)
 	block, err := cm.blockAPI.GetBlockByHash(hash)
@@ -97,7 +97,7 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 }
 
 // GetBlockHash Get hash of the 'n-th' block in the canon chain. If no parameters are provided,
-//  the latest block hash gets returned.
+// the latest block hash gets returned.
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) error {
 	// if request is empty, return highest hash
 	if req.Block == nil {
@@ -139,7 +139,7 @@ func (cm *ChainModule) GetFinalizedHeadByRound(
 	return nil
 }
 
-//GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
+// GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
 	hash := cm.hashLookup(req)
 	header, err := cm.blockAPI.GetHeader(hash)
@@ -152,19 +152,19 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 }
 
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
-//  here so it's added to rpc_methods list
+// here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeFinalizedHeads(_ *http.Request, _ *EmptyRequest, _ *ChainBlockHeaderResponse) error {
 	return ErrSubscriptionTransport
 }
 
 // SubscribeNewHead handled by websocket handler, but this func should remain
-//  here so it's added to rpc_methods list
+// here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
 	return ErrSubscriptionTransport
 }
 
 // SubscribeNewHeads handled by websocket handler, but this func should remain
-//  here so it's added to rpc_methods list
+// here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
 	return ErrSubscriptionTransport
 }
@@ -200,7 +200,7 @@ func (cm *ChainModule) unwindRequest(req interface{}) ([]string, error) {
 }
 
 // lookupHashByInterface parses given interface to determine block number, then
-//  finds hash for that block number
+// finds hash for that block number
 func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 	var num uint
 	switch x := i.(type) {

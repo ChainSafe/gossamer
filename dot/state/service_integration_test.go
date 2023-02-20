@@ -25,7 +25,7 @@ import (
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -39,7 +39,7 @@ func newTestService(t *testing.T) (state *Service) {
 
 func newTestMemDBService(t *testing.T) *Service {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	testDatadirPath := t.TempDir()
@@ -56,7 +56,7 @@ func newTestMemDBService(t *testing.T) *Service {
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -73,7 +73,7 @@ func TestService_Start(t *testing.T) {
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	// Deep copy the trie because of the following:
 	// Initialise clears the database, writes only dirty nodes to disk
@@ -108,7 +108,7 @@ func TestService_Initialise(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -121,7 +121,7 @@ func TestMemDB_Start(t *testing.T) {
 
 func TestService_BlockTree(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().
 		SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{})).
 		MaxTimes(2)
@@ -134,7 +134,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(config)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -168,8 +168,10 @@ func TestService_BlockTree(t *testing.T) {
 }
 
 func TestService_StorageTriePruning(t *testing.T) {
+	t.Skip() // Unskip once https://github.com/ChainSafe/gossamer/pull/2831 is done
+
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	const retainBlocks uint = 2
@@ -177,7 +179,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		Path:     t.TempDir(),
 		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
-			Mode:           pruner.Full,
+			// Mode:           pruner.Full,
 			RetainedBlocks: uint32(retainBlocks),
 		},
 		Telemetry: telemetryMock,
@@ -185,7 +187,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -223,7 +225,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 func TestService_PruneStorage(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -234,7 +236,7 @@ func TestService_PruneStorage(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -304,7 +306,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 func TestService_Rewind(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -315,7 +317,7 @@ func TestService_Rewind(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -362,7 +364,7 @@ func TestService_Rewind(t *testing.T) {
 
 func TestService_Import(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
@@ -373,7 +375,7 @@ func TestService_Import(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 

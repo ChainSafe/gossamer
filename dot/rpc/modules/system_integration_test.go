@@ -13,10 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -59,7 +58,7 @@ func newNetworkService(t *testing.T) *network.Service {
 	transactionHandlerMock := NewMockTransactionHandler(ctrl)
 	transactionHandlerMock.EXPECT().TransactionsCount().Return(0).AnyTimes()
 
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	cfg := &network.Config{
@@ -92,8 +91,10 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	networkMock := mocks.NewNetworkAPI(t)
-	networkMock.On("Health").Return(testHealth)
+	ctrl := gomock.NewController(t)
+
+	networkMock := mocks.NewMockNetworkAPI(ctrl)
+	networkMock.EXPECT().Health().Return(testHealth)
 
 	sys := NewSystemModule(networkMock, nil, nil, nil, nil, nil, nil)
 
@@ -157,8 +158,10 @@ var testGenesisData = &genesis.Data{
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	api := mocks.NewSystemAPI(t)
-	api.On("ChainName").Return(testGenesisData.Name)
+	ctrl := gomock.NewController(t)
+
+	api := mocks.NewMockSystemAPI(ctrl)
+	api.EXPECT().ChainName().Return(testGenesisData.Name)
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
@@ -168,8 +171,10 @@ func TestSystemModule_Chain(t *testing.T) {
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
-	api := mocks.NewSystemAPI(t)
-	api.On("ChainType").Return(testGenesisData.ChainType)
+	ctrl := gomock.NewController(t)
+
+	api := mocks.NewMockSystemAPI(ctrl)
+	api.EXPECT().ChainType().Return(testGenesisData.ChainType)
 
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
@@ -178,8 +183,10 @@ func TestSystemModule_ChainType(t *testing.T) {
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	api := mocks.NewSystemAPI(t)
-	api.On("SystemName").Return(testSystemInfo.SystemName)
+	ctrl := gomock.NewController(t)
+
+	api := mocks.NewMockSystemAPI(ctrl)
+	api.EXPECT().SystemName().Return(testSystemInfo.SystemName)
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
 	res := new(string)
@@ -189,8 +196,10 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	api := mocks.NewSystemAPI(t)
-	api.On("SystemVersion").Return(testSystemInfo.SystemVersion)
+	ctrl := gomock.NewController(t)
+
+	api := mocks.NewMockSystemAPI(ctrl)
+	api.EXPECT().SystemVersion().Return(testSystemInfo.SystemVersion)
 
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
@@ -201,8 +210,10 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	api := mocks.NewSystemAPI(t)
-	api.On("Properties").Return(nil)
+	ctrl := gomock.NewController(t)
+
+	api := mocks.NewMockSystemAPI(ctrl)
+	api.EXPECT().Properties().Return(nil)
 
 	sys := NewSystemModule(nil, api, nil, nil, nil, nil, nil)
 
@@ -329,7 +340,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	core := newCoreService(t, chain)
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 
 	telemetryMock.
 		EXPECT().
@@ -375,7 +386,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		TransactionState:     srvc.Transaction,
 		BlockState:           srvc.Block,
 		StorageState:         srvc.Storage,
-		EpochState:           srvc.Epoch,
 		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
 	}
@@ -387,17 +397,19 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 }
 
 func TestSyncState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	fakeCommonHash := common.NewHash([]byte("fake"))
 	fakeHeader := &types.Header{
 		Number: 49,
 	}
 
-	blockapiMock := mocks.NewBlockAPI(t)
-	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
-	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
+	blockapiMock := mocks.NewMockBlockAPI(ctrl)
+	blockapiMock.EXPECT().BestBlockHash().Return(fakeCommonHash).Times(2)
+	blockapiMock.EXPECT().GetHeader(fakeCommonHash).Return(fakeHeader, nil)
 
-	netapiMock := mocks.NewNetworkAPI(t)
-	netapiMock.On("StartingBlock").Return(int64(10))
+	netapiMock := mocks.NewMockNetworkAPI(ctrl)
+	netapiMock.EXPECT().StartingBlock().Return(int64(10))
 
 	syncapiCtrl := gomock.NewController(t)
 	syncapiMock := NewMockSyncAPI(syncapiCtrl)
@@ -420,12 +432,14 @@ func TestSyncState(t *testing.T) {
 
 	require.Equal(t, expectedSyncState, res)
 
-	blockapiMock.On("GetHeader", fakeCommonHash).Return(nil, errors.New("Problems while getting header")).Once()
+	blockapiMock.EXPECT().GetHeader(fakeCommonHash).Return(nil, errors.New("Problems while getting header"))
 	err = sysmodule.SyncState(nil, nil, nil)
 	require.Error(t, err)
 }
 
 func TestLocalListenAddresses(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	ma, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWCYyh5xoAc5oRyiGU4d9ktcqFQ23JjitNFR6bEcbw7YdN")
 	require.NoError(t, err)
 
@@ -434,8 +448,8 @@ func TestLocalListenAddresses(t *testing.T) {
 		Multiaddrs: []multiaddr.Multiaddr{ma},
 	}
 
-	mockNetAPI := mocks.NewNetworkAPI(t)
-	mockNetAPI.On("NetworkState").Return(mockedNetState).Once()
+	mockNetAPI := mocks.NewMockNetworkAPI(ctrl)
+	mockNetAPI.EXPECT().NetworkState().Return(mockedNetState)
 
 	res := make([]string, 0)
 
@@ -448,12 +462,14 @@ func TestLocalListenAddresses(t *testing.T) {
 	require.Len(t, res, 1)
 	require.Equal(t, res[0], ma.String())
 
-	mockNetAPI.On("NetworkState").Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}}).Once()
+	mockNetAPI.EXPECT().NetworkState().Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}})
 	err = sysmodule.LocalListenAddresses(nil, nil, &res)
 	require.Error(t, err, "multiaddress list is empty")
 }
 
 func TestLocalPeerId(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	peerID := "12D3KooWBrwpqLE9Z23NEs59m2UHUs9sGYWenxjeCk489Xq7SG2h"
 	encoded := base58.Encode([]byte(peerID))
 
@@ -461,8 +477,8 @@ func TestLocalPeerId(t *testing.T) {
 		PeerID: peerID,
 	}
 
-	mocknetAPI := mocks.NewNetworkAPI(t)
-	mocknetAPI.On("NetworkState").Return(state).Once()
+	mocknetAPI := mocks.NewMockNetworkAPI(ctrl)
+	mocknetAPI.EXPECT().NetworkState().Return(state)
 
 	sysmodules := new(SystemModule)
 	sysmodules.networkAPI = mocknetAPI
@@ -474,16 +490,18 @@ func TestLocalPeerId(t *testing.T) {
 	require.Equal(t, res, encoded)
 
 	state.PeerID = ""
-	mocknetAPI.On("NetworkState").Return(state).Once()
+	mocknetAPI.EXPECT().NetworkState().Return(state)
 	err = sysmodules.LocalPeerId(nil, nil, &res)
 	require.Error(t, err)
 }
 
 func TestAddReservedPeer(t *testing.T) {
 	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
-		networkMock := mocks.NewNetworkAPI(t)
-		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
-		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
+		ctrl := gomock.NewController(t)
+
+		networkMock := mocks.NewMockNetworkAPI(ctrl)
+		networkMock.EXPECT().AddReservedPeers(gomock.Any()).Return(nil)
+		networkMock.EXPECT().RemoveReservedPeers(gomock.Any()).Return(nil)
 
 		multiAddrPeer := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
 		sysModule := &SystemModule{
@@ -502,9 +520,11 @@ func TestAddReservedPeer(t *testing.T) {
 	})
 
 	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
-		networkMock := mocks.NewNetworkAPI(t)
-		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
-		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
+		ctrl := gomock.NewController(t)
+
+		networkMock := mocks.NewMockNetworkAPI(ctrl)
+		networkMock.EXPECT().AddReservedPeers(gomock.Any()).Return(errors.New("some problems"))
+		networkMock.EXPECT().RemoveReservedPeers(gomock.Any()).Return(errors.New("other problems"))
 
 		sysModule := &SystemModule{
 			networkAPI: networkMock,

@@ -123,9 +123,9 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 	require.Equal(t, uint64(99), r)
 }
 
-func testBlockState(t *testing.T, db chaindb.Database) *BlockState {
+func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 	header := testGenesisHeader
 

@@ -11,17 +11,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 const grandpaID1 = "grandpa/1"
-
-// Handshake is an alias for network.Handshake
-type Handshake = network.Handshake
-
-// Message is an alias for network.Message
-type Message = network.Message
 
 // NotificationsMessage is an alias for network.NotificationsMessage
 type NotificationsMessage = network.NotificationsMessage
@@ -77,7 +71,7 @@ func (s *Service) registerProtocol() error {
 	)
 }
 
-func (s *Service) getHandshake() (Handshake, error) {
+func (s *Service) getHandshake() (network.Handshake, error) {
 	var roles common.Roles
 
 	if s.authority {
@@ -91,13 +85,13 @@ func (s *Service) getHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (*Service) decodeHandshake(in []byte) (Handshake, error) {
+func (*Service) decodeHandshake(in []byte) (network.Handshake, error) {
 	hs := new(GrandpaHandshake)
 	err := hs.Decode(in)
 	return hs, err
 }
 
-func (*Service) validateHandshake(_ peer.ID, _ Handshake) error {
+func (*Service) validateHandshake(_ peer.ID, _ network.Handshake) error {
 	return nil
 }
 

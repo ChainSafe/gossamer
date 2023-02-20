@@ -123,19 +123,19 @@ func TestVerifySignature(t *testing.T) {
 			signature: signature,
 			message:   message,
 		},
-		"bad public key input": {
+		"bad_public_key_input": {
 			publicKey: []byte{},
 			signature: signature,
 			message:   message,
 			err:       fmt.Errorf("ed25519: cannot create public key: input is not 32 bytes"),
 		},
-		"invalid signature length": {
+		"invalid_signature_length": {
 			publicKey: publicKey,
 			signature: []byte{},
 			message:   message,
 			err:       fmt.Errorf("ed25519: invalid signature length"),
 		},
-		"verification failed": {
+		"verification_failed": {
 			publicKey: publicKey,
 			signature: signature,
 			message:   []byte("a225e8c75da7da319af6335e7642d473"),
@@ -162,18 +162,18 @@ func TestVerifySignature(t *testing.T) {
 
 func TestPublicKeyFromPrivate(t *testing.T) {
 	// subkey inspect //Alice --scheme ed25519
-	priv := common.MustHexToBytes("0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115")
-	pub := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
+	alicePrivateKey := common.MustHexToBytes("0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115")
+	alicePublicKey := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 
-	sk, err := NewPrivateKey(append(priv, pub...))
+	sk, err := NewPrivateKey(append(alicePrivateKey, alicePublicKey...))
 	require.NoError(t, err)
 	pk, err := sk.Public()
 	require.NoError(t, err)
-	require.Equal(t, pub, pk.(*PublicKey).Encode())
+	require.Equal(t, alicePublicKey, pk.(*PublicKey).Encode())
 
-	kp, err := NewKeypairFromSeed(priv)
+	kp, err := NewKeypairFromSeed(alicePrivateKey)
 	require.NoError(t, err)
-	require.Equal(t, pub, kp.public.Encode())
+	require.Equal(t, alicePublicKey, kp.public.Encode())
 
 	addr := crypto.PublicKeyToAddress(kp.Public())
 	require.Equal(t, "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", string(addr))

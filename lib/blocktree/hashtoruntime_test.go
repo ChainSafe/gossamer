@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +19,7 @@ func Test_newHashToRuntime(t *testing.T) {
 	hti := newHashToRuntime()
 
 	expected := &hashToRuntime{
-		mapping: make(map[Hash]runtime.Instance),
+		mapping: make(map[Hash]Runtime),
 	}
 	assert.Equal(t, expected, hti)
 }
@@ -31,24 +30,24 @@ func Test_hashToRuntime_get(t *testing.T) {
 	testCases := map[string]struct {
 		htr      *hashToRuntime
 		hash     Hash
-		instance runtime.Instance
+		instance Runtime
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			htr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{
-					{4, 5, 6}: NewMockInstance(nil),
+				mapping: map[Hash]Runtime{
+					{4, 5, 6}: NewMockRuntime(nil),
 				},
 			},
 			hash: common.Hash{1, 2, 3},
 		},
-		"hash exists": {
+		"hash_exists": {
 			htr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: NewMockInstance(nil),
+				mapping: map[Hash]Runtime{
+					{1, 2, 3}: NewMockRuntime(nil),
 				},
 			},
 			hash:     common.Hash{1, 2, 3},
-			instance: NewMockInstance(nil),
+			instance: NewMockRuntime(nil),
 		},
 	}
 
@@ -70,31 +69,31 @@ func Test_hashToRuntime_set(t *testing.T) {
 	testCases := map[string]struct {
 		initialHtr  *hashToRuntime
 		hash        Hash
-		instance    runtime.Instance
+		instance    Runtime
 		expectedHtr *hashToRuntime
 	}{
-		"set new instance": {
+		"set_new_instance": {
 			initialHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{},
+				mapping: map[Hash]Runtime{},
 			},
 			hash:     common.Hash{1, 2, 3},
-			instance: NewMockInstance(nil),
+			instance: NewMockRuntime(nil),
 			expectedHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: NewMockInstance(nil),
+				mapping: map[Hash]Runtime{
+					{1, 2, 3}: NewMockRuntime(nil),
 				},
 			},
 		},
-		"override instance": {
+		"override_instance": {
 			initialHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: NewMockInstance(nil),
+				mapping: map[Hash]Runtime{
+					{1, 2, 3}: NewMockRuntime(nil),
 				},
 			},
 			hash:     common.Hash{1, 2, 3},
 			instance: nil,
 			expectedHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{
+				mapping: map[Hash]Runtime{
 					{1, 2, 3}: nil,
 				},
 			},
@@ -123,24 +122,24 @@ func Test_hashToRuntime_delete(t *testing.T) {
 		hash        common.Hash
 		expectedHtr *hashToRuntime
 	}{
-		"hash does not exist": {
+		"hash_does_not_exist": {
 			initialHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{},
+				mapping: map[Hash]Runtime{},
 			},
 			hash: common.Hash{1, 2, 3},
 			expectedHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{},
+				mapping: map[Hash]Runtime{},
 			},
 		},
-		"hash deleted": {
+		"hash_deleted": {
 			initialHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{
-					{1, 2, 3}: NewMockInstance(nil),
+				mapping: map[Hash]Runtime{
+					{1, 2, 3}: NewMockRuntime(nil),
 				},
 			},
 			hash: common.Hash{1, 2, 3},
 			expectedHtr: &hashToRuntime{
-				mapping: map[Hash]runtime.Instance{},
+				mapping: map[Hash]Runtime{},
 			},
 		},
 	}
@@ -193,7 +192,7 @@ func Test_hashToRuntime_threadSafety(t *testing.T) {
 
 	htr := newHashToRuntime()
 	hash := common.Hash{1, 2, 3}
-	instance := NewMockInstance(nil)
+	instance := NewMockRuntime(nil)
 
 	for i := 0; i < parallelism; i++ {
 		go runInLoop(func() {

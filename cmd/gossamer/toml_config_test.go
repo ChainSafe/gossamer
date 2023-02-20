@@ -15,7 +15,8 @@ import (
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
-	cfg, cfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	cfg, cfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	genFile := dot.NewTestGenesisRawFile(t, cfg)
 
@@ -28,21 +29,21 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestLoadConfigGssmr tests loading the toml configuration file for gssmr
-func TestLoadConfigGssmr(t *testing.T) {
-	cfg := dot.GssmrConfig()
+// TestLoadConfigWestendDev tests loading the toml configuration file for westend-dev
+func TestLoadConfigWestendDev(t *testing.T) {
+	cfg := dot.WestendDevConfig()
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = t.TempDir()
-	cfg.Init.Genesis = utils.GetGssmrGenesisRawPathTest(t)
+	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
 
 	err := dot.InitNode(cfg)
 	require.NoError(t, err)
 
 	projectRootPath := utils.GetProjectRootPathTest(t)
-	gssmrConfigPath := filepath.Join(projectRootPath, "./chain/gssmr/config.toml")
+	configPath := filepath.Join(projectRootPath, "./chain/westend-dev/config.toml")
 
-	err = loadConfig(dotConfigToToml(cfg), gssmrConfigPath)
+	err = loadConfig(dotConfigToToml(cfg), configPath)
 	require.NoError(t, err)
 }
 

@@ -57,12 +57,18 @@ func NewBabePrimaryPreDigest(authorityIndex uint32,
 }
 
 // ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
-func (d *BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	return toPreRuntimeDigest(*d)
+func (d BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(d)
 }
 
 // Index returns VDT index
 func (BabePrimaryPreDigest) Index() uint { return 1 }
+
+func (d BabePrimaryPreDigest) String() string {
+	return fmt.Sprintf("BabePrimaryPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
+		"VRFOutput=0x%x, VRFProof=0x%x}",
+		d.AuthorityIndex, d.SlotNumber, d.VRFOutput, d.VRFProof)
+}
 
 // BabeSecondaryPlainPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryPlainPreDigest struct {
@@ -79,12 +85,17 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 }
 
 // ToPreRuntimeDigest returns the BabeSecondaryPlainPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	return toPreRuntimeDigest(*d)
+func (d BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(d)
 }
 
 // Index returns VDT index
 func (BabeSecondaryPlainPreDigest) Index() uint { return 2 }
+
+func (d BabeSecondaryPlainPreDigest) String() string {
+	return fmt.Sprintf("BabeSecondaryPlainPreDigest{AuthorityIndex=%d, SlotNumber: %d}",
+		d.AuthorityIndex, d.SlotNumber)
+}
 
 // BabeSecondaryVRFPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryVRFPreDigest struct {
@@ -107,12 +118,18 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 }
 
 // ToPreRuntimeDigest returns the BabeSecondaryVRFPreDigest as a PreRuntimeDigest
-func (d *BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
-	return toPreRuntimeDigest(*d)
+func (d BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
+	return toPreRuntimeDigest(d)
 }
 
 // Index returns VDT index
 func (BabeSecondaryVRFPreDigest) Index() uint { return 3 }
+
+func (d BabeSecondaryVRFPreDigest) String() string {
+	return fmt.Sprintf("BabeSecondaryVRFPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
+		"VrfOutput=0x%x, VrfProof=0x%x",
+		d.AuthorityIndex, d.SlotNumber, d.VrfOutput, d.VrfProof)
+}
 
 // toPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
 func toPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {

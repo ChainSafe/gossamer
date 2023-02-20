@@ -5,6 +5,7 @@ package scale
 
 import (
 	"fmt"
+	"strings"
 )
 
 // VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
@@ -20,7 +21,7 @@ type VaryingDataTypeSlice struct {
 }
 
 // Add takes variadic parameter values to add VaryingDataTypeValue(s)
-func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error) {
+func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	for _, val := range values {
 		copied := vdts.VaryingDataType
 		err = copied.Set(val)
@@ -31,6 +32,14 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		vdts.Types = append(vdts.Types, copied)
 	}
 	return
+}
+
+func (vdts VaryingDataTypeSlice) String() string { //skipcq: GO-W1029
+	stringTypes := make([]string, len(vdts.Types))
+	for i, vdt := range vdts.Types {
+		stringTypes[i] = vdt.String()
+	}
+	return "[" + strings.Join(stringTypes, ", ") + "]"
 }
 
 // NewVaryingDataTypeSlice is constructor for VaryingDataTypeSlice
@@ -56,7 +65,7 @@ type VaryingDataType struct {
 }
 
 // Set will set the VaryingDataType value
-func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
+func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	_, ok := vdt.cache[value.Index()]
 	if !ok {
 		err = fmt.Errorf("%w: %v (%T)", ErrUnsupportedVaryingDataTypeValue, value, value)
@@ -67,11 +76,22 @@ func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
 }
 
 // Value returns value stored in vdt
-func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) {
+func (vdt *VaryingDataType) Value() (VaryingDataTypeValue, error) { //skipcq: GO-W1029
 	if vdt.value == nil {
 		return nil, ErrVaryingDataTypeNotSet
 	}
 	return vdt.value, nil
+}
+
+func (vdt *VaryingDataType) String() string { //skipcq: GO-W1029
+	if vdt.value == nil {
+		return "VaryingDataType(nil)"
+	}
+	stringer, ok := vdt.value.(fmt.Stringer)
+	if !ok {
+		return fmt.Sprintf("VaryingDataType(%v)", vdt.value)
+	}
+	return stringer.String()
 }
 
 // NewVaryingDataType is constructor for VaryingDataType

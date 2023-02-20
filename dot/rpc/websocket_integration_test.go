@@ -15,6 +15,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,15 +65,20 @@ var testCalls = []struct {
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
 	coreAPI := newCoreServiceTest(t)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}
 	sysAPI := system.NewService(si, nil)
-	bAPI := modules.NewMockeryBlockAPI(t)
-	sAPI := modules.NewMockeryStorageAPI(t)
+	bAPI := modules.NewMockAnyBlockAPI(ctrl)
+	sAPI := modules.NewMockAnyStorageAPI(ctrl)
 
-	TxStateAPI := modules.NewMockTransactionStateAPI(t)
+	TxStateAPI := NewMockTransactionStateAPI(ctrl)
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
+	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	TxStateAPI.EXPECT().AddToPool(gomock.Any()).Return(common.Hash{}).AnyTimes()
 
 	cfg := &HTTPServerConfig{
 		Modules:             []string{"system", "chain"},

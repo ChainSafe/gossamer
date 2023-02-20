@@ -9,11 +9,12 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var errBeforeFinalizedBlock = errors.New("before latest finalized block")
@@ -158,6 +159,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		return nil, fmt.Errorf("%w: received round %d but state round is %d",
 			errRoundsMismatch, m.Round, s.state.round)
 	} else if m.Round > s.state.round {
+
 		// Message round is higher by 1 than the round of our state,
 		// we may be lagging behind, so store the message in the tracker
 		// for processing later in the coming few milliseconds.
@@ -177,7 +179,7 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	// if the vote is from ourselves, return an error
 	kb := [32]byte(s.publicKeyBytes())
 	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
-		return nil, errVoteFromSelf
+		return nil, fmt.Errorf("%w", errVoteFromSelf)
 	}
 
 	err = s.validateVote(vote)
@@ -197,9 +199,9 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 		AuthorityID: pk.AsBytes(),
 	}
 
-	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
-	if equivocated {
-		return nil, ErrEquivocation
+	err = s.checkAndReportEquivocation(voter, just, m.Message.Stage)
+	if err != nil {
+		return nil, fmt.Errorf("checking for equivocation: %w", err)
 	}
 
 	switch m.Message.Stage {
@@ -212,10 +214,10 @@ func (s *Service) validateVoteMessage(from peer.ID, m *VoteMessage) (*Vote, erro
 	return vote, nil
 }
 
-// checkForEquivocation checks if the vote is an equivocatory vote.
-// it returns true if so, false otherwise.
-// additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Subround) bool {
+// checkAndReportEquivocation checks if the vote is an equivocatory vote.
+// If it is an equivocatory vote, the error `ErrEquivocation` is returned, the service's votes and
+// equivocations are updated and the equivocation is reported to the runtime.
+func (s *Service) checkAndReportEquivocation(voter *Voter, vote *SignedVote, stage Subround) error {
 	v := voter.Key.AsBytes()
 
 	// save justification, since equivocatory vote may still be used in justification
@@ -235,22 +237,94 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage Sub
 	if has {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
-		return true
+		return fmt.Errorf("%w: voter %s",
+			ErrEquivocation, v)
 	}
 
 	existingVote, has := s.loadVote(v, stage)
 	if !has {
-		return false
+		return nil
 	}
 
 	if has && existingVote.Vote.Hash != vote.Vote.Hash {
 		// the voter has already voted, all their votes are now equivocatory
 		eq[v] = []*SignedVote{existingVote, vote}
 		s.deleteVote(v, stage)
-		return true
+
+		err := s.reportEquivocation(stage, existingVote, vote)
+		if err != nil {
+			logger.Errorf("reporting equivocation: %s", err)
+		}
+		return fmt.Errorf("%w: voter %s has existing vote %s and new vote %s",
+			ErrEquivocation, v, existingVote.Vote.Hash, vote.Vote.Hash)
 	}
 
-	return false
+	return nil
+}
+
+func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, currentVote *SignedVote) error {
+	setID, err := s.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return fmt.Errorf("getting authority set id: %w", err)
+	}
+
+	round, err := s.grandpaState.GetLatestRound()
+	if err != nil {
+		return fmt.Errorf("getting latest round: %w", err)
+	}
+
+	pubKey := existingVote.AuthorityID
+
+	bestBlockHash := s.blockState.BestBlockHash()
+	runtime, err := s.blockState.GetRuntime(bestBlockHash)
+	if err != nil {
+		return fmt.Errorf("getting runtime: %w", err)
+	}
+
+	opaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
+	if err != nil {
+		return fmt.Errorf("getting key ownership proof: %w", err)
+	}
+
+	grandpaEquivocation := types.GrandpaEquivocation{
+		RoundNumber:     round,
+		ID:              pubKey,
+		FirstVote:       existingVote.Vote,
+		FirstSignature:  existingVote.Signature,
+		SecondVote:      currentVote.Vote,
+		SecondSignature: currentVote.Signature,
+	}
+
+	equivocationVote := types.NewGrandpaEquivocation()
+	switch stage {
+	case prevote:
+		err = equivocationVote.Set(types.PreVote(grandpaEquivocation))
+		if err != nil {
+			return fmt.Errorf("setting grandpa equivocation VDT as prevote equivocation: %w", err)
+		}
+	case precommit:
+		err = equivocationVote.Set(types.PreCommit(grandpaEquivocation))
+		if err != nil {
+			return fmt.Errorf("setting grandpa equivocation VDT as precommit equivocation: %w", err)
+		}
+	case primaryProposal:
+		return fmt.Errorf("%w: %s (%d)", errInvalidEquivocationStage, stage, stage)
+	default:
+		panic(fmt.Sprintf("equivocation stage not implemented: %s (%d)", stage, stage))
+
+	}
+
+	equivocationProof := types.GrandpaEquivocationProof{
+		SetID:        setID,
+		Equivocation: *equivocationVote,
+	}
+
+	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
+	if err != nil {
+		return fmt.Errorf("submitting grandpa equivocation report to runtime: %w", err)
+	}
+
+	return nil
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a

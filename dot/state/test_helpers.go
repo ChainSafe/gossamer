@@ -24,7 +24,7 @@ import (
 var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) chaindb.Database {
+func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
 	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)
@@ -36,7 +36,7 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	return db
 }
 
-func createPrimaryBABEDigest(t *testing.T) scale.VaryingDataTypeSlice {
+func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
 	babeDigest := types.NewBabeDigest()
 	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
 	require.NoError(t, err)
@@ -244,7 +244,8 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	rand := time.Now().UnixNano()
 	key := []byte("testKey" + fmt.Sprint(rand))
 	value := []byte("testValue" + fmt.Sprint(rand))
-	trieState.Put(key, value)
+	err = trieState.Put(key, value)
+	require.NoError(t, err)
 
 	trieStateRoot, err := trieState.Root()
 	require.NoError(t, err)

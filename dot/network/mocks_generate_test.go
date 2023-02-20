@@ -3,6 +3,7 @@
 
 package network
 
-//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
+//go:generate mockgen -destination=mock_telemetry_test.go -package $GOPACKAGE . Telemetry
 //go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE . Syncer
 //go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE . BlockState
+//go:generate mockgen -destination=mock_transaction_handler_test.go -package $GOPACKAGE . TransactionHandler

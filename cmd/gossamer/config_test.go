@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/chain/dev"
-	"github.com/ChainSafe/gossamer/chain/gssmr"
+	"github.com/ChainSafe/gossamer/chain/kusama"
+	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,28 +43,23 @@ func TestConfigFromChainFlag(t *testing.T) {
 		expected    *dot.Config
 	}{
 		{
-			"Test gossamer --chain gssmr",
-			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
-			dot.GssmrConfig(),
-		},
-		{
 			"Test gossamer --chain kusama",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, kusama.DefaultPruningMode, kusama.DefaultRetainBlocks},
 			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
+			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name,
+				polkadot.DefaultPruningMode, polkadot.DefaultRetainBlocks},
 			dot.PolkadotConfig(),
 		},
 		{
-			"Test gossamer --chain dev",
+			"Test gossamer --chain westend-dev",
 			[]string{"chain", "name", "pruning", "retain-blocks"},
-			[]interface{}{"dev", dot.DevConfig().Global.Name, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
-			dot.DevConfig(),
+			[]interface{}{"westend-dev", dot.WestendDevConfig().Global.Name, "archive", uint32(512)},
+			dot.WestendDevConfig(),
 		},
 	}
 
@@ -82,7 +78,8 @@ func TestConfigFromChainFlag(t *testing.T) {
 
 // TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
 func TestInitConfigFromFlags(t *testing.T) {
-	_, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	_, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -96,7 +93,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --genesis",
 			[]string{"config", "genesis", "pruning", "retain-blocks"},
-			[]interface{}{testCfgFile, "test_genesis", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			[]interface{}{testCfgFile, "test_genesis", "archive", uint32(512)},
 			dot.InitConfig{
 				Genesis: "test_genesis",
 			},
@@ -117,7 +114,8 @@ func TestInitConfigFromFlags(t *testing.T) {
 
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -150,8 +148,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				ID:             "ksmcc3",
 				BasePath:       dot.KusamaConfig().Global.BasePath,
 				LogLvl:         log.Info,
-				PublishMetrics: testCfg.Global.PublishMetrics,
-				MetricsAddress: testCfg.Global.MetricsAddress,
+				PublishMetrics: false,
+				MetricsAddress: "localhost:9876",
 			},
 		},
 		{
@@ -271,7 +269,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 }
 
 func TestGlobalConfigFromFlagsFails(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -321,7 +320,8 @@ func TestGlobalConfigFromFlagsFails(t *testing.T) {
 
 // TestAccountConfigFromFlags tests createDotAccountConfig using relevant account flags
 func TestAccountConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -366,7 +366,8 @@ func TestAccountConfigFromFlags(t *testing.T) {
 
 // TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	westendDevConfig := dot.WestendDevConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -385,7 +386,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				Roles:            4,
 				BabeAuthority:    true,
 				GrandpaAuthority: true,
-				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				WasmInterpreter:  wasmer.Name,
 				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
@@ -397,7 +398,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				Roles:            0,
 				BabeAuthority:    false,
 				GrandpaAuthority: false,
-				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
+				WasmInterpreter:  wasmer.Name,
 				GrandpaInterval:  testCfg.Core.GrandpaInterval,
 			},
 		},
@@ -417,7 +418,8 @@ func TestCoreConfigFromFlags(t *testing.T) {
 
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	westendDevConfig := dot.WestendDevConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, westendDevConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -551,7 +553,8 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	testApp := cli.NewApp()
 	testApp.Writer = io.Discard
@@ -699,7 +702,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --ws false",
-			[]string{"config", "w"},
+			[]string{"config", "ws"},
 			[]interface{}{testCfgFile, false},
 			dot.RPCConfig{
 				Enabled:    testCfg.RPC.Enabled,
@@ -758,7 +761,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 
 // TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
 func TestUpdateConfigFromGenesisJSON(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	ctx, err := newTestContext(
@@ -813,7 +817,8 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 // using the default genesis path if no genesis path is provided (ie, an empty
 // genesis value provided in the toml configuration file or with --genesis "")
 func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -862,7 +867,8 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 }
 
 func TestUpdateConfigFromGenesisData(t *testing.T) {
-	testCfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	testCfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	ctx, err := newTestContext(
@@ -939,8 +945,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	// Initialise a node with a random name
 	globalName := dot.RandomNodeName()
-
-	cfg := newTestConfig(t)
+	westendDevConfig := dot.WestendDevConfig()
+	cfg := newTestConfig(t, westendDevConfig)
 	cfg.Global.Name = globalName
 
 	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
@@ -948,9 +954,9 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)
 
-	fp := utils.GetGssmrGenesisRawPathTest(t)
+	fp := utils.GetWestendDevRawGenesisPath(t)
 
-	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
@@ -958,7 +964,7 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 		ID:         "test",
 		Bootnodes:  []string(nil),
 		ProtocolID: "/gossamer/test/0",
-		Genesis:    gssmrGen.GenesisFields(),
+		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 
 	gen.Genesis.Raw = map[string]map[string]string{
@@ -1020,7 +1026,8 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 }
 
 func TestGlobalNodeNamePriorityOrder(t *testing.T) {
-	cfg, testCfgFile := newTestConfigWithFile(t)
+	polkadotConfig := dot.PolkadotConfig()
+	cfg, testCfgFile := newTestConfigWithFile(t, polkadotConfig)
 
 	// call another command and test the name
 	testApp := cli.NewApp()
@@ -1122,42 +1129,42 @@ func Test_getLogLevel(t *testing.T) {
 		level        log.Level
 		err          error
 	}{
-		"no value with default": {
+		"no_value_with_default": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			defaultLevel: log.Error,
 			level:        log.Error,
 		},
-		"flag integer value": {
+		"flag_integer_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "1"}),
 			flagName:     "x",
 			level:        log.Error,
 		},
-		"flag string value": {
+		"flag_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
 			flagName:     "x",
 			level:        log.Error,
 		},
-		"flag bad string value": {
+		"flag_bad_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "garbage"}),
 			flagName:     "x",
 			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
-		"toml integer value": {
+		"toml_integer_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "1",
 			level:        log.Error,
 		},
-		"toml string value": {
+		"toml_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "error",
 			level:        log.Error,
 		},
-		"toml bad string value": {
+		"toml_bad_string_value": {
 			flagsKVStore: newMockGetStringer(map[string]string{}),
 			tomlValue:    "garbage",
 			err:          errors.New("cannot parse log level string: level is not recognised: garbage"),
 		},
-		"flag takes precedence": {
+		"flag_takes_precedence": {
 			flagsKVStore: newMockGetStringer(map[string]string{"x": "error"}),
 			flagName:     "x",
 			tomlValue:    "warn",
@@ -1191,22 +1198,22 @@ func Test_parseLogLevelString(t *testing.T) {
 		logLevel       log.Level
 		err            error
 	}{
-		"empty string": {
+		"empty_string": {
 			err: errors.New("cannot parse log level string: level is not recognised: "),
 		},
-		"valid integer": {
+		"valid_integer": {
 			logLevelString: "1",
 			logLevel:       log.Error,
 		},
-		"minus one": {
+		"minus_one": {
 			logLevelString: "-1",
 			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: -1"),
 		},
-		"over 5": {
+		"over_5": {
 			logLevelString: "6",
 			err:            errors.New("log level integer can only be between 0 and 5 included: log level given: 6"),
 		},
-		"valid string": {
+		"valid_string": {
 			logLevelString: "error",
 			logLevel:       log.Error,
 		},
@@ -1242,7 +1249,7 @@ func Test_setLogConfig(t *testing.T) {
 		expectedLogCfg    dot.LogConfig
 		err               error
 	}{
-		"no value": {
+		"no_value": {
 			ctx: newMockGetStringer(map[string]string{}),
 			expectedCfg: ctoml.Config{
 				Global: ctoml.GlobalConfig{
@@ -1264,7 +1271,7 @@ func Test_setLogConfig(t *testing.T) {
 				FinalityGadgetLvl: log.Info,
 			},
 		},
-		"some values": {
+		"some_values": {
 			ctx: newMockGetStringer(map[string]string{}),
 			initialCfg: ctoml.Config{
 				Log: ctoml.LogConfig{

@@ -35,7 +35,7 @@ var (
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	db         chaindb.Database
+	db         GetPutDeleter
 	blockState *BlockState
 
 	forcedChanges        *orderedPendingChanges
@@ -43,7 +43,7 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, bs *BlockState,
+func NewGrandpaStateFromGenesis(db *chaindb.BadgerDB, bs *BlockState,
 	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
@@ -73,7 +73,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, bs *BlockState,
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db chaindb.Database, bs *BlockState) *GrandpaState {
+func NewGrandpaState(db *chaindb.BadgerDB, bs *BlockState) *GrandpaState {
 	return &GrandpaState{
 		db:                   chaindb.NewTable(db, grandpaPrefix),
 		blockState:           bs,

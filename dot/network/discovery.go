@@ -10,13 +10,13 @@ import (
 
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	badger "github.com/ipfs/go-ds-badger2"
-	libp2phost "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	libp2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	libp2phost "github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 )
 
 const (
@@ -36,7 +36,7 @@ var (
 type discovery struct {
 	ctx                context.Context
 	dht                *dual.DHT
-	rd                 *libp2pdiscovery.RoutingDiscovery
+	rd                 *routing.RoutingDiscovery
 	h                  libp2phost.Host
 	bootnodes          []peer.AddrInfo
 	ds                 *badger.Datastore
@@ -131,7 +131,7 @@ func (d *discovery) stop() error {
 }
 
 func (d *discovery) discoverAndAdvertise() error {
-	d.rd = libp2pdiscovery.NewRoutingDiscovery(d.dht)
+	d.rd = routing.NewRoutingDiscovery(d.dht)
 
 	err := d.dht.Bootstrap(d.ctx)
 	if err != nil {
@@ -155,9 +155,7 @@ func (d *discovery) advertise() {
 
 		select {
 		case <-d.ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			return
 		case <-timer.C:
 			logger.Debug("advertising ourselves in the DHT...")
@@ -177,14 +175,14 @@ func (d *discovery) advertise() {
 }
 
 func (d *discovery) checkPeerCount() {
-	timer := time.NewTicker(connectToPeersTimeout)
-	defer timer.Stop()
+	ticker := time.NewTicker(connectToPeersTimeout)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-d.ctx.Done():
 			return
-		case <-timer.C:
+		case <-ticker.C:
 			if len(d.h.Network().Peers()) > d.minPeers {
 				continue
 			}
@@ -217,10 +215,6 @@ func (d *discovery) findPeers() {
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
-
-			if !timer.Stop() {
-				<-timer.C
-			}
 		}
 	}
 }

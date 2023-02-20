@@ -14,11 +14,18 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances
 var DefaultTestLogLvl = log.Info
+
+func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
 
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
@@ -26,20 +33,25 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
-// NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
+// NewTestInstanceWithTrie returns an instance based on the target runtime string specified,
+// which can be a file path or a constant from the constants defined in `lib/runtime/constants.go`.
+// The instance uses the trie given as argument for its storage.
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
 	t.Helper()
 
-	cfg := setupConfig(t, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), targetRuntime)
+	ctrl := gomock.NewController(t)
+
+	cfg := setupConfig(t, ctrl, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
+	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
-	r, err := NewInstanceFromFile(runtimeFilepath, cfg)
+	r, err := NewInstanceFromFile(targetRuntime, cfg)
 	require.NoError(t, err)
+
 	return r
 }
 
-func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
+func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level,
 	role common.Roles, targetRuntime string) Config {
 	t.Helper()
 
@@ -65,7 +77,7 @@ func setupConfig(t *testing.T, tt *trie.Trie, lvl log.Level,
 		LogLvl:      lvl,
 		NodeStorage: ns,
 		Network:     new(runtime.TestRuntimeNetwork),
-		Transaction: mocks.NewTransactionState(t),
+		Transaction: mocks.NewMockTransactionState(ctrl),
 		Role:        role,
 		testVersion: version,
 	}

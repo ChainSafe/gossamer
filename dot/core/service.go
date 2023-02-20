@@ -15,12 +15,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
@@ -28,8 +26,7 @@ import (
 )
 
 var (
-	_      services.Service = &Service{}
-	logger                  = log.NewFromGlobal(log.AddContext("pkg", "core"))
+	logger = log.NewFromGlobal(log.AddContext("pkg", "core"))
 )
 
 // QueryKeyValueChanges represents the key-value data inside a block storage
@@ -46,7 +43,6 @@ type Service struct {
 
 	// Service interfaces
 	blockState       BlockState
-	epochState       EpochState
 	storageState     StorageState
 	transactionState TransactionState
 	net              Network
@@ -64,7 +60,6 @@ type Config struct {
 	LogLvl log.Level
 
 	BlockState       BlockState
-	EpochState       EpochState
 	StorageState     StorageState
 	TransactionState TransactionState
 	Network          Network
@@ -88,7 +83,6 @@ func NewService(cfg *Config) (*Service, error) {
 		cancel:               cancel,
 		keys:                 cfg.Keystore,
 		blockState:           cfg.BlockState,
-		epochState:           cfg.EpochState,
 		storageState:         cfg.StorageState,
 		transactionState:     cfg.TransactionState,
 		net:                  cfg.Network,
@@ -138,7 +132,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 	}
 
 	bestBlockHash := s.blockState.BestBlockHash()
-	isBestBlock := bestBlockHash.Equal(block.Header.Hash())
+	isBestBlock := bestBlockHash == block.Header.Hash()
 
 	blockAnnounce, err := createBlockAnnounce(block, isBestBlock)
 	if err != nil {
@@ -339,7 +333,7 @@ func (s *Service) handleChainReorg(best, curr common.Hash) error {
 		return nil
 	}
 
-	subchain, err := s.blockState.SubChain(ancestor, best)
+	subchain, err := s.blockState.RangeInMemory(ancestor, best)
 	if err != nil {
 		return err
 	}
@@ -457,7 +451,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 }
 
 // InsertKey inserts keypair into the account keystore
-func (s *Service) InsertKey(kp crypto.Keypair, keystoreType string) error {
+func (s *Service) InsertKey(kp KeyPair, keystoreType string) error {
 	ks, err := s.keys.GetKeystore([]byte(keystoreType))
 	if err != nil {
 		return err
@@ -478,14 +472,14 @@ func (s *Service) HasKey(pubKeyStr, keystoreType string) (bool, error) {
 }
 
 // DecodeSessionKeys executes the runtime DecodeSessionKeys and return the scale encoded keys
-func (s *Service) DecodeSessionKeys(enc []byte) ([]byte, error) {
+func (s *Service) DecodeSessionKeys(encodedSessionKeys []byte) ([]byte, error) {
 	bestBlockHash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
 
-	return rt.DecodeSessionKeys(enc)
+	return rt.DecodeSessionKeys(encodedSessionKeys)
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion

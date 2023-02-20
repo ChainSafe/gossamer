@@ -63,7 +63,7 @@ func TestVerifySignature(t *testing.T) {
 				},
 			},
 		},
-		"bad public key input": {
+		"bad_public_key_input": {
 			expect: false,
 			signaturesToVerify: []*crypto.SignatureInfo{
 				0: {
@@ -80,7 +80,7 @@ func TestVerifySignature(t *testing.T) {
 				},
 			},
 		},
-		"verification failed": {
+		"verification_failed": {
 			expect: false,
 			signaturesToVerify: []*crypto.SignatureInfo{
 				0: {

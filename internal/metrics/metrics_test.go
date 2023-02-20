@@ -26,7 +26,7 @@ func TestServer_Start(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			fields: fields{
 				server: httpserver.New("metrics", ":0", http.NewServeMux(), logger),
 			},
@@ -58,7 +58,7 @@ func TestNewServer(t *testing.T) {
 		wantS *Server
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				address: "someAddress",
 			},
@@ -82,7 +82,7 @@ func TestNewIntervalConfig(t *testing.T) {
 		want IntervalConfig
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				publish: true,
 			},

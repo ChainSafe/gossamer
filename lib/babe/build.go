@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
@@ -24,7 +24,7 @@ const (
 )
 
 // construct a block for this slot with the given parent
-func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance,
+func (b *Service) buildBlock(parent *types.Header, slot Slot, rt Runtime,
 	authorityIndex uint32, preRuntimeDigest *types.PreRuntimeDigest) (*types.Block, error) {
 	builder := NewBlockBuilder(
 		b.keypair,
@@ -76,7 +76,7 @@ func NewBlockBuilder(
 	}
 }
 
-func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime) (*types.Block, error) {
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create new block header
@@ -171,7 +171,7 @@ func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*transaction.ValidTransaction {
+func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
 
 	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
@@ -190,13 +190,13 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 
 		ret, err := rt.ApplyExtrinsic(extrinsic)
 		if err != nil {
-			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			logger.Warnf("determining apply extrinsic call error: %s", err)
 			continue
 		}
 
 		err = determineErr(ret)
 		if err != nil {
-			logger.Warnf("failed to apply extrinsic %s: %s", extrinsic, err)
+			logger.Warnf("error when applying extrinsic %s: %s", extrinsic, err)
 
 			// Failure of the module call dispatching doesn't invalidate the extrinsic.
 			// It is included in the block.
@@ -226,11 +226,10 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 	return included
 }
 
-func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentData()
-	timestamp := uint64(time.Now().UnixMilli())
-	err := idata.SetInherent(types.Timstap0, timestamp)
+	err := idata.SetInherent(types.Timstap0, uint64(slot.start.UnixMilli()))
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +240,7 @@ func buildBlockInherents(slot Slot, rt runtime.Instance, parent *types.Header) (
 		return nil, err
 	}
 
-	parachainInherent := ParachainInherentData{
+	parachainInherent := inherents.ParachainInherentData{
 		ParentHeader: *parent,
 	}
 

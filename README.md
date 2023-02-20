@@ -6,7 +6,7 @@
     <img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge&label=License" height="20"/>
   </a>
     <a href="https://github.com/ChainSafe/gossamer/actions">
-    <img alt="build status" src="https://img.shields.io/github/workflow/status/ChainSafe/gossamer/build?branch=development&style=for-the-badge&logo=github&label=build" height="20"/>
+    <img alt="build status" src="https://img.shields.io/github/actions/workflow/status/ChainSafe/gossamer/build.yml?branch=development&style=for-the-badge&logo=github&label=build" height="20"/>
   </a>
   <a href="https://godoc.org/github.com/ChainSafe/gossamer">
     <img alt="go doc" src="http://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge" height="20" />
@@ -53,12 +53,8 @@ and start a development network.
 [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) is required
 to acquire the Gossamer source code, and
 [Make](https://tilburgsciencehub.com/building-blocks/configure-your-computer/automation-and-workflows/make/)
-is used to build it. Building Gossamer requires version 1.18 of
+is used to build it. Building Gossamer requires version 1.19 or higher of
 [Golang](https://go.dev/dl/).
-
-> **Warning**
->
-> Gossamer will NOT work with version 1.19 of Golang.
 
 ### Installation
 

@@ -89,11 +89,11 @@ func generateRandBytes(tb testing.TB, size int,
 	return b
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genesisPtr

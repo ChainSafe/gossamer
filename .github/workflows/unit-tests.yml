@@ -20,11 +20,11 @@ name: unit-tests
 jobs:
   unit-tests:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
           stable: true
           check-latest: true
 
@@ -74,6 +74,12 @@ jobs:
 
       - name: Run unit tests
         run: go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
+
+      - name: Trie memory test
+        run: |
+          sed -i 's/const skip = true/const skip = false/g' ./lib/trie/mem_test.go
+          go test -run ^Test_Trie_MemoryUsage$ ./lib/trie
+          sed -i 's/const skip = false/const skip = true/g' ./lib/trie/mem_test.go
 
       - name: Test State - Race
         run: make test-state-race

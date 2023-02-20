@@ -5,11 +5,7 @@ package services
 
 import (
 	"reflect"
-
-	"github.com/ChainSafe/gossamer/internal/log"
 )
-
-//go:generate mockery --name Service --structname Service --case underscore --keeptree
 
 // Service must be implemented by all services
 type Service interface {
@@ -17,24 +13,15 @@ type Service interface {
 	Stop() error
 }
 
-// ServiceRegisterer can register a service interface, start or stop all services,
-// and get a particular service.
-type ServiceRegisterer interface {
-	RegisterService(service Service)
-	StartAll()
-	StopAll()
-	Get(srvc interface{}) Service
-}
-
 // ServiceRegistry is a structure to manage core system services
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to service instances
 	serviceTypes []reflect.Type           // all known service types, used to iterate through services
-	logger       log.LeveledLogger
+	logger       Logger
 }
 
 // NewServiceRegistry creates an empty registry
-func NewServiceRegistry(logger log.LeveledLogger) *ServiceRegistry {
+func NewServiceRegistry(logger Logger) *ServiceRegistry {
 	return &ServiceRegistry{
 		services: make(map[reflect.Type]Service),
 		logger:   logger,

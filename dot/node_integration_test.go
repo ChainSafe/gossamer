@@ -41,10 +41,10 @@ import (
 func TestNewNode(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	mockTelemetryClient := NewMockClient(ctrl)
+	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
-	initConfig := NewTestConfig(t)
+	initConfig := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, initConfig)
 
@@ -159,7 +159,7 @@ func TestNewNode(t *testing.T) {
 }
 
 func Test_nodeBuilder_loadRuntime(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	type args struct {
 		cfg *Config
 		ns  *runtime.NodeStorage
@@ -172,7 +172,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "base case",
+			name: "base_case",
 			args: args{
 				cfg: cfg,
 				ns:  &runtime.NodeStorage{},
@@ -201,7 +201,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 }
 
 func TestInitNode_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -217,7 +217,7 @@ func TestInitNode_Integration(t *testing.T) {
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := newTestGenesisFile(t, cfg)
 
@@ -232,7 +232,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -249,7 +249,7 @@ func TestNodeInitializedIntegration(t *testing.T) {
 }
 
 func TestNewNodeIntegration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -259,9 +259,13 @@ func TestNewNodeIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore("alice", ks.Babe)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
+	require.NoError(t, err)
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
 	cfg.Core.Roles = common.FullNodeRole
@@ -276,7 +280,7 @@ func TestNewNodeIntegration(t *testing.T) {
 }
 
 func TestNewNode_Authority(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -286,10 +290,15 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Gran.Size())
-	err = keystore.LoadKeystore("alice", ks.Babe)
+
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Babe.Size())
 
@@ -305,7 +314,7 @@ func TestNewNode_Authority(t *testing.T) {
 }
 
 func TestStartStopNode(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 
@@ -317,9 +326,15 @@ func TestStartStopNode(t *testing.T) {
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
-	err = keystore.LoadKeystore("alice", ks.Gran)
+
+	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore("alice", ks.Babe)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
+	require.NoError(t, err)
+
+	sr25519keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
 	cfg.Core.Roles = common.FullNodeRole
@@ -336,7 +351,7 @@ func TestStartStopNode(t *testing.T) {
 }
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -384,7 +399,7 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 }
 
 func TestInitNode_LoadBalances(t *testing.T) {
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -424,7 +439,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
-	cfg := NewTestConfig(t)
+	cfg := NewWestendDevConfig(t)
 	cfg.Global.Name = globalName
 
 	cfg.Core.Roles = common.FullNodeRole

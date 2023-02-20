@@ -5,6 +5,7 @@ package wasmer
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,12 +39,12 @@ func Test_pointerSize(t *testing.T) {
 		pointerSize int64
 	}{
 		"0": {},
-		"ptr 8 size 32": {
+		"ptr_8_size_32": {
 			ptr:         8,
 			size:        32,
 			pointerSize: int64(8) | (int64(32) << 32),
 		},
-		"ptr max uint32 and size max uint32": {
+		"ptr_max_uint32_and_size_max_uint32": {
 			ptr:         ^uint32(0),
 			size:        ^uint32(0),
 			pointerSize: ^int64(0),
@@ -65,4 +66,14 @@ func Test_pointerSize(t *testing.T) {
 			assert.Equal(t, testCase.size, size)
 		})
 	}
+}
+
+func Test_panicOnError(t *testing.T) {
+	t.Parallel()
+
+	err := (error)(nil)
+	assert.NotPanics(t, func() { panicOnError(err) })
+
+	err = errors.New("test error")
+	assert.PanicsWithValue(t, err, func() { panicOnError(err) })
 }

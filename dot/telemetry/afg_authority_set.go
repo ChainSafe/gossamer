@@ -10,7 +10,7 @@ import (
 
 type afgAuthoritySetTM AfgAuthoritySet
 
-var _ Message = (*AfgAuthoritySet)(nil)
+var _ json.Marshaler = (*AfgAuthoritySet)(nil)
 
 // AfgAuthoritySet is a telemetry message of type `afg.authority_set` which is
 // meant to be sent when authority set changes (generally when a round is initiated)

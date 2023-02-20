@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -146,9 +146,7 @@ func (s *Service) createBatchMessageHandler(txnBatchCh chan *batchMessage) Notif
 
 		select {
 		case txnBatchCh <- data:
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 		case <-timer.C:
 			logger.Debugf("transaction message %s for peer %s not included into batch", msg, peer)
 		}

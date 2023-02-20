@@ -11,15 +11,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
-	mockRuntimeStorageAPI := mocks.NewRuntimeStorageAPI(t)
-	mockRuntimeStorageAPI.On("GetPersistent", common.MustHexToBytes("0x11111111111111")).
+	ctrl := gomock.NewController(t)
+
+	mockRuntimeStorageAPI := mocks.NewMockRuntimeStorageAPI(ctrl)
+	mockRuntimeStorageAPI.EXPECT().GetPersistent(common.MustHexToBytes("0x11111111111111")).
 		Return(nil, errors.New("GetPersistent error"))
-	mockRuntimeStorageAPI.On("GetLocal", common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
+	mockRuntimeStorageAPI.EXPECT().GetLocal(common.MustHexToBytes("0x11111111111111")).Return([]byte("some-value"), nil)
 	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
 
 	type fields struct {
@@ -37,7 +40,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 		exp    StringResponse
 	}{
 		{
-			name: "GetPersistent error",
+			name: "GetPersistent_error",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -50,7 +53,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			expErr: errors.New("GetPersistent error"),
 		},
 		{
-			name: "Invalid Storage Kind",
+			name: "Invalid_Storage_Kind",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -63,7 +66,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			expErr: fmt.Errorf("storage kind not found: invalid kind"),
 		},
 		{
-			name: "GetLocal OK",
+			name: "GetLocal_OK",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -76,7 +79,7 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 			exp: StringResponse("0x736f6d652d76616c7565"),
 		},
 		{
-			name: "Invalid key",
+			name: "Invalid_key",
 			fields: fields{
 				offChainModule.nodeStorage,
 			},
@@ -107,11 +110,13 @@ func TestOffchainModule_LocalStorageGet(t *testing.T) {
 }
 
 func TestOffchainModule_LocalStorageSet(t *testing.T) {
-	mockRuntimeStorageAPI := mocks.NewRuntimeStorageAPI(t)
-	mockRuntimeStorageAPI.On("SetLocal",
+	ctrl := gomock.NewController(t)
+
+	mockRuntimeStorageAPI := mocks.NewMockRuntimeStorageAPI(ctrl)
+	mockRuntimeStorageAPI.EXPECT().SetLocal(
 		common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).
 		Return(nil)
-	mockRuntimeStorageAPI.On("SetPersistent",
+	mockRuntimeStorageAPI.EXPECT().SetPersistent(
 		common.MustHexToBytes("0x11111111111111"), common.MustHexToBytes("0x22222222222222")).
 		Return(errors.New("SetPersistent error"))
 
@@ -129,7 +134,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 		expErr error
 	}{
 		{
-			name: "setLocal OK",
+			name: "setLocal_OK",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},
@@ -142,7 +147,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			},
 		},
 		{
-			name: "Invalid Key",
+			name: "Invalid_Key",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},
@@ -156,7 +161,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
 		},
 		{
-			name: "Invalid Value",
+			name: "Invalid_Value",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},
@@ -184,7 +189,7 @@ func TestOffchainModule_LocalStorageSet(t *testing.T) {
 			expErr: errors.New("SetPersistent error"),
 		},
 		{
-			name: "Invalid Kind",
+			name: "Invalid_Kind",
 			fields: fields{
 				mockRuntimeStorageAPI,
 			},

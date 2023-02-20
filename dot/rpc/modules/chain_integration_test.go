@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -289,7 +288,7 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 func TestChainGetFinalizedHead(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
-	_, _, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
@@ -307,7 +306,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 
-	_, _, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
@@ -341,7 +340,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockClient(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
@@ -352,7 +351,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
 	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
@@ -382,7 +381,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt Runtime) {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
