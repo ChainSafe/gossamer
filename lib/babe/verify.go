@@ -358,6 +358,10 @@ func (b *verifier) submitAndReportEquivocation(
 
 	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
 
+	fmt.Println("important")
+	fmt.Println(slot)
+	fmt.Println(offenderPublicKey)
+
 	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)

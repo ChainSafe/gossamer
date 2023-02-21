@@ -8,7 +8,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -200,6 +200,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
+	t.Parallel()
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, false)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
@@ -219,6 +220,7 @@ func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
+	t.Parallel()
 	auth := types.Authority{
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
@@ -240,7 +242,7 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	futureEpoch := uint64(2)
+	const futureEpoch = uint64(2)
 	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
 		Authorities: []types.Authority{{
 			Key: keyring.Alice().(*sr25519.Keypair).Public(),
@@ -263,6 +265,7 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
+	t.Parallel()
 	auth := types.Authority{
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
@@ -284,7 +287,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	futureEpoch := uint64(2)
+	const futureEpoch = uint64(2)
 	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
 		Authorities: []types.Authority{{
 			Key: keyring.Alice().(*sr25519.Keypair).Public(),
@@ -458,12 +461,26 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
-	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
-
+	//kp, err := sr25519.GenerateKeypair()
+	//require.NoError(t, err)
+	//
 	cfg := ServiceConfig{
-		Keypair: kp,
+		Keypair: keyring.Alice().(*sr25519.Keypair),
 	}
+	//
+	//auth := types.Authority{
+	//	Key:    keyring.Alice().(*sr25519.Keypair).Public(),
+	//	Weight: 1,
+	//}
+	//babeConfig := &types.BabeConfiguration{
+	//	SlotDuration:       6000,
+	//	EpochLength:        600,
+	//	C1:                 1,
+	//	C2:                 4,
+	//	GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+	//	Randomness:         [32]byte{},
+	//	SecondarySlots:     0,
+	//}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil, true)
@@ -474,10 +491,12 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
+	fmt.Println(keyring.Alice().(*sr25519.Keypair).Public().Encode())
+
 	epochData.threshold = maxThreshold
 	epochData.authorities = []types.Authority{
 		{
-			Key: kp.Public().(*sr25519.PublicKey),
+			Key: keyring.Alice().(*sr25519.Keypair).Public(),
 		},
 	}
 
@@ -493,6 +512,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
 	timestamp := time.Unix(6, 0)
 	slot := getSlot(t, runtime, timestamp)
+	fmt.Println(slot.number)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	block.Header.Hash()
 

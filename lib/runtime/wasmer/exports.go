@@ -110,6 +110,8 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
 
+	fmt.Println(encodedKeyOwnershipProof)
+
 	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
 	err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
