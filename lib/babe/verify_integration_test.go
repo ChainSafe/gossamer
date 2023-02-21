@@ -353,7 +353,6 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
 	timestamp := time.Unix(6, 0)
 	slot := getSlot(t, runtime, timestamp)
-	fmt.Println(slot.number)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	block.Header.Hash()
 
@@ -471,9 +470,9 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	//kp, err := sr25519.GenerateKeypair()
 	//require.NoError(t, err)
 	//
-	//cfg := ServiceConfig{
-	//	Keypair: keyring.Alice().(*sr25519.Keypair),
-	//}
+	cfg := ServiceConfig{
+		Keypair: keyring.Alice().(*sr25519.Keypair),
+	}
 
 	auth := types.Authority{
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
@@ -490,7 +489,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig, true)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, babeConfig, true)
 	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
