@@ -50,5 +50,5 @@ EXPOSE 7001 8546 8540
 
 ENTRYPOINT [ "/gossamer/bin/gossamer" ]
 
-COPY internal/chain /gossamer/chain
+COPY chain /gossamer/chain
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer

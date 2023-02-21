@@ -11,13 +11,13 @@ import (
 	"reflect"
 	"unicode"
 
+	"github.com/ChainSafe/gossamer/chain"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/internal"
 	"github.com/naoina/toml"
 )
 
 func loadConfigFromResource(cfg *ctoml.Config, resourcePath string) error {
-	file, err := internal.DefaultConfigTomlFiles.Open(resourcePath)
+	file, err := chain.DefaultConfigTomlFiles.Open(resourcePath)
 	if err != nil {
 		return fmt.Errorf("opening toml configuration file: %w", err)
 	}

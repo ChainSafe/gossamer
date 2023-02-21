@@ -204,7 +204,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	testWestendDevConfigPath = filepath.Join(rootPath, "./internal/chain/westend-dev/config.toml")
+	testWestendDevConfigPath = filepath.Join(rootPath, "./chain/westend-dev/config.toml")
 	os.Exit(m.Run())
 }
 
