@@ -54,8 +54,8 @@ var (
 	}
 )
 
-// NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
+// newTestCoreService creates a new test core service
+func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	genesisTrie trie.Trie, genesisHeader types.Header) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -251,7 +251,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			CodeSubstitutes:      make(map[common.Hash]string),
 		}
 
-		babeService.blockImportHandler = NewTestService(t, &coreConfig, genesis,
+		babeService.blockImportHandler = newTestCoreService(t, &coreConfig, genesis,
 			genesisTrie, genesisHeader)
 	}
 

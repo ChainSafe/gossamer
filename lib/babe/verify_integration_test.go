@@ -486,7 +486,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		C2:                 4,
 		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
 		Randomness:         [32]byte{},
-		SecondarySlots:     0,
+		SecondarySlots:     1,
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
@@ -499,8 +499,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
-
-	fmt.Println(keyring.Alice().(*sr25519.Keypair).Public().Encode())
 
 	//epochData.threshold = maxThreshold
 	//epochData.authorities = []types.Authority{
@@ -521,7 +519,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
 	timestamp := time.Unix(6, 0)
 	slot := getSlot(t, runtime, timestamp)
-	fmt.Println(slot.number)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 	block.Header.Hash()
 
@@ -532,17 +529,12 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	//err = verifier.verifyAuthorshipRight(&block.Header)
-	//require.NoError(t, err)
-
 	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
-	//err = verifier.verifyAuthorshipRight(&block2.Header)
-	//require.ErrorIs(t, err, ErrProducerEquivocated)
 	err = vm.VerifyBlock(&block2.Header)
 	require.NoError(t, err)
 	require.EqualError(t, err, fmt.Sprintf("%s for block header %s", ErrProducerEquivocated, block2.Header.Hash()))
