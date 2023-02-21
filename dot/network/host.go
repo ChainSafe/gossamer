@@ -378,7 +378,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 // supportsProtocol checks if the protocol is supported by peerID
 // returns an error if could not get peer protocols
 func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
-	peerProtocols, err := h.p2pHost.Peerstore().SupportsProtocols(peerID, string(protocol))
+	peerProtocols, err := h.p2pHost.Peerstore().SupportsProtocols(peerID, protocol)
 	if err != nil {
 		return false, err
 	}
@@ -405,9 +405,14 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 	return multiaddrs
 }
 
-// protocols returns all protocols currently supported by the node
+// protocols returns all protocols currently supported by the node as strings.
 func (h *host) protocols() []string {
-	return h.p2pHost.Mux().Protocols()
+	protocolIDs := h.p2pHost.Mux().Protocols()
+	protocols := make([]string, len(protocolIDs))
+	for i := range protocolIDs {
+		protocols[i] = string(protocolIDs[i])
+	}
+	return protocols
 }
 
 // closePeer closes connection with peer.
