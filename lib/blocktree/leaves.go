@@ -40,7 +40,7 @@ func (lm *leafMap) store(key Hash, value *node) {
 func (lm *leafMap) load(key Hash) (*node, error) {
 	v, ok := lm.smap.Load(key)
 	if !ok {
-		return nil, ErrKeyNotFound
+		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
 	}
 
 	return v.(*node), nil
