@@ -5,6 +5,7 @@ package blocktree
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
