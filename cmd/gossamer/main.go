@@ -208,7 +208,7 @@ func importRuntimeAction(ctx *cli.Context) error {
 func gossamerAction(ctx *cli.Context) error {
 	// check for unknown command arguments
 	if arguments := ctx.Args(); arguments.Len() > 0 {
-		return fmt.Errorf("%d extra unknown command line arguments", arguments.Len())
+		return fmt.Errorf("%d extra unknown command line argument: %v", arguments.Len(), arguments.Slice())
 	}
 
 	// setup gossamer logger
