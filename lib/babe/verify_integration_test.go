@@ -318,40 +318,47 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO this test should also be part of babe testing cleanup #3060
-// Need to fix flakyness and verify config data is being set correctly
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
-	t.Skip()
-	serviceConfig := ServiceConfig{
-		Authority: true,
+	t.Parallel()
+	auth := types.Authority{
+		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
+		Weight: 1,
 	}
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader, nil, false)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig, true)
+	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	cfg, err := runtime.BabeConfiguration()
-	require.NoError(t, err)
+	epochData.threshold = maxThreshold
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
-	require.NoError(t, err)
-
-	var alicePub [32]byte
-	copy(alicePub[:], keyring.Alice().(*sr25519.Keypair).Public().Encode())
-	aliceAuth := types.Authority{
-		Key: keyring.Alice().(*sr25519.Keypair).Public(),
-	}
-
-	cfg.GenesisAuthorities = types.AuthoritiesToRaw([]types.Authority{aliceAuth})
-	cfg.C1 = 1
-	cfg.C2 = 100
-
-	vm := newTestVerificationManager(t, cfg)
-
-	slot := getSlot(t, runtime, time.Now())
+	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
+	// So we need to manually set time to produce consistent results. See here:
+	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
+	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
+	timestamp := time.Unix(6, 0)
+	slot := getSlot(t, runtime, timestamp)
+	fmt.Println(slot.number)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block.Header.Hash()
+
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
 
 	err = vm.VerifyBlock(&block.Header)
 	require.Equal(t, ErrVRFOutputOverThreshold, errors.Unwrap(err))
@@ -464,26 +471,28 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	//kp, err := sr25519.GenerateKeypair()
 	//require.NoError(t, err)
 	//
-	cfg := ServiceConfig{
-		Keypair: keyring.Alice().(*sr25519.Keypair),
-	}
-	//
-	//auth := types.Authority{
-	//	Key:    keyring.Alice().(*sr25519.Keypair).Public(),
-	//	Weight: 1,
-	//}
-	//babeConfig := &types.BabeConfiguration{
-	//	SlotDuration:       6000,
-	//	EpochLength:        600,
-	//	C1:                 1,
-	//	C2:                 4,
-	//	GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
-	//	Randomness:         [32]byte{},
-	//	SecondarySlots:     0,
+	//cfg := ServiceConfig{
+	//	Keypair: keyring.Alice().(*sr25519.Keypair),
 	//}
 
+	auth := types.Authority{
+		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
+		Weight: 1,
+	}
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig, true)
+	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
@@ -493,18 +502,18 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 
 	fmt.Println(keyring.Alice().(*sr25519.Keypair).Public().Encode())
 
-	epochData.threshold = maxThreshold
-	epochData.authorities = []types.Authority{
-		{
-			Key: keyring.Alice().(*sr25519.Keypair).Public(),
-		},
-	}
+	//epochData.threshold = maxThreshold
+	//epochData.authorities = []types.Authority{
+	//	{
+	//		Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	//	},
+	//}
 
-	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
-	})
+	//verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	//	authorities: epochData.authorities,
+	//	threshold:   epochData.threshold,
+	//	randomness:  epochData.randomness,
+	//})
 
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
@@ -523,14 +532,19 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(&block.Header)
+	//err = verifier.verifyAuthorshipRight(&block.Header)
+	//require.NoError(t, err)
+
+	err = vm.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(&block2.Header)
-	require.ErrorIs(t, err, ErrProducerEquivocated)
+	//err = verifier.verifyAuthorshipRight(&block2.Header)
+	//require.ErrorIs(t, err, ErrProducerEquivocated)
+	err = vm.VerifyBlock(&block2.Header)
+	require.NoError(t, err)
 	require.EqualError(t, err, fmt.Sprintf("%s for block header %s", ErrProducerEquivocated, block2.Header.Hash()))
 }
 

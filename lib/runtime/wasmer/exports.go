@@ -105,6 +105,8 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
 
+	fmt.Println(buffer.Bytes())
+
 	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, buffer.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
