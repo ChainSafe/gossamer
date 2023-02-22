@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"golang.org/x/exp/maps"
 )
 
 type handleSlotFunc = func(epoch uint64, slot Slot, authorityIndex uint32,
@@ -147,11 +148,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 // getAuthoringSlots returns an ordered slice of slot numbers where we can author blocks,
 // based on the given VRF output and proof map.
 func getAuthoringSlots(slotToPreRuntimeDigest map[uint64]*types.PreRuntimeDigest) []uint64 {
-	authoringSlots := make([]uint64, 0, len(slotToPreRuntimeDigest))
-	for authoringSlot := range slotToPreRuntimeDigest {
-		authoringSlots = append(authoringSlots, authoringSlot)
-	}
-
+	authoringSlots := maps.Keys(slotToPreRuntimeDigest)
 	sort.Slice(authoringSlots, func(i, j int) bool {
 		return authoringSlots[i] < authoringSlots[j]
 	})
