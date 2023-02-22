@@ -470,7 +470,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	cfg := ServiceConfig{
 		Keypair: keyring.Alice().(*sr25519.Keypair),
 	}
-
 	auth := types.Authority{
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
