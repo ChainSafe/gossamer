@@ -467,9 +467,6 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
-	//kp, err := sr25519.GenerateKeypair()
-	//require.NoError(t, err)
-	//
 	cfg := ServiceConfig{
 		Keypair: keyring.Alice().(*sr25519.Keypair),
 	}
@@ -499,19 +496,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	//epochData.threshold = maxThreshold
-	//epochData.authorities = []types.Authority{
-	//	{
-	//		Key: keyring.Alice().(*sr25519.Keypair).Public(),
-	//	},
-	//}
-
-	//verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
-	//	authorities: epochData.authorities,
-	//	threshold:   epochData.threshold,
-	//	randomness:  epochData.randomness,
-	//})
-
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
@@ -535,7 +519,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	err = vm.VerifyBlock(&block2.Header)
-	require.NoError(t, err)
+	require.ErrorIs(t, err, ErrProducerEquivocated)
 	require.EqualError(t, err, fmt.Sprintf("%s for block header %s", ErrProducerEquivocated, block2.Header.Hash()))
 }
 

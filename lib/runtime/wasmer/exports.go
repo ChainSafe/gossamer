@@ -124,8 +124,9 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 	}
 
 	fmt.Println("made it")
+	keyOwnerProof := *keyOwnershipProof
 
-	return *keyOwnershipProof, nil
+	return keyOwnerProof[1:], nil
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
@@ -138,6 +139,7 @@ func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(
 	if err != nil {
 		return fmt.Errorf("encoding equivocation proof: %w", err)
 	}
+
 	err = encoder.Encode(keyOwnershipProof)
 	if err != nil {
 		return fmt.Errorf("encoding key ownership proof: %w", err)
