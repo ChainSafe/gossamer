@@ -25,6 +25,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -1045,15 +1046,7 @@ func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
 // getVotes returns all the current votes as an array
 func (s *Service) getVotes(stage Subround) []Vote {
 	votes := s.getDirectVotes(stage)
-	va := make([]Vote, len(votes))
-	i := 0
-
-	for v := range votes {
-		va[i] = v
-		i++
-	}
-
-	return va
+	return maps.Keys(votes)
 }
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
@@ -1114,10 +1107,7 @@ func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 		return true
 	})
 
-	for v := range s.pvEquivocations {
-		votes = append(votes, v)
-	}
-
+	votes = append(votes, maps.Keys(s.pvEquivocations)...)
 	return votes
 }
 
@@ -1134,10 +1124,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 		return true
 	})
 
-	for v := range s.pvEquivocations {
-		votes = append(votes, v)
-	}
-
+	votes = append(votes, maps.Keys(s.pvEquivocations)...)
 	return votes
 }
 

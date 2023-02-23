@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -171,12 +172,7 @@ func (ps *PeersState) peerStatus(set int, peerID peer.ID) string {
 func (ps *PeersState) peers() []peer.ID {
 	ps.RLock()
 	defer ps.RUnlock()
-
-	peerIDs := make([]peer.ID, 0, len(ps.nodes))
-	for k := range ps.nodes {
-		peerIDs = append(peerIDs, k)
-	}
-	return peerIDs
+	return maps.Keys(ps.nodes)
 }
 
 // sortedPeers returns the list of peers we are connected to of a specific set.
