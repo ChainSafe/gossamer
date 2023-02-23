@@ -125,7 +125,10 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotInitConfig(ctx, tomlCfg.Init, &cfg.Init)
 	setDotAccountConfig(ctx, tomlCfg.Account, &cfg.Account)
 	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
-	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
+	err = setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
+	if err != nil {
+		return nil, err
+	}
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
 	setDotPprofConfig(ctx, tomlCfg.Pprof, &cfg.Pprof)
 	setStateConfig(ctx, tomlCfg.State, &cfg.State)
@@ -182,8 +185,10 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 
 	// set network config here otherwise it's values will be overwritten when starting the node.
 	// See /cmd/gossamer/main.go L192.
-	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
-
+	err = setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
+	if err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
@@ -254,7 +259,10 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	// set cli configuration values
 	setDotAccountConfig(ctx, tomlCfg.Account, &cfg.Account)
 	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
-	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
+	err = setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
+	if err != nil {
+		return nil, err
+	}
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
 
 	// set system info
@@ -631,7 +639,14 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 }
 
 // setDotNetworkConfig sets dot.NetworkConfig using flag values from the cli context
-func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot.NetworkConfig) {
+func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot.NetworkConfig) error {
+	if listenAddress := ctx.String(ListenAddressFlag.Name); listenAddress != "" {
+		if (tomlCfg.Port != cfg.Port) || (ctx.Uint(PortFlag.Name) != 0) {
+			return fmt.Errorf("can not set both port and listen address")
+		}
+		cfg.ListenAddress = listenAddress
+	}
+
 	cfg.Port = tomlCfg.Port
 	cfg.Bootnodes = tomlCfg.Bootnodes
 	cfg.ProtocolID = tomlCfg.ProtocolID
@@ -706,6 +721,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS, cfg.MinPeers, cfg.MaxPeers, strings.Join(cfg.PersistentPeers, ","),
 		cfg.DiscoveryInterval,
 	)
+	return nil
 }
 
 // setDotRPCConfig sets dot.RPCConfig using flag values from the cli context
