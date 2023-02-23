@@ -773,9 +773,13 @@ func (bs *BlockState) IsDescendantOf(ancestor, descendant common.Hash) (bool, er
 			return false, fmt.Errorf("getting header: %w", err2)
 		}
 
-		for current := descendantHeader; descendantHeader.Number < ancestorHeader.Number; {
+		for current := descendantHeader; current.Number < ancestorHeader.Number; {
 			if current.ParentHash == ancestor {
 				return true, nil
+			}
+			current, err2 = bs.GetHeader(current.ParentHash)
+			if err2 != nil {
+				return false, fmt.Errorf("getting header: %w", err2)
 			}
 		}
 
