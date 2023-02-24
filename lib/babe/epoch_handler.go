@@ -7,12 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"golang.org/x/exp/maps"
 )
 
 type handleSlotFunc = func(epoch uint64, slot Slot, authorityIndex uint32,
@@ -23,6 +20,7 @@ var (
 )
 
 type epochHandler struct {
+	slotHandler *slotHandler
 	epochNumber uint64
 	firstSlot   uint64
 
@@ -34,14 +32,20 @@ type epochHandler struct {
 	handleSlot handleSlotFunc
 }
 
-func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
-	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
-	// determine which slots we'll be authoring in by pre-calculating VRF output
-	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest, constants.epochLength)
-	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
-		preRuntimeDigest, err := claimSlot(epochNumber, i, epochData, keypair)
+// preRuntimeDigestMap maps the slot number to its respective pre runtime digest
+type preRuntimeDigestMap map[uint64]*types.PreRuntimeDigest
+
+// determine which slots we'll be authoring in by pre-calculating VRF output
+func determineAuthoringSlotsInEpoch(epochNumber, startSlot, epochLength uint64,
+	epochData *epochData, keypair *sr25519.Keypair) (preRuntimeDigestMap, error) {
+
+	preRuntimeDigestMap := make(preRuntimeDigestMap, epochLength)
+	finalSlot := startSlot + epochLength
+
+	for slotNumber := startSlot; slotNumber < finalSlot; slotNumber++ {
+		preRuntimeDigest, err := claimSlot(epochNumber, slotNumber, epochData, keypair)
 		if err == nil {
-			slotToPreRuntimeDigest[i] = preRuntimeDigest
+			preRuntimeDigestMap[slotNumber] = preRuntimeDigest
 			continue
 		}
 
@@ -52,13 +56,26 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		return nil, fmt.Errorf("failed to create new epoch handler: %w", err)
 	}
 
+	return preRuntimeDigestMap, nil
+}
+
+func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
+	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
+
+	preRuntimeDigestMap, err := determineAuthoringSlotsInEpoch(epochNumber, firstSlot,
+		constants.epochLength, epochData, keypair)
+	if err != nil {
+		return nil, fmt.Errorf("determining authoring slots: %w", err)
+	}
+
 	return &epochHandler{
+		slotHandler:            newSlotHandler(constants.slotDuration),
 		epochNumber:            epochNumber,
 		firstSlot:              firstSlot,
 		constants:              constants,
 		epochData:              epochData,
 		handleSlot:             handleSlot,
-		slotToPreRuntimeDigest: slotToPreRuntimeDigest,
+		slotToPreRuntimeDigest: preRuntimeDigestMap,
 	}, nil
 }
 
@@ -75,83 +92,33 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		return
 	}
 
-	// for each slot we're handling, create a timer that will fire when it starts
-	// we create timers only for slots where we're authoring
-	authoringSlots := getAuthoringSlots(h.slotToPreRuntimeDigest)
+	logger.Debugf("authoring in %d slots in epoch %d", len(h.slotToPreRuntimeDigest), h.epochNumber)
 
-	type slotWithTimer struct {
-		startTime time.Time
-		timer     *time.Timer
-		slotNum   uint64
-	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 
-	slotTimeTimers := make([]*slotWithTimer, 0, len(authoringSlots))
-	for _, authoringSlot := range authoringSlots {
-		if authoringSlot < currSlot {
-			// ignore slots already passed
+		currentSlot, err := h.slotHandler.waitForNextSlot()
+		if err != nil {
 			continue
 		}
 
-		startTime := getSlotStartTime(authoringSlot, h.constants.slotDuration)
-		waitTime := time.Until(startTime)
-		timer := time.NewTimer(waitTime)
+		fmt.Printf("processing slot time %d\n", currentSlot.start.UnixMilli())
+		fmt.Printf("processing slot number %d\n", currentSlot.number)
 
-		slotTimeTimers = append(slotTimeTimers, &slotWithTimer{
-			timer:     timer,
-			slotNum:   authoringSlot,
-			startTime: startTime,
-		})
+		// check if the slot is an authoring slot otherwise wait for the next slot
+		digest, has := h.slotToPreRuntimeDigest[currentSlot.number]
+		if !has {
+			continue
+		}
 
-		logger.Debugf("start time of slot %d: %v", authoringSlot, startTime)
-	}
-
-	logger.Debugf("authoring in %d slots in epoch %d", len(slotTimeTimers), h.epochNumber)
-
-	for _, swt := range slotTimeTimers {
-		logger.Debugf("waiting for next authoring slot %d", swt.slotNum)
-
-		select {
-		case <-ctx.Done():
-			for _, swt := range slotTimeTimers {
-				swt.timer.Stop()
-			}
-			return
-		case <-swt.timer.C:
-			// we must do a time correction as the slot timer sometimes is triggered
-			// before the time defined in the constructor due to an inconsistency
-			// of the language -> https://github.com/golang/go/issues/17696
-
-			diff := time.Since(swt.startTime)
-			if diff < 0 {
-				time.Sleep(-diff)
-			}
-
-			if _, has := h.slotToPreRuntimeDigest[swt.slotNum]; !has {
-				// this should never happen
-				panic(fmt.Sprintf("no VRF proof for authoring slot! slot=%d", swt.slotNum))
-			}
-
-			currentSlot := Slot{
-				start:    swt.startTime,
-				duration: h.constants.slotDuration,
-				number:   swt.slotNum,
-			}
-			err := h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, h.slotToPreRuntimeDigest[swt.slotNum])
-			if err != nil {
-				logger.Warnf("failed to handle slot %d: %s", swt.slotNum, err)
-				continue
-			}
+		err = h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, digest)
+		if err != nil {
+			logger.Warnf("failed to handle slot %d: %s", currentSlot.number, err)
+			continue
 		}
 	}
-}
-
-// getAuthoringSlots returns an ordered slice of slot numbers where we can author blocks,
-// based on the given VRF output and proof map.
-func getAuthoringSlots(slotToPreRuntimeDigest map[uint64]*types.PreRuntimeDigest) []uint64 {
-	authoringSlots := maps.Keys(slotToPreRuntimeDigest)
-	sort.Slice(authoringSlots, func(i, j int) bool {
-		return authoringSlots[i] < authoringSlots[j]
-	})
-
-	return authoringSlots
 }

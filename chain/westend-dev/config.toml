@@ -1,5 +1,5 @@
 [global]
-basepath = "~/.gossamer/westend-dev"
+basepath = "./tmp/westend-dev"
 log = "info"
 metrics-address = ":9876"
 
@@ -22,9 +22,10 @@ key = "alice"
 unlock = ""
 
 [core]
+babe-lead = true
 roles = 4
 babe-authority = true
-grandpa-authority = true
+grandpa-authority = false
 grandpa-interval = 1
 
 [network]

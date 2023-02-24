@@ -405,6 +405,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
 
 	errCh := make(chan error)
+
 	go b.epochHandler.run(ctx, errCh)
 
 	select {
@@ -532,9 +533,11 @@ func (b *Service) handleSlot(epoch uint64, slot Slot,
 }
 
 func getCurrentSlot(slotDuration time.Duration) uint64 {
+	// TODO: should we use milliseconds here?
 	return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds())
 }
 
 func getSlotStartTime(slot uint64, slotDuration time.Duration) time.Time {
+	// TODO: should we use milliseconds here?
 	return time.Unix(0, int64(slot)*slotDuration.Nanoseconds())
 }
