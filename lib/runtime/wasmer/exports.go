@@ -105,38 +105,16 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
 
-	//fmt.Println("buffer contents")
-	//fmt.Println(buffer.Bytes())
-
 	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, buffer.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
 
-	fmt.Println("encoded key ownership proof")
-	fmt.Println(encodedKeyOwnershipProof)
-
-	// This hackey way works, lets try better
-	//var keyOwnershipProof *types.OpaqueKeyOwnershipProof
-	//err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProof)
-	//if err != nil {
-	//	return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
-	//}
-	//
-	//fmt.Println("made it")
-	//keyOwnerProof := *keyOwnershipProof
-	//
-	//return keyOwnerProof[1:], nil
-
-	//var keyOwnershipProof *types.OpaqueKeyOwnershipProof
-	//err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProofOption)
-	//if err != nil {
-	//	return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
-	//}
-
-	keyOwnershipProof := encodedKeyOwnershipProof[1:]
-	fmt.Println(keyOwnershipProof)
-	return keyOwnershipProof, nil
+	fmt.Println(types.OpaqueKeyOwnershipProof{byte(0)})
+	if encodedKeyOwnershipProof[0] == byte(0) {
+		return types.OpaqueKeyOwnershipProof{0}, nil
+	}
+	return encodedKeyOwnershipProof[1:], nil
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
