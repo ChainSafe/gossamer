@@ -28,6 +28,7 @@ var (
 	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
 	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
+	defaultWestendConfigPath    = "./chain/westend/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -77,6 +78,11 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.WestendDevConfig()
 			err = loadConfig(tomlCfg, defaultWestendDevConfigPath)
+		case "westend":
+			logger.Info("loading toml configuration from " + defaultWestendConfigPath + "...")
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.WestendConfig()
+			err = loadConfig(tomlCfg, defaultWestendConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
