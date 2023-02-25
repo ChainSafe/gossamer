@@ -108,9 +108,6 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 			continue
 		}
 
-		fmt.Printf("processing slot time %d\n", currentSlot.start.UnixMilli())
-		fmt.Printf("processing slot number %d\n", currentSlot.number)
-
 		// check if the slot is an authoring slot otherwise wait for the next slot
 		digest, has := h.slotToPreRuntimeDigest[currentSlot.number]
 		if !has {

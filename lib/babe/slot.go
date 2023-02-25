@@ -1,7 +1,6 @@
 package babe
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -40,7 +39,6 @@ func (s *slotHandler) waitForNextSlot() (Slot, error) {
 		}
 
 		waitDuration := timeUntilNextSlotInMilli(s.slotDuration)
-		fmt.Printf("time until next slot: %d\n", waitDuration)
 		s.untilNextSlot = &waitDuration
 
 		currentSystemTime := time.Now()
