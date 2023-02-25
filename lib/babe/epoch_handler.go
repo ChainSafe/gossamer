@@ -80,6 +80,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 }
 
 func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
+	defer close(errCh)
 	currSlot := getCurrentSlot(h.constants.slotDuration)
 
 	// if currSlot < h.firstSlot, it means we're at genesis and waiting for the first slot to arrive.
@@ -97,6 +98,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	for {
 		select {
 		case <-ctx.Done():
+			errCh <- nil
 			return
 		default:
 		}

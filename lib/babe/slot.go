@@ -1,21 +1,20 @@
 package babe
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
 
-func timeUntilNextSlot(slotDuration time.Duration) time.Duration {
-	fmt.Printf("slot duration: %v\nslot duration in milli: %v\n", slotDuration, slotDuration.Milliseconds())
+// timeUntilNextSlotInNanos calculates, based on the current system time, the remainng
+// time to the next slot
+func timeUntilNextSlotInMilli(slotDuration time.Duration) time.Duration {
+	now := time.Now().UnixNano()
+	slotDurationInMilli := slotDuration.Nanoseconds()
 
-	nowInMillis := time.Now().UnixMilli()
-	slotDurationInMillis := slotDuration.Milliseconds()
+	nextSlot := (now + slotDurationInMilli) / slotDurationInMilli
 
-	nextSlot := (nowInMillis + slotDurationInMillis) / slotDurationInMillis
-
-	remainingMillis := nextSlot*slotDurationInMillis - nowInMillis
-	return time.Duration(remainingMillis)
+	remaining := nextSlot*slotDurationInMilli - now
+	return time.Duration(remaining)
 }
 
 type slotHandler struct {
@@ -31,37 +30,31 @@ func newSlotHandler(slotDuration time.Duration) *slotHandler {
 }
 
 func (s *slotHandler) waitForNextSlot() (Slot, error) {
-	if s.untilNextSlot == nil {
-		dur := timeUntilNextSlot(s.slotDuration)
-		fmt.Printf("waiting %d mill\n", dur)
+	for {
+		if s.untilNextSlot != nil {
+			time.Sleep(*s.untilNextSlot)
+		} else {
+			// first timeout
+			waitDuration := timeUntilNextSlotInMilli(s.slotDuration)
+			time.Sleep(waitDuration)
+		}
 
-		time.Sleep(dur)
-	} else {
-		fmt.Printf("waiting %d milli\n", s.untilNextSlot.Milliseconds())
-		time.Sleep(*s.untilNextSlot)
+		waitDuration := timeUntilNextSlotInMilli(s.slotDuration)
+		fmt.Printf("time until next slot: %d\n", waitDuration)
+		s.untilNextSlot = &waitDuration
+
+		currentSystemTime := time.Now()
+		currentSlotNumber := uint64(currentSystemTime.UnixNano()) / uint64(s.slotDuration.Nanoseconds())
+		currentSlot := Slot{
+			start:    currentSystemTime,
+			duration: s.slotDuration,
+			number:   currentSlotNumber,
+		}
+
+		// Never yield the same slot twice
+		if s.lastSlot == nil || currentSlot.number > s.lastSlot.number {
+			s.lastSlot = &currentSlot
+			return currentSlot, nil
+		}
 	}
-
-	waitDuration := timeUntilNextSlot(s.slotDuration)
-	s.untilNextSlot = &waitDuration
-
-	currentSystemTime := time.Now()
-	currentSlotNumber := uint64(currentSystemTime.UnixNano()) / uint64(s.slotDuration.Nanoseconds())
-	currentSlot := Slot{
-		start:    currentSystemTime,
-		duration: s.slotDuration,
-		number:   currentSlotNumber,
-	}
-
-	if s.lastSlot == nil {
-		s.lastSlot = &currentSlot
-		return currentSlot, nil
-	}
-
-	// Never yield the same slot twice.
-	if currentSlot.number <= s.lastSlot.number {
-		return Slot{}, errors.New("issue a slot equal or lower than the latest one")
-	}
-
-	s.lastSlot = &currentSlot
-	return currentSlot, nil
 }
