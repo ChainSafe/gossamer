@@ -17,9 +17,8 @@ func timeUntilNextSlotInMilli(slotDuration time.Duration) time.Duration {
 }
 
 type slotHandler struct {
-	slotDuration       time.Duration
-	untilNextSlotTimer *time.Timer
-	lastSlot           *Slot
+	slotDuration time.Duration
+	lastSlot     *Slot
 }
 
 func newSlotHandler(slotDuration time.Duration) *slotHandler {
