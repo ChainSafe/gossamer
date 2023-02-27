@@ -48,9 +48,8 @@ func (s *slotHandler) waitForNextSlot() Slot {
 		if s.lastSlot == nil || currentSlot.number > s.lastSlot.number {
 			s.lastSlot = &currentSlot
 			return currentSlot
-		} else {
-			untilNextSlot := timeUntilNextSlotInMilli(s.slotDuration)
-			time.Sleep(untilNextSlot)
 		}
+
+		time.Sleep(timeUntilNextSlotInMilli(s.slotDuration))
 	}
 }
