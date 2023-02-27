@@ -124,14 +124,16 @@ var (
 
 	// PublishMetricsFlag publishes node metrics to prometheus.
 	PublishMetricsFlag = cli.BoolFlag{
-		Name:  "publish-metrics",
-		Usage: "Publish node metrics",
+		Name:    "publish-metrics",
+		Aliases: []string{"prometheus-external"}, // prometheus-external is argument used by polkadot node
+		Usage:   "Publish node metrics",
 	}
 
 	// MetricsAddressFlag sets the metric server listening address
 	MetricsAddressFlag = cli.StringFlag{
-		Name:  "metrics-address",
-		Usage: "Set the metric server listening address",
+		Name:    "metrics-address",
+		Aliases: []string{"prometheus-port"},
+		Usage:   "Set the metric server listening address",
 	}
 
 	// NoTelemetryFlag stops publishing telemetry to default defined in genesis.json
@@ -264,8 +266,9 @@ var (
 	}
 	// RPCExternalFlag Enable the external HTTP-RPC
 	RPCUnsafeExternalFlag = cli.BoolFlag{
-		Name:  "rpc-unsafe-external",
-		Usage: "Enable external HTTP-RPC connections to unsafe procedures",
+		Name:    "rpc-unsafe-external",
+		Aliases: []string{"unsafe-rpc-external"}, // unsafe-rpc-external is argument used by polkadot node
+		Usage:   "Enable external HTTP-RPC connections to unsafe procedures",
 	}
 	// RPCHostFlag HTTP-RPC server listening hostname
 	RPCHostFlag = cli.StringFlag{
@@ -280,8 +283,9 @@ var (
 	}
 	// RPCModulesFlag API modules to enable via HTTP-RPC
 	RPCModulesFlag = cli.StringFlag{
-		Name:  "rpcmods",
-		Usage: "API modules to enable via HTTP-RPC, comma separated list",
+		Name:    "rpcmods",
+		Aliases: []string{"rpc-methods"}, // rpc-methods is argument used by polkadot node
+		Usage:   "API modules to enable via HTTP-RPC, comma separated list",
 	}
 	// WSPortFlag WebSocket server listening port
 	WSPortFlag = cli.IntFlag{
@@ -306,8 +310,14 @@ var (
 	}
 	// WSExternalFlag Enable external websocket connections
 	WSUnsafeExternalFlag = cli.BoolFlag{
-		Name:  "ws-unsafe-external",
-		Usage: "Enable external access to websocket unsafe calls",
+		Name:    "ws-unsafe-external",
+		Aliases: []string{"unsafe-ws-external"}, // unsafe-ws-external is argument used by polkadot node
+		Usage:   "Enable external access to websocket unsafe calls",
+	}
+	// RPCCorsFlag dummy flag provided to conform to polkadot flags
+	RPCCorsFlag = cli.StringFlag{
+		Name:  "rpc-cors",
+		Usage: "dummy place holder to conform with polkadot cli flags",
 	}
 )
 
@@ -379,6 +389,9 @@ var (
 		Name:  "babe-lead",
 		Usage: `specify whether node should build block 1 of the network. only used when starting a new network`,
 	}
+	ValidatorFlag = cli.BoolFlag{
+		Name: "validator", // TODO(ed) implement
+	}
 )
 
 // flag sets that are shared by multiple commands
@@ -437,6 +450,7 @@ var (
 		&WSUnsafeEnabledFlag,
 		&WSUnsafeExternalFlag,
 		&WSPortFlag,
+		&RPCCorsFlag,
 
 		// metrics flag
 		&PublishMetricsFlag,
@@ -448,6 +462,7 @@ var (
 
 		// BABE flags
 		&BABELeadFlag,
+		&ValidatorFlag,
 	}
 )
 

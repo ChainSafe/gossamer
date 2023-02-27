@@ -6,6 +6,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -84,7 +85,17 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			cfg = dot.WestendConfig()
 			err = loadConfig(tomlCfg, defaultWestendConfigPath)
 		default:
-			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
+			logger.Info("loading chain config from " + id + "...")
+			fileInfo, err := os.Stat(id)
+			if err != nil {
+				return nil, nil, fmt.Errorf("unknown chain id provided: %s, %w", id, err)
+			}
+			if !fileInfo.IsDir() {
+				err = ctx.Set(GenesisFlag.Name, id)
+				if err != nil {
+					return nil, nil, fmt.Errorf("unknown chain id provided: %s, %w", id, err)
+				}
+			}
 		}
 	}
 
@@ -483,7 +494,12 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) error 
 
 	// check --metrics-address flag and update node configuration
 	if metricsAddress := ctx.String(MetricsAddressFlag.Name); metricsAddress != "" {
-		cfg.MetricsAddress = metricsAddress
+		port, err := strconv.Atoi(metricsAddress)
+		if err != nil {
+			cfg.MetricsAddress = metricsAddress
+		} else {
+			cfg.MetricsAddress = ":" + fmt.Sprint(port)
+		}
 	}
 
 	const uint32Max = ^uint32(0)
@@ -789,7 +805,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 
 	// check --rpcmods flag and update node configuration
 	if modules := ctx.String(RPCModulesFlag.Name); modules != "" {
-		cfg.Modules = strings.Split(ctx.String(RPCModulesFlag.Name), ",")
+		if modules == "unsafe" {
+			cfg.Modules = []string{"system", "author", "state", "rpc", "grandpa", "offchain", "childstate",
+				"syncstate", "payment"}
+		} else {
+			cfg.Modules = strings.Split(ctx.String(RPCModulesFlag.Name), ",")
+		}
 	}
 
 	if wsport := ctx.Uint(WSPortFlag.Name); wsport != 0 {
