@@ -57,6 +57,8 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockH
 		panic(fmt.Sprintf("runtime not found for finalised block hash %s", finalisedBlockHash))
 	}
 
+	stoppedRuntimes := make(map[Runtime]struct{})
+
 	// Prune runtimes from pruned forks
 	for _, blockHash := range prunedForkBlockHashes {
 		runtimeFromFork, ok := h.mapping[blockHash]
@@ -64,7 +66,11 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockH
 			panic(fmt.Sprintf("runtime not found for pruned forked block hash %s", blockHash))
 		}
 		if runtimeFromFork != newFinalisedRuntime {
-			runtimeFromFork.Stop()
+			_, stopped := stoppedRuntimes[runtimeFromFork]
+			if !stopped {
+				runtimeFromFork.Stop()
+				stoppedRuntimes[runtimeFromFork] = struct{}{}
+			}
 		}
 		delete(h.mapping, blockHash)
 	}
@@ -81,7 +87,11 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockH
 	// Runtime from the previous finalised block is different
 	// from the runtime for the new finalised block.
 	if h.finalisedRuntime != nil {
-		h.finalisedRuntime.Stop()
+		_, stopped := stoppedRuntimes[h.finalisedRuntime]
+		if !stopped {
+			h.finalisedRuntime.Stop()
+			stoppedRuntimes[h.finalisedRuntime] = struct{}{}
+		}
 	}
 	h.finalisedRuntime = newFinalisedRuntime
 
@@ -107,7 +117,11 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockH
 			break
 		}
 
-		runtime.Stop()
+		_, stopped := stoppedRuntimes[runtime]
+		if !stopped {
+			runtime.Stop()
+			stoppedRuntimes[runtime] = struct{}{}
+		}
 		delete(h.mapping, blockHash)
 	}
 }

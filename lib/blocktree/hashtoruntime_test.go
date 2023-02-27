@@ -194,7 +194,7 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
 				finalisedRuntime := NewMockRuntime(ctrl)
 				prunedForkRuntime := NewMockRuntime(ctrl)
-				prunedForkRuntime.EXPECT().Stop().Times(2)
+				prunedForkRuntime.EXPECT().Stop()
 				initial = &hashToRuntime{
 					finalisedRuntime:   finalisedRuntime,
 					currentBlockHashes: []Hash{{0}},
@@ -239,9 +239,9 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 				newFinalisedRuntime := NewMockRuntime(ctrl)
 				prunedForkRuntime := NewMockRuntime(ctrl)
 
-				finalisedRuntime.EXPECT().Stop().Times(1 + 2)
-				unfinalisedRuntime.EXPECT().Stop().Times(2)
-				prunedForkRuntime.EXPECT().Stop().Times(2)
+				finalisedRuntime.EXPECT().Stop()
+				unfinalisedRuntime.EXPECT().Stop()
+				prunedForkRuntime.EXPECT().Stop()
 
 				initial = &hashToRuntime{
 					finalisedRuntime:   finalisedRuntime,

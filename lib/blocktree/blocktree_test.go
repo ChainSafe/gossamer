@@ -558,6 +558,7 @@ func Test_BlockTree_Prune(t *testing.T) {
 			number: 100,
 		}
 		rootRuntime := NewMockRuntime(ctrl)
+		rootRuntime.EXPECT().Stop()
 
 		blockTree := &BlockTree{
 			root:   rootNode,
@@ -570,7 +571,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 				currentBlockHashes: []Hash{{1}},
 			},
 		}
-		rootRuntime.EXPECT().Stop()
 
 		// {1} -> {2}
 		parent := rootNode
@@ -582,7 +582,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 		parent.addChild(newNode)
 		blockTree.leaves.replace(parent, newNode)
 		blockTree.runtimes.set(common.Hash{2}, rootRuntime)
-		rootRuntime.EXPECT().Stop()
 
 		// {1} -> {2} -> {3}
 		parent = newNode
@@ -618,7 +617,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 		parent.addChild(newNode)
 		blockTree.leaves.replace(parent, newNode)
 		blockTree.runtimes.set(common.Hash{5}, rootRuntime)
-		rootRuntime.EXPECT().Stop()
 
 		// {1} -> {2} -> {3} -> {4}
 		//            -> {5} -> {6}
