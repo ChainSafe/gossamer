@@ -20,6 +20,7 @@ var (
 	// ErrEndNodeNotFound is returned if the end of a subchain does not exist
 	ErrEndNodeNotFound = errors.New("end node does not exist")
 
+	ErrKeyNotFound = errors.New("key not found")
 	// ErrNilDescendant is returned if calling subchain with a nil node
 	ErrNilDescendant = errors.New("descendant node is nil")
 
