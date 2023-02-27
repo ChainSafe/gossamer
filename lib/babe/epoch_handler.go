@@ -96,7 +96,6 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		err := h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, digest)
 		if err != nil {
 			logger.Warnf("failed to handle slot %d: %s", currentSlot.number, err)
-			continue
 		}
 	}
 }
