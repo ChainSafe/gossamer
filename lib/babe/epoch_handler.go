@@ -32,20 +32,14 @@ type epochHandler struct {
 	handleSlot handleSlotFunc
 }
 
-// preRuntimeDigestMap maps the slot number to its respective pre runtime digest
-type preRuntimeDigestMap map[uint64]*types.PreRuntimeDigest
-
-// determine which slots we'll be authoring in by pre-calculating VRF output
-func determineAuthoringSlotsInEpoch(epochNumber, startSlot, epochLength uint64,
-	epochData *epochData, keypair *sr25519.Keypair) (preRuntimeDigestMap, error) {
-
-	preRuntimeDigestMap := make(preRuntimeDigestMap, epochLength)
-	finalSlot := startSlot + epochLength
-
-	for slotNumber := startSlot; slotNumber < finalSlot; slotNumber++ {
-		preRuntimeDigest, err := claimSlot(epochNumber, slotNumber, epochData, keypair)
+func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
+	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
+	// determine which slots we'll be authoring in by pre-calculating VRF output
+	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest, constants.epochLength)
+	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
+		preRuntimeDigest, err := claimSlot(epochNumber, i, epochData, keypair)
 		if err == nil {
-			preRuntimeDigestMap[slotNumber] = preRuntimeDigest
+			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			continue
 		}
 
@@ -56,18 +50,6 @@ func determineAuthoringSlotsInEpoch(epochNumber, startSlot, epochLength uint64,
 		return nil, fmt.Errorf("failed to create new epoch handler: %w", err)
 	}
 
-	return preRuntimeDigestMap, nil
-}
-
-func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
-	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
-
-	preRuntimeDigestMap, err := determineAuthoringSlotsInEpoch(epochNumber, firstSlot,
-		constants.epochLength, epochData, keypair)
-	if err != nil {
-		return nil, fmt.Errorf("determining authoring slots: %w", err)
-	}
-
 	return &epochHandler{
 		slotHandler:            newSlotHandler(constants.slotDuration),
 		epochNumber:            epochNumber,
@@ -75,7 +57,7 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 		constants:              constants,
 		epochData:              epochData,
 		handleSlot:             handleSlot,
-		slotToPreRuntimeDigest: preRuntimeDigestMap,
+		slotToPreRuntimeDigest: slotToPreRuntimeDigest,
 	}, nil
 }
 
