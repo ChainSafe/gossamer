@@ -5,7 +5,7 @@ package blocktree
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -41,7 +41,7 @@ func (lm *leafMap) store(key Hash, value *node) {
 func (lm *leafMap) load(key Hash) (*node, error) {
 	v, ok := lm.smap.Load(key)
 	if !ok {
-		return nil, errors.New("key not found")
+		return nil, fmt.Errorf("%w: %s", ErrKeyNotFound, key)
 	}
 
 	return v.(*node), nil

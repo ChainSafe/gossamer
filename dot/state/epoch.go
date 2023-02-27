@@ -12,7 +12,6 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -399,7 +398,7 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
-		if errors.Is(err, blocktree.ErrEndNodeNotFound) {
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			parentHeader, err := blockState.GetHeader(header.ParentHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get parent header: %w", err)
