@@ -267,6 +267,9 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	// accessible through the storage as WASM blob.
 	previousFinalisedBlock := bt.root
 	newCanonicalChainBlocksCount := n.number - previousFinalisedBlock.number
+	if previousFinalisedBlock.number == 0 { // include the genesis block
+		newCanonicalChainBlocksCount++
+	}
 	canonicalChainBlock := n
 	newCanonicalChainBlockHashes := make([]Hash, newCanonicalChainBlocksCount)
 	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- {
