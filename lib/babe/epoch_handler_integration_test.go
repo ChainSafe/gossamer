@@ -50,7 +50,7 @@ func TestEpochHandler_run(t *testing.T) {
 
 func testHandleSlotFunc(t *testing.T, expectedAuthorityIndex uint32,
 	expectedEpoch, startSlot uint64) handleSlotFunc {
-	currentSlot := startSlot + 1
+	currentSlot := startSlot
 
 	return func(epoch uint64, slot Slot, authorityIndex uint32,
 		preRuntimeDigest *types.PreRuntimeDigest) error {

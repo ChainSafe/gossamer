@@ -17,9 +17,9 @@ func timeUntilNextSlotInMilli(slotDuration time.Duration) time.Duration {
 }
 
 type slotHandler struct {
-	slotDuration  time.Duration
-	untilNextSlot *time.Duration
-	lastSlot      *Slot
+	slotDuration       time.Duration
+	untilNextSlotTimer *time.Timer
+	lastSlot           *Slot
 }
 
 func newSlotHandler(slotDuration time.Duration) *slotHandler {
@@ -28,18 +28,14 @@ func newSlotHandler(slotDuration time.Duration) *slotHandler {
 	}
 }
 
-func (s *slotHandler) waitForNextSlot() (Slot, error) {
+func (s *slotHandler) waitForNextSlot() Slot {
 	for {
-		if s.untilNextSlot != nil {
-			time.Sleep(*s.untilNextSlot)
-		} else {
-			// first timeout
-			waitDuration := timeUntilNextSlotInMilli(s.slotDuration)
-			time.Sleep(waitDuration)
+		// check if there is enough time to collaaborate
+		untilNextSlot := timeUntilNextSlotInMilli(s.slotDuration)
+		oneThird := s.slotDuration / 3
+		if untilNextSlot <= oneThird {
+			time.Sleep(untilNextSlot)
 		}
-
-		waitDuration := timeUntilNextSlotInMilli(s.slotDuration)
-		s.untilNextSlot = &waitDuration
 
 		currentSystemTime := time.Now()
 		currentSlotNumber := uint64(currentSystemTime.UnixNano()) / uint64(s.slotDuration.Nanoseconds())
@@ -52,7 +48,10 @@ func (s *slotHandler) waitForNextSlot() (Slot, error) {
 		// Never yield the same slot twice
 		if s.lastSlot == nil || currentSlot.number > s.lastSlot.number {
 			s.lastSlot = &currentSlot
-			return currentSlot, nil
+			return currentSlot
+		} else {
+			untilNextSlot := timeUntilNextSlotInMilli(s.slotDuration)
+			time.Sleep(untilNextSlot)
 		}
 	}
 }

@@ -20,11 +20,8 @@ func TestSlotHandlerNextSlot(t *testing.T) {
 	slotDuration := 2 * time.Second
 	handler := newSlotHandler(slotDuration)
 
-	firstIteration, err := handler.waitForNextSlot()
-	require.NoError(t, err)
-
-	secondIteration, err := handler.waitForNextSlot()
-	require.NoError(t, err)
+	firstIteration := handler.waitForNextSlot()
+	secondIteration := handler.waitForNextSlot()
 
 	require.Greater(t, secondIteration.number, firstIteration.number)
 }
