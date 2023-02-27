@@ -46,7 +46,7 @@ func (h *hashToRuntime) delete(hash Hash) {
 
 // onFinalisation handles pruning and recording on block finalisation.
 // newCanonicalBlockHashes is the block hashes of the blocks newly finalised.
-// The last element is the finalised block block hash.
+// The last element is the finalised block hash.
 func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockHashes []Hash) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
@@ -95,7 +95,7 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockH
 	for i, blockHash := range newCanonicalBlockHashes {
 		runtime, ok := h.mapping[blockHash]
 		if !ok {
-			panic(fmt.Sprintf("runtime not found for canonical chain block block hash %s", blockHash))
+			panic(fmt.Sprintf("runtime not found for canonical chain block hash %s", blockHash))
 		}
 
 		if runtime == newFinalisedRuntime {
