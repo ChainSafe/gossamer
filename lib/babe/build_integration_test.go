@@ -56,7 +56,7 @@ func TestSeal(t *testing.T) {
 
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -95,7 +95,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -176,7 +176,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
 	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -252,7 +252,7 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 	require.NoError(t, err)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
 	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -332,7 +332,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Unregister(buildBlockTimer)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil, true)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)

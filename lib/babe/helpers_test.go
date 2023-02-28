@@ -42,16 +42,6 @@ var (
 		Number: 0,
 		Digest: types.NewDigest(),
 	}
-
-	westendBABEConfig = &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
 )
 
 // newTestCoreService creates a new test core service
@@ -163,7 +153,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration, isLead bool) *Service {
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
 	wasmer.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
@@ -231,7 +221,6 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	cfg.Authority = true
 	cfg.IsDev = true
-	cfg.Lead = isLead
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(&cfg)
 	require.NoError(t, err)
