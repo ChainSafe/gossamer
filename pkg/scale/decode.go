@@ -138,7 +138,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			err = ds.decodeCustomPrimitive(dstv)
 		case reflect.Ptr:
-			fmt.Println("is pointer")
 			err = ds.decodePointer(dstv)
 		case reflect.Struct:
 			ok := reflect.ValueOf(in).CanConvert(reflect.TypeOf(VaryingDataType{}))
@@ -300,19 +299,14 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	case 0x00:
 		// nil case
 	case 0x01:
-		fmt.Println("in the 1 case")
 		switch dstv.IsZero() {
 		case false:
-			fmt.Println("false")
 			if dstv.Elem().Kind() == reflect.Ptr {
-				fmt.Println("pointer hmmmm")
 				err = ds.unmarshal(dstv.Elem().Elem())
 			} else {
-				fmt.Println("not a pointer so unmarshalling here")
 				err = ds.unmarshal(dstv.Elem())
 			}
 		case true:
-			fmt.Println("is zero hmmm")
 			elemType := reflect.TypeOf(dstv.Interface()).Elem()
 			tempElem := reflect.New(elemType)
 			err = ds.unmarshal(tempElem.Elem())
