@@ -1,9 +1,7 @@
 module github.com/ChainSafe/gossamer
 
-replace github.com/ChainSafe/chaindb => /Users/eclesiojunior/go/src/github.com/ChainSafe/chaindb
-
 require (
-	github.com/ChainSafe/chaindb v1.0.0
+	github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/breml/rootcerts v0.2.10

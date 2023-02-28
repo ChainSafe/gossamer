@@ -154,9 +154,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
-	badgerOpts := badger.DefaultOptions
-	badgerOpts.Options.BlockCacheSize = 64 << 20 // 64 MB
-	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badgerOpts)
+	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
 		return nil, err
 	}

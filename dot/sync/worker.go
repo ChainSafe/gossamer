@@ -5,8 +5,6 @@ package sync
 
 import (
 	"context"
-	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
@@ -21,7 +19,7 @@ type workerState struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	sync.RWMutex
+	sync.Mutex
 	nextWorker uint64
 	workers    map[uint64]*worker
 }
@@ -34,24 +32,7 @@ func newWorkerState() *workerState {
 		workers: make(map[uint64]*worker),
 	}
 
-	go ws.logAmountOfWorksPeriodically()
 	return ws
-}
-
-func (s *workerState) logAmountOfWorksPeriodically() {
-	tticker := time.NewTicker(2 * time.Second)
-
-	for {
-		<-tticker.C
-
-		s.RLock()
-		var m runtime.MemStats
-		runtime.ReadMemStats(&m)
-
-		totalAlloc := m.TotalAlloc / 1024 / 1024
-		fmt.Printf("=======\nWORKER STATE\nworkers:%d\ntotal alloc: %d MiB\n=======\n", len(s.workers), totalAlloc)
-		s.RUnlock()
-	}
 }
 
 func (s *workerState) add(w *worker) {
@@ -67,7 +48,6 @@ func (s *workerState) add(w *worker) {
 func (s *workerState) delete(id uint64) {
 	s.Lock()
 	defer s.Unlock()
-	s.nextWorker--
 	delete(s.workers, id)
 }
 

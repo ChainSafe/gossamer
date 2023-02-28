@@ -1,5 +1,5 @@
 [global]
-basepath = "./tmp/gossamer/westend"
+basepath = "~/.gossamer/westend"
 log = "info"
 metrics-address = "localhost:9876"
 
@@ -54,7 +54,6 @@ ws-external = false
 
 
 [pprof]
-enabled = true
 listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0
