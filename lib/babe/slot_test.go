@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSlotHandeConstructor(t *testing.T) {
+func TestSlotHandlerConstructor(t *testing.T) {
 	expected := &slotHandler{
 		slotDuration: time.Duration(6000),
 	}

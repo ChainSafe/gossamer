@@ -4,15 +4,15 @@ import (
 	"time"
 )
 
-// timeUntilNextSlotInNanos calculates, based on the current system time, the remainng
+// timeUntilNextSlot calculates, based on the current system time, the remainng
 // time to the next slot
-func timeUntilNextSlotInMilli(slotDuration time.Duration) time.Duration {
+func timeUntilNextSlot(slotDuration time.Duration) time.Duration {
 	now := time.Now().UnixNano()
-	slotDurationInMilli := slotDuration.Nanoseconds()
+	slotDurationInNano := slotDuration.Nanoseconds()
 
-	nextSlot := (now + slotDurationInMilli) / slotDurationInMilli
+	nextSlot := (now + slotDurationInNano) / slotDurationInNano
 
-	remaining := nextSlot*slotDurationInMilli - now
+	remaining := nextSlot*slotDurationInNano - now
 	return time.Duration(remaining)
 }
 
@@ -27,12 +27,15 @@ func newSlotHandler(slotDuration time.Duration) *slotHandler {
 	}
 }
 
+// waitForNextSlot returns a new Slot greater than the last one when a new slot starts
+// based on the current system time similar to:
+// https://github.com/paritytech/substrate/blob/fbddfbd76c60c6fda0024e8a44e82ad776033e4b/client/consensus/slots/src/slots.rs#L125
 func (s *slotHandler) waitForNextSlot() Slot {
 	for {
 		// check if there is enough time to collaaborate
-		untilNextSlot := timeUntilNextSlotInMilli(s.slotDuration)
-		oneThird := s.slotDuration / 3
-		if untilNextSlot <= oneThird {
+		untilNextSlot := timeUntilNextSlot(s.slotDuration)
+		oneThirdSlotDuration := s.slotDuration / 3
+		if untilNextSlot <= oneThirdSlotDuration {
 			time.Sleep(untilNextSlot)
 		}
 
@@ -50,6 +53,6 @@ func (s *slotHandler) waitForNextSlot() Slot {
 			return currentSlot
 		}
 
-		time.Sleep(timeUntilNextSlotInMilli(s.slotDuration))
+		time.Sleep(timeUntilNextSlot(s.slotDuration))
 	}
 }

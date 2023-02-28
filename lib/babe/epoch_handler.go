@@ -88,12 +88,12 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 		currentSlot := h.slotHandler.waitForNextSlot()
 
 		// check if the slot is an authoring slot otherwise wait for the next slot
-		digest, has := h.slotToPreRuntimeDigest[currentSlot.number]
+		preRuntimeDigest, has := h.slotToPreRuntimeDigest[currentSlot.number]
 		if !has {
 			continue
 		}
 
-		err := h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, digest)
+		err := h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, preRuntimeDigest)
 		if err != nil {
 			logger.Warnf("failed to handle slot %d: %s", currentSlot.number, err)
 		}
