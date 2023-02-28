@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/chyeh/pubip"
 	"github.com/dgraph-io/ristretto"
-	badger "github.com/ipfs/go-ds-badger2"
+	badger "github.com/ipfs/go-ds-badger3"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/metrics"
@@ -154,7 +154,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
-	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
+	badgerOpts := badger.DefaultOptions
+	badgerOpts.Options.BlockCacheSize = 64 << 20 // 64 MB
+	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badgerOpts)
 	if err != nil {
 		return nil, err
 	}

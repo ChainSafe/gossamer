@@ -12,8 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/dgraph-io/badger/v2"
-	"github.com/dgraph-io/badger/v2/pb"
+	"github.com/dgraph-io/badger/v3"
+	"github.com/dgraph-io/ristretto/z"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
@@ -187,8 +187,13 @@ func (p *OfflinePruner) Prune() error {
 	}
 
 	writeBatch := inputDB.NewWriteBatch()
-	stream.Send = func(l *pb.KVList) error {
-		keyValues := l.GetKv()
+	stream.Send = func(buf *z.Buffer) error {
+		kv, err := badger.BufferToKVList(buf)
+		if err != nil {
+			return err
+		}
+
+		keyValues := kv.GetKv()
 		for _, keyValue := range keyValues {
 			err = writeBatch.Delete(keyValue.Key)
 			if err != nil {

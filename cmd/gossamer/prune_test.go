@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/stretchr/testify/require"
 )
 

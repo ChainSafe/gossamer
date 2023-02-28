@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	badger "github.com/ipfs/go-ds-badger2"
+	badger "github.com/ipfs/go-ds-badger3"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/stretchr/testify/require"

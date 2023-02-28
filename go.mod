@@ -1,7 +1,9 @@
 module github.com/ChainSafe/gossamer
 
+replace github.com/ChainSafe/chaindb => /Users/eclesiojunior/go/src/github.com/ChainSafe/chaindb
+
 require (
-	github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840
+	github.com/ChainSafe/chaindb v1.0.0
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/breml/rootcerts v0.2.10
@@ -10,8 +12,8 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.12
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
+	github.com/dgraph-io/badger/v3 v3.2103.5
+	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/ethereum/go-ethereum v1.11.1
@@ -24,7 +26,7 @@ require (
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/gtank/merlin v0.1.1
-	github.com/ipfs/go-ds-badger2 v0.1.3
+	github.com/ipfs/go-ds-badger3 v0.0.2
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.15.15
 	github.com/libp2p/go-libp2p v0.25.1
@@ -51,7 +53,8 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.2.1 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
@@ -63,6 +66,7 @@ require (
 	github.com/decred/base58 v1.0.3 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
+	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
@@ -76,8 +80,11 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20221203041831-ce31453925ec // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
