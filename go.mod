@@ -14,7 +14,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v23.0.1+incompatible
-	github.com/ethereum/go-ethereum v1.11.1
+	github.com/ethereum/go-ethereum v1.11.2
 	github.com/fatih/color v1.14.1
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/golang/mock v1.6.0
