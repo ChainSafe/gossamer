@@ -657,10 +657,10 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 // setDotNetworkConfig sets dot.NetworkConfig using flag values from the cli context
 func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot.NetworkConfig) error {
 	if listenAddress := ctx.String(ListenAddressFlag.Name); listenAddress != "" {
+		// check if default port (cfg.Port value) has been changed by toml config or cli flag
 		if (tomlCfg.Port != cfg.Port) || (ctx.Uint(PortFlag.Name) != 0) {
 			return fmt.Errorf("can not set both port and listen address")
 		}
-		cfg.ListenAddress = listenAddress
 	}
 
 	cfg.Port = tomlCfg.Port
@@ -682,7 +682,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 
 	// check --bootnodes flag and update node configuration
 	if bootnodes := ctx.String(BootnodesFlag.Name); bootnodes != "" {
-		cfg.Bootnodes = strings.Split(ctx.String(BootnodesFlag.Name), ",")
+		cfg.Bootnodes = strings.Split(bootnodes, ",")
 	}
 
 	// format bootnodes
