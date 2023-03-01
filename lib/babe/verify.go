@@ -31,7 +31,7 @@ type onDisabledInfo struct {
 }
 
 // VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
-// It trakcs the BABE epoch data that is needed for verification.
+// It tracks the BABE epoch data that is needed for verification.
 type VerificationManager struct {
 	lock       sync.RWMutex
 	blockState BlockState
@@ -357,7 +357,6 @@ func (b *verifier) submitAndReportEquivocation(
 	}
 
 	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
-
 	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
