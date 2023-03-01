@@ -10,8 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/kusama"
-	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -362,6 +360,63 @@ func PolkadotConfig() *Config {
 				ListeningAddress: polkadot.DefaultPprofListeningAddress,
 				BlockProfileRate: polkadot.DefaultPprofBlockRate,
 				MutexProfileRate: polkadot.DefaultPprofMutexRate,
+			},
+		},
+	}
+}
+
+// WestendConfig returns a "westend" node configuration
+func WestendConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:           westend.DefaultName,
+			ID:             westend.DefaultID,
+			BasePath:       westend.DefaultBasePath,
+			LogLvl:         westend.DefaultLvl,
+			RetainBlocks:   westend.DefaultRetainBlocks,
+			Pruning:        pruner.Mode(westend.DefaultPruningMode),
+			MetricsAddress: westend.DefaultMetricsAddress,
+			TelemetryURLs:  westend.DefaultTelemetryURLs,
+		},
+		Log: LogConfig{
+			CoreLvl:           westend.DefaultLvl,
+			DigestLvl:         westend.DefaultLvl,
+			SyncLvl:           westend.DefaultLvl,
+			NetworkLvl:        westend.DefaultLvl,
+			RPCLvl:            westend.DefaultLvl,
+			StateLvl:          westend.DefaultLvl,
+			RuntimeLvl:        westend.DefaultLvl,
+			BlockProducerLvl:  westend.DefaultLvl,
+			FinalityGadgetLvl: westend.DefaultLvl,
+		},
+		Init: InitConfig{
+			Genesis: westend.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    westend.DefaultKey,
+			Unlock: westend.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           westend.DefaultRoles,
+			WasmInterpreter: westend.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        westend.DefaultNetworkPort,
+			Bootnodes:   westend.DefaultNetworkBootnodes,
+			NoBootstrap: westend.DefaultNoBootstrap,
+			NoMDNS:      westend.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    westend.DefaultRPCHTTPPort,
+			Host:    westend.DefaultRPCHTTPHost,
+			Modules: westend.DefaultRPCModules,
+			WSPort:  westend.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Settings: pprof.Settings{
+				ListeningAddress: westend.DefaultPprofListeningAddress,
+				BlockProfileRate: westend.DefaultPprofBlockRate,
+				MutexProfileRate: westend.DefaultPprofMutexRate,
 			},
 		},
 	}
