@@ -32,9 +32,9 @@ func TestEpochHandler_run(t *testing.T) {
 
 	const expectedEpoch = 1
 	startSlot := getCurrentSlot(slotDuration)
-	handleSlotFunc := testHandleSlotFunc(t, authorityIndex, expectedEpoch, startSlot)
+	handler := testHandleSlotFunc(t, authorityIndex, expectedEpoch, startSlot)
 
-	epochHandler, err := newEpochHandler(1, startSlot, epochData, constants, handleSlotFunc, aliceKeyPair)
+	epochHandler, err := newEpochHandler(1, startSlot, epochData, constants, handler, aliceKeyPair)
 	require.NoError(t, err)
 	require.Equal(t, epochLength, uint64(len(epochHandler.slotToPreRuntimeDigest)))
 
@@ -63,7 +63,7 @@ func testHandleSlotFunc(t *testing.T, expectedAuthorityIndex uint32,
 
 		// increase the slot by one so we expect the next call
 		// to be exactly 1 slot greater than the previous call
-		currentSlot += 1
+		currentSlot++
 		return nil
 	}
 }
