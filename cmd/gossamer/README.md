@@ -20,7 +20,7 @@ This is the default Gossamer execution method, which invokes the `gossamerAction
 blockchain client are [described below in the Client Components section](#client-components).
 
 - `--basepath` - the path to the directory where Gossamer will store its data
-- `--chain` - specifies the [chain configuration](../../internal/chain) that the
+- `--chain` - specifies the [chain configuration](../../chain) that the
   [Gossamer host node](https://chainsafe.github.io/gossamer/getting-started/overview/host-architecture/) should load
 - `--key` - specifies a test keyring account to use (e.g. `--key=alice`)
 - `--log` - supports levels `crit` (silent), `error`, `warn`, `info`, `debug`, and `trce` (detailed), default is `info`
