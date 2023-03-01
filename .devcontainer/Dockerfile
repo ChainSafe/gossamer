@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM qmcgaw/godevcontainer:debian
+FROM qmcgaw/godevcontainer:v0.16.0-debian
 ENV CGO_ENABLED=1
 RUN apt-get update && \
   apt-get install -y make procps cpulimit
@@ -19,3 +19,6 @@ RUN wget -qO protoc.zip "https://github.com/protocolbuffers/protobuf/releases/do
   apt-get remove -y unzip && \
   rm protoc.zip && \
   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+
+# TODO remove
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.48
