@@ -595,6 +595,11 @@ func setDotAccountConfig(ctx *cli.Context, tomlCfg ctoml.AccountConfig, cfg *dot
 
 // setDotCoreConfig sets dot.CoreConfig using flag values from the cli context
 func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreConfig) {
+	if validator := ctx.Bool(ValidatorFlag.Name); validator {
+		tomlCfg.Roles = 4
+		tomlCfg.BabeAuthority = true
+		tomlCfg.GrandpaAuthority = true
+	}
 	cfg.Roles = common.Roles(tomlCfg.Roles)
 	cfg.BabeAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
 	cfg.GrandpaAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
@@ -778,6 +783,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 
 	// check --rpc-unsafe-external flag value
 	if externalUnsafe := ctx.Bool(RPCUnsafeExternalFlag.Name); externalUnsafe {
+		cfg.Enabled = true
 		cfg.Unsafe = true
 		cfg.UnsafeExternal = true
 	}
@@ -789,6 +795,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 
 	// check --ws-unsafe-external flag value
 	if wsExternalUnsafe := ctx.Bool(WSUnsafeExternalFlag.Name); wsExternalUnsafe {
+		cfg.WS = true
 		cfg.WSUnsafe = true
 		cfg.WSUnsafeExternal = true
 	}
@@ -806,7 +813,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	// check --rpcmods flag and update node configuration
 	if modules := ctx.String(RPCModulesFlag.Name); modules != "" {
 		if modules == "unsafe" {
-			cfg.Modules = []string{"system", "author", "state", "rpc", "grandpa", "offchain", "childstate",
+			cfg.Modules = []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate",
 				"syncstate", "payment"}
 		} else {
 			cfg.Modules = strings.Split(ctx.String(RPCModulesFlag.Name), ",")
