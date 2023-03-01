@@ -133,9 +133,7 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Since this test and TestService_HandleSlotWithSameSlot are very similar, improve this one along with it in #3060
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
-	t.Skip()
 	cfg := ServiceConfig{
 		Authority: true,
 		Lead:      true,
@@ -156,13 +154,17 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
+	bestBlockHeader, err := babeService.blockState.GetHeader(bestBlockHash)
+	require.NoError(t, err)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Now())
+	timestamp := time.Unix(6, 0)
+	slot := getSlot(t, rt, timestamp)
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+	block := createTestBlockWithSlot(t, babeService, bestBlockHeader, [][]byte{common.MustHexToBytes(ext)},
 		testEpochIndex, epochData, slot)
 
 	err = babeService.blockState.AddBlock(block)
@@ -204,6 +206,15 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 }
 
 // TODO Rewrite this test to utilise westend. Since its built for 2 nodes, doesnt work with existing setup #3060
+/*
+Thoughts for this test:
+1) Can find a way to determine who the author for a slot is in real time
+2) Can have try/catch type logic to check who is the block author without manually setting/checking it like in 1)
+3) Make it so only alice (switch alice and bobs roles) is a block producer, but have bob run handleSlot. Should
+still work even tho he isnt block author
+
+I think 3 is the best option to try first
+*/
 func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	t.Skip()
 	alice := keyring.Alice().(*sr25519.Keypair)
