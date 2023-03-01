@@ -26,13 +26,11 @@ type workerState struct {
 
 func newWorkerState() *workerState {
 	ctx, cancel := context.WithCancel(context.Background())
-	ws := &workerState{
+	return &workerState{
 		ctx:     ctx,
 		cancel:  cancel,
 		workers: make(map[uint64]*worker),
 	}
-
-	return ws
 }
 
 func (s *workerState) add(w *worker) {
