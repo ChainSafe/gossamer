@@ -588,6 +588,20 @@ func (mr *MockEpochStateMockRecorder) SetCurrentEpoch(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrentEpoch", reflect.TypeOf((*MockEpochState)(nil).SetCurrentEpoch), arg0)
 }
 
+// SetEpochData mocks base method.
+func (m *MockEpochState) SetEpochData(arg0 uint64, arg1 *types.EpochData) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetEpochData", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetEpochData indicates an expected call of SetEpochData.
+func (mr *MockEpochStateMockRecorder) SetEpochData(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEpochData", reflect.TypeOf((*MockEpochState)(nil).SetEpochData), arg0, arg1)
+}
+
 // SetFirstSlot mocks base method.
 func (m *MockEpochState) SetFirstSlot(arg0 uint64) error {
 	m.ctrl.T.Helper()
