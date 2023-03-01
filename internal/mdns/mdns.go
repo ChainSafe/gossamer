@@ -27,8 +27,11 @@ type Service struct {
 	// Dependencies and configuration injected
 	p2pHost    IDNetworker
 	serviceTag string
-	logger     Logger
-	notifee    Notifee
+
+	logger                  Logger
+	disableInnerMDNSLogging bool
+
+	notifee Notifee
 
 	// Constant fields
 	pollPeriod time.Duration
@@ -52,11 +55,12 @@ func NewService(p2pHost IDNetworker, serviceTag string,
 	}
 
 	return &Service{
-		p2pHost:    p2pHost,
-		serviceTag: serviceTag,
-		notifee:    notifee,
-		logger:     logger,
-		pollPeriod: time.Minute,
+		p2pHost:                 p2pHost,
+		serviceTag:              serviceTag,
+		notifee:                 notifee,
+		logger:                  logger,
+		pollPeriod:              time.Minute,
+		disableInnerMDNSLogging: true,
 	}
 }
 
@@ -75,6 +79,8 @@ func (s *Service) Start() (err error) {
 
 	hostIDPretty := hostID.Pretty()
 	txt := []string{hostIDPretty}
+
+	mdns.DisableLogging = s.disableInnerMDNSLogging
 	mdnsService, err := mdns.NewMDNSService(hostIDPretty, s.serviceTag, "", "", int(port), ips, txt)
 	if err != nil {
 		return fmt.Errorf("creating mDNS service: %w", err)
