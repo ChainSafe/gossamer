@@ -162,7 +162,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 			result := getResultMapFromParams(t, params)
 
 			number := getResultNumber(t, result)
-			assert.GreaterOrEqual(t, uint(i+1), number)
+			assert.GreaterOrEqual(t, number, uint(i+1))
 
 			assertResult32BHex(t, result, "parentHash")
 			assertResult32BHex(t, result, "stateRoot")
