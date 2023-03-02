@@ -99,6 +99,7 @@ func TestStartAndStop(t *testing.T) {
 	require.NoError(t, err)
 	err = bs.Stop()
 	require.NoError(t, err)
+	time.Sleep(time.Second) // allow some time before calling t.Cleanup in createTestService
 }
 
 func TestService_PauseAndResume(t *testing.T) {
@@ -131,6 +132,7 @@ func TestService_PauseAndResume(t *testing.T) {
 
 	err = babeService.Stop()
 	require.NoError(t, err)
+	time.Sleep(time.Second)
 }
 
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
