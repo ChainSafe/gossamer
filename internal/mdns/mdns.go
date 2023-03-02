@@ -27,10 +27,8 @@ type Service struct {
 	// Dependencies and configuration injected
 	p2pHost    IDNetworker
 	serviceTag string
-
-	logger                  Logger
-
-	notifee Notifee
+	logger     Logger
+	notifee    Notifee
 
 	// Constant fields
 	pollPeriod time.Duration
@@ -54,11 +52,11 @@ func NewService(p2pHost IDNetworker, serviceTag string,
 	}
 
 	return &Service{
-		p2pHost:                 p2pHost,
-		serviceTag:              serviceTag,
-		notifee:                 notifee,
-		logger:                  logger,
-		pollPeriod:              time.Minute,
+		p2pHost:    p2pHost,
+		serviceTag: serviceTag,
+		notifee:    notifee,
+		logger:     logger,
+		pollPeriod: time.Minute,
 	}
 }
 
