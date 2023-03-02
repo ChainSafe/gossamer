@@ -7,6 +7,11 @@ jobs:
     timeout-minutes: 30
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action
+        with:
+          all_but_latest: true
+
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19
