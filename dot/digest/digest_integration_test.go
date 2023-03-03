@@ -58,10 +58,16 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
+	blockState := handler.blockState.(*state.BlockState)
+
 	// create 4 blocks and finalize only blocks 0, 1, 2
 	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
+	for _, h := range headers {
+		blockState.StoreRuntime(h.Hash(), nil)
+	}
+
 	for i, h := range headers[:3] {
-		err := handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		err := blockState.SetFinalisedHash(h.Hash(), uint64(i), 0)
 		require.NoError(t, err)
 	}
 
