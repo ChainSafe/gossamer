@@ -21,6 +21,8 @@ var (
 	DefaultConfig = string("./chain/westend/config.toml")
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/westend")
+	// DefaultMetricsAddress is the default metrics server listening address.
+	DefaultMetricsAddress = "localhost:9876"
 
 	// DefaultLvl is the default log level
 	DefaultLvl = log.Info
