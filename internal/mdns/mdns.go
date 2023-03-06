@@ -75,6 +75,8 @@ func (s *Service) Start() (err error) {
 
 	hostIDPretty := hostID.Pretty()
 	txt := []string{hostIDPretty}
+
+	mdns.DisableLogging = true
 	mdnsService, err := mdns.NewMDNSService(hostIDPretty, s.serviceTag, "", "", int(port), ips, txt)
 	if err != nil {
 		return fmt.Errorf("creating mDNS service: %w", err)
