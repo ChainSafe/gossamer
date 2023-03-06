@@ -24,6 +24,11 @@ var (
 		Name:      "leaves_total",
 		Help:      "total number of blocktree leaves",
 	})
+	inMemoryRuntimes = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_inmemory_runtime",
+		Name:      "inmemory_stored_runtimes",
+		Help:      "total number of runtimes stored by in-memory blocktree",
+	})
 	errAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
 )
 
@@ -70,6 +75,9 @@ func NewBlockTreeFromRoot(root *types.Header) *BlockTree {
 func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err error) {
 	bt.Lock()
 	defer bt.Unlock()
+
+	//fmt.Printf("(BLOCKTREE) ADDING BLOCK #%d\n", header.Number)
+	//fmt.Printf("(BLOCKTREE) TOTAL RUNTIMES STORED #%d\n", len(bt.runtimes.mapping))
 
 	parent := bt.getNode(header.ParentHash)
 	if parent == nil {
@@ -258,6 +266,23 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	n := bt.getNode(finalised)
 	if n == nil {
 		return pruned
+	}
+
+	// Cleanup in-memory runtimes from the canonical chain.
+	// The runtime used in the newly finalised block is kept
+	// instantiated in memory, and all other runtimes are
+	// stopped and removed from memory. Note these are still
+	// accessible through the storage as WASM blob.
+	previousFinalisedBlock := bt.root
+	newCanonicalChainBlocksCount := n.number - previousFinalisedBlock.number
+	if previousFinalisedBlock.number == 0 { // include the genesis block
+		newCanonicalChainBlocksCount++
+	}
+	canonicalChainBlock := n
+	newCanonicalChainBlockHashes := make([]Hash, newCanonicalChainBlocksCount)
+	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- {
+		newCanonicalChainBlockHashes[i] = canonicalChainBlock.hash
+		canonicalChainBlock = canonicalChainBlock.parent
 	}
 
 	pruned = bt.root.prune(n, nil)
@@ -508,11 +533,46 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
 	bt.runtimes.set(hash, in)
 }
 
+var ErrRuntimeNotFound = errors.New("runtime not found")
+
 // GetBlockRuntime returns block runtime for corresponding block hash.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
-	ins := bt.runtimes.get(hash)
-	if ins == nil {
-		return nil, fmt.Errorf("%w for hash %s", ErrFailedToGetRuntime, hash)
+	bt.RLock()
+	defer bt.RUnlock()
+
+	currentNode := bt.getNode(hash)
+	if currentNode == nil {
+		return nil, fmt.Errorf("%w: %s", ErrNodeNotFound, hash)
 	}
-	return ins, nil
+
+	// if the current node contains a runtime entry in the runtime mapping
+	// then we early return the instance, otherwise we will lookup for the
+	// closest parent with a runtime instance entry in the mapping
+	runtimeInstance := bt.runtimes.get(currentNode.hash)
+	if runtimeInstance != nil {
+		return runtimeInstance, nil
+	}
+
+	currentNode = currentNode.parent
+	for currentNode != nil {
+		runtimeInstance := bt.runtimes.get(currentNode.hash)
+		if runtimeInstance != nil {
+			return runtimeInstance, nil
+		}
+
+		currentNode = currentNode.parent
+	}
+
+	return nil, ErrRuntimeNotFound
+}
+
+func (bt *BlockTree) HashsWithinRuntimeMapping() []common.Hash {
+	bt.runtimes.mutex.RLock()
+	defer bt.runtimes.mutex.RUnlock()
+
+	return maps.Keys(bt.runtimes.mapping)
+}
+
+func (bt *BlockTree) RuntimesMappingGet(hash common.Hash) (instance Runtime) {
+	return bt.runtimes.get(hash)
 }

@@ -28,10 +28,12 @@ func (h *hashToRuntime) set(hash Hash, instance Runtime) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	h.mapping[hash] = instance
+	inMemoryRuntimes.Set(float64(len(h.mapping)))
 }
 
 func (h *hashToRuntime) delete(hash Hash) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	delete(h.mapping, hash)
+	inMemoryRuntimes.Set(float64(len(h.mapping)))
 }

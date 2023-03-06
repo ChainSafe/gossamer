@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -834,14 +835,17 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return err
 	}
 
-	codeHash := rt.GetCodeHash()
-	if bytes.Equal(codeHash[:], currCodeHash[:]) {
-		bs.StoreRuntime(bHash, rt)
+	parentCodeHash := rt.GetCodeHash()
+
+	// if the parent code hash is the same as the new code hash
+	// we do nothing since we don't want to store duplicate runtimes
+	// for different hashes
+	if bytes.Equal(parentCodeHash[:], currCodeHash[:]) {
 		return nil
 	}
 
 	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...", //nolint:lll
-		bHash, codeHash, currCodeHash)
+		bHash, parentCodeHash, currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
 		return errors.New("new :code is empty")
@@ -865,7 +869,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 		logger.Infof(
 			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
-			bHash, codeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
+			bHash, parentCodeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
 
 	rtCfg := wasmer.Config{
@@ -899,7 +903,59 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 // GetRuntime gets the runtime instance pointer for the block hash given.
 func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err error) {
-	return bs.bt.GetBlockRuntime(blockHash)
+	// we search primarily in the blocktree so we ensure the
+	// fork aware property while searching for a runtime, however
+	// if in that fork or not finalised chain there is no runtime upgrades
+	// than we look for the closest ancestor with a runtime instance
+	runtimeInstance, err := bs.bt.GetBlockRuntime(blockHash)
+	if errors.Is(err, blocktree.ErrRuntimeNotFound) {
+		return bs.closestAncestorWithInstance(blockHash)
+	}
+
+	// in this case the node is not in the blocktree which mean
+	// it is a finalized node already persisted in database, so we
+	// should check if it is in the mapping or create a instance for it
+	if errors.Is(err, blocktree.ErrNodeNotFound) {
+		panic("TODO: while getting a runtime but node does not exists")
+	}
+
+	return runtimeInstance, err
+}
+
+func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instance Runtime, err error) {
+	allHashesInMapping := bs.bt.HashsWithinRuntimeMapping()
+	allHeaders := make([]types.Header, len(allHashesInMapping))
+	for idx, hashInMapping := range allHashesInMapping {
+		header, err := bs.GetHeader(hashInMapping)
+		if err != nil {
+			return nil, fmt.Errorf("getting header: %w", err)
+		}
+
+		allHeaders[idx] = *header
+	}
+
+	if len(allHeaders) > 1 {
+		// sort the slice using the descending order
+		sort.Slice(allHeaders, func(i, j int) bool {
+			return allHeaders[i].Number > allHeaders[j].Number
+		})
+	}
+
+	for _, header := range allHeaders {
+		isDescendant, err := bs.IsDescendantOf(header.Hash(), blockHash)
+		if err != nil {
+			return nil, fmt.Errorf("checking ancestry: %w", err)
+		}
+
+		// since all the headers are sorted in descending block number order
+		// the first ancestor will have the highest number which means it is
+		// the closest ancestor with an instance
+		if isDescendant {
+			return bs.bt.RuntimesMappingGet(header.Hash()), nil
+		}
+	}
+
+	return nil, fmt.Errorf("closest ancestor runtime not found for %s", blockHash)
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
