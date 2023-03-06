@@ -295,9 +295,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		bt.leaves.store(leaf.hash, leaf)
 	}
 
-	for _, hash := range pruned {
-		bt.runtimes.delete(hash)
-	}
+	bt.runtimes.onFinalisation(newCanonicalChainBlockHashes, pruned)
 
 	leavesGauge.Set(float64(len(bt.leaves.nodes())))
 	return pruned

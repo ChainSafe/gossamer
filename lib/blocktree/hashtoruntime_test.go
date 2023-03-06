@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -154,6 +155,147 @@ func Test_hashToRuntime_delete(t *testing.T) {
 			htr.delete(testCase.hash)
 
 			assert.Equal(t, testCase.expectedHtr, htr)
+		})
+	}
+}
+
+func Test_hashToRuntime_onFinalisation(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		makeParameters          func(ctrl *gomock.Controller) (initial, expected *hashToRuntime)
+		newCanonicalBlockHashes []Hash
+		prunedForkBlockHashes   []Hash
+		panicString             string
+	}{
+		"new_finalised_runtime_not_found": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				return &hashToRuntime{}, nil
+			},
+			newCanonicalBlockHashes: []Hash{{1}},
+			panicString: "runtime not found for finalised block hash " +
+				"0x0100000000000000000000000000000000000000000000000000000000000000",
+		},
+		"pruned_fork_runtime_not_found": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				finalisedRuntime := NewMockRuntime(ctrl)
+				return &hashToRuntime{
+					mapping: map[Hash]Runtime{
+						{1}: finalisedRuntime,
+					},
+				}, nil
+			},
+			newCanonicalBlockHashes: []Hash{{1}},
+			prunedForkBlockHashes:   []Hash{{2}},
+			panicString: "runtime not found for pruned forked block hash " +
+				"0x0200000000000000000000000000000000000000000000000000000000000000",
+		},
+		"prune_fork_runtimes_only": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				finalisedRuntime := NewMockRuntime(ctrl)
+				prunedForkRuntime := NewMockRuntime(ctrl)
+				prunedForkRuntime.EXPECT().Stop()
+				initial = &hashToRuntime{
+					finalisedRuntime:   finalisedRuntime,
+					currentBlockHashes: []Hash{{0}},
+					mapping: map[Hash]Runtime{
+						{1}: finalisedRuntime,
+						{2}: finalisedRuntime,
+						{3}: prunedForkRuntime,
+						{4}: prunedForkRuntime,
+					},
+				}
+				expected = &hashToRuntime{
+					finalisedRuntime:   finalisedRuntime,
+					currentBlockHashes: []Hash{{0}, {1}},
+					mapping: map[Hash]Runtime{
+						{1}: finalisedRuntime,
+					},
+				}
+				return initial, expected
+			},
+			newCanonicalBlockHashes: []Hash{{1}},
+			prunedForkBlockHashes:   []Hash{{2}, {3}, {4}},
+		},
+		"new_canonical_block_hash_not_found": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				newFinalisedRuntime := NewMockRuntime(ctrl)
+				initial = &hashToRuntime{
+					mapping: map[Hash]Runtime{
+						// missing {1}
+						{2}: newFinalisedRuntime,
+					},
+				}
+				return initial, nil
+			},
+			newCanonicalBlockHashes: []Hash{{1}, {2}},
+			panicString: "runtime not found for canonical chain block hash " +
+				"0x0100000000000000000000000000000000000000000000000000000000000000",
+		},
+		"prune_fork_and_canonical_runtimes": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				finalisedRuntime := NewMockRuntime(ctrl)
+				unfinalisedRuntime := NewMockRuntime(ctrl)
+				newFinalisedRuntime := NewMockRuntime(ctrl)
+				prunedForkRuntime := NewMockRuntime(ctrl)
+
+				finalisedRuntime.EXPECT().Stop()
+				unfinalisedRuntime.EXPECT().Stop()
+				prunedForkRuntime.EXPECT().Stop()
+
+				initial = &hashToRuntime{
+					finalisedRuntime:   finalisedRuntime,
+					currentBlockHashes: []Hash{{0}, {1}},
+					mapping: map[Hash]Runtime{
+						// Previously finalised chain
+						{0}: finalisedRuntime,
+						{1}: finalisedRuntime,
+						// Newly finalised chain
+						{2}: finalisedRuntime,
+						{3}: unfinalisedRuntime,
+						{4}: unfinalisedRuntime,
+						{5}: newFinalisedRuntime,
+						{6}: newFinalisedRuntime,
+						// Runtimes from forks
+						{100}: prunedForkRuntime,
+						{101}: prunedForkRuntime,
+						{102}: finalisedRuntime,
+						{103}: newFinalisedRuntime,
+					},
+				}
+				expected = &hashToRuntime{
+					finalisedRuntime:   newFinalisedRuntime,
+					currentBlockHashes: []Hash{{5}, {6}},
+					mapping: map[Hash]Runtime{
+						{5}: newFinalisedRuntime,
+						{6}: newFinalisedRuntime,
+					},
+				}
+				return initial, expected
+			},
+			newCanonicalBlockHashes: []Hash{{2}, {3}, {4}, {5}, {6}},
+			prunedForkBlockHashes:   []Hash{{100}, {101}, {102}, {103}},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			htr, expectedHtr := testCase.makeParameters(ctrl)
+
+			if testCase.panicString != "" {
+				assert.PanicsWithValue(t, testCase.panicString, func() {
+					htr.onFinalisation(testCase.newCanonicalBlockHashes, testCase.prunedForkBlockHashes)
+				})
+				return
+			}
+
+			htr.onFinalisation(testCase.newCanonicalBlockHashes, testCase.prunedForkBlockHashes)
+
+			assert.Equal(t, expectedHtr, htr)
 		})
 	}
 }
