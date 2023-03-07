@@ -6,7 +6,6 @@
 package babe
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -197,81 +196,6 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		duration: babeService.constants.slotDuration * time.Millisecond,
 		number:   bestBlockSlotNum - 1,
 	}
-	err = babeService.handleSlot(
-		babeService.epochHandler.epochNumber,
-		slot,
-		babeService.epochHandler.epochData.authorityIndex,
-		preRuntimeDigest)
-
-	require.ErrorIs(t, err, errLaggingSlot)
-}
-
-func TestService_HandleSlotWithLaggingSlotBelow(t *testing.T) {
-	cfg := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-	}
-
-	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
-
-	err := babeService.Start()
-	require.NoError(t, err)
-	defer func() {
-		err = babeService.Stop()
-		require.NoError(t, err)
-	}()
-
-	parentHash := babeService.blockState.GenesisHash()
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	bestBlockHeader, err := babeService.blockState.GetHeader(bestBlockHash)
-	require.NoError(t, err)
-
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
-	require.NoError(t, err)
-
-	timestamp := time.Unix(6, 0)
-	slot := getSlot(t, rt, timestamp)
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
-		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, bestBlockHeader, [][]byte{common.MustHexToBytes(ext)},
-		testEpochIndex, epochData, slot)
-
-	err = babeService.blockState.AddBlock(block)
-	require.NoError(t, err)
-	time.Sleep(babeService.constants.slotDuration)
-
-	header, err := babeService.blockState.BestBlockHeader()
-	require.NoError(t, err)
-
-	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
-	require.NoError(t, err)
-
-	fmt.Println(bestBlockSlotNum)
-
-	//slotnum := uint64(1)
-	slot = Slot{
-		start:    time.Now(),
-		duration: babeService.constants.slotDuration * time.Millisecond,
-		number:   bestBlockSlotNum,
-	}
-	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
-		0, slot.number,
-		[sr25519.VRFOutputLength]byte{},
-		[sr25519.VRFProofLength]byte{},
-	).ToPreRuntimeDigest()
-
-	require.NoError(t, err)
-
-	//slot = Slot{
-	//	start:    time.Now(),
-	//	duration: babeService.constants.slotDuration * time.Millisecond,
-	//	number:   bestBlockSlotNum,
-	//}
-	slot = getSlot(t, rt, time.Now())
 	err = babeService.handleSlot(
 		babeService.epochHandler.epochNumber,
 		slot,
