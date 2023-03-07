@@ -6,6 +6,7 @@
 package babe
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -205,97 +206,56 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.ErrorIs(t, err, errLaggingSlot)
 }
 
-// TODO Rewrite this test to utilise westend. Since its built for 2 nodes, doesnt work with existing setup #3060
-/*
-Thoughts for this test:
-1) Can find a way to determine who the author for a slot is in real time
-2) Can have try/catch type logic to check who is the block author without manually setting/checking it like in 1)
-3) Make it so only alice (switch alice and bobs roles) is a block producer, but have bob run handleSlot. Should
-still work even tho he isnt block author
-
-I think 3 is the best option to try first
-*/
-func TestService_HandleSlotWithSameSlot(t *testing.T) {
-	t.Skip()
-	alice := keyring.Alice().(*sr25519.Keypair)
-	bob := keyring.Bob().(*sr25519.Keypair)
-
-	// Create babe service for alice
-	cfgAlice := ServiceConfig{
+func TestService_HandleSlotWithLaggingSlotBelow(t *testing.T) {
+	cfg := ServiceConfig{
 		Authority: true,
 		Lead:      true,
-		Keypair:   alice,
-		AuthData: []types.Authority{
-			{
-				Key:    alice.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-			{
-				Key:    bob.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-		},
 	}
 
-	// Create babe service for bob
-	cfgBob := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-		Keypair:   bob,
-		AuthData: []types.Authority{
-			{
-				Key:    alice.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-			{
-				Key:    bob.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-		},
-	}
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
 
-	genBob, genTrieBob, genHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, nil)
-
-	err := babeServiceBob.Start()
+	err := babeService.Start()
 	require.NoError(t, err)
 	defer func() {
-		_ = babeServiceBob.Stop()
+		err = babeService.Stop()
+		require.NoError(t, err)
 	}()
 
-	// wait till bob creates a block
-	time.Sleep(babeServiceBob.constants.slotDuration)
+	parentHash := babeService.blockState.GenesisHash()
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	block, err := babeServiceBob.blockState.GetBlockByNumber(1)
+	bestBlockHeader, err := babeService.blockState.GetHeader(bestBlockHash)
 	require.NoError(t, err)
 
-	err = babeServiceBob.Stop()
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	time.Sleep(babeServiceBob.constants.slotDuration)
+	timestamp := time.Unix(6, 0)
+	slot := getSlot(t, rt, timestamp)
+	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
+		"System.remark", []byte{0xab, 0xcd})
+	block := createTestBlockWithSlot(t, babeService, bestBlockHeader, [][]byte{common.MustHexToBytes(ext)},
+		testEpochIndex, epochData, slot)
 
-	genAlice, genTrieAlice, genHeaderAlice := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceAlice := createTestService(t, cfgAlice, genAlice, genTrieAlice, genHeaderAlice, nil)
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
+	time.Sleep(babeService.constants.slotDuration)
 
-	// Add block created by Bob to Alice
-	err = babeServiceAlice.blockState.AddBlock(block)
+	header, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	time.Sleep(babeServiceBob.constants.slotDuration)
-
-	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
-	require.NoError(t, err)
-	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
-
-	// If the slot we are claiming is the same as the slot of the best block header, test that we can
-	// still claim the slot without error.
-	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	bestBlockSlotNum, err := babeService.blockState.GetSlotForBlock(header.Hash())
 	require.NoError(t, err)
 
-	slot := Slot{
+	fmt.Println(bestBlockSlotNum)
+
+	//slotnum := uint64(1)
+	slot = Slot{
 		start:    time.Now(),
-		duration: time.Second,
+		duration: babeService.constants.slotDuration * time.Millisecond,
 		number:   bestBlockSlotNum,
 	}
 	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
@@ -303,49 +263,52 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		[sr25519.VRFOutputLength]byte{},
 		[sr25519.VRFProofLength]byte{},
 	).ToPreRuntimeDigest()
+
 	require.NoError(t, err)
 
-	// slot gets occupied even if it has been occupied by a block
-	// authored by someone else
-	err = babeServiceAlice.handleSlot(
-		testEpochIndex,
+	//slot = Slot{
+	//	start:    time.Now(),
+	//	duration: babeService.constants.slotDuration * time.Millisecond,
+	//	number:   bestBlockSlotNum,
+	//}
+	slot = getSlot(t, rt, time.Now())
+	err = babeService.handleSlot(
+		babeService.epochHandler.epochNumber,
 		slot,
-		0,
+		babeService.epochHandler.epochData.authorityIndex,
 		preRuntimeDigest)
-	require.NoError(t, err)
+
+	require.ErrorIs(t, err, errLaggingSlot)
 }
 
-func TestService_HandleSlotWithSameSlotNew(t *testing.T) {
-	// Create babe service for alice
-	cfgAlice := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-	}
+func TestService_HandleSlotWithSameSlot(t *testing.T) {
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	const authorityIndex = 0
 
-	genAlice, genTrieAlice, genHeaderAlice := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceAlice := createTestService(t, cfgAlice, genAlice, genTrieAlice, genHeaderAlice, nil)
-
-	// Start alice
-	err := babeServiceAlice.Start()
-	require.NoError(t, err)
-	defer func() {
-		_ = babeServiceAlice.Stop()
-	}()
-
-	//bestBlockHash := babeServiceAlice.blockState.BestBlockHash()
-	//rt, err := babeServiceAlice.blockState.GetRuntime(bestBlockHash)
-	//require.NoError(t, err)
-
-	// wait till alice creates a block
-	time.Sleep(babeServiceAlice.constants.slotDuration)
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	block, err := babeServiceAlice.blockState.GetBlockByNumber(1)
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	err = babeServiceAlice.Stop()
+	slot := getSlot(t, rt, time.Unix(6, 0))
+	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
+	builder := NewBlockBuilder(
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		authorityIndex,
+		preRuntimeDigest,
+	)
+
+	block, err := builder.buildBlock(&genesisHeader, slot, rt)
+	require.NoError(t, err)
+
+	// Create new non authority service
 	cfgBob := ServiceConfig{
 		Keypair: keyring.Bob().(*sr25519.Keypair),
 	}
@@ -356,26 +319,17 @@ func TestService_HandleSlotWithSameSlotNew(t *testing.T) {
 	err = babeServiceBob.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	// In above test sleep here, not sure if necessary
-	//time.Sleep(babeServiceAlice.constants.slotDuration)
-
-	bestBlockHeader, err := babeServiceBob.blockState.BestBlockHeader()
-	require.NoError(t, err)
-	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
-
 	// If the slot we are claiming is the same as the slot of the best block header, test that we can
 	// still claim the slot without error.
-	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	bestBlockSlotNum, err := babeServiceBob.blockState.GetSlotForBlock(block.Header.Hash())
 	require.NoError(t, err)
 
-	slot := Slot{
-		start:    time.Now(),
-		duration: time.Duration(babeServiceAlice.constants.slotDuration) * time.Millisecond,
+	slot = Slot{
+		start:    time.Unix(6, 0),
+		duration: babeServiceBob.constants.slotDuration * time.Millisecond,
 		number:   bestBlockSlotNum,
 	}
-
-	//slot := getSlot(t, rt, time.Now())
-	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+	preRuntimeDigest, err = types.NewBabePrimaryPreDigest(
 		0, slot.number,
 		[sr25519.VRFOutputLength]byte{},
 		[sr25519.VRFProofLength]byte{},
@@ -384,7 +338,7 @@ func TestService_HandleSlotWithSameSlotNew(t *testing.T) {
 
 	// slot gets occupied even if it has been occupied by a block
 	// authored by someone else
-	err = babeServiceAlice.handleSlot(
+	err = babeServiceBob.handleSlot(
 		testEpochIndex,
 		slot,
 		0,
