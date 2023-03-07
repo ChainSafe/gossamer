@@ -376,7 +376,7 @@ func (f *finalisationEngine) defineRoundVotes() (err error) {
 		case <-f.stopCh:
 			determinePrevoteTimer.Stop()
 			determinePrecommitTimer.Stop()
-			return errFinalisationEngineStopped
+			return fmt.Errorf("%w", errFinalisationEngineStopped)
 
 		case <-determinePrevoteTimer.C:
 			alreadyCompletable, err := f.grandpaService.checkRoundCompletable()
