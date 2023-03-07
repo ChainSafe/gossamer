@@ -342,13 +342,9 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
-	serviceConfig := ServiceConfig{
-		Keypair: keyring.Bob().(*sr25519.Keypair),
-	}
-
 	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, serviceConfig, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
-	vm := NewVerificationManager(babeServiceBob.blockState, babeServiceBob.epochState)
+	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
+	verificationManager := NewVerificationManager(babeServiceBob.blockState, babeServiceBob.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -360,7 +356,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	slot := getSlot(t, runtime, time.Now())
 	block := createTestBlockWithSlot(t, babeServiceBob, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 
-	err = vm.VerifyBlock(&block.Header)
+	err = verificationManager.VerifyBlock(&block.Header)
 	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
