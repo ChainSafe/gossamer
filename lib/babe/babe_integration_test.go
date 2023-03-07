@@ -314,3 +314,80 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		preRuntimeDigest)
 	require.NoError(t, err)
 }
+
+func TestService_HandleSlotWithSameSlotNew(t *testing.T) {
+	// Create babe service for alice
+	cfgAlice := ServiceConfig{
+		Authority: true,
+		Lead:      true,
+	}
+
+	genAlice, genTrieAlice, genHeaderAlice := newWestendDevGenesisWithTrieAndHeader(t)
+	babeServiceAlice := createTestService(t, cfgAlice, genAlice, genTrieAlice, genHeaderAlice, nil)
+
+	// Start alice
+	err := babeServiceAlice.Start()
+	require.NoError(t, err)
+	defer func() {
+		_ = babeServiceAlice.Stop()
+	}()
+
+	//bestBlockHash := babeServiceAlice.blockState.BestBlockHash()
+	//rt, err := babeServiceAlice.blockState.GetRuntime(bestBlockHash)
+	//require.NoError(t, err)
+
+	// wait till alice creates a block
+	time.Sleep(babeServiceAlice.constants.slotDuration)
+	require.NoError(t, err)
+
+	block, err := babeServiceAlice.blockState.GetBlockByNumber(1)
+	require.NoError(t, err)
+
+	err = babeServiceAlice.Stop()
+	require.NoError(t, err)
+
+	cfgBob := ServiceConfig{
+		Keypair: keyring.Bob().(*sr25519.Keypair),
+	}
+	genBob, genTrieBob, genHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
+	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, nil)
+
+	// Add block created by alice to bob
+	err = babeServiceBob.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	// In above test sleep here, not sure if necessary
+	//time.Sleep(babeServiceAlice.constants.slotDuration)
+
+	bestBlockHeader, err := babeServiceBob.blockState.BestBlockHeader()
+	require.NoError(t, err)
+	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
+
+	// If the slot we are claiming is the same as the slot of the best block header, test that we can
+	// still claim the slot without error.
+	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	require.NoError(t, err)
+
+	slot := Slot{
+		start:    time.Now(),
+		duration: time.Duration(babeServiceAlice.constants.slotDuration) * time.Millisecond,
+		number:   bestBlockSlotNum,
+	}
+
+	//slot := getSlot(t, rt, time.Now())
+	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+		0, slot.number,
+		[sr25519.VRFOutputLength]byte{},
+		[sr25519.VRFProofLength]byte{},
+	).ToPreRuntimeDigest()
+	require.NoError(t, err)
+
+	// slot gets occupied even if it has been occupied by a block
+	// authored by someone else
+	err = babeServiceAlice.handleSlot(
+		testEpochIndex,
+		slot,
+		0,
+		preRuntimeDigest)
+	require.NoError(t, err)
+}
