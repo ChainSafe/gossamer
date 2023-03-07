@@ -22,6 +22,11 @@ jobs:
     env:
       DOCKER_BUILDKIT: "1"
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          all_but_latest: true
+
       - uses: docker/build-push-action@v4
         with:
           load: true
