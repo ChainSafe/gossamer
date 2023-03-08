@@ -87,6 +87,12 @@ var (
 		Name:      "outbound_total",
 		Help:      "total number of outbound streams",
 	})
+	// TODO(ed), find better way to handle this, to actually override the default process_start_time_seconds metric
+	runningGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "substrate",
+		Name:      "process_start_time_seconds",
+		Help:      "gossamer process start time seconds",
+	})
 )
 
 type (
@@ -352,6 +358,7 @@ func (s *Service) updateMetrics() {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
+			runningGauge.Set(1.5)
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
