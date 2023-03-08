@@ -6,7 +6,46 @@ package blocktree
 import (
 	"fmt"
 	"sync"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+type inMemoryRuntime struct {
+	runtime   Runtime
+	blockHash common.Hash
+}
+
+func newInMemoryRuntimeNode(blockHash common.Hash, runtime Runtime) *inMemoryRuntime {
+	return &inMemoryRuntime{
+		runtime,
+		blockHash,
+	}
+}
+
+type inMemoryRuntimeSet []*inMemoryRuntime
+
+func (inMemorySet *inMemoryRuntimeSet) push(entry *inMemoryRuntime) {
+	*inMemorySet = append(*inMemorySet, entry)
+}
+
+func (inMemorySet *inMemoryRuntimeSet) get(blockHash common.Hash) (runtime Runtime) {
+	for _, inMemory := range *inMemorySet {
+		if inMemory.blockHash == blockHash {
+			return inMemory.runtime
+		}
+	}
+
+	return nil
+}
+
+func (inMemorySet *inMemoryRuntimeSet) hashes() (hashes []common.Hash) {
+	hashes = make([]common.Hash, len(*inMemorySet))
+	for idx, inMemory := range *inMemorySet {
+		hashes[idx] = inMemory.blockHash
+	}
+
+	return hashes
+}
 
 type hashToRuntime struct {
 	mutex   sync.RWMutex
@@ -36,14 +75,14 @@ func (h *hashToRuntime) set(hash Hash, instance Runtime) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	h.mapping[hash] = instance
-	inMemoryRuntimes.Set(float64(len(h.mapping)))
+	inMemoryRuntimesGauge.Set(float64(len(h.mapping)))
 }
 
 func (h *hashToRuntime) delete(hash Hash) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	delete(h.mapping, hash)
-	inMemoryRuntimes.Set(float64(len(h.mapping)))
+	inMemoryRuntimesGauge.Set(float64(len(h.mapping)))
 }
 
 // onFinalisation handles pruning and recording on block finalisation.
@@ -56,6 +95,9 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockH
 	finalisedBlockHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]
 	newFinalisedRuntime, ok := h.mapping[finalisedBlockHash]
 	if !ok {
+		// we should check if the runtime instance in the mapping is an ancestor
+		// of the finalised block, meaning that we can just update the map key
+		// for the finalised hash
 		panic(fmt.Sprintf("runtime not found for finalised block hash %s", finalisedBlockHash))
 	}
 

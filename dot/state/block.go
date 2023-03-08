@@ -923,7 +923,11 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err e
 }
 
 func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instance Runtime, err error) {
-	allHashesInMapping := bs.bt.HashsWithinRuntimeMapping()
+	allHashesInMapping := bs.bt.GetInMemoryRuntimesBlockHashes()
+	if len(allHashesInMapping) == 1 {
+		return bs.bt.GetBlockRuntime(allHashesInMapping[0])
+	}
+
 	allHeaders := make([]types.Header, len(allHashesInMapping))
 	for idx, hashInMapping := range allHashesInMapping {
 		header, err := bs.GetHeader(hashInMapping)
