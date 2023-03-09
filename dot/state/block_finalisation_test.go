@@ -83,6 +83,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	}
 
 	testhash := header.Hash()
+	bs.StoreRuntime(testhash, nil)
 	err = bs.db.Put(headerKey(testhash), []byte{})
 	require.NoError(t, err)
 
