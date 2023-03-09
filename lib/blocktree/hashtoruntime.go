@@ -4,48 +4,11 @@
 package blocktree
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"golang.org/x/exp/maps"
 )
-
-type inMemoryRuntime struct {
-	runtime   Runtime
-	blockHash common.Hash
-}
-
-func newInMemoryRuntimeNode(blockHash common.Hash, runtime Runtime) *inMemoryRuntime {
-	return &inMemoryRuntime{
-		runtime,
-		blockHash,
-	}
-}
-
-type inMemoryRuntimeSet []*inMemoryRuntime
-
-func (inMemorySet *inMemoryRuntimeSet) push(entry *inMemoryRuntime) {
-	*inMemorySet = append(*inMemorySet, entry)
-}
-
-func (inMemorySet *inMemoryRuntimeSet) get(blockHash common.Hash) (runtime Runtime) {
-	for _, inMemory := range *inMemorySet {
-		if inMemory.blockHash == blockHash {
-			return inMemory.runtime
-		}
-	}
-
-	return nil
-}
-
-func (inMemorySet *inMemoryRuntimeSet) hashes() (hashes []common.Hash) {
-	hashes = make([]common.Hash, len(*inMemorySet))
-	for idx, inMemory := range *inMemorySet {
-		hashes[idx] = inMemory.blockHash
-	}
-
-	return hashes
-}
 
 type hashToRuntime struct {
 	mutex   sync.RWMutex
@@ -85,87 +48,52 @@ func (h *hashToRuntime) delete(hash Hash) {
 	inMemoryRuntimesGauge.Set(float64(len(h.mapping)))
 }
 
+func (h *hashToRuntime) hashes() (hashes []common.Hash) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	return maps.Keys(h.mapping)
+}
+
 // onFinalisation handles pruning and recording on block finalisation.
 // newCanonicalBlockHashes is the block hashes of the blocks newly finalised.
 // The last element is the finalised block hash.
-func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes, prunedForkBlockHashes []Hash) {
+func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 	h.mutex.Lock()
-	defer h.mutex.Unlock()
+	defer func() {
+		totalInMemoryRuntimes := len(h.mapping)
+		inMemoryRuntimesGauge.Set(float64(totalInMemoryRuntimes))
+		h.mutex.Unlock()
+	}()
 
-	finalisedBlockHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]
-	newFinalisedRuntime, ok := h.mapping[finalisedBlockHash]
-	if !ok {
-		// we should check if the runtime instance in the mapping is an ancestor
-		// of the finalised block, meaning that we can just update the map key
-		// for the finalised hash
-		panic(fmt.Sprintf("runtime not found for finalised block hash %s", finalisedBlockHash))
+	if len(h.mapping) == 0 {
+		panic("no runtimes available in the mapping while prunning")
 	}
 
-	stoppedRuntimes := make(map[Runtime]struct{})
+	finalisedHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]
+	// if there is only one runtime in the mapping then we should update the
+	// its key so the `isDescendant` method at `closestAncestorWithInstance`
+	// don't need to lookup the entire chain in order to find the ancestry
+	if len(h.mapping) == 1 {
+		uniqueAvailableInstance := maps.Values(h.mapping)[0]
 
-	// Prune runtimes from pruned forks
-	for _, blockHash := range prunedForkBlockHashes {
-		runtimeFromFork, ok := h.mapping[blockHash]
-		if !ok {
-			panic(fmt.Sprintf("runtime not found for pruned forked block hash %s", blockHash))
-		}
-		if runtimeFromFork != newFinalisedRuntime {
-			_, stopped := stoppedRuntimes[runtimeFromFork]
-			if !stopped {
-				runtimeFromFork.Stop()
-				stoppedRuntimes[runtimeFromFork] = struct{}{}
-			}
-		}
-		delete(h.mapping, blockHash)
-	}
-
-	if h.finalisedRuntime == newFinalisedRuntime {
-		// Runtime from the previous finalised block is the same
-		// as the runtime for the new finalised block.
-		// Note this logic assumes the same runtime pointer won't
-		// be re-used on a runtime upgrade.
-		h.currentBlockHashes = append(h.currentBlockHashes, newCanonicalBlockHashes...)
+		h.mapping = make(map[Hash]Runtime)
+		h.mapping[finalisedHash] = uniqueAvailableInstance
 		return
 	}
 
-	// Runtime from the previous finalised block is different
-	// from the runtime for the new finalised block.
-	if h.finalisedRuntime != nil {
-		_, stopped := stoppedRuntimes[h.finalisedRuntime]
-		if !stopped {
-			h.finalisedRuntime.Stop()
-			stoppedRuntimes[h.finalisedRuntime] = struct{}{}
-		}
-	}
-	h.finalisedRuntime = newFinalisedRuntime
+	// we procced from backwards since the last element in the newCanonicalBlockHashes
+	// is the finalized one, verifying if there is a runtime if we find it we clear all
+	// the map entries and keeping only the instance found with the finalised hash as the key
+	lastElementIdx := len(newCanonicalBlockHashes) - 1
+	for idx := lastElementIdx; idx >= 0; idx-- {
+		currentHash := newCanonicalBlockHashes[idx]
+		inMemoryRuntime := h.mapping[currentHash]
 
-	// Clear all block hashes using the previous finalised runtime
-	for _, blockHash := range h.currentBlockHashes {
-		delete(h.mapping, blockHash)
-	}
-
-	// Check each new canonical chain block hash and prune all but the
-	// new finalised block corresponding runtime.
-	for i, blockHash := range newCanonicalBlockHashes {
-		runtime, ok := h.mapping[blockHash]
-		if !ok {
-			panic(fmt.Sprintf("runtime not found for canonical chain block hash %s", blockHash))
+		if inMemoryRuntime != nil {
+			h.mapping = make(map[Hash]Runtime)
+			h.mapping[finalisedHash] = inMemoryRuntime
+			return
 		}
-
-		if runtime == newFinalisedRuntime {
-			// The block has the new finalised block runtime so stop stopping runtimes and pruning
-			// block hashes from the mapping.
-			// Reset the current block hashes to the remaining new canonical chain block hashes.
-			h.currentBlockHashes = h.currentBlockHashes[:0] // empty slice but keep its capacity
-			h.currentBlockHashes = append(h.currentBlockHashes, newCanonicalBlockHashes[i:]...)
-			break
-		}
-
-		_, stopped := stoppedRuntimes[runtime]
-		if !stopped {
-			runtime.Stop()
-			stoppedRuntimes[runtime] = struct{}{}
-		}
-		delete(h.mapping, blockHash)
 	}
 }

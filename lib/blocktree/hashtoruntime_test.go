@@ -288,12 +288,12 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 
 			if testCase.panicString != "" {
 				assert.PanicsWithValue(t, testCase.panicString, func() {
-					htr.onFinalisation(testCase.newCanonicalBlockHashes, testCase.prunedForkBlockHashes)
+					htr.onFinalisation(testCase.newCanonicalBlockHashes)
 				})
 				return
 			}
 
-			htr.onFinalisation(testCase.newCanonicalBlockHashes, testCase.prunedForkBlockHashes)
+			htr.onFinalisation(testCase.newCanonicalBlockHashes)
 
 			assert.Equal(t, expectedHtr, htr)
 		})

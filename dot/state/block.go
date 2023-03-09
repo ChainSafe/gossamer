@@ -905,8 +905,8 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err error) {
 	// we search primarily in the blocktree so we ensure the
 	// fork aware property while searching for a runtime, however
-	// if in that fork or not finalised chain there is no runtime upgrades
-	// than we look for the closest ancestor with a runtime instance
+	// if there is no runtimes in that fork than we look for the
+	// closest ancestor with a runtime instance
 	runtimeInstance, err := bs.bt.GetBlockRuntime(blockHash)
 	if errors.Is(err, blocktree.ErrRuntimeNotFound) {
 		return bs.closestAncestorWithInstance(blockHash)
@@ -924,6 +924,10 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err e
 
 func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instance Runtime, err error) {
 	allHashesInMapping := bs.bt.GetInMemoryRuntimesBlockHashes()
+	if len(allHashesInMapping) == 0 {
+		panic("no runtime instances available")
+	}
+
 	if len(allHashesInMapping) == 1 {
 		return bs.bt.GetBlockRuntime(allHashesInMapping[0])
 	}
