@@ -28,7 +28,7 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.16.0
 	github.com/libp2p/go-libp2p v0.25.1
-	github.com/libp2p/go-libp2p-kad-dht v0.21.0
+	github.com/libp2p/go-libp2p-kad-dht v0.21.1
 	github.com/multiformats/go-multiaddr v0.8.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
