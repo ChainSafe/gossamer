@@ -49,8 +49,8 @@ func TestFinalizedChannel(t *testing.T) {
 	defer bs.FreeFinalisedNotifierChannel(ch)
 
 	chain, _ := AddBlocksToState(t, bs, 3, false)
-
 	for _, b := range chain {
+		bs.StoreRuntime(b.Hash(), nil)
 		bs.SetFinalisedHash(b.Hash(), 1, 0)
 	}
 
@@ -106,6 +106,9 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	}
 
 	chain, _ := AddBlocksToState(t, bs, 1, false)
+	for _, header := range chain {
+		bs.StoreRuntime(header.Hash(), nil)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(num)

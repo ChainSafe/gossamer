@@ -640,6 +640,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 			fmt.Sprint(forkBobLastHeader.Number),
 		),
 	)
+	stateService.Block.StoreRuntime(forkBobLastHeader.Hash(), nil)
 	err = stateService.Block.SetFinalisedHash(forkBobLastHeader.Hash(), 1, 1)
 	require.NoError(t, err)
 

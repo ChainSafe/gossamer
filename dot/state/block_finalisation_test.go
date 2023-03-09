@@ -144,6 +144,7 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 		Body:   types.Body{},
 	})
 	require.NoError(t, err)
+	bs.StoreRuntime(header2.Hash(), nil)
 
 	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
 	require.NoError(t, err)

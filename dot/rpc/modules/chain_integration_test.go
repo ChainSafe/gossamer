@@ -327,6 +327,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.NoError(t, err)
 
 	testhash := header.Hash()
+	state.Block.StoreRuntime(testhash, nil)
 	err = state.Block.SetFinalisedHash(testhash, 77, 1)
 	require.NoError(t, err)
 

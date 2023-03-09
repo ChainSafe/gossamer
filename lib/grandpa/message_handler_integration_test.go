@@ -476,6 +476,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
+	gs.blockState.(*state.BlockState).StoreRuntime(testGenesisHeader.Hash(), nil)
 	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
@@ -997,6 +998,7 @@ func TestMessageHandler_VerifyBlockJustification_ErrFinalisedBlockMismatch(t *te
 	round := uint64(1)
 	number := uint32(1)
 
+	st.Block.StoreRuntime(block.Header.Hash(), nil)
 	err = st.Block.SetFinalisedHash(block.Header.Hash(), round, setID)
 	require.NoError(t, err)
 

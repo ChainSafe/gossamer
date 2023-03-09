@@ -302,6 +302,7 @@ func TestGetAllDescendants(t *testing.T) {
 	}
 	err = bs.AddBlockWithArrivalTime(block2, time.Now())
 	require.NoError(t, err)
+	bs.StoreRuntime(block2.Header.Hash(), nil)
 
 	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1)
 	require.NoError(t, err)
@@ -446,7 +447,10 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 
 func TestFinalization_DeleteBlock(t *testing.T) {
 	bs := newTestBlockState(t, newTriesEmpty())
-	AddBlocksToState(t, bs, 5, false)
+	chain, _ := AddBlocksToState(t, bs, 5, false)
+	for _, header := range chain {
+		bs.StoreRuntime(header.Hash(), nil)
+	}
 
 	btBefore := bs.bt.DeepCopy()
 	before := bs.bt.GetAllBlocks()
@@ -701,6 +705,8 @@ func TestNumberIsFinalised(t *testing.T) {
 		Header: header2,
 		Body:   types.Body{},
 	})
+	bs.StoreRuntime(header2.Hash(), nil)
+
 	require.NoError(t, err)
 	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
 	require.NoError(t, err)
@@ -1032,6 +1038,7 @@ func TestRange(t *testing.T) {
 				}
 
 				err := blockState.AddBlock(block)
+				blockState.StoreRuntime(block.Header.Hash(), nil)
 				require.NoError(t, err)
 
 				hashesCreated = append(hashesCreated, currentHeader.Hash())
