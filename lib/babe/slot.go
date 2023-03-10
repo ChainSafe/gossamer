@@ -4,6 +4,8 @@
 package babe
 
 import (
+	"context"
+	"fmt"
 	"time"
 )
 
@@ -33,13 +35,16 @@ func newSlotHandler(slotDuration time.Duration) slotHandler {
 // waitForNextSlot returns a new Slot greater than the last one when a new slot starts
 // based on the current system time similar to:
 // https://github.com/paritytech/substrate/blob/fbddfbd76c60c6fda0024e8a44e82ad776033e4b/client/consensus/slots/src/slots.rs#L125
-func (s *slotHandler) waitForNextSlot() Slot {
+func (s *slotHandler) waitForNextSlot(ctx context.Context) (Slot, error) {
 	for {
 		// check if there is enough time to collaborate
 		untilNextSlot := timeUntilNextSlot(s.slotDuration)
 		oneThirdSlotDuration := s.slotDuration / 3
 		if untilNextSlot <= oneThirdSlotDuration {
-			time.Sleep(untilNextSlot)
+			err := waitUntilNextSlot(ctx, untilNextSlot)
+			if err != nil {
+				return Slot{}, fmt.Errorf("waiting next slot: %w", err)
+			}
 		}
 
 		currentSystemTime := time.Now()
@@ -53,9 +58,28 @@ func (s *slotHandler) waitForNextSlot() Slot {
 		// Never yield the same slot twice
 		if s.lastSlot == nil || currentSlot.number > s.lastSlot.number {
 			s.lastSlot = &currentSlot
-			return currentSlot
+			return currentSlot, nil
 		}
 
-		time.Sleep(timeUntilNextSlot(s.slotDuration))
+		err := waitUntilNextSlot(ctx, untilNextSlot)
+		if err != nil {
+			return Slot{}, fmt.Errorf("waiting next slot: %w", err)
+		}
 	}
+}
+
+// waitUntilNextSlot is a blocking function that uses context.WithTimeout
+// to "sleep", however if the parent context is canceled it releases with
+// context.Canceled error
+func waitUntilNextSlot(ctx context.Context, untilNextSlot time.Duration) error {
+	withTimeout, cancelWithTimeout := context.WithTimeout(ctx, untilNextSlot)
+	defer cancelWithTimeout()
+
+	<-withTimeout.Done()
+	err := withTimeout.Err()
+	if err != context.DeadlineExceeded {
+		return err
+	}
+
+	return nil
 }

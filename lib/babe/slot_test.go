@@ -4,6 +4,7 @@
 package babe
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -27,8 +28,31 @@ func TestSlotHandlerNextSlot(t *testing.T) {
 	const slotDuration = 2 * time.Second
 	handler := newSlotHandler(slotDuration)
 
-	firstIteration := handler.waitForNextSlot()
-	secondIteration := handler.waitForNextSlot()
+	firstIteration, err := handler.waitForNextSlot(context.Background())
+	require.NoError(t, err)
+
+	secondIteration, err := handler.waitForNextSlot(context.Background())
+	require.NoError(t, err)
 
 	require.Greater(t, secondIteration.number, firstIteration.number)
+}
+
+func TestSlotHandlerNextSlot_ContextCanceled(t *testing.T) {
+	t.Parallel()
+
+	const slotDuration = 2 * time.Second
+	handler := newSlotHandler(slotDuration)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	firstIteration, err := handler.waitForNextSlot(ctx)
+	require.NoError(t, err)
+	require.NotEqual(t, Slot{}, firstIteration)
+
+	cancel()
+
+	secondIteration, err := handler.waitForNextSlot(ctx)
+	require.Equal(t, Slot{}, secondIteration)
+	require.ErrorIs(t, err, context.Canceled)
+	require.EqualError(t, err, "waiting next slot: context canceled")
 }

@@ -78,14 +78,14 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	logger.Debugf("authoring in %d slots in epoch %d", len(h.slotToPreRuntimeDigest), h.epochNumber)
 
 	for {
-		select {
-		case <-ctx.Done():
+		currentSlot, err := h.slotHandler.waitForNextSlot(ctx)
+		if errors.Is(err, context.Canceled) {
 			errCh <- nil
 			return
-		default:
+		} else if err != nil {
+			errCh <- err
+			return
 		}
-
-		currentSlot := h.slotHandler.waitForNextSlot()
 
 		// check if the slot is an authoring slot otherwise wait for the next slot
 		preRuntimeDigest, has := h.slotToPreRuntimeDigest[currentSlot.number]
@@ -93,7 +93,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 			continue
 		}
 
-		err := h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, preRuntimeDigest)
+		err = h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, preRuntimeDigest)
 		if err != nil {
 			logger.Warnf("failed to handle slot %d: %s", currentSlot.number, err)
 		}
