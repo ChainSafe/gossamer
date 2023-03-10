@@ -14,7 +14,7 @@ import (
 func TestSlotHandlerConstructor(t *testing.T) {
 	t.Parallel()
 
-	expected := &slotHandler{
+	expected := slotHandler{
 		slotDuration: time.Duration(6000),
 	}
 
