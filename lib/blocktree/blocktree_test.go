@@ -446,8 +446,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 				{1}: rootRuntime,
 				{2}: rootRuntime,
 			},
-			finalisedRuntime:   rootRuntime,
-			currentBlockHashes: []Hash{{1}, {2}},
 		}
 		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
 	})
@@ -490,8 +488,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 			mapping: map[common.Hash]Runtime{
 				{2}: leafRuntime,
 			},
-			finalisedRuntime:   leafRuntime,
-			currentBlockHashes: []Hash{{2}},
 		}
 		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
 	})
@@ -543,8 +539,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 				{1}: rootRuntime,
 				{2}: rootRuntime,
 			},
-			finalisedRuntime:   rootRuntime,
-			currentBlockHashes: []Hash{{1}, {2}},
 		}
 		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
 	})
@@ -567,8 +561,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 				mapping: map[common.Hash]Runtime{
 					{1}: rootRuntime,
 				},
-				finalisedRuntime:   rootRuntime,
-				currentBlockHashes: []Hash{{1}},
 			},
 		}
 
@@ -653,8 +645,6 @@ func Test_BlockTree_Prune(t *testing.T) {
 				{3}: lastCanonicalRuntime,
 				{4}: lastCanonicalRuntime,
 			},
-			finalisedRuntime:   lastCanonicalRuntime,
-			currentBlockHashes: []Hash{{3}, {4}},
 		}
 		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
 	})

@@ -13,13 +13,6 @@ import (
 type hashToRuntime struct {
 	mutex   sync.RWMutex
 	mapping map[Hash]Runtime
-	// finalisedRuntime is the current finalised block runtime pointer.
-	finalisedRuntime Runtime
-	// currentBlockHashes holds block hashes from the canonical chain
-	// for which the current finalised block runtime is being used.
-	// This is used to prune the mapping of block hash to runtime
-	// when a new runtime makes it at block finalisation.
-	currentBlockHashes []Hash
 }
 
 func newHashToRuntime() *hashToRuntime {

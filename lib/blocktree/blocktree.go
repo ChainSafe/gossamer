@@ -79,9 +79,6 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err 
 	bt.Lock()
 	defer bt.Unlock()
 
-	//fmt.Printf("(BLOCKTREE) ADDING BLOCK #%d\n", header.Number)
-	//fmt.Printf("(BLOCKTREE) TOTAL RUNTIMES STORED #%d\n", len(bt.runtimes.mapping))
-
 	parent := bt.getNode(header.ParentHash)
 	if parent == nil {
 		return ErrParentNotFound

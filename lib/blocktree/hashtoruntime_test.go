@@ -196,8 +196,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 				prunedForkRuntime := NewMockRuntime(ctrl)
 				prunedForkRuntime.EXPECT().Stop()
 				initial = &hashToRuntime{
-					finalisedRuntime:   finalisedRuntime,
-					currentBlockHashes: []Hash{{0}},
 					mapping: map[Hash]Runtime{
 						{1}: finalisedRuntime,
 						{2}: finalisedRuntime,
@@ -206,8 +204,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 					},
 				}
 				expected = &hashToRuntime{
-					finalisedRuntime:   finalisedRuntime,
-					currentBlockHashes: []Hash{{0}, {1}},
 					mapping: map[Hash]Runtime{
 						{1}: finalisedRuntime,
 					},
@@ -244,8 +240,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 				prunedForkRuntime.EXPECT().Stop()
 
 				initial = &hashToRuntime{
-					finalisedRuntime:   finalisedRuntime,
-					currentBlockHashes: []Hash{{0}, {1}},
 					mapping: map[Hash]Runtime{
 						// Previously finalised chain
 						{0}: finalisedRuntime,
@@ -264,8 +258,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 					},
 				}
 				expected = &hashToRuntime{
-					finalisedRuntime:   newFinalisedRuntime,
-					currentBlockHashes: []Hash{{5}, {6}},
 					mapping: map[Hash]Runtime{
 						{5}: newFinalisedRuntime,
 						{6}: newFinalisedRuntime,
