@@ -11,6 +11,8 @@ import (
 )
 
 func TestSlotHandlerConstructor(t *testing.T) {
+	t.Parallel()
+
 	expected := &slotHandler{
 		slotDuration: time.Duration(6000),
 	}
@@ -20,7 +22,9 @@ func TestSlotHandlerConstructor(t *testing.T) {
 }
 
 func TestSlotHandlerNextSlot(t *testing.T) {
-	slotDuration := 2 * time.Second
+	t.Parallel()
+
+	const slotDuration = 2 * time.Second
 	handler := newSlotHandler(slotDuration)
 
 	firstIteration := handler.waitForNextSlot()

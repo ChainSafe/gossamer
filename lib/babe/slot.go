@@ -24,8 +24,8 @@ type slotHandler struct {
 	lastSlot     *Slot
 }
 
-func newSlotHandler(slotDuration time.Duration) *slotHandler {
-	return &slotHandler{
+func newSlotHandler(slotDuration time.Duration) slotHandler {
+	return slotHandler{
 		slotDuration: slotDuration,
 	}
 }
@@ -35,7 +35,7 @@ func newSlotHandler(slotDuration time.Duration) *slotHandler {
 // https://github.com/paritytech/substrate/blob/fbddfbd76c60c6fda0024e8a44e82ad776033e4b/client/consensus/slots/src/slots.rs#L125
 func (s *slotHandler) waitForNextSlot() Slot {
 	for {
-		// check if there is enough time to collaaborate
+		// check if there is enough time to collaborate
 		untilNextSlot := timeUntilNextSlot(s.slotDuration)
 		oneThirdSlotDuration := s.slotDuration / 3
 		if untilNextSlot <= oneThirdSlotDuration {

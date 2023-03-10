@@ -20,7 +20,7 @@ var (
 )
 
 type epochHandler struct {
-	slotHandler *slotHandler
+	slotHandler slotHandler
 	epochNumber uint64
 	firstSlot   uint64
 

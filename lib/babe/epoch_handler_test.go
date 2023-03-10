@@ -28,19 +28,19 @@ func TestNewEpochHandler(t *testing.T) {
 	sd, err := time.ParseDuration("6s")
 	require.NoError(t, err)
 
-	constants := constants{ //nolint:govet
+	testConstants := constants{
 		slotDuration: sd,
 		epochLength:  200,
 	}
 
 	keypair := keyring.Alice().(*sr25519.Keypair)
 
-	epochHandler, err := newEpochHandler(1, 9999, epochData, constants, testHandleSlotFunc, keypair)
+	epochHandler, err := newEpochHandler(1, 9999, epochData, testConstants, testHandleSlotFunc, keypair)
 	require.NoError(t, err)
 	require.Equal(t, 200, len(epochHandler.slotToPreRuntimeDigest))
 	require.Equal(t, uint64(1), epochHandler.epochNumber)
 	require.Equal(t, uint64(9999), epochHandler.firstSlot)
-	require.Equal(t, constants, epochHandler.constants)
+	require.Equal(t, testConstants, epochHandler.constants)
 	require.Equal(t, epochData, epochHandler.epochData)
 	require.NotNil(t, epochHandler.handleSlot)
 }

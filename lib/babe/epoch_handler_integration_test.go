@@ -15,6 +15,8 @@ import (
 )
 
 func TestEpochHandler_run(t *testing.T) {
+	t.Parallel()
+
 	const authorityIndex uint32 = 0
 	aliceKeyPair := keyring.Alice().(*sr25519.Keypair)
 	epochData := &epochData{
@@ -28,7 +30,7 @@ func TestEpochHandler_run(t *testing.T) {
 	const slotDuration = 6 * time.Second
 	const epochLength uint64 = 100
 
-	constants := constants{ //nolint:govet
+	testConstants := constants{
 		slotDuration: slotDuration,
 		epochLength:  epochLength,
 	}
@@ -37,11 +39,11 @@ func TestEpochHandler_run(t *testing.T) {
 	startSlot := getCurrentSlot(slotDuration)
 	handler := testHandleSlotFunc(t, authorityIndex, expectedEpoch, startSlot)
 
-	epochHandler, err := newEpochHandler(1, startSlot, epochData, constants, handler, aliceKeyPair)
+	epochHandler, err := newEpochHandler(1, startSlot, epochData, testConstants, handler, aliceKeyPair)
 	require.NoError(t, err)
 	require.Equal(t, epochLength, uint64(len(epochHandler.slotToPreRuntimeDigest)))
 
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), slotDuration*10)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*slotDuration)
 	defer cancel()
 
 	errCh := make(chan error)
@@ -57,12 +59,11 @@ func testHandleSlotFunc(t *testing.T, expectedAuthorityIndex uint32,
 
 	return func(epoch uint64, slot Slot, authorityIndex uint32,
 		preRuntimeDigest *types.PreRuntimeDigest) error {
-
 		require.NotNil(t, preRuntimeDigest)
 		require.Equal(t, expectedEpoch, epoch)
 		require.Equal(t, expectedAuthorityIndex, authorityIndex)
 
-		require.Equal(t, slot.number, currentSlot, "%d != %d", slot.number, currentSlot)
+		require.Equal(t, slot.number, currentSlot)
 
 		// increase the slot by one so we expect the next call
 		// to be exactly 1 slot greater than the previous call
