@@ -344,11 +344,15 @@ func (f *finalisationEngine) Stop() (err error) {
 	return nil
 }
 
+var errFinalisationEngineStopped = errors.New("finalisation engine stopped")
+
 func (f *finalisationEngine) Run() (err error) {
 	defer close(f.engineDone)
 
 	err = f.defineRoundVotes()
-	if err != nil {
+	if errors.Is(err, errFinalisationEngineStopped) {
+		return nil
+	} else if err != nil {
 		return fmt.Errorf("defining round votes: %w", err)
 	}
 
@@ -360,7 +364,7 @@ func (f *finalisationEngine) Run() (err error) {
 	return nil
 }
 
-func (f *finalisationEngine) defineRoundVotes() error {
+func (f *finalisationEngine) defineRoundVotes() (err error) {
 	gossipInterval := f.grandpaService.interval
 	determinePrevoteTimer := time.NewTimer(2 * gossipInterval)
 	determinePrecommitTimer := time.NewTimer(4 * gossipInterval)
@@ -372,7 +376,7 @@ func (f *finalisationEngine) defineRoundVotes() error {
 		case <-f.stopCh:
 			determinePrevoteTimer.Stop()
 			determinePrecommitTimer.Stop()
-			return nil
+			return fmt.Errorf("%w", errFinalisationEngineStopped)
 
 		case <-determinePrevoteTimer.C:
 			alreadyCompletable, err := f.grandpaService.checkRoundCompletable()
