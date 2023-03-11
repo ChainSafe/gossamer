@@ -199,7 +199,8 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	// Allow for epoch state to be made from custom babe config
 	if babeConfig != nil {
-		dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, babeConfig)
+		dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(),
+			dbSrv.Base, dbSrv.Block, babeConfig)
 		require.NoError(t, err)
 	}
 	cfg.BlockState = dbSrv.Block
