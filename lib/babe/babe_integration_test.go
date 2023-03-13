@@ -211,13 +211,13 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Unix(6, 0))
+	slot := getSlot(t, runtime, time.Unix(6, 0))
 	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
 	require.NoError(t, err)
 
@@ -229,7 +229,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		preRuntimeDigest,
 	)
 
-	block, err := builder.buildBlock(&genesisHeader, slot, rt)
+	block, err := builder.buildBlock(&genesisHeader, slot, runtime)
 	require.NoError(t, err)
 
 	// Create new non authority service
