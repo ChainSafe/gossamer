@@ -76,9 +76,10 @@ func waitUntilNextSlot(ctx context.Context, untilNextSlot time.Duration) error {
 	defer cancelWithTimeout()
 
 	<-withTimeout.Done()
-	err := withTimeout.Err()
-	if err != context.DeadlineExceeded {
-		return err
+
+	parentCtxErr := ctx.Err()
+	if parentCtxErr != nil {
+		return parentCtxErr
 	}
 
 	return nil

@@ -79,7 +79,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 	for {
 		currentSlot, err := h.slotHandler.waitForNextSlot(ctx)
-		if errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.DeadlineExceeded) {
 			errCh <- nil
 			return
 		} else if err != nil {
