@@ -25,49 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
-	testDatadirPath := t.TempDir()
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-	}
-
-	dbSrv := state.NewService(config)
-	dbSrv.UseMemDB()
-
-	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
-	require.NoError(t, err)
-
-	err = dbSrv.Start()
-	require.NoError(t, err)
-
-	if genCfg == nil {
-		genCfg = &types.BabeConfiguration{
-			SlotDuration:       2000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		}
-	}
-
-	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
-	require.NoError(t, err)
-
-	logger.Patch(log.SetLevel(defaultTestLogLvl))
-
-	return NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
-}
-
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
@@ -372,32 +329,34 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
-	serviceConfig := ServiceConfig{
-		Authority: true,
-	}
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+
+	// Create service with no authorities
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 1,
+		GenesisAuthorities: nil,
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
+	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
+	verificationManager := NewVerificationManager(babeServiceBob.blockState, babeServiceBob.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	cfg, err := runtime.BabeConfiguration()
-	require.NoError(t, err)
-
-	cfg.C1 = 1
-	cfg.C2 = 1
-	cfg.GenesisAuthorities = []types.AuthorityRaw{}
-
-	vm := newTestVerificationManager(t, cfg)
-
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	slot := getSlot(t, runtime, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeServiceBob, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 
-	err = vm.VerifyBlock(&block.Header)
+	err = verificationManager.VerifyBlock(&block.Header)
 	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
