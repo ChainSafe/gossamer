@@ -494,80 +494,100 @@ func TestService_GetMetadata(t *testing.T) {
 	require.Greater(t, len(res), 10000)
 }
 
-func TestService_HandleRuntimeChanges(t *testing.T) {
-	const (
-		updatedSpecVersion        = uint32(262)
-		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
-	)
-	s := NewTestService(t, nil)
-
-	bestBlockHash := s.blockState.BestBlockHash()
-	rt, err := s.blockState.GetRuntime(bestBlockHash)
+func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, ts *rtstorage.TrieState,
+	bs BlockState) (blockHash common.Hash) {
+	parentRt, err := bs.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	v := rt.Version()
-	currSpecVersion := v.SpecVersion     // genesis runtime version.
-	hash := s.blockState.BestBlockHash() // genesisHash
-
+	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(0), [32]byte{}, [64]byte{})
 	digest := types.NewDigest()
-	err = digest.Add(types.PreRuntimeDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
-	})
+	preRuntimeDigest, err := primaryDigestData.ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*preRuntimeDigest)
 	require.NoError(t, err)
 
-	newBlock1 := &types.Block{
+	newBlock := &types.Block{
 		Header: types.Header{
-			ParentHash: hash,
+			ParentHash: bestBlockHash,
 			Number:     1,
-			Digest:     types.NewDigest()},
+			Digest:     digest,
+		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
+	err = bs.AddBlock(newBlock)
+	require.NoError(t, err)
+
+	newBlockHash := newBlock.Header.Hash()
+	err = bs.HandleRuntimeChanges(ts, parentRt, newBlockHash)
+	require.NoError(t, err)
+
+	return newBlockHash
+}
+
+func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRuntimePath string,
+	ts *rtstorage.TrieState, bs BlockState) (blockHash common.Hash) {
+	parentRt, err := bs.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	testRuntime, err := os.ReadFile(newRuntimePath)
+	require.NoError(t, err)
+
+	ts.Put(common.CodeKey, testRuntime)
+
+	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(1), [32]byte{}, [64]byte{})
+	digest := types.NewDigest()
+	preRuntimeDigest, err := primaryDigestData.ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*preRuntimeDigest)
+	require.NoError(t, err)
 
 	newBlockRTUpdate := &types.Block{
 		Header: types.Header{
-			ParentHash: hash,
+			ParentHash: bestBlockHash,
 			Number:     1,
 			Digest:     digest,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
+	err = bs.AddBlock(newBlockRTUpdate)
+	require.NoError(t, err)
+
+	newBlockRTUpdateHash := newBlockRTUpdate.Header.Hash()
+	err = bs.HandleRuntimeChanges(ts, parentRt, newBlockRTUpdateHash)
+	require.NoError(t, err)
+
+	return newBlockRTUpdateHash
+}
+
+func TestService_HandleRuntimeChanges(t *testing.T) {
+	s := NewTestService(t, nil)
+	genesisBlockHash := s.blockState.BestBlockHash()
+
 	ts, err := s.storageState.TrieState(nil) // Pass genesis root
 	require.NoError(t, err)
 
-	parentRt, err := s.blockState.GetRuntime(hash)
+	firstBlockHash := createBlockUsingOldRuntime(t, genesisBlockHash, ts, s.blockState)
+	const updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
+	secondBlockHash := createBlockUsingNewRuntime(t, genesisBlockHash, updateNodeRuntimeWasmPath, ts, s.blockState)
+
+	// firstBlockHash runtime should not be updated
+	genesisRuntime, err := s.blockState.GetRuntime(genesisBlockHash)
 	require.NoError(t, err)
 
-	v = parentRt.Version()
-	require.Equal(t, v.SpecVersion, currSpecVersion)
-
-	bhash1 := newBlock1.Header.Hash()
-	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
+	firstBlockRuntime, err := s.blockState.GetRuntime(firstBlockHash)
 	require.NoError(t, err)
 
-	testRuntime, err := os.ReadFile(updateNodeRuntimeWasmPath)
+	genesisRuntimeVersion := genesisRuntime.Version()
+	firstBlockRuntimeVersion := firstBlockRuntime.Version()
+	require.Equal(t, genesisRuntimeVersion, firstBlockRuntimeVersion)
+
+	secondBlockRuntime, err := s.blockState.GetRuntime(secondBlockHash)
 	require.NoError(t, err)
 
-	ts.Put(common.CodeKey, testRuntime)
-	rtUpdateBhash := newBlockRTUpdate.Header.Hash()
-
-	// update runtime for new block
-	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
-	require.NoError(t, err)
-
-	// bhash1 runtime should not be updated
-	rt, err = s.blockState.GetRuntime(bhash1)
-	require.NoError(t, err)
-
-	v = rt.Version()
-	require.Equal(t, v.SpecVersion, currSpecVersion)
-
-	rt, err = s.blockState.GetRuntime(rtUpdateBhash)
-	require.NoError(t, err)
-
-	v = rt.Version()
-	require.Equal(t, v.SpecVersion, updatedSpecVersion)
+	const updatedSpecVersion = uint32(262)
+	secondBlockRuntimeVersion := secondBlockRuntime.Version()
+	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {

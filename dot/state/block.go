@@ -829,13 +829,13 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 
 // HandleRuntimeChanges handles the update in runtime.
 func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	rt Runtime, bHash common.Hash) error {
+	parentRuntimeInstance Runtime, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
 	}
 
-	parentCodeHash := rt.GetCodeHash()
+	parentCodeHash := parentRuntimeInstance.GetCodeHash()
 
 	// if the parent code hash is the same as the new code hash
 	// we do nothing since we don't want to store duplicate runtimes
@@ -860,10 +860,10 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		}
 
 		// only update runtime during code substitution if runtime SpecVersion is updated
-		previousVersion := rt.Version()
+		previousVersion := parentRuntimeInstance.Version()
 		if previousVersion.SpecVersion == newVersion.SpecVersion {
 			logger.Info("not upgrading runtime code during code substitution")
-			bs.StoreRuntime(bHash, rt)
+			bs.StoreRuntime(bHash, parentRuntimeInstance)
 			return nil
 		}
 
@@ -874,13 +874,13 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 	rtCfg := wasmer.Config{
 		Storage:     newState,
-		Keystore:    rt.Keystore(),
-		NodeStorage: rt.NodeStorage(),
-		Network:     rt.NetworkService(),
+		Keystore:    parentRuntimeInstance.Keystore(),
+		NodeStorage: parentRuntimeInstance.NodeStorage(),
+		Network:     parentRuntimeInstance.NetworkService(),
 		CodeHash:    currCodeHash,
 	}
 
-	if rt.Validator() {
+	if parentRuntimeInstance.Validator() {
 		rtCfg.Role = 4
 	}
 
@@ -896,7 +896,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
-	newVersion := rt.Version()
+	newVersion := parentRuntimeInstance.Version()
 	go bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }
