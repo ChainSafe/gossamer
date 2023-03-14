@@ -382,6 +382,118 @@ func Test_BlockTree_LowestCommonAncestor_SameChain(t *testing.T) {
 	require.Equal(t, b, p)
 }
 
+func Test_BlockTree_GetBlockRuntime(t *testing.T) {
+	rootNode := &node{
+		hash:   common.Hash{1},
+		number: 100,
+	}
+
+	rootRuntime := NewMockRuntime(nil)
+	blockTree := &BlockTree{
+		root:   rootNode,
+		leaves: newEmptyLeafMap(),
+		runtimes: &hashToRuntime{
+			mapping: map[common.Hash]Runtime{
+				{1}: rootRuntime,
+			},
+		},
+	}
+
+	// {1} -> {2}
+	parent := rootNode
+	newNode := &node{
+		parent: parent,
+		hash:   common.Hash{2},
+		number: 101,
+	}
+	parent.addChild(newNode)
+	blockTree.leaves.replace(parent, newNode)
+
+	// {1} -> {2} -> {3}
+	parent = newNode
+	newNode = &node{
+		parent: parent,
+		hash:   common.Hash{3},
+		number: 102,
+	}
+	parent.addChild(newNode)
+	blockTree.leaves.replace(parent, newNode)
+	lastCanonicalRuntime := NewMockRuntime(nil)
+	blockTree.runtimes.set(common.Hash{3}, lastCanonicalRuntime)
+
+	// {1} -> {2} -> {3} -> {4}
+	parent = newNode
+	newNode = &node{
+		parent: parent,
+		hash:   common.Hash{4},
+		number: 103,
+	}
+	parent.addChild(newNode)
+	blockTree.leaves.replace(parent, newNode)
+
+	// {1} -> {2} -> {3} -> {4}
+	//            -> {5}
+	parent = blockTree.getNode(common.Hash{2})
+	newNode = &node{
+		parent: parent,
+		hash:   common.Hash{5},
+		number: 102,
+	}
+	parent.addChild(newNode)
+	forkedRuntime := NewMockRuntime(nil)
+	blockTree.runtimes.set(common.Hash{5}, forkedRuntime)
+	blockTree.leaves.replace(parent, newNode)
+
+	// {1} -> {2} -> {3} -> {4}
+	//            -> {5} -> {6}
+	parent = blockTree.getNode(common.Hash{5})
+	newNode = &node{
+		parent: parent,
+		hash:   common.Hash{6},
+		number: 103,
+	}
+	parent.addChild(newNode)
+	blockTree.leaves.replace(parent, newNode)
+	blockTree.runtimes.set(common.Hash{6}, lastCanonicalRuntime)
+
+	// {1} -> {2} -> {3} -> {4}
+	//            -> {5} -> {6}
+	//					 -> {7}
+	parent = blockTree.getNode(common.Hash{5})
+	newNode = &node{
+		parent: parent,
+		hash:   common.Hash{7},
+		number: 102,
+	}
+	parent.addChild(newNode)
+	blockTree.leaves.replace(parent, newNode)
+
+	const totalRuntimesInMemory = 4
+	require.Equal(t, totalRuntimesInMemory, len(blockTree.runtimes.mapping))
+
+	testCases := []struct {
+		hashInput       common.Hash
+		expectedRuntime Runtime
+	}{
+		{common.Hash{7}, forkedRuntime},
+		{common.Hash{6}, lastCanonicalRuntime},
+		{common.Hash{5}, forkedRuntime},
+		{common.Hash{4}, lastCanonicalRuntime},
+		{common.Hash{3}, lastCanonicalRuntime},
+		{common.Hash{2}, rootRuntime},
+		{common.Hash{1}, rootRuntime},
+	}
+
+	for _, tt := range testCases {
+		givenRuntime, err := blockTree.GetBlockRuntime(tt.hashInput)
+		require.NoError(t, err)
+		if tt.expectedRuntime != givenRuntime {
+			t.Errorf("exepected %v. got %v", tt.expectedRuntime, givenRuntime)
+			return
+		}
+	}
+}
+
 func Test_BlockTree_Prune(t *testing.T) {
 	t.Parallel()
 
