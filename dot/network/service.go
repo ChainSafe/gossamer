@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/prometheus/procfs"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -86,6 +88,11 @@ var (
 		Namespace: "gossamer_network_streams",
 		Name:      "outbound_total",
 		Help:      "total number of outbound streams",
+	})
+	processStartTimeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "substrate",
+		Name:      "process_start_time_seconds",
+		Help:      "gossamer process start time seconds, using substrate namespace so zombienet detects node start",
 	})
 )
 
@@ -352,6 +359,7 @@ func (s *Service) updateMetrics() {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
+			processStartTimeGauge.Set(getProcessStartTime())
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
@@ -368,6 +376,20 @@ func (s *Service) updateMetrics() {
 	}
 }
 
+func getProcessStartTime() float64 {
+	pid := os.Getpid()
+	p, err := procfs.NewProc(pid)
+	if err != nil {
+		return 0
+	}
+
+	if stat, err := p.Stat(); err == nil {
+		if startTime, err := stat.StartTime(); err == nil {
+			return startTime
+		}
+	}
+	return 0
+}
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
 	for _, conn := range s.host.p2pHost.Network().Conns() {
 		for _, stream := range conn.GetStreams() {
