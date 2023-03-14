@@ -86,7 +86,7 @@ The `importStateAction` function is defined in [`main.go`](main.go).
 The `export` subcommand transforms a genesis configuration and Gossamer state into a TOML configuration file. This
 subcommand invokes the `exportAction` function defined in [`export.go`](export.go).
 
-- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../internal/chain))
+- `--config` - path to a TOML configuration file (e.g. those defined in [the `chain` directory](../../chain))
 - `--basepath` - path to the Gossamer data directory that defines the state to export
 
 ## Client Components
