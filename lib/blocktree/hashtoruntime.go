@@ -64,7 +64,7 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 	}
 
 	finalisedHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]
-	// if there is only one runtime in the mapping then we should update the
+	// if there is only one runtime in the mapping then we should update
 	// its key so the `isDescendant` method at `closestAncestorWithInstance`
 	// don't need to lookup the entire chain in order to find the ancestry
 	if len(h.mapping) == 1 {
@@ -76,14 +76,29 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 	}
 
 	// we procced from backwards since the last element in the newCanonicalBlockHashes
-	// is the finalized one, verifying if there is a runtime if we find it we clear all
-	// the map entries and keeping only the instance found with the finalised hash as the key
+	// is the finalized one, verifying if there is a runtime instance closest to the finalized
+	// hash. when we find it we clear all the map entries and keeping only the instance found
+	// with the finalised hash as the key
+
 	lastElementIdx := len(newCanonicalBlockHashes) - 1
 	for idx := lastElementIdx; idx >= 0; idx-- {
 		currentHash := newCanonicalBlockHashes[idx]
 		inMemoryRuntime := h.mapping[currentHash]
 
 		if inMemoryRuntime != nil {
+			// stop all the running instances created by forks keeping
+			// just the closest instance to the finalized block hash
+			stoppedRuntimes := make(map[Runtime]struct{})
+			for hash, runtime := range h.mapping {
+				if hash != currentHash {
+					_, stopped := stoppedRuntimes[runtime]
+					if !stopped {
+						runtime.Stop()
+						stoppedRuntimes[runtime] = struct{}{}
+					}
+				}
+			}
+
 			h.mapping = make(map[Hash]Runtime)
 			h.mapping[finalisedHash] = inMemoryRuntime
 			return

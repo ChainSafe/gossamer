@@ -64,6 +64,27 @@ func Test_hashToRuntime_get(t *testing.T) {
 	}
 }
 
+func Test_hashToRuntime_hashes(t *testing.T) {
+	t.Parallel()
+
+	htr := &hashToRuntime{
+		mapping: map[Hash]Runtime{
+			{4, 5, 6}: NewMockRuntime(nil),
+			{7, 8, 9}: NewMockRuntime(nil),
+			{1, 2, 3}: NewMockRuntime(nil),
+		},
+	}
+
+	expectedHashes := []common.Hash{
+		{7, 8, 9},
+		{4, 5, 6},
+		{1, 2, 3},
+	}
+
+	hashes := htr.hashes()
+	assert.ElementsMatch(t, expectedHashes, hashes)
+}
+
 func Test_hashToRuntime_set(t *testing.T) {
 	t.Parallel()
 
@@ -165,7 +186,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 	testCases := map[string]struct {
 		makeParameters          func(ctrl *gomock.Controller) (initial, expected *hashToRuntime)
 		newCanonicalBlockHashes []Hash
-		prunedForkBlockHashes   []Hash
 		panicString             string
 	}{
 		"new_finalised_runtime_not_found": {
@@ -173,22 +193,26 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 				return &hashToRuntime{}, nil
 			},
 			newCanonicalBlockHashes: []Hash{{1}},
-			panicString: "runtime not found for finalised block hash " +
-				"0x0100000000000000000000000000000000000000000000000000000000000000",
+			panicString:             "no runtimes available in the mapping while prunning",
 		},
-		"pruned_fork_runtime_not_found": {
+		"prune_fork_runtime_with_a_unique_instance": {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
 				finalisedRuntime := NewMockRuntime(ctrl)
-				return &hashToRuntime{
+				initial = &hashToRuntime{
 					mapping: map[Hash]Runtime{
 						{1}: finalisedRuntime,
 					},
-				}, nil
+				}
+
+				// keep the instance but update the key
+				expected = &hashToRuntime{
+					mapping: map[Hash]Runtime{
+						{2}: finalisedRuntime,
+					},
+				}
+				return initial, expected
 			},
-			newCanonicalBlockHashes: []Hash{{1}},
-			prunedForkBlockHashes:   []Hash{{2}},
-			panicString: "runtime not found for pruned forked block hash " +
-				"0x0200000000000000000000000000000000000000000000000000000000000000",
+			newCanonicalBlockHashes: []Hash{{2}},
 		},
 		"prune_fork_runtimes_only": {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
@@ -198,9 +222,7 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 				initial = &hashToRuntime{
 					mapping: map[Hash]Runtime{
 						{1}: finalisedRuntime,
-						{2}: finalisedRuntime,
 						{3}: prunedForkRuntime,
-						{4}: prunedForkRuntime,
 					},
 				}
 				expected = &hashToRuntime{
@@ -211,7 +233,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 				return initial, expected
 			},
 			newCanonicalBlockHashes: []Hash{{1}},
-			prunedForkBlockHashes:   []Hash{{2}, {3}, {4}},
 		},
 		"new_canonical_block_hash_not_found": {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
@@ -222,11 +243,14 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 						{2}: newFinalisedRuntime,
 					},
 				}
-				return initial, nil
+				expected = &hashToRuntime{
+					mapping: map[Hash]Runtime{
+						{2}: newFinalisedRuntime,
+					},
+				}
+				return initial, expected
 			},
 			newCanonicalBlockHashes: []Hash{{1}, {2}},
-			panicString: "runtime not found for canonical chain block hash " +
-				"0x0100000000000000000000000000000000000000000000000000000000000000",
 		},
 		"prune_fork_and_canonical_runtimes": {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
@@ -243,30 +267,21 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 					mapping: map[Hash]Runtime{
 						// Previously finalised chain
 						{0}: finalisedRuntime,
-						{1}: finalisedRuntime,
 						// Newly finalised chain
-						{2}: finalisedRuntime,
 						{3}: unfinalisedRuntime,
-						{4}: unfinalisedRuntime,
 						{5}: newFinalisedRuntime,
-						{6}: newFinalisedRuntime,
 						// Runtimes from forks
 						{100}: prunedForkRuntime,
-						{101}: prunedForkRuntime,
-						{102}: finalisedRuntime,
-						{103}: newFinalisedRuntime,
 					},
 				}
 				expected = &hashToRuntime{
 					mapping: map[Hash]Runtime{
-						{5}: newFinalisedRuntime,
 						{6}: newFinalisedRuntime,
 					},
 				}
 				return initial, expected
 			},
 			newCanonicalBlockHashes: []Hash{{2}, {3}, {4}, {5}, {6}},
-			prunedForkBlockHashes:   []Hash{{100}, {101}, {102}, {103}},
 		},
 	}
 
