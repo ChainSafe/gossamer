@@ -89,12 +89,12 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 			// stop all the running instances created by forks keeping
 			// just the closest instance to the finalized block hash
 			stoppedRuntimes := make(map[Runtime]struct{})
-			for hash, runtime := range h.mapping {
-				if hash != currentHash {
-					_, stopped := stoppedRuntimes[runtime]
+			for _, runtimeToPrune := range h.mapping {
+				if inMemoryRuntime != runtimeToPrune {
+					_, stopped := stoppedRuntimes[runtimeToPrune]
 					if !stopped {
-						runtime.Stop()
-						stoppedRuntimes[runtime] = struct{}{}
+						runtimeToPrune.Stop()
+						stoppedRuntimes[runtimeToPrune] = struct{}{}
 					}
 				}
 			}
