@@ -103,6 +103,8 @@ type NetworkConfig struct {
 	DiscoveryInterval time.Duration
 	PublicIP          string
 	PublicDNS         string
+	NodeKey           string
+	ListenAddress     string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

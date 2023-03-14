@@ -215,7 +215,7 @@ func TestInvalidCommand(t *testing.T) {
 	gossamer.ExpectExit()
 
 	expectedMessages := []string{
-		"failed to read command argument: \"potato\"",
+		"1 extra unknown command line argument: [potato]\n",
 	}
 
 	for _, m := range expectedMessages {
