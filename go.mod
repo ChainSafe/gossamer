@@ -43,7 +43,7 @@ require (
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 	golang.org/x/term v0.6.0
 	golang.org/x/text v0.8.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.29.1
 )
 
 require (
