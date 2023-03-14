@@ -1,15 +1,16 @@
 package testWasmer
 
 import (
-	"github.com/stretchr/testify/require"
-	"github.com/wasmerio/wasmer-go/wasmer"
 	"testing"
 	"unsafe"
+
+	"github.com/stretchr/testify/require"
+	"github.com/wasmerio/wasmer-go/wasmer"
 )
 
 func createInstance(t *testing.T) (*wasmer.Instance, error) {
-	// We are using the text representation of the module here.
-	// Taken from: https://github.com/wasmerio/wasmer-go/blob/23d786b6b81ad93e2b974d2f4510bea374f0f37c/examples/example_memory_test.go#L28 //nolint:lll
+	// We are using the text representation of the module here. Taken from:
+	// https://github.com/wasmerio/wasmer-go/blob/23d786b6b81ad93e2b974d2f4510bea374f0f37c/examples/example_memory_test.go#L28
 	wasmBytes := []byte(`
 		(module
 		  (type $mem_size_t (func (result i32)))
@@ -83,7 +84,6 @@ func TestMemory_Grow(t *testing.T) {
 }
 
 func TestMemory_Data(t *testing.T) {
-	const pageLength uint32 = 65536
 	instance, err := createInstance(t)
 	require.NoError(t, err)
 
