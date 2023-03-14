@@ -1,4 +1,4 @@
-package testWasmer
+package newWasmer
 
 import (
 	"testing"
