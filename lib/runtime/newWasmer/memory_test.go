@@ -9,6 +9,7 @@ import (
 )
 
 func createInstance(t *testing.T) (*wasmer.Instance, error) {
+	t.Helper()
 	// We are using the text representation of the module here. Taken from:
 	// https://github.com/wasmerio/wasmer-go/blob/23d786b6b81ad93e2b974d2f4510bea374f0f37c/examples/example_memory_test.go#L28
 	wasmBytes := []byte(`
