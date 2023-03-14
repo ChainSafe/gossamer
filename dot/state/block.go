@@ -959,7 +959,7 @@ func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instan
 		// the first ancestor will have the highest number which means it is
 		// the closest ancestor with an instance
 		if isDescendant {
-			return bs.bt.RuntimesMappingGet(header.Hash()), nil
+			return bs.bt.GetBlockRuntimeOrFail(header.Hash())
 		}
 	}
 

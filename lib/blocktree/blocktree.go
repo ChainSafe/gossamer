@@ -42,8 +42,7 @@ type BlockTree struct {
 	leaves *leafMap
 	sync.RWMutex
 
-	runtimesLock sync.RWMutex
-	runtimes     *hashToRuntime
+	runtimes *hashToRuntime
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
@@ -531,7 +530,8 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, instance Runtime) {
 	bt.runtimes.set(hash, instance)
 }
 
-// GetBlockRuntime returns block runtime for corresponding block hash.
+// GetBlockRuntime returns block runtime for corresponding block hash, if there is no instance for
+// the given block hash it will lookup an instance of an ancestor and returns it.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
 	// if the current node contains a runtime entry in the runtime mapping
 	// then we early return the instance, otherwise we will lookup for the
@@ -562,17 +562,18 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
 	return nil, ErrRuntimeNotFound
 }
 
+// GetInMemoryRuntimesBlockHashes returns all the runtimes mapping keys
 func (bt *BlockTree) GetInMemoryRuntimesBlockHashes() []common.Hash {
 	return bt.runtimes.hashes()
 }
 
-func (bt *BlockTree) RuntimesMappingGet(hash common.Hash) (instance Runtime) {
-	bt.runtimesLock.RLock()
-	defer bt.runtimesLock.RUnlock()
-
-	if bt.runtimes == nil {
-		return nil
+// GetBlockRuntimeOrFail returns block runtime for corresponding block hash. if there is no instance
+// fot the given block hash it returns ErrRuntimeNotFound
+func (bt *BlockTree) GetBlockRuntimeOrFail(hash common.Hash) (instance Runtime, err error) {
+	instance = bt.runtimes.get(hash)
+	if instance == nil {
+		return nil, ErrRuntimeNotFound
 	}
 
-	return bt.runtimes.get(hash)
+	return instance, nil
 }
