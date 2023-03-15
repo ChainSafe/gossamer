@@ -3,6 +3,7 @@ package newWasmer
 import "C"
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -113,4 +114,32 @@ func toWasmMemoryFixedSizeOptional(context *Context, data []byte) (
 		return 0, fmt.Errorf("scale encoding: %w", err)
 	}
 	return toWasmMemory(context, encodedOptionalFixedSize)
+}
+
+// toWasmMemoryResult wraps the data byte slice in a Result type, scale encodes it,
+// copies it to wasm memory and returns the corresponding 64 bit pointer size.
+func toWasmMemoryResult(context *Context, data []byte) (
+	pointerSize int64, err error) {
+	var result *types.Result
+	if len(data) == 0 {
+		result = types.NewResult(byte(1), nil)
+	} else {
+		result = types.NewResult(byte(0), data)
+	}
+
+	encodedResult, err := result.Encode()
+	if err != nil {
+		return 0, fmt.Errorf("encoding result: %w", err)
+	}
+
+	return toWasmMemory(context, encodedResult)
+}
+
+func toWasmMemoryResultEmpty(context *Context) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryResult(context, nil)
+	if err != nil {
+		return 0, err
+	}
+	return C.int64_t(pointerSize), nil
 }
