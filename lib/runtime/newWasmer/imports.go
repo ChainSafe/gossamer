@@ -519,20 +519,23 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value)
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
-func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
+func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+	keyTypeID, ok := args[0].Unwrap().(int32)
+	if !ok {
+		panic("keyTypeID is not int32")
+	}
 
 	id := memory[keyTypeID : keyTypeID+4]
 
-	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	ks, err := instanceContext.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		return []wasmer.Value{wasmer.NewI32(ret)}
 	}
 
 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
@@ -540,7 +543,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 			"keystore type for id 0x%x is %s and not expected sr25519",
 			id, ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		return []wasmer.Value{wasmer.NewI32(ret)}
 	}
 
 	keys := ks.PublicKeys()
@@ -554,17 +557,17 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		return []wasmer.Value{wasmer.NewI32(ret)}
 	}
 
 	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ = toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		return []wasmer.Value{wasmer.NewI32(ret)}
 	}
 
-	return C.int64_t(ret)
+	return []wasmer.Value{wasmer.NewI32(ret)}
 }
 
 //export ext_crypto_sr25519_sign_version_1
