@@ -853,8 +853,8 @@ func ext_trie_blake2_256_verify_proof_version_1(env interface{}, args []wasmer.V
 	instanceContext := env.(*Context)
 	rootSpan := args[0].I32()
 	proofSpan := args[1].I64()
-	keySpan := args[1].I64()
-	valueSpan := args[1].I64()
+	keySpan := args[2].I64()
+	valueSpan := args[3].I64()
 
 	toDecProofs := asMemorySlice(instanceContext, proofSpan)
 	var encodedProofNodes [][]byte
@@ -1210,12 +1210,12 @@ func (someRemain) Index() uint       { return 1 }
 func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
 //export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer,
-	childStorageKeySpan, lim C.int64_t) (pointerSize C.int64_t) {
+func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+	childStorageKeySpan := args[0].I64()
+	lim := args[0].I64()
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
 	limitBytes := asMemorySlice(instanceContext, lim)
@@ -1229,7 +1229,7 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer,
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warnf("cannot get child storage: %s", err)
-		return C.int64_t(0)
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
@@ -1244,29 +1244,32 @@ func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer,
 	}
 	if err != nil {
 		logger.Warnf("cannot set varying data type: %s", err)
-		return C.int64_t(0)
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	encoded, err := scale.Marshal(vdt)
 	if err != nil {
 		logger.Warnf("problem marshalling varying data type: %s", err)
-		return C.int64_t(0)
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	out, err := toWasmMemoryOptional(instanceContext, encoded)
 	if err != nil {
 		logger.Warnf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(out)
+	return []wasmer.Value{wasmer.NewI64(out)}
 }
 
 //export ext_allocator_free_version_1
-func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
+func ext_allocator_free_version_1(env interface{}, args []wasmer.Value) {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	runtimeCtx := env.(*Context)
+	addr, ok := args[0].Unwrap().(int32)
+	if !ok {
+		logger.Criticalf("[ext_allocator_free_version_1]", "error", "addr cannot be converted to int32")
+	}
 
 	// Deallocate memory
 	err := runtimeCtx.Allocator.Deallocate(uint32(addr))
@@ -1276,11 +1279,14 @@ func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 }
 
 //export ext_allocator_malloc_version_1
-func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.int32_t {
+func ext_allocator_malloc_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
+	size, ok := args[0].Unwrap().(int32)
+	if !ok {
+		logger.Criticalf("[ext_allocator_malloc_version_1]", "error", "addr cannot be converted to int32")
+	}
 	logger.Tracef("executing with size %d...", int64(size))
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
+	ctx := env.(*Context)
 
 	// Allocate memory
 	res, err := ctx.Allocator.Allocate(uint32(size))
@@ -1289,20 +1295,20 @@ func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.in
 		panic(err)
 	}
 
-	return C.int32_t(res)
+	return []wasmer.Value{wasmer.NewI32(int32(res))}
 }
 
 //export ext_hashing_blake2_128_version_1
-func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_blake2_128_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	hash, err := common.Blake2b128(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
 	logger.Debugf(
@@ -1312,23 +1318,23 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_hashing_blake2_256_version_1
-func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_blake2_256_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1336,23 +1342,23 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_hashing_keccak_256_version_1
-func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_keccak_256_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	hash, err := common.Keccak256(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1360,17 +1366,17 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_hashing_sha2_256_version_1
-func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_sha2_256_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 	hash := common.Sha256(data)
 
@@ -1379,23 +1385,23 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_hashing_twox_256_version_1
-func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_twox_256_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	hash, err := common.Twox256(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1403,22 +1409,23 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_hashing_twox_128_version_1
-func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_twox_128_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
 	logger.Debugf(
@@ -1428,23 +1435,23 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_hashing_twox_64_version_1
-func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_hashing_twox_64_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	hash, err := common.Twox64(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
 	logger.Debugf(
@@ -1454,47 +1461,49 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	return C.int32_t(out)
+	return []wasmer.Value{wasmer.NewI32(int32(out))}
 }
 
 //export ext_offchain_index_set_version_1
-func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
+func ext_offchain_index_set_version_1(env interface{}, args []wasmer.Value) {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	instanceContext := env.(*Context)
+	keySpan := args[0].I64()
+	valueSpan := args[1].I64()
 
 	storageKey := asMemorySlice(instanceContext, keySpan)
 	newValue := asMemorySlice(instanceContext, valueSpan)
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
-	err := runtimeCtx.NodeStorage.BaseDB.Put(storageKey, cp)
+	err := instanceContext.NodeStorage.BaseDB.Put(storageKey, cp)
 	if err != nil {
 		logger.Errorf("failed to set value in raw storage: %s", err)
 	}
 }
 
 //export ext_offchain_local_storage_clear_version_1
-func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, kind C.int32_t, key C.int64_t) {
+func ext_offchain_local_storage_clear_version_1(env interface{}, args []wasmer.Value) {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	instanceContext := env.(*Context)
+	kind := args[0].I32()
+	key := args[1].I64()
 
 	storageKey := asMemorySlice(instanceContext, key)
 
-	memory := instanceContext.Memory().Data()
+	memory := instanceContext.Memory.Data()
 	kindInt := binary.LittleEndian.Uint32(memory[kind : kind+4])
 
 	var err error
 
 	switch runtime.NodeStorageType(kindInt) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Del(storageKey)
+		err = instanceContext.NodeStorage.PersistentStorage.Del(storageKey)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Del(storageKey)
+		err = instanceContext.NodeStorage.LocalStorage.Del(storageKey)
 	}
 
 	if err != nil {
@@ -1503,26 +1512,26 @@ func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, kind C.i
 }
 
 //export ext_offchain_is_validator_version_1
-func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
+func ext_offchain_is_validator_version_1(env interface{}) []wasmer.Value {
 	logger.Debug("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	if runtimeCtx.Validator {
-		return 1
+	instanceContext := env.(*Context)
+	if instanceContext.Validator {
+		return []wasmer.Value{wasmer.NewI32(int32(1))}
 	}
-	return 0
+	return []wasmer.Value{wasmer.NewI32(int32(0))}
 }
 
 //export ext_offchain_local_storage_compare_and_set_version_1
-func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer,
-	kind C.int32_t, key, oldValue, newValue C.int64_t) (newValueSet C.int32_t) {
+func ext_offchain_local_storage_compare_and_set_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	runtimeCtx := env.(*Context)
+	kind := args[0].I32()
+	key := args[1].I64()
+	oldValue := args[2].I64()
+	newValue := args[3].I64()
 
-	storageKey := asMemorySlice(instanceContext, key)
+	storageKey := asMemorySlice(runtimeCtx, key)
 
 	var storedValue []byte
 	var err error
@@ -1536,31 +1545,32 @@ func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer
 
 	if err != nil {
 		logger.Errorf("failed to get value from storage: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int32(0))}
 	}
 
-	oldVal := asMemorySlice(instanceContext, oldValue)
-	newVal := asMemorySlice(instanceContext, newValue)
+	oldVal := asMemorySlice(runtimeCtx, oldValue)
+	newVal := asMemorySlice(runtimeCtx, newValue)
 	if reflect.DeepEqual(storedValue, oldVal) {
 		cp := make([]byte, len(newVal))
 		copy(cp, newVal)
 		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 		if err != nil {
 			logger.Errorf("failed to set value in storage: %s", err)
-			return 0
+			return []wasmer.Value{wasmer.NewI32(int32(0))}
 		}
 	}
 
-	return 1
+	return []wasmer.Value{wasmer.NewI32(int32(1))}
 }
 
 //export ext_offchain_local_storage_get_version_1
-func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, kind C.int32_t, key C.int64_t) C.int64_t {
+func ext_offchain_local_storage_get_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	storageKey := asMemorySlice(instanceContext, key)
+	runtimeCtx := env.(*Context)
+	kind := args[0].I32()
+	key := args[1].I64()
+	storageKey := asMemorySlice(runtimeCtx, key)
 
 	var res []byte
 	var err error
@@ -1576,22 +1586,25 @@ func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, kind C.int
 		logger.Errorf("failed to get value from storage: %s", err)
 	}
 	// allocate memory for value and copy value to memory
-	ptr, err := toWasmMemoryOptional(instanceContext, res)
+	ptr, err := toWasmMemoryOptional(runtimeCtx, res)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(int64(0))}
 	}
-	return C.int64_t(ptr)
+	return []wasmer.Value{wasmer.NewI32(int32(ptr))}
 }
 
 //export ext_offchain_local_storage_set_version_1
-func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int32_t, key, value C.int64_t) {
+func ext_offchain_local_storage_set_version_1(env interface{}, args []wasmer.Value) {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	storageKey := asMemorySlice(instanceContext, key)
-	newValue := asMemorySlice(instanceContext, value)
+	runtimeCtx := env.(*Context)
+	kind := args[0].I32()
+	key := args[1].I64()
+	value := args[2].I64()
+
+	storageKey := asMemorySlice(runtimeCtx, key)
+	newValue := asMemorySlice(runtimeCtx, value)
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
