@@ -426,10 +426,13 @@ func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) []w
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+
+	sig := args[0].I32()
+	msg := args[1].I32()
 
 	// msg must be the 32-byte hash of the message to be signed.
 	// sig must be a 65-byte compact ECDSA signature containing the
@@ -450,10 +453,10 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 	ret, err := toWasmMemoryResult(instanceContext, cpub)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(ret)
+	return []wasmer.Value{wasmer.NewI64(ret)}
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
