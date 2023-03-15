@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"math/big"
 )
 
 // toPointerSize converts an uint32 pointer and uint32 size
@@ -151,6 +152,110 @@ func mustToWasmMemoryResultEmpty(context *Context) (
 		panic(err)
 	}
 	return cPointerSize
+}
+
+// toWasmMemoryOptional scale encodes the uint32 pointer `data`, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
+func toWasmMemoryOptionalUint32(context *Context, data *uint32) (
+	pointerSize int64, err error) {
+	enc, err := scale.Marshal(data)
+	if err != nil {
+		return 0, fmt.Errorf("scale encoding: %w", err)
+	}
+	return toWasmMemory(context, enc)
+}
+
+func mustToWasmMemoryNil(context *Context) (
+	cPointerSize C.int64_t) {
+	allocator := context.Allocator
+	ptr, err := allocator.Allocate(0)
+	if err != nil {
+		// we allocate 0 byte, this should never fail
+		panic(err)
+	}
+	pointerSize := toPointerSize(ptr, 0)
+	return C.int64_t(pointerSize)
+}
+
+// toKillStorageResultEnum encodes the `allRemoved` flag and
+// the `numRemoved` uint32 to a byte slice and returns it.
+// The format used is:
+// Byte 0: 1 if allRemoved is false, 0 otherwise
+// Byte 1-5: scale encoding of numRemoved (up to 4 bytes)
+func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
+	encodedEnumValue []byte, err error) {
+	encodedNumRemoved, err := scale.Marshal(numRemoved)
+	if err != nil {
+		return nil, fmt.Errorf("scale encoding: %w", err)
+	}
+
+	encodedEnumValue = make([]byte, len(encodedNumRemoved)+1)
+	if !allRemoved {
+		// At least one key resides in the child trie due to the supplied limit.
+		encodedEnumValue[0] = 1
+	}
+	copy(encodedEnumValue[1:], encodedNumRemoved)
+
+	return encodedEnumValue, nil
+}
+
+func storageAppend(storage GetSetter, key, valueToAppend []byte) (err error) {
+	// this function assumes the item in storage is a SCALE encoded array of items
+	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
+	currentValue := storage.Get(key)
+
+	var value []byte
+	if len(currentValue) == 0 {
+		nextLength := big.NewInt(1)
+		encodedLength, err := scale.Marshal(nextLength)
+		if err != nil {
+			return fmt.Errorf("scale encoding: %w", err)
+		}
+		value = make([]byte, len(encodedLength)+len(valueToAppend))
+		// append new length prefix to start of items array
+		copy(value, encodedLength)
+		copy(value[len(encodedLength):], valueToAppend)
+	} else {
+		var currentLength *big.Int
+		err := scale.Unmarshal(currentValue, &currentLength)
+		if err != nil {
+			logger.Tracef(
+				"item in storage is not SCALE encoded, overwriting at key 0x%x", key)
+			value = make([]byte, 1+len(valueToAppend))
+			value[0] = 4
+			copy(value[1:], valueToAppend)
+		} else {
+			lengthBytes, err := scale.Marshal(currentLength)
+			if err != nil {
+				return fmt.Errorf("scale encoding: %w", err)
+			}
+
+			// increase length by 1
+			nextLength := big.NewInt(0).Add(currentLength, big.NewInt(1))
+			nextLengthBytes, err := scale.Marshal(nextLength)
+			if err != nil {
+				return fmt.Errorf("scale encoding next length bytes: %w", err)
+			}
+
+			// append new item, pop off number of bytes required for length encoding,
+			// since we're not using old scale.Decoder
+			value = make([]byte, len(nextLengthBytes)+len(currentValue)-len(lengthBytes)+len(valueToAppend))
+			// append new length prefix to start of items array
+			i := 0
+			copy(value[i:], nextLengthBytes)
+			i += len(nextLengthBytes)
+			copy(value[i:], currentValue[len(lengthBytes):])
+			i += len(currentValue) - len(lengthBytes)
+			copy(value[i:], valueToAppend)
+		}
+	}
+
+	err = storage.Put(key, value)
+	if err != nil {
+		return fmt.Errorf("putting key and value in storage: %w", err)
+	}
+
+	return nil
 }
 
 func panicOnError(err error) {
