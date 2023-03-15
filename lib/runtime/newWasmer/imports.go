@@ -324,10 +324,13 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmer.Value) [
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_1
-func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+
+	sig := args[0].I32()
+	msg := args[1].I32()
 
 	// msg must be the 32-byte hash of the message to be signed.
 	// sig must be a 65-byte compact ECDSA signature containing the
@@ -341,7 +344,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 		ret, err := toWasmMemoryResultEmpty(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
-			return 0
+			return []wasmer.Value{wasmer.NewI32(0)}
 		}
 		return ret
 	}
@@ -353,25 +356,29 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	ret, err := toWasmMemoryResult(instanceContext, pub[1:])
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
-	return C.int64_t(ret)
+	return []wasmer.Value{wasmer.NewI32(ret)}
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_2
-func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_version_2(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
+	return ext_crypto_secp256k1_ecdsa_recover_version_1(env, args)
 }
 
 //export ext_crypto_ecdsa_verify_version_2
-func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
+func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+	sigVerifier := instanceContext.SigVerifier
+
+	sig := args[0].I32()
+	msg := args[1].I64()
+	key := args[2].I32()
 
 	message := asMemorySlice(instanceContext, msg)
 	signature := memory[sig : sig+64]
@@ -381,7 +388,7 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 	err := pub.Decode(pubKey)
 	if err != nil {
 		logger.Errorf("failed to decode public key: %s", err)
-		return C.int32_t(0)
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debugf("pub=%s, message=0x%x, signature=0x%x",
@@ -390,7 +397,7 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 	hash, err := common.Blake2bHash(message)
 	if err != nil {
 		logger.Errorf("failed to hash message: %s", err)
-		return C.int32_t(0)
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	if sigVerifier.IsStarted() {
@@ -401,7 +408,7 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 			VerifyFunc: secp256k1.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
-		return C.int32_t(1)
+		return []wasmer.Value{wasmer.NewI32(1)}
 	}
 
 	ok, err := pub.Verify(hash[:], signature)
@@ -411,11 +418,11 @@ func ext_crypto_ecdsa_verify_version_2(context unsafe.Pointer, sig C.int32_t, ms
 			message += ": " + err.Error()
 		}
 		logger.Errorf(message)
-		return C.int32_t(0)
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debug("validated signature")
-	return C.int32_t(1)
+	return []wasmer.Value{wasmer.NewI32(1)}
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
