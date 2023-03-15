@@ -1100,42 +1100,45 @@ func ext_default_child_storage_next_key_version_1(env interface{}, args []wasmer
 }
 
 //export ext_default_child_storage_root_version_1
-func ext_default_child_storage_root_version_1(context unsafe.Pointer,
-	childStorageKey C.int64_t) (ptrSize C.int64_t) {
+func ext_default_child_storage_root_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+
+	childStorageKey := args[0].I64()
 
 	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to retrieve child: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	root, err := toWasmMemoryOptional(instanceContext, childRoot[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(root)
+	return []wasmer.Value{wasmer.NewI64(root)}
 }
 
 //export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(context unsafe.Pointer,
-	childStorageKeySpan, keySpan, valueSpan C.int64_t) {
+func ext_default_child_storage_set_version_1(env interface{}, args []wasmer.Value) {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+
+	childStorageKeySpan := args[0].I64()
+	keySpan := args[1].I64()
+	valueSpan := args[2].I64()
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 	key := asMemorySlice(instanceContext, keySpan)
@@ -1152,12 +1155,12 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer,
 }
 
 //export ext_default_child_storage_storage_kill_version_1
-func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKeySpan C.int64_t) {
+func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wasmer.Value) {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+	childStorageKeySpan := args[0].I64()
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 	err := storage.DeleteChild(childStorageKey)
@@ -1165,13 +1168,14 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer,
-	childStorageKeySpan, lim C.int64_t) (allDeleted C.int32_t) {
+func ext_default_child_storage_storage_kill_version_2(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+	childStorageKeySpan := args[0].I64()
+	lim := args[0].I64()
+
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
 	limitBytes := asMemorySlice(instanceContext, lim)
@@ -1180,7 +1184,7 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer,
 	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warnf("cannot generate limit: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	_, all, err := storage.DeleteChildLimit(childStorageKey, limit)
@@ -1189,10 +1193,10 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer,
 	}
 
 	if all {
-		return 1
+		return []wasmer.Value{wasmer.NewI32(1)}
 	}
 
-	return 0
+	return []wasmer.Value{wasmer.NewI32(0)}
 }
 
 type noneRemain uint32
