@@ -232,51 +232,53 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmer.Val
 }
 
 //export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
+	runtimeCtx := env.(*Context)
+	memory := runtimeCtx.Memory.Data()
 
+	keyTypeID := args[0].I32()
+	key := args[1].I32()
+	msg := args[2].I64()
 	id := memory[keyTypeID : keyTypeID+4]
 
 	pubKeyData := memory[key : key+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Errorf("failed to get public keys: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		return mustToWasmMemoryOptionalNil(runtimeCtx)
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err := toWasmMemoryOptionalNil(instanceContext)
+		ret, err := toWasmMemoryOptionalNil(runtimeCtx)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
-			return 0
+			return []wasmer.Value{wasmer.NewI64(0)}
 		}
 		return ret
 	}
 
-	sig, err := signingKey.Sign(asMemorySlice(instanceContext, msg))
+	sig, err := signingKey.Sign(asMemorySlice(runtimeCtx, msg))
 	if err != nil {
 		logger.Error("could not sign message")
 	}
 
-	ret, err := toWasmMemoryFixedSizeOptional(instanceContext, sig)
+	ret, err := toWasmMemoryFixedSizeOptional(runtimeCtx, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(ret)
+	return []wasmer.Value{wasmer.NewI64(ret)}
 }
 
 //export ext_crypto_ed25519_verify_version_1

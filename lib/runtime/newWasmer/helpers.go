@@ -3,6 +3,7 @@ package newWasmer
 import "C"
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // toPointerSize converts an uint32 pointer and uint32 size
@@ -63,4 +64,53 @@ func toWasmMemorySized(context *Context, data []byte) (
 	copy(memory[pointer:pointer+size], data)
 
 	return pointer, nil
+}
+
+// toWasmMemoryOptional scale encodes the byte slice `data`, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
+func toWasmMemoryOptional(context *Context, data []byte) (
+	pointerSize int64, err error) {
+	var optionalSlice *[]byte
+	if data != nil {
+		optionalSlice = &data
+	}
+
+	encoded, err := scale.Marshal(optionalSlice)
+	if err != nil {
+		return 0, err
+	}
+
+	return toWasmMemory(context, encoded)
+}
+func toWasmMemoryOptionalNil(context *Context) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryOptional(context, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	return C.int64_t(pointerSize), nil
+}
+
+func mustToWasmMemoryOptionalNil(context *Context) (
+	cPointerSize C.int64_t) {
+	cPointerSize, err := toWasmMemoryOptionalNil(context)
+	if err != nil {
+		panic(err)
+	}
+	return cPointerSize
+}
+
+// toWasmMemoryFixedSizeOptional copies the `data` byte slice to a 64B array,
+// scale encodes the pointer to the resulting array, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
+func toWasmMemoryFixedSizeOptional(context *Context, data []byte) (
+	pointerSize int64, err error) {
+	var optionalFixedSize [64]byte
+	copy(optionalFixedSize[:], data)
+	encodedOptionalFixedSize, err := scale.Marshal(&optionalFixedSize)
+	if err != nil {
+		return 0, fmt.Errorf("scale encoding: %w", err)
+	}
+	return toWasmMemory(context, encodedOptionalFixedSize)
 }
