@@ -116,8 +116,7 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 	}
 
 	// TODO add new get imports function
-	//imports, err := importsNodeRuntime()
-	var imports *wasmer.ImportObject
+	imports, err := importsNodeRuntime()
 	if err != nil {
 		return nil, fmt.Errorf("creating node runtime imports: %w", err)
 	}
