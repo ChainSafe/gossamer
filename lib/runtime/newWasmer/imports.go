@@ -944,20 +944,24 @@ func ext_misc_runtime_version_version_1(env interface{}, args []wasmer.Value) []
 }
 
 //export ext_default_child_storage_read_version_1
-func ext_default_child_storage_read_version_1(context unsafe.Pointer,
-	childStorageKey, key, valueOut C.int64_t, offset C.int32_t) C.int64_t {
+func ext_default_child_storage_read_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-	memory := instanceContext.Memory().Data()
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+	storage := instanceContext.Storage
+
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
+	valueOut := args[2].I64()
+	offset := args[3].I32()
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	keyBytes := asMemorySlice(instanceContext, key)
 	value, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child storage: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	valueBuf, valueLen := splitPointerSize(int64(valueOut))
@@ -970,19 +974,20 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer,
 	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(sizeSpan)
+	return []wasmer.Value{wasmer.NewI64(sizeSpan)}
 }
 
 //export ext_default_child_storage_clear_version_1
-func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, keySpan C.int64_t) {
+func ext_default_child_storage_clear_version_1(env interface{}, args []wasmer.Value) {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+	childStorageKey := args[0].I64()
+	keySpan := args[1].I64()
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	key := asMemorySlice(instanceContext, keySpan)
@@ -994,12 +999,13 @@ func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStor
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
-func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey, prefixSpan C.int64_t) {
+func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wasmer.Value) {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+	childStorageKey := args[0].I64()
+	prefixSpan := args[1].I64()
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	prefix := asMemorySlice(instanceContext, prefixSpan)
@@ -1011,72 +1017,86 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_exists_version_1
-func ext_default_child_storage_exists_version_1(context unsafe.Pointer,
-	childStorageKey, key C.int64_t) C.int32_t {
+func ext_default_child_storage_exists_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	keyBytes := asMemorySlice(instanceContext, key)
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 	if child != nil {
-		return 1
+		return []wasmer.Value{wasmer.NewI32(1)}
 	}
-	return 0
+	return []wasmer.Value{wasmer.NewI32(0)}
 }
 
 //export ext_default_child_storage_get_version_1
-func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
+func ext_default_child_storage_get_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	keyBytes := asMemorySlice(instanceContext, key)
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	value, err := toWasmMemoryOptional(instanceContext, child)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(value)
+	return []wasmer.Value{wasmer.NewI64(value)}
 }
 
 //export ext_default_child_storage_next_key_version_1
-func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
+func ext_default_child_storage_next_key_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	instanceContext := env.(*Context)
+	storage := instanceContext.Storage
+
+	childStorageKey, ok := args[0].Unwrap().(int64)
+	if !ok {
+		panic("childStorageKey is not int64")
+	}
+	key, ok := args[1].Unwrap().(int64)
+	if !ok {
+		panic("key is not int64")
+	}
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	keyBytes := asMemorySlice(instanceContext, key)
 	child, err := storage.GetChildNextKey(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child's next key: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	value, err := toWasmMemoryOptional(instanceContext, child)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(value)
+	return []wasmer.Value{wasmer.NewI64(value)}
 }
 
 //export ext_default_child_storage_root_version_1
