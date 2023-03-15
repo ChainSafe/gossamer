@@ -670,13 +670,16 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) [
 }
 
 //export ext_crypto_sr25519_verify_version_2
-func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
-	msg C.int64_t, key C.int32_t) C.int32_t {
+func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+	sigVerifier := instanceContext.SigVerifier
+
+	sig := args[0].I32()
+	msg := args[1].I64()
+	key := args[2].I32()
 
 	message := asMemorySlice(instanceContext, msg)
 	signature := memory[sig : sig+64]
@@ -684,7 +687,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debugf(
@@ -699,7 +702,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
 			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
-		return 1
+		return []wasmer.Value{wasmer.NewI32(1)}
 	}
 
 	ok, err := pub.Verify(message, signature)
@@ -709,11 +712,11 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
 			message += ": " + err.Error()
 		}
 		logger.Errorf(message)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debug("validated signature")
-	return C.int32_t(1)
+	return []wasmer.Value{wasmer.NewI32(1)}
 }
 
 //export ext_crypto_start_batch_verify_version_1
