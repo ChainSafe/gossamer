@@ -33,10 +33,7 @@ func createInstance(t *testing.T) (*wasmer.Instance, error) {
 		  (export "memory" (memory $mem)))
 	`)
 
-	wasmerConfig := wasmer.NewConfig()
-	wasmerConfig.UseSinglepassCompiler()
-
-	engine := wasmer.NewEngineWithConfig(wasmerConfig)
+	engine := wasmer.NewEngine()
 	store := wasmer.NewStore(engine)
 
 	// Compile module
