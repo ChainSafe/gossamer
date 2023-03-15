@@ -184,28 +184,27 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmer.Value)
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
-func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
+func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
+	runtimeCtx := env.(*Context)
+	memory := runtimeCtx.Memory.Data()
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
-
+	keyTypeID := args[0].I32()
 	id := memory[keyTypeID : keyTypeID+4]
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ := toWasmMemory(runtimeCtx, []byte{0})
+		return []wasmer.Value{wasmer.NewI64(ret)}
 	}
 
 	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
 		logger.Warnf(
 			"error for id 0x%x: keystore type is %s and not the expected ed25519",
 			id, ks.Type())
-		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ := toWasmMemory(runtimeCtx, []byte{0})
+		return []wasmer.Value{wasmer.NewI64(ret)}
 	}
 
 	keys := ks.PublicKeys()
@@ -218,18 +217,18 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ := toWasmMemory(runtimeCtx, []byte{0})
+		return []wasmer.Value{wasmer.NewI64(ret)}
 	}
 
-	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
+	ret, err := toWasmMemory(runtimeCtx, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		ret, _ = toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ = toWasmMemory(runtimeCtx, []byte{0})
+		return []wasmer.Value{wasmer.NewI64(ret)}
 	}
 
-	return C.int64_t(ret)
+	return []wasmer.Value{wasmer.NewI64(ret)}
 }
 
 //export ext_crypto_ed25519_sign_version_1

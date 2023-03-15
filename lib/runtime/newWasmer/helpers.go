@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+// toPointerSize converts an uint32 pointer and uint32 size
+// to an int64 pointer size.
+func toPointerSize(ptr, size uint32) (pointerSize int64) {
+	return int64(ptr) | (int64(size) << 32)
+}
+
 // splitPointerSize converts an int64 pointer size to an
 // uint32 pointer and an uint32 size.
 func splitPointerSize(pointerSize int64) (ptr, size uint32) {
@@ -16,6 +22,29 @@ func asMemorySlice(context *Context, pointerSize int64) (data []byte) {
 	memory := context.Memory.Data()
 	ptr, size := splitPointerSize(pointerSize)
 	return memory[ptr : ptr+size]
+}
+
+// toWasmMemory copies a Go byte slice to wasm memory and returns the corresponding
+// 64 bit pointer size.
+func toWasmMemory(context *Context, data []byte) (
+	pointerSize int64, err error) {
+	allocator := context.Allocator
+	size := uint32(len(data))
+
+	ptr, err := allocator.Allocate(size)
+	if err != nil {
+		return 0, fmt.Errorf("allocating: %w", err)
+	}
+
+	memory := context.Memory.Data()
+
+	if uint32(len(memory)) < ptr+size {
+		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", ptr+size, len(memory)))
+	}
+
+	copy(memory[ptr:ptr+size], data)
+	pointerSize = toPointerSize(ptr, size)
+	return pointerSize, nil
 }
 
 // toWasmMemorySized copies a Go byte slice to wasm memory and returns the corresponding
