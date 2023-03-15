@@ -143,3 +143,12 @@ func toWasmMemoryResultEmpty(context *Context) (
 	}
 	return C.int64_t(pointerSize), nil
 }
+
+func mustToWasmMemoryResultEmpty(context *Context) (
+	cPointerSize C.int64_t) {
+	cPointerSize, err := toWasmMemoryResultEmpty(context)
+	if err != nil {
+		panic(err)
+	}
+	return cPointerSize
+}
