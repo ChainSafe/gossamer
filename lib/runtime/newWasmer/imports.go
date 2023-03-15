@@ -460,18 +460,19 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, ar
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
-	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context, sig, msg)
+	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env, args)
 }
 
 //export ext_crypto_sr25519_generate_version_1
-func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
+func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
+	instanceContext := env.(*Context)
+	memory := instanceContext.Memory.Data()
+	keyTypeID := args[0].I32()
+	seedSpan := args[1].I64()
 
 	id := memory[keyTypeID : keyTypeID+4]
 	seedBytes := asMemorySlice(instanceContext, seedSpan)
@@ -480,7 +481,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warnf("cannot generate key: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	var kp KeyPair
@@ -495,26 +496,26 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		panic(err)
 	}
 
-	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	ks, err := instanceContext.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	err = ks.Insert(kp)
 	if err != nil {
 		logger.Warnf("failed to insert key: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debug("generated sr25519 keypair with public key: " + kp.Public().Hex())
-	return C.int32_t(ret)
+	return []wasmer.Value{wasmer.NewI32(ret)}
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
