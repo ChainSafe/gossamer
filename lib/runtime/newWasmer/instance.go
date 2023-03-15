@@ -244,3 +244,24 @@ func decompressWasm(code []byte) ([]byte, error) {
 
 	return decoder.DecodeAll(code[len(compressionFlag):], nil)
 }
+
+// GetRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
+	// TODO fix later
+	//config := Config{
+	//	LogLvl: log.DoNotChange,
+	//}
+	//instance, err := NewInstance(code, config)
+	//if err != nil {
+	//	return version, fmt.Errorf("creating runtime instance: %w", err)
+	//}
+	//defer instance.Stop()
+	//
+	//version, err = instance.version()
+	//if err != nil {
+	//	return version, fmt.Errorf("running runtime: %w", err)
+	//}
+	//
+	//return version, nil
+}
