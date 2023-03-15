@@ -720,7 +720,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) [
 }
 
 //export ext_crypto_start_batch_verify_version_1
-func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
+func ext_crypto_start_batch_verify_version_1(_ interface{}) {
 	logger.Debug("executing...")
 
 	// TODO: fix and re-enable signature verification (#1405)
@@ -728,22 +728,23 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 }
 
 //export ext_crypto_finish_batch_verify_version_1
-func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
+func ext_crypto_finish_batch_verify_version_1(_ interface{}) []wasmer.Value {
 	logger.Debug("executing...")
 
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
-	return 1
+	return []wasmer.Value{wasmer.NewI32(1)}
 }
 
 //export ext_trie_blake2_256_root_version_1
-func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	runtimeCtx := env.(*Context)
+	memory := runtimeCtx.Memory.Data()
+	dataSpan := args[0].I64()
+
+	data := asMemorySlice(runtimeCtx, dataSpan)
 
 	t := trie.NewEmptyTrie()
 
@@ -755,7 +756,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	var kvs []kv
 	if err := scale.Unmarshal(data, &kvs); err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	for _, kv := range kvs {
@@ -763,7 +764,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				kv.Key, kv.Value, err)
-			return 0
+			return []wasmer.Value{wasmer.NewI32(0)}
 		}
 	}
 
@@ -771,42 +772,43 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return C.int32_t(ptr)
+	return []wasmer.Value{wasmer.NewI32(ptr)}
 }
 
 //export ext_trie_blake2_256_ordered_root_version_1
-func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
+func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	runtimeCtx := env.(*Context)
+	memory := runtimeCtx.Memory.Data()
+	dataSpan := args[0].I64()
+
+	data := asMemorySlice(runtimeCtx, dataSpan)
 
 	t := trie.NewEmptyTrie()
 	var values [][]byte
 	err := scale.Unmarshal(data, &values)
 	if err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
-			return 0
+			return []wasmer.Value{wasmer.NewI32(0)}
 		}
 		logger.Tracef(
 			"put key=0x%x and value=0x%x",
@@ -816,7 +818,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				key, value, err)
-			return 0
+			return []wasmer.Value{wasmer.NewI32(0)}
 		}
 	}
 
@@ -824,87 +826,93 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return C.int32_t(ptr)
+	return []wasmer.Value{wasmer.NewI32(ptr)}
 }
 
 //export ext_trie_blake2_256_ordered_root_version_2
-func ext_trie_blake2_256_ordered_root_version_2(context unsafe.Pointer,
-	dataSpan C.int64_t, version C.int32_t) C.int32_t {
+func ext_trie_blake2_256_ordered_root_version_2(env interface{}, args []wasmer.Value) []wasmer.Value {
 	// TODO: update to use state trie version 1 (#2418)
-	return ext_trie_blake2_256_ordered_root_version_1(context, dataSpan)
+	return ext_trie_blake2_256_ordered_root_version_1(env, args)
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer,
-	rootSpan C.int32_t, proofSpan, keySpan, valueSpan C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
+	instanceContext := env.(*Context)
+	rootSpan := args[0].I32()
+	proofSpan := args[1].I64()
+	keySpan := args[1].I64()
+	valueSpan := args[1].I64()
 
 	toDecProofs := asMemorySlice(instanceContext, proofSpan)
 	var encodedProofNodes [][]byte
 	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return C.int32_t(0)
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
 
-	mem := instanceContext.Memory().Data()
+	mem := instanceContext.Memory.Data()
 	trieRoot := mem[rootSpan : rootSpan+32]
 
 	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
 	if err != nil {
 		logger.Errorf("failed proof verification: %s", err)
-		return C.int32_t(0)
+		return []wasmer.Value{wasmer.NewI32(0)}
 	}
 
-	return C.int32_t(1)
+	return []wasmer.Value{wasmer.NewI32(1)}
 }
 
 //export ext_misc_print_hex_version_1
-func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
+func ext_misc_print_hex_version_1(env interface{}, args []wasmer.Value) {
 	logger.Trace("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	ctx := env.(*Context)
+	dataSpan := args[0].I64()
+	data := asMemorySlice(ctx, dataSpan)
 	logger.Debugf("data: 0x%x", data)
 }
 
 //export ext_misc_print_num_version_1
-func ext_misc_print_num_version_1(_ unsafe.Pointer, data C.int64_t) {
+func ext_misc_print_num_version_1(_ interface{}, args []wasmer.Value) {
 	logger.Trace("executing...")
-
-	logger.Debugf("num: %d", int64(data))
+	data := args[0].I64()
+	logger.Debugf("num: %d", data)
 }
 
 //export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
+func ext_misc_print_utf8_version_1(env interface{}, args []wasmer.Value) {
 	logger.Trace("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	ctx := env.(*Context)
+	dataSpan := args[0].I64()
+	data := asMemorySlice(ctx, dataSpan)
 	logger.Debug("utf8: " + string(data))
 }
 
 //export ext_misc_runtime_version_version_1
-func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int64_t {
+func ext_misc_runtime_version_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Trace("executing...")
 
-	instanceContext := wasmer.IntoInstanceContext(context)
+	instanceContext := env.(*Context)
+	dataSpan := args[0].I64()
+	//data := asMemorySlice(ctx, dataSpan)
 	code := asMemorySlice(instanceContext, dataSpan)
 
 	version, err := GetRuntimeVersion(code)
@@ -923,16 +931,16 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
 	out, err := toWasmMemoryOptional(instanceContext, encodedData)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		return []wasmer.Value{wasmer.NewI64(0)}
 	}
 
-	return C.int64_t(out)
+	return []wasmer.Value{wasmer.NewI64(out)}
 }
 
 //export ext_default_child_storage_read_version_1
