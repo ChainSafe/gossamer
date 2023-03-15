@@ -4,7 +4,7 @@
 package main
 
 import (
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // Node flags
@@ -99,8 +99,9 @@ var (
 	}
 	// BasePathFlag data directory for node
 	BasePathFlag = cli.StringFlag{
-		Name:  "basepath",
-		Usage: "Data directory for the node",
+		Name:    "basepath",
+		Aliases: []string{"base-path"}, // base-path is argument used by polkadot node
+		Usage:   "Data directory for the node",
 	}
 	PprofServerFlag = cli.BoolFlag{
 		Name:  "pprofserver",
@@ -123,14 +124,16 @@ var (
 
 	// PublishMetricsFlag publishes node metrics to prometheus.
 	PublishMetricsFlag = cli.BoolFlag{
-		Name:  "publish-metrics",
-		Usage: "Publish node metrics",
+		Name:    "publish-metrics",
+		Aliases: []string{"prometheus-external"}, // prometheus-external is argument used by polkadot node
+		Usage:   "Publish node metrics",
 	}
 
 	// MetricsAddressFlag sets the metric server listening address
 	MetricsAddressFlag = cli.StringFlag{
-		Name:  "metrics-address",
-		Usage: "Set the metric server listening address",
+		Name:    "metrics-address",
+		Aliases: []string{"prometheus-port"},
+		Usage:   "Set the metric server listening address",
 	}
 
 	// NoTelemetryFlag stops publishing telemetry to default defined in genesis.json
@@ -218,8 +221,9 @@ var (
 	}
 	// NoMDNSFlag Disables network mDNS
 	NoMDNSFlag = cli.BoolFlag{
-		Name:  "nomdns",
-		Usage: "Disables network mDNS discovery",
+		Name:    "nomdns",
+		Aliases: []string{"no-mdns"}, // no-mdns is argument used by polkadot node
+		Usage:   "Disables network mDNS discovery",
 	}
 	// PublicIPFlag uses the supplied IP for broadcasting
 	PublicIPFlag = cli.StringFlag{
@@ -230,6 +234,16 @@ var (
 	PublicDNSFlag = cli.StringFlag{
 		Name:  "pubdns",
 		Usage: "Overrides public DNS used for peer to peer networking",
+	}
+	// NodeKeyFlag uses the supplied hex-encoded Ed25519 secret key seed for libp2p networking
+	NodeKeyFlag = cli.StringFlag{
+		Name:  "node-key",
+		Usage: "Overrides the secret Ed25519 key to use for libp2p",
+	}
+	// ListenAddressFlag uses the supplied multiaddress string as the address to listen on
+	ListenAddressFlag = cli.StringFlag{
+		Name:  "listen-addr",
+		Usage: "Listen on this multiaddress",
 	}
 )
 
@@ -252,8 +266,9 @@ var (
 	}
 	// RPCExternalFlag Enable the external HTTP-RPC
 	RPCUnsafeExternalFlag = cli.BoolFlag{
-		Name:  "rpc-unsafe-external",
-		Usage: "Enable external HTTP-RPC connections to unsafe procedures",
+		Name:    "rpc-unsafe-external",
+		Aliases: []string{"unsafe-rpc-external"}, // unsafe-rpc-external is argument used by polkadot node
+		Usage:   "Enable external HTTP-RPC connections to unsafe procedures",
 	}
 	// RPCHostFlag HTTP-RPC server listening hostname
 	RPCHostFlag = cli.StringFlag{
@@ -262,18 +277,21 @@ var (
 	}
 	// RPCPortFlag HTTP-RPC server listening port
 	RPCPortFlag = cli.IntFlag{
-		Name:  "rpcport",
-		Usage: "HTTP-RPC server listening port",
+		Name:    "rpcport",
+		Aliases: []string{"rpc-port"}, // rpc-port is argument used by polkadot node
+		Usage:   "HTTP-RPC server listening port",
 	}
 	// RPCModulesFlag API modules to enable via HTTP-RPC
 	RPCModulesFlag = cli.StringFlag{
-		Name:  "rpcmods",
-		Usage: "API modules to enable via HTTP-RPC, comma separated list",
+		Name:    "rpcmods",
+		Aliases: []string{"rpc-methods"}, // rpc-methods is argument used by polkadot node
+		Usage:   "API modules to enable via HTTP-RPC, comma separated list",
 	}
 	// WSPortFlag WebSocket server listening port
 	WSPortFlag = cli.IntFlag{
-		Name:  "wsport",
-		Usage: "Websockets server listening port",
+		Name:    "wsport",
+		Aliases: []string{"ws-port"}, // ws-port is argument used by polkadot node
+		Usage:   "Websockets server listening port",
 	}
 	// WSFlag Enable the websockets server
 	WSFlag = cli.BoolFlag{
@@ -292,8 +310,14 @@ var (
 	}
 	// WSExternalFlag Enable external websocket connections
 	WSUnsafeExternalFlag = cli.BoolFlag{
-		Name:  "ws-unsafe-external",
-		Usage: "Enable external access to websocket unsafe calls",
+		Name:    "ws-unsafe-external",
+		Aliases: []string{"unsafe-ws-external"}, // unsafe-ws-external is argument used by polkadot node
+		Usage:   "Enable external access to websocket unsafe calls",
+	}
+	// RPCCorsFlag dummy flag provided to conform to polkadot flags
+	RPCCorsFlag = cli.StringFlag{
+		Name:  "rpc-cors",
+		Usage: "dummy place holder to conform with polkadot cli flags",
 	}
 )
 
@@ -365,126 +389,133 @@ var (
 		Name:  "babe-lead",
 		Usage: `specify whether node should build block 1 of the network. only used when starting a new network`,
 	}
+	ValidatorFlag = cli.BoolFlag{
+		Name: "validator", // TODO(ed) implement
+	}
 )
 
 // flag sets that are shared by multiple commands
 var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
 	GlobalFlags = []cli.Flag{
-		LogFlag,
-		LogCoreLevelFlag,
-		LogDigestLevelFlag,
-		LogSyncLevelFlag,
-		LogNetworkLevelFlag,
-		LogRPCLevelFlag,
-		LogStateLevelFlag,
-		LogRuntimeLevelFlag,
-		LogBabeLevelFlag,
-		LogGrandpaLevelFlag,
-		NameFlag,
-		ChainFlag,
-		ConfigFlag,
-		BasePathFlag,
-		PprofServerFlag,
-		PprofAddressFlag,
-		PprofBlockRateFlag,
-		PprofMutexRateFlag,
-		RewindFlag,
+		&LogFlag,
+		&LogCoreLevelFlag,
+		&LogDigestLevelFlag,
+		&LogSyncLevelFlag,
+		&LogNetworkLevelFlag,
+		&LogRPCLevelFlag,
+		&LogStateLevelFlag,
+		&LogRuntimeLevelFlag,
+		&LogBabeLevelFlag,
+		&LogGrandpaLevelFlag,
+		&NameFlag,
+		&ChainFlag,
+		&ConfigFlag,
+		&BasePathFlag,
+		&PprofServerFlag,
+		&PprofAddressFlag,
+		&PprofBlockRateFlag,
+		&PprofMutexRateFlag,
+		&RewindFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
 	StartupFlags = []cli.Flag{
 		// keystore flags
-		KeyFlag,
-		UnlockFlag,
+		&KeyFlag,
+		&UnlockFlag,
 
 		// network flags
-		PortFlag,
-		BootnodesFlag,
-		ProtocolFlag,
-		RolesFlag,
-		NoBootstrapFlag,
-		NoMDNSFlag,
-		PublicIPFlag,
-		PublicDNSFlag,
+		&PortFlag,
+		&BootnodesFlag,
+		&ProtocolFlag,
+		&RolesFlag,
+		&NoBootstrapFlag,
+		&NoMDNSFlag,
+		&PublicIPFlag,
+		&PublicDNSFlag,
+		&NodeKeyFlag,
+		&ListenAddressFlag,
 
 		// rpc flags
-		RPCEnabledFlag,
-		RPCExternalFlag,
-		RPCUnsafeEnabledFlag,
-		RPCUnsafeExternalFlag,
-		RPCHostFlag,
-		RPCPortFlag,
-		RPCModulesFlag,
-		WSFlag,
-		WSExternalFlag,
-		WSUnsafeEnabledFlag,
-		WSUnsafeExternalFlag,
-		WSPortFlag,
+		&RPCEnabledFlag,
+		&RPCExternalFlag,
+		&RPCUnsafeEnabledFlag,
+		&RPCUnsafeExternalFlag,
+		&RPCHostFlag,
+		&RPCPortFlag,
+		&RPCModulesFlag,
+		&WSFlag,
+		&WSExternalFlag,
+		&WSUnsafeEnabledFlag,
+		&WSUnsafeExternalFlag,
+		&WSPortFlag,
+		&RPCCorsFlag,
 
 		// metrics flag
-		PublishMetricsFlag,
-		MetricsAddressFlag,
+		&PublishMetricsFlag,
+		&MetricsAddressFlag,
 
 		// telemetry flags
-		NoTelemetryFlag,
-		TelemetryURLFlag,
+		&NoTelemetryFlag,
+		&TelemetryURLFlag,
 
 		// BABE flags
-		BABELeadFlag,
+		&BABELeadFlag,
+		&ValidatorFlag,
 	}
 )
 
 // local flag sets for the root gossamer command and all subcommands
 var (
 	// RootFlags are the flags that are valid for use with the root gossamer command
-	RootFlags = append(append(GlobalFlags, StartupFlags...), GenesisFlag)
+	RootFlags = append(append(GlobalFlags, StartupFlags...), &GenesisFlag)
 
 	// InitFlags are flags that are valid for use with the init subcommand
 	InitFlags = append([]cli.Flag{
-		ForceFlag,
-		GenesisFlag,
-		PruningFlag,
-		RetainBlockNumberFlag,
+		&ForceFlag,
+		&GenesisFlag,
+		&PruningFlag,
+		&RetainBlockNumberFlag,
 	}, GlobalFlags...)
 
 	BuildSpecFlags = append([]cli.Flag{
-		RawFlag,
-		GenesisSpecFlag,
-		OutputSpecFlag,
+		&RawFlag,
+		&GenesisSpecFlag,
+		&OutputSpecFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
 	ExportFlags = append([]cli.Flag{
-		ForceFlag,
-		GenesisFlag,
+		&ForceFlag,
+		&GenesisFlag,
 	}, append(GlobalFlags, StartupFlags...)...)
 
 	// AccountFlags are flags that are valid for use with the account subcommand
 	AccountFlags = append([]cli.Flag{
-		GenerateFlag,
-		PasswordFlag,
-		ImportFlag,
-		ImportRawFlag,
-		ListFlag,
-		Ed25519Flag,
-		Sr25519Flag,
-		Secp256k1Flag,
+		&GenerateFlag,
+		&PasswordFlag,
+		&ImportFlag,
+		&ImportRawFlag,
+		&ListFlag,
+		&Ed25519Flag,
+		&Sr25519Flag,
+		&Secp256k1Flag,
 	}, GlobalFlags...)
 
 	ImportStateFlags = []cli.Flag{
-		BasePathFlag,
-		ChainFlag,
-		ConfigFlag,
-		StateFlag,
-		HeaderFlag,
-		FirstSlotFlag,
+		&BasePathFlag,
+		&ChainFlag,
+		&ConfigFlag,
+		&StateFlag,
+		&HeaderFlag,
+		&FirstSlotFlag,
 	}
 
 	PruningFlags = []cli.Flag{
-		ChainFlag,
-		ConfigFlag,
-		RetainBlockNumberFlag,
+		&ChainFlag,
+		&ConfigFlag,
+		&RetainBlockNumberFlag,
 	}
 )
 
@@ -501,14 +532,14 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 		for _, flagName := range ctx.FlagNames() {
 
 			// check if flag is set as global or local flag
-			if ctx.GlobalIsSet(flagName) {
+			if ctx.IsSet(flagName) {
 				// log global flag if log equals trace
 				if ctx.String(LogFlag.Name) == trace {
 					logger.Trace("[cmd] global flag set with name: " + flagName)
 				}
 			} else if ctx.IsSet(flagName) {
 				// check if global flag using set as global flag
-				err := ctx.GlobalSet(flagName, ctx.String(flagName))
+				err := ctx.Set(flagName, ctx.String(flagName))
 				if err == nil {
 					// log fixed global flag if log equals trace
 					if ctx.String(LogFlag.Name) == trace {

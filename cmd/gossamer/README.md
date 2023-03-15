@@ -1,7 +1,7 @@
 # Gossamer `cmd` Package
 
 This package encapsulates the entry point to Gossamer - it uses the popular
-[`cli` package from `urfave`](https://github.com/urfave/cli/blob/master/docs/v1/manual.md) to expose a command-line
+[`cli` package from `urfave`](https://github.com/urfave/cli/blob/master/docs/v2/manual.md) to expose a command-line
 interface (CLI). The Gossamer CLI accepts several subcommands, each of which is associated with an "action"; these
 subcommands and their corresponding actions are defined in [`main.go`](main.go). When the Gossamer CLI is executed
 without a subcommand, the `gossamerAction` is invoked.
