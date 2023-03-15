@@ -571,47 +571,51 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 }
 
 //export ext_crypto_sr25519_sign_version_1
-func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasmer.Value) []wasmer.Value {
 	logger.Debug("executing...")
-	instanceContext := wasmer.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
+	runtimeCtx := env.(*Context)
+	memory := runtimeCtx.Memory.Data()
+	keyTypeID := args[0].I32()
+	key := args[1].I32()
+	msg := args[2].I64()
+
+	emptyRet, _ := toWasmMemoryOptional(runtimeCtx, nil)
 
 	id := memory[keyTypeID : keyTypeID+4]
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		return []wasmer.Value{wasmer.NewI64(emptyRet)}
 	}
 
 	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Errorf("failed to get public key: %s", err)
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		return []wasmer.Value{wasmer.NewI64(emptyRet)}
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		return []wasmer.Value{wasmer.NewI64(emptyRet)}
 	}
 
-	msgData := asMemorySlice(instanceContext, msg)
+	msgData := asMemorySlice(runtimeCtx, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Errorf("could not sign message: %s", err)
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		return []wasmer.Value{wasmer.NewI64(emptyRet)}
 	}
 
-	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
+	ret, err = toWasmMemoryFixedSizeOptional(runtimeCtx, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		return []wasmer.Value{wasmer.NewI64(emptyRet)}
 	}
 
-	return C.int64_t(ret)
+	return []wasmer.Value{wasmer.NewI64(ret)}
 }
 
 //export ext_crypto_sr25519_verify_version_1
