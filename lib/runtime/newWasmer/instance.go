@@ -25,15 +25,15 @@ import (
 const Name = "wasmer"
 
 var (
+	ErrCodeEmpty              = errors.New("code is empty")
+	ErrWASMDecompress         = errors.New("wasm decompression failed")
+	ErrInstanceIsStopped      = errors.New("instance is stopped")
+	ErrExportFunctionNotFound = errors.New("export function not found")
+
 	logger = log.NewFromGlobal(
 		log.AddContext("pkg", "runtime"),
 		log.AddContext("module", "go-wasmer"),
 	)
-)
-
-var (
-	ErrCodeEmpty      = errors.New("code is empty")
-	ErrWASMDecompress = errors.New("wasm decompression failed")
 )
 
 // Context is the context for the wasm interpreter's imported functions
@@ -253,21 +253,85 @@ func decompressWasm(code []byte) ([]byte, error) {
 // GetRuntimeVersion finds the runtime version by initiating a temporary
 // runtime instance using the WASM code provided, and querying it.
 func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
-	// TODO fix later
-	//config := Config{
-	//	LogLvl: log.DoNotChange,
+	config := Config{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err := NewInstance(code, config)
+	if err != nil {
+		return version, fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer instance.Stop()
+
+	version, err = instance.version()
+	if err != nil {
+		return version, fmt.Errorf("running runtime: %w", err)
+	}
+
+	return version, nil
+}
+
+// Exec calls the given function with the given data
+func (in *Instance) Exec(function string, data []byte) (result []byte, err error) {
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
+	if in.isClosed {
+		return nil, ErrInstanceIsStopped
+	}
+
+	dataLength := uint32(len(data))
+	inputPtr, err := in.ctx.Allocator.Allocate(dataLength)
+	if err != nil {
+		return nil, fmt.Errorf("allocating input memory: %w", err)
+	}
+
+	defer in.ctx.Allocator.Clear()
+
+	// Store the data into memory
+	memory := in.ctx.Memory.Data()
+	copy(memory[inputPtr:inputPtr+dataLength], data)
+
+	//runtimeFunc, ok := in.vm.Exports[function]
+	//if !ok {
+	//	return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	//}
-	//instance, err := NewInstance(code, config)
-	//if err != nil {
-	//	return version, fmt.Errorf("creating runtime instance: %w", err)
-	//}
-	//defer instance.Stop()
-	//
-	//version, err = instance.version()
-	//if err != nil {
-	//	return version, fmt.Errorf("running runtime: %w", err)
-	//}
-	//
-	//return version, nil
-	return runtime.Version{}, nil
+
+	// This might need to be raw func, tbd
+	runtimeFunc, err := in.vm.Exports.GetFunction(function)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
+	}
+
+	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
+	if err != nil {
+		return nil, fmt.Errorf("running runtime function: %w", err)
+	}
+
+	wasmValueAsI64 := wasmer.NewI64(wasmValue)
+	outputPtr, outputLength := splitPointerSize(wasmValueAsI64.I64())
+	//memory = in.vm.Memory.Data() // call Data() again to get larger slice
+	memory = in.ctx.Memory.Data() // call Data() again to get larger slice
+	return memory[outputPtr : outputPtr+outputLength], nil
+}
+
+// Stop closes the WASM instance, its imports and clears
+// the context allocator in a thread-safe way.
+func (in *Instance) Stop() {
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+	in.close()
+}
+
+// close closes the wasm instance (and its imports)
+// and clears the context allocator. If the instance
+// has previously been closed, it simply returns.
+// It is NOT THREAD SAFE to use.
+func (in *Instance) close() {
+	if in.isClosed {
+		return
+	}
+
+	in.vm.Close()
+	in.ctx.Allocator.Clear()
+	in.isClosed = true
 }
