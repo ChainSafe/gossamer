@@ -121,13 +121,13 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *Context
 	importsMap["ext_crypto_secp256k1_ecdsa_recover_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
 			wasmer.NewValueTypes(wasmer.I32, wasmer.I32),
-			wasmer.NewValueTypes(wasmer.I32),
+			wasmer.NewValueTypes(wasmer.I64),
 		), ctx, ext_crypto_secp256k1_ecdsa_recover_version_1)
 
 	importsMap["ext_crypto_secp256k1_ecdsa_recover_version_2"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
 			wasmer.NewValueTypes(wasmer.I32, wasmer.I32),
-			wasmer.NewValueTypes(wasmer.I32),
+			wasmer.NewValueTypes(wasmer.I64),
 		), ctx, ext_crypto_secp256k1_ecdsa_recover_version_2)
 
 	importsMap["ext_crypto_ecdsa_verify_version_2"] = wasmer.NewFunctionWithEnvironment(store,
