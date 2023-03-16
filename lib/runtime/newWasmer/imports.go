@@ -3,8 +3,6 @@
 
 package newWasmer
 
-import "C" //skipcq: SCC-compile
-
 import (
 	"encoding/binary"
 	"fmt"
@@ -63,7 +61,7 @@ func ext_logging_log_version_1(env interface{}, args []wasmer.Value) ([]wasmer.V
 }
 
 //export ext_logging_max_level_version_1
-func ext_logging_max_level_version_1(_ interface{}) ([]wasmer.Value, error) {
+func ext_logging_max_level_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Trace("executing...")
 	return []wasmer.Value{wasmer.NewI32(4)}, nil
 }
@@ -303,7 +301,7 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmer.Value) (
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Error("failed to create public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI32(0)}, err
 	}
 
 	if sigVerifier.IsStarted() {
@@ -319,7 +317,7 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmer.Value) (
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
 		logger.Error("failed to verify")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI32(0)}, err
 	}
 
 	logger.Debug("verified ed25519 signature")
@@ -429,7 +427,8 @@ func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{},
+	args []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*Context)
 	memory := instanceContext.Memory.Data()
@@ -463,7 +462,8 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, ar
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(env interface{},
+	args []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Trace("executing...")
 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env, args)
 }
@@ -639,7 +639,7 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI32(0)}, err
 	}
 
 	logger.Debugf(
@@ -690,7 +690,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI32(0)}, err
 	}
 
 	logger.Debugf(
@@ -971,7 +971,7 @@ func ext_default_child_storage_read_version_1(env interface{}, args []wasmer.Val
 		return []wasmer.Value{wasmer.NewI64(0)}, nil
 	}
 
-	valueBuf, valueLen := splitPointerSize(int64(valueOut))
+	valueBuf, valueLen := splitPointerSize(valueOut)
 	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
 	size := uint32(len(value[offset:]))
@@ -1536,7 +1536,8 @@ func ext_offchain_is_validator_version_1(env interface{}, _ []wasmer.Value) ([]w
 }
 
 //export ext_offchain_local_storage_compare_and_set_version_1
-func ext_offchain_local_storage_compare_and_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_local_storage_compare_and_set_version_1(env interface{},
+	args []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*Context)
@@ -1701,7 +1702,7 @@ func ext_offchain_submit_transaction_version_1(env interface{}, args []wasmer.Va
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
-	return []wasmer.Value{wasmer.NewI64(int64(ptr))}, nil
+	return ptr, nil
 }
 
 //export ext_offchain_timestamp_version_1
@@ -1848,7 +1849,7 @@ func ext_storage_changes_root_version_1(env interface{}, args []wasmer.Value) ([
 		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(int64(rootSpan))}, nil
+	return rootSpan, nil
 }
 
 //export ext_storage_clear_version_1
@@ -1926,7 +1927,7 @@ func ext_storage_clear_prefix_version_2(env interface{}, args []wasmer.Value) ([
 		return mustToWasmMemoryNil(instanceContext), nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(int64(valueSpan))}, nil
+	return []wasmer.Value{wasmer.NewI64(valueSpan)}, nil
 }
 
 //export ext_storage_exists_version_1
@@ -1967,7 +1968,7 @@ func ext_storage_get_version_1(env interface{}, args []wasmer.Value) ([]wasmer.V
 		return mustToWasmMemoryOptionalNil(instanceContext), nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(int64(valueSpan))}, nil
+	return []wasmer.Value{wasmer.NewI64(valueSpan)}, nil
 }
 
 //export ext_storage_next_key_version_1

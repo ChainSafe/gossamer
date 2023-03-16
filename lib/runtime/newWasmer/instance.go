@@ -115,11 +115,11 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 		return nil, fmt.Errorf("%w: %s", ErrWASMDecompress, err)
 	}
 
-	// TODO add new get imports function
-	imports, err := importsNodeRuntime()
-	if err != nil {
-		return nil, fmt.Errorf("creating node runtime imports: %w", err)
-	}
+	//// TODO add new get imports function
+	//imports, err := importsNodeRuntime(store, memory, runtimeCtx)
+	//if err != nil {
+	//	return nil, fmt.Errorf("creating node runtime imports: %w", err)
+	//}
 
 	// Create engine and store with default values
 	engine := wasmer.NewEngine()
@@ -182,6 +182,11 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
+	// This might need to happen below
+	imports := importsNodeRuntime(store, memory, runtimeCtx)
+	if err != nil {
+		return nil, fmt.Errorf("creating node runtime imports: %w", err)
+	}
 	wasmInstance, err := wasmer.NewInstance(module, imports)
 	if err != nil {
 		return nil, err
@@ -264,4 +269,5 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	//}
 	//
 	//return version, nil
+	return runtime.Version{}, nil
 }
