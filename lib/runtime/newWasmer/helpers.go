@@ -1,10 +1,10 @@
 package newWasmer
 
-import "C"
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/wasmerio/wasmer-go/wasmer"
 	"math/big"
 )
 
@@ -85,22 +85,22 @@ func toWasmMemoryOptional(context *Context, data []byte) (
 	return toWasmMemory(context, encoded)
 }
 func toWasmMemoryOptionalNil(context *Context) (
-	cPointerSize C.int64_t, err error) {
+	cPointerSize []wasmer.Value, err error) {
 	pointerSize, err := toWasmMemoryOptional(context, nil)
 	if err != nil {
-		return 0, err
+		return []wasmer.Value{wasmer.NewI64(0)}, err
 	}
 
-	return C.int64_t(pointerSize), nil
+	return []wasmer.Value{wasmer.NewI64(pointerSize)}, nil
 }
 
 func mustToWasmMemoryOptionalNil(context *Context) (
-	cPointerSize C.int64_t) {
+	cPointerSize []wasmer.Value) {
 	cPointerSize, err := toWasmMemoryOptionalNil(context)
 	if err != nil {
 		panic(err)
 	}
-	return cPointerSize
+	return []wasmer.Value{wasmer.NewI64(cPointerSize)}
 }
 
 // toWasmMemoryFixedSizeOptional copies the `data` byte slice to a 64B array,
@@ -137,16 +137,16 @@ func toWasmMemoryResult(context *Context, data []byte) (
 }
 
 func toWasmMemoryResultEmpty(context *Context) (
-	cPointerSize C.int64_t, err error) {
+	cPointerSize []wasmer.Value, err error) {
 	pointerSize, err := toWasmMemoryResult(context, nil)
 	if err != nil {
-		return 0, err
+		return []wasmer.Value{wasmer.NewI64(0)}, err
 	}
-	return C.int64_t(pointerSize), nil
+	return []wasmer.Value{wasmer.NewI64(pointerSize)}, nil
 }
 
 func mustToWasmMemoryResultEmpty(context *Context) (
-	cPointerSize C.int64_t) {
+	cPointerSize []wasmer.Value) {
 	cPointerSize, err := toWasmMemoryResultEmpty(context)
 	if err != nil {
 		panic(err)
@@ -166,7 +166,7 @@ func toWasmMemoryOptionalUint32(context *Context, data *uint32) (
 }
 
 func mustToWasmMemoryNil(context *Context) (
-	cPointerSize C.int64_t) {
+	cPointerSize []wasmer.Value) {
 	allocator := context.Allocator
 	ptr, err := allocator.Allocate(0)
 	if err != nil {
@@ -174,7 +174,7 @@ func mustToWasmMemoryNil(context *Context) (
 		panic(err)
 	}
 	pointerSize := toPointerSize(ptr, 0)
-	return C.int64_t(pointerSize)
+	return []wasmer.Value{wasmer.NewI64(pointerSize)}
 }
 
 // toKillStorageResultEnum encodes the `allRemoved` flag and
