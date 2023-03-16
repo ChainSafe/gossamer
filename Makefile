@@ -126,4 +126,26 @@ gossamer: clean build
 
 ## install: install the gossamer binary in $GOPATH/bin
 install: build
+ifndef GOPATH
+	$(error GOPATH is not set)
+endif
 	mv ./bin/gossamer $(GOPATH)/bin/gossamer
+
+## local dev network
+init-alice:
+	./bin/gossamer init --force --config ./chain/westend-local/config-alice.toml
+
+init-bob:
+	./bin/gossamer init --force --config ./chain/westend-local/config-bob.toml
+
+init-charlie:
+	./bin/gossamer init --force --config ./chain/westend-local/config-charlie.toml
+
+run-alice: build init-alice
+	./bin/gossamer --config ./chain/westend-local/config-alice.toml --babe-lead
+
+run-bob: build init-bob
+	./bin/gossamer --config ./chain/westend-local/config-bob.toml
+
+run-charlie: build init-charlie
+	./bin/gossamer --config ./chain/westend-local/config-charlie.toml
