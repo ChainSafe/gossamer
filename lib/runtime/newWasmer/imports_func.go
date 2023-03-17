@@ -204,13 +204,13 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *Context
 
 	importsMap["ext_trie_blake2_256_ordered_root_version_2"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
-			wasmer.NewValueTypes(wasmer.I64),
+			wasmer.NewValueTypes(wasmer.I64, wasmer.I32),
 			wasmer.NewValueTypes(wasmer.I32),
 		), ctx, ext_trie_blake2_256_ordered_root_version_2)
 
 	importsMap["ext_trie_blake2_256_verify_proof_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
-			wasmer.NewValueTypes(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I64),
+			wasmer.NewValueTypes(wasmer.I32, wasmer.I64, wasmer.I64, wasmer.I64),
 			wasmer.NewValueTypes(wasmer.I32),
 		), ctx, ext_trie_blake2_256_verify_proof_version_1)
 
@@ -301,7 +301,7 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *Context
 	importsMap["ext_default_child_storage_storage_kill_version_3"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
 			wasmer.NewValueTypes(wasmer.I64, wasmer.I64),
-			wasmer.NewValueTypes(wasmer.I32),
+			wasmer.NewValueTypes(wasmer.I64),
 		), ctx, ext_default_child_storage_storage_kill_version_3)
 
 	importsMap["ext_allocator_free_version_1"] = wasmer.NewFunctionWithEnvironment(store,
