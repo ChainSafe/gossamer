@@ -241,7 +241,7 @@ func newNode(cfg *Config,
 	}
 
 	logger.Patch(log.SetLevel(cfg.Global.LogLvl))
-
+	logger.Debugf("CFG %+v\n", cfg)
 	logger.Infof(
 		"🕸️ initialising node services with global configuration name %s, id %s and base path %s...",
 		cfg.Global.Name, cfg.Global.ID, cfg.Global.BasePath)

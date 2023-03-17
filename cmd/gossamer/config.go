@@ -910,9 +910,9 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	}
 
 	// check genesis id and use genesis id if --chain flag not set
-	if !ctx.IsSet(ChainFlag.Name) {
-		cfg.Global.ID = gen.ID
-	}
+	//if !ctx.IsSet(ChainFlag.Name) {
+	cfg.Global.ID = gen.ID
+	//}
 
 	// check genesis bootnodes and use genesis --bootnodes if name flag not set
 	if !ctx.IsSet(BootnodesFlag.Name) {
