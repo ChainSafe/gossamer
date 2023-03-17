@@ -53,7 +53,7 @@ type Context struct {
 
 // Instance represents a runtime go-wasmer instance
 type Instance struct {
-	vm       wasmer.Instance
+	vm       *wasmer.Instance
 	ctx      *Context
 	isClosed bool
 	codeHash common.Hash
@@ -216,7 +216,7 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 
 	runtimeCtx.Allocator = runtime.NewAllocator(runtimeCtx.Memory, uint32(hb.(int32)))
 	instance := &Instance{
-		vm:       *wasmInstance,
+		vm:       wasmInstance,
 		ctx:      runtimeCtx,
 		codeHash: cfg.CodeHash,
 	}
@@ -312,6 +312,11 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 	//memory = in.vm.Memory.Data() // call Data() again to get larger slice
 	memory = in.ctx.Memory.Data() // call Data() again to get larger slice
 	return memory[outputPtr : outputPtr+outputLength], nil
+}
+
+// NodeStorage to get reference to runtime node service
+func (in *Instance) NodeStorage() runtime.NodeStorage {
+	return in.ctx.NodeStorage
 }
 
 // Stop closes the WASM instance, its imports and clears

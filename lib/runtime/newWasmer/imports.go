@@ -181,7 +181,7 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmer.Value)
 	}
 
 	logger.Debug("generated ed25519 keypair with public key: " + kp.Public().Hex())
-	return []wasmer.Value{wasmer.NewI32(ret)}, nil
+	return []wasmer.Value{wasmer.NewI32(int32(ret))}, nil
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
@@ -538,7 +538,7 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 	if err != nil {
 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI32(ret)}, nil
+		return []wasmer.Value{wasmer.NewI64(ret)}, nil
 	}
 
 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
@@ -546,7 +546,7 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 			"keystore type for id 0x%x is %s and not expected sr25519",
 			id, ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI32(ret)}, nil
+		return []wasmer.Value{wasmer.NewI64(ret)}, nil
 	}
 
 	keys := ks.PublicKeys()
@@ -560,17 +560,17 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI32(ret)}, nil
+		return []wasmer.Value{wasmer.NewI64(ret)}, nil
 	}
 
 	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ = toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI32(ret)}, nil
+		return []wasmer.Value{wasmer.NewI64(ret)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(ret)}, nil
+	return []wasmer.Value{wasmer.NewI64(ret)}, nil
 }
 
 //export ext_crypto_sr25519_sign_version_1
@@ -787,7 +787,8 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) ([
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return []wasmer.Value{wasmer.NewI32(ptr)}, nil
+	// TODO is this safe?
+	return []wasmer.Value{wasmer.NewI32(int32(ptr))}, nil
 }
 
 //export ext_trie_blake2_256_ordered_root_version_1
@@ -841,7 +842,8 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.V
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return []wasmer.Value{wasmer.NewI32(ptr)}, nil
+	// TODO is this safe cast
+	return []wasmer.Value{wasmer.NewI32(int32(ptr))}, nil
 }
 
 //export ext_trie_blake2_256_ordered_root_version_2
@@ -1185,7 +1187,7 @@ func ext_default_child_storage_storage_kill_version_2(env interface{}, args []wa
 	instanceContext := env.(*Context)
 	storage := instanceContext.Storage
 	childStorageKeySpan := args[0].I64()
-	lim := args[0].I64()
+	lim := args[1].I64()
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
@@ -1226,7 +1228,7 @@ func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wa
 	instanceContext := env.(*Context)
 	storage := instanceContext.Storage
 	childStorageKeySpan := args[0].I64()
-	lim := args[0].I64()
+	lim := args[1].I64()
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 
 	limitBytes := asMemorySlice(instanceContext, lim)
@@ -1240,7 +1242,7 @@ func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wa
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warnf("cannot get child storage: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmer.Value{wasmer.NewI64(0)}, err
 	}
 
 	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
