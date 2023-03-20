@@ -7,7 +7,6 @@ package babe
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -16,6 +15,48 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
+
+func TestEpochHandler_run_shouldReturnAfterContextCancel(t *testing.T) {
+	t.Parallel()
+
+	const authorityIndex uint32 = 0
+	aliceKeyPair := keyring.Alice().(*sr25519.Keypair)
+	epochData := &epochData{
+		threshold:      scale.MaxUint128,
+		authorityIndex: authorityIndex,
+		authorities: []types.Authority{
+			*types.NewAuthority(aliceKeyPair.Public(), 1),
+		},
+	}
+
+	const slotDuration = 6 * time.Second
+	const epochLength uint64 = 100
+
+	testConstants := constants{
+		slotDuration: slotDuration,
+		epochLength:  epochLength,
+	}
+
+	const expectedEpoch = 1
+	startSlot := getCurrentSlot(slotDuration)
+	handler := testHandleSlotFunc(t, authorityIndex, expectedEpoch, startSlot)
+
+	epochHandler, err := newEpochHandler(1, startSlot, epochData, testConstants, handler, aliceKeyPair)
+	require.NoError(t, err)
+	require.Equal(t, epochLength, uint64(len(epochHandler.slotToPreRuntimeDigest)))
+
+	timeoutCtx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(7 * time.Second)
+		cancel()
+	}()
+
+	errCh := make(chan error)
+	go epochHandler.run(timeoutCtx, errCh)
+
+	err = <-errCh
+	require.ErrorIs(t, err, context.Canceled)
+}
 
 func TestEpochHandler_run(t *testing.T) {
 	t.Parallel()
@@ -53,7 +94,8 @@ func TestEpochHandler_run(t *testing.T) {
 	go epochHandler.run(timeoutCtx, errCh)
 
 	err = <-errCh
-	require.NoError(t, err)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
 }
 
 func testHandleSlotFunc(t *testing.T, expectedAuthorityIndex uint32,
@@ -65,8 +107,6 @@ func testHandleSlotFunc(t *testing.T, expectedAuthorityIndex uint32,
 		require.NotNil(t, preRuntimeDigest)
 		require.Equal(t, expectedEpoch, epoch)
 		require.Equal(t, expectedAuthorityIndex, authorityIndex)
-
-		fmt.Printf("slot.number = %d\ncurrentSlot = %d\n", slot.number, currentSlot)
 
 		require.GreaterOrEqual(t, slot.number, currentSlot)
 

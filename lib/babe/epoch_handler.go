@@ -61,6 +61,8 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 	}, nil
 }
 
+// run executes the block production for each available successfully claimed slot
+// it is important to note that any error will be transmitted through errCh
 func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 	defer close(errCh)
 	currSlot := getCurrentSlot(h.constants.slotDuration)
@@ -79,10 +81,7 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 	for {
 		currentSlot, err := h.slotHandler.waitForNextSlot(ctx)
-		if errors.Is(err, context.DeadlineExceeded) {
-			errCh <- nil
-			return
-		} else if err != nil {
+		if err != nil {
 			errCh <- err
 			return
 		}
