@@ -345,7 +345,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmer
 		ret, err := toWasmMemoryResultEmpty(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
-			return []wasmer.Value{wasmer.NewI32(0)}, nil
+			return []wasmer.Value{wasmer.NewI64(0)}, nil
 		}
 		return ret, nil
 	}
@@ -357,10 +357,10 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmer
 	ret, err := toWasmMemoryResult(instanceContext, pub[1:])
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(ret)}, nil
+	return []wasmer.Value{wasmer.NewI64(ret)}, nil
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_2
@@ -372,6 +372,8 @@ func ext_crypto_secp256k1_ecdsa_recover_version_2(env interface{}, args []wasmer
 //export ext_crypto_ecdsa_verify_version_2
 func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Trace("executing...")
+
+	// TODO adding errors here, verify correct
 
 	instanceContext := env.(*Context)
 	memory := instanceContext.Memory.Data()
@@ -517,8 +519,11 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value)
 		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
+	// TODO dont think this is safe
+	val := int32(ret)
+
 	logger.Debug("generated sr25519 keypair with public key: " + kp.Public().Hex())
-	return []wasmer.Value{wasmer.NewI32(ret)}, nil
+	return []wasmer.Value{wasmer.NewI32(val)}, nil
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
