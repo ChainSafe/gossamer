@@ -14,8 +14,8 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v23.0.1+incompatible
-	github.com/ethereum/go-ethereum v1.11.3
-	github.com/fatih/color v1.14.1
+	github.com/ethereum/go-ethereum v1.11.4
+	github.com/fatih/color v1.15.0
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
@@ -26,7 +26,7 @@ require (
 	github.com/gtank/merlin v0.1.1
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.9
-	github.com/klauspost/compress v1.16.0
+	github.com/klauspost/compress v1.16.3
 	github.com/libp2p/go-libp2p v0.25.1
 	github.com/libp2p/go-libp2p-kad-dht v0.21.1
 	github.com/multiformats/go-multiaddr v0.8.0
@@ -36,14 +36,14 @@ require (
 	github.com/prometheus/client_model v0.3.0
 	github.com/qdm12/gotree v0.2.0
 	github.com/stretchr/testify v1.8.2
-	github.com/urfave/cli v1.22.12
+	github.com/urfave/cli/v2 v2.25.0
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.7.0
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 	golang.org/x/term v0.6.0
 	golang.org/x/text v0.8.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.30.0
 )
 
 require (
@@ -164,6 +164,7 @@ require (
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce // indirect
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/dig v1.15.0 // indirect
