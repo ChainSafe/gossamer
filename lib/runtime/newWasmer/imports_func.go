@@ -42,13 +42,13 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *Context
 
 	importsMap["ext_transaction_index_index_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
-			wasmer.NewValueTypes(),
+			wasmer.NewValueTypes(wasmer.I32, wasmer.I32, wasmer.I32),
 			wasmer.NewValueTypes(),
 		), ctx, ext_transaction_index_index_version_1)
 
 	importsMap["ext_transaction_index_renew_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
-			wasmer.NewValueTypes(),
+			wasmer.NewValueTypes(wasmer.I32, wasmer.I32),
 			wasmer.NewValueTypes(),
 		), ctx, ext_transaction_index_renew_version_1)
 

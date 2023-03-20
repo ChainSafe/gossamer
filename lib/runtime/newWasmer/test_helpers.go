@@ -2,6 +2,7 @@ package newWasmer
 
 import (
 	"context"
+	"fmt"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -41,6 +42,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
+	fmt.Println(targetRuntime)
 	r, err := NewInstanceFromFile(targetRuntime, cfg)
 	require.NoError(t, err)
 
