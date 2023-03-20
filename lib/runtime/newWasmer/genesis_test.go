@@ -13,7 +13,7 @@ import (
 )
 
 func Test_NewTrieFromGenesis(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := map[string]struct {
 		genesis     genesis.Genesis
@@ -64,7 +64,7 @@ func Test_NewTrieFromGenesis(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			//t.Parallel()
 
 			tr, err := NewTrieFromGenesis(testCase.genesis)
 

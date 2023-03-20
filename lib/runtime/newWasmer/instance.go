@@ -221,7 +221,6 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 		codeHash: cfg.CodeHash,
 	}
 
-	// TODO this should work when we bring in exports
 	if cfg.testVersion != nil {
 		instance.ctx.Version = *cfg.testVersion
 	} else {
