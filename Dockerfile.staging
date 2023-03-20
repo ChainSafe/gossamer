@@ -7,6 +7,7 @@ ARG DD_API_KEY
 ENV chain=${chain}
 ENV basepath=${basepath}
 ENV DD_API_KEY=${DD_API_KEY}
+ENV DD_HOSTNAME=${chain}-host
 
 RUN ["sh", "-c", "DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_API_KEY=${DD_API_KEY} DD_SITE=\"datadoghq.com\" bash -c \"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)\""]
 
