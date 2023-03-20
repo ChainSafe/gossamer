@@ -222,15 +222,15 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 	}
 
 	// TODO this should work when we bring in exports
-	//if cfg.testVersion != nil {
-	//	instance.ctx.Version = *cfg.testVersion
-	//} else {
-	//	instance.ctx.Version, err = instance.version()
-	//	if err != nil {
-	//		instance.close()
-	//		return nil, fmt.Errorf("getting instance version: %w", err)
-	//	}
-	//}
+	if cfg.testVersion != nil {
+		instance.ctx.Version = *cfg.testVersion
+	} else {
+		instance.ctx.Version, err = instance.version()
+		if err != nil {
+			instance.close()
+			return nil, fmt.Errorf("getting instance version: %w", err)
+		}
+	}
 	return instance, nil
 }
 
