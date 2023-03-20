@@ -194,7 +194,7 @@ make init-charlie
 
 Run the nodes:
 
-These targets will reuse the local data generated during `init`
+These targets will reuse the chain data from the previous run / init.
 ```
 make run-alice
 ```
@@ -207,7 +207,7 @@ make run-bob
 make run-charlie
 ```
 
-Force wipe the local data for the nodes and then run them:
+Force wipe the chain data for the nodes and then run them:
 
 ```
 make start-alice
