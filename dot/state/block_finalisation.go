@@ -63,16 +63,6 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 }
 
 func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
-	currRound, currSetID, err := bs.GetHighestRoundAndSetID()
-	if err != nil {
-		return err
-	}
-
-	// higher setID takes precedence over round
-	if setID < currSetID || setID == currSetID && round <= currRound {
-		return nil
-	}
-
 	return bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
 }
 
@@ -206,16 +196,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		return nil
 	}
 
-	prev, err := bs.GetHighestFinalisedHash()
-	if err != nil {
-		return fmt.Errorf("failed to get highest finalised hash: %w", err)
-	}
-
-	if prev == curr {
-		return nil
-	}
-
-	subchain, err := bs.RangeInMemory(prev, curr)
+	subchain, err := bs.RangeInMemory(bs.lastFinalised, curr)
 	if err != nil {
 		return err
 	}
