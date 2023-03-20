@@ -230,6 +230,7 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 			return nil, fmt.Errorf("getting instance version: %w", err)
 		}
 	}
+
 	return instance, nil
 }
 
