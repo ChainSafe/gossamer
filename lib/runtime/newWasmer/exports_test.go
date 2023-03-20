@@ -1051,9 +1051,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO fix
 func TestInstance_DecodeSessionKeys(t *testing.T) {
-	t.Skip()
 	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026" //nolint:lll
 	pubkeys, err := common.HexToBytes(keys)
 	require.NoError(t, err)
