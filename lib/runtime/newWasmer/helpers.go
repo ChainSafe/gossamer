@@ -100,7 +100,8 @@ func mustToWasmMemoryOptionalNil(context *Context) (
 	if err != nil {
 		panic(err)
 	}
-	return []wasmer.Value{wasmer.NewI64(cPointerSize)}
+
+	return cPointerSize
 }
 
 // toWasmMemoryFixedSizeOptional copies the `data` byte slice to a 64B array,

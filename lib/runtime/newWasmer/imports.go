@@ -2020,6 +2020,7 @@ func ext_storage_read_version_1(env interface{}, args []wasmer.Value) ([]wasmer.
 		key, value)
 
 	if value == nil {
+
 		return mustToWasmMemoryOptionalNil(instanceContext), nil
 	}
 
