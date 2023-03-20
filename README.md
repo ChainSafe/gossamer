@@ -176,6 +176,51 @@ Then start the three hosts:
 ./bin/gossamer --config ./chain/westend-local/config-charlie.toml
 ```
 
+#### Using the Makefile
+
+Initialise the nodes:
+
+```
+make init-alice
+```
+
+```
+make init-bob
+```
+
+```
+make init-charlie
+```
+
+Run the nodes:
+
+These targets will reuse the local data generated during `init`
+```
+make run-alice
+```
+
+```
+make run-bob
+```
+
+```
+make run-charlie
+```
+
+Force wipe the local data for the nodes and then run them:
+
+```
+make start-alice
+```
+
+```
+make start-bob
+```
+
+```
+make start-charlie
+```
+
 ## Contribute
 
 - Check out the [Contributing Guidelines](.github/CONTRIBUTING.md) and our

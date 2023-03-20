@@ -149,3 +149,12 @@ run-bob: build init-bob
 
 run-charlie: build init-charlie
 	./bin/gossamer --config ./chain/westend-local/config-charlie.toml
+
+start-alice: build
+	./bin/gossamer --config ./chain/westend-local/config-alice.toml --babe-lead
+
+start-bob: build
+	./bin/gossamer --config ./chain/westend-local/config-bob.toml
+
+start-charlie: build
+	./bin/gossamer --config ./chain/westend-local/config-charlie.toml
