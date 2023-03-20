@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package newWasmer
 
 import (
@@ -59,8 +62,6 @@ func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
 
 	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
 	require.NoError(t, err)
-
-	inst.Stop()
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
@@ -81,8 +82,6 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	expected, err := common.Blake2b128(data)
 	require.NoError(t, err)
 	require.Equal(t, expected[:], hash)
-
-	inst.Stop()
 }
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
@@ -104,7 +103,6 @@ func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected[:], hash)
 
-	inst.Stop()
 }
 
 func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
@@ -125,7 +123,6 @@ func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
 	expected, err := common.Keccak256(data)
 	require.NoError(t, err)
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
 }
 
 func Test_ext_hashing_twox_128_version_1(t *testing.T) {
@@ -146,7 +143,6 @@ func Test_ext_hashing_twox_128_version_1(t *testing.T) {
 	expected, err := common.Twox128Hash(data)
 	require.NoError(t, err)
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
 }
 
 func Test_ext_hashing_twox_64_version_1(t *testing.T) {
@@ -167,7 +163,7 @@ func Test_ext_hashing_twox_64_version_1(t *testing.T) {
 	expected, err := common.Twox64(data)
 	require.NoError(t, err)
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
+
 }
 
 func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
@@ -187,7 +183,6 @@ func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
 
 	expected := common.Sha256(data)
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
 }
 
 func Test_ext_storage_clear_version_1(t *testing.T) {
@@ -205,7 +200,6 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 
 	val := inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
-	inst.Stop()
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
@@ -230,7 +224,6 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
 	require.EqualError(t, err, "Key not found")
 	require.Nil(t, val)
-	inst.Stop()
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
@@ -254,7 +247,6 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
 	require.EqualError(t, err, "Key not found")
 	require.Nil(t, val)
-	inst.Stop()
 }
 
 func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
@@ -312,7 +304,6 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 	requestNumber, err = resReqID.Unwrap()
 	require.NoError(t, err)
 	require.Equal(t, int16(3), requestNumber)
-	inst.Stop()
 }
 
 func Test_ext_offchain_http_request_add_header(t *testing.T) {
@@ -378,7 +369,6 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 			require.Nil(t, ok)
 		})
 	}
-	inst.Stop()
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
@@ -402,7 +392,6 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 
 	val = inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
-	inst.Stop()
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
@@ -426,7 +415,6 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 
 	val = inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
-	inst.Stop()
 }
 
 func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
@@ -500,7 +488,6 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	val = inst.ctx.Storage.Get(testkey5)
 	require.NotNil(t, val)
 	require.Equal(t, testValue5, val)
-	inst.Stop()
 }
 
 func Test_ext_storage_get_version_1(t *testing.T) {
@@ -522,7 +509,6 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, value)
 	require.Equal(t, testvalue, *value)
-	inst.Stop()
 }
 
 func Test_ext_storage_exists_version_1(t *testing.T) {
@@ -570,7 +556,6 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, testCase.result, result)
-			instance.Stop()
 		})
 	}
 }
@@ -596,7 +581,6 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, next)
 	require.Equal(t, nextkey, *next)
-	inst.Stop()
 }
 
 func Test_ext_storage_read_version_1(t *testing.T) {
@@ -626,7 +610,6 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 	require.NotNil(t, read)
 	val := *read
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
-	inst.Stop()
 }
 
 func Test_ext_storage_read_version_1_again(t *testing.T) {
@@ -657,7 +640,6 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 	val := *read
 	require.Equal(t, len(testvalue)-int(testoffset), len(val))
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
-	inst.Stop()
 }
 
 func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
@@ -687,7 +669,6 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 	require.NotNil(t, read)
 	val := *read
 	require.Equal(t, []byte{}, val)
-	inst.Stop()
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
@@ -703,7 +684,6 @@ func Test_ext_storage_root_version_1(t *testing.T) {
 
 	expected := trie.EmptyHash
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
 }
 
 func Test_ext_storage_set_version_1(t *testing.T) {
@@ -723,7 +703,6 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 
 	val := inst.ctx.Storage.Get(testkey)
 	require.Equal(t, testvalue, val)
-	inst.Stop()
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
@@ -746,7 +725,6 @@ func Test_ext_offline_index_set_version_1(t *testing.T) {
 	val, err := inst.ctx.NodeStorage.PersistentStorage.Get(testkey)
 	require.NoError(t, err)
 	require.Equal(t, testvalue, val)
-	inst.Stop()
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
@@ -796,7 +774,6 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.Equal(t, 1, ks.Size())
 	kp := ks.GetKeypair(pubKey)
 	require.NotNil(t, kp)
-	inst.Stop()
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
@@ -837,7 +814,6 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	})
 
 	require.Equal(t, pubKeys, ret)
-	inst.Stop()
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
@@ -877,7 +853,6 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
-	inst.Stop()
 }
 
 func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
@@ -911,7 +886,6 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
 	require.NotNil(t, read)
-	inst.Stop()
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
@@ -947,7 +921,6 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, read)
-	inst.Stop()
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
@@ -1003,7 +976,6 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
-			inst.Stop()
 		})
 	}
 }
@@ -1039,7 +1011,6 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 
 	kp := ks.GetKeypair(pubKey)
 	require.NotNil(t, kp)
-	inst.Stop()
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
@@ -1084,7 +1055,6 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	err = publicKey.UnmarshalPubkey(append([]byte{4}, rawPub...))
 	require.NoError(t, err)
 	require.Equal(t, expectedPubKey, publicKey.Encode())
-	inst.Stop()
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
@@ -1129,7 +1099,6 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) 
 	err = publicKey.Decode(rawPub)
 	require.NoError(t, err)
 	require.Equal(t, expectedPubKey, publicKey.Encode())
-	inst.Stop()
 }
 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
@@ -1170,7 +1139,6 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	})
 
 	require.Equal(t, pubKeys, ret)
-	inst.Stop()
 }
 
 func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
@@ -1212,7 +1180,6 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
-	inst.Stop()
 }
 
 func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
@@ -1246,7 +1213,6 @@ func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
 	require.NotNil(t, read)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
@@ -1287,7 +1253,6 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 
 	val := *read
 	require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
@@ -1317,7 +1282,6 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Nil(t, val)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
@@ -1360,7 +1324,6 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	keys, err = inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(keys))
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
@@ -1386,7 +1349,6 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
 	require.NotNil(t, read)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
@@ -1412,7 +1374,6 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
 	require.NotNil(t, read)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
@@ -1451,7 +1412,6 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, read)
 	require.Equal(t, testKeyValuePair[1].key, *read)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
@@ -1485,7 +1445,6 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 	// Convert decoded interface to common Hash
 	actualValue := common.BytesToHash(hash)
 	require.Equal(t, rootHash, actualValue)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
@@ -1515,7 +1474,6 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Equal(t, testValue, val)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
@@ -1538,7 +1496,6 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 
 	child, _ = inst.ctx.Storage.GetChild(testChildKey)
 	require.Nil(t, child)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.T) {
@@ -1573,7 +1530,6 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
 	require.Empty(t, child.Entries())
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
@@ -1608,7 +1564,6 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(child.Entries()))
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing.T) {
@@ -1640,7 +1595,6 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	child, err = inst.ctx.Storage.GetChild(testChildKey)
 	require.Error(t, err)
 	require.Nil(t, child)
-	inst.Stop()
 }
 
 func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
@@ -1695,7 +1649,6 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		require.NotNil(t, read)
 		require.Equal(t, test.expected, *read)
 	}
-	inst.Stop()
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {
@@ -1745,7 +1698,6 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	expected, err := scale.Marshal([][]byte{testvalue, testvalueAppend})
 	require.NoError(t, err)
 	require.Equal(t, expected, ret)
-	inst.Stop()
 }
 
 func Test_ext_storage_append_version_1_again(t *testing.T) {
@@ -1796,7 +1748,6 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	expected, err := scale.Marshal([][]byte{testvalue, testvalueAppend})
 	require.NoError(t, err)
 	require.Equal(t, expected, ret)
-	inst.Stop()
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
@@ -1816,7 +1767,6 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 
 	expected := common.MustHexToHash("0xd847b86d0219a384d11458e829e9f4f4cce7e3cc2e6dcd0e8a6ad6f12c64a737")
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
 }
 
 func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
@@ -1841,7 +1791,6 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 
 	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
-	inst.Stop()
 }
 
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
@@ -1942,5 +1891,4 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 			require.Equal(t, testcase.expect, got)
 		})
 	}
-	inst.Stop()
 }

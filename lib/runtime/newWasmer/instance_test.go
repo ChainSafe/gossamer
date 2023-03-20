@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package newWasmer
 
 import (
@@ -9,9 +12,10 @@ import (
 	"testing"
 )
 
-// test used for ensuring runtime exec calls can me made concurrently
+// test used for ensuring runtime exec calls can be made concurrently
 func TestConcurrentRuntimeCalls(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	//defer instance.Stop()
 
 	// execute 2 concurrent calls to the runtime
 	go func() {
@@ -57,18 +61,17 @@ func Test_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, expected, version)
 }
 
-// TODO fix this
-//func Benchmark_GetRuntimeVersion(b *testing.B) {
-//	polkadotRuntimeFilepath, err := runtime.GetRuntime(
-//		context.Background(), runtime.POLKADOT_RUNTIME)
-//	require.NoError(b, err)
-//
-//	b.ResetTimer()
-//	for i := 0; i < b.N; i++ {
-//		code, _ := os.ReadFile(polkadotRuntimeFilepath)
-//		_, _ = GetRuntimeVersion(code)
-//	}
-//}
+func Benchmark_GetRuntimeVersion(b *testing.B) {
+	polkadotRuntimeFilepath, err := runtime.GetRuntime(
+		context.Background(), runtime.POLKADOT_RUNTIME)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		code, _ := os.ReadFile(polkadotRuntimeFilepath)
+		_, _ = GetRuntimeVersion(code)
+	}
+}
 
 func TestDecompressWasm(t *testing.T) {
 	encoder, err := zstd.NewWriter(nil)
