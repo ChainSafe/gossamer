@@ -1,20 +1,18 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
 import (
 	"context"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/klauspost/compress/zstd"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
-
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/stretchr/testify/require"
-
-	"github.com/klauspost/compress/zstd"
 )
 
-// test used for ensuring runtime exec calls can me made concurrently
+// test used for ensuring runtime exec calls can be made concurrently
 func TestConcurrentRuntimeCalls(t *testing.T) {
 	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
