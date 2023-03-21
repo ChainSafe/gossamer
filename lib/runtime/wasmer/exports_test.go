@@ -4,8 +4,11 @@
 package wasmer
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"math/big"
 	"os"
 	"testing"
 
@@ -163,69 +166,68 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	return append(append(append(h0, h1...), h2...), pub...)
 }
 
-// TODO fix
-//func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-//	genesisPath := utils.GetWestendDevRawGenesisPath(t)
-//	gen := genesisFromRawJSON(t, genesisPath)
-//	genTrie, err := NewTrieFromGenesis(gen)
-//	require.NoError(t, err)
-//
-//	// set state to genesis state
-//	genState := storage.NewTrieState(&genTrie)
-//
-//	cfg := Config{
-//		Storage: genState,
-//		LogLvl:  log.Critical,
-//	}
-//
-//	nodeStorage := runtime.NodeStorage{}
-//	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
-//	cfg.NodeStorage = nodeStorage
-//
-//	rt, err := NewRuntimeFromGenesis(cfg)
-//	require.NoError(t, err)
-//
-//	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
-//	aliceBalanceKey := balanceKey(t, alicePub)
-//
-//	accInfo := types.AccountInfo{
-//		Nonce: 0,
-//		Data: types.AccountData{
-//			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
-//			Reserved:   scale.MustNewUint128(big.NewInt(0)),
-//			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
-//			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
-//		},
-//	}
-//
-//	encBal, err := scale.Marshal(accInfo)
-//	require.NoError(t, err)
-//
-//	rt.ctx.Storage.Put(aliceBalanceKey, encBal)
-//	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-//	rt.ctx.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
-//
-//	genesisHeader := &types.Header{
-//		Number:    0,
-//		StateRoot: genTrie.MustHash(),
-//	}
-//
-//	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
-//		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-//
-//	genesisHashBytes := genesisHeader.Hash().ToBytes()
-//
-//	validateTransactionArguments := [][]byte{
-//		{byte(types.TxnExternal)},
-//		common.MustHexToBytes(extHex),
-//		genesisHashBytes}
-//
-//	extrinsicsBytes := bytes.Join(validateTransactionArguments, nil)
-//
-//	runtime.InitializeRuntimeToTest(t, rt, genesisHeader)
-//	_, err = rt.ValidateTransaction(extrinsicsBytes)
-//	require.NoError(t, err)
-//}
+func TestNodeRuntime_ValidateTransaction(t *testing.T) {
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState := storage.NewTrieState(&genTrie)
+
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
+
+	nodeStorage := runtime.NodeStorage{}
+	nodeStorage.BaseDB = runtime.NewInMemoryDB(t)
+	cfg.NodeStorage = nodeStorage
+
+	rt, err := NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	aliceBalanceKey := balanceKey(t, alicePub)
+
+	accInfo := types.AccountInfo{
+		Nonce: 0,
+		Data: types.AccountData{
+			Free:       scale.MustNewUint128(big.NewInt(1152921504606846976)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
+		},
+	}
+
+	encBal, err := scale.Marshal(accInfo)
+	require.NoError(t, err)
+
+	rt.ctx.Storage.Put(aliceBalanceKey, encBal)
+	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+	rt.ctx.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: genTrie.MustHash(),
+	}
+
+	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+
+	genesisHashBytes := genesisHeader.Hash().ToBytes()
+
+	validateTransactionArguments := [][]byte{
+		{byte(types.TxnExternal)},
+		common.MustHexToBytes(extHex),
+		genesisHashBytes}
+
+	extrinsicsBytes := bytes.Join(validateTransactionArguments, nil)
+
+	runtime.InitializeRuntimeToTest(t, rt, genesisHeader)
+	_, err = rt.ValidateTransaction(extrinsicsBytes)
+	require.NoError(t, err)
+}
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
@@ -453,77 +455,74 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO fix
-//func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
-//	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
-//	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
-//
-//	// reset state back to parent state before executing
-//	parentState := storage.NewTrieState(nil)
-//	instance.SetContextStorage(parentState)
-//
-//	_, err := instance.ExecuteBlock(block)
-//	require.NoError(t, err)
-//}
+func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
-// TODO fix
-//func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
-//	genesisPath := utils.GetWestendDevRawGenesisPath(t)
-//	gen := genesisFromRawJSON(t, genesisPath)
-//	genTrie, err := NewTrieFromGenesis(gen)
-//	require.NoError(t, err)
-//
-//	// set state to genesis state
-//	genState := storage.NewTrieState(&genTrie)
-//
-//	cfg := Config{
-//		Storage: genState,
-//		LogLvl:  log.Critical,
-//	}
-//
-//	instance, err := NewRuntimeFromGenesis(cfg)
-//	require.NoError(t, err)
-//
-//	// reset state back to parent state before executing
-//	parentState := storage.NewTrieState(&genTrie)
-//	instance.SetContextStorage(parentState)
-//
-//	genesisHeader := &types.Header{
-//		Number:    0,
-//		StateRoot: genTrie.MustHash(),
-//	}
-//	header := &types.Header{
-//		ParentHash: genesisHeader.Hash(),
-//		Number:     1,
-//		Digest:     types.NewDigest(),
-//	}
-//
-//	err = instance.InitializeBlock(header)
-//	require.NoError(t, err)
-//
-//	extHex := runtime.NewTestExtrinsic(t, instance, genesisHeader.Hash(), genesisHeader.Hash(),
-//		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
-//
-//	res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
-//	require.NoError(t, err)
-//	require.Equal(t, []byte{0, 0}, res)
-//}
+	// reset state back to parent state before executing
+	parentState := storage.NewTrieState(nil)
+	instance.SetContextStorage(parentState)
 
-// TODO fix
-//func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
-//	DefaultTestLogLvl = 0
-//
-//	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
-//
-//	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
-//
-//	// reset state back to parent state before executing
-//	parentState := storage.NewTrieState(nil)
-//	instance.SetContextStorage(parentState)
-//
-//	_, err := instance.ExecuteBlock(block)
-//	require.NoError(t, err)
-//}
+	_, err := instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
+	gen := genesisFromRawJSON(t, genesisPath)
+	genTrie, err := NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState := storage.NewTrieState(&genTrie)
+
+	cfg := Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
+
+	instance, err := NewRuntimeFromGenesis(cfg)
+	require.NoError(t, err)
+
+	// reset state back to parent state before executing
+	parentState := storage.NewTrieState(&genTrie)
+	instance.SetContextStorage(parentState)
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: genTrie.MustHash(),
+	}
+	header := &types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     1,
+		Digest:     types.NewDigest(),
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	extHex := runtime.NewTestExtrinsic(t, instance, genesisHeader.Hash(), genesisHeader.Hash(),
+		0, signature.TestKeyringPairAlice, "System.remark", []byte{0xab, 0xcd})
+
+	res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0}, res)
+}
+
+func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
+	DefaultTestLogLvl = 0
+
+	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+
+	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
+
+	// reset state back to parent state before executing
+	parentState := storage.NewTrieState(nil)
+	instance.SetContextStorage(parentState)
+
+	_, err := instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)

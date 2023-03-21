@@ -291,7 +291,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.ctx = next.ctx
 
 	// This already happens in new instance call
-	
+
 	// Find runtime instance version and cache it in its
 	// instance context.
 	//version, err := in.version()
