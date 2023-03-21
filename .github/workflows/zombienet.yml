@@ -1,10 +1,26 @@
 name: zombienet
-run-name: ${{ github.actor }} is learning GitHub Actions
+run-name: ${{ github.actor }} is running Zombienet tests
 on: [push]
 jobs:
-  check-bats-version:
+  zombienet-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Install Zombienet
+      - run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
+            mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0-macos
+            mv $HOME/.local/bin/subkey-v2.0.0-macos $HOME/.local/bin/subkey
+          else
+            echo "Subkey for $RUNNER_OS is not supported"
+            exit 1
+          fi
+          
+          chmod +x $HOME/.local/bin/subkey
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "subkey version" + subkey --version
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
