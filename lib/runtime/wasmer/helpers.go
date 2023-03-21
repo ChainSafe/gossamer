@@ -5,11 +5,12 @@ package wasmer
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/wasmerio/wasmer-go/wasmer"
-	"math/big"
 )
 
 // toPointerSize converts an uint32 pointer and uint32 size

@@ -7,6 +7,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"net/http"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
@@ -20,13 +25,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wasmerio/wasmer-go/wasmer"
-	"net/http"
-	"sort"
-	"testing"
-	"time"
 )
 
 var testChildKey = []byte("childKey")

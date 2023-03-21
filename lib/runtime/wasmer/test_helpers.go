@@ -5,6 +5,8 @@ package wasmer
 
 import (
 	"context"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -14,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances
