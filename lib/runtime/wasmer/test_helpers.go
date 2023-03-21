@@ -1,12 +1,10 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
 
 import (
 	"context"
-	"testing"
-
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -16,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances

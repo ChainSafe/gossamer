@@ -1,4 +1,4 @@
-// Copyright 2022 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -12,8 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
-// Config is the configuration used to create a
-// Wasmer runtime instance.
+// Config is the configuration used to create a Wasmer runtime instance.
 type Config struct {
 	Storage     Storage
 	Keystore    *keystore.GlobalKeystore

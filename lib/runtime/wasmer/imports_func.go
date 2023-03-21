@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package newWasmer
+package wasmer
 
 import (
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/wasmerio/wasmer-go/wasmer"
 )
 
 // importsNodeRuntime returns the WASM imports for the node runtime.
-func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *Context) *wasmer.ImportObject {
+func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *runtime.Context) *wasmer.ImportObject {
 	importsMap := make(map[string]wasmer.IntoExtern)
 
 	if memory != nil {
