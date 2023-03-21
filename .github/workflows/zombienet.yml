@@ -20,7 +20,7 @@ jobs:
           
           chmod +x $HOME/.local/bin/subkey
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "subkey version" + subkey --version
+
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
