@@ -5,10 +5,12 @@ jobs:
   zombienet-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
-          all_but_latest: true
+          node-version: '14'
+      - run: npm install -g bats
+      - run: bats -v
 
       - uses: actions/setup-go@v3
         with:
