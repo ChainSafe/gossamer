@@ -64,6 +64,8 @@ type NetworkConfig struct {
 	DiscoveryInterval int      `toml:"discovery-interval,omitempty"`
 	PublicIP          string   `toml:"public-ip,omitempty"`
 	PublicDNS         string   `toml:"public-dns,omitempty"`
+	NodeKey           string   `toml:"node-key,omitempty"`
+	ListenAddress     string   `toml:"listen-addr,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
