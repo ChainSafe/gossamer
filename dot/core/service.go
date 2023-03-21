@@ -212,13 +212,14 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	rt, err := s.blockState.GetRuntime(block.Header.ParentHash)
+	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
 		return err
 	}
 
 	// check for runtime changes
-	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+	err = s.blockState.HandleRuntimeChanges(state, parentRuntimeInstance, block.Header.Hash())
+	if err != nil {
 		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}

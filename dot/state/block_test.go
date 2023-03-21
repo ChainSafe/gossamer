@@ -38,6 +38,8 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
 
+	bs.StoreRuntime(header.Hash(), nil)
+
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
 	tr := trie.NewEmptyTrie()
@@ -1015,6 +1017,7 @@ func TestRange(t *testing.T) {
 			}
 
 			blockState := tt.newBlockState(t, ctrl, genesisHeader)
+			blockState.StoreRuntime(genesisHeader.Hash(), nil)
 
 			testBlockBody := *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 			hashesCreated := make([]common.Hash, 0, tt.blocksToCreate)
@@ -1078,4 +1081,47 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())
 	require.NoError(t, err)
 	require.Equal(t, genesisHeader.Hash(), header.Hash())
+}
+
+func Test_GetRuntime_StoreRuntime(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	db := NewInMemoryDB(t)
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigest(),
+	}
+	genesisHash := genesisHeader.Hash()
+	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
+
+	runtimeInstance := NewMockRuntime(nil)
+	blockState.StoreRuntime(genesisHash, runtimeInstance)
+
+	genesisRuntimeInstance, err := blockState.GetRuntime(genesisHash)
+	require.NoError(t, err)
+	require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+
+	chain, _ := AddBlocksToState(t, blockState, 5, false)
+	for _, hashInChain := range chain {
+		genesisRuntimeInstance, err := blockState.GetRuntime(hashInChain.Hash())
+		require.NoError(t, err)
+		require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+	}
+	inMemoryRuntimeHashes := blockState.bt.GetInMemoryRuntimesBlockHashes()
+	require.Len(t, inMemoryRuntimeHashes, 1)
+	require.Equal(t, inMemoryRuntimeHashes[0], genesisHash)
+
+	lastElementOnChain := chain[len(chain)-1]
+	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0)
+	require.NoError(t, err)
+
+	inMemoryRuntimeHashes = blockState.bt.GetInMemoryRuntimesBlockHashes()
+	require.Len(t, inMemoryRuntimeHashes, 1)
+	require.Equal(t, inMemoryRuntimeHashes[0], lastElementOnChain.Hash())
 }

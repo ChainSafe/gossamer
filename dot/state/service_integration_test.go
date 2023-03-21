@@ -144,6 +144,8 @@ func TestService_BlockTree(t *testing.T) {
 	err = stateA.Start()
 	require.NoError(t, err)
 
+	stateA.Block.StoreRuntime(genesisHeader.Hash(), nil)
+
 	// add blocks to state
 	AddBlocksToState(t, stateA.Block, 10, false)
 	head := stateA.Block.BestBlockHash()
@@ -243,6 +245,8 @@ func TestService_PruneStorage(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
+	serv.Block.StoreRuntime(genesisHeader.Hash(), nil)
+
 	type prunedBlock struct {
 		hash  common.Hash
 		dbKey []byte
@@ -323,6 +327,8 @@ func TestService_Rewind(t *testing.T) {
 
 	err = serv.Start()
 	require.NoError(t, err)
+
+	serv.Block.StoreRuntime(genesisHeader.Hash(), nil)
 
 	err = serv.Grandpa.setCurrentSetID(3)
 	require.NoError(t, err)

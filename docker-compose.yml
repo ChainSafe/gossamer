@@ -41,6 +41,8 @@ services:
             - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
             # The following line can be uncommented to persist metrics data.
             # - gossamer-prometheus:/prometheus
+        ports:
+            - 9090:9090/tcp # HTTP Web interface at http://localhost:9090/
         expose:
             - 9090/tcp # Prometheus metrics for Grafana
 
