@@ -5,6 +5,39 @@ jobs:
   zombienet-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          all_but_latest: true
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+          stable: true
+          check-latest: true
+
+      - name: Set cache variables
+        id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+
+      - uses: actions/checkout@v3
+
+      - name: Go build cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-build
+
+      - name: Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-mod
+
       - name: Install Zombienet
       - run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -20,10 +53,3 @@ jobs:
           
           chmod +x $HOME/.local/bin/subkey
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-      - run: npm install -g bats
-      - run: bats -v
