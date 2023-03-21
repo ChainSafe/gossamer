@@ -6,6 +6,11 @@ package wasmer
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
+	"math/rand"
+	"reflect"
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -17,10 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/wasmerio/wasmer-go/wasmer"
-	"math/big"
-	"math/rand"
-	"reflect"
-	"time"
 )
 
 const (
@@ -642,7 +643,7 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI32(0)}, nil //nolint
 	}
 
 	logger.Debugf(
@@ -693,7 +694,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmer.Value{wasmer.NewI32(0)}, nil //nolint
 	}
 
 	logger.Debugf(
@@ -1672,7 +1673,7 @@ func ext_offchain_random_seed_version_1(env interface{}, _ []wasmer.Value) ([]wa
 	instanceContext := env.(*runtime.Context)
 
 	seed := make([]byte, 32)
-	_, err := rand.Read(seed)
+	_, err := rand.Read(seed) //nolint
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
@@ -2025,7 +2026,7 @@ func ext_storage_read_version_1(env interface{}, args []wasmer.Value) ([]wasmer.
 	var size uint32
 	if uint32(offset) <= uint32(len(value)) {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := splitPointerSize(int64(valueOut))
+		valueBuf, valueLen := splitPointerSize(valueOut)
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 

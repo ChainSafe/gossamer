@@ -7,6 +7,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -16,9 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/klauspost/compress/zstd"
 	"github.com/wasmerio/wasmer-go/wasmer"
-	"os"
-	"path/filepath"
-	"sync"
 )
 
 // Name represents the name of the interpreter
@@ -146,7 +147,7 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 	if !hasExportedMemory {
 		if memoryType == nil {
 			// values from newer kusama/polkadot runtimes
-			lim, err := wasmer.NewLimits(23, 4294967295) //nolint
+			lim, err := wasmer.NewLimits(23, 4294967295)
 			if err != nil {
 				return nil, err
 			}
