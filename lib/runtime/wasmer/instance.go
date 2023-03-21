@@ -337,6 +337,8 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
 
+	fmt.Println(function)
+
 	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
