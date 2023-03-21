@@ -4,15 +4,15 @@ log = "info"
 metrics-address = "localhost:9876"
 
 [log]
-core = ""
-network = ""
+core = "debug"
+network = "debug"
 rpc = ""
-state = ""
+state = "debug"
 runtime = ""
 babe = ""
-grandpa = ""
-sync = ""
-digest = ""
+grandpa = "debug"
+sync = "debug"
+digest = "debug"
 
 [init]
 genesis = "./chain/westend/genesis.json"
