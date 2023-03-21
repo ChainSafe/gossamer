@@ -6,5 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Bats
-      - run: npm install -g bats
-      - run: bats -v
+        run: npm install -g bats
+
+      - name: Run Bats
+        run: bats -v
