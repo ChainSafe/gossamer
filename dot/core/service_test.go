@@ -252,7 +252,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			},
 			blockHash:  common.Hash{0x01},
 			errWrapped: wasmer.ErrWASMDecompress,
-			errMessage: "creating new runtime instance: setting up VM: " +
+			errMessage: "creating new runtime instance: " +
 				"wasm decompression failed: unexpected EOF",
 		},
 		"store_code_substitution_block_hash_error": {
