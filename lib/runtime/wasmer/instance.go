@@ -268,8 +268,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	cfg := Config{
-		// TODO fix below
-		//Storage:     in.ctx.Storage,
+		Storage:     in.ctx.Storage,
 		Keystore:    in.ctx.Keystore,
 		NodeStorage: in.ctx.NodeStorage,
 		Network:     in.ctx.Network,
@@ -292,6 +291,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.ctx = next.ctx
 
 	// This already happens in new instance call
+	
 	// Find runtime instance version and cache it in its
 	// instance context.
 	//version, err := in.version()
