@@ -1,0 +1,32 @@
+name: zombienet
+on:
+  push:
+    branches:
+      - ed/add-zombienet-testing
+    # Commented paths to avoid skipping required workflow
+    # See https://github.community/t/feature-request-conditional-required-checks/16761
+    # paths:
+    #   - .github/workflows/copyright.yml
+    #   - "**/*.go"
+    #   - "**/*.proto"
+
+jobs:
+  copyright-check:
+    runs-on: buildjet-4vcpu-ubuntu-2204
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          all_but_latest: true
+
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+          stable: true
+          check-latest: true
+
+      - run: make license
+
+      - run: git diff --exit-code
