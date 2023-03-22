@@ -40,6 +40,8 @@ jobs:
         run: |
           ./bin/gossamer --version
           echo ${{ steps.go-cache-paths.outputs.go-build }}
+          cd ${{ steps.go-cache-paths.outputs.go-build }}
+          ls -al
           mv ./bin/gossamer $HOME/.local/bin/gossamer
           gossamer --version
 
