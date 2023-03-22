@@ -43,7 +43,7 @@ jobs:
           echo $HOME
           cd $HOME/work/gossamer/gossamer/bin
           $HOME/work/gossamer/gossamer/bin/gossamer --version
-          cp $HOME/work/gossamer/gossamer/bin/gossamer $HOME/.local/bin/
+          echo "$HOME/work/gossamer/gossamer/bin" >> $GITHUB_PATH
           gossamer --version
 
       - name: Install Zombienet
