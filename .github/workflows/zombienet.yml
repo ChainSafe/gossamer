@@ -38,11 +38,6 @@ jobs:
 
       - name: Gossamer version
         run: |
-          ls -al
-          echo "bin/gossamer" >> $GITHUB_PATH
-          echo "$HOME"
-          cd $HOME/work
-          ls -al
           mv bin/gossamer $HOME/.local/bin/gossamer
           gossamer --version
 
