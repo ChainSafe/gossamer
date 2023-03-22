@@ -21,9 +21,6 @@ jobs:
           chmod +x $HOME/.local/bin/zombienet
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Zombienet version
-        run: zombienet version
-
       - name: Install Bats
         run: npm install -g bats
 
