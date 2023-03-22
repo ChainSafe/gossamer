@@ -38,10 +38,7 @@ jobs:
 
       - name: Gossamer version
         run: |
-          ls -al
-          cd bin
-          ls -al
-          gossamer --version
+          ./bin/gossamer --version
 
       - name: Install Zombienet
         run: |
