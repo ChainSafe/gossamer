@@ -26,6 +26,7 @@ jobs:
           zombienet version
 
       - name: Zombienet test
+        working-directory: ./cmd
         run: |
           pwd
           cd $HOME/.local/share
