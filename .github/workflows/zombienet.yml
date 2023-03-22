@@ -45,7 +45,7 @@ jobs:
           $HOME/work/gossamer/gossamer/bin/gossamer --version
           cd $HOME/.local/bin
           ls -al
-          cp $HOME/work/gossamer/gossamer/bin/gossamer $HOME/.local/bin/gossamer
+          cp $HOME/work/gossamer/gossamer/bin/gossamer $HOME/.local/bin/
           gossamer --version
 
       - name: Install Zombienet
