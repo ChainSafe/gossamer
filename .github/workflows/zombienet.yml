@@ -24,4 +24,4 @@ jobs:
       - name: Zombienet Version
         run: |
           echo "running zombienet"
-          echo zombienet version
+          cat zombienet
