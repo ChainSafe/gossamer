@@ -24,4 +24,4 @@ jobs:
       - name: Zombienet Version
         run: |
           echo "running zombienet"
-          cat zombienet
+          cat $HOME/.local/bin/zombienet
