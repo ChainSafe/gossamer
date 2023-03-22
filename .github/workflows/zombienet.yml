@@ -41,9 +41,9 @@ jobs:
           pwd
           ./bin/gossamer --version
           echo $HOME
-          cd $HOME/work/gossamer
+          cd $HOME/work/gossamer/gossamer
           ls -al
-          mv $HOME/work/gossamer/bin/gossamer $HOME/.local/bin/gossamer
+          mv $HOME/work/gossamer/gossamer/bin/gossamer $HOME/.local/bin/gossamer
           gossamer --version
 
       - name: Install Zombienet
