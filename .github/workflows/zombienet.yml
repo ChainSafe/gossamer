@@ -5,10 +5,11 @@ jobs:
   zombienet-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
       - name: Build gossamer
-        run: make build
+        run: |
+          pwd
+          ls -al
+          gossamer --help
 
       - name: Install Zombienet
         run: |
