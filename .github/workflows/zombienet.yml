@@ -1,5 +1,5 @@
 name: zombienet
-run-name: ${{ github.actor }} is running Zombienet tests
+run-name: Zombienet tests
 on: [push]
 jobs:
   zombienet-tests:
