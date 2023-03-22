@@ -11,7 +11,7 @@ jobs:
             wget -P $HOME/.local/bin/ https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-linux-x64
             mv $HOME/.local/bin/zombienet-linux-x64 $HOME/.local/bin/zombienet
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            wget -P $HOME/.local/bin/ https://github.com/paritytech/zombienet/releases/tag/v1.3.41/zombienet-macos
+            wget -P $HOME/.local/bin/ https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-macos
             mv $HOME/.local/bin/zombienet-macos $HOME/.local/bin/zombienet
           else
             echo "Zombienet for $RUNNER_OS is not supported"
@@ -23,5 +23,8 @@ jobs:
 
       - name: Zombienet Version
         run: |
-          echo "running zombienet"
           zombienet version
+
+      - name: Zombienet test
+        run: |
+          DEBUG=zombie* zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl
