@@ -38,9 +38,10 @@ jobs:
 
       - name: Gossamer version
         run: |
+          pwd
           ./bin/gossamer --version
           echo $HOME
-          cd $HOME
+          cd $HOME/work
           ls -al
           mv $HOME/bin/gossamer $HOME/.local/bin/gossamer
           gossamer --version
