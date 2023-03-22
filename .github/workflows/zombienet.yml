@@ -31,4 +31,5 @@ jobs:
           cd $HOME/.local
           pwd
           ls -al
+          echo $GITHUB_PATH
           DEBUG=zombie* zombienet test -p native ./zombienet_tests/functional/0001-basic-network.zndsl
