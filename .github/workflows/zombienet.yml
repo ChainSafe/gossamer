@@ -25,7 +25,7 @@ jobs:
         run: |
           zombienet version
 
-      - uses: ChainSafe/gossamer/.github/workflows/build.yml
+      - uses: ChainSafe/gossamer/.github/workflows/build.yml@development
 
       - name: Zombienet test
         run: |
