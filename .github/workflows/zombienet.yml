@@ -27,4 +27,4 @@ jobs:
 
       - name: Zombienet test
         run: |
-          DEBUG=zombie* zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl
+          DEBUG=zombie* zombienet test -p native ./zombienet_tests/functional/0001-basic-network.zndsl
