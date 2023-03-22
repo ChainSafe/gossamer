@@ -28,7 +28,7 @@ jobs:
       - name: Zombienet test
         run: |
           pwd
-          cd $HOME/.local
+          cd $HOME/.local/share
           pwd
           ls -al
           echo $GITHUB_PATH
