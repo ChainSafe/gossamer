@@ -29,7 +29,7 @@ jobs:
 
       - name: Zombienet test
         run: |
-          cd /
+          cd $GITHUB_WORKSPACE
           pwd
           ls -al
           zombienet test -p native ./zombienet_tests/functional/0001-basic-network.zndsl
