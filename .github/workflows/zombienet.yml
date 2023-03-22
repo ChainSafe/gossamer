@@ -39,6 +39,8 @@ jobs:
       - name: Gossamer version
         run: |
           ./bin/gossamer --version
+          mv ./bin/gossamer $HOME/.local/bin/gossamer
+          gossamer --version
 
       - name: Install Zombienet
         run: |
