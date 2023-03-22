@@ -41,7 +41,7 @@ jobs:
           ls -al
           echo "bin/gossamer" >> $GITHUB_PATH
           echo "$HOME"
-          cd $HOME
+          cd $HOME/work
           ls -al
           gossamer --version
 
