@@ -1,7 +1,7 @@
 [relaychain]
 chain_spec_path = "chain/westend-local/westend-local-spec-raw.json"
 
-chain = "rococo-local"
+chain = "westend-local"
 
   [[relaychain.nodes]]
   name = "alice"
