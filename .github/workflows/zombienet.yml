@@ -39,7 +39,8 @@ jobs:
       - name: Gossamer version
         run: |
           ls -al
-          bin/gossamer --version
+          bin/gossamer >> $GITHUB_PATH
+          gossamer --version
 
       - name: Install Zombienet
         run: |
