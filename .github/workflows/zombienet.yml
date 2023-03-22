@@ -9,6 +9,8 @@ jobs:
         run: |
           pwd
           ls -al
+          cd ..
+          ls -al
           gossamer --help
 
       - name: Install Zombienet
