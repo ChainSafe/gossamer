@@ -26,8 +26,8 @@ jobs:
           zombienet version
 
       - name: Zombienet test
-        working-directory: cmd
         run: |
           pwd
+          cd ../..
           ls -al
           DEBUG=zombie* zombienet test -p native ./zombienet_tests/functional/0001-basic-network.zndsl
