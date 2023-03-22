@@ -25,6 +25,8 @@ jobs:
         run: |
           zombienet version
 
+      - uses: actions/checkout@v3
+
       - name: Zombienet test
         run: |
           cd /
