@@ -26,11 +26,8 @@ jobs:
           zombienet version
 
       - name: Zombienet test
-        working-directory: ./cmd
+        working-directory: cmd
         run: |
           pwd
-          cd $HOME/.local/share
-          pwd
           ls -al
-          echo $GITHUB_PATH
           DEBUG=zombie* zombienet test -p native ./zombienet_tests/functional/0001-basic-network.zndsl
