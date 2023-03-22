@@ -11,7 +11,7 @@ jobs:
           ls -al
           cd ..
           ls -al
-          gossamer --help
+          ./gossamer --help
 
       - name: Install Zombienet
         run: |
