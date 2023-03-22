@@ -40,7 +40,9 @@ jobs:
         run: |
           ls -al
           echo "bin/gossamer" >> $GITHUB_PATH
-          echo "bin/gossamer"
+          echo "$HOME"
+          cd $HOME
+          ls -al
           gossamer --version
 
       - name: Install Zombienet
