@@ -34,15 +34,8 @@ jobs:
           restore-keys: ${{ runner.os }}-go-mod
 
       - name: Run build
-        run: make build
-
-      - name: Gossamer version
         run: |
-          pwd
-          ./bin/gossamer --version
-          echo $HOME
-          cd $HOME/work/gossamer/gossamer/bin
-          $HOME/work/gossamer/gossamer/bin/gossamer --version
+          make build
           echo "$HOME/work/gossamer/gossamer/bin" >> $GITHUB_PATH
 
       - name: Install Zombienet
