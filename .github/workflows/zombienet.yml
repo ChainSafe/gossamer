@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is running Zombienet tests
 on: [push]
 jobs:
   build-gossamer:
-    - uses: ChainSafe/gossamer/.github/workflows/build.yml@development
+    uses: ChainSafe/gossamer/.github/workflows/build.yml@development
 
   zombienet-tests:
     runs-on: ubuntu-latest
