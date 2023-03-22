@@ -23,6 +23,5 @@ jobs:
 
       - name: Zombienet Version
         run: zombienet version
-
       - name: Run Bats
         run: bats -v
