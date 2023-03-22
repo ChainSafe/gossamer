@@ -42,7 +42,7 @@ jobs:
           ./bin/gossamer --version
           echo $HOME
           cd $HOME/work/gossamer/gossamer/bin
-          ls -al
+          $HOME/work/gossamer/gossamer/bin/gossamer --version
           cd $HOME/.local/bin
           ls -al
           cp $HOME/work/gossamer/gossamer/bin/gossamer $HOME/.local/bin/gossamer
