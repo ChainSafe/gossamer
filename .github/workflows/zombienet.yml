@@ -37,7 +37,9 @@ jobs:
         run: make build
 
       - name: Gossamer version
-        run: gossamer --version
+        run: |
+          whereis gossamer
+          gossamer --version
 
       - name: Install Zombienet
         run: |
