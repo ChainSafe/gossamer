@@ -39,6 +39,7 @@ jobs:
       - name: Gossamer version
         run: |
           ./bin/gossamer --version
+          echo ${{ steps.go-cache-paths.outputs.go-build }}
           mv ./bin/gossamer $HOME/.local/bin/gossamer
           gossamer --version
 
