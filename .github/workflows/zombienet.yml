@@ -27,7 +27,7 @@ jobs:
 
       - name: Zombienet test
         run: |
-          cd $HOME
+          cd $HOME/work
           pwd
           ls -al
           zombienet test -p native ./zombienet_tests/functional/0001-basic-network.zndsl
