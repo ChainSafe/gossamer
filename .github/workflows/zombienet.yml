@@ -36,6 +36,9 @@ jobs:
       - name: Run build
         run: make build
 
+      - name: Gossamer version
+        run: gossamer --version
+
       - name: Install Zombienet
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
