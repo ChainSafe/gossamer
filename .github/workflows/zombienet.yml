@@ -23,7 +23,4 @@ jobs:
 
       - name: Zombienet Version
         run: |
-          echo zombienet version
-
-      - name: Run Bats
-        run: bats -v
+          echo "Zombienet" + zombienet version
