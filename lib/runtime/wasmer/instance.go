@@ -1,4 +1,4 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -73,21 +73,19 @@ func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := os.ReadFile(filepath.Clean(fp))
+	fileBytes, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
 
-	return NewInstance(bytes, cfg)
+	return NewInstance(fileBytes, cfg)
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
-// TODO should cfg be a pointer?
 func NewInstance(code []byte, cfg Config) (*Instance, error) {
 	return newInstance(code, cfg)
 }
 
-// TODO refactor
 func newInstance(code []byte, cfg Config) (*Instance, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 	if len(code) == 0 {
@@ -100,12 +98,6 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 		// does not return any exported sentinel errors.
 		return nil, fmt.Errorf("%w: %s", ErrWASMDecompress, err)
 	}
-
-	//// TODO add new get imports function
-	//imports, err := importsNodeRuntime(store, memory, runtimeCtx)
-	//if err != nil {
-	//	return nil, fmt.Errorf("creating node runtime imports: %w", err)
-	//}
 
 	// Create engine and store with default values
 	engine := wasmer.NewEngine()
@@ -168,7 +160,6 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 		OffchainHTTPSet: offchain.NewHTTPSet(),
 	}
 
-	// This might need to happen below
 	imports := importsNodeRuntime(store, memory, runtimeCtx)
 	if err != nil {
 		return nil, fmt.Errorf("creating node runtime imports: %w", err)
@@ -275,13 +266,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 		Network:     in.ctx.Network,
 		Transaction: in.ctx.Transaction,
 	}
-	//cfg.LogLvl = -1
-	//cfg.Storage = in.ctx.Storage
-	//cfg.Keystore = in.ctx.Keystore
-	////cfg.Role = 1 // TODO: set properly
-	//cfg.NodeStorage = in.ctx.NodeStorage
-	//cfg.Network = in.ctx.Network
-	//cfg.Transaction = in.ctx.Transaction
 
 	next, err := newInstance(code, cfg)
 	if err != nil {
@@ -290,17 +274,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 
 	in.vm = next.vm
 	in.ctx = next.ctx
-
-	// This already happens in new instance call
-
-	// Find runtime instance version and cache it in its
-	// instance context.
-	//version, err := in.version()
-	//if err != nil {
-	//	in.close()
-	//	return fmt.Errorf("getting instance version: %w", err)
-	//}
-	//in.ctx.Version = version
 
 	logger.Infof("updated runtime", "specification version", in.ctx.Version.SpecVersion)
 	return nil
@@ -327,11 +300,6 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 	memory := in.ctx.Memory.Data()
 	copy(memory[inputPtr:inputPtr+dataLength], data)
 
-	//runtimeFunc, ok := in.vm.Exports[function]
-	//if !ok {
-	//	return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
-	//}
-
 	// This might need to be raw func, tbd
 	runtimeFunc, err := in.vm.Exports.GetFunction(function)
 	if err != nil {
@@ -345,7 +313,6 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 
 	wasmValueAsI64 := wasmer.NewI64(wasmValue)
 	outputPtr, outputLength := splitPointerSize(wasmValueAsI64.I64())
-	//memory = in.vm.Memory.Data() // call Data() again to get larger slice
 	memory = in.ctx.Memory.Data() // call Data() again to get larger slice
 	return memory[outputPtr : outputPtr+outputLength], nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -925,7 +925,6 @@ func ext_misc_runtime_version_version_1(env interface{}, args []wasmer.Value) ([
 
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
-	//data := asMemorySlice(ctx, dataSpan)
 	code := asMemorySlice(instanceContext, dataSpan)
 
 	version, err := GetRuntimeVersion(code)
@@ -1246,7 +1245,7 @@ func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wa
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warnf("cannot get child storage: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, err
+		return []wasmer.Value{wasmer.NewI64(0)}, nil
 	}
 
 	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
