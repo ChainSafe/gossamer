@@ -909,10 +909,7 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 		return fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	// check genesis id and use genesis id if --chain flag not set
-	if !ctx.IsSet(ChainFlag.Name) {
-		cfg.Global.ID = gen.ID
-	}
+	cfg.Global.ID = gen.ID
 
 	// check genesis bootnodes and use genesis --bootnodes if name flag not set
 	if !ctx.IsSet(BootnodesFlag.Name) {
