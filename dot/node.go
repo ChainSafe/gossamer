@@ -20,12 +20,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
-	dotsync "github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
+	internalSync "github.com/ChainSafe/gossamer/internal/sync"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -65,7 +65,7 @@ type nodeBuilderIface interface {
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
 	newSyncService(cfg *Config, st *state.Service, finalityGadget BlockJustificationVerifier,
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
-		telemetryMailer Telemetry) (*dotsync.Service, error)
+		telemetryMailer Telemetry) (*internalSync.Service, error)
 	createBABEService(cfg *Config, st *state.Service, ks KeyStore, cs *core.Service,
 		telemetryMailer Telemetry) (service *babe.Service, err error)
 	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)

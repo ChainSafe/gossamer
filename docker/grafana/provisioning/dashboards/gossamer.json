@@ -90,7 +90,7 @@
             "type": "prometheus",
             "uid": "prometheus_id"
           },
-          "expr": "go_goroutines{instance=~\".*gossamer.*\"}",
+          "expr": "go_goroutines{instance=~\".*internal.*\"}",
           "refId": "A"
         }
       ],
@@ -148,7 +148,7 @@
             "type": "prometheus",
             "uid": "prometheus_id"
           },
-          "expr": "go_threads{instance=~\".*gossamer.*\"}",
+          "expr": "go_threads{instance=~\".*internal.*\"}",
           "refId": "A"
         }
       ],
@@ -233,7 +233,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{instance=~\".*gossamer.*\"}",
+          "expr": "process_resident_memory_bytes{instance=~\".*internal.*\"}",
           "legendFormat": "Resident memory",
           "range": true,
           "refId": "A"
@@ -244,7 +244,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "go_memstats_heap_inuse_bytes{instance=~\".*gossamer.*\"}",
+          "expr": "go_memstats_heap_inuse_bytes{instance=~\".*internal.*\"}",
           "hide": false,
           "legendFormat": "Heap",
           "range": true,
@@ -256,7 +256,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "go_memstats_heap_idle_bytes{instance=~\".*gossamer.*\"}",
+          "expr": "go_memstats_heap_idle_bytes{instance=~\".*internal.*\"}",
           "hide": false,
           "legendFormat": "Heap Idle Bytes",
           "range": true,
@@ -268,7 +268,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "go_memstats_stack_inuse_bytes{instance=~\".*gossamer.*\"}",
+          "expr": "go_memstats_stack_inuse_bytes{instance=~\".*internal.*\"}",
           "hide": false,
           "legendFormat": "Stack",
           "range": true,
@@ -360,7 +360,7 @@
           },
           "refId": "A",
           "editorMode": "builder",
-          "expr": "gossamer_inmemory_runtimes_total{instance=~\".*gossamer.*\"}",
+          "expr": "gossamer_inmemory_runtimes_total{instance=~\".*internal.*\"}",
           "legendFormat": "Runtimes",
           "range": true
         }

@@ -15,12 +15,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	internalSync "github.com/ChainSafe/gossamer/internal/sync"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -50,7 +50,7 @@ type rpcServiceSettings struct {
 	blockProducer BlockProducer
 	system        *system.Service
 	blockFinality *grandpa.Service
-	syncer        *sync.Service
+	syncer        *internalSync.Service
 }
 
 func newInMemoryDB() (*chaindb.BadgerDB, error) {
@@ -434,13 +434,13 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 
 func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustificationVerifier,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
-	*sync.Service, error) {
+	*internalSync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
 		return nil, err
 	}
 
-	syncCfg := &sync.Config{
+	syncCfg := &internalSync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		Network:            net,
 		BlockState:         st.Block,
@@ -455,7 +455,7 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		Telemetry:          telemetryMailer,
 	}
 
-	return sync.NewService(syncCfg)
+	return internalSync.NewService(syncCfg)
 }
 
 func (nodeBuilder) createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error) {

@@ -12,4 +12,4 @@ scrape_configs:
     static_configs:
       # for mac users, change to host.docker.internal:9876 if you want to
       # comunicate prometheus container with gossamer running locally
-      - targets: ["gossamer:9876"]
+      - targets: ["host.docker.internal:9876"]

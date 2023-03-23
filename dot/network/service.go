@@ -393,13 +393,13 @@ func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
 }
 
 func (s *Service) logPeerCount() {
-	ticker := time.NewTicker(time.Second * 30)
+	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			logger.Debugf("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
+			logger.Infof("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
 		case <-s.ctx.Done():
 			return
 		}
@@ -584,6 +584,10 @@ func (s *Service) NetworkState() common.NetworkState {
 		PeerID:     s.host.id().String(),
 		Multiaddrs: s.host.multiaddrs(),
 	}
+}
+
+func (s *Service) TotalConnectedPeers() []peer.ID {
+	return s.host.p2pHost.Network().Peers()
 }
 
 // Peers returns information about connected peers needed for the rpc server
