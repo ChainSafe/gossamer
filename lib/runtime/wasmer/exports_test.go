@@ -1,4 +1,4 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -6,7 +6,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -33,8 +32,7 @@ import (
 var testKeyOwnershipProof types.OpaqueKeyOwnershipProof = types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
 func Test_Instance_Version(t *testing.T) {
-	//t.Parallel()
-
+	t.Parallel()
 	type instanceVersioner interface {
 		Version() (version runtime.Version)
 	}
@@ -148,8 +146,7 @@ func Test_Instance_Version(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			//t.Parallel()
-
+			t.Parallel()
 			instance := testCase.instanceBuilder(t)
 			version := instance.Version()
 			assert.Equal(t, testCase.expectedVersion, version)
@@ -232,7 +229,6 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
@@ -260,7 +256,6 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
@@ -282,13 +277,11 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 		{Key: authA, Weight: 1},
 		{Key: authB, Weight: 1},
 	}
-
 	require.Equal(t, expected, auths)
 }
 
 func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
-	//t.Parallel()
-
+	t.Parallel()
 	testCases := []struct {
 		name          string
 		targetRuntime string
@@ -305,10 +298,9 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			//t.Parallel()
+			t.Parallel()
 
 			tt := trie.NewEmptyTrie()
-
 			randomnessValue, err := common.HexToHash("0x01")
 			require.NoError(t, err)
 			key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
@@ -337,8 +329,7 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 }
 
 func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
-	//t.Parallel()
-
+	t.Parallel()
 	testCases := []struct {
 		name          string
 		targetRuntime string
@@ -355,7 +346,7 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			//t.Parallel()
+			t.Parallel()
 
 			tt := trie.NewEmptyTrie()
 			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
@@ -428,7 +419,6 @@ func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T)
 		Randomness:         [32]byte{1},
 		SecondarySlots:     2,
 	}
-
 	require.Equal(t, expected, cfg)
 }
 
@@ -512,8 +502,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	DefaultTestLogLvl = 0
-
-	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0929)
 
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
@@ -973,10 +962,6 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			continue
 		}
 		require.NoError(t, err)
-
-		fmt.Println(info.PartialFee.String())
-		fmt.Println(test.expect.PartialFee.String())
-
 		require.NoError(t, err)
 		require.NotNil(t, info)
 		require.Equal(t, test.expect, info)
@@ -1004,7 +989,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1062,7 +1047,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1123,7 +1108,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 }
 
 func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
@@ -1136,7 +1121,7 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)

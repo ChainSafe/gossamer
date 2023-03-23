@@ -1,4 +1,4 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -67,7 +67,7 @@ func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -87,7 +87,7 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -108,7 +108,7 @@ func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -128,7 +128,7 @@ func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_twox_128_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -148,7 +148,7 @@ func Test_ext_hashing_twox_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_twox_64_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -169,7 +169,7 @@ func Test_ext_hashing_twox_64_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -188,7 +188,7 @@ func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -205,7 +205,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("key1")
@@ -229,7 +229,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("key1")
@@ -252,7 +252,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 }
 
 func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	encMethod, err := scale.Marshal([]byte("GET"))
@@ -309,7 +309,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 }
 
 func Test_ext_offchain_http_request_add_header(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -332,7 +332,7 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 
 	for tname, tcase := range cases {
 		t.Run(tname, func(t *testing.T) {
-			//t.Parallel()
+			t.Parallel()
 
 			reqID, err := inst.ctx.OffchainHTTPSet.StartRequest(http.MethodGet, "http://uri.example")
 			require.NoError(t, err)
@@ -374,7 +374,7 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("static")
@@ -397,7 +397,7 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -420,7 +420,7 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("jimboj")
@@ -493,7 +493,7 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 }
 
 func Test_ext_storage_get_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -514,7 +514,7 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_exists_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 
 	testCases := map[string]struct {
 		key    []byte
@@ -540,7 +540,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			//t.Parallel()
+			t.Parallel()
 			instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 			if testCase.value != nil {
@@ -563,7 +563,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_next_key_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -586,7 +586,7 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -615,7 +615,7 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1_again(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -645,7 +645,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -674,7 +674,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	ret, err := inst.Exec("rtm_ext_storage_root_version_1", []byte{})
@@ -689,7 +689,7 @@ func Test_ext_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_set_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -708,7 +708,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_offline_index_set_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	// TODO this currently fails with error could not find exported function, add rtm_ func to tester wasm (#1026)
 	t.Skip()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -730,7 +730,7 @@ func Test_ext_offline_index_set_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
@@ -757,8 +757,6 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	copy(memory[ptr:ptr+uint32(len(params))], params)
 
 	dataLen := int32(len(params))
-
-	//runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
 	runtimeFunc, err := inst.vm.Exports.GetFunction("rtm_ext_crypto_ed25519_generate_version_1")
 	require.NoError(t, err)
 
@@ -779,7 +777,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.DumyName)
@@ -819,7 +817,7 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := ed25519.GenerateKeypair()
@@ -858,7 +856,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := ed25519.GenerateKeypair()
@@ -891,7 +889,7 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -926,7 +924,7 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	testCases := map[string]struct {
 		sig      []byte
 		msg      []byte
@@ -968,7 +966,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 	for name, tc := range testCases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			//t.Parallel()
+			t.Parallel()
 
 			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 			ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(tc.sig, tc.msg...), tc.key...))
@@ -983,7 +981,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
@@ -1016,7 +1014,7 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	msgData := []byte("Hello world!")
@@ -1060,7 +1058,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -1104,7 +1102,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) 
 }
 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.DumyName)
@@ -1144,7 +1142,7 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := sr25519.GenerateKeypair()
@@ -1185,7 +1183,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	kp, err := sr25519.GenerateKeypair()
@@ -1218,7 +1216,7 @@ func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1258,7 +1256,7 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1287,7 +1285,7 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	prefix := []byte("key")
@@ -1329,7 +1327,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1354,7 +1352,7 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1379,7 +1377,7 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testKeyValuePair := []struct {
@@ -1417,7 +1415,7 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1450,7 +1448,7 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1479,7 +1477,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
@@ -1501,7 +1499,7 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1535,7 +1533,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1569,7 +1567,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1600,7 +1598,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 }
 
 func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	tr := trie.NewEmptyTrie()
@@ -1621,12 +1619,10 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		errMsg   string
 	}{
 		{
-			// TODO this test case is causing grief
 			key:      []byte(`fakekey`),
 			limit:    optLimit2,
 			expected: []byte{0, 0, 0, 0, 0},
-			errMsg: "running runtime function: " +
-				"child trie does not exist at key 0x3a6368696c645f73746f726167653a64656661756c743a66616b656b6579",
+			errMsg:   "running runtime function: unreachable",
 		},
 		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
 		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
@@ -1654,7 +1650,7 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -1703,7 +1699,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1_again(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	DefaultTestLogLvl = 5
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -1753,7 +1749,7 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testvalues := []string{"static", "even-keeled", "Future-proofed"}
@@ -1772,7 +1768,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testinput := []string{"noot", "was", "here", "??"}
@@ -1796,7 +1792,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 
 	tmp := t.TempDir()
 
@@ -1865,7 +1861,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	for name, testcase := range testcases {
 		testcase := testcase
 		t.Run(name, func(t *testing.T) {
-			//t.Parallel()
+			t.Parallel()
 
 			hashEnc, err := scale.Marshal(testcase.root)
 			require.NoError(t, err)
