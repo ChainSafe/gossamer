@@ -72,10 +72,10 @@ func (b *bootstrapSyncer) Sync() {
 					continue
 				}
 
-				header, err := b.blockState.BestBlockHeader()
-				if err != nil {
-					logger.Error("failed to get best block header")
-					panic("")
+				header, bestBlockHeaderErr := b.blockState.BestBlockHeader()
+				if bestBlockHeaderErr != nil {
+					logger.Errorf("failed to get best block header: %s", bestBlockHeaderErr)
+					panic(bestBlockHeaderErr)
 				}
 
 				logger.Errorf("block data processing for block with hash %s failed: %s", block.Hash, err)

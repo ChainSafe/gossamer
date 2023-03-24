@@ -161,7 +161,11 @@ func (s *syncerWorkerByNumber) toRequest() (*network.BlockRequestMessage, error)
 
 	start := variadic.MustNewUint32OrHash(uint32(s.startNumber))
 	max := new(uint32)
-	*max = maxResponseSize
+	if diff > maxBlocksToRequest {
+		*max = maxBlocksToRequest
+	} else {
+		*max = uint32(diff)
+	}
 
 	return &network.BlockRequestMessage{
 		RequestedData: s.dataToRequest,
