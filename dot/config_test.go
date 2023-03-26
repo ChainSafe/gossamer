@@ -4,6 +4,7 @@
 package dot
 
 import (
+	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -233,23 +234,23 @@ func Test_networkServiceEnabled(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		config *Config
+		config *cfg.Config
 		want   bool
 	}{
 		{
 			name:   "kusama config",
-			config: KusamaConfig(),
+			config: cfg.DefaultKusamaConfig(),
 			want:   true,
 		},
 		{
 			name:   "empty config",
-			config: &Config{},
+			config: &cfg.Config{},
 			want:   false,
 		},
 		{
 			name: "core_roles_0",
-			config: &Config{
-				Core: CoreConfig{
+			config: &cfg.Config{
+				Core: &cfg.CoreConfig{
 					Roles: 0,
 				},
 			},
@@ -257,8 +258,8 @@ func Test_networkServiceEnabled(t *testing.T) {
 		},
 		{
 			name: "core_roles_1",
-			config: &Config{
-				Core: CoreConfig{
+			config: &cfg.Config{
+				Core: &cfg.CoreConfig{
 					Roles: 1,
 				},
 			},

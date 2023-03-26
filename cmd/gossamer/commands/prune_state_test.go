@@ -1,15 +1,11 @@
-// Copyright 2021 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
-package main
+package commands
 
 import (
 	"fmt"
-	"strings"
-	"testing"
-
 	"github.com/dgraph-io/badger/v2"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"testing"
 )
 
 func TestPruneState(t *testing.T) {
@@ -57,15 +53,8 @@ func TestPruneState(t *testing.T) {
 	t.Log("pruned DB path", prunedDBPath)
 
 	// Run Prune command
-	ctx, err := newTestContext(
-		"Test state trie offline pruning  --prune-state",
-		[]string{"config", "retain-blocks"},
-		[]interface{}{configFile, int64(5)},
-	)
-	require.NoError(t, err)
-
-	command := pruningCommand
-	err = command.Run(ctx)
+	pruneStateCmd.SetArgs([]string{"--config", configFile, "--retain-blocks", "5"})
+	err = pruneStateCmd.Execute()
 	require.NoError(t, err)
 
 	prunedDB, err := badger.Open(badger.DefaultOptions(prunedDBPath))

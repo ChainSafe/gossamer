@@ -6,6 +6,7 @@ package dot
 import (
 	"errors"
 	"fmt"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,16 +26,16 @@ import (
 )
 
 func TestInitNode(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config := NewWestendDevConfig(t)
+	config.Genesis = NewTestGenesisRawFile(t, config)
 	tests := []struct {
 		name   string
-		config *Config
+		config *cfg.Config
 		err    error
 	}{
 		{
 			name:   "test config",
-			config: cfg,
+			config: config,
 		},
 	}
 	for _, tt := range tests {
@@ -42,7 +43,7 @@ func TestInitNode(t *testing.T) {
 			err := InitNode(tt.config)
 			assert.ErrorIs(t, err, tt.err)
 			// confirm InitNode has created database dir
-			registry := filepath.Join(tt.config.Global.BasePath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+			registry := filepath.Join(tt.config.BasePath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 			_, err = os.Stat(registry)
 			require.NoError(t, err)
 		})
@@ -125,14 +126,14 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 }
 
 func TestNodeInitialized(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
+	config := NewWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.Genesis = genFile
 
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(cfg)
+	err := nodeInstance.initNode(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -147,7 +148,7 @@ func TestNodeInitialized(t *testing.T) {
 		},
 		{
 			name:     "working example",
-			basepath: cfg.Global.BasePath,
+			basepath: config.BasePath,
 			want:     true,
 		},
 	}

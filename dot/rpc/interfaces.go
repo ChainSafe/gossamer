@@ -56,7 +56,7 @@ type NetworkAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
-	NodeRoles() common.Roles
+	NodeRoles() common.NetworkRole
 	Stop() error
 	Start() error
 	StartingBlock() int64

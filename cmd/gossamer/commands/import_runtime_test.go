@@ -1,19 +1,14 @@
-// Copyright 2021 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
-package main
+package commands
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/require"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
 func TestCreateGenesisWithRuntime(t *testing.T) {

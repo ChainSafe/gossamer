@@ -4,7 +4,8 @@
 package polkadot
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -14,21 +15,21 @@ var (
 	// GlobalConfig
 
 	// DefaultName Default node name
-	DefaultName = string("Polkadot")
+	DefaultName = "Polkadot"
 	// DefaultID Default chain ID
-	DefaultID = string("polkadot")
-	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/polkadot/config.toml")
+	DefaultID = "polkadot"
+	// DefaultConfigPath Default toml configuration path
+	DefaultConfigPath = "./chain/polkadot/config.toml"
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/polkadot")
 	// DefaultMetricsAddress is the default metrics server listening address.
 	DefaultMetricsAddress = "localhost:9876"
 
 	// DefaultLvl is the default log level
-	DefaultLvl = log.Info
+	DefaultLvl = "info"
 
 	// DefaultPruningMode is the default pruning mode
-	DefaultPruningMode = "archive"
+	DefaultPruningMode = pruner.Mode("archive")
 	// DefaultRetainBlocks is the default pruning mode
 	DefaultRetainBlocks = uint32(512)
 
@@ -38,14 +39,14 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/polkadot/genesis.json")
+	DefaultGenesis = "./chain/polkadot/genesis.json"
 
 	// AccountConfig
 
 	// DefaultKey Default account key
-	DefaultKey = string("")
+	DefaultKey = ""
 	// DefaultUnlock Default account unlock
-	DefaultUnlock = string("")
+	DefaultUnlock = ""
 
 	// CoreConfig
 
@@ -65,7 +66,7 @@ var (
 	// DefaultNetworkPort network port
 	DefaultNetworkPort = uint16(7001)
 	// DefaultNetworkBootnodes network bootnodes
-	DefaultNetworkBootnodes = []string(nil)
+	DefaultNetworkBootnodes []string
 	// DefaultNoBootstrap disables bootstrap
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
@@ -99,3 +100,64 @@ const (
 	// Set to 0 to disable profiling.
 	DefaultPprofMutexRate = 0
 )
+
+// DefaultConfig returns a polkadot node configuration
+func DefaultConfig() *cfg.Config {
+	return &cfg.Config{
+		BaseConfig: &cfg.BaseConfig{
+			Name:           DefaultName,
+			ID:             DefaultID,
+			BasePath:       DefaultBasePath,
+			Genesis:        DefaultGenesis,
+			LogLevel:       DefaultLvl,
+			RetainBlocks:   DefaultRetainBlocks,
+			Pruning:        DefaultPruningMode,
+			MetricsAddress: DefaultMetricsAddress,
+			TelemetryURLs:  DefaultTelemetryURLs,
+		},
+		Log: &cfg.LogConfig{
+			Core:    DefaultLvl,
+			Digest:  DefaultLvl,
+			Sync:    DefaultLvl,
+			Network: DefaultLvl,
+			RPC:     DefaultLvl,
+			State:   DefaultLvl,
+			Runtime: DefaultLvl,
+			Babe:    DefaultLvl,
+			Grandpa: DefaultLvl,
+			Wasmer:  DefaultLvl,
+		},
+		Account: &cfg.AccountConfig{
+			Key:    DefaultKey,
+			Unlock: DefaultUnlock,
+		},
+		Core: &cfg.CoreConfig{
+			Role:            DefaultRoles,
+			WasmInterpreter: DefaultWasmInterpreter,
+		},
+		State: &cfg.StateConfig{
+			Rewind: 0,
+		},
+		Network: &cfg.NetworkConfig{
+			Port:        DefaultNetworkPort,
+			Bootnodes:   DefaultNetworkBootnodes,
+			NoBootstrap: DefaultNoBootstrap,
+			NoMDNS:      DefaultNoMDNS,
+		},
+		RPC: &cfg.RPCConfig{
+			Port:    DefaultRPCHTTPPort,
+			Host:    DefaultRPCHTTPHost,
+			Modules: DefaultRPCModules,
+			WSPort:  DefaultRPCWSPort,
+		},
+		Pprof: &cfg.PprofConfig{
+			ListeningAddress: DefaultPprofListeningAddress,
+			BlockProfileRate: DefaultPprofBlockRate,
+			MutexProfileRate: DefaultPprofMutexRate,
+		},
+		System: &cfg.SystemConfig{
+			SystemName:    "gossamer",
+			SystemVersion: "0.1.0",
+		},
+	}
+}

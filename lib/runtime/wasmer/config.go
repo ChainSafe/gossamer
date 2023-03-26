@@ -18,7 +18,7 @@ type Config struct {
 	Storage     Storage
 	Keystore    *keystore.GlobalKeystore
 	LogLvl      log.Level
-	Role        common.Roles
+	Role        common.NetworkRole
 	NodeStorage runtime.NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState

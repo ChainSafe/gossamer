@@ -6,6 +6,7 @@ package pprof
 import (
 	"context"
 	"errors"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -17,13 +18,13 @@ func Test_NewService(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
-	settings := Settings{}
 	logger := NewMockLogger(ctrl)
 
-	service := NewService(settings, logger)
+	pprofConfig := cfg.DefaultWestendDevConfig().Pprof
+	service := NewService(*pprofConfig, logger)
 
 	expectedSettings := Settings{
-		ListeningAddress: "localhost:6060",
+		ListeningAddress: pprofConfig.ListeningAddress,
 	}
 	assert.Equal(t, expectedSettings, service.settings)
 	assert.NotNil(t, service.server)

@@ -494,10 +494,10 @@ func (mr *MockNetworkAPIMockRecorder) NetworkState() *gomock.Call {
 }
 
 // NodeRoles mocks base method.
-func (m *MockNetworkAPI) NodeRoles() common.Roles {
+func (m *MockNetworkAPI) NodeRoles() common.NetworkRole {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NodeRoles")
-	ret0, _ := ret[0].(common.Roles)
+	ret0, _ := ret[0].(common.NetworkRole)
 	return ret0
 }
 

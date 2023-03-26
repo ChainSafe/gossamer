@@ -25,12 +25,12 @@ type ConsensusMessage = network.ConsensusMessage
 
 // GrandpaHandshake is exchanged by nodes that are beginning the grandpa protocol
 type GrandpaHandshake struct { //nolint:revive
-	Roles common.Roles
+	Roles common.NetworkRole
 }
 
 // String formats a BlockAnnounceHandshake as a string
 func (hs *GrandpaHandshake) String() string {
-	return fmt.Sprintf("GrandpaHandshake Roles=%d", hs.Roles)
+	return fmt.Sprintf("GrandpaHandshake NetworkRole=%d", hs.Roles)
 }
 
 // Encode encodes a GrandpaHandshake message using SCALE
@@ -72,7 +72,7 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (network.Handshake, error) {
-	var roles common.Roles
+	var roles common.NetworkRole
 
 	if s.authority {
 		roles = common.AuthorityRole

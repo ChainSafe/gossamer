@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -209,26 +210,26 @@ func TestRandomNodeName(t *testing.T) {
 }
 
 // NewWestendDevConfig returns a new test configuration
-func NewWestendDevConfig(t *testing.T) *Config {
+func NewWestendDevConfig(t *testing.T) *cfg.Config {
 	dir := t.TempDir()
 
-	cfg := &Config{
-		Global: GlobalConfig{
-			Name:        WestendDevConfig().Global.Name,
-			ID:          WestendDevConfig().Global.ID,
-			BasePath:    dir,
-			LogLvl:      log.Info,
-			NoTelemetry: true,
+	config := &cfg.Config{
+		BaseConfig: &cfg.BaseConfig{
+			Name:      cfg.DefaultWestendDevConfig().Name,
+			ID:        cfg.DefaultWestendDevConfig().ID,
+			BasePath:  dir,
+			LogLevel:  log.Info,
+			Telemetry: false,
+			Genesis:   cfg.DefaultWestendDevConfig().Genesis,
 		},
-		Log:     WestendDevConfig().Log,
-		Init:    WestendDevConfig().Init,
-		Account: WestendDevConfig().Account,
-		Core:    WestendDevConfig().Core,
-		Network: WestendDevConfig().Network,
-		RPC:     WestendDevConfig().RPC,
+		Log:     cfg.DefaultWestendDevConfig().Log,
+		Account: cfg.DefaultWestendDevConfig().Account,
+		Core:    cfg.DefaultWestendDevConfig().Core,
+		Network: cfg.DefaultWestendDevConfig().Network,
+		RPC:     cfg.DefaultWestendDevConfig().RPC,
 	}
 
-	return cfg
+	return config
 }
 
 // NewTestGenesis returns a test genesis instance using "westend-dev" raw data
