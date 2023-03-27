@@ -30,27 +30,30 @@ const (
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
 	// expected results based on responses from prior tests
 	expected := StateRuntimeVersionResponse{
-		SpecName:         "node",
-		ImplName:         "substrate-node",
-		AuthoringVersion: 10,
-		SpecVersion:      264,
+		SpecName:         "westend",
+		ImplName:         "parity-westend",
+		AuthoringVersion: 2,
+		SpecVersion:      9290,
 		ImplVersion:      0,
 		Apis: []interface{}{
-			[]interface{}{"0xdf6acb689907609b", uint32(3)},
+			[]interface{}{"0xdf6acb689907609b", uint32(4)},
 			[]interface{}{"0x37e397fc7c91f5e4", uint32(1)},
-			[]interface{}{"0x40fe3ad401f8959a", uint32(4)},
-			[]interface{}{"0xd2bc9897eed08f15", uint32(2)},
+			[]interface{}{"0x40fe3ad401f8959a", uint32(6)},
+			[]interface{}{"0xd2bc9897eed08f15", uint32(3)},
 			[]interface{}{"0xf78b278be53f454c", uint32(2)},
-			[]interface{}{"0xed99c5acb25eedf5", uint32(2)},
+			[]interface{}{"0xaf2c0297a23e6d3d", uint32(2)},
+			[]interface{}{"0x49eaaf1b548a0cb0", uint32(1)},
+			[]interface{}{"0x91d5df18b0d2cf58", uint32(1)},
+			[]interface{}{"0xed99c5acb25eedf5", uint32(3)},
 			[]interface{}{"0xcbca25e39f142387", uint32(2)},
 			[]interface{}{"0x687ad44ad37f03c2", uint32(1)},
-			[]interface{}{"0xbc9d89904f5b923f", uint32(1)},
-			[]interface{}{"0x68b66ba122c93fa7", uint32(1)},
-			[]interface{}{"0x37c8bb1350a9a2a8", uint32(1)},
-			[]interface{}{"0x91d5df18b0d2cf58", uint32(1)},
 			[]interface{}{"0xab3c0572291feb8b", uint32(1)},
+			[]interface{}{"0xbc9d89904f5b923f", uint32(1)},
+			[]interface{}{"0x37c8bb1350a9a2a8", uint32(1)},
+			[]interface{}{"0xf3ff14d5ab527059", uint32(1)},
+			[]interface{}{"0x17a6bc0d0062aeb3", uint32(1)},
 		},
-		TransactionVersion: 2,
+		TransactionVersion: 12,
 	}
 
 	sm, hash, _ := setupStateModule(t)

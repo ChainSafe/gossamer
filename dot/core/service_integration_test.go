@@ -288,7 +288,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
 	cfg := &Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
+		Runtime: wasmer.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
 	}
 
 	s := NewTestService(t, cfg)

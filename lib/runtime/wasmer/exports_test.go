@@ -70,62 +70,6 @@ func Test_Instance_Version(t *testing.T) {
 				TransactionVersion: 1,
 			},
 		},
-		"node_v098": {
-			instanceBuilder: func(t *testing.T) instanceVersioner {
-				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
-			},
-			expectedVersion: runtime.Version{
-				SpecName:         []byte("node"),
-				ImplName:         []byte("substrate-node"),
-				AuthoringVersion: 10,
-				SpecVersion:      267,
-				ImplVersion:      0,
-				APIItems: []runtime.APIItem{
-					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
-					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
-					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
-					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
-					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
-					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
-					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
-					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
-					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
-					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
-					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
-					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
-					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
-				},
-				TransactionVersion: 2,
-			},
-		},
-		"node": {
-			instanceBuilder: func(t *testing.T) instanceVersioner {
-				return NewTestInstance(t, runtime.NODE_RUNTIME)
-			},
-			expectedVersion: runtime.Version{
-				SpecName:         []byte("node"),
-				ImplName:         []byte("substrate-node"),
-				AuthoringVersion: 10,
-				SpecVersion:      264,
-				ImplVersion:      0,
-				APIItems: []runtime.APIItem{
-					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
-					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
-					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x4},
-					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
-					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
-					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
-					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
-					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
-					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
-					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
-					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
-					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
-					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
-				},
-				TransactionVersion: 2,
-			},
-		},
 		"kusama": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				genesisPath := utils.GetKusamaGenesisPath(t)
@@ -220,34 +164,6 @@ func Test_Instance_Version(t *testing.T) {
 				TransactionVersion: 8,
 			},
 		},
-		"runtime_v0980": {
-			instanceBuilder: func(t *testing.T) instanceVersioner {
-				return NewTestInstance(t, runtime.NODE_RUNTIME_v098)
-			},
-			expectedVersion: runtime.Version{
-				SpecName:         []byte("node"),
-				ImplName:         []byte("substrate-node"),
-				AuthoringVersion: 10,
-				SpecVersion:      267,
-				ImplVersion:      0,
-				APIItems: []runtime.APIItem{
-					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x3},
-					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
-					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x5},
-					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x2},
-					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
-					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x2},
-					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
-					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
-					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
-					{Name: [8]uint8{0x68, 0xb6, 0x6b, 0xa1, 0x22, 0xc9, 0x3f, 0xa7}, Ver: 0x1},
-					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
-					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
-					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
-				},
-				TransactionVersion: 2,
-			},
-		},
 		"polkadot_v0917": {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				return NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0917)
@@ -275,6 +191,37 @@ func Test_Instance_Version(t *testing.T) {
 					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
 				},
 				TransactionVersion: 11,
+			},
+		},
+		"westend_v0929": {
+			instanceBuilder: func(t *testing.T) instanceVersioner {
+				return NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+			},
+			expectedVersion: runtime.Version{
+				SpecName:         []byte("westend"),
+				ImplName:         []byte("parity-westend"),
+				AuthoringVersion: 2,
+				SpecVersion:      9290,
+				ImplVersion:      0,
+				APIItems: []runtime.APIItem{
+					{Name: [8]uint8{0xdf, 0x6a, 0xcb, 0x68, 0x99, 0x7, 0x60, 0x9b}, Ver: 0x4},
+					{Name: [8]uint8{0x37, 0xe3, 0x97, 0xfc, 0x7c, 0x91, 0xf5, 0xe4}, Ver: 0x1},
+					{Name: [8]uint8{0x40, 0xfe, 0x3a, 0xd4, 0x1, 0xf8, 0x95, 0x9a}, Ver: 0x6},
+					{Name: [8]uint8{0xd2, 0xbc, 0x98, 0x97, 0xee, 0xd0, 0x8f, 0x15}, Ver: 0x3},
+					{Name: [8]uint8{0xf7, 0x8b, 0x27, 0x8b, 0xe5, 0x3f, 0x45, 0x4c}, Ver: 0x2},
+					{Name: [8]uint8{0xaf, 0x2c, 0x2, 0x97, 0xa2, 0x3e, 0x6d, 0x3d}, Ver: 0x2},
+					{Name: [8]uint8{0x49, 0xea, 0xaf, 0x1b, 0x54, 0x8a, 0xc, 0xb0}, Ver: 0x1},
+					{Name: [8]uint8{0x91, 0xd5, 0xdf, 0x18, 0xb0, 0xd2, 0xcf, 0x58}, Ver: 0x1},
+					{Name: [8]uint8{0xed, 0x99, 0xc5, 0xac, 0xb2, 0x5e, 0xed, 0xf5}, Ver: 0x3},
+					{Name: [8]uint8{0xcb, 0xca, 0x25, 0xe3, 0x9f, 0x14, 0x23, 0x87}, Ver: 0x2},
+					{Name: [8]uint8{0x68, 0x7a, 0xd4, 0x4a, 0xd3, 0x7f, 0x3, 0xc2}, Ver: 0x1},
+					{Name: [8]uint8{0xab, 0x3c, 0x5, 0x72, 0x29, 0x1f, 0xeb, 0x8b}, Ver: 0x1},
+					{Name: [8]uint8{0xbc, 0x9d, 0x89, 0x90, 0x4f, 0x5b, 0x92, 0x3f}, Ver: 0x1},
+					{Name: [8]uint8{0x37, 0xc8, 0xbb, 0x13, 0x50, 0xa9, 0xa2, 0xa8}, Ver: 0x1},
+					{Name: [8]uint8{0xf3, 0xff, 0x14, 0xd5, 0xab, 0x52, 0x70, 0x59}, Ver: 0x1},
+					{Name: [8]uint8{0x17, 0xa6, 0xbc, 0xd, 0x0, 0x62, 0xae, 0xb3}, Ver: 0x1},
+				},
+				TransactionVersion: 12,
 			},
 		},
 	}
@@ -373,7 +320,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	tt.Put(key, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -509,19 +456,19 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	}
 }
 
-func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_BabeConfiguration_WestendRuntime_NoAuthorities(t *testing.T) {
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	expected := &types.BabeConfiguration{
-		SlotDuration:       3000,
-		EpochLength:        200,
+		SlotDuration:       6000,
+		EpochLength:        600,
 		C1:                 1,
-		C2:                 2,
+		C2:                 4,
 		GenesisAuthorities: nil,
 		Randomness:         [32]byte{},
-		SecondarySlots:     1,
+		SecondarySlots:     2,
 	}
 	require.Equal(t, expected, cfg)
 }
@@ -544,7 +491,7 @@ func TestInstance_BabeConfiguration_DevRuntime_NoAuthorities(t *testing.T) {
 	require.Equal(t, expected, cfg)
 }
 
-func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
+func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
 	randomnessValue, err := common.HexToHash("0x01")
@@ -558,7 +505,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
 	tt.Put(key, authorityValue)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -572,20 +519,20 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	}
 
 	expected := &types.BabeConfiguration{
-		SlotDuration:       3000,
-		EpochLength:        200,
+		SlotDuration:       6000,
+		EpochLength:        600,
 		C1:                 1,
-		C2:                 2,
+		C2:                 4,
 		GenesisAuthorities: expectedAuthData,
 		Randomness:         [32]byte{1},
-		SecondarySlots:     1,
+		SecondarySlots:     2,
 	}
 
 	require.Equal(t, expected, cfg)
 }
 
 func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
 	header := &types.Header{
 		Number: 1,
@@ -1052,14 +999,14 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 }
 
 func TestInstance_DecodeSessionKeys(t *testing.T) {
-	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026" //nolint:lll
+	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026" //nolint:lll
 	pubkeys, err := common.HexToBytes(keys)
 	require.NoError(t, err)
 
 	pukeysBytes, err := scale.Marshal(pubkeys)
 	require.NoError(t, err)
 
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
+	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	decoded, err := instance.DecodeSessionKeys(pukeysBytes)
 	require.NoError(t, err)
 
@@ -1071,7 +1018,8 @@ func TestInstance_DecodeSessionKeys(t *testing.T) {
 	err = scale.Unmarshal(decoded, &decodedKeys)
 	require.NoError(t, err)
 
-	require.Len(t, *decodedKeys, 4)
+	require.NotNil(t, decodedKeys)
+	require.Len(t, *decodedKeys, 6)
 }
 
 func TestInstance_PaymentQueryInfo(t *testing.T) {
@@ -1085,11 +1033,11 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			// Was made with @polkadot/api on https://github.com/danforbes/polkadot-js-scripts/tree/create-signed-tx
 			ext: "0xd1018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01bc2b6e35929aabd5b8bc4e5b0168c9bee59e2bb9d6098769f6683ecf73e44c776652d947a270d59f3d37eb9f9c8c17ec1b4cc473f2f9928ffdeef0f3abd43e85d502000000012844616e20466f72626573", //nolint:lll
 			expect: &types.RuntimeDispatchInfo{
-				Weight: 1973000,
+				Weight: 0,
 				Class:  0,
 				PartialFee: &scale.Uint128{
 					Upper: 0,
-					Lower: uint64(1180126973000),
+					Lower: uint64(12800000000),
 				},
 			},
 		},
@@ -1118,7 +1066,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		ins := NewTestInstance(t, runtime.NODE_RUNTIME)
+		ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 		info, err := ins.PaymentQueryInfo(extBytes)
 
 		if test.errMessage != "" {

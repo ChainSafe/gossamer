@@ -5,16 +5,6 @@ package runtime
 
 //nolint:revive
 const (
-	// v0.9 substrate runtime
-	NODE_RUNTIME     = "node_runtime"
-	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
-	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.9/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true" //nolint:lll
-
-	// v0.9.8 substrate runtime
-	NODE_RUNTIME_v098     = "node_runtime-v0.9.8"
-	NODE_RUNTIME_FP_v098  = "node_runtime-v0.9.8.compact.wasm"
-	NODE_RUNTIME_URL_v098 = "https://github.com/noot/substrate/blob/noot/v0.9.8/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true" //nolint:lll
-
 	// v0.9.10 polkadot runtime
 	POLKADOT_RUNTIME_v0910     = "polkadot_runtime-v9100"
 	POLKADOT_RUNTIME_FP_v0910  = "polkadot_runtime-v9100.compact.wasm"
