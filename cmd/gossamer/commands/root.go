@@ -93,6 +93,7 @@ var (
 	config = westend_dev.DefaultConfig()
 	logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 
+	// RootCmd is the root command for the gossamer node
 	RootCmd = &cobra.Command{
 		Use:   "gossamer",
 		Short: "Official gossamer command-line interface",
@@ -133,7 +134,7 @@ func Execute() error {
 
 func AddRootFlags(cmd *cobra.Command) {
 	// Persistent flags
-	cmd.Flags().String("chain", "westend_dev", "chain")
+	cmd.Flags().String("chain", "westend_dev", "the default chain configuration to load. Example: --chain kusama")
 	cmd.Flags().StringP("base-path", "d", "", "base-path")
 	cmd.Flags().String("password", "", "base-path")
 

@@ -17,7 +17,19 @@ func init() {
 
 var accountCmd = &cobra.Command{
 	Use:   "account",
-	Short: "account",
+	Short: "Create and manage node keystore accounts",
+	Long: `The account command is used to manage the gossamer keystore.
+Examples: 
+
+To generate a new sr25519 account: 
+	gossamer account --generate
+To generate a new ed25519 account: 
+	gossamer account --generate --ed25519
+To generate a new secp256k1 account: 
+	gossamer account --generate --secp256k1
+To import a keystore file: 
+	gossamer account --import=path/to/file
+To list keys: gossamer account --list`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			logger.Errorf("account command cannot be empty")
@@ -43,7 +55,6 @@ var accountCmd = &cobra.Command{
 			}
 		default:
 			logger.Errorf("invalid account command: %s", args[0])
-			cmd.Help()
 			return fmt.Errorf("invalid account command: %s", args[0])
 		}
 

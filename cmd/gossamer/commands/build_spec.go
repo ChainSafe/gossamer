@@ -8,14 +8,20 @@ import (
 
 func init() {
 	buildSpecCmd.Flags().Bool("raw", false, "print raw genesis json")
-	buildSpecCmd.Flags().String("genesis-spec", "", "path to human-readable genesis JSON file")
+	buildSpecCmd.Flags().String("genesis", "", "path to human-readable genesis JSON file")
 	buildSpecCmd.Flags().String("base-path", "", "path to node's base directory")
 	buildSpecCmd.Flags().String("output-path", "", "path to output the recently created genesis JSON file")
 }
 
 var buildSpecCmd = &cobra.Command{
 	Use:   "build-spec",
-	Short: "build-spec",
+	Short: "Generates genesis JSON data, and can convert to raw genesis data",
+	Long: `The build-spec command outputs current genesis JSON data.
+Usage: gossamer build-spec
+To generate raw genesis file from default:
+	gossamer build-spec --raw --output genesis.json
+To generate raw genesis file from specific genesis file:
+	gossamer build-spec --raw --genesis genesis-spec.json --output-path genesis.json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := execBuildSpec(cmd); err != nil {
 			return err

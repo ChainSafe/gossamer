@@ -18,7 +18,10 @@ func init() {
 
 var pruneStateCmd = &cobra.Command{
 	Use:   "prune-state",
-	Short: "prune-state",
+	Short: "Prune state will prune the state trie",
+	Long: `prune-state <retain-blocks> will prune historical state data.
+All trie nodes that do not belong to the specified version state will be deleted from the database.
+The default pruning target is the HEAD-256 state`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := execPruneState(cmd); err != nil {
 			return err

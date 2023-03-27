@@ -26,9 +26,10 @@ func init() {
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialise node databases and load genesis data to state",
-	Long: `The init command initialises the node databases and " +
-			"loads the genesis data from the genesis file to state.\n" +
-			"\tUsage: gossamer init --genesis genesis.json`,
+	Long: `The init command initialises the node databases and loads the genesis data from the genesis file to state.
+Example: 
+	gossamer init --genesis genesis.json
+	gossamer init --chain westend`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := execInit(cmd); err != nil {
 			return err

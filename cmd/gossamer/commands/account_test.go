@@ -12,8 +12,8 @@ func TestAccountGenerate(t *testing.T) {
 
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
 
-	accountCmd.SetArgs([]string{"generate", directory})
-	err := accountCmd.Execute()
+	RootCmd.SetArgs([]string{"account", "generate", directory})
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -22,9 +22,9 @@ func TestAccountGeneratePassword(t *testing.T) {
 	testDir := t.TempDir()
 
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	accountCmd.SetArgs([]string{"generate", directory, "--password=VerySecurePassword"})
+	RootCmd.SetArgs([]string{"account", "generate", directory, "--password=VerySecurePassword"})
 
-	err := accountCmd.Execute()
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -33,9 +33,9 @@ func TestAccountGenerateEd25519(t *testing.T) {
 	testDir := t.TempDir()
 
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	accountCmd.SetArgs([]string{"generate", directory, "--scheme=ed25519"})
+	RootCmd.SetArgs([]string{"account", "generate", directory, "--scheme=ed25519"})
 
-	err := accountCmd.Execute()
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -44,9 +44,9 @@ func TestAccountGenerateSr25519(t *testing.T) {
 	testDir := t.TempDir()
 
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	accountCmd.SetArgs([]string{"generate", directory, "--scheme=sr25519"})
+	RootCmd.SetArgs([]string{"account", "generate", directory, "--scheme=sr25519"})
 
-	err := accountCmd.Execute()
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -55,9 +55,9 @@ func TestAccountGenerateSecp256k1(t *testing.T) {
 	testDir := t.TempDir()
 
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	accountCmd.SetArgs([]string{"generate", directory, "--scheme=secp256k1"})
+	RootCmd.SetArgs([]string{"account", "generate", directory, "--scheme=secp256k1"})
 
-	err := accountCmd.Execute()
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -65,9 +65,9 @@ func TestAccountGenerateSecp256k1(t *testing.T) {
 func TestAccountImport(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	accountCmd.SetArgs([]string{"import", directory, "--keystore-file=./test_inputs/test-key.key"})
+	RootCmd.SetArgs([]string{"account", "import", directory, "--keystore-file=./test_inputs/test-key.key"})
 
-	err := accountCmd.Execute()
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -76,11 +76,11 @@ func TestAccountImportRaw(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
 
-	accountCmd.SetArgs([]string{"import-raw",
+	RootCmd.SetArgs([]string{"account", "import-raw",
 		directory,
 		"--keystore-file=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
 		"--password=VerySecurePassword"})
-	err := accountCmd.Execute()
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -89,7 +89,7 @@ func TestAccountList(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
 
-	accountCmd.SetArgs([]string{"list", directory})
-	err := accountCmd.Execute()
+	RootCmd.SetArgs([]string{"account", "list", directory})
+	err := RootCmd.Execute()
 	require.NoError(t, err)
 }
