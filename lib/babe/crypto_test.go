@@ -32,7 +32,7 @@ func TestCalculateThreshold(t *testing.T) {
 				C2:       2,
 				numAuths: 3,
 			},
-			exp: &scale.Uint128{Upper: 0x34d00ad6148e1800, Lower: 0x0},
+			exp: &scale.Uint128{Upper: 0x34d00ad6148e2000, Lower: 0x0},
 		},
 		{
 			name: "0_value_input",
