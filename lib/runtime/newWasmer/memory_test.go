@@ -1,9 +1,11 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package newWasmer
+package wasmer
 
 import (
+	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 	"unsafe"
 
@@ -47,6 +49,7 @@ func createInstance(t *testing.T) (*wasmer.Instance, error) {
 }
 
 func TestMemory_Length(t *testing.T) {
+	t.Parallel()
 	const pageLength uint32 = 65536
 	instance, err := createInstance(t)
 	require.NoError(t, err)
@@ -63,6 +66,7 @@ func TestMemory_Length(t *testing.T) {
 }
 
 func TestMemory_Grow(t *testing.T) {
+	t.Parallel()
 	const pageLength uint32 = 65536
 	instance, err := createInstance(t)
 	require.NoError(t, err)
@@ -85,6 +89,7 @@ func TestMemory_Grow(t *testing.T) {
 }
 
 func TestMemory_Data(t *testing.T) {
+	t.Parallel()
 	instance, err := createInstance(t)
 	require.NoError(t, err)
 
@@ -126,5 +131,45 @@ func TestMemory_Data(t *testing.T) {
 	result, err = getAt(memAddr)
 	require.NoError(t, err)
 	require.Equal(t, val2, result)
+}
 
+func TestMemory_CheckBounds(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name      string
+		value     uint64
+		exp       uint32
+		expErr    error
+		expErrMsg string
+	}{
+		{
+			name:  "valid cast",
+			value: uint64(0),
+			exp:   uint32(0),
+		},
+		{
+			name:  "max uint32",
+			value: uint64(math.MaxUint32),
+			exp:   math.MaxUint32,
+		},
+		{
+			name:      "out of bounds",
+			value:     uint64(math.MaxUint32 + 1),
+			expErr:    errMemoryValueOutOfBounds,
+			expErrMsg: errMemoryValueOutOfBounds.Error(),
+		},
+	}
+	for _, test := range testCases {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			res, err := checkBounds(test.value)
+			assert.ErrorIs(t, err, test.expErr)
+			if test.expErr != nil {
+				assert.EqualError(t, err, test.expErrMsg)
+			}
+			assert.Equal(t, test.exp, res)
+		})
+	}
 }
