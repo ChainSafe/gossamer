@@ -163,11 +163,14 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 
 	// 1 << 128
 	shift := new(big.Int).Lsh(big.NewInt(1), 128)
+	fmt.Printf("=====> shift %d\n", len(shift.Bytes()))
+
 	numer := new(big.Int).Mul(shift, pRat.Num())
 	denom := pRat.Denom()
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	thresholdBig := new(big.Int).Div(numer, denom)
+	fmt.Printf("=====> thresholdBig %d\n", len(thresholdBig.Bytes()))
 
 	// special case where threshold is maximum
 	if thresholdBig.Cmp(shift) == 0 {
@@ -177,6 +180,8 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*scale.Uint128, error) {
 	if len(thresholdBig.Bytes()) > 16 {
 		return nil, errors.New("threshold must be under or equal to 16 bytes")
 	}
+
+	fmt.Printf("=====> value %d\n", thresholdBig)
 
 	return scale.NewUint128(thresholdBig)
 }
