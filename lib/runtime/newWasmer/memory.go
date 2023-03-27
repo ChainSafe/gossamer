@@ -1,14 +1,14 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package wasmer
+package latestwasmer
 
 import (
 	"errors"
 	"fmt"
 	"math"
 
-	wasmgo "github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/wasmerio/wasmer-go/wasmer"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 // Memory is a thin wrapper around Wasmer memory to support
 // Gossamer runtime.Memory interface
 type Memory struct {
-	memory *wasmgo.Memory
+	memory *wasmer.Memory
 }
 
 func checkBounds(value uint64) (uint32, error) {
@@ -45,9 +45,9 @@ func (m Memory) Length() uint32 {
 
 // Grow grows the memory by the given number of pages
 func (m Memory) Grow(numPages uint32) error {
-	ok := m.memory.Grow(wasmgo.Pages(numPages))
+	ok := m.memory.Grow(wasmer.Pages(numPages))
 	if !ok {
-		return fmt.Errorf("%w", errCantGrowMemory)
+		return fmt.Errorf("%w: by %d pages", errCantGrowMemory, numPages)
 	}
 	return nil
 }
