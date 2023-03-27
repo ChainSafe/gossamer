@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/westend"
 	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
@@ -16,14 +17,18 @@ import (
 const confirmCharacter = "Y"
 
 func init() {
-	initCmd.Flags().String("chain", "", "chain id")
-	initCmd.Flags().Bool("force", false, "force node initialization")
-	initCmd.Flags().String("base-path", "", "base path")
+	initCmd.Flags().String("chain", "", "the default chain configuration to load. Example: --chain kusama")
+	initCmd.Flags().Bool("force", false, "force reinitialization of node")
+	initCmd.Flags().String("base-path", "", "the path to the node's base directory. Example: --base-path /my/custom/path")
+	initCmd.Flags().String("genesis", "", "the path to the genesis configuration to load. Example: --genesis genesis.json")
 }
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "init",
+	Short: "Initialise node databases and load genesis data to state",
+	Long: `The init command initialises the node databases and " +
+			"loads the genesis data from the genesis file to state.\n" +
+			"\tUsage: gossamer init --genesis genesis.json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := execInit(cmd); err != nil {
 			return err
@@ -55,9 +60,13 @@ func execInit(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to get --base-path: %s", err)
 	}
-	if basePath != "" {
-		config.BaseConfig.BasePath = basePath
+	if config.BasePath == "" && basePath == "" {
+		return fmt.Errorf("base-path not set")
 	}
+	if basePath != "" {
+		config.BasePath = basePath
+	}
+	config.BasePath = utils.ExpandDir(config.BasePath)
 
 	force, err := cmd.Flags().GetBool("force")
 	if err != nil {
@@ -74,8 +83,12 @@ func execInit(cmd *cobra.Command) error {
 		}
 	}
 
+	if err := config.ValidateBasic(); err != nil {
+		return fmt.Errorf("failed to validate config: %s", err)
+	}
+
 	if err := dot.InitNode(config); err != nil {
-		return err
+		return fmt.Errorf("failed to initialise node: %s", err)
 	}
 
 	logger.Info("node initialised at: " + config.BasePath)
