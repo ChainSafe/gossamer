@@ -22,6 +22,10 @@ jobs:
     timeout-minutes: 60
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
+      - name: uname -a
+        run: |
+          uname -a
+
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.11.0
         with:
