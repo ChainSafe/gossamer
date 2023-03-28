@@ -572,7 +572,7 @@ func (bt *BlockTree) GetInMemoryRuntimesBlockHashes() []common.Hash {
 func (bt *BlockTree) GetBlockRuntimeOrFail(hash common.Hash) (instance Runtime, err error) {
 	instance = bt.runtimes.get(hash)
 	if instance == nil {
-		return nil, ErrRuntimeNotFound
+		return nil, fmt.Errorf("%w: instance not found for %s", ErrRuntimeNotFound, hash)
 	}
 
 	return instance, nil

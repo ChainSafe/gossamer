@@ -916,6 +916,7 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err e
 	// it is a finalized node already persisted in database, so we
 	// should check if it is in the mapping or create a instance for it
 	if errors.Is(err, blocktree.ErrNodeNotFound) {
+		// TODO: https://github.com/ChainSafe/gossamer/issues/3066
 		panic("TODO: while getting a runtime but node does not exists")
 	}
 
@@ -959,7 +960,11 @@ func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instan
 		// the first ancestor will have the highest number which means it is
 		// the closest ancestor with an instance
 		if isDescendant {
-			return bs.bt.GetBlockRuntimeOrFail(header.Hash())
+			runtimeInstance, err := bs.bt.GetBlockRuntimeOrFail(header.Hash())
+			if err != nil {
+				return nil, fmt.Errorf("getting runtime: %w", err)
+			}
+			return runtimeInstance, nil
 		}
 	}
 
