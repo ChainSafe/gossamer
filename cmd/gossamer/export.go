@@ -12,13 +12,13 @@ import (
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // exportAction is the action for the "export" subcommand
 func exportAction(ctx *cli.Context) error {
 	// use --config value as export destination
-	config := ctx.GlobalString(ConfigFlag.Name)
+	config := ctx.String(ConfigFlag.Name)
 
 	// check if --config value is set
 	if config == "" {
