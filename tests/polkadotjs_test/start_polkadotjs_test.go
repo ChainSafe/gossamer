@@ -5,6 +5,7 @@ package polkadotjs_test
 
 import (
 	"context"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"os/exec"
 	"strings"
 	"testing"
@@ -52,6 +53,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	tomlConfig.RPC.Unsafe = true
 	tomlConfig.RPC.WSUnsafe = true
 	tomlConfig.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc", "grandpa"}
+	tomlConfig.State = &cfg.StateConfig{}
 	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
