@@ -5,6 +5,7 @@
 package dot
 
 import (
+	cfg "github.com/ChainSafe/gossamer/config"
 	reflect "reflect"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
@@ -47,7 +48,7 @@ func (m *MocknodeBuilderIface) EXPECT() *MocknodeBuilderIfaceMockRecorder {
 }
 
 // createBABEService mocks base method.
-func (m *MocknodeBuilderIface) createBABEService(cfg *Config, st *state.Service, ks KeyStore, cs *core.Service, telemetryMailer Telemetry) (*babe.Service, error) {
+func (m *MocknodeBuilderIface) createBABEService(cfg *cfg.Config, st *state.Service, ks KeyStore, cs *core.Service, telemetryMailer Telemetry) (*babe.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createBABEService", cfg, st, ks, cs, telemetryMailer)
 	ret0, _ := ret[0].(*babe.Service)
@@ -76,7 +77,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createBlockVerifier(st interface{}) 
 }
 
 // createCoreService mocks base method.
-func (m *MocknodeBuilderIface) createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
+func (m *MocknodeBuilderIface) createCoreService(cfg *cfg.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createCoreService", cfg, ks, st, net, dh)
 	ret0, _ := ret[0].(*core.Service)
@@ -106,7 +107,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(lvl, st interfac
 }
 
 // createGRANDPAService mocks base method.
-func (m *MocknodeBuilderIface) createGRANDPAService(cfg *Config, st *state.Service, ks KeyStore, net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
+func (m *MocknodeBuilderIface) createGRANDPAService(cfg *cfg.Config, st *state.Service, ks KeyStore, net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createGRANDPAService", cfg, st, ks, net, telemetryMailer)
 	ret0, _ := ret[0].(*grandpa.Service)
@@ -121,7 +122,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createGRANDPAService(cfg, st, ks, ne
 }
 
 // createNetworkService mocks base method.
-func (m *MocknodeBuilderIface) createNetworkService(cfg *Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service, error) {
+func (m *MocknodeBuilderIface) createNetworkService(cfg *cfg.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createNetworkService", cfg, stateSrvc, telemetryMailer)
 	ret0, _ := ret[0].(*network.Service)
@@ -166,7 +167,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createRuntimeStorage(st interface{})
 }
 
 // createStateService mocks base method.
-func (m *MocknodeBuilderIface) createStateService(config *Config) (*state.Service, error) {
+func (m *MocknodeBuilderIface) createStateService(config *cfg.Config) (*state.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createStateService", config)
 	ret0, _ := ret[0].(*state.Service)
@@ -196,7 +197,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createSystemService(cfg, stateSrvc i
 }
 
 // initNode mocks base method.
-func (m *MocknodeBuilderIface) initNode(config *Config) error {
+func (m *MocknodeBuilderIface) initNode(config *cfg.Config) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "initNode", config)
 	ret0, _ := ret[0].(error)
@@ -224,7 +225,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) isNodeInitialised(basepath interface
 }
 
 // loadRuntime mocks base method.
-func (m *MocknodeBuilderIface) loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+func (m *MocknodeBuilderIface) loadRuntime(cfg *cfg.Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "loadRuntime", cfg, ns, stateSrvc, ks, net)
 	ret0, _ := ret[0].(error)
@@ -238,7 +239,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) loadRuntime(cfg, ns, stateSrvc, ks, 
 }
 
 // newSyncService mocks base method.
-func (m *MocknodeBuilderIface) newSyncService(cfg *Config, st *state.Service, finalityGadget BlockJustificationVerifier, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (*sync.Service, error) {
+func (m *MocknodeBuilderIface) newSyncService(cfg *cfg.Config, st *state.Service, finalityGadget BlockJustificationVerifier, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (*sync.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "newSyncService", cfg, st, finalityGadget, verifier, cs, net, telemetryMailer)
 	ret0, _ := ret[0].(*sync.Service)

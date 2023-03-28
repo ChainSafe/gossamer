@@ -161,7 +161,7 @@ func TestNodeInitialized(t *testing.T) {
 	}
 }
 
-func initKeystore(t *testing.T, cfg *Config) (
+func initKeystore(t *testing.T, cfg *cfg.Config) (
 	globalKeyStore *keystore.GlobalKeystore, err error) {
 	ks := keystore.NewGlobalKeystore()
 
@@ -186,7 +186,7 @@ func initKeystore(t *testing.T, cfg *Config) (
 	require.NoError(t, err)
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Roles == common.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+	if cfg.Core.Role == common.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
 		return nil, ErrNoKeysProvided
 	}
 
