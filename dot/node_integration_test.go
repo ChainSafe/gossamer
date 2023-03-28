@@ -208,6 +208,7 @@ func TestInitNode_Integration(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)

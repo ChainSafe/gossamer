@@ -410,8 +410,8 @@ func TestCreateStateService(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
-
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -474,11 +474,11 @@ func TestCreateCoreService(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
-
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -509,6 +509,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 	genFile := newTestGenesisFile(t, config)
 
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -527,6 +528,7 @@ func TestCreateSyncService(t *testing.T) {
 	genFile := newTestGenesisFile(t, config)
 
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -557,6 +559,7 @@ func TestCreateNetworkService(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -578,6 +581,7 @@ func TestCreateRPCService(t *testing.T) {
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -631,6 +635,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 
 	config.Core.Role = common.FullNodeRole
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -668,6 +673,7 @@ func TestCreateGrandpaService(t *testing.T) {
 
 	config.Core.Role = common.AuthorityRole
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -743,6 +749,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	config.RPC.WSPort = 9546
 	config.RPC.WSExternal = false
 	config.System.SystemName = "gossamer"
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -837,6 +844,7 @@ func Test_createDigestHandler(t *testing.T) {
 
 	config.Core.Role = common.AuthorityRole
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)

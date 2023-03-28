@@ -57,8 +57,8 @@ func DefaultConfig() *cfg.Config {
 			DiscoveryInterval: 10 * time.Second,
 		},
 		RPC: &cfg.RPCConfig{
-			WS:      true,
-			Enabled: true,
+			WS:      false,
+			Enabled: false,
 			Port:    8545,
 			Host:    "localhost",
 			Modules: []string{
