@@ -1,0 +1,9 @@
+Description: Small Network test
+Network: ./0002-basic-network.toml
+Creds: config
+
+# well know functions
+alice: is up
+bob: is up
+
+alice: js-script ./01-custom.js return is greater than 1 within 200 seconds
