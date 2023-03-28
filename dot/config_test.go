@@ -240,12 +240,12 @@ func Test_networkServiceEnabled(t *testing.T) {
 		want   bool
 	}{
 		{
-			name:   "kusama config",
+			name:   "kusama_config",
 			config: kusama.DefaultConfig(),
 			want:   true,
 		},
 		{
-			name: "empty config",
+			name: "empty_config",
 			config: &cfg.Config{
 				BaseConfig: &cfg.BaseConfig{},
 				Log:        &cfg.LogConfig{},
