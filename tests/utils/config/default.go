@@ -48,6 +48,8 @@ func Default() cfg.Config {
 			Modules:  []string{"system", "author", "chain", "state", "dev", "rpc"},
 			WS:       false,
 		},
-		State: &cfg.StateConfig{},
+		State:  &cfg.StateConfig{},
+		Pprof:  &cfg.PprofConfig{},
+		System: &cfg.SystemConfig{},
 	}
 }
