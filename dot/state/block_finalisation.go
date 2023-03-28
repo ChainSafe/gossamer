@@ -5,6 +5,7 @@ package state
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -12,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var errSetIDLowerThanHighest = errors.New("set id lower than highest")
 var highestRoundAndSetIDKey = []byte("hrs")
 
 // finalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
@@ -63,6 +65,15 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 }
 
 func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
+	_, highestSetID, err := bs.GetHighestRoundAndSetID()
+	if err != nil {
+		return err
+	}
+
+	if setID < highestSetID {
+		return fmt.Errorf("%w: %d should be greater or equal %d", errSetIDLowerThanHighest, setID, highestSetID)
+	}
+
 	return bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
 }
 
