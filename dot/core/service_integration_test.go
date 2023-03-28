@@ -494,6 +494,36 @@ func TestService_GetMetadata(t *testing.T) {
 	require.Greater(t, len(res), 10000)
 }
 
+func TestService_HandleRuntimeChanges(t *testing.T) {
+	s := NewTestService(t, nil)
+	genesisBlockHash := s.blockState.BestBlockHash()
+
+	ts, err := s.storageState.TrieState(nil) // Pass genesis root
+	require.NoError(t, err)
+
+	firstBlockHash := createBlockUsingOldRuntime(t, genesisBlockHash, ts, s.blockState)
+	const updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
+	secondBlockHash := createBlockUsingNewRuntime(t, genesisBlockHash, updateNodeRuntimeWasmPath, ts, s.blockState)
+
+	// firstBlockHash runtime should not be updated
+	genesisRuntime, err := s.blockState.GetRuntime(genesisBlockHash)
+	require.NoError(t, err)
+
+	firstBlockRuntime, err := s.blockState.GetRuntime(firstBlockHash)
+	require.NoError(t, err)
+
+	genesisRuntimeVersion := genesisRuntime.Version()
+	firstBlockRuntimeVersion := firstBlockRuntime.Version()
+	require.Equal(t, genesisRuntimeVersion, firstBlockRuntimeVersion)
+
+	secondBlockRuntime, err := s.blockState.GetRuntime(secondBlockHash)
+	require.NoError(t, err)
+
+	const updatedSpecVersion = uint32(262)
+	secondBlockRuntimeVersion := secondBlockRuntime.Version()
+	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
+}
+
 func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, ts *rtstorage.TrieState,
 	bs BlockState) (blockHash common.Hash) {
 	parentRt, err := bs.GetRuntime(bestBlockHash)
@@ -558,36 +588,6 @@ func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRunt
 	require.NoError(t, err)
 
 	return newBlockRTUpdateHash
-}
-
-func TestService_HandleRuntimeChanges(t *testing.T) {
-	s := NewTestService(t, nil)
-	genesisBlockHash := s.blockState.BestBlockHash()
-
-	ts, err := s.storageState.TrieState(nil) // Pass genesis root
-	require.NoError(t, err)
-
-	firstBlockHash := createBlockUsingOldRuntime(t, genesisBlockHash, ts, s.blockState)
-	const updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
-	secondBlockHash := createBlockUsingNewRuntime(t, genesisBlockHash, updateNodeRuntimeWasmPath, ts, s.blockState)
-
-	// firstBlockHash runtime should not be updated
-	genesisRuntime, err := s.blockState.GetRuntime(genesisBlockHash)
-	require.NoError(t, err)
-
-	firstBlockRuntime, err := s.blockState.GetRuntime(firstBlockHash)
-	require.NoError(t, err)
-
-	genesisRuntimeVersion := genesisRuntime.Version()
-	firstBlockRuntimeVersion := firstBlockRuntime.Version()
-	require.Equal(t, genesisRuntimeVersion, firstBlockRuntimeVersion)
-
-	secondBlockRuntime, err := s.blockState.GetRuntime(secondBlockHash)
-	require.NoError(t, err)
-
-	const updatedSpecVersion = uint32(262)
-	secondBlockRuntimeVersion := secondBlockRuntime.Version()
-	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {

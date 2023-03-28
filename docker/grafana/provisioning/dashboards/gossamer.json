@@ -268,11 +268,23 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
+          "expr": "go_memstats_heap_released_bytes{instance=~\".*gossamer.*\"}",
+          "hide": false,
+          "legendFormat": "Heap Idle Bytes",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_id"
+          },
+          "editorMode": "code",
           "expr": "go_memstats_stack_inuse_bytes{instance=~\".*gossamer.*\"}",
           "hide": false,
           "legendFormat": "Stack",
           "range": true,
-          "refId": "D"
+          "refId": "E"
         }
       ],
       "title": "Memory usage",
