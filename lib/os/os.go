@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package os
 
 import (
@@ -6,10 +9,6 @@ import (
 	"io"
 	"os"
 )
-
-type logger interface {
-	Info(msg string, keyvals ...interface{})
-}
 
 // EnsureDir ensures the given directory exists, creating it if necessary.
 // Errors if the path already exists as a non-directory.
