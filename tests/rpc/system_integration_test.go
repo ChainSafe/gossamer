@@ -5,10 +5,10 @@ package rpc
 
 import (
 	"context"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
@@ -25,13 +25,13 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	}
 
 	const numberOfNodes = 3
-	config := toml.Config{
-		RPC: toml.RPCConfig{
+	config := cfg.Config{
+		RPC: &cfg.RPCConfig{
 			Enabled: true,
 			Modules: []string{"system", "author", "chain"},
 		},
-		Core: toml.CoreConfig{
-			Roles: byte(common.FullNodeRole),
+		Core: &cfg.CoreConfig{
+			Role: common.FullNodeRole,
 		},
 	}
 

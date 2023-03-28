@@ -6,6 +6,7 @@ package dot
 import (
 	"errors"
 	"fmt"
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"path/filepath"
@@ -26,8 +27,9 @@ import (
 )
 
 func TestInitNode(t *testing.T) {
-	config := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
 	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 	tests := []struct {
 		name   string
 		config *cfg.Config
@@ -126,11 +128,10 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 }
 
 func TestNodeInitialized(t *testing.T) {
-	config := NewWestendDevConfig(t)
-
+	config := westend_dev.DefaultConfig()
 	genFile := NewTestGenesisRawFile(t, config)
-
 	config.Genesis = genFile
+	config.BasePath = t.TempDir()
 
 	nodeInstance := nodeBuilder{}
 	err := nodeInstance.initNode(config)

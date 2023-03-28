@@ -4,35 +4,35 @@
 package config
 
 import (
-	"github.com/ChainSafe/gossamer/dot/config/toml"
+	cfg "github.com/ChainSafe/gossamer/config"
 )
 
 // Default returns a default TOML configuration for Gossamer.
-func Default() toml.Config {
-	return toml.Config{
-		Global: toml.GlobalConfig{
+func Default() cfg.Config {
+	return cfg.Config{
+		BaseConfig: &cfg.BaseConfig{
 			Name:           "Gossamer",
 			ID:             "gssmr",
-			LogLvl:         "info",
+			LogLevel:       "info",
 			MetricsAddress: "localhost:9876",
 			RetainBlocks:   256,
 			Pruning:        "archive",
 		},
-		Log: toml.LogConfig{
-			CoreLvl: "info",
-			SyncLvl: "info",
+		Log: &cfg.LogConfig{
+			Core: "info",
+			Sync: "info",
 		},
-		Account: toml.AccountConfig{
+		Account: &cfg.AccountConfig{
 			Key:    "",
 			Unlock: "",
 		},
-		Core: toml.CoreConfig{
-			Roles:            4,
+		Core: &cfg.CoreConfig{
+			Role:             4,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
 			GrandpaInterval:  1,
 		},
-		Network: toml.NetworkConfig{
+		Network: &cfg.NetworkConfig{
 			Bootnodes:   nil,
 			ProtocolID:  "/gossamer/gssmr/0",
 			NoBootstrap: false,
@@ -40,7 +40,7 @@ func Default() toml.Config {
 			MinPeers:    1,
 			MaxPeers:    3,
 		},
-		RPC: toml.RPCConfig{
+		RPC: &cfg.RPCConfig{
 			Enabled:  true,
 			Unsafe:   true,
 			WSUnsafe: true,

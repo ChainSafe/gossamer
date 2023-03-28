@@ -21,7 +21,7 @@ import (
 func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -164,7 +164,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 func TestStateRPCAPI(t *testing.T) {
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -368,7 +368,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Genesis = genesisPath
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)

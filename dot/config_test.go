@@ -4,6 +4,7 @@
 package dot
 
 import (
+	"github.com/ChainSafe/gossamer/chain/kusama"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestConfig(t *testing.T) {
 	tests := []struct {
 		name        string
 		want        *Config
-		configMaker func() *Config
+		configMaker func() (*Config, error)
 	}{
 		{
 			name: "kusama_default",
@@ -133,7 +134,8 @@ func TestConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := tt.configMaker()
+			got, err := tt.configMaker()
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -239,19 +241,29 @@ func Test_networkServiceEnabled(t *testing.T) {
 	}{
 		{
 			name:   "kusama config",
-			config: cfg.DefaultKusamaConfig(),
+			config: kusama.DefaultConfig(),
 			want:   true,
 		},
 		{
-			name:   "empty config",
-			config: &cfg.Config{},
-			want:   false,
+			name: "empty config",
+			config: &cfg.Config{
+				BaseConfig: &cfg.BaseConfig{},
+				Log:        &cfg.LogConfig{},
+				Account:    &cfg.AccountConfig{},
+				Core:       &cfg.CoreConfig{},
+				Network:    &cfg.NetworkConfig{},
+				State:      &cfg.StateConfig{},
+				RPC:        &cfg.RPCConfig{},
+				Pprof:      &cfg.PprofConfig{},
+				System:     &cfg.SystemConfig{},
+			},
+			want: false,
 		},
 		{
 			name: "core_roles_0",
 			config: &cfg.Config{
 				Core: &cfg.CoreConfig{
-					Roles: 0,
+					Role: 0,
 				},
 			},
 			want: false,
@@ -260,7 +272,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 			name: "core_roles_1",
 			config: &cfg.Config{
 				Core: &cfg.CoreConfig{
-					Roles: 1,
+					Role: 1,
 				},
 			},
 			want: true,

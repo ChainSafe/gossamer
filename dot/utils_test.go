@@ -7,13 +7,14 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/internal/pprof"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
@@ -21,18 +22,19 @@ import (
 )
 
 // newTestGenesisFile returns a human-readable test genesis file using "westend-dev" human readable data
-func newTestGenesisFile(t *testing.T, cfg *Config) (filename string) {
+func newTestGenesisFile(t *testing.T, config *cfg.Config) (filename string) {
 	t.Helper()
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
+	fmt.Println(fp)
 	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
-		Name:       cfg.Global.Name,
-		ID:         cfg.Global.ID,
-		Bootnodes:  cfg.Network.Bootnodes,
-		ProtocolID: cfg.Network.ProtocolID,
+		Name:       config.Name,
+		ID:         config.ID,
+		Bootnodes:  config.Network.Bootnodes,
+		ProtocolID: config.Network.ProtocolID,
 		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 
@@ -152,6 +154,13 @@ func TestNewTestConfig(t *testing.T) {
 				},
 				System: types.SystemInfo{},
 				State:  StateConfig{},
+				Pprof: PprofConfig{
+					Settings: pprof.Settings{
+						ListeningAddress: "localhost:6060",
+						BlockProfileRate: 0,
+						MutexProfileRate: 0,
+					},
+				},
 			},
 		},
 	}
@@ -165,8 +174,8 @@ func TestNewTestConfig(t *testing.T) {
 
 func TestNewTestGenesisFile(t *testing.T) {
 	type args struct {
-		t   *testing.T
-		cfg *Config
+		t      *testing.T
+		config *cfg.Config
 	}
 	tests := []struct {
 		name string
@@ -176,15 +185,15 @@ func TestNewTestGenesisFile(t *testing.T) {
 		{
 			name: "working_example",
 			args: args{
-				t:   t,
-				cfg: &Config{},
+				t:      t,
+				config: westend_dev.DefaultConfig(),
 			},
 			want: &os.File{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newTestGenesisFile(tt.args.t, tt.args.cfg)
+			got := newTestGenesisFile(tt.args.t, tt.args.config)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			}
@@ -210,23 +219,29 @@ func TestRandomNodeName(t *testing.T) {
 }
 
 // NewWestendDevConfig returns a new test configuration
-func NewWestendDevConfig(t *testing.T) *cfg.Config {
+func NewWestendDevConfig(t *testing.T) *Config {
 	dir := t.TempDir()
+	defaultConfig := WestendDevConfig()
 
-	config := &cfg.Config{
-		BaseConfig: &cfg.BaseConfig{
-			Name:      cfg.DefaultWestendDevConfig().Name,
-			ID:        cfg.DefaultWestendDevConfig().ID,
-			BasePath:  dir,
-			LogLevel:  log.Info,
-			Telemetry: false,
-			Genesis:   cfg.DefaultWestendDevConfig().Genesis,
+	config := &Config{
+		Global: GlobalConfig{
+			Name:        defaultConfig.Global.Name,
+			ID:          defaultConfig.Global.ID,
+			BasePath:    dir,
+			LogLvl:      defaultConfig.Global.LogLvl,
+			NoTelemetry: true,
 		},
-		Log:     cfg.DefaultWestendDevConfig().Log,
-		Account: cfg.DefaultWestendDevConfig().Account,
-		Core:    cfg.DefaultWestendDevConfig().Core,
-		Network: cfg.DefaultWestendDevConfig().Network,
-		RPC:     cfg.DefaultWestendDevConfig().RPC,
+		Init: InitConfig{
+			Genesis: defaultConfig.Init.Genesis,
+		},
+		Log:     defaultConfig.Log,
+		Account: defaultConfig.Account,
+		Core:    defaultConfig.Core,
+		Network: defaultConfig.Network,
+		RPC:     defaultConfig.RPC,
+		System:  defaultConfig.System,
+		State:   defaultConfig.State,
+		Pprof:   defaultConfig.Pprof,
 	}
 
 	return config

@@ -4,11 +4,11 @@
 package config
 
 import (
+	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"path/filepath"
 	"testing"
 
-	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/naoina/toml"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ import (
 // Write writes the toml configuration to a file
 // in a temporary test directory which gets removed at
 // the end of the test.
-func Write(t *testing.T, cfg ctoml.Config) (configPath string) {
+func Write(t *testing.T, cfg cfg.Config) (configPath string) {
 	t.Helper()
 	configPath = filepath.Join(t.TempDir(), "config.toml")
 	raw, err := toml.Marshal(cfg)

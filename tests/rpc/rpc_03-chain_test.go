@@ -32,7 +32,7 @@ const (
 func TestChainRPC(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 
 	node := node.New(t, tomlConfig)
@@ -137,7 +137,7 @@ func TestChainRPC(t *testing.T) {
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 	tomlConfig.RPC.WS = true // WS port is set in the node.New constructor
 	node := node.New(t, tomlConfig)

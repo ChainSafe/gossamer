@@ -28,7 +28,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Genesis = genesisPath
 	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
 
 	nodes.InitAndStartTest(ctx, t, cancel)

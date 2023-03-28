@@ -4,6 +4,7 @@
 package dot
 
 import (
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -18,9 +19,10 @@ import (
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	config := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
 
 	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
 	err := builder.initNode(config)
@@ -53,9 +55,10 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	config := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
 
 	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
 	err := builder.initNode(config)

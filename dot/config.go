@@ -5,7 +5,11 @@ package dot
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/chain/kusama"
+	"github.com/ChainSafe/gossamer/chain/polkadot"
+	"github.com/ChainSafe/gossamer/chain/westend"
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"strings"
 	"time"
 
@@ -182,4 +186,254 @@ func (p PprofConfig) String() string {
 	}
 
 	return p.Settings.String()
+}
+
+// WestendDevConfig returns a westend node configuration
+func WestendDevConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:           "Westend",
+			ID:             "westend_dev",
+			BasePath:       "~/.gossamer/westend-dev",
+			LogLvl:         log.Info,
+			MetricsAddress: ":9876",
+			RetainBlocks:   512,
+			Pruning:        pruner.Archive,
+		},
+		Log: LogConfig{
+			CoreLvl:           log.Info,
+			DigestLvl:         log.Info,
+			SyncLvl:           log.Info,
+			NetworkLvl:        log.Info,
+			RPCLvl:            log.Info,
+			StateLvl:          log.Info,
+			RuntimeLvl:        log.Info,
+			BlockProducerLvl:  log.Info,
+			FinalityGadgetLvl: log.Info,
+		},
+		Init: InitConfig{
+			Genesis: "./chain/westend-dev/westend-dev-spec-raw.json",
+		},
+		Account: AccountConfig{
+			Key:    "alice",
+			Unlock: "",
+		},
+		Core: CoreConfig{
+			Roles:            common.AuthorityRole,
+			WasmInterpreter:  wasmer.Name,
+			BabeAuthority:    true,
+			GrandpaAuthority: true,
+			GrandpaInterval:  time.Second,
+		},
+		Network: NetworkConfig{
+			Port:              7001,
+			Bootnodes:         []string(nil),
+			NoBootstrap:       false,
+			NoMDNS:            false,
+			DiscoveryInterval: 10 * time.Second,
+		},
+		RPC: RPCConfig{
+			WS:      true,
+			Enabled: true,
+			Port:    8545,
+			Host:    "localhost",
+			Modules: []string{
+				"system", "author", "chain", "state", "rpc",
+				"grandpa", "offchain", "childstate", "syncstate", "payment"},
+			WSPort: 8546,
+		},
+		Pprof: PprofConfig{
+			Settings: pprof.Settings{
+				ListeningAddress: "localhost:6060",
+				BlockProfileRate: 0,
+				MutexProfileRate: 0,
+			},
+		},
+	}
+}
+
+// KusamaConfig returns a kusama node configuration
+func KusamaConfig() (*Config, error) {
+	defaultLogLevel, err := log.ParseLevel(westend.DefaultLvl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{
+		Global: GlobalConfig{
+			Name:           kusama.DefaultName,
+			ID:             kusama.DefaultID,
+			BasePath:       kusama.DefaultBasePath,
+			LogLvl:         defaultLogLevel,
+			MetricsAddress: kusama.DefaultMetricsAddress,
+			RetainBlocks:   kusama.DefaultRetainBlocks,
+			Pruning:        kusama.DefaultPruningMode,
+			TelemetryURLs:  kusama.DefaultTelemetryURLs,
+		},
+		Log: LogConfig{
+			CoreLvl:           defaultLogLevel,
+			DigestLvl:         defaultLogLevel,
+			SyncLvl:           defaultLogLevel,
+			NetworkLvl:        defaultLogLevel,
+			RPCLvl:            defaultLogLevel,
+			StateLvl:          defaultLogLevel,
+			RuntimeLvl:        defaultLogLevel,
+			BlockProducerLvl:  defaultLogLevel,
+			FinalityGadgetLvl: defaultLogLevel,
+		},
+		Init: InitConfig{
+			Genesis: kusama.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    kusama.DefaultKey,
+			Unlock: kusama.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           kusama.DefaultRoles,
+			WasmInterpreter: kusama.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        kusama.DefaultNetworkPort,
+			Bootnodes:   kusama.DefaultNetworkBootnodes,
+			NoBootstrap: kusama.DefaultNoBootstrap,
+			NoMDNS:      kusama.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    kusama.DefaultRPCHTTPPort,
+			Host:    kusama.DefaultRPCHTTPHost,
+			Modules: kusama.DefaultRPCModules,
+			WSPort:  kusama.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Settings: pprof.Settings{
+				ListeningAddress: kusama.DefaultPprofListeningAddress,
+				BlockProfileRate: kusama.DefaultPprofBlockRate,
+				MutexProfileRate: kusama.DefaultPprofMutexRate,
+			},
+		},
+	}, nil
+}
+
+// PolkadotConfig returns a "polkadot" node configuration
+func PolkadotConfig() (*Config, error) {
+	defaultLogLevel, err := log.ParseLevel(westend.DefaultLvl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{
+		Global: GlobalConfig{
+			Name:           polkadot.DefaultName,
+			ID:             polkadot.DefaultID,
+			BasePath:       polkadot.DefaultBasePath,
+			LogLvl:         defaultLogLevel,
+			RetainBlocks:   polkadot.DefaultRetainBlocks,
+			Pruning:        polkadot.DefaultPruningMode,
+			MetricsAddress: polkadot.DefaultMetricsAddress,
+			TelemetryURLs:  polkadot.DefaultTelemetryURLs,
+		},
+		Log: LogConfig{
+			CoreLvl:           defaultLogLevel,
+			DigestLvl:         defaultLogLevel,
+			SyncLvl:           defaultLogLevel,
+			NetworkLvl:        defaultLogLevel,
+			RPCLvl:            defaultLogLevel,
+			StateLvl:          defaultLogLevel,
+			RuntimeLvl:        defaultLogLevel,
+			BlockProducerLvl:  defaultLogLevel,
+			FinalityGadgetLvl: defaultLogLevel,
+		},
+		Init: InitConfig{
+			Genesis: polkadot.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    polkadot.DefaultKey,
+			Unlock: polkadot.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           polkadot.DefaultRoles,
+			WasmInterpreter: polkadot.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        polkadot.DefaultNetworkPort,
+			Bootnodes:   polkadot.DefaultNetworkBootnodes,
+			NoBootstrap: polkadot.DefaultNoBootstrap,
+			NoMDNS:      polkadot.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    polkadot.DefaultRPCHTTPPort,
+			Host:    polkadot.DefaultRPCHTTPHost,
+			Modules: polkadot.DefaultRPCModules,
+			WSPort:  polkadot.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Settings: pprof.Settings{
+				ListeningAddress: polkadot.DefaultPprofListeningAddress,
+				BlockProfileRate: polkadot.DefaultPprofBlockRate,
+				MutexProfileRate: polkadot.DefaultPprofMutexRate,
+			},
+		},
+	}, nil
+}
+
+// WestendConfig returns a "westend" node configuration
+func WestendConfig() (*Config, error) {
+	defaultLogLevel, err := log.ParseLevel(westend.DefaultLvl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{
+		Global: GlobalConfig{
+			Name:           westend.DefaultName,
+			ID:             westend.DefaultID,
+			BasePath:       westend.DefaultBasePath,
+			LogLvl:         defaultLogLevel,
+			RetainBlocks:   westend.DefaultRetainBlocks,
+			Pruning:        westend.DefaultPruningMode,
+			MetricsAddress: westend.DefaultMetricsAddress,
+			TelemetryURLs:  westend.DefaultTelemetryURLs,
+		},
+		Log: LogConfig{
+			CoreLvl:           defaultLogLevel,
+			DigestLvl:         defaultLogLevel,
+			SyncLvl:           defaultLogLevel,
+			NetworkLvl:        defaultLogLevel,
+			RPCLvl:            defaultLogLevel,
+			StateLvl:          defaultLogLevel,
+			RuntimeLvl:        defaultLogLevel,
+			BlockProducerLvl:  defaultLogLevel,
+			FinalityGadgetLvl: defaultLogLevel,
+		},
+		Init: InitConfig{
+			Genesis: westend.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    westend.DefaultKey,
+			Unlock: westend.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           westend.DefaultRoles,
+			WasmInterpreter: westend.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        westend.DefaultNetworkPort,
+			Bootnodes:   westend.DefaultNetworkBootnodes,
+			NoBootstrap: westend.DefaultNoBootstrap,
+			NoMDNS:      westend.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    westend.DefaultRPCHTTPPort,
+			Host:    westend.DefaultRPCHTTPHost,
+			Modules: westend.DefaultRPCModules,
+			WSPort:  westend.DefaultRPCWSPort,
+		},
+		Pprof: PprofConfig{
+			Settings: pprof.Settings{
+				ListeningAddress: westend.DefaultPprofListeningAddress,
+				BlockProfileRate: westend.DefaultPprofBlockRate,
+				MutexProfileRate: westend.DefaultPprofMutexRate,
+			},
+		},
+	}, nil
 }

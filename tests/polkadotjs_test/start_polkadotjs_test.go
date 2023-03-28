@@ -46,7 +46,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = libutils.GetWestendLocalRawGenesisPath(t)
+	tomlConfig.Genesis = libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig.Core.BABELead = true
 	tomlConfig.RPC.WS = true
 	tomlConfig.RPC.Unsafe = true

@@ -7,10 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 	"time"
-
-	"github.com/ChainSafe/gossamer/dot/config/toml"
 )
 
 // Nodes is a slice of nodes.
@@ -20,7 +19,7 @@ type Nodes []Node
 // as a base config for each node. It overrides some of configuration:
 // - the first node is always the BABE lead (overrides the toml configuration)
 // - the index of each node is incremented per node (overrides the SetIndex option, if set)
-func MakeNodes(t *testing.T, num int, tomlConfig toml.Config,
+func MakeNodes(t *testing.T, num int, tomlConfig cfg.Config,
 	options ...Option) (nodes Nodes) {
 	nodes = make(Nodes, num)
 	for i := range nodes {

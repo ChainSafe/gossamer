@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"io"
 	"os"
 	"os/exec"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
@@ -24,7 +24,7 @@ import (
 type Node struct {
 	index      *int
 	configPath string
-	tomlConfig toml.Config
+	tomlConfig cfg.Config
 	writer     io.Writer
 	logsBuffer *bytes.Buffer
 	binPath    string
@@ -32,7 +32,7 @@ type Node struct {
 
 // New returns a node configured using the
 // toml configuration and options given.
-func New(t *testing.T, tomlConfig toml.Config,
+func New(t *testing.T, tomlConfig cfg.Config,
 	options ...Option) (node Node) {
 	node.tomlConfig = tomlConfig
 	for _, option := range options {
@@ -65,12 +65,12 @@ func (n *Node) setDefaults(t *testing.T) {
 		n.index = intPtr(0)
 	}
 
-	if n.tomlConfig.Global.BasePath == "" {
-		n.tomlConfig.Global.BasePath = t.TempDir()
+	if n.tomlConfig.BasePath == "" {
+		n.tomlConfig.BasePath = t.TempDir()
 	}
 
-	if n.tomlConfig.Init.Genesis == "" {
-		n.tomlConfig.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	if n.tomlConfig.Genesis == "" {
+		n.tomlConfig.Genesis = utils.GetWestendDevRawGenesisPath(t)
 	}
 
 	if n.tomlConfig.Account.Key == "" {
