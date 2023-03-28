@@ -6,6 +6,7 @@
 package dot
 
 import (
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -14,9 +15,10 @@ import (
 )
 
 func TestTrieSnapshot(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
 
-	genRawFile := NewTestGenesisRawFile(t, cfg)
+	genRawFile := NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
