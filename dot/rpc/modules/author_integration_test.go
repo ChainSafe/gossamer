@@ -602,7 +602,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0929(t *testing.T) {
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority: 4295664014726,
+			Priority: 36074,
 			Provides: [][]byte{
 				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
