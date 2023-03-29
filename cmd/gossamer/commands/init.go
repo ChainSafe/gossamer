@@ -20,7 +20,7 @@ import (
 const confirmCharacter = "Y"
 
 func init() {
-	InitCmd.Flags().String("chain", "", "the default chain configuration to load. Example: --chain kusama")
+	InitCmd.Flags().String("chain", WestendDevChain.String(), "the default chain configuration to load. Example: --chain kusama")
 	InitCmd.Flags().Bool("force", false, "force reinitialization of node")
 	InitCmd.Flags().String("genesis", "", "the path to the genesis configuration to load. Example: --genesis genesis.json")
 }
@@ -48,14 +48,14 @@ func execInit(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get --chain: %s", err)
 	}
 
-	switch chain {
-	case "polkadot":
+	switch Chain(chain) {
+	case PolkadotChain:
 		config = polkadot.DefaultConfig()
-	case "kusama":
+	case KusamaChain:
 		config = kusama.DefaultConfig()
-	case "westend":
+	case WestendChain:
 		config = westend.DefaultConfig()
-	case "westend-dev":
+	case WestendDevChain:
 		config = westend_dev.DefaultConfig()
 	default:
 		return fmt.Errorf("chain %s not supported", chain)

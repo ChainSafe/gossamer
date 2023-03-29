@@ -23,6 +23,11 @@ const (
 	WestendDevChain Chain = "westend-dev"
 )
 
+// String returns the string representation of the chain
+func (c Chain) String() string {
+	return string(c)
+}
+
 // addStringFlagBindViper adds a string flag to the given command and binds it to the given viper name
 func addStringFlagBindViper(cmd *cobra.Command, name, defaultValue, usage, viperBindName string) error {
 	cmd.PersistentFlags().String(name, defaultValue, usage)
