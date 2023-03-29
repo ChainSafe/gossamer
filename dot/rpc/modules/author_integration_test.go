@@ -63,8 +63,8 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
-	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0910)
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
@@ -570,9 +570,9 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}
 }
 
-func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_WithVersion_V0929(t *testing.T) {
 	t.Parallel()
-	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
+	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0929)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
