@@ -88,7 +88,9 @@ func (n *Node) setDefaults(t *testing.T) {
 	}
 
 	if n.tomlConfig.Network.Port == 0 {
-		const basePort uint16 = 7000
+		// cannot use 7000 on macOS
+		// it is being used by the AirPlay service
+		const basePort uint16 = 8000
 		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
 	}
 
@@ -146,7 +148,7 @@ func (n *Node) Init(ctx context.Context) (err error) {
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
-		"--base-path", n.tomlConfig.BasePath,
+		"--base-path", n.tomlConfig.BasePath, "--chain", "westend-dev",
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {
@@ -201,8 +203,8 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	err := n.Init(ctx)
-	require.NoError(t, err)
+	//err := n.Init(ctx)
+	//require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
 

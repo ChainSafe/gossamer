@@ -21,8 +21,16 @@ func Default() cfg.Config {
 			Pruning:        "archive",
 		},
 		Log: &cfg.LogConfig{
-			Core: "info",
-			Sync: "info",
+			Core:    "info",
+			Digest:  "info",
+			Sync:    "info",
+			Network: "info",
+			RPC:     "info",
+			State:   "info",
+			Runtime: "info",
+			Babe:    "info",
+			Grandpa: "info",
+			Wasmer:  "info",
 		},
 		Account: &cfg.AccountConfig{
 			Key:    "",

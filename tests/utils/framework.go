@@ -34,10 +34,10 @@ func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
 
 	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig)
 
-	err := f.nodes.Init(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("cannot init nodes: %w", err)
-	}
+	//err := f.nodes.Init(ctx)
+	//if err != nil {
+	//	return nil, fmt.Errorf("cannot init nodes: %w", err)
+	//}
 
 	db, err := scribble.New(t.TempDir(), nil)
 	if err != nil {

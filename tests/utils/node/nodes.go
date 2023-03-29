@@ -94,16 +94,15 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	err := nodes.Init(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	//err := nodes.Init(ctx)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
 
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
 	runtimeErrors := newErrorsFanIn()
 
 	for _, node := range nodes {
-		t.Logf("Starting node %s", node.tomlConfig.BasePath)
 		runtimeError, err := node.Start(nodesCtx) // takes little time
 		if err == nil {
 			runtimeErrors.Add(node.String(), runtimeError)

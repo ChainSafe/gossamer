@@ -123,9 +123,6 @@ func NewRootCommand() (*cobra.Command, error) {
 				return err
 			}
 
-			fmt.Println("babe-lead")
-			fmt.Println(config.Core.BABELead)
-
 			// Create the config.toml file
 			//if err := cfg.WriteConfigFile(utils.ExpandDir(config.BasePath+"/config.toml"), config); err != nil {
 			//	return fmt.Errorf("failed to write config file: %s", err)

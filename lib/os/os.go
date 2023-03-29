@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // EnsureDir ensures the given directory exists, creating it if necessary.
@@ -20,22 +21,25 @@ func EnsureDir(dir string, mode os.FileMode) error {
 	return nil
 }
 
+// FileExists returns true if the given file exists.
 func FileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
+	_, err := os.Stat(filepath.Clean(filePath))
 	return !os.IsNotExist(err)
 }
 
+// ReadFile reads the given file and returns its contents.
 func ReadFile(filePath string) ([]byte, error) {
-	return os.ReadFile(filePath)
+	return os.ReadFile(filepath.Clean(filePath))
 }
 
+// WriteFile writes the given contents to the given file.
 func WriteFile(filePath string, contents []byte, mode os.FileMode) error {
-	return os.WriteFile(filePath, contents, mode)
+	return os.WriteFile(filepath.Clean(filePath), contents, mode)
 }
 
 // CopyFile copies a file. It truncates the destination file if it exists.
 func CopyFile(src, dst string) error {
-	srcfile, err := os.Open(src)
+	srcfile, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ func CopyFile(src, dst string) error {
 	}
 
 	// create new file, truncate if exists and apply same permissions as the original one
-	dstfile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode().Perm())
+	dstfile, err := os.OpenFile(filepath.Clean(dst), os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode().Perm())
 	if err != nil {
 		return err
 	}

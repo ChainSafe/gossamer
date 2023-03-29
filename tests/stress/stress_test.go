@@ -67,8 +67,8 @@ func TestRestartNode(t *testing.T) {
 	defaultConfig := config.Default()
 	nodes := node.MakeNodes(t, numNodes, defaultConfig)
 
-	err := nodes.Init(context.Background())
-	require.NoError(t, err)
+	//err := nodes.Init(context.Background())
+	//require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -365,9 +365,10 @@ func TestSync_Restart(t *testing.T) {
 	blockProducingConfig.Core.BABELead = true
 	producingNode := node.New(t, blockProducingConfig, node.SetIndex(numNodes-1))
 
-	err := producingNode.Init(mainCtx)
-	require.NoError(t, err)
+	//err := producingNode.Init(mainCtx)
+	//require.NoError(t, err)
 
+	var err error
 	nodeWaitErrs[0], err = producingNode.StartAndWait(nodeCtxs[0])
 	t.Cleanup(func() {
 		// note we need to use indexes since these
@@ -383,8 +384,8 @@ func TestSync_Restart(t *testing.T) {
 	noBabeConfig.Genesis = genesisPath
 	nodes := node.MakeNodes(t, numNodes-1, noBabeConfig)
 	for i, node := range nodes {
-		err := node.Init(mainCtx)
-		require.NoError(t, err)
+		//err := node.Init(mainCtx)
+		//require.NoError(t, err)
 
 		nodeWaitErrs[i+1], err = node.StartAndWait(nodeCtxs[i+1])
 		t.Cleanup(func() {
