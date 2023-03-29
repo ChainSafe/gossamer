@@ -130,6 +130,7 @@ func Validate(c CandidateReceipt) (candidateCommitments, PersistedValidationData
 	var candidateCommitments candidateCommitments
 	var PersistedValidationData PersistedValidationData
 	//  CandidateValidationMessage::ValidateFromChainState(
+	// - validate_candidate_exhaustive
 
 	// 	CandidateValidationMessage::ValidateFromExhaustive(
 
