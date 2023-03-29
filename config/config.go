@@ -285,10 +285,12 @@ func (p *PprofConfig) ValidateBasic() error {
 	return nil
 }
 
+// IsRPCEnabled returns true if RPC is enabled.
 func (r *RPCConfig) IsRPCEnabled() bool {
 	return r.Enabled || r.External || r.Unsafe || r.UnsafeExternal
 }
 
+// IsWSEnabled returns true if WS is enabled.
 func (r *RPCConfig) IsWSEnabled() bool {
 	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
 }

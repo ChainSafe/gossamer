@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	DefaultDirPerm        = 0o700
-	defaultConfigDir      = "config"
+	// DefaultDirPerm is the default directory permission for gossamer files
+	DefaultDirPerm = 0o700
+	// defaultConfigDir is the default directory for gossamer config files
+	defaultConfigDir = "config"
+	// defaultConfigFileName is the default name of the config file
 	defaultConfigFileName = "config.toml"
 )
 

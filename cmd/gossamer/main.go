@@ -20,7 +20,7 @@ func main() {
 		commands.PruneStateCmd,
 		commands.ImportStateCmd,
 	)
-	configureCobraCmd(rootCmd, "GSSMR", "gossamer")
+	configureCobraCmd(rootCmd, "GSSMR")
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
 	}

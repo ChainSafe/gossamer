@@ -149,25 +149,25 @@ func AddRootFlags(cmd *cobra.Command) error {
 	cmd.Flags().String("password", "", "password")
 
 	// Base Config
-	if err := AddStringFlagBindViper(cmd, "name", config.BaseConfig.Name, "node name", "name"); err != nil {
+	if err := addStringFlagBindViper(cmd, "name", config.BaseConfig.Name, "node name", "name"); err != nil {
 		return fmt.Errorf("failed to add --name flag: %s", err)
 	}
-	if err := AddStringFlagBindViper(cmd, "id", config.BaseConfig.ID, "node ID", "id"); err != nil {
+	if err := addStringFlagBindViper(cmd, "id", config.BaseConfig.ID, "node ID", "id"); err != nil {
 		return fmt.Errorf("failed to add --id flag: %s", err)
 	}
-	if err := AddStringFlagBindViper(cmd, "base-path", config.BaseConfig.BasePath, "base path", "base-path"); err != nil {
+	if err := addStringFlagBindViper(cmd, "base-path", config.BaseConfig.BasePath, "base path", "base-path"); err != nil {
 		return fmt.Errorf("failed to add --base-path flag: %s", err)
 	}
-	if err := AddStringFlagBindViper(cmd, "genesis", config.BaseConfig.Genesis, "path to the genesis file", "genesis"); err != nil {
+	if err := addStringFlagBindViper(cmd, "genesis", config.BaseConfig.Genesis, "path to the genesis file", "genesis"); err != nil {
 		return fmt.Errorf("failed to add --genesis flag: %s", err)
 	}
-	if err := AddBoolFlagBindViper(cmd, "no-telemetry", config.BaseConfig.NoTelemetry, "disable telemetry", "no-telemetry"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "no-telemetry", config.BaseConfig.NoTelemetry, "disable telemetry", "no-telemetry"); err != nil {
 		return fmt.Errorf("failed to add --no-telemetry flag: %s", err)
 	}
-	if err := AddStringFlagBindViper(cmd, "metrics-address", config.BaseConfig.MetricsAddress, "metrics-address", "metrics-address"); err != nil {
+	if err := addStringFlagBindViper(cmd, "metrics-address", config.BaseConfig.MetricsAddress, "metrics-address", "metrics-address"); err != nil {
 		return fmt.Errorf("failed to add --metrics-address flag: %s", err)
 	}
-	if err := AddUint32FlagBindViper(cmd, "retain-blocks", config.BaseConfig.RetainBlocks, "retain-blocks", "retain-blocks"); err != nil {
+	if err := addUint32FlagBindViper(cmd, "retain-blocks", config.BaseConfig.RetainBlocks, "retain-blocks", "retain-blocks"); err != nil {
 		return fmt.Errorf("failed to add --retain-blocks flag: %s", err)
 	}
 	cmd.Flags().StringVar(&logLevelGlobal, "log", config.BaseConfig.LogLevel, "log-level")
@@ -190,128 +190,128 @@ func AddRootFlags(cmd *cobra.Command) error {
 	cmd.Flags().String("account.unlock", config.Account.Unlock, "unlock")
 
 	// Network Config
-	if err := AddUint16FlagBindViper(cmd, "port", config.Network.Port, "port", "network.port"); err != nil {
+	if err := addUint16FlagBindViper(cmd, "port", config.Network.Port, "port", "network.port"); err != nil {
 		return fmt.Errorf("failed to add --port flag: %s", err)
 	}
 
-	if err := AddStringSliceFlagBindViper(cmd, "bootnodes", config.Network.Bootnodes, "bootnodes", "network.bootnodes"); err != nil {
+	if err := addStringSliceFlagBindViper(cmd, "bootnodes", config.Network.Bootnodes, "bootnodes", "network.bootnodes"); err != nil {
 		return fmt.Errorf("failed to add --bootnodes flag: %s", err)
 	}
 
-	if err := AddStringFlagBindViper(cmd, "protocol-id", config.Network.ProtocolID, "protocol-id", "network.protocol-id"); err != nil {
+	if err := addStringFlagBindViper(cmd, "protocol-id", config.Network.ProtocolID, "protocol-id", "network.protocol-id"); err != nil {
 		return fmt.Errorf("failed to add --protocol-id flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "no-bootstrap", config.Network.NoBootstrap, "no-bootstrap", "network.no-bootstrap"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "no-bootstrap", config.Network.NoBootstrap, "no-bootstrap", "network.no-bootstrap"); err != nil {
 		return fmt.Errorf("failed to add --no-bootstrap flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "no-mdns", config.Network.NoMDNS, "no-mdns", "network.no-mdns"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "no-mdns", config.Network.NoMDNS, "no-mdns", "network.no-mdns"); err != nil {
 		return fmt.Errorf("failed to add --no-mdns flag: %s", err)
 	}
 
-	if err := AddIntFlagBindViper(cmd, "min-peers", config.Network.MinPeers, "min-peers", "network.min-peers"); err != nil {
+	if err := addIntFlagBindViper(cmd, "min-peers", config.Network.MinPeers, "min-peers", "network.min-peers"); err != nil {
 		return fmt.Errorf("failed to add --min-peers flag: %s", err)
 	}
 
-	if err := AddIntFlagBindViper(cmd, "max-peers", config.Network.MaxPeers, "max-peers", "network.max-peers"); err != nil {
+	if err := addIntFlagBindViper(cmd, "max-peers", config.Network.MaxPeers, "max-peers", "network.max-peers"); err != nil {
 		return fmt.Errorf("failed to add --max-peers flag: %s", err)
 	}
 
-	if err := AddStringSliceFlagBindViper(cmd, "persistent-peers", config.Network.PersistentPeers, "persistent-peers", "network.persistent-peers"); err != nil {
+	if err := addStringSliceFlagBindViper(cmd, "persistent-peers", config.Network.PersistentPeers, "persistent-peers", "network.persistent-peers"); err != nil {
 		return fmt.Errorf("failed to add --persistent-peers flag: %s", err)
 	}
 
-	if err := AddDurationFlagBindViper(cmd, "discovery-interval", config.Network.DiscoveryInterval, "discovery-interval", "network.discovery-interval"); err != nil {
+	if err := addDurationFlagBindViper(cmd, "discovery-interval", config.Network.DiscoveryInterval, "discovery-interval", "network.discovery-interval"); err != nil {
 		return fmt.Errorf("failed to add --discovery-interval flag: %s", err)
 	}
 
-	if err := AddStringFlagBindViper(cmd, "public-ip", config.Network.PublicIP, "public-ip", "network.public-ip"); err != nil {
+	if err := addStringFlagBindViper(cmd, "public-ip", config.Network.PublicIP, "public-ip", "network.public-ip"); err != nil {
 		return fmt.Errorf("failed to add --public-ip flag: %s", err)
 	}
 
-	if err := AddStringFlagBindViper(cmd, "public-dns", config.Network.PublicDNS, "public-dns", "network.public-dns"); err != nil {
+	if err := addStringFlagBindViper(cmd, "public-dns", config.Network.PublicDNS, "public-dns", "network.public-dns"); err != nil {
 		return fmt.Errorf("failed to add --public-dns flag: %s", err)
 	}
 
 	// Core Config
 	// TODO: role
 
-	if err := AddBoolFlagBindViper(cmd, "babe-authority", config.Core.BabeAuthority, "babe-authority", "core.babe-authority"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "babe-authority", config.Core.BabeAuthority, "babe-authority", "core.babe-authority"); err != nil {
 		return fmt.Errorf("failed to add --babe-authority flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "grandpa-authority", config.Core.GrandpaAuthority, "grandpa-authority", "core.grandpa-authority"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "grandpa-authority", config.Core.GrandpaAuthority, "grandpa-authority", "core.grandpa-authority"); err != nil {
 		return fmt.Errorf("failed to add --grandpa-authority flag: %s", err)
 	}
 
-	if err := AddUint64FlagBindViper(cmd, "slot-duration", config.Core.SlotDuration, "slot-duration", "core.slot-duration"); err != nil {
+	if err := addUint64FlagBindViper(cmd, "slot-duration", config.Core.SlotDuration, "slot-duration", "core.slot-duration"); err != nil {
 		return fmt.Errorf("failed to add --slot-duration flag: %s", err)
 	}
 
-	if err := AddUint64FlagBindViper(cmd, "epoch-length", config.Core.EpochLength, "epoch-length", "core.epoch-length"); err != nil {
+	if err := addUint64FlagBindViper(cmd, "epoch-length", config.Core.EpochLength, "epoch-length", "core.epoch-length"); err != nil {
 		return fmt.Errorf("failed to add --epoch-length flag: %s", err)
 	}
 
-	if err := AddStringFlagBindViper(cmd, "wasm-interpreter", config.Core.WasmInterpreter, "wasm-interpreter", "core.wasm-interpreter"); err != nil {
+	if err := addStringFlagBindViper(cmd, "wasm-interpreter", config.Core.WasmInterpreter, "wasm-interpreter", "core.wasm-interpreter"); err != nil {
 		return fmt.Errorf("failed to add --wasm-interpreter flag: %s", err)
 	}
 
-	if err := AddDurationFlagBindViper(cmd, "grandpa-interval", config.Core.GrandpaInterval, "grandpa-interval", "core.grandpa-interval"); err != nil {
+	if err := addDurationFlagBindViper(cmd, "grandpa-interval", config.Core.GrandpaInterval, "grandpa-interval", "core.grandpa-interval"); err != nil {
 		return fmt.Errorf("failed to add --grandpa-interval flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "babe-lead", config.Core.BABELead, "babe-lead", "core.babe-lead"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "babe-lead", config.Core.BABELead, "babe-lead", "core.babe-lead"); err != nil {
 		return fmt.Errorf("failed to add --babe-lead flag: %s", err)
 	}
 
 	// State Config
-	if err := AddUintFlagBindViper(cmd, "rewind", config.State.Rewind, "rewind", "state.rewind"); err != nil {
+	if err := addUintFlagBindViper(cmd, "rewind", config.State.Rewind, "rewind", "state.rewind"); err != nil {
 		return fmt.Errorf("failed to add --rewind flag: %s", err)
 	}
 
 	// RPC Config
-	if err := AddBoolFlagBindViper(cmd, "rpc-enabled", config.RPC.Enabled, "rpc-enabled", "rpc.enabled"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "rpc-enabled", config.RPC.Enabled, "rpc-enabled", "rpc.enabled"); err != nil {
 		return fmt.Errorf("failed to add --rpc-enabled flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "rpc-unsafe", config.RPC.Unsafe, "rpc-unsafe", "rpc.unsafe"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "rpc-unsafe", config.RPC.Unsafe, "rpc-unsafe", "rpc.unsafe"); err != nil {
 		return fmt.Errorf("failed to add --rpc-unsafe flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "unsafe-rpc-external", config.RPC.UnsafeExternal, "unsafe-rpc-external", "rpc.unsafe-external"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "unsafe-rpc-external", config.RPC.UnsafeExternal, "unsafe-rpc-external", "rpc.unsafe-external"); err != nil {
 		return fmt.Errorf("failed to add --unsafe-rpc-external flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "rpc-external", config.RPC.External, "rpc-external", "rpc.external"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "rpc-external", config.RPC.External, "rpc-external", "rpc.external"); err != nil {
 		return fmt.Errorf("failed to add --rpc-external flag: %s", err)
 	}
 
-	if err := AddUint32FlagBindViper(cmd, "rpc-port", config.RPC.Port, "rpc-port", "rpc.port"); err != nil {
+	if err := addUint32FlagBindViper(cmd, "rpc-port", config.RPC.Port, "rpc-port", "rpc.port"); err != nil {
 		return fmt.Errorf("failed to add --rpc-port flag: %s", err)
 	}
 
-	if err := AddStringSliceFlagBindViper(cmd, "rpc-methods", config.RPC.Modules, "rpc-methods", "rpc.modules"); err != nil {
+	if err := addStringSliceFlagBindViper(cmd, "rpc-methods", config.RPC.Modules, "rpc-methods", "rpc.modules"); err != nil {
 		return fmt.Errorf("failed to add --rpc-methods flag: %s", err)
 	}
 
-	if err := AddUint32FlagBindViper(cmd, "ws-port", config.RPC.WSPort, "ws-port", "rpc.ws-port"); err != nil {
+	if err := addUint32FlagBindViper(cmd, "ws-port", config.RPC.WSPort, "ws-port", "rpc.ws-port"); err != nil {
 		return fmt.Errorf("failed to add --ws-port flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "ws", config.RPC.WS, "ws", "rpc.ws"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "ws", config.RPC.WS, "ws", "rpc.ws"); err != nil {
 		return fmt.Errorf("failed to add --ws flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "ws-external", config.RPC.WSExternal, "ws-external", "rpc.ws-external"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "ws-external", config.RPC.WSExternal, "ws-external", "rpc.ws-external"); err != nil {
 		return fmt.Errorf("failed to add --ws-external flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "ws-unsafe", config.RPC.WSUnsafe, "ws-unsafe", "rpc.ws-unsafe"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "ws-unsafe", config.RPC.WSUnsafe, "ws-unsafe", "rpc.ws-unsafe"); err != nil {
 		return fmt.Errorf("failed to add --ws-unsafe flag: %s", err)
 	}
 
-	if err := AddBoolFlagBindViper(cmd, "ws-unsafe-external", config.RPC.WSUnsafeExternal, "ws-unsafe-external", "rpc.ws-unsafe-external"); err != nil {
+	if err := addBoolFlagBindViper(cmd, "ws-unsafe-external", config.RPC.WSUnsafeExternal, "ws-unsafe-external", "rpc.ws-unsafe-external"); err != nil {
 		return fmt.Errorf("failed to add --ws-unsafe-external flag: %s", err)
 	}
 

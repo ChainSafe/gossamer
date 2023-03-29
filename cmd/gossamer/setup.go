@@ -12,11 +12,12 @@ import (
 )
 
 const (
+	// BasePathFlag is the base path flag
 	BasePathFlag = "base-path"
 )
 
 // configureCobraCmd configures the cobra command with the given environment prefix and default base path.
-func configureCobraCmd(cmd *cobra.Command, envPrefix, defaultBasePath string) {
+func configureCobraCmd(cmd *cobra.Command, envPrefix string) {
 	cobra.OnInitialize(func() { initEnv(envPrefix) })
 	cmd.PersistentPreRunE = concatCobraCmdFuncs(configureViper, cmd.PersistentPreRunE)
 }
