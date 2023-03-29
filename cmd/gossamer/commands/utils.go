@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// Chain is a string representing a chain
 type Chain string
 
 const (
