@@ -18,23 +18,31 @@ const (
 
 // configureCobraCmd configures the cobra command with the given environment prefix and default base path.
 func configureCobraCmd(cmd *cobra.Command, envPrefix string) {
-	cobra.OnInitialize(func() { initEnv(envPrefix) })
+	cobra.OnInitialize(func() {
+		if err := initEnv(envPrefix); err != nil {
+			return
+		}
+	})
 	cmd.PersistentPreRunE = concatCobraCmdFuncs(configureViper, cmd.PersistentPreRunE)
 }
 
 // initEnv sets to use ENV variables if set.
-func initEnv(prefix string) {
-	copyEnvVars(prefix)
+func initEnv(prefix string) error {
+	if err := copyEnvVars(prefix); err != nil {
+		return err
+	}
 
 	// env variables with GSSMR prefix (eg. GSSMR_ROOT)
 	viper.SetEnvPrefix(prefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
+
+	return nil
 }
 
 // copyEnvVars copies all envs like GSSMRROOT to GSSMR_ROOT,
 // so we can support both formats.
-func copyEnvVars(prefix string) {
+func copyEnvVars(prefix string) error {
 	prefix = strings.ToUpper(prefix)
 	ps := prefix + "_"
 	for _, e := range os.Environ() {
@@ -43,10 +51,14 @@ func copyEnvVars(prefix string) {
 			k, v := kv[0], kv[1]
 			if strings.HasPrefix(k, prefix) && !strings.HasPrefix(k, ps) {
 				k2 := strings.Replace(k, prefix, ps, 1)
-				os.Setenv(k2, v)
+				if err := os.Setenv(k2, v); err != nil {
+					return err
+				}
 			}
 		}
 	}
+
+	return nil
 }
 
 type cobraCmdFunc func(cmd *cobra.Command, args []string) error

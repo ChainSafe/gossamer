@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
@@ -53,15 +54,15 @@ func execImportState(cmd *cobra.Command) error {
 	}
 
 	if basePath == "" {
-		switch chainID {
-		case "polkadot":
+		switch Chain(chainID) {
+		case PolkadotChain:
 			basePath = polkadot.DefaultBasePath
-		case "kusama":
+		case KusamaChain:
 			basePath = kusama.DefaultBasePath
-		case "westend":
+		case WestendChain:
 			basePath = westend.DefaultBasePath
-		case "westend-dev":
-			basePath = "~/.gossamer/westend-dev"
+		case WestendDevChain:
+			basePath = westenddev.DefaultBasePath
 		default:
 			return fmt.Errorf("chain %s not supported", chainID)
 		}

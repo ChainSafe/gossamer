@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+const (
+	// DefaultBasePath is the default basepath for the westend dev node
+	DefaultBasePath = "~/.gossamer/westend-dev"
+)
+
 // DefaultConfig returns a westend dev node configuration
 func DefaultConfig() *cfg.Config {
 	return &cfg.Config{

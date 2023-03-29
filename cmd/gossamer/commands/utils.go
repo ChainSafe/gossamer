@@ -9,6 +9,19 @@ import (
 	"time"
 )
 
+type Chain string
+
+const (
+	// PolkadotChain is the Polkadot chain
+	PolkadotChain Chain = "polkadot"
+	// KusamaChain is the Kusama chain
+	KusamaChain Chain = "kusama"
+	// WestendChain is the Westend chain
+	WestendChain Chain = "westend"
+	// WestendDevChain is the Westend dev chain
+	WestendDevChain Chain = "westend-dev"
+)
+
 // addStringFlagBindViper adds a string flag to the given command and binds it to the given viper name
 func addStringFlagBindViper(cmd *cobra.Command, name, defaultValue, usage, viperBindName string) error {
 	cmd.PersistentFlags().String(name, defaultValue, usage)
