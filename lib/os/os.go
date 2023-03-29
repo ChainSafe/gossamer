@@ -29,29 +29,8 @@ func ReadFile(filePath string) ([]byte, error) {
 	return os.ReadFile(filePath)
 }
 
-func MustReadFile(filePath string) []byte {
-	fileBytes, err := os.ReadFile(filePath)
-	if err != nil {
-		Exit(fmt.Sprintf("MustReadFile failed: %v", err))
-		return nil
-	}
-	return fileBytes
-}
-
 func WriteFile(filePath string, contents []byte, mode os.FileMode) error {
 	return os.WriteFile(filePath, contents, mode)
-}
-
-func MustWriteFile(filePath string, contents []byte, mode os.FileMode) {
-	err := WriteFile(filePath, contents, mode)
-	if err != nil {
-		Exit(fmt.Sprintf("MustWriteFile failed: %v", err))
-	}
-}
-
-func Exit(s string) {
-	fmt.Printf(s + "\n")
-	os.Exit(1)
 }
 
 // CopyFile copies a file. It truncates the destination file if it exists.
@@ -60,7 +39,6 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcfile.Close()
 
 	info, err := srcfile.Stat()
 	if err != nil {
@@ -75,8 +53,21 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer dstfile.Close()
 
 	_, err = io.Copy(dstfile, srcfile)
-	return err
+	if err != nil {
+		return fmt.Errorf("could not copy file %q to %q: %w", src, dst, err)
+	}
+
+	err = srcfile.Close()
+	if err != nil {
+		return fmt.Errorf("could not close src file %q: %w", src, err)
+	}
+
+	err = dstfile.Close()
+	if err != nil {
+		return fmt.Errorf("could not close dst file %q: %w", dst, err)
+	}
+
+	return nil
 }

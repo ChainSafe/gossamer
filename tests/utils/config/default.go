@@ -12,7 +12,7 @@ import (
 // Default returns a default TOML configuration for Gossamer.
 func Default() cfg.Config {
 	return cfg.Config{
-		BaseConfig: &cfg.BaseConfig{
+		BaseConfig: cfg.BaseConfig{
 			Name:           "Gossamer",
 			ID:             "gssmr",
 			LogLevel:       "info",

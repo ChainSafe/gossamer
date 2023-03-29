@@ -247,7 +247,7 @@ func Test_networkServiceEnabled(t *testing.T) {
 		{
 			name: "empty_config",
 			config: &cfg.Config{
-				BaseConfig: &cfg.BaseConfig{},
+				BaseConfig: cfg.BaseConfig{},
 				Log:        &cfg.LogConfig{},
 				Account:    &cfg.AccountConfig{},
 				Core:       &cfg.CoreConfig{},
