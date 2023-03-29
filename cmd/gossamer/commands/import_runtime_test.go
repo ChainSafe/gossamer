@@ -14,6 +14,7 @@ import (
 	"testing"
 )
 
+// TestCreateGenesisWithRuntime test "gossamer import-runtime"
 func TestCreateGenesisWithRuntime(t *testing.T) {
 	testCode := []byte("somecode")
 	testHex := common.BytesToHex(testCode)

@@ -89,6 +89,8 @@ id = "{{ .BaseConfig.ID }}"
 
 base-path = "{{ .BaseConfig.BasePath }}"
 
+genesis = "{{ .BaseConfig.Genesis }}"
+
 log-level = "{{ .BaseConfig.LogLevel }}"
 
 metrics-address = "{{ .BaseConfig.MetricsAddress }}"

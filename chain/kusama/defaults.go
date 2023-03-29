@@ -104,7 +104,7 @@ const (
 // DefaultConfig returns a kusama node configuration
 func DefaultConfig() *cfg.Config {
 	return &cfg.Config{
-		BaseConfig: &cfg.BaseConfig{
+		BaseConfig: cfg.BaseConfig{
 			Name:           DefaultName,
 			ID:             DefaultID,
 			BasePath:       DefaultBasePath,

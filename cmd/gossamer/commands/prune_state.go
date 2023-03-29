@@ -14,12 +14,12 @@ import (
 )
 
 func init() {
-	pruneStateCmd.Flags().String("base-path", "", "base path")
-	pruneStateCmd.Flags().String("chain", "", "chain id")
-	pruneStateCmd.Flags().Uint32("retain-blocks", 512, "number of blocks to retain")
+	PruneStateCmd.Flags().String("chain", "", "chain id")
+	PruneStateCmd.Flags().Uint32("retain-blocks", 512, "number of blocks to retain")
 }
 
-var pruneStateCmd = &cobra.Command{
+// PruneStateCmd is the command to prune the state trie
+var PruneStateCmd = &cobra.Command{
 	Use:   "prune-state",
 	Short: "Prune state will prune the state trie",
 	Long: `prune-state <retain-blocks> will prune historical state data.
@@ -33,6 +33,7 @@ The default pruning target is the HEAD-256 state`,
 	},
 }
 
+// execPruneState executes the prune-state command
 func execPruneState(cmd *cobra.Command) error {
 	retainBlocks, err := cmd.Flags().GetUint32("retain-blocks")
 	if err != nil {

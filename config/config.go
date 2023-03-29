@@ -18,14 +18,14 @@ const uint32Max = ^uint32(0)
 
 // Config defines the configuration for the gossamer node
 type Config struct {
-	*BaseConfig `mapstructure:"global,omitempty"`
-	Log         *LogConfig     `mapstructure:"log,omitempty"`
-	Account     *AccountConfig `mapstructure:"account,omitempty"`
-	Core        *CoreConfig    `mapstructure:"core,omitempty"`
-	Network     *NetworkConfig `mapstructure:"network,omitempty"`
-	State       *StateConfig   `mapstructure:"state,omitempty"`
-	RPC         *RPCConfig     `mapstructure:"rpc,omitempty"`
-	Pprof       *PprofConfig   `mapstructure:"pprof,omitempty"`
+	BaseConfig `mapstructure:",squash"`
+	Log        *LogConfig     `mapstructure:"log"`
+	Account    *AccountConfig `mapstructure:"account"`
+	Core       *CoreConfig    `mapstructure:"core"`
+	Network    *NetworkConfig `mapstructure:"network"`
+	State      *StateConfig   `mapstructure:"state"`
+	RPC        *RPCConfig     `mapstructure:"rpc"`
+	Pprof      *PprofConfig   `mapstructure:"pprof"`
 
 	// System holds the system information
 	// Do not export this field, as it is not part of the config file

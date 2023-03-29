@@ -14,7 +14,7 @@ import (
 // DefaultConfig returns a westend dev node configuration
 func DefaultConfig() *cfg.Config {
 	return &cfg.Config{
-		BaseConfig: &cfg.BaseConfig{
+		BaseConfig: cfg.BaseConfig{
 			Name:           "Westend",
 			ID:             "westend_dev",
 			BasePath:       "~/.gossamer/westend-dev",

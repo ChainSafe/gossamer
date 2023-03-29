@@ -5,6 +5,8 @@ package config
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"time"
 )
 
 // Default returns a default TOML configuration for Gossamer.
@@ -31,14 +33,16 @@ func Default() cfg.Config {
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
 			GrandpaInterval:  1,
+			WasmInterpreter:  wasmer.Name,
 		},
 		Network: &cfg.NetworkConfig{
-			Bootnodes:   nil,
-			ProtocolID:  "/gossamer/gssmr/0",
-			NoBootstrap: false,
-			NoMDNS:      false,
-			MinPeers:    1,
-			MaxPeers:    3,
+			Bootnodes:         nil,
+			ProtocolID:        "/gossamer/gssmr/0",
+			NoBootstrap:       false,
+			NoMDNS:            false,
+			MinPeers:          1,
+			MaxPeers:          3,
+			DiscoveryInterval: time.Second * 1,
 		},
 		RPC: &cfg.RPCConfig{
 			Enabled:  true,

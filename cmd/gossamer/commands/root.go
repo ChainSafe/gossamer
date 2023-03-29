@@ -52,25 +52,31 @@ func ParseConfig(cmd *cobra.Command) (*cfg.Config, error) {
 		return nil, fmt.Errorf("--chain cannot be empty")
 	}
 
-	var config *cfg.Config
+	var con *cfg.Config
 
 	switch chain {
 	case "polkadot":
-		config = polkadot.DefaultConfig()
+		con = polkadot.DefaultConfig()
 	case "kusama":
-		config = kusama.DefaultConfig()
+		con = kusama.DefaultConfig()
 	case "westend":
-		config = westend.DefaultConfig()
+		con = westend.DefaultConfig()
 	case "westend-dev":
-		config = westend_dev.DefaultConfig()
+		con = westend_dev.DefaultConfig()
 	default:
 		return nil, fmt.Errorf("chain %s not supported", chain)
 	}
 
-	err = viper.Unmarshal(config)
+	fmt.Println("babe-lead")
+	fmt.Println(viper.GetString("babe-lead"))
+
+	err = viper.Unmarshal(con)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %s", err)
 	}
+
+	fmt.Println("babe-lead")
+	fmt.Println(con.Core.BABELead)
 
 	var basePath string
 	if os.Getenv("GSSMRHOME") != "" {
@@ -82,22 +88,25 @@ func ParseConfig(cmd *cobra.Command) (*cfg.Config, error) {
 		}
 	}
 
-	config.BasePath = basePath
-	if err := config.ValidateBasic(); err != nil {
+	fmt.Println(con)
+	fmt.Println(basePath)
+	if err := con.ValidateBasic(); err != nil {
 		return nil, fmt.Errorf("error in config file: %v", err)
 	}
 
-	cfg.EnsureRoot(config.BasePath, config)
+	//cfg.EnsureRoot(con.BasePath, con)
 
-	return config, nil
+	return con, nil
 }
 
 var (
 	config = westend_dev.DefaultConfig()
 	logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
+)
 
-	// RootCmd is the root command for the gossamer node
-	RootCmd = &cobra.Command{
+// NewRootCommand creates the root command
+func NewRootCommand() (*cobra.Command, error) {
+	cmd := &cobra.Command{
 		Use:   "gossamer",
 		Short: "Official gossamer command-line interface",
 		Long:  `Gossamer is a Golang implementation of the Polkadot Host`,
@@ -114,41 +123,54 @@ var (
 				return err
 			}
 
+			fmt.Println("babe-lead")
+			fmt.Println(config.Core.BABELead)
+
 			// Create the config.toml file
-			if err := cfg.WriteConfigFile(utils.ExpandDir(config.BasePath+"/config.toml"), config); err != nil {
-				return fmt.Errorf("failed to write config file: %s", err)
-			}
+			//if err := cfg.WriteConfigFile(utils.ExpandDir(config.BasePath+"/config.toml"), config); err != nil {
+			//	return fmt.Errorf("failed to write config file: %s", err)
+			//}
 
 			return nil
 		},
 	}
-)
 
-func init() {
-	AddRootFlags(RootCmd)
+	if err := AddRootFlags(cmd); err != nil {
+		return nil, err
+	}
 
-	RootCmd.AddCommand(accountCmd, buildSpecCmd, importRuntimeCmd, importStateCmd, initCmd, pruneStateCmd)
+	return cmd, nil
 }
 
-// Execute executes the root command.
-func Execute() error {
-	return RootCmd.Execute()
-}
-
-func AddRootFlags(cmd *cobra.Command) {
-	// Persistent flags
+// AddRootFlags adds the root flags to the command
+func AddRootFlags(cmd *cobra.Command) error {
+	// helper flags
 	cmd.Flags().String("chain", "westend_dev", "the default chain configuration to load. Example: --chain kusama")
-	cmd.Flags().StringP("base-path", "d", "", "base-path")
-	cmd.Flags().String("password", "", "base-path")
+	cmd.Flags().String("password", "", "password")
 
 	// Base Config
-	cmd.Flags().String("name", config.BaseConfig.Name, "node name")
-	cmd.Flags().String("id", config.BaseConfig.ID, "node ID")
-	cmd.Flags().String("genesis", config.BaseConfig.Genesis, "path to the genesis file")
-	cmd.Flags().StringP("log", "l", config.BaseConfig.LogLevel, "log-level")
-	cmd.Flags().Bool("no-telemetry", config.BaseConfig.NoTelemetry, "no-telemetry")
-	cmd.Flags().String("metrics-address", config.BaseConfig.MetricsAddress, "metrics-address")
-	cmd.Flags().Uint32("retain-blocks", config.BaseConfig.RetainBlocks, "retain-blocks")
+	if err := AddStringFlagBindViper(cmd, "name", config.BaseConfig.Name, "node name", "name"); err != nil {
+		return fmt.Errorf("failed to add --name flag: %s", err)
+	}
+	if err := AddStringFlagBindViper(cmd, "id", config.BaseConfig.ID, "node ID", "id"); err != nil {
+		return fmt.Errorf("failed to add --id flag: %s", err)
+	}
+	if err := AddStringFlagBindViper(cmd, "base-path", config.BaseConfig.BasePath, "base path", "base-path"); err != nil {
+		return fmt.Errorf("failed to add --base-path flag: %s", err)
+	}
+	if err := AddStringFlagBindViper(cmd, "genesis", config.BaseConfig.Genesis, "path to the genesis file", "genesis"); err != nil {
+		return fmt.Errorf("failed to add --genesis flag: %s", err)
+	}
+	if err := AddBoolFlagBindViper(cmd, "no-telemetry", config.BaseConfig.NoTelemetry, "disable telemetry", "no-telemetry"); err != nil {
+		return fmt.Errorf("failed to add --no-telemetry flag: %s", err)
+	}
+	if err := AddStringFlagBindViper(cmd, "metrics-address", config.BaseConfig.MetricsAddress, "metrics-address", "metrics-address"); err != nil {
+		return fmt.Errorf("failed to add --metrics-address flag: %s", err)
+	}
+	if err := AddUint32FlagBindViper(cmd, "retain-blocks", config.BaseConfig.RetainBlocks, "retain-blocks", "retain-blocks"); err != nil {
+		return fmt.Errorf("failed to add --retain-blocks flag: %s", err)
+	}
+	cmd.Flags().StringVar(&logLevelGlobal, "log", config.BaseConfig.LogLevel, "log-level")
 	cmd.Flags().StringVar(&pruning, "state-pruning", string(config.BaseConfig.Pruning), "state-pruning")
 	// TODO: telemetry-url
 
@@ -168,43 +190,130 @@ func AddRootFlags(cmd *cobra.Command) {
 	cmd.Flags().String("account.unlock", config.Account.Unlock, "unlock")
 
 	// Network Config
-	cmd.Flags().Uint16("port", config.Network.Port, "port")
-	cmd.Flags().StringArray("bootnodes", config.Network.Bootnodes, "bootnodes")
-	cmd.Flags().String("protocol-id", config.Network.ProtocolID, "protocol-id")
-	cmd.Flags().Bool("no-bootstrap", config.Network.NoBootstrap, "no-bootstrap")
-	cmd.Flags().Bool("no-mdns", config.Network.NoMDNS, "no-mdns")
-	cmd.Flags().Int("min-peers", config.Network.MinPeers, "min-peers")
-	cmd.Flags().Int("max-peers", config.Network.MaxPeers, "max-peers")
-	cmd.Flags().StringArray("persistent-peers", config.Network.PersistentPeers, "persistent-peers")
-	cmd.Flags().Duration("discovery-interval", config.Network.DiscoveryInterval, "discovery-interval")
-	cmd.Flags().String("public-ip", config.Network.PublicIP, "public-ip")
-	cmd.Flags().String("public-dns", config.Network.PublicDNS, "public-dns")
+	if err := AddUint16FlagBindViper(cmd, "port", config.Network.Port, "port", "network.port"); err != nil {
+		return fmt.Errorf("failed to add --port flag: %s", err)
+	}
+
+	if err := AddStringSliceFlagBindViper(cmd, "bootnodes", config.Network.Bootnodes, "bootnodes", "network.bootnodes"); err != nil {
+		return fmt.Errorf("failed to add --bootnodes flag: %s", err)
+	}
+
+	if err := AddStringFlagBindViper(cmd, "protocol-id", config.Network.ProtocolID, "protocol-id", "network.protocol-id"); err != nil {
+		return fmt.Errorf("failed to add --protocol-id flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "no-bootstrap", config.Network.NoBootstrap, "no-bootstrap", "network.no-bootstrap"); err != nil {
+		return fmt.Errorf("failed to add --no-bootstrap flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "no-mdns", config.Network.NoMDNS, "no-mdns", "network.no-mdns"); err != nil {
+		return fmt.Errorf("failed to add --no-mdns flag: %s", err)
+	}
+
+	if err := AddIntFlagBindViper(cmd, "min-peers", config.Network.MinPeers, "min-peers", "network.min-peers"); err != nil {
+		return fmt.Errorf("failed to add --min-peers flag: %s", err)
+	}
+
+	if err := AddIntFlagBindViper(cmd, "max-peers", config.Network.MaxPeers, "max-peers", "network.max-peers"); err != nil {
+		return fmt.Errorf("failed to add --max-peers flag: %s", err)
+	}
+
+	if err := AddStringSliceFlagBindViper(cmd, "persistent-peers", config.Network.PersistentPeers, "persistent-peers", "network.persistent-peers"); err != nil {
+		return fmt.Errorf("failed to add --persistent-peers flag: %s", err)
+	}
+
+	if err := AddDurationFlagBindViper(cmd, "discovery-interval", config.Network.DiscoveryInterval, "discovery-interval", "network.discovery-interval"); err != nil {
+		return fmt.Errorf("failed to add --discovery-interval flag: %s", err)
+	}
+
+	if err := AddStringFlagBindViper(cmd, "public-ip", config.Network.PublicIP, "public-ip", "network.public-ip"); err != nil {
+		return fmt.Errorf("failed to add --public-ip flag: %s", err)
+	}
+
+	if err := AddStringFlagBindViper(cmd, "public-dns", config.Network.PublicDNS, "public-dns", "network.public-dns"); err != nil {
+		return fmt.Errorf("failed to add --public-dns flag: %s", err)
+	}
 
 	// Core Config
 	// TODO: role
-	cmd.Flags().Bool("babe-authority", config.Core.BabeAuthority, "babe-authority")
-	cmd.Flags().Bool("grandpa-authority", config.Core.GrandpaAuthority, "grandpa-authority")
-	cmd.Flags().Uint64("slot-duration", config.Core.SlotDuration, "slot-duration")
-	cmd.Flags().Uint64("epoch-length", config.Core.EpochLength, "epoch-length")
-	cmd.Flags().String("wasm-interpreter", config.Core.WasmInterpreter, "wasm-interpreter")
-	cmd.Flags().Duration("grandpa-interval", config.Core.GrandpaInterval, "grandpa-interval")
-	cmd.Flags().Bool("babe-lead", config.Core.BABELead, "babe-lead")
+
+	if err := AddBoolFlagBindViper(cmd, "babe-authority", config.Core.BabeAuthority, "babe-authority", "core.babe-authority"); err != nil {
+		return fmt.Errorf("failed to add --babe-authority flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "grandpa-authority", config.Core.GrandpaAuthority, "grandpa-authority", "core.grandpa-authority"); err != nil {
+		return fmt.Errorf("failed to add --grandpa-authority flag: %s", err)
+	}
+
+	if err := AddUint64FlagBindViper(cmd, "slot-duration", config.Core.SlotDuration, "slot-duration", "core.slot-duration"); err != nil {
+		return fmt.Errorf("failed to add --slot-duration flag: %s", err)
+	}
+
+	if err := AddUint64FlagBindViper(cmd, "epoch-length", config.Core.EpochLength, "epoch-length", "core.epoch-length"); err != nil {
+		return fmt.Errorf("failed to add --epoch-length flag: %s", err)
+	}
+
+	if err := AddStringFlagBindViper(cmd, "wasm-interpreter", config.Core.WasmInterpreter, "wasm-interpreter", "core.wasm-interpreter"); err != nil {
+		return fmt.Errorf("failed to add --wasm-interpreter flag: %s", err)
+	}
+
+	if err := AddDurationFlagBindViper(cmd, "grandpa-interval", config.Core.GrandpaInterval, "grandpa-interval", "core.grandpa-interval"); err != nil {
+		return fmt.Errorf("failed to add --grandpa-interval flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "babe-lead", config.Core.BABELead, "babe-lead", "core.babe-lead"); err != nil {
+		return fmt.Errorf("failed to add --babe-lead flag: %s", err)
+	}
 
 	// State Config
-	cmd.Flags().Uint("rewind", config.State.Rewind, "rewind")
+	if err := AddUintFlagBindViper(cmd, "rewind", config.State.Rewind, "rewind", "state.rewind"); err != nil {
+		return fmt.Errorf("failed to add --rewind flag: %s", err)
+	}
 
 	// RPC Config
-	cmd.Flags().Bool("rpc-enabled", config.RPC.Enabled, "enabled")
-	cmd.Flags().Bool("rpc-unsafe", config.RPC.Unsafe, "unsafe")
-	cmd.Flags().Bool("unsafe-rpc-external", config.RPC.UnsafeExternal, "unsafe-external")
-	cmd.Flags().Bool("rpc-external", config.RPC.External, "external")
-	cmd.Flags().Uint32("rpc-port", config.RPC.Port, "port")
-	cmd.Flags().StringArray("rpc-methods", config.RPC.Modules, "modules")
-	cmd.Flags().Uint32("ws-port", config.RPC.WSPort, "ws-port")
-	cmd.Flags().Bool("ws", config.RPC.WS, "ws")
-	cmd.Flags().Bool("ws-external", config.RPC.WSExternal, "ws-external")
-	cmd.Flags().Bool("ws-unsafe", config.RPC.WSUnsafe, "ws-unsafe")
-	cmd.Flags().Bool("unsafe-ws-external", config.RPC.WSUnsafeExternal, "ws-unsafe-external")
+	if err := AddBoolFlagBindViper(cmd, "rpc-enabled", config.RPC.Enabled, "rpc-enabled", "rpc.enabled"); err != nil {
+		return fmt.Errorf("failed to add --rpc-enabled flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "rpc-unsafe", config.RPC.Unsafe, "rpc-unsafe", "rpc.unsafe"); err != nil {
+		return fmt.Errorf("failed to add --rpc-unsafe flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "unsafe-rpc-external", config.RPC.UnsafeExternal, "unsafe-rpc-external", "rpc.unsafe-external"); err != nil {
+		return fmt.Errorf("failed to add --unsafe-rpc-external flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "rpc-external", config.RPC.External, "rpc-external", "rpc.external"); err != nil {
+		return fmt.Errorf("failed to add --rpc-external flag: %s", err)
+	}
+
+	if err := AddUint32FlagBindViper(cmd, "rpc-port", config.RPC.Port, "rpc-port", "rpc.port"); err != nil {
+		return fmt.Errorf("failed to add --rpc-port flag: %s", err)
+	}
+
+	if err := AddStringSliceFlagBindViper(cmd, "rpc-methods", config.RPC.Modules, "rpc-methods", "rpc.modules"); err != nil {
+		return fmt.Errorf("failed to add --rpc-methods flag: %s", err)
+	}
+
+	if err := AddUint32FlagBindViper(cmd, "ws-port", config.RPC.WSPort, "ws-port", "rpc.ws-port"); err != nil {
+		return fmt.Errorf("failed to add --ws-port flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "ws", config.RPC.WS, "ws", "rpc.ws"); err != nil {
+		return fmt.Errorf("failed to add --ws flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "ws-external", config.RPC.WSExternal, "ws-external", "rpc.ws-external"); err != nil {
+		return fmt.Errorf("failed to add --ws-external flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "ws-unsafe", config.RPC.WSUnsafe, "ws-unsafe", "rpc.ws-unsafe"); err != nil {
+		return fmt.Errorf("failed to add --ws-unsafe flag: %s", err)
+	}
+
+	if err := AddBoolFlagBindViper(cmd, "ws-unsafe-external", config.RPC.WSUnsafeExternal, "ws-unsafe-external", "rpc.ws-unsafe-external"); err != nil {
+		return fmt.Errorf("failed to add --ws-unsafe-external flag: %s", err)
+	}
 
 	// pprof Config
 	cmd.Flags().Bool("pprof.enabled", config.Pprof.Enabled, "enabled")
@@ -214,8 +323,11 @@ func AddRootFlags(cmd *cobra.Command) {
 
 	// Misc Config
 	cmd.Flags().Bool("dev", false, "dev")
+
+	return nil
 }
 
+// execRoot executes the root command
 func execRoot(cmd *cobra.Command) error {
 	password, err := cmd.Flags().GetString("password")
 	if err != nil {
@@ -328,6 +440,7 @@ func updateDotConfigFromGenesisData() error {
 	return nil
 }
 
+// loadBuiltInTestKeys loads the built-in test keys into the keystore
 func loadBuiltInTestKeys(accountKey string, ks keystore.GlobalKeystore) (err error) {
 	sr25519keyRing, err := keystore.NewSr25519Keyring()
 	if err != nil {

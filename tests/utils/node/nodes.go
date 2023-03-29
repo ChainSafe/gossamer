@@ -103,6 +103,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	runtimeErrors := newErrorsFanIn()
 
 	for _, node := range nodes {
+		t.Logf("Starting node %s", node.tomlConfig.BasePath)
 		runtimeError, err := node.Start(nodesCtx) // takes little time
 		if err == nil {
 			runtimeErrors.Add(node.String(), runtimeError)

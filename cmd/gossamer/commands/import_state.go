@@ -14,14 +14,14 @@ import (
 )
 
 func init() {
-	importStateCmd.Flags().String("base-path", "", "working directory for gossamer node")
-	importStateCmd.Flags().String("chain", "", "Chain id used to load default configuration for specified chain")
-	importStateCmd.Flags().String("state-file", "", "Path to JSON file consisting of key-value pairs")
-	importStateCmd.Flags().String("header-file", "", "Path to JSON file of block header corresponding to the given state")
-	importStateCmd.Flags().Uint64("first-slot", 0, "The first BABE slot of the network")
+	ImportStateCmd.Flags().String("chain", "", "Chain id used to load default configuration for specified chain")
+	ImportStateCmd.Flags().String("state-file", "", "Path to JSON file consisting of key-value pairs")
+	ImportStateCmd.Flags().String("header-file", "", "Path to JSON file of block header corresponding to the given state")
+	ImportStateCmd.Flags().Uint64("first-slot", 0, "The first BABE slot of the network")
 }
 
-var importStateCmd = &cobra.Command{
+// ImportStateCmd is the command to import a state from a JSON file
+var ImportStateCmd = &cobra.Command{
 	Use:   "import-state",
 	Short: "Import state from a JSON file and set it as the chain head state",
 	Long: `The import-state command allows a JSON file containing a given state

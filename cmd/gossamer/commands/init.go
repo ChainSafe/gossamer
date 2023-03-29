@@ -20,13 +20,13 @@ import (
 const confirmCharacter = "Y"
 
 func init() {
-	initCmd.Flags().String("chain", "", "the default chain configuration to load. Example: --chain kusama")
-	initCmd.Flags().Bool("force", false, "force reinitialization of node")
-	initCmd.Flags().String("base-path", "", "the path to the node's base directory. Example: --base-path /my/custom/path")
-	initCmd.Flags().String("genesis", "", "the path to the genesis configuration to load. Example: --genesis genesis.json")
+	InitCmd.Flags().String("chain", "", "the default chain configuration to load. Example: --chain kusama")
+	InitCmd.Flags().Bool("force", false, "force reinitialization of node")
+	InitCmd.Flags().String("genesis", "", "the path to the genesis configuration to load. Example: --genesis genesis.json")
 }
 
-var initCmd = &cobra.Command{
+// InitCmd is the command to initialise the node
+var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialise node databases and load genesis data to state",
 	Long: `The init command initialises the node databases and loads the genesis data from the genesis file to state.
@@ -41,6 +41,7 @@ Example:
 	},
 }
 
+// execInit executes the init command
 func execInit(cmd *cobra.Command) error {
 	chain, err := cmd.Flags().GetString("chain")
 	if err != nil {

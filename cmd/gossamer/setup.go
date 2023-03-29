@@ -18,7 +18,6 @@ const (
 // configureCobraCmd configures the cobra command with the given environment prefix and default base path.
 func configureCobraCmd(cmd *cobra.Command, envPrefix, defaultBasePath string) {
 	cobra.OnInitialize(func() { initEnv(envPrefix) })
-	cmd.PersistentFlags().StringP(BasePathFlag, "", defaultBasePath, "directory for config, genesis and data")
 	cmd.PersistentPreRunE = concatCobraCmdFuncs(configureViper, cmd.PersistentPreRunE)
 }
 
@@ -67,11 +66,6 @@ func concatCobraCmdFuncs(fs ...cobraCmdFunc) cobraCmdFunc {
 
 // configureViper sets up viper to read from the config file and command line flags
 func configureViper(cmd *cobra.Command, args []string) error {
-	// cmd.Flags() are the flags from command and all subcommands
-	if err := viper.BindPFlags(cmd.Flags()); err != nil {
-		return err
-	}
-
 	basePath := viper.GetString(BasePathFlag)
 	viper.Set(BasePathFlag, basePath)
 	viper.SetConfigName("config")                          // name of config file (without extension)
@@ -79,12 +73,12 @@ func configureViper(cmd *cobra.Command, args []string) error {
 	viper.AddConfigPath(filepath.Join(basePath, "config")) // search `root-directory/config`
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		// stderr, so if we redirect output to json file, this doesn't appear
-		// fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	} else if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-		// ignore not found error, return other errors
-		return err
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			// ignore not found error, return other errors
+			return err
+		}
 	}
+
 	return nil
 }

@@ -8,15 +8,14 @@ import (
 	"context"
 	"fmt"
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
+	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
-
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils/config"
-	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
-	"github.com/stretchr/testify/require"
 )
 
 // Node is a structure holding all the settings to
@@ -40,7 +39,13 @@ func New(t *testing.T, tomlConfig cfg.Config,
 	}
 	node.setDefaults(t)
 	node.setWriterPrefix()
-	node.configPath = config.Write(t, node.tomlConfig)
+
+	// Write the configuration to a file.
+	// This replaces the `init` command.
+	err := cfg.EnsureRoot(node.tomlConfig.BasePath, &node.tomlConfig)
+	require.NoError(t, err)
+	node.configPath = filepath.Join(node.tomlConfig.BasePath, "config/config.toml")
+
 	return node
 }
 
@@ -141,7 +146,7 @@ func (n *Node) Init(ctx context.Context) (err error) {
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
-		"--config", n.configPath,
+		"--base-path", n.tomlConfig.BasePath,
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {

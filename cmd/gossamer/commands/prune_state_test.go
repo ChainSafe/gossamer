@@ -11,6 +11,7 @@ import (
 	"testing"
 )
 
+// TestPruneState test "gossamer prune-state"
 func TestPruneState(t *testing.T) {
 	t.Skip()
 	// this fails due to being unable to call blockState.GetHighestFinalisedHash()
@@ -56,8 +57,8 @@ func TestPruneState(t *testing.T) {
 	t.Log("pruned DB path", prunedDBPath)
 
 	// Run Prune command
-	pruneStateCmd.SetArgs([]string{"--config", configFile, "--retain-blocks", "5"})
-	err = pruneStateCmd.Execute()
+	PruneStateCmd.SetArgs([]string{"--config", configFile, "--retain-blocks", "5"})
+	err = PruneStateCmd.Execute()
 	require.NoError(t, err)
 
 	prunedDB, err := badger.Open(badger.DefaultOptions(prunedDBPath))

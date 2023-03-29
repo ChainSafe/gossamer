@@ -12,13 +12,14 @@ import (
 )
 
 func init() {
-	accountCmd.Flags().String("keystore-path", "", "path to keystore")
-	accountCmd.Flags().String("keystore-file", "", "name of keystore file to import")
-	accountCmd.Flags().String("password", "", "password used to encrypt the keystore. Used with --generate or --unlock")
-	accountCmd.Flags().String("scheme", crypto.Sr25519Type, "keyring scheme (sr25519, ed25519, secp256k1)")
+	AccountCmd.Flags().String("keystore-path", "", "path to keystore")
+	AccountCmd.Flags().String("keystore-file", "", "name of keystore file to import")
+	AccountCmd.Flags().String("password", "", "password used to encrypt the keystore. Used with --generate or --unlock")
+	AccountCmd.Flags().String("scheme", crypto.Sr25519Type, "keyring scheme (sr25519, ed25519, secp256k1)")
 }
 
-var accountCmd = &cobra.Command{
+// AccountCmd is the command to manage the gossamer keystore
+var AccountCmd = &cobra.Command{
 	Use:   "account",
 	Short: "Create and manage node keystore accounts",
 	Long: `The account command is used to manage the gossamer keystore.
@@ -65,6 +66,7 @@ To list keys: gossamer account --list`,
 	},
 }
 
+// generateKeyPair generates a new keypair and saves it to the keystore
 func generateKeyPair(cmd *cobra.Command) error {
 	keystorePath, err := cmd.Flags().GetString("keystore-path")
 	if err != nil {
@@ -100,6 +102,7 @@ func generateKeyPair(cmd *cobra.Command) error {
 	return nil
 }
 
+// importKey imports a keypair from a keystore file into the keystore
 func importKey(cmd *cobra.Command) error {
 	keystorePath, err := cmd.Flags().GetString("keystore-path")
 	if err != nil {
@@ -126,6 +129,7 @@ func importKey(cmd *cobra.Command) error {
 	return nil
 }
 
+// importRawKey imports a raw keypair into the keystore
 func importRawKey(cmd *cobra.Command) error {
 	keystorePath, err := cmd.Flags().GetString("keystore-path")
 	if err != nil {
@@ -167,6 +171,7 @@ func importRawKey(cmd *cobra.Command) error {
 	return nil
 }
 
+// listKeys lists the keys in the keystore
 func listKeys(cmd *cobra.Command) error {
 	keystorePath, err := cmd.Flags().GetString("keystore-path")
 	if err != nil {
