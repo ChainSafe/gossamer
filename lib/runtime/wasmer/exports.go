@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	parachaininteraction "github.com/ChainSafe/gossamer/parachain-interaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -330,3 +331,31 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
+
+// ParachainHost_persisted_validation_data
+func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaininteraction.OccupiedCoreAssumption,
+) (*parachaininteraction.PersistedValidationData, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachaidID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	err = encoder.Encode(assumption)
+	if err != nil {
+		return nil, fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+
+	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostPersistedValidationData, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	persistedValidationData := parachaininteraction.PersistedValidationData{}
+	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return &persistedValidationData, nil
+}

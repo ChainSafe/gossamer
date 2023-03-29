@@ -4,6 +4,11 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -100,43 +105,74 @@ func (vr *ValidationResult) Value() (scale.VaryingDataTypeValue, error) {
 // 	CommitmentsHashMismatch,
 // }
 
-// / The validation data provides information about how to create the inputs for validation of a candidate.
-// / This information is derived from the chain state and will vary from para to para, although some
-// / fields may be the same for every para.
-// /
-// / Since this data is used to form inputs to the validation function, it needs to be persisted by the
-// / availability system to avoid dependence on availability of the relay-chain state.
-// /
-// / Furthermore, the validation data acts as a way to authorize the additional data the collator needs
-// / to pass to the validation function. For example, the validation function can check whether the incoming
-// / messages (e.g. downward messages) were actually sent by using the data provided in the validation data
-// / using so called MQC heads.
-// /
-// / Since the commitments of the validation function are checked by the relay-chain, secondary checkers
-// / can rely on the invariant that the relay-chain only includes para-blocks for which these checks have
-// / already been done. As such, there is no need for the validation data used to inform validators and
-// / collators about the checks the relay-chain will perform to be persisted by the availability system.
-// /
-// / The `PersistedValidationData` should be relatively lightweight primarily because it is constructed
-// / during inclusion for each candidate and therefore lies on the critical path of inclusion.
-type PersistedValidationData struct {
-	ParentHead             headData
-	RelayParentNumber      uint32
-	RelayParentStorageRoot types.Header
-	MaxPovSize             uint32
-}
-
-func Validate(c CandidateReceipt) (candidateCommitments, PersistedValidationData, error) {
+func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *PersistedValidationData, error) {
 	var candidateCommitments candidateCommitments
-	var PersistedValidationData PersistedValidationData
+	var PersistedValidationData *PersistedValidationData
+
+	// get persisted validation data
+	assumption := OccupiedCoreAssumption{}
+	assumption.Set(Included{})
+	PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(c.descriptor.ParaID, assumption)
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting persisted validation data: %w", err)
+	}
 	//  CandidateValidationMessage::ValidateFromChainState(
 	// - validate_candidate_exhaustive
+	//	- implement ParachainHost_persisted_validation_data
+	// 		- perform_basic_checks
 
 	// 	CandidateValidationMessage::ValidateFromExhaustive(
 
 	// 	CandidateValidationMessage::PreCheck(
 
-	return candidateCommitments, PersistedValidationData, nil
+	return &candidateCommitments, PersistedValidationData, nil
+	// The candidate does not exceed any parameters in the persisted validation data (Definition 227).
+
+	// The signature of the collator is valid.
+
+	// Validate the candidate by executing the parachain Runtime (Section 8.3.1).
+
 }
 
 // look at node/core/candidate-validation/src/lib.rs
+
+// RuntimeInstance for runtime methods
+type RuntimeInstance interface {
+	UpdateRuntimeCode([]byte) error
+	Stop()
+	NodeStorage() runtime.NodeStorage
+	NetworkService() runtime.BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
+	Exec(function string, data []byte) ([]byte, error)
+	SetContextStorage(s runtime.Storage)
+	GetCodeHash() common.Hash
+	Version() (version runtime.Version)
+	Metadata() ([]byte, error)
+	BabeConfiguration() (*types.BabeConfiguration, error)
+	GrandpaAuthorities() ([]types.Authority, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	InitializeBlock(header *types.Header) error
+	InherentExtrinsics(data []byte) ([]byte, error)
+	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
+	FinalizeBlock() (*types.Header, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
+	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
+	CheckInherents()
+	BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
+		types.OpaqueKeyOwnershipProof, error)
+	BabeSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.BabeEquivocationProof,
+		keyOwnershipProof types.OpaqueKeyOwnershipProof,
+	) error
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
+	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
+		types.GrandpaOpaqueKeyOwnershipProof, error)
+	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
+		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
+	) error
+	ParachainHostPersistedValidationData(parachaidID uint32, assumption OccupiedCoreAssumption) (*PersistedValidationData, error)
+}
