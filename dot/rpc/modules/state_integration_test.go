@@ -28,7 +28,10 @@ const (
 )
 
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
-	// expected results based on responses from prior tests
+	/* expected results based on responses from prior tests
+	We can get this data from polkadot runtime release source code
+	https://github.com/paritytech/polkadot/blob/v0.9.29/runtime/westend/src/lib.rs#L105-L117
+	*/
 	expected := StateRuntimeVersionResponse{
 		SpecName:         "westend",
 		ImplName:         "parity-westend",
