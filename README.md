@@ -81,6 +81,12 @@ make install
 
 To install Gossamer
 
+**Note**: Apple Silicon users running aarch64 might run into issues 
+with our wasm interpreter since wasmer is still working on supporting this architecture.
+See their [README](https://github.com/wasmerio/wasmer-go) for me info on supported platforms.
+Currently, there are no known issues regarding this within the Gossamer repo, but if you run into one please open an issue
+on our GitHub.
+
 ## Use Gossamer
 
 A comprehensive guide to
