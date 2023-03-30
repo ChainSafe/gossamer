@@ -4,9 +4,10 @@
 package config
 
 import (
+	"time"
+
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"time"
 )
 
 // Default returns a default TOML configuration for Gossamer.

@@ -6,7 +6,7 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/os"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
