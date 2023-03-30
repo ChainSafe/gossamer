@@ -11,7 +11,7 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = ""
+sync = "trace"
 digest = ""
 
 [init]

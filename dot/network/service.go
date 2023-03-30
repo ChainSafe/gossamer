@@ -31,11 +31,13 @@ const (
 
 	// the following are sub-protocols used by the node
 	syncID          = "/sync/2"
+	warpSyncID      = "/sync/warp"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 64 // 64kb for now
+	warpSyncMaxResponseSize = 16 * 1024 * 1024
+	maxMessageSize          = 1024 * 64 // 64kb for now
 )
 
 var (
@@ -246,7 +248,9 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
+	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleWarpSyncStream)
+	// TODO: enable this protocol to receive request from other nodes
+	//s.host.registerStreamHandler(s.host.protocolID+warpSync, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
