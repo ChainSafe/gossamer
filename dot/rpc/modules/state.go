@@ -78,8 +78,8 @@ type StateStorageQueryRangeRequest struct {
 
 // StateStorageQueryAtRequest holds json fields
 type StateStorageQueryAtRequest struct {
-	Keys       []string    `json:"keys" validate:"required"`
-	StartBlock common.Hash `json:"startBlock"`
+	Keys []string    `json:"keys" validate:"required"`
+	At   common.Hash `json:"at"`
 }
 
 // StateStorageKeysQuery field to store storage keys
@@ -498,18 +498,18 @@ func (sm *StateModule) QueryStorage(
 // QueryStorageAt queries historical storage entries (by key) at the best block if the given block hash is nil
 func (sm *StateModule) QueryStorageAt(
 	_ *http.Request, req *StateStorageQueryAtRequest, res *[]StorageChangeSetResponse) error {
-	var startBlockHash common.Hash
-	if req.StartBlock.IsEmpty() {
-		startBlockHash = sm.blockAPI.BestBlockHash()
+	var atBlockHash common.Hash
+	if req.At.IsEmpty() {
+		atBlockHash = sm.blockAPI.BestBlockHash()
 	} else {
-		startBlockHash = req.StartBlock
+		atBlockHash = req.At
 	}
 
 	response := make([]StorageChangeSetResponse, 0, 1)
 	changes := make([][2]*string, 0, len(req.Keys))
 
 	for _, key := range req.Keys {
-		value, err := sm.storageAPI.GetStorageByBlockHash(&startBlockHash, common.MustHexToBytes(key))
+		value, err := sm.storageAPI.GetStorageByBlockHash(&atBlockHash, common.MustHexToBytes(key))
 		if err != nil {
 			return fmt.Errorf("getting value by block hash: %w", err)
 		}
@@ -522,7 +522,7 @@ func (sm *StateModule) QueryStorageAt(
 	}
 
 	response = append(response, StorageChangeSetResponse{
-		Block:   &startBlockHash,
+		Block:   &atBlockHash,
 		Changes: changes,
 	})
 

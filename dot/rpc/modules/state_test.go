@@ -1186,8 +1186,8 @@ func TestStateModuleQueryStorageAt(t *testing.T) {
 				}},
 			args: args{
 				req: &StateStorageQueryAtRequest{
-					Keys:       []string{"0x010203"},
-					StartBlock: common.Hash{1},
+					Keys: []string{"0x010203"},
+					At:   common.Hash{1},
 				},
 			},
 			exp:       []StorageChangeSetResponse{},
@@ -1208,8 +1208,8 @@ func TestStateModuleQueryStorageAt(t *testing.T) {
 				}},
 			args: args{
 				req: &StateStorageQueryAtRequest{
-					Keys:       []string{"0x010204", "0x090909"},
-					StartBlock: common.Hash{2},
+					Keys: []string{"0x010204", "0x090909"},
+					At:   common.Hash{2},
 				},
 			},
 			exp: []StorageChangeSetResponse{
