@@ -4,9 +4,10 @@
 package dot
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	cfg "github.com/ChainSafe/gossamer/config"
-	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"

@@ -5,6 +5,7 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"

@@ -5,12 +5,13 @@ package commands
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/spf13/cobra"
-	"path/filepath"
 )
 
 func init() {

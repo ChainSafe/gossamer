@@ -5,10 +5,11 @@ package polkadotjs_test
 
 import (
 	"context"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"os/exec"
 	"strings"
 	"testing"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"

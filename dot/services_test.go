@@ -4,8 +4,9 @@
 package dot
 
 import (
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"testing"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"

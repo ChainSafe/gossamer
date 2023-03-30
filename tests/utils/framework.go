@@ -6,9 +6,10 @@ package utils
 import (
 	"context"
 	"fmt"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"strconv"
 	"testing"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"

@@ -5,10 +5,11 @@ package commands
 
 import (
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
-	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/stretchr/testify/require"
 )
 
 // TestPruneState test "gossamer prune-state"

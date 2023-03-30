@@ -5,10 +5,11 @@ package dot
 
 import (
 	"encoding/json"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"path/filepath"
 	"testing"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"

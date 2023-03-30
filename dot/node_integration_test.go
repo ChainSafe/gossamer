@@ -10,10 +10,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"os"
 	"path/filepath"
 	"testing"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"

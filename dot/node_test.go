@@ -6,12 +6,13 @@ package dot
 import (
 	"errors"
 	"fmt"
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"

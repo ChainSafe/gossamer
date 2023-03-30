@@ -5,6 +5,10 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"syscall"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
@@ -19,9 +23,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	terminal "golang.org/x/term"
-	"os"
-	"strings"
-	"syscall"
 )
 
 // Flag values for the root command which needs type conversion

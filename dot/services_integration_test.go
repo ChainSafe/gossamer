@@ -6,11 +6,12 @@
 package dot
 
 import (
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"net/url"
 	"testing"
 	"time"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"

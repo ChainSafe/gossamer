@@ -6,8 +6,9 @@ package dot
 import (
 	"errors"
 	"fmt"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"strings"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"

@@ -6,8 +6,9 @@
 package dot
 
 import (
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"testing"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
