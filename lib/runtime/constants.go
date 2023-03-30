@@ -15,11 +15,6 @@ const (
 	NODE_RUNTIME_FP_v098  = "node_runtime-v0.9.8.compact.wasm"
 	NODE_RUNTIME_URL_v098 = "https://github.com/noot/substrate/blob/noot/v0.9.8/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true" //nolint:lll
 
-	// v0.8 polkadot runtime
-	POLKADOT_RUNTIME     = "polkadot_runtime"
-	POLKADOT_RUNTIME_FP  = "polkadot_runtime.compact.wasm"
-	POLKADOT_RUNTIME_URL = "https://github.com/noot/polkadot/blob/noot/v0.8.25/polkadot_runtime.wasm?raw=true"
-
 	// v0.9 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"

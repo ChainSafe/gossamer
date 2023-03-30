@@ -80,9 +80,6 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case NODE_RUNTIME_v098:
 		runtimeFilename = NODE_RUNTIME_FP_v098
 		url = NODE_RUNTIME_URL_v098
-	case POLKADOT_RUNTIME:
-		runtimeFilename = POLKADOT_RUNTIME_FP
-		url = POLKADOT_RUNTIME_URL
 	case HOST_API_TEST_RUNTIME:
 		runtimeFilename = HOST_API_TEST_RUNTIME_FP
 		url = HOST_API_TEST_RUNTIME_URL
