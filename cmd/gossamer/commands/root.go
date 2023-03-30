@@ -131,15 +131,15 @@ func NewRootCommand() (*cobra.Command, error) {
 		},
 	}
 
-	if err := AddRootFlags(cmd); err != nil {
+	if err := addRootFlags(cmd); err != nil {
 		return nil, err
 	}
 
 	return cmd, nil
 }
 
-// AddRootFlags adds the root flags to the command
-func AddRootFlags(cmd *cobra.Command) error {
+// addRootFlags adds the root flags to the command
+func addRootFlags(cmd *cobra.Command) error {
 	// helper flags
 	cmd.Flags().String("chain",
 		"westend_dev",
@@ -221,12 +221,12 @@ func AddRootFlags(cmd *cobra.Command) error {
 	cmd.Flags().String("account.unlock", config.Account.Unlock, "unlock")
 
 	// Network Config
-	if err := AddNetworkFlags(cmd); err != nil {
+	if err := addNetworkFlags(cmd); err != nil {
 		return fmt.Errorf("failed to add network flags: %s", err)
 	}
 
 	// Core Config
-	if err := AddCoreFlags(cmd); err != nil {
+	if err := addCoreFlags(cmd); err != nil {
 		return fmt.Errorf("failed to add core flags: %s", err)
 	}
 
@@ -239,7 +239,7 @@ func AddRootFlags(cmd *cobra.Command) error {
 	}
 
 	// RPC Config
-	if err := AddRPCFlags(cmd); err != nil {
+	if err := addRPCFlags(cmd); err != nil {
 		return fmt.Errorf("failed to add rpc flags: %s", err)
 	}
 
@@ -263,7 +263,8 @@ func AddRootFlags(cmd *cobra.Command) error {
 	return nil
 }
 
-func AddNetworkFlags(cmd *cobra.Command) error {
+// addNetworkFlags adds network flags and binds to viper
+func addNetworkFlags(cmd *cobra.Command) error {
 	if err := addUint16FlagBindViper(cmd,
 		"port",
 		config.Network.Port,
@@ -352,7 +353,8 @@ func AddNetworkFlags(cmd *cobra.Command) error {
 	return nil
 }
 
-func AddRPCFlags(cmd *cobra.Command) error {
+// addRPCFlags adds rpc flags and binds to viper
+func addRPCFlags(cmd *cobra.Command) error {
 	if err := addBoolFlagBindViper(cmd,
 		"rpc-enabled",
 		config.RPC.Enabled,
@@ -443,7 +445,8 @@ func AddRPCFlags(cmd *cobra.Command) error {
 	return nil
 }
 
-func AddCoreFlags(cmd *cobra.Command) error {
+// addCoreFlags adds core flags and binds to viper
+func addCoreFlags(cmd *cobra.Command) error {
 	// TODO: role
 
 	if err := addBoolFlagBindViper(cmd,
