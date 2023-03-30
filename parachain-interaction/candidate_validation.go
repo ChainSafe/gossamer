@@ -145,6 +145,14 @@ func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCo
 		return nil, nil, fmt.Errorf("getting validation code: %w", err)
 	}
 
+	validationCodeHash := common.NewHash([]byte(*validation_code))
+
+	if validationCodeHash != common.Hash(c.descriptor.ValidationCodeHash) {
+		return nil, nil, errors.New("validation code hash does not match")
+	}
+
+	// check candidate signature
+
 	/*
 			let encoded_pov_size = pov.encoded_size();
 		if encoded_pov_size > max_pov_size as usize {
@@ -155,9 +163,9 @@ func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCo
 			return Err(InvalidCandidate::PoVHashMismatch)
 		}
 
-		if *validation_code_hash != candidate.validation_code_hash {
-			return Err(InvalidCandidate::CodeHashMismatch)
-		}
+		// if *validation_code_hash != candidate.validation_code_hash {
+		// 	return Err(InvalidCandidate::CodeHashMismatch)
+		// }
 
 		if let Err(()) = candidate.check_collator_signature() {
 			return Err(InvalidCandidate::BadSignature)

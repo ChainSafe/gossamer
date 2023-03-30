@@ -1,6 +1,7 @@
 package parachaininteraction
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -54,6 +55,26 @@ type CandidateDescriptor struct {
 	ParaHead common.Hash `scale:"8"`
 	// ValidationCodeHash is the blake2-256 hash of the validation code bytes.
 	ValidationCodeHash validationCodeHash `scale:"9"`
+}
+
+func (cd CandidateDescriptor) CheckCollatorSignature() error {
+	// payload
+	var payload [132]byte
+	copy(payload[0:32], cd.RelayParent.ToBytes())
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(cd.ParaID)
+	if err != nil {
+		return fmt.Errorf("encoding parachain id: %w", err)
+	}
+	copy(payload[32:32+buffer.Len()], buffer.Bytes())
+	copy(payload[36:68], cd.PersistedValidationDataHash.ToBytes())
+	copy(payload[68:100], cd.PovHash.ToBytes())
+	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
+
+	// collator public key cd.Collator
+	// type of signature or just the verify function
+
 }
 
 type CandidateReceipt struct {
