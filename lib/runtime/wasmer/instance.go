@@ -300,7 +300,6 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 	memory := in.ctx.Memory.Data()
 	copy(memory[inputPtr:inputPtr+dataLength], data)
 
-	// This might need to be raw func, tbd
 	runtimeFunc, err := in.vm.Exports.GetFunction(function)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
