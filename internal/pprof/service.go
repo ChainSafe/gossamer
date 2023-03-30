@@ -6,8 +6,9 @@ package pprof
 import (
 	"context"
 	"errors"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"runtime"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 )
 
 // Service is a pprof http server service compatible with the

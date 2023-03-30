@@ -4,11 +4,13 @@
 package westenddev
 
 import (
+	"time"
+
 	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"time"
 )
 
 const (

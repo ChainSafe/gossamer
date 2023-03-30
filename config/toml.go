@@ -69,7 +69,7 @@ func WriteConfigFile(configFilePath string, config *Config) error {
 		return fmt.Errorf("failed to render config template: %w", err)
 	}
 
-	return os.WriteFile(configFilePath, buffer.Bytes(), 0o644)
+	return os.WriteFile(configFilePath, buffer.Bytes(), 0o600)
 }
 
 // Note: any changes to the comments/variables/mapstructure
