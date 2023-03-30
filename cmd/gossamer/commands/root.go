@@ -123,10 +123,9 @@ func NewRootCommand() (*cobra.Command, error) {
 				return err
 			}
 
-			// Create the config.toml file
-			//if err := cfg.WriteConfigFile(utils.ExpandDir(config.BasePath+"/config.toml"), config); err != nil {
-			//	return fmt.Errorf("failed to write config file: %s", err)
-			//}
+			if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
+				return err
+			}
 
 			return nil
 		},

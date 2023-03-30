@@ -40,7 +40,7 @@ func Default() cfg.Config {
 			Role:             4,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
-			GrandpaInterval:  1,
+			GrandpaInterval:  1 * time.Second,
 			WasmInterpreter:  wasmer.Name,
 		},
 		Network: &cfg.NetworkConfig{
@@ -57,8 +57,10 @@ func Default() cfg.Config {
 			Unsafe:   true,
 			WSUnsafe: true,
 			Host:     "localhost",
-			Modules:  []string{"system", "author", "chain", "state", "dev", "rpc"},
-			WS:       false,
+			Modules: []string{
+				"system", "author", "chain", "state", "rpc",
+				"grandpa", "offchain", "childstate", "syncstate", "payment"},
+			WS: true,
 		},
 		State:  &cfg.StateConfig{},
 		Pprof:  &cfg.PprofConfig{},

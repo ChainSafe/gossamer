@@ -192,6 +192,10 @@ public-ip = "{{ .Network.PublicIP }}"
 
 public-dns = "{{ .Network.PublicDNS }}"
 
+node-key = "{{ .Network.NodeKey }}"
+
+listen-address = "{{ .Network.ListenAddress }}"
+
 #######################################################
 ###             Core Configuration Options          ###
 #######################################################
@@ -238,6 +242,8 @@ port = {{ .RPC.Port }}
 host = "{{ .RPC.Host }}"
 
 modules = [{{ range .RPC.Modules }}"{{ . }}", {{ end }}]
+
+ws = {{ .RPC.WS }}
 
 ws-port = {{ .RPC.WSPort }}
 

@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
@@ -56,7 +56,7 @@ func execInit(cmd *cobra.Command) error {
 	case WestendChain:
 		config = westend.DefaultConfig()
 	case WestendDevChain:
-		config = westend_dev.DefaultConfig()
+		config = westenddev.DefaultConfig()
 	default:
 		return fmt.Errorf("chain %s not supported", chain)
 	}
