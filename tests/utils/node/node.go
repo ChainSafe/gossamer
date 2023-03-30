@@ -7,15 +7,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
+	"github.com/stretchr/testify/require"
 )
 
 // Node is a structure holding all the settings to
@@ -79,7 +80,17 @@ func (n *Node) setDefaults(t *testing.T) {
 	}
 
 	if n.tomlConfig.Account.Key == "" {
-		keyList := []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
+		keyList := []string{
+			"alice",
+			"bob",
+			"charlie",
+			"dave",
+			"eve",
+			"ferdie",
+			"george",
+			"heather",
+			"ian",
+		}
 		if *n.index < len(keyList) {
 			n.tomlConfig.Account.Key = keyList[*n.index]
 		} else {

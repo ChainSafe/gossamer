@@ -6,9 +6,9 @@ package pprof
 import (
 	"context"
 	"errors"
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"testing"
 
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ func Test_NewService(t *testing.T) {
 
 	logger := NewMockLogger(ctrl)
 
-	pprofConfig := westend_dev.DefaultConfig().Pprof
+	pprofConfig := westenddev.DefaultConfig().Pprof
 	service := NewService(*pprofConfig, logger)
 
 	expectedSettings := Settings{
