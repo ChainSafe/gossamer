@@ -1129,3 +1129,147 @@ func TestStateModuleQueryStorage(t *testing.T) {
 		})
 	}
 }
+
+func TestStateModuleQueryStorageAt(t *testing.T) {
+	t.Parallel()
+	errTest := errors.New("test error")
+
+	type fields struct {
+		storageAPIBuilder func(ctrl *gomock.Controller) StorageAPI
+		blockAPIBuilder   func(ctrl *gomock.Controller) BlockAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *StateStorageQueryAtRequest
+	}
+	tests := map[string]struct {
+		fields    fields
+		args      args
+		errRegexp string
+		exp       []StorageChangeSetResponse
+	}{
+		"missing_start_block": {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 3}).Return([]byte{1, 1, 1}, nil)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+					mockBlockAPI := NewMockBlockAPI(ctrl)
+					mockBlockAPI.EXPECT().BestBlockHash().Return(common.Hash{2})
+					return mockBlockAPI
+				}},
+			args: args{
+				req: &StateStorageQueryAtRequest{
+					Keys: []string{"0x010203"},
+				},
+			},
+			exp: []StorageChangeSetResponse{
+				{
+					Block: &common.Hash{2},
+					Changes: [][2]*string{
+						makeChange("0x010203", "0x010101"),
+					},
+				},
+			},
+		},
+		"start_block_not_found_error": {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{1}, []byte{1, 2, 3}).Return(nil, errTest)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+					return NewMockBlockAPI(ctrl)
+				}},
+			args: args{
+				req: &StateStorageQueryAtRequest{
+					Keys:       []string{"0x010203"},
+					StartBlock: common.Hash{1},
+				},
+			},
+			exp:       []StorageChangeSetResponse{},
+			errRegexp: "test error",
+		},
+		"start_block/multi_keys": {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).
+						Return([]byte{1, 1, 1}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{9, 9, 9}).
+						Return([]byte{9, 9, 9, 9}, nil)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+					return NewMockBlockAPI(ctrl)
+				}},
+			args: args{
+				req: &StateStorageQueryAtRequest{
+					Keys:       []string{"0x010204", "0x090909"},
+					StartBlock: common.Hash{2},
+				},
+			},
+			exp: []StorageChangeSetResponse{
+				{
+					Block: &common.Hash{2},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x010101"),
+						makeChange("0x090909", "0x09090909"),
+					},
+				},
+			},
+		},
+		"missing_start_block/multi_keys": {
+			fields: fields{
+				storageAPIBuilder: func(ctrl *gomock.Controller) StorageAPI {
+					mockStorageAPI := NewMockStorageAPI(ctrl)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{1, 2, 4}).
+						Return([]byte{1, 1, 1}, nil)
+					mockStorageAPI.EXPECT().GetStorageByBlockHash(&common.Hash{2}, []byte{9, 9, 9}).
+						Return([]byte{9, 9, 9, 9}, nil)
+					return mockStorageAPI
+				},
+				blockAPIBuilder: func(ctrl *gomock.Controller) BlockAPI {
+					mockBlockAPI := NewMockBlockAPI(ctrl)
+					mockBlockAPI.EXPECT().BestBlockHash().Return(common.Hash{2})
+					return mockBlockAPI
+				}},
+			args: args{
+				req: &StateStorageQueryAtRequest{
+					Keys: []string{"0x010204", "0x090909"},
+				},
+			},
+			exp: []StorageChangeSetResponse{
+				{
+					Block: &common.Hash{2},
+					Changes: [][2]*string{
+						makeChange("0x010204", "0x010101"),
+						makeChange("0x090909", "0x09090909"),
+					},
+				},
+			},
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			sm := &StateModule{
+				storageAPI: tt.fields.storageAPIBuilder(ctrl),
+				blockAPI:   tt.fields.blockAPIBuilder(ctrl),
+			}
+			res := []StorageChangeSetResponse{}
+			err := sm.QueryStorageAt(tt.args.in0, tt.args.req, &res)
+			if tt.errRegexp != "" {
+				assert.Regexp(t, tt.errRegexp, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.exp, res)
+		})
+	}
+}

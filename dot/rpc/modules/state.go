@@ -495,10 +495,9 @@ func (sm *StateModule) QueryStorage(
 	return nil
 }
 
-// QueryStorageAt queries historical storage entries (by key) starting from a given request start block
+// QueryStorageAt queries historical storage entries (by key) at the best block if the given block hash is nil
 func (sm *StateModule) QueryStorageAt(
 	_ *http.Request, req *StateStorageQueryAtRequest, res *[]StorageChangeSetResponse) error {
-	fmt.Printf("req %v\n", req)
 	var startBlockHash common.Hash
 	if req.StartBlock.IsEmpty() {
 		startBlockHash = sm.blockAPI.BestBlockHash()
@@ -506,58 +505,26 @@ func (sm *StateModule) QueryStorageAt(
 		startBlockHash = req.StartBlock
 	}
 
-	startBlock, err := sm.blockAPI.GetBlockByHash(startBlockHash)
-	if err != nil {
-		return err
-	}
-
-	startBlockNumber := startBlock.Header.Number
-
-	//endBlockHash := req.EndBlock
-	//if req.EndBlock.IsEmpty() {
-	endBlockHash := sm.blockAPI.BestBlockHash()
-	//}
-	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
-	if err != nil {
-		return fmt.Errorf("getting block by hash: %w", err)
-	}
-	endBlockNumber := endBlock.Header.Number
-
 	response := make([]StorageChangeSetResponse, 0, 1)
-	lastValue := make([]*string, len(req.Keys))
+	changes := make([][2]*string, 0, len(req.Keys))
 
-	for i := startBlockNumber; i <= endBlockNumber; i++ {
-		blockHash, err := sm.blockAPI.GetHashByNumber(i)
+	for _, key := range req.Keys {
+		value, err := sm.storageAPI.GetStorageByBlockHash(&startBlockHash, common.MustHexToBytes(key))
 		if err != nil {
-			return fmt.Errorf("cannot get hash by number: %w", err)
+			return fmt.Errorf("getting value by block hash: %w", err)
 		}
-		changes := make([][2]*string, 0, len(req.Keys))
-
-		for j, key := range req.Keys {
-			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
-			if err != nil {
-				return fmt.Errorf("getting value by block hash: %w", err)
-			}
-			var hexValue *string
-			if len(value) > 0 {
-				hexValue = stringPtr(common.BytesToHex(value))
-			}
-
-			differentValueEncountered := i == startBlockNumber ||
-				lastValue[j] == nil && hexValue != nil ||
-				lastValue[j] != nil && *lastValue[j] != *hexValue
-			if differentValueEncountered {
-				changes = append(changes, [2]*string{stringPtr(key), hexValue})
-				lastValue[j] = hexValue
-			}
-
+		var hexValue *string
+		if len(value) > 0 {
+			hexValue = stringPtr(common.BytesToHex(value))
 		}
 
-		response = append(response, StorageChangeSetResponse{
-			Block:   &blockHash,
-			Changes: changes,
-		})
+		changes = append(changes, [2]*string{stringPtr(key), hexValue})
 	}
+
+	response = append(response, StorageChangeSetResponse{
+		Block:   &startBlockHash,
+		Changes: changes,
+	})
 
 	*res = response
 	return nil
