@@ -76,6 +76,12 @@ type StateStorageQueryRangeRequest struct {
 	EndBlock   common.Hash `json:"block"`
 }
 
+// StateStorageQueryAtRequest holds json fields
+type StateStorageQueryAtRequest struct {
+	Keys       []string    `json:"keys" validate:"required"`
+	StartBlock common.Hash `json:"startBlock"`
+}
+
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
@@ -450,6 +456,74 @@ func (sm *StateModule) QueryStorage(
 	endBlockNumber := endBlock.Header.Number
 
 	response := make([]StorageChangeSetResponse, 0, endBlockNumber-startBlockNumber)
+	lastValue := make([]*string, len(req.Keys))
+
+	for i := startBlockNumber; i <= endBlockNumber; i++ {
+		blockHash, err := sm.blockAPI.GetHashByNumber(i)
+		if err != nil {
+			return fmt.Errorf("cannot get hash by number: %w", err)
+		}
+		changes := make([][2]*string, 0, len(req.Keys))
+
+		for j, key := range req.Keys {
+			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
+			if err != nil {
+				return fmt.Errorf("getting value by block hash: %w", err)
+			}
+			var hexValue *string
+			if len(value) > 0 {
+				hexValue = stringPtr(common.BytesToHex(value))
+			}
+
+			differentValueEncountered := i == startBlockNumber ||
+				lastValue[j] == nil && hexValue != nil ||
+				lastValue[j] != nil && *lastValue[j] != *hexValue
+			if differentValueEncountered {
+				changes = append(changes, [2]*string{stringPtr(key), hexValue})
+				lastValue[j] = hexValue
+			}
+
+		}
+
+		response = append(response, StorageChangeSetResponse{
+			Block:   &blockHash,
+			Changes: changes,
+		})
+	}
+
+	*res = response
+	return nil
+}
+
+// QueryStorageAt queries historical storage entries (by key) starting from a given request start block
+func (sm *StateModule) QueryStorageAt(
+	_ *http.Request, req *StateStorageQueryAtRequest, res *[]StorageChangeSetResponse) error {
+	fmt.Printf("req %v\n", req)
+	var startBlockHash common.Hash
+	if req.StartBlock.IsEmpty() {
+		startBlockHash = sm.blockAPI.BestBlockHash()
+	} else {
+		startBlockHash = req.StartBlock
+	}
+
+	startBlock, err := sm.blockAPI.GetBlockByHash(startBlockHash)
+	if err != nil {
+		return err
+	}
+
+	startBlockNumber := startBlock.Header.Number
+
+	//endBlockHash := req.EndBlock
+	//if req.EndBlock.IsEmpty() {
+	endBlockHash := sm.blockAPI.BestBlockHash()
+	//}
+	endBlock, err := sm.blockAPI.GetBlockByHash(endBlockHash)
+	if err != nil {
+		return fmt.Errorf("getting block by hash: %w", err)
+	}
+	endBlockNumber := endBlock.Header.Number
+
+	response := make([]StorageChangeSetResponse, 0, 1)
 	lastValue := make([]*string, len(req.Keys))
 
 	for i := startBlockNumber; i <= endBlockNumber; i++ {
