@@ -7,10 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 	"time"
-
-	cfg "github.com/ChainSafe/gossamer/config"
 )
 
 // Nodes is a slice of nodes.

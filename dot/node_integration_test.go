@@ -10,11 +10,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"os"
 	"path/filepath"
 	"testing"
-
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -90,44 +89,40 @@ func TestNewNode(t *testing.T) {
 
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
-	m.EXPECT().
-		createStateService(initConfig).
-		DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
-			stateSrvc := state.NewService(stateConfig)
-			// create genesis from configuration file
-			gen, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load genesis from file: %w", err)
-			}
-			// create trie from genesis
-			trie, err := wasmer.NewTrieFromGenesis(*gen)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
-			}
-			// create genesis block from trie
-			header, err := trie.GenesisBlock()
-			if err != nil {
-				return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
-			}
-			stateSrvc.Telemetry = mockTelemetryClient
-			err = stateSrvc.Initialise(gen, &header, &trie)
-			if err != nil {
-				return nil, fmt.Errorf("failed to initialise state service: %s", err)
-			}
+	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
+		stateSrvc := state.NewService(stateConfig)
+		// create genesis from configuration file
+		gen, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
+		}
+		// create trie from genesis
+		trie, err := wasmer.NewTrieFromGenesis(*gen)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
+		}
+		// create genesis block from trie
+		header, err := trie.GenesisBlock()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
+		}
+		stateSrvc.Telemetry = mockTelemetryClient
+		err = stateSrvc.Initialise(gen, &header, &trie)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialise state service: %s", err)
+		}
 
-			err = stateSrvc.SetupBase()
-			if err != nil {
-				return nil, fmt.Errorf("cannot setup base: %w", err)
-			}
-			return stateSrvc, nil
-		})
+		err = stateSrvc.SetupBase()
+		if err != nil {
+			return nil, fmt.Errorf("cannot setup base: %w", err)
+		}
+		return stateSrvc, nil
+	})
 
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
 		NodeStorage{}, nil)
-	m.EXPECT().
-		loadRuntime(initConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
-			ks, gomock.AssignableToTypeOf(&network.Service{})).
-		Return(nil)
+	m.EXPECT().loadRuntime(initConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
+		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
 	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&babe.VerificationManager{})
 	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).
@@ -139,10 +134,9 @@ func TestNewNode(t *testing.T) {
 		ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&grandpa.Service{}, nil)
-	m.EXPECT().
-		newSyncService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
-			&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
-			gomock.AssignableToTypeOf(&telemetry.Mailer{})).
+	m.EXPECT().newSyncService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
+		&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
+		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&dotsync.Service{}, nil)
 	m.EXPECT().createBABEService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
 		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).

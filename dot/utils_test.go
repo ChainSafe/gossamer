@@ -7,13 +7,12 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-
 	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/internal/pprof"
+	"os"
+	"path/filepath"
+	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -145,18 +144,8 @@ func TestNewTestConfig(t *testing.T) {
 					UnsafeExternal: false,
 					Port:           8545,
 					Host:           "localhost",
-					Modules: []string{
-						"system",
-						"author",
-						"chain",
-						"state",
-						"rpc",
-						"grandpa",
-						"offchain",
-						"childstate",
-						"syncstate",
-						"payment",
-					},
+					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
+						"childstate", "syncstate", "payment"},
 					WSPort:           8546,
 					WS:               true,
 					WSExternal:       false,

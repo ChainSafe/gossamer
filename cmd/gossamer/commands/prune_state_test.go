@@ -5,11 +5,10 @@ package commands
 
 import (
 	"fmt"
-	"strings"
-	"testing"
-
 	"github.com/dgraph-io/badger/v2"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"testing"
 )
 
 // TestPruneState test "gossamer prune-state"
@@ -54,12 +53,7 @@ func TestPruneState(t *testing.T) {
 	err = inputDB.Close()
 	require.NoError(t, err)
 
-	t.Log(
-		"Total keys in input DB",
-		numStorageKeys+len(nonStorageKeys),
-		"storage keys",
-		numStorageKeys,
-	)
+	t.Log("Total keys in input DB", numStorageKeys+len(nonStorageKeys), "storage keys", numStorageKeys)
 	t.Log("pruned DB path", prunedDBPath)
 
 	// Run Prune command
@@ -83,12 +77,7 @@ func TestPruneState(t *testing.T) {
 	}
 	iterateDB(prunedDB, getKeysPrunedDB)
 
-	t.Log(
-		"Total keys in pruned DB",
-		len(nonStorageKeysPruned)+numStorageKeysPruned,
-		"storage keys",
-		numStorageKeysPruned,
-	)
+	t.Log("Total keys in pruned DB", len(nonStorageKeysPruned)+numStorageKeysPruned, "storage keys", numStorageKeysPruned)
 	require.Equal(t, len(nonStorageKeysPruned), len(nonStorageKeys))
 
 	// Check all non storage keys are present.

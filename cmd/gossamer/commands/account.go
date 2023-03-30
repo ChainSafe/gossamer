@@ -5,7 +5,6 @@ package commands
 
 import (
 	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -15,10 +14,8 @@ import (
 func init() {
 	AccountCmd.Flags().String("keystore-path", "", "path to keystore")
 	AccountCmd.Flags().String("keystore-file", "", "name of keystore file to import")
-	AccountCmd.Flags().
-		String("password", "", "password used to encrypt the keystore. Used with --generate or --unlock")
-	AccountCmd.Flags().
-		String("scheme", crypto.Sr25519Type, "keyring scheme (sr25519, ed25519, secp256k1)")
+	AccountCmd.Flags().String("password", "", "password used to encrypt the keystore. Used with --generate or --unlock")
+	AccountCmd.Flags().String("scheme", crypto.Sr25519Type, "keyring scheme (sr25519, ed25519, secp256k1)")
 }
 
 // AccountCmd is the command to manage the gossamer keystore

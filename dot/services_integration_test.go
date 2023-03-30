@@ -6,12 +6,11 @@
 package dot
 
 import (
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"net/url"
 	"testing"
 	"time"
-
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
-	cfg "github.com/ChainSafe/gossamer/config"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
@@ -107,14 +106,8 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 			builder := nodeBuilder{}
 			var got *babe.Service
 			if tt.args.initStateService {
-				got, err = builder.createBABEServiceWithBuilder(
-					tt.args.cfg,
-					stateSrvc,
-					tt.args.ks,
-					tt.args.cs,
-					tt.args.telemetryMailer,
-					mockBabeBuilder,
-				)
+				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, stateSrvc, tt.args.ks, tt.args.cs,
+					tt.args.telemetryMailer, mockBabeBuilder)
 			} else {
 				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, &state.Service{}, tt.args.ks, tt.args.cs,
 					tt.args.telemetryMailer, mockBabeBuilder)
@@ -167,13 +160,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 			stateSrvc := newStateService(t, ctrl)
 
 			builder := nodeBuilder{}
-			got, err := builder.createCoreService(
-				config,
-				tt.args.ks,
-				stateSrvc,
-				tt.args.net,
-				tt.args.dh,
-			)
+			got, err := builder.createCoreService(config, tt.args.ks, stateSrvc, tt.args.net, tt.args.dh)
 
 			assert.ErrorIs(t, err, tt.err)
 
@@ -407,15 +394,8 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
-			got, err := no.newSyncService(
-				config,
-				stateSrvc,
-				tt.args.fg,
-				tt.args.verifier,
-				tt.args.cs,
-				tt.args.net,
-				tt.args.telemetryMailer,
-			)
+			got, err := no.newSyncService(config, stateSrvc, tt.args.fg, tt.args.verifier, tt.args.cs,
+				tt.args.net, tt.args.telemetryMailer)
 			assert.ErrorIs(t, err, tt.err)
 			if tt.expectNil {
 				assert.Nil(t, got)
@@ -468,11 +448,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
-	epochState, err := state.NewEpochStateFromGenesis(
-		stateSrvc.DB(),
-		stateSrvc.Block,
-		genesisBABEConfig,
-	)
+	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block, genesisBABEConfig)
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState
@@ -573,15 +549,7 @@ func TestCreateSyncService(t *testing.T) {
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	_, err = builder.newSyncService(
-		config,
-		stateSrvc,
-		&grandpa.Service{},
-		ver,
-		coreSrvc,
-		&network.Service{},
-		nil,
-	)
+	_, err = builder.newSyncService(config, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{}, nil)
 	require.NoError(t, err)
 }
 
@@ -746,10 +714,8 @@ func TestNewWebSocketServer(t *testing.T) {
 		expected []byte
 	}{
 		{
-			call: []byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
-			expected: []byte(
-				`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n",
-			)}, // working request
+			call:     []byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`),
+			expected: []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")}, // working request
 		{
 			call: []byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":2}`),
 			// unknown method
@@ -762,14 +728,10 @@ func TestNewWebSocketServer(t *testing.T) {
 			expected: []byte(`{"jsonrpc":"2.0","error":{"code":-32600,` +
 				`"message":"Invalid request"},"id":0}` + "\n")},
 		{
-			call: []byte(
-				`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`,
-			),
+			call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`),
 			expected: []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
 		{
-			call: []byte(
-				`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`,
-			),
+			call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
 			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	}
 

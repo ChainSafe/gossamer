@@ -5,9 +5,8 @@ package commands
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 // TestAccountGenerate test "gossamer account generate"

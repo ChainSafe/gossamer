@@ -5,12 +5,11 @@ package dot
 
 import (
 	"errors"
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -149,9 +148,7 @@ func TestBuildFromDB(t *testing.T) {
 				},
 			}}},
 		{name: "invalid_db_path", path: t.TempDir(),
-			err: errors.New(
-				"cannot start state service: failed to create block state: cannot get block 0: Key not found",
-			)},
+			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -301,9 +298,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 				err := os.WriteFile(path, nil, os.ModePerm)
 				require.NoError(t, err)
 				tt.args.fp = path
-				expectedErrMessage = errors.New(
-					"file " + path + " already exists, rename to avoid overwriting",
-				)
+				expectedErrMessage = errors.New("file " + path + " already exists, rename to avoid overwriting")
 			}
 			err := WriteGenesisSpecFile(tt.args.data, tt.args.fp)
 			if expectedErrMessage != nil {

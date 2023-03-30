@@ -12,11 +12,10 @@
 package proto
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -82,18 +81,18 @@ type BlockRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Bits of block data to request.
-	Fields uint32 `protobuf:"varint,1,opt,name=fields,proto3"                          json:"fields,omitempty"`
+	Fields uint32 `protobuf:"varint,1,opt,name=fields,proto3" json:"fields,omitempty"`
 	// Start from this block.
 	//
 	// Types that are assignable to FromBlock:
 	//
 	//	*BlockRequest_Hash
 	//	*BlockRequest_Number
-	FromBlock isBlockRequest_FromBlock `                                                                                                protobuf_oneof:"from_block"`
+	FromBlock isBlockRequest_FromBlock `protobuf_oneof:"from_block"`
 	// Sequence direction.
 	Direction Direction `protobuf:"varint,5,opt,name=direction,proto3,enum=api.v1.Direction" json:"direction,omitempty"`
 	// Maximum number of blocks to return. An implementation defined maximum is used when unspecified.
-	MaxBlocks uint32 `protobuf:"varint,6,opt,name=max_blocks,json=maxBlocks,proto3"       json:"max_blocks,omitempty"` // optional
+	MaxBlocks uint32 `protobuf:"varint,6,opt,name=max_blocks,json=maxBlocks,proto3" json:"max_blocks,omitempty"` // optional
 }
 
 func (x *BlockRequest) Reset() {
@@ -244,17 +243,17 @@ type BlockData struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Block header hash.
-	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3"                                              json:"hash,omitempty"`
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	// Block header if requested.
-	Header []byte `protobuf:"bytes,2,opt,name=header,proto3"                                            json:"header,omitempty"` // optional
+	Header []byte `protobuf:"bytes,2,opt,name=header,proto3" json:"header,omitempty"` // optional
 	// Block body if requested.
-	Body [][]byte `protobuf:"bytes,3,rep,name=body,proto3"                                              json:"body,omitempty"` // optional
+	Body [][]byte `protobuf:"bytes,3,rep,name=body,proto3" json:"body,omitempty"` // optional
 	// Block receipt if requested.
-	Receipt []byte `protobuf:"bytes,4,opt,name=receipt,proto3"                                           json:"receipt,omitempty"` // optional
+	Receipt []byte `protobuf:"bytes,4,opt,name=receipt,proto3" json:"receipt,omitempty"` // optional
 	// Block message queue if requested.
-	MessageQueue []byte `protobuf:"bytes,5,opt,name=message_queue,json=messageQueue,proto3"                   json:"message_queue,omitempty"` // optional
+	MessageQueue []byte `protobuf:"bytes,5,opt,name=message_queue,json=messageQueue,proto3" json:"message_queue,omitempty"` // optional
 	// Justification if requested.
-	Justification []byte `protobuf:"bytes,6,opt,name=justification,proto3"                                     json:"justification,omitempty"` // optional
+	Justification []byte `protobuf:"bytes,6,opt,name=justification,proto3" json:"justification,omitempty"` // optional
 	// True if justification should be treated as present but empty.
 	// This hack is unfortunately necessary because shortcomings in the protobuf format otherwise
 	// doesn't make in possible to differentiate between a lack of justification and an empty

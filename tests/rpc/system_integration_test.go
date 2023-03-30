@@ -5,10 +5,9 @@ package rpc
 
 import (
 	"context"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"testing"
 	"time"
-
-	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"

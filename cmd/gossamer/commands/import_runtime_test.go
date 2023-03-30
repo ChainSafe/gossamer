@@ -5,14 +5,13 @@ package commands
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
 // TestCreateGenesisWithRuntime test "gossamer import-runtime"
