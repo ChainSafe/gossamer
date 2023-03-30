@@ -4,11 +4,12 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -81,7 +82,9 @@ func concatCobraCmdFuncs(fs ...cobraCmdFunc) cobraCmdFunc {
 func configureViper(cmd *cobra.Command, args []string) error {
 	basePath := viper.GetString(BasePathFlag)
 	viper.Set(BasePathFlag, basePath)
-	viper.SetConfigName("config")                          // name of config file (without extension)
+	viper.SetConfigName(
+		"config",
+	) // name of config file (without extension)
 	viper.AddConfigPath(basePath)                          // search `root-directory`
 	viper.AddConfigPath(filepath.Join(basePath, "config")) // search `root-directory/config`
 

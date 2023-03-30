@@ -6,10 +6,11 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/os"
 	"github.com/spf13/cobra"
-	"path/filepath"
 )
 
 func init() {

@@ -4,8 +4,9 @@
 package dot
 
 import (
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"testing"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -154,7 +155,11 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
-	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block, genesisBABEConfig)
+	epochState, err := state.NewEpochStateFromGenesis(
+		stateSrvc.DB(),
+		stateSrvc.Block,
+		genesisBABEConfig,
+	)
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState

@@ -7,10 +7,11 @@ package dot
 
 import (
 	"encoding/json"
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"os"
 	"path/filepath"
 	"testing"
+
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"

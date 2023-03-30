@@ -6,8 +6,9 @@ package dot
 import (
 	"errors"
 	"fmt"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"strings"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -122,7 +123,10 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
 
 	if !codeSubHash.IsEmpty() {
-		logger.Infof("🔄 detected runtime code substitution, upgrading to block hash %s...", codeSubHash)
+		logger.Infof(
+			"🔄 detected runtime code substitution, upgrading to block hash %s...",
+			codeSubHash,
+		)
 		genData, err := st.Base.LoadGenesisData()
 		if err != nil {
 			return nil, err
@@ -295,8 +299,13 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 	telemetryMailer Telemetry) (*network.Service, error) {
 	logger.Debugf(
 		"creating network service with role %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
-		config.Core.Role, config.Network.Port, strings.Join(config.Network.Bootnodes, ","), config.Network.ProtocolID,
-		config.Network.NoBootstrap, config.Network.NoMDNS)
+		config.Core.Role,
+		config.Network.Port,
+		strings.Join(config.Network.Bootnodes, ","),
+		config.Network.ProtocolID,
+		config.Network.NoBootstrap,
+		config.Network.NoMDNS,
+	)
 
 	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
 	if err != nil {
@@ -402,7 +411,10 @@ func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer,
 }
 
 // createSystemService creates a systemService for providing system related information
-func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
+func (nodeBuilder) createSystemService(
+	cfg *types.SystemInfo,
+	stateSrvc *state.Service,
+) (*system.Service, error) {
 	genesisData, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
@@ -462,8 +474,15 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 	return babe.NewVerificationManager(st.Block, st.Epoch)
 }
 
-func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
-	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
+func (nodeBuilder) newSyncService(
+	config *cfg.Config,
+	st *state.Service,
+	fg BlockJustificationVerifier,
+	verifier *babe.VerificationManager,
+	cs *core.Service,
+	net *network.Service,
+	telemetryMailer Telemetry,
+) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {

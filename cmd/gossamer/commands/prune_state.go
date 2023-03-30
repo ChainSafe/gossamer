@@ -5,12 +5,13 @@ package commands
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/spf13/cobra"
-	"path/filepath"
 )
 
 func init() {
@@ -73,7 +74,10 @@ func execPruneState(cmd *cobra.Command) error {
 
 	const uint32Max = ^uint32(0)
 	if uint32Max < retainBlocks {
-		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
+		return fmt.Errorf(
+			"retain blocks value overflows uint32 boundaries, must be less than or equal to: %d",
+			uint32Max,
+		)
 	}
 
 	pruner, err := state.NewOfflinePruner(dbPath, retainBlocks)

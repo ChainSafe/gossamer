@@ -4,9 +4,10 @@
 package dot
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	cfg "github.com/ChainSafe/gossamer/config"
-	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -70,8 +71,18 @@ func TestConfig(t *testing.T) {
 				RPC: RPCConfig{
 					Port: 8545,
 					Host: "localhost",
-					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
-						"childstate", "syncstate", "payment"},
+					Modules: []string{
+						"system",
+						"author",
+						"chain",
+						"state",
+						"rpc",
+						"grandpa",
+						"offchain",
+						"childstate",
+						"syncstate",
+						"payment",
+					},
 					WSPort: 8546,
 				},
 				Pprof: PprofConfig{
@@ -116,8 +127,18 @@ func TestConfig(t *testing.T) {
 				RPC: RPCConfig{
 					Port: 8545,
 					Host: "localhost",
-					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
-						"childstate", "syncstate", "payment"},
+					Modules: []string{
+						"system",
+						"author",
+						"chain",
+						"state",
+						"rpc",
+						"grandpa",
+						"offchain",
+						"childstate",
+						"syncstate",
+						"payment",
+					},
 					WSPort: 8546,
 				},
 				Pprof: PprofConfig{

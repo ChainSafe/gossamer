@@ -5,6 +5,7 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
@@ -15,9 +16,12 @@ import (
 )
 
 func init() {
-	ImportStateCmd.Flags().String("chain", "", "Chain id used to load default configuration for specified chain")
-	ImportStateCmd.Flags().String("state-file", "", "Path to JSON file consisting of key-value pairs")
-	ImportStateCmd.Flags().String("header-file", "", "Path to JSON file of block header corresponding to the given state")
+	ImportStateCmd.Flags().
+		String("chain", "", "Chain id used to load default configuration for specified chain")
+	ImportStateCmd.Flags().
+		String("state-file", "", "Path to JSON file consisting of key-value pairs")
+	ImportStateCmd.Flags().
+		String("header-file", "", "Path to JSON file of block header corresponding to the given state")
 	ImportStateCmd.Flags().Uint64("first-slot", 0, "The first BABE slot of the network")
 }
 
