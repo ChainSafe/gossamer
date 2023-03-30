@@ -6,6 +6,9 @@ package commands
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
@@ -13,16 +16,20 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 const confirmCharacter = "Y"
 
 func init() {
-	InitCmd.Flags().String("chain", WestendDevChain.String(), "the default chain configuration to load. Example: --chain kusama")
-	InitCmd.Flags().Bool("force", false, "force reinitialization of node")
-	InitCmd.Flags().String("genesis", "", "the path to the genesis configuration to load. Example: --genesis genesis.json")
+	InitCmd.Flags().String("chain",
+		WestendDevChain.String(),
+		"the default chain configuration to load. Example: --chain kusama")
+	InitCmd.Flags().Bool("force",
+		false,
+		"force reinitialization of node")
+	InitCmd.Flags().String("genesis",
+		"",
+		"the path to the genesis configuration to load. Example: --genesis genesis.json")
 }
 
 // InitCmd is the command to initialise the node

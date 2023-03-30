@@ -5,20 +5,21 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/os"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"path/filepath"
-	"time"
 )
 
 const uint32Max = ^uint32(0)
 
 // Config defines the configuration for the gossamer node
 type Config struct {
-	BaseConfig `mapstructure:",squash"`
+	BaseConfig `               mapstructure:",squash"`
 	Log        *LogConfig     `mapstructure:"log"`
 	Account    *AccountConfig `mapstructure:"account"`
 	Core       *CoreConfig    `mapstructure:"core"`
@@ -179,7 +180,10 @@ func (b *BaseConfig) ValidateBasic() error {
 		return fmt.Errorf("metrics address cannot be empty")
 	}
 	if uint32Max < b.RetainBlocks {
-		return fmt.Errorf("retain-blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)
+		return fmt.Errorf(
+			"retain-blocks value overflows uint32 boundaries, must be less than or equal to: %d",
+			uint32Max,
+		)
 	}
 
 	return nil

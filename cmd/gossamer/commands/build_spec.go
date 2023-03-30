@@ -5,6 +5,7 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +13,8 @@ import (
 func init() {
 	BuildSpecCmd.Flags().Bool("raw", false, "print raw genesis json")
 	BuildSpecCmd.Flags().String("genesis", "", "path to human-readable genesis JSON file")
-	BuildSpecCmd.Flags().String("output-path", "", "path to output the recently created genesis JSON file")
+	BuildSpecCmd.Flags().
+		String("output-path", "", "path to output the recently created genesis JSON file")
 }
 
 // BuildSpecCmd is the command to generate genesis JSON
@@ -69,7 +71,9 @@ func execBuildSpec(cmd *cobra.Command) error {
 	} else {
 		bs, err = dot.BuildFromDB(basePath)
 		if err != nil {
-			return fmt.Errorf("error building spec from database, init must be run before build-spec or run build-spec with --genesis flag Error %s", err)
+			return fmt.Errorf("error building spec from database, "+
+				"init must be run before build-spec or run build-spec "+
+				"with --genesis flag Error %s", err)
 		}
 	}
 
