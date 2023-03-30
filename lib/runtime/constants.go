@@ -96,6 +96,8 @@ const (
 	TransactionPaymentCallAPIQueryCallInfo = "TransactionPaymentCallApi_query_call_info"
 	// TransactionPaymentCallAPIQueryCallFeeDetails returns call query call fee details
 	TransactionPaymentCallAPIQueryCallFeeDetails = "TransactionPaymentCallApi_query_call_fee_details"
-	// ParachainHost_persisted_validation_data return parachain hosts persisted validation data
+	// ParachainHostPersistedValidationData returns parachain host's persisted validation data
 	ParachainHostPersistedValidationData = "ParachainHost_persisted_validation_data"
+	// ParachainHostValidationCode returns parachain host's validation code
+	ParachainHostValidationCode = "ParachainHost_validation_code"
 )

@@ -1,6 +1,8 @@
 package parachaininteraction
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -111,11 +113,57 @@ func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCo
 
 	// get persisted validation data
 	assumption := OccupiedCoreAssumption{}
+	// TODO: What value should I choose here?
 	assumption.Set(Included{})
 	PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(c.descriptor.ParaID, assumption)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting persisted validation data: %w", err)
 	}
+
+	// check that the candidate does not exceed any parameters in the persisted validation data
+
+	// TODO: Get PoV from Candidate
+	var pov PoV
+
+	// basic checks
+
+	// check if encoded size of pov is less than max pov size
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err = encoder.Encode(pov)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encoding pov: %w", err)
+	}
+	encoded_pov_size := buffer.Len()
+	if encoded_pov_size > int(PersistedValidationData.MaxPovSize) {
+		return nil, nil, errors.New("validation input is over the limit")
+	}
+
+	// TODO: Implement runtime call to get validation code
+	validation_code, err := runtimeInstance.ParachainHostValidationCode(c.descriptor.ParaID, assumption)
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting validation code: %w", err)
+	}
+
+	/*
+			let encoded_pov_size = pov.encoded_size();
+		if encoded_pov_size > max_pov_size as usize {
+			return Err(InvalidCandidate::ParamsTooLarge(encoded_pov_size as u64))
+		}
+
+		if pov_hash != candidate.pov_hash {
+			return Err(InvalidCandidate::PoVHashMismatch)
+		}
+
+		if *validation_code_hash != candidate.validation_code_hash {
+			return Err(InvalidCandidate::CodeHashMismatch)
+		}
+
+		if let Err(()) = candidate.check_collator_signature() {
+			return Err(InvalidCandidate::BadSignature)
+		}
+
+	*/
 	//  CandidateValidationMessage::ValidateFromChainState(
 	// - validate_candidate_exhaustive
 	//	- implement ParachainHost_persisted_validation_data
@@ -175,4 +223,5 @@ type RuntimeInstance interface {
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
 	ParachainHostPersistedValidationData(parachaidID uint32, assumption OccupiedCoreAssumption) (*PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption OccupiedCoreAssumption) (*ValidationCode, error)
 }

@@ -19,7 +19,7 @@ type Collation struct {
 	// Horizontal messages sent by the parachain.
 	HorizontalMessages []outboundHrmpMessage `scale:"2"`
 	// New validation code.
-	NewValidationCode *validationCode `scale:"3"`
+	NewValidationCode *ValidationCode `scale:"3"`
 	// The head-data produced as a result of execution.
 	HeadData headData `scale:"4"`
 	// Proof to verify the state transition of the parachain.
@@ -39,8 +39,8 @@ type outboundHrmpMessage struct {
 	Data      []byte `scale:"2"`
 }
 
-// validationCode is Parachain validation code.
-type validationCode []byte
+// ValidationCode is Parachain validation code.
+type ValidationCode []byte
 
 // headData is Parachain head data included in the chain.
 type headData []byte

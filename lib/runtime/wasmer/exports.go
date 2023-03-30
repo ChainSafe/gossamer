@@ -359,3 +359,31 @@ func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, ass
 
 	return &persistedValidationData, nil
 }
+
+// ParachainHost_validation_code
+func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaininteraction.OccupiedCoreAssumption,
+) (*parachaininteraction.ValidationCode, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachaidID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain id: %w", err)
+	}
+	err = encoder.Encode(assumption)
+	if err != nil {
+		return nil, fmt.Errorf("encoding occupied core assumption: %w", err)
+	}
+
+	encodedValidationCode, err := in.Exec(runtime.ParachainHostValidationCode, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	validationCode := parachaininteraction.ValidationCode{}
+	err = scale.Unmarshal(encodedValidationCode, &validationCode)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return &validationCode, nil
+}
