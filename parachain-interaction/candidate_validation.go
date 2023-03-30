@@ -152,26 +152,15 @@ func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCo
 	}
 
 	// check candidate signature
+	err = c.descriptor.CheckCollatorSignature()
+	if err != nil {
+		return nil, nil, fmt.Errorf("verifying collator signature: %w", err)
+	}
 
-	/*
-			let encoded_pov_size = pov.encoded_size();
-		if encoded_pov_size > max_pov_size as usize {
-			return Err(InvalidCandidate::ParamsTooLarge(encoded_pov_size as u64))
-		}
+	// TODO: check if we can decompress validation code and Pov.BlockData
 
-		if pov_hash != candidate.pov_hash {
-			return Err(InvalidCandidate::PoVHashMismatch)
-		}
+	// implement validate_candidate_with_retry
 
-		// if *validation_code_hash != candidate.validation_code_hash {
-		// 	return Err(InvalidCandidate::CodeHashMismatch)
-		// }
-
-		if let Err(()) = candidate.check_collator_signature() {
-			return Err(InvalidCandidate::BadSignature)
-		}
-
-	*/
 	//  CandidateValidationMessage::ValidateFromChainState(
 	// - validate_candidate_exhaustive
 	//	- implement ParachainHost_persisted_validation_data

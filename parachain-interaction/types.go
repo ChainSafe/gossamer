@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -18,7 +19,7 @@ func (s signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
 type collatorID []byte
 
 // collatorSignature is the signature on a candidate's block data signed by a collator.
-type collatorSignature signature
+type collatorSignature [sr25519.SignatureLength]byte
 
 // validationCodeHash is the blake2-256 hash of the validation code bytes.
 type validationCodeHash common.Hash
@@ -58,7 +59,6 @@ type CandidateDescriptor struct {
 }
 
 func (cd CandidateDescriptor) CheckCollatorSignature() error {
-	// payload
 	var payload [132]byte
 	copy(payload[0:32], cd.RelayParent.ToBytes())
 	buffer := bytes.NewBuffer(nil)
@@ -72,9 +72,7 @@ func (cd CandidateDescriptor) CheckCollatorSignature() error {
 	copy(payload[68:100], cd.PovHash.ToBytes())
 	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
 
-	// collator public key cd.Collator
-	// type of signature or just the verify function
-
+	return sr25519.VerifySignature(cd.Collator, cd.Signature[:], payload[:])
 }
 
 type CandidateReceipt struct {
