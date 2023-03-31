@@ -84,7 +84,7 @@ func (r *Request) AddHeader(name, value string) error {
 
 // HTTPSet holds a pool of concurrent http request calls
 type HTTPSet struct {
-	*sync.Mutex
+	mutex  sync.Mutex
 	reqs   map[int16]*Request
 	idBuff requestIDBuffer
 }
@@ -93,17 +93,16 @@ type HTTPSet struct {
 // by runtime as HTTP clients, the max concurrent requests is 1000
 func NewHTTPSet() *HTTPSet {
 	return &HTTPSet{
-		new(sync.Mutex),
-		make(map[int16]*Request),
-		newIntBuffer(maxConcurrentRequests),
+		reqs:   make(map[int16]*Request),
+		idBuff: newIntBuffer(maxConcurrentRequests),
 	}
 }
 
 // StartRequest create a new request using the method and the uri, adds the request into the list
 // and then return the position of the request inside the list
 func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
-	p.Lock()
-	defer p.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	id, err := p.idBuff.get()
 	if err != nil {
@@ -135,8 +134,8 @@ func (p *HTTPSet) StartRequest(method, uri string) (int16, error) {
 
 // Remove just remove a expecific request from reqs
 func (p *HTTPSet) Remove(id int16) error {
-	p.Lock()
-	defer p.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	delete(p.reqs, id)
 
@@ -145,8 +144,8 @@ func (p *HTTPSet) Remove(id int16) error {
 
 // Get returns a request or nil if request not found
 func (p *HTTPSet) Get(id int16) *Request {
-	p.Lock()
-	defer p.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	return p.reqs[id]
 }
