@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
 	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	westendlocal "github.com/ChainSafe/gossamer/chain/westend-local"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -45,6 +46,7 @@ var (
 
 // ParseConfig parses the config from the command line flags
 func ParseConfig(cmd *cobra.Command) (*cfg.Config, error) {
+	fmt.Println("Parsing config...")
 	chain, err := cmd.Flags().GetString("chain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get --chain: %s", err)
@@ -55,29 +57,28 @@ func ParseConfig(cmd *cobra.Command) (*cfg.Config, error) {
 
 	var con *cfg.Config
 
-	switch chain {
-	case "polkadot":
+	switch Chain(chain) {
+	case PolkadotChain:
 		con = polkadot.DefaultConfig()
-	case "kusama":
+	case KusamaChain:
 		con = kusama.DefaultConfig()
-	case "westend":
+	case WestendChain:
 		con = westend.DefaultConfig()
-	case "westend-dev":
+	case WestendDevChain:
 		con = westend_dev.DefaultConfig()
+	case WestendLocalChain:
+		if alice {
+			con = westendlocal.DefaultAliceConfig()
+		} else if bob {
+			con = westendlocal.DefaultBobConfig()
+		} else if charlie {
+			con = westendlocal.DefaultCharlieConfig()
+		} else {
+			return nil, fmt.Errorf("must specify one of --alice, --bob, or --charlie")
+		}
 	default:
 		return nil, fmt.Errorf("chain %s not supported", chain)
 	}
-
-	fmt.Println("babe-lead")
-	fmt.Println(viper.GetString("babe-lead"))
-
-	err = viper.Unmarshal(con)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %s", err)
-	}
-
-	fmt.Println("babe-lead")
-	fmt.Println(con.Core.BABELead)
 
 	var basePath string
 	if os.Getenv("GSSMRHOME") != "" {
@@ -88,14 +89,24 @@ func ParseConfig(cmd *cobra.Command) (*cfg.Config, error) {
 			return nil, err
 		}
 	}
+	if con.BasePath == "" && basePath == "" {
+		return nil, fmt.Errorf("--base-path cannot be empty")
+	}
+	if basePath != "" {
+		con.BasePath = basePath
+	}
+	con.BasePath = utils.ExpandDir(config.BasePath)
+	fmt.Println(con.BasePath)
 
-	fmt.Println(con)
-	fmt.Println(basePath)
+	err = viper.Unmarshal(con)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %s", err)
+	}
+
+	fmt.Println(con.BasePath)
 	if err := con.ValidateBasic(); err != nil {
 		return nil, fmt.Errorf("error in config file: %v", err)
 	}
-
-	//cfg.EnsureRoot(con.BasePath, con)
 
 	return con, nil
 }
@@ -143,12 +154,26 @@ func NewRootCommand() (*cobra.Command, error) {
 func addRootFlags(cmd *cobra.Command) error {
 	// helper flags
 	cmd.Flags().String("chain",
-		"westend_dev",
+		WestendLocalChain.String(),
 		"the default chain configuration to load. Example: --chain kusama")
 	cmd.Flags().String(
 		"password",
 		"",
 		"password")
+
+	// Default Authorities for westend-local
+	cmd.Flags().BoolVar(&alice,
+		"alice",
+		false,
+		"init with Alice's keys")
+	cmd.Flags().BoolVar(&bob,
+		"bob",
+		false,
+		"init with Bob's keys")
+	cmd.Flags().BoolVar(&charlie,
+		"charlie",
+		false,
+		"init with Charlie's keys")
 
 	// Base Config
 	if err := addStringFlagBindViper(cmd,
@@ -166,7 +191,7 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 	if err := addStringFlagBindViper(cmd,
 		"base-path",
-		config.BaseConfig.BasePath,
+		"",
 		"base path", "base-path"); err != nil {
 		return fmt.Errorf("failed to add --base-path flag: %s", err)
 	}

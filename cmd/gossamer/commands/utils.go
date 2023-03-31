@@ -22,6 +22,8 @@ const (
 	WestendChain Chain = "westend"
 	// WestendDevChain is the Westend dev chain
 	WestendDevChain Chain = "westend-dev"
+	// WestendLocalChain is the Westend local chain
+	WestendLocalChain Chain = "westend-local"
 )
 
 // String returns the string representation of the chain

@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	westendlocal "github.com/ChainSafe/gossamer/chain/westend-local"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
@@ -20,9 +21,13 @@ import (
 
 const confirmCharacter = "Y"
 
+var (
+	alice, bob, charlie bool
+)
+
 func init() {
 	InitCmd.Flags().String("chain",
-		WestendDevChain.String(),
+		WestendLocalChain.String(),
 		"the default chain configuration to load. Example: --chain kusama")
 	InitCmd.Flags().Bool("force",
 		false,
@@ -30,6 +35,20 @@ func init() {
 	InitCmd.Flags().String("genesis",
 		"",
 		"the path to the genesis configuration to load. Example: --genesis genesis.json")
+
+	// Default Authorities
+	InitCmd.Flags().BoolVar(&alice,
+		"alice",
+		false,
+		"init with Alice's keys")
+	InitCmd.Flags().BoolVar(&bob,
+		"bob",
+		false,
+		"init with Bob's keys")
+	InitCmd.Flags().BoolVar(&charlie,
+		"charlie",
+		false,
+		"init with Charlie's keys")
 }
 
 // InitCmd is the command to initialise the node
@@ -64,6 +83,16 @@ func execInit(cmd *cobra.Command) error {
 		config = westend.DefaultConfig()
 	case WestendDevChain:
 		config = westenddev.DefaultConfig()
+	case WestendLocalChain:
+		if alice {
+			config = westendlocal.DefaultAliceConfig()
+		} else if bob {
+			config = westendlocal.DefaultBobConfig()
+		} else if charlie {
+			config = westendlocal.DefaultCharlieConfig()
+		} else {
+			return fmt.Errorf("must specify one of --alice, --bob, or --charlie")
+		}
 	default:
 		return fmt.Errorf("chain %s not supported", chain)
 	}
