@@ -48,14 +48,13 @@ func Test_newCommitsTracker(t *testing.T) {
 
 	const capacity = 1
 	expected := commitsTracker{
-		mutex:      &sync.Mutex{},
 		mapping:    make(map[common.Hash]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
 	}
 	ct := newCommitsTracker(capacity)
 
-	assert.Equal(t, expected, ct)
+	assert.Equal(t, &expected, &ct)
 }
 
 // We cannot really unit test each method independently
@@ -201,7 +200,6 @@ func Test_commitsTracker_message(t *testing.T) {
 	}{
 		"non_existing_block_hash": {
 			commitsTracker: &commitsTracker{
-				mutex: &sync.Mutex{},
 				mapping: map[common.Hash]*list.Element{
 					{1}: {},
 				},
@@ -210,7 +208,6 @@ func Test_commitsTracker_message(t *testing.T) {
 		},
 		"existing_block_hash": {
 			commitsTracker: &commitsTracker{
-				mutex: &sync.Mutex{},
 				mapping: map[common.Hash]*list.Element{
 					{1}: {
 						Value: &CommitMessage{Round: 1},

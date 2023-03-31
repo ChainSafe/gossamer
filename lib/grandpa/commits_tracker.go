@@ -15,7 +15,7 @@ import (
 // its maximum capacity is reached.
 // It is NOT THREAD SAFE to use.
 type commitsTracker struct {
-	mutex *sync.Mutex
+	mutex sync.Mutex
 	// map of commit block hash to linked list commit message.
 	mapping map[common.Hash]*list.Element
 	// double linked list of commit messages
@@ -28,7 +28,6 @@ type commitsTracker struct {
 // with the capacity specified.
 func newCommitsTracker(capacity int) commitsTracker {
 	return commitsTracker{
-		mutex:      &sync.Mutex{},
 		mapping:    make(map[common.Hash]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,

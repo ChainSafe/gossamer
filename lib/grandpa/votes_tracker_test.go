@@ -6,7 +6,6 @@ package grandpa
 import (
 	"container/list"
 	"sort"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -65,14 +64,13 @@ func Test_newVotesTracker(t *testing.T) {
 
 	const capacity = 1
 	expected := votesTracker{
-		mutex:      &sync.Mutex{},
 		mapping:    make(map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
 	}
 	vt := newVotesTracker(capacity)
 
-	assert.Equal(t, expected, vt)
+	assert.Equal(t, &expected, &vt)
 }
 
 // We cannot really unit test each method independently
@@ -280,7 +278,6 @@ func Test_votesTracker_messages(t *testing.T) {
 	}{
 		"non_existing_block_hash": {
 			votesTracker: &votesTracker{
-				mutex: &sync.Mutex{},
 				mapping: map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element{
 					{1}: {},
 				},
@@ -290,7 +287,6 @@ func Test_votesTracker_messages(t *testing.T) {
 		},
 		"existing_block_hash": {
 			votesTracker: &votesTracker{
-				mutex: &sync.Mutex{},
 				mapping: map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element{
 					{1}: {
 						ed25519.PublicKeyBytes{1}: {

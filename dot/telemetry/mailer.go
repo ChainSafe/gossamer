@@ -24,7 +24,7 @@ type telemetryConnection struct {
 
 // Mailer can send messages to the telemetry servers.
 type Mailer struct {
-	mutex *sync.Mutex
+	mutex sync.Mutex
 
 	logger Logger
 
@@ -35,7 +35,6 @@ type Mailer struct {
 func BootstrapMailer(ctx context.Context, conns []*genesis.TelemetryEndpoint, logger Logger) (
 	mailer *Mailer, err error) {
 	mailer = &Mailer{
-		mutex:  new(sync.Mutex),
 		logger: logger,
 	}
 

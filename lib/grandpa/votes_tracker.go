@@ -17,7 +17,7 @@ import (
 // its maximum capacity is reached.
 // It is NOT THREAD SAFE to use.
 type votesTracker struct {
-	mutex *sync.Mutex
+	mutex sync.Mutex
 	// map of vote block hash to authority ID (ed25519 public Key)
 	// to linked list element pointer
 	mapping map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element
@@ -30,7 +30,6 @@ type votesTracker struct {
 // with the capacity specified.
 func newVotesTracker(capacity int) votesTracker {
 	return votesTracker{
-		mutex:      &sync.Mutex{},
 		mapping:    make(map[common.Hash]map[ed25519.PublicKeyBytes]*list.Element, capacity),
 		linkedList: list.New(),
 		capacity:   capacity,
