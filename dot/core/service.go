@@ -35,6 +35,7 @@ type QueryKeyValueChanges map[string]string
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
 	stopCh     chan struct{}
+	doneCh     chan struct{}
 	blockAddCh chan *types.Block // for asynchronous block handling
 
 	// Service interfaces
@@ -71,16 +72,15 @@ type Config struct {
 func NewService(cfg *Config) (*Service, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
-	blockAddCh := make(chan *types.Block, 256)
-
 	srv := &Service{
 		stopCh:               make(chan struct{}),
+		doneCh:               make(chan struct{}),
 		keys:                 cfg.Keystore,
 		blockState:           cfg.BlockState,
 		storageState:         cfg.StorageState,
 		transactionState:     cfg.TransactionState,
 		net:                  cfg.Network,
-		blockAddCh:           blockAddCh,
+		blockAddCh:           make(chan *types.Block, 256),
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 	}
@@ -90,13 +90,14 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start starts the core service
 func (s *Service) Start() error {
-	go s.handleBlocksAsync()
+	go s.handleBlocksAsync(s.stopCh, s.doneCh)
 	return nil
 }
 
 // Stop stops the core service
 func (s *Service) Stop() error {
 	close(s.stopCh)
+	<-s.doneCh
 	return nil
 }
 
@@ -275,7 +276,8 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 // handleBlocksAsync handles a block asynchronously; the handling performed by this function
 // does not need to be completed before the next block can be imported.
-func (s *Service) handleBlocksAsync() {
+func (s *Service) handleBlocksAsync(stop <-chan struct{}, done chan<- struct{}) {
+	defer close(done)
 	for {
 		select {
 		case block := <-s.blockAddCh:
@@ -293,7 +295,7 @@ func (s *Service) handleBlocksAsync() {
 				// TODO remove once gossamer is in stable state
 				panic(fmt.Errorf("failed to maintain txn pool after re-org: %s", err))
 			}
-		case <-s.stopCh:
+		case <-stop:
 			return
 		}
 	}

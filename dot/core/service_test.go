@@ -689,14 +689,12 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 	t.Parallel()
 	t.Run("stop channel closed", func(t *testing.T) {
 		t.Parallel()
-		blockAddChan := make(chan *types.Block)
 		closedCh := make(chan struct{})
 		close(closedCh)
-		service := &Service{
-			blockAddCh: blockAddChan,
-			stopCh:     closedCh,
-		}
-		service.handleBlocksAsync()
+		service := &Service{}
+		done := make(chan struct{})
+		go service.handleBlocksAsync(closedCh, done)
+		<-done
 	})
 
 	t.Run("nil block", func(t *testing.T) {
@@ -706,12 +704,12 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		stopCh := make(chan struct{})
 		service := &Service{
 			blockAddCh: blockAddChan,
-			stopCh:     stopCh,
 		}
-		time.AfterFunc(10*time.Millisecond, func() {
-			close(stopCh)
-		})
-		service.handleBlocksAsync()
+		done := make(chan struct{})
+		go service.handleBlocksAsync(stopCh, done)
+		time.Sleep(10 * time.Millisecond)
+		close(stopCh)
+		<-done
 	})
 
 	t.Run("handleChainReorg error", func(t *testing.T) {
@@ -735,7 +733,10 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		}
 
 		assert.PanicsWithError(t, "failed to re-add transactions to chain upon re-org: test dummy error",
-			service.handleBlocksAsync)
+			func() {
+				done := make(chan struct{})
+				service.handleBlocksAsync(nil, done)
+			})
 	})
 }
 
