@@ -107,9 +107,12 @@ func (vr *ValidationResult) Value() (scale.VaryingDataTypeValue, error) {
 // 	CommitmentsHashMismatch,
 // }
 
-func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *PersistedValidationData, error) {
+func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *PersistedValidationData, error) {
 	var candidateCommitments candidateCommitments
 	var PersistedValidationData *PersistedValidationData
+
+	// TODO: There are three validation functions that gets used alternatively.
+	// Figure out which one to use when.
 
 	// get persisted validation data
 	assumption := OccupiedCoreAssumption{}
@@ -159,16 +162,17 @@ func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCo
 
 	// TODO: check if we can decompress validation code and Pov.BlockData
 
+	// TODO:
+	// validation_backend
 	// implement validate_candidate_with_retry
+	// construct pvf from validation code
+	pvf := Pvf{
+		Code:     []byte(*validation_code),
+		CodeHash: validationCodeHash,
+	}
 
-	//  CandidateValidationMessage::ValidateFromChainState(
-	// - validate_candidate_exhaustive
-	//	- implement ParachainHost_persisted_validation_data
-	// 		- perform_basic_checks
-
-	// 	CandidateValidationMessage::ValidateFromExhaustive(
-
-	// 	CandidateValidationMessage::PreCheck(
+	// execute pvf and if we can't, throw an error handle_execute_pvf
+	// from output of validation_backend, you can create candidate commitments, which will be the item to return
 
 	return &candidateCommitments, PersistedValidationData, nil
 	// The candidate does not exceed any parameters in the persisted validation data (Definition 227).
@@ -178,6 +182,14 @@ func Validate(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCo
 	// Validate the candidate by executing the parachain Runtime (Section 8.3.1).
 
 }
+
+type Pvf struct {
+	Code     []byte
+	CodeHash common.Hash
+}
+
+// TODO::
+// func PreCheck()
 
 // look at node/core/candidate-validation/src/lib.rs
 
