@@ -121,7 +121,13 @@ func NewRootCommand() (*cobra.Command, error) {
 	cmd := &cobra.Command{
 		Use:   "gossamer",
 		Short: "Official gossamer command-line interface",
-		Long:  `Gossamer is a Golang implementation of the Polkadot Host`,
+		Long: `Gossamer is a Golang implementation of the Polkadot Host.
+Usage:
+	gossamer --chain westend-local --alice --babe-lead
+	gossamer --chain westend-dev --key alice --port 7002
+	gossamer --chain westend --key bob --port 7003
+	gossamer --chain kusama --key charlie --port 7004
+	gossamer --chain polkadot --key dave --port 7005`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return execRoot(cmd)
 		},

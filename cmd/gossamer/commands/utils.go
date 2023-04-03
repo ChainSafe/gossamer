@@ -78,18 +78,6 @@ func addUintFlagBindViper(
 	return viper.BindPFlag(viperBindName, cmd.PersistentFlags().Lookup(name))
 }
 
-// addUint64FlagBindViper adds a uint64 flag to the given command and binds it to the given viper name
-func addUint64FlagBindViper(
-	cmd *cobra.Command,
-	name string,
-	defaultValue uint64,
-	usage string,
-	viperBindName string,
-) error {
-	cmd.PersistentFlags().Uint64(name, defaultValue, usage)
-	return viper.BindPFlag(viperBindName, cmd.PersistentFlags().Lookup(name))
-}
-
 // addUint32FlagBindViper adds a uint32 flag to the given command and binds it to the given viper name
 func addUint32FlagBindViper(
 	cmd *cobra.Command,
