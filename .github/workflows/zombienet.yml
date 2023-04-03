@@ -42,9 +42,11 @@ jobs:
       - name: Install Zombienet
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -O $HOME/.local/bin/zombienet $HOME/.local/bin/ https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-linux-x64
+            wget -P $HOME/.local/bin/ https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-linux-x64
+            mv $HOME/.local/bin/zombienet-linux-x64 $HOME/.local/bin/zombienet
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            wget -O $HOME/.local/bin/zombienet https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-macos
+            wget -P $HOME/.local/bin/ https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-macos
+            mv $HOME/.local/bin/zombienet-macos $HOME/.local/bin/zombienet
           else
             echo "Zombienet for $RUNNER_OS is not supported"
             exit 1
