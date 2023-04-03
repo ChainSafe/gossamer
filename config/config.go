@@ -126,8 +126,6 @@ type CoreConfig struct {
 	Role             common.NetworkRole `mapstructure:"role,omitempty"`
 	BabeAuthority    bool               `mapstructure:"babe-authority"`
 	GrandpaAuthority bool               `mapstructure:"grandpa-authority"`
-	SlotDuration     uint64             `mapstructure:"slot-duration,omitempty"`
-	EpochLength      uint64             `mapstructure:"epoch-length,omitempty"`
 	WasmInterpreter  string             `mapstructure:"wasm-interpreter,omitempty"`
 	GrandpaInterval  time.Duration      `mapstructure:"grandpa-interval,omitempty"`
 	BABELead         bool               `mapstructure:"babe-lead,omitempty"`

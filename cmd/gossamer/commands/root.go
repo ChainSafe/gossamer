@@ -230,6 +230,10 @@ func addRootFlags(cmd *cobra.Command) error {
 		"state-pruning",
 		string(config.BaseConfig.Pruning),
 		"State trie online pruning")
+	cmd.Flags().BoolVar(&config.PublishMetrics,
+		"publish-metrics",
+		config.BaseConfig.PublishMetrics,
+		"Publish metrics to prometheus")
 
 	// TODO: telemetry-url
 
@@ -262,7 +266,7 @@ func addRootFlags(cmd *cobra.Command) error {
 	// State Config
 	if err := addUintFlagBindViper(cmd,
 		"rewind", config.State.Rewind,
-		"rewind",
+		"Rewind head of chain to the given block number",
 		"state.rewind"); err != nil {
 		return fmt.Errorf("failed to add --rewind flag: %s", err)
 	}
@@ -278,13 +282,13 @@ func addRootFlags(cmd *cobra.Command) error {
 		"enabled")
 	cmd.Flags().String("pprof.listening-address",
 		config.Pprof.ListeningAddress,
-		"listening-address")
+		"Address to listen on for pprof")
 	cmd.Flags().Int("pprof.block-profile-rate",
 		config.Pprof.BlockProfileRate,
-		"block-profile-rate")
+		"The frequency at which the Go runtime samples the state of goroutines to generate block profile information.")
 	cmd.Flags().Int("pprof.mutex-profile-rate",
 		config.Pprof.MutexProfileRate,
-		"mutex-profile-rate")
+		"The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.")
 
 	// Misc Config
 	cmd.Flags().Bool("dev", false, "dev")
@@ -387,17 +391,27 @@ func addNetworkFlags(cmd *cobra.Command) error {
 	}
 
 	if err := addStringFlagBindViper(cmd,
-		"public-ip", config.Network.PublicIP,
+		"public-ip",
+		config.Network.PublicIP,
 		"Overrides the public IP address used for peer to peer networking",
 		"network.public-ip"); err != nil {
 		return fmt.Errorf("failed to add --public-ip flag: %s", err)
 	}
 
 	if err := addStringFlagBindViper(cmd,
-		"public-dns", config.Network.PublicDNS,
+		"public-dns",
+		config.Network.PublicDNS,
 		"Overrides public DNS used for peer to peer networking",
 		"network.public-dns"); err != nil {
 		return fmt.Errorf("failed to add --public-dns flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"node-key",
+		config.Network.NodeKey,
+		"Overrides the secret Ed25519 key to use for libp2p networking",
+		"network.node-key"); err != nil {
+		return fmt.Errorf("failed to add --node-key flag: %s", err)
 	}
 
 	return nil
@@ -443,6 +457,14 @@ func addRPCFlags(cmd *cobra.Command) error {
 		"HTTP-RPC server listening port",
 		"rpc.port"); err != nil {
 		return fmt.Errorf("failed to add --rpc-port flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"rpc-host",
+		config.RPC.Host,
+		"HTTP-RPC server listening hostname",
+		"rpc.host"); err != nil {
+		return fmt.Errorf("failed to add --rpc-host flag: %s", err)
 	}
 
 	if err := addStringSliceFlagBindViper(cmd,
@@ -513,22 +535,6 @@ func addCoreFlags(cmd *cobra.Command) error {
 		"Run as a GRANDPA authority",
 		"core.grandpa-authority"); err != nil {
 		return fmt.Errorf("failed to add --grandpa-authority flag: %s", err)
-	}
-
-	if err := addUint64FlagBindViper(cmd,
-		"slot-duration",
-		config.Core.SlotDuration,
-		"Slot duration in seconds",
-		"core.slot-duration"); err != nil {
-		return fmt.Errorf("failed to add --slot-duration flag: %s", err)
-	}
-
-	if err := addUint64FlagBindViper(cmd,
-		"epoch-length",
-		config.Core.EpochLength,
-		"Epoch length",
-		"core.epoch-length"); err != nil {
-		return fmt.Errorf("failed to add --epoch-length flag: %s", err)
 	}
 
 	if err := addStringFlagBindViper(cmd,

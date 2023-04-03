@@ -86,30 +86,51 @@ const defaultConfigTemplate = `# This is a TOML config file.
 ###                   Main Base Config Options                      ###
 #######################################################################
 
+# Name of the node
+# Defaults to "Gossamer"
 name = "{{ .BaseConfig.Name }}"
 
+# Identifier of the node
+# Defaults to a random value
 id = "{{ .BaseConfig.ID }}"
 
+# Path to the working directory of the node
+# Defaults to "$HOME/.gossamer/<CHAIN>"
 base-path = "{{ .BaseConfig.BasePath }}"
 
+# Path to the genesis JSON file
 genesis = "{{ .BaseConfig.Genesis }}"
 
+# Global log level
+# One of: crit, error, warn, info, debug, trace
+# Defaults to "info"
 log-level = "{{ .BaseConfig.LogLevel }}"
 
+# Listen address for the metrics server
+# Defaults to "localhost:9876"
 metrics-address = "{{ .BaseConfig.MetricsAddress }}"
 
+# Retain number of block from latest block while pruning
+# Defaults to 512
 retain-blocks = {{ .BaseConfig.RetainBlocks }}
 
+# State trie online pruning mode
+# Defaults to "archive"
 pruning = "{{ .BaseConfig.Pruning }}"
 
+# Disable connecting to the Substrate telemetry server
+# Defaults to false
 no-telemetry = {{ .BaseConfig.NoTelemetry }}
 
+# List of telemetry server URLs to connect to
 {{range .BaseConfig.TelemetryURLs}} 
 [[telemetry-urls]]
 endpoint = "{{ .Endpoint }}"
 verbosity = {{ .Verbosity }}
 {{end}}
 
+# Publish metrics to prometheus
+# Defaults to false
 publish-metrics = {{ .BaseConfig.PublishMetrics }}
 
 #######################################################################
@@ -159,10 +180,10 @@ wasmer = "{{ .Log.Wasmer }}"
 #######################################################
 [account]
 
-# Account key
+# Keyring to use for the node
 key = "{{ .Account.Key }}"
 
-# Account unlock
+# Unlock an account. eg. --unlock=0 to unlock account 0
 unlock = "{{ .Account.Unlock }}"
 
 #######################################################
@@ -170,30 +191,49 @@ unlock = "{{ .Account.Unlock }}"
 #######################################################
 [network]
 
+# Network port to use
+# Defaults to 7001
 port = {{ .Network.Port }}
 
+# Comma separated node URLs for network discovery bootstrap
 bootnodes = [{{ StringsJoin .Network.Bootnodes ", " }}]
 
+# Protocol ID to use
 protocol-id = "{{ .Network.ProtocolID }}"
 
+# Disables network bootstrapping (mDNS still enabled)
+# Defaults to false
 no-bootstrap = {{ .Network.NoBootstrap }}
 
+# Disables network mDNS discovery
+# Defaults to false
 no-mdns = {{ .Network.NoMDNS }}
 
+# Minimum number of peers to connect to
+# Defaults to 25
 min-peers = {{ .Network.MinPeers }}
 
+# Maximum number of peers to connect to
+# Defaults to 50
 max-peers = {{ .Network.MaxPeers }}
 
+# Comma separated list of peers to always keep connected to
 persistent-peers = [{{ StringsJoin .Network.PersistentPeers ", " }}]
 
+# Interval to perform peer discovery in duration
+# Format: "10s", "1m", "1h"
 discovery-interval = "{{ .Network.DiscoveryInterval }}"
 
+# Overrides the public IP address used for peer to peer networking"
 public-ip = "{{ .Network.PublicIP }}"
 
+# Overrides the public DNS used for peer to peer networking"
 public-dns = "{{ .Network.PublicDNS }}"
 
+# Overrides the secret Ed25519 key to use for libp2p networking
 node-key = "{{ .Network.NodeKey }}"
 
+# Multiaddress to listen on
 listen-address = "{{ .Network.ListenAddress }}"
 
 #######################################################
@@ -201,27 +241,36 @@ listen-address = "{{ .Network.ListenAddress }}"
 #######################################################
 [core]
 
+# Role of the gossamer node
+# One of: no-network, full, light, authority
+# Defaults to "full"
 role = {{ .Core.Role }}
 
+# Enable BABE authoring
+# Defaults to true
 babe-authority = {{ .Core.BabeAuthority }}
 
+# Enable GRANDPA authoring
+# Defaults to true
 grandpa-authority = {{ .Core.GrandpaAuthority }}
 
-slot-duration = {{ .Core.SlotDuration }}
-
-epoch-length = {{ .Core.EpochLength }}
-
+# WASM interpreter
+# Defaults to "wasmer"
 wasm-interpreter = "{{ .Core.WasmInterpreter }}"
 
+# Grandpa interval
 grandpa-interval = "{{ .Core.GrandpaInterval }}"
 
+# Run as a BABE authority and produce blocks
+# Defaults to false
 babe-lead = {{ .Core.BABELead }}
 
 #######################################################
 ###            State Configuration Options          ###
 #######################################################
 [state]
-
+# Rewind head of chain to the given block number
+# Defaults to 0
 rewind = {{ .State.Rewind }}
 
 #######################################################
@@ -229,28 +278,52 @@ rewind = {{ .State.Rewind }}
 #######################################################
 [rpc]
 
+# Enable the HTTP-RPC server
+# Defaults to true
 enabled = {{ .RPC.Enabled }}
 
+# Enable the HTTP-RPC server to unsafe procedures
+# Defaults to false
 unsafe = {{ .RPC.Unsafe }}
 
+# Enable external HTTP-RPC connections to unsafe procedures
+# Defaults to false
 unsafe-external = {{ .RPC.UnsafeExternal }}
 
+# Enable external HTTP-RPC connections
+# Defaults to false
 external = {{ .RPC.External }}
 
+# HTTP-RPC server listening port
+# Defaults to 8545
 port = {{ .RPC.Port }}
 
+# HTTP-RPC server listening hostname
+# Defaults to "localhost"
 host = "{{ .RPC.Host }}"
 
+# API modules to enable via HTTP-RPC, comma separated list
+# Defaults to "system, author, chain, state, rpc, grandpa, offchain, childstate, syncstate, payment"
 modules = [{{ range .RPC.Modules }}"{{ . }}", {{ end }}]
 
+# Enable the websockets server
+# Defaults to false
 ws = {{ .RPC.WS }}
 
+# Websockets server listening port
+# Defaults to 8546
 ws-port = {{ .RPC.WSPort }}
 
+# Enable external websocket connections
+# Defaults to false
 ws-external = {{ .RPC.WSExternal }}
 
+# Enable the websockets server to unsafe procedures
+# Defaults to false
 ws-unsafe = {{ .RPC.WSUnsafe }}
 
+# Enable external websocket connections to unsafe procedures
+# Defaults to false
 ws-unsafe-external = {{ .RPC.WSUnsafeExternal }}
 
 #######################################################
@@ -258,11 +331,19 @@ ws-unsafe-external = {{ .RPC.WSUnsafeExternal }}
 #######################################################
 [pprof]
 
+# Enable the pprof server
+# Defaults to false
 enabled = {{ .Pprof.Enabled }}
 
+# Pprof server listening address
+# Defaults to "localhost:6060"
 listening-address = "{{ .Pprof.ListeningAddress }}"
 
+# The frequency at which the Go runtime samples the state of goroutines to generate block profile information.
+# Defaults to 0
 block-profile-rate = {{ .Pprof.BlockProfileRate }}
 
+# The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.
+# Defaults to 0
 mutex-profile-rate = {{ .Pprof.MutexProfileRate }}
 `
