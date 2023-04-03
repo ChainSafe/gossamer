@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -24,7 +23,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/procfs"
 )
 
 const (
@@ -92,7 +90,8 @@ var (
 	processStartTimeGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "substrate",
 		Name:      "process_start_time_seconds",
-		Help:      "gossamer process start time seconds, using substrate namespace so zombienet detects node start",
+		Help: "gossamer process start seconds unix timestamp, " +
+			"using substrate namespace so zombienet detects node start",
 	})
 )
 
@@ -377,18 +376,7 @@ func (s *Service) updateMetrics() {
 }
 
 func getProcessStartTime() float64 {
-	pid := os.Getpid()
-	p, err := procfs.NewProc(pid)
-	if err != nil {
-		return 0
-	}
-
-	if stat, err := p.Stat(); err == nil {
-		if startTime, err := stat.StartTime(); err == nil {
-			return startTime
-		}
-	}
-	return 0
+	return float64(time.Now().Unix())
 }
 
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
