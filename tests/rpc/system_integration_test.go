@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
+	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,19 +25,17 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	}
 
 	const numberOfNodes = 3
-	config := cfg.Config{
-		RPC: &cfg.RPCConfig{
-			Enabled: true,
-			Modules: []string{"system", "author", "chain"},
-		},
-		Core: &cfg.CoreConfig{
-			Role: common.FullNodeRole,
-		},
-	}
 
-	nodes := make(node.Nodes, numberOfNodes)
-	for i := range nodes {
-		nodes[i] = node.New(t, config, node.SetIndex(i))
+	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
+
+	var nodes []node.Node
+	for i := 0; i < numberOfNodes; i++ {
+		con := config.Default()
+		con.Genesis = genesisPath
+		con.Core.Role = common.FullNodeRole
+		con.RPC.Modules = []string{"system", "author", "chain"}
+		n := node.New(t, con, node.SetIndex(i))
+		nodes = append(nodes, n)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

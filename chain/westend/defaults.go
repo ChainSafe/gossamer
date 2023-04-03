@@ -4,6 +4,8 @@
 package westend
 
 import (
+	"time"
+
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -139,10 +141,11 @@ func DefaultConfig() *cfg.Config {
 			Rewind: 0,
 		},
 		Network: &cfg.NetworkConfig{
-			Port:        DefaultNetworkPort,
-			Bootnodes:   DefaultNetworkBootnodes,
-			NoBootstrap: DefaultNoBootstrap,
-			NoMDNS:      DefaultNoMDNS,
+			Port:              DefaultNetworkPort,
+			Bootnodes:         DefaultNetworkBootnodes,
+			NoBootstrap:       DefaultNoBootstrap,
+			NoMDNS:            DefaultNoMDNS,
+			DiscoveryInterval: 1 * time.Second,
 		},
 		RPC: &cfg.RPCConfig{
 			Port:    DefaultRPCHTTPPort,

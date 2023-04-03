@@ -608,14 +608,12 @@ func execRoot(cmd *cobra.Command) error {
 		return err
 	}
 
-	err = unlockKeystore(ks.Babe, config.BasePath, config.Account.Unlock, password)
-	if err != nil {
+	if err := unlockKeystore(ks.Babe, config.BasePath, config.Account.Unlock, password); err != nil {
 		logger.Errorf("failed to unlock keystore: %s", err)
 		return err
 	}
 
-	err = unlockKeystore(ks.Gran, config.BasePath, config.Account.Unlock, password)
-	if err != nil {
+	if err := unlockKeystore(ks.Gran, config.BasePath, config.Account.Unlock, password); err != nil {
 		logger.Errorf("failed to unlock keystore: %s", err)
 		return err
 	}
@@ -629,9 +627,8 @@ func execRoot(cmd *cobra.Command) error {
 	logger.Info("starting node " + node.Name + "...")
 
 	// start node
-	err = node.Start()
-	if err != nil {
-		return err
+	if err := node.Start(); err != nil {
+		return fmt.Errorf("failed to start node: %s", err)
 	}
 
 	return nil
