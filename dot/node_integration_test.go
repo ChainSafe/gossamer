@@ -470,7 +470,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 // newTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 func newTestGenesisAndRuntime(t *testing.T) (filename string) {
-	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
+	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)

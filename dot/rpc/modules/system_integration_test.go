@@ -354,7 +354,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
 		rt.Stop()
