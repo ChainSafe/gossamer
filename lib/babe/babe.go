@@ -125,10 +125,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
 	)
 
-	if cfg.Lead {
-		logger.Debug("node designated to build block 1")
-	}
-
 	return babeService, nil
 }
 
@@ -177,10 +173,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
 	)
 
-	if cfg.Lead {
-		logger.Debug("node designated to build block 1")
-	}
-
 	return babeService, nil
 }
 
@@ -190,53 +182,8 @@ func (b *Service) Start() error {
 		return nil
 	}
 
-	// if we aren't leading node, wait for first block
-	if !b.lead {
-		if err := b.waitForFirstBlock(); err != nil {
-			return err
-		}
-	}
-
 	go b.initiate()
 	return nil
-}
-
-func (b *Service) waitForFirstBlock() error {
-	head, err := b.blockState.BestBlockHeader()
-	if err != nil {
-		return fmt.Errorf("cannot get best block header: %w", err)
-	}
-
-	if head.Number > 0 {
-		return nil
-	}
-
-	ch := b.blockState.GetImportedBlockNotifierChannel()
-	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
-
-	const firstBlockTimeout = time.Minute * 5
-	timer := time.NewTimer(firstBlockTimeout)
-
-	// loop until block 1
-	for {
-		select {
-		case block, ok := <-ch:
-			if !ok {
-				timer.Stop()
-				return errChannelClosed
-			}
-
-			if ok && block.Header.Number > 0 {
-				timer.Stop()
-				return nil
-			}
-		case <-timer.C:
-			return errFirstBlockTimeout
-		case <-b.ctx.Done():
-			timer.Stop()
-			return b.ctx.Err()
-		}
-	}
 }
 
 // SlotDuration returns the current service slot duration in milliseconds
