@@ -573,7 +573,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 func TestService_HandleCodeSubstitutes(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
@@ -623,7 +623,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
