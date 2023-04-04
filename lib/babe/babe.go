@@ -420,7 +420,9 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	case err := <-errCh:
 		// TODO: errEpochPast is sent on this channel, but it doesnot get logged here
 		epochTimer.Stop()
-		logger.Errorf("error from epochHandler: %s", err)
+		if err != nil {
+			logger.Errorf("error from epochHandler: %s", err)
+		}
 	}
 
 	// setup next epoch, re-invoke block authoring

@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	terminal "golang.org/x/term"
 )
 

@@ -12,7 +12,7 @@ import (
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // TestExportCommand test "gossamer export --config"
@@ -162,7 +162,7 @@ func TestExportCommand(t *testing.T) {
 			err = exportAction(ctx)
 			require.NoError(t, err)
 
-			config := ctx.GlobalString(ConfigFlag.Name)
+			config := ctx.String(ConfigFlag.Name)
 
 			cfg := new(ctoml.Config)
 			err = loadConfig(cfg, config)

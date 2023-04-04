@@ -9,7 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // TestFixFlagOrder tests the FixFlagOrder method
