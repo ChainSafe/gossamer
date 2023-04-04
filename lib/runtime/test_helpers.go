@@ -74,12 +74,6 @@ func GetRuntime(ctx context.Context, runtime string) (
 
 	var runtimeFilename, url string
 	switch runtime {
-	case NODE_RUNTIME:
-		runtimeFilename = NODE_RUNTIME_FP
-		url = NODE_RUNTIME_URL
-	case NODE_RUNTIME_v098:
-		runtimeFilename = NODE_RUNTIME_FP_v098
-		url = NODE_RUNTIME_URL_v098
 	case HOST_API_TEST_RUNTIME:
 		runtimeFilename = HOST_API_TEST_RUNTIME_FP
 		url = HOST_API_TEST_RUNTIME_URL
