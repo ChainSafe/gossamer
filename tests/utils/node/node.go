@@ -34,7 +34,7 @@ type Node struct {
 // toml configuration and options given.
 func New(t *testing.T, tomlConfig cfg.Config,
 	options ...Option) (node Node) {
-	node.tomlConfig = tomlConfig
+	node.tomlConfig = cfg.Copy(&tomlConfig)
 	for _, option := range options {
 		option(&node)
 	}

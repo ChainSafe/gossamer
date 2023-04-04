@@ -297,6 +297,91 @@ func (r *RPCConfig) IsWSEnabled() bool {
 	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
 }
 
+// Copy creates a copy of the config.
+func Copy(c *Config) Config {
+	return Config{
+		BaseConfig: BaseConfig{
+			Name:           c.BaseConfig.Name,
+			ID:             c.BaseConfig.ID,
+			BasePath:       c.BaseConfig.BasePath,
+			Genesis:        c.BaseConfig.Genesis,
+			LogLevel:       c.BaseConfig.LogLevel,
+			MetricsAddress: c.MetricsAddress,
+			RetainBlocks:   c.RetainBlocks,
+			Pruning:        c.Pruning,
+			PublishMetrics: c.PublishMetrics,
+			NoTelemetry:    c.NoTelemetry,
+			TelemetryURLs:  c.TelemetryURLs,
+		},
+		Log: &LogConfig{
+			Core:    c.Log.Core,
+			Digest:  c.Log.Digest,
+			Sync:    c.Log.Sync,
+			Network: c.Log.Network,
+			RPC:     c.Log.RPC,
+			State:   c.Log.State,
+			Runtime: c.Log.Runtime,
+			Babe:    c.Log.Babe,
+			Grandpa: c.Log.Grandpa,
+			Wasmer:  c.Log.Wasmer,
+		},
+		Account: &AccountConfig{
+			Key:    c.Account.Key,
+			Unlock: c.Account.Unlock,
+		},
+		Core: &CoreConfig{
+			Role:             c.Core.Role,
+			BabeAuthority:    c.Core.BabeAuthority,
+			GrandpaAuthority: c.Core.GrandpaAuthority,
+			WasmInterpreter:  c.Core.WasmInterpreter,
+			GrandpaInterval:  c.Core.GrandpaInterval,
+			BABELead:         c.Core.BABELead,
+		},
+		Network: &NetworkConfig{
+			Port:              c.Network.Port,
+			Bootnodes:         c.Network.Bootnodes,
+			ProtocolID:        c.Network.ProtocolID,
+			NoBootstrap:       c.Network.NoBootstrap,
+			NoMDNS:            c.Network.NoMDNS,
+			MinPeers:          c.Network.MinPeers,
+			MaxPeers:          c.Network.MaxPeers,
+			PersistentPeers:   c.Network.PersistentPeers,
+			DiscoveryInterval: c.Network.DiscoveryInterval,
+			PublicIP:          c.Network.PublicIP,
+			PublicDNS:         c.Network.PublicDNS,
+			NodeKey:           c.Network.NodeKey,
+			ListenAddress:     c.Network.ListenAddress,
+		},
+		State: &StateConfig{
+			Rewind: c.State.Rewind,
+		},
+		RPC: &RPCConfig{
+			Enabled:          c.RPC.Enabled,
+			Unsafe:           c.RPC.Unsafe,
+			UnsafeExternal:   c.RPC.UnsafeExternal,
+			External:         c.RPC.External,
+			Port:             c.RPC.Port,
+			Host:             c.RPC.Host,
+			Modules:          c.RPC.Modules,
+			WSPort:           c.RPC.WSPort,
+			WS:               c.RPC.WS,
+			WSExternal:       c.RPC.WSExternal,
+			WSUnsafe:         c.RPC.WSUnsafe,
+			WSUnsafeExternal: c.RPC.WSUnsafeExternal,
+		},
+		Pprof: &PprofConfig{
+			Enabled:          c.Pprof.Enabled,
+			ListeningAddress: c.Pprof.ListeningAddress,
+			BlockProfileRate: c.Pprof.BlockProfileRate,
+			MutexProfileRate: c.Pprof.MutexProfileRate,
+		},
+		System: &SystemConfig{
+			SystemName:    c.System.SystemName,
+			SystemVersion: c.System.SystemVersion,
+		},
+	}
+}
+
 // EnsureRoot creates the root, config, and data directories if they don't exist,
 // and returns error if it fails.
 func EnsureRoot(rootDir string, config *Config) error {
