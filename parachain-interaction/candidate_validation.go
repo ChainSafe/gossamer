@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,45 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-// pub enum ValidationProtocol {
-// 	/// Bitfield distribution messages
-// 	#[codec(index = 1)]
-// 	#[from]
-// 	BitfieldDistribution(BitfieldDistributionMessage),
-// 	/// Statement distribution messages
-// 	#[codec(index = 3)]
-// 	#[from]
-// 	StatementDistribution(StatementDistributionMessage),
-// 	/// Approval distribution messages
-// 	#[codec(index = 4)]
-// 	#[from]
-// 	ApprovalDistribution(ApprovalDistributionMessage),
-// }
-
-// This subsystem groups the requests it handles in two categories: candidate validation and PVF pre-checking.
-
-// The first category can be further subdivided in two request types: one which draws out validation data from the state, and another which accepts all validation data exhaustively. Validation returns three possible outcomes on the response channel: the candidate is valid, the candidate is invalid, or an internal error occurred.
-
-// Parachain candidates are validated against their validation function: A piece of Wasm code that describes the state-transition of the parachain. Validation function execution is not metered. This means that an execution which is an infinite loop or simply takes too long must be forcibly exited by some other means. For this reason, we recommend dispatching candidate validation to be done on subprocesses which can be killed if they time-out.
-
-// Received candidates submitted by collators and must have its validity verified by the assigned Polkadot validators. For each candidate to be valid, the validator must successfully verify the following conditions in the following order:
-
-//     The candidate does not exceed any parameters in the persisted validation data (Definition 227).
-
-//     The signature of the collator is valid.
-
-//     Validate the candidate by executing the parachain Runtime (Section 8.3.1).
-
-// If all steps are valid, the Polkadot validator must create the necessary candidate commitments (Definition 107) and submit the appropriate statement for each candidate (Section 8.2.1).
-
-// pub enum ValidationResult {
-// 	/// Candidate is valid. The validation process yields these outputs and the persisted validation
-// 	/// data used to form inputs.
-// 	Valid(CandidateCommitments, PersistedValidationData),
-// 	/// Candidate is invalid.
-// 	Invalid(InvalidCandidate),
-// }
 
 type ValidationResult scale.VaryingDataType
 
@@ -74,41 +36,147 @@ func (vr *ValidationResult) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
-// /// Candidate invalidity details
-// #[derive(Debug)]
-// pub enum InvalidCandidate {
-// 	/// Failed to execute `validate_block`. This includes function panicking.
-// 	ExecutionError(String),
-// 	/// Validation outputs check doesn't pass.
-// 	InvalidOutputs,
-// 	/// Execution timeout.
-// 	Timeout,
-// 	/// Validation input is over the limit.
-// 	ParamsTooLarge(u64),
-// 	/// Code size is over the limit.
-// 	CodeTooLarge(u64),
-// 	/// Code does not decompress correctly.
-// 	CodeDecompressionFailure,
-// 	/// PoV does not decompress correctly.
-// 	PoVDecompressionFailure,
-// 	/// Validation function returned invalid data.
-// 	BadReturn,
-// 	/// Invalid relay chain parent.
-// 	BadParent,
-// 	/// POV hash does not match.
-// 	PoVHashMismatch,
-// 	/// Bad collator signature.
-// 	BadSignature,
-// 	/// Para head hash does not match.
-// 	ParaHeadHashMismatch,
-// 	/// Validation code hash does not match.
-// 	CodeHashMismatch,
-// 	/// Validation has generated different candidate commitments.
-// 	CommitmentsHashMismatch,
-// }
+// TODO: Finish ValidationResult by adding valid and invalid runtimes
+
+// Candidate is valid. The validation process yields these outputs and the persisted validation
+// data used to form inputs.
+type Valid struct {
+	candidateCommitments    candidateCommitments
+	PersistedValidationData *PersistedValidationData
+}
+
+// Index returns VDT index
+func (Valid) Index() uint {
+	return 1
+}
+
+type Invalid InvalidCandidate
+
+// Index returns VDT index
+func (Invalid) Index() uint {
+	return 2
+}
+
+// Candidate invalidity details
+type InvalidCandidate scale.VaryingDataType
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (ic *InvalidCandidate) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*ic)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*ic = InvalidCandidate(vdt)
+	return nil
+}
+
+// Value will return value from underying VaryingDataType
+func (ic *InvalidCandidate) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*ic)
+	return vdt.Value()
+}
+
+// Failed to execute `validate_block`. This includes function panicking.
+type ExecutionError string
+
+// Index returns VDT index
+func (ExecutionError) Index() uint {
+	return 1
+}
+
+// Validation outputs check doesn't pass.
+type InvalidOutputs struct{}
+
+// Index returns VDT index
+func (InvalidOutputs) Index() uint {
+	return 2
+}
+
+// Execution timeout
+type Timeout struct{}
+
+// Index returns VDT index
+func (Timeout) Index() uint {
+	return 3
+}
+
+// Validation input is over the limit.
+type ParamsTooLarge uint64
+
+// Index returns VDT index
+func (ParamsTooLarge) Index() uint {
+	return 4
+}
+
+// Code size is over the limit.
+type CodeTooLarge uint64
+
+// Index returns VDT index
+func (CodeTooLarge) Index() uint {
+	return 5
+}
+
+// Code does not decompress correctly.
+type CodeDecompressionFailure struct{}
+
+// Index returns VDT index
+func (CodeDecompressionFailure) Index() uint {
+	return 6
+}
+
+// PoV does not decompress correctly.
+type PoVDecompressionFailure struct{}
+
+// Index returns VDT index
+func (PoVDecompressionFailure) Index() uint {
+	return 7
+}
+
+// Validation function returned invalid data.
+type BadReturn struct{}
+
+// Index returns VDT index
+func (BadReturn) Index() uint {
+	return 8
+}
+
+// Invalid relay chain parent.
+type BadParent struct{}
+
+// Index returns VDT index
+func (BadParent) Index() uint {
+	return 9
+}
+
+// Para head hash does not match.
+type PoVHashMismatch struct{}
+
+// Index returns VDT index
+func (PoVHashMismatch) Index() uint {
+	return 10
+}
+
+// Validation code hash does not match.
+type CodeHashMismatch struct{}
+
+// Index returns VDT index
+func (CodeHashMismatch) Index() uint {
+	return 11
+}
+
+// Validation has generated different candidate commitments.
+type CommitmentsHashMismatch struct{}
+
+// Index returns VDT index
+func (CommitmentsHashMismatch) Index() uint {
+	return 12
+}
 
 func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *PersistedValidationData, error) {
-	var candidateCommitments candidateCommitments
+
 	var PersistedValidationData *PersistedValidationData
 
 	// TODO: There are three validation functions that gets used alternatively.
@@ -118,6 +186,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	assumption := OccupiedCoreAssumption{}
 	// TODO: What value should I choose here?
 	assumption.Set(Included{})
+	// what's the difference between this and last PersistedValidationData?
 	PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(c.descriptor.ParaID, assumption)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting persisted validation data: %w", err)
@@ -143,12 +212,12 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	}
 
 	// TODO: Implement runtime call to get validation code
-	validation_code, err := runtimeInstance.ParachainHostValidationCode(c.descriptor.ParaID, assumption)
+	validationCode, err := runtimeInstance.ParachainHostValidationCode(c.descriptor.ParaID, assumption)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting validation code: %w", err)
 	}
 
-	validationCodeHash := common.NewHash([]byte(*validation_code))
+	validationCodeHash := common.NewHash([]byte(*validationCode))
 
 	if validationCodeHash != common.Hash(c.descriptor.ValidationCodeHash) {
 		return nil, nil, errors.New("validation code hash does not match")
@@ -166,21 +235,103 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	// validation_backend
 	// implement validate_candidate_with_retry
 	// construct pvf from validation code
-	pvf := Pvf{
-		Code:     []byte(*validation_code),
-		CodeHash: validationCodeHash,
+	// pvf := Pvf{
+	// 	Code:     []byte(*validationCode),
+	// 	CodeHash: validationCodeHash,
+	// }
+
+	// Instead of looking at the rust code, looks at https://spec.polkadot.network/#sect-parachain-runtime instead
+	validationParams := ValidationParameters{
+		ParentHeadData: PersistedValidationData.ParentHead,
+		// TODO: Fill up block data
+		// BlockData: ,
+		RelayParentNumber:      PersistedValidationData.RelayParentNumber,
+		RelayParentStorageRoot: PersistedValidationData.RelayParentStorageRoot,
 	}
 
+	// call validate_block runtime api
+	//! Defines primitive types for creating or validating a parachain.
+	//!
+	//! When compiled with standard library support, this crate exports a `wasm`
+	//! module that can be used to validate parachain WASM.
+	//!
+	//! ## Parachain WASM
+	//!
+	//! Polkadot parachain WASM is in the form of a module which imports a memory
+	//! instance and exports a function `validate_block`.
+	//!
+	//! `validate` accepts as input two `i32` values, representing a pointer/length pair
+	//! respectively, that encodes [`ValidationParams`].
+	//!
+	//! `validate` returns an `u64` which is a pointer to an `u8` array and its length.
+	//! The data in the array is expected to be a SCALE encoded [`ValidationResult`].
+	//!
+	//! ASCII-diagram demonstrating the return data format:
+	//!
+	//! ```ignore
+	//! [pointer][length]
+	//!   32bit   32bit
+	//!         ^~~ returned pointer & length
+	//! ```
+	//!
+	//! The wasm-api (enabled only when `std` feature is not enabled and `wasm-api` feature is enabled)
+	//! provides utilities for setting up a parachain WASM module in Rust.
+
+	// https://spec.polkadot.network/#sect-code-executor
+	// to validate parachain block on parachain runtime.
+	// Looks at handle_execute_pvf
 	// execute pvf and if we can't, throw an error handle_execute_pvf
 	// from output of validation_backend, you can create candidate commitments, which will be the item to return
 
-	return &candidateCommitments, PersistedValidationData, nil
+	wasmInstance, allocator, err := setupVM(*validationCode)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setting up VM: %w", err)
+	}
+
+	instance := Instance{
+		vm:        wasmInstance,
+		Allocator: allocator,
+		mutex:     sync.Mutex{},
+	}
+
+	validationResults, err := instance.ValidateBlock(validationParams)
+	if err != nil {
+		return nil, nil, fmt.Errorf("executing validate_block: %w", err)
+	}
+
+	value, err := validationResults.Value()
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting value of validation results: %w", err)
+	}
+
+	// Invalid
+	if value.Index() == 2 {
+		// deal with the invalid candidate error
+	} else if value.Index() != 1 {
+		return nil, nil, errors.New("invalid value")
+	}
+
+	// Valid
+	validityInfo, ok := value.(Valid)
+	if !ok {
+		return nil, nil, errors.New("value not of type Valid")
+	}
+
+	return &validityInfo.candidateCommitments, validityInfo.PersistedValidationData, nil
+
 	// The candidate does not exceed any parameters in the persisted validation data (Definition 227).
 
 	// The signature of the collator is valid.
 
 	// Validate the candidate by executing the parachain Runtime (Section 8.3.1).
 
+}
+
+type ValidationParameters struct {
+	ParentHeadData         headData
+	BlockData              types.BlockData
+	RelayParentNumber      uint32
+	RelayParentStorageRoot common.Hash
 }
 
 type Pvf struct {

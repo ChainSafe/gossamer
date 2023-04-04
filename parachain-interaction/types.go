@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -176,6 +175,6 @@ func (Free) String() string { //skipcq
 type PersistedValidationData struct {
 	ParentHead             headData
 	RelayParentNumber      uint32
-	RelayParentStorageRoot types.Header
+	RelayParentStorageRoot common.Hash
 	MaxPovSize             uint32
 }
