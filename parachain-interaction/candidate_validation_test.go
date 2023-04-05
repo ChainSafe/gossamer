@@ -5,6 +5,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateFromChainState(t *testing.T) {
@@ -25,4 +27,13 @@ func TestValidateFromChainState(t *testing.T) {
 		},
 		commitmentsHash: common.MustHexToHash("0x1c60d15e03474774fb41adf24a7f7185d72ca7401c79a35b0dcfc3b168565b78"),
 	}
+
+	ctrl := gomock.NewController(t)
+	mockInstance := NewMockRuntimeInstance(ctrl)
+
+	// get PersistedValidationData and ValidationCode from polkadot test
+	// candidateCommitment, persistedValidationData, err := ValidateFromChainState(mockInstance, candidateReceipt)
+	_, _, err := ValidateFromChainState(mockInstance, candidateReceipt)
+	require.NoError(t, err)
+
 }
