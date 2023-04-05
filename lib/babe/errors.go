@@ -65,8 +65,6 @@ var (
 
 	errNilParentHeader            = errors.New("parent header is nil")
 	errInvalidResult              = errors.New("invalid error value")
-	errFirstBlockTimeout          = errors.New("timed out waiting for first block")
-	errChannelClosed              = errors.New("block notifier channel was closed")
 	errOverPrimarySlotThreshold   = errors.New("cannot claim slot, over primary threshold")
 	errNotOurTurnToPropose        = errors.New("cannot claim slot, not our turn to propose a block")
 	errMissingDigestItems         = errors.New("block header is missing digest items")
