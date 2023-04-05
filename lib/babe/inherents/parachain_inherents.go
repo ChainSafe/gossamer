@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -240,7 +241,7 @@ func newDisputeStatement() disputeStatement { //skipcq
 }
 
 // collatorID is the collator's relay-chain account ID
-type collatorID []byte
+type collatorID sr25519.PublicKey
 
 // collatorSignature is the signature on a candidate's block data signed by a collator.
 type collatorSignature signature

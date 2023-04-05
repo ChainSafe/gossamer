@@ -15,7 +15,10 @@ type signature [64]byte
 func (s signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
 
 // collatorID is the collator's relay-chain account ID
-type collatorID []byte
+// TODO: this is not byte array
+// find the right type
+// pub type CollatorId = collator_app::Public;
+// type collatorID sr25519.PublicKey
 
 // collatorSignature is the signature on a candidate's block data signed by a collator.
 type collatorSignature [sr25519.SignatureLength]byte
@@ -35,7 +38,7 @@ type CandidateDescriptor struct {
 	RelayParent common.Hash `scale:"2"`
 
 	// Collator is the collator's relay-chain account ID
-	Collator collatorID `scale:"3"`
+	Collator sr25519.PublicKey `scale:"3"`
 
 	// PersistedValidationDataHash is the blake2-256 hash of the persisted validation data. This is extra data derived from
 	// relay-chain state which may vary based on bitfields included before the candidate.
@@ -71,7 +74,7 @@ func (cd CandidateDescriptor) CheckCollatorSignature() error {
 	copy(payload[68:100], cd.PovHash.ToBytes())
 	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
 
-	return sr25519.VerifySignature(cd.Collator, cd.Signature[:], payload[:])
+	return sr25519.VerifySignature(cd.Collator.Encode(), cd.Signature[:], payload[:])
 }
 
 type CandidateReceipt struct {

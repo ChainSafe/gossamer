@@ -176,7 +176,6 @@ func (CommitmentsHashMismatch) Index() uint {
 }
 
 func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *PersistedValidationData, error) {
-
 	var PersistedValidationData *PersistedValidationData
 
 	// TODO: There are three validation functions that gets used alternatively.
