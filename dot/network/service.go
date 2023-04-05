@@ -87,6 +87,12 @@ var (
 		Name:      "outbound_total",
 		Help:      "total number of outbound streams",
 	})
+	processStartTimeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "substrate",
+		Name:      "process_start_time_seconds",
+		Help: "gossamer process start seconds unix timestamp, " +
+			"using substrate namespace so zombienet detects node start",
+	})
 )
 
 type (
@@ -352,6 +358,7 @@ func (s *Service) updateMetrics() {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
+			processStartTimeGauge.Set(float64(time.Now().Unix()))
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
