@@ -473,10 +473,8 @@ func (sm *StateModule) QueryStorage(
 			var hexValue *string
 			if len(value) > 0 {
 				hexValue = stringPtr(common.BytesToHex(value))
-			} else {
-				if value != nil {
-					hexValue = stringPtr("0x")
-				}
+			} else if value != nil { // empty byte slice value
+				hexValue = stringPtr("0x")
 			}
 
 			differentValueEncountered := i == startBlockNumber ||
@@ -500,7 +498,7 @@ func (sm *StateModule) QueryStorage(
 	return nil
 }
 
-// QueryStorageAt queries historical storage entries ( by key) at the black hash given or
+// QueryStorageAt queries historical storage entries (by key) at the block hash given or
 // the best block if the given block hash is nil
 func (sm *StateModule) QueryStorageAt(
 	_ *http.Request, request *StateStorageQueryAtRequest, response *[]StorageChangeSetResponse) error {
@@ -519,10 +517,8 @@ func (sm *StateModule) QueryStorageAt(
 		var hexValue *string
 		if len(value) > 0 {
 			hexValue = stringPtr(common.BytesToHex(value))
-		} else {
-			if value != nil {
-				hexValue = stringPtr("0x")
-			}
+		} else if value != nil { // empty byte slice value
+			hexValue = stringPtr("0x")
 		}
 
 		changes[i] = [2]*string{stringPtr(key), hexValue}
