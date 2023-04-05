@@ -195,11 +195,6 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 		return fmt.Errorf("failed to store global node name: %s", err)
 	}
 
-	// Create the config.toml file
-	if err := cfg.EnsureRoot(utils.ExpandDir(config.BasePath), config); err != nil {
-		return fmt.Errorf("failed to initialise base-path: %s", err)
-	}
-
 	logger.Infof(
 		"node initialised with name %s, id %s, base path %s, genesis %s, block %v and genesis hash %s",
 		config.Name, config.ID, config.BasePath, config.Genesis, header.Number, header.Hash())

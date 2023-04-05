@@ -393,7 +393,5 @@ func EnsureRoot(rootDir string, config *Config) error {
 	}
 
 	configFilePath := filepath.Join(rootDir, defaultConfigFilePath)
-	fmt.Println("babe-lead", config.Core.BABELead)
-	fmt.Println("configFilePath", configFilePath)
 	return WriteConfigFile(configFilePath, config)
 }

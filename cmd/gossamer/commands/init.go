@@ -9,46 +9,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/chain/kusama"
-	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/westend"
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
-	westendlocal "github.com/ChainSafe/gossamer/chain/westend-local"
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
 )
 
 const confirmCharacter = "Y"
 
-var (
-	alice, bob, charlie bool
-)
-
 func init() {
-	InitCmd.Flags().String("chain",
-		WestendLocalChain.String(),
-		"the default chain configuration to load. Example: --chain kusama")
-	InitCmd.Flags().Bool("force",
-		false,
-		"force reinitialization of node")
 	InitCmd.Flags().String("genesis",
 		"",
 		"the path to the genesis configuration to load. Example: --genesis genesis.json")
-
-	// Default Authorities
-	InitCmd.Flags().BoolVar(&alice,
-		"alice",
+	InitCmd.Flags().Bool("force",
 		false,
-		"init with Alice's keys")
-	InitCmd.Flags().BoolVar(&bob,
-		"bob",
-		false,
-		"init with Bob's keys")
-	InitCmd.Flags().BoolVar(&charlie,
-		"charlie",
-		false,
-		"init with Charlie's keys")
+		"force reinitialization of node")
 }
 
 // InitCmd is the command to initialise the node
@@ -56,7 +31,7 @@ var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialise node databases and load genesis data to state",
 	Long: `The init command initialises the node databases and loads the genesis data from the genesis file to state.
-Example: 
+Examples: 
 	gossamer init --genesis genesis.json
 	gossamer init --chain westend`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -69,46 +44,6 @@ Example:
 
 // execInit executes the init command
 func execInit(cmd *cobra.Command) error {
-	chain, err := cmd.Flags().GetString("chain")
-	if err != nil {
-		return fmt.Errorf("failed to get --chain: %s", err)
-	}
-
-	switch Chain(chain) {
-	case PolkadotChain:
-		config = polkadot.DefaultConfig()
-	case KusamaChain:
-		config = kusama.DefaultConfig()
-	case WestendChain:
-		config = westend.DefaultConfig()
-	case WestendDevChain:
-		config = westenddev.DefaultConfig()
-	case WestendLocalChain:
-		if alice {
-			config = westendlocal.DefaultAliceConfig()
-		} else if bob {
-			config = westendlocal.DefaultBobConfig()
-		} else if charlie {
-			config = westendlocal.DefaultCharlieConfig()
-		} else {
-			return fmt.Errorf("must specify one of --alice, --bob, or --charlie")
-		}
-	default:
-		return fmt.Errorf("chain %s not supported", chain)
-	}
-
-	basePath, err := cmd.Flags().GetString("base-path")
-	if err != nil {
-		return fmt.Errorf("failed to get --base-path: %s", err)
-	}
-	if config.BasePath == "" && basePath == "" {
-		return fmt.Errorf("base-path not set")
-	}
-	if basePath != "" {
-		config.BasePath = basePath
-	}
-	config.BasePath = utils.ExpandDir(config.BasePath)
-
 	force, err := cmd.Flags().GetBool("force")
 	if err != nil {
 		return fmt.Errorf("failed to get --force: %s", err)
@@ -130,6 +65,13 @@ func execInit(cmd *cobra.Command) error {
 
 	if err := dot.InitNode(config); err != nil {
 		return fmt.Errorf("failed to initialise node: %s", err)
+	}
+
+	// Ensure that the base path exists and is accessible
+	// Create the folders(config, data) in the base path if they don't exist
+	// Write the config to the base path
+	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
+		return fmt.Errorf("failed to ensure root: %s", err)
 	}
 
 	logger.Info("node initialised at: " + config.BasePath)

@@ -6,24 +6,33 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
+
+	cfg "github.com/ChainSafe/gossamer/config"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	westendlocal "github.com/ChainSafe/gossamer/chain/westend-local"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	terminal "golang.org/x/term"
+)
+
+// Package level variables
+var (
+	config = westenddev.DefaultConfig()
+	logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 )
 
 // Flag values for the root command which needs type conversion
@@ -44,77 +53,83 @@ var (
 	logLevelGRANDPA string
 )
 
+// Flag values for persistent flags
+var (
+	// Default accounts
+	alice   bool
+	bob     bool
+	charlie bool
+
+	// Initialization flags for node
+	chain    string
+	basePath string
+)
+
+// Default values
+const (
+	// DefaultHomeEnv is the default environment variable for the base path
+	DefaultHomeEnv = "GSSMRHOME"
+)
+
 // ParseConfig parses the config from the command line flags
-func ParseConfig(cmd *cobra.Command) (*cfg.Config, error) {
-	fmt.Println("Parsing config...")
-	chain, err := cmd.Flags().GetString("chain")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get --chain: %s", err)
-	}
-	if chain == "" {
-		return nil, fmt.Errorf("--chain cannot be empty")
+func ParseConfig() error {
+	if err := viper.Unmarshal(config); err != nil {
+		return fmt.Errorf("failed to unmarshal config: %s", err)
 	}
 
-	var con *cfg.Config
-
-	switch Chain(chain) {
-	case PolkadotChain:
-		con = polkadot.DefaultConfig()
-	case KusamaChain:
-		con = kusama.DefaultConfig()
-	case WestendChain:
-		con = westend.DefaultConfig()
-	case WestendDevChain:
-		con = westenddev.DefaultConfig()
-	case WestendLocalChain:
-		if alice {
-			con = westendlocal.DefaultAliceConfig()
-		} else if bob {
-			con = westendlocal.DefaultBobConfig()
-		} else if charlie {
-			con = westendlocal.DefaultCharlieConfig()
-		} else {
-			return nil, fmt.Errorf("must specify one of --alice, --bob, or --charlie")
-		}
-	default:
-		return nil, fmt.Errorf("chain %s not supported", chain)
+	if err := config.ValidateBasic(); err != nil {
+		return fmt.Errorf("error in config file: %v", err)
 	}
 
-	var basePath string
-	if os.Getenv("GSSMRHOME") != "" {
-		basePath = os.Getenv("GSSMRHOME")
-	} else {
-		basePath, err = cmd.Flags().GetString("base-path")
-		if err != nil {
-			return nil, err
-		}
-	}
-	if con.BasePath == "" && basePath == "" {
-		return nil, fmt.Errorf("--base-path cannot be empty")
-	}
-	if basePath != "" {
-		con.BasePath = basePath
-	}
-	con.BasePath = utils.ExpandDir(config.BasePath)
-	fmt.Println(con.BasePath)
-
-	err = viper.Unmarshal(con)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %s", err)
-	}
-
-	fmt.Println(con.BasePath)
-	if err := con.ValidateBasic(); err != nil {
-		return nil, fmt.Errorf("error in config file: %v", err)
-	}
-
-	return con, nil
+	return nil
 }
 
-var (
-	config = westenddev.DefaultConfig()
-	logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
-)
+// parseBasePath parses the base path from the command line flags
+func parseBasePath() error {
+	var home string
+	// For the base path, prefer the environment variable over the flag
+	// If neither are set, use the default base path from the config
+	if os.Getenv(DefaultHomeEnv) != "" {
+		home = os.Getenv(DefaultHomeEnv)
+	} else {
+		home = basePath
+	}
+	if config.BasePath == "" && home == "" {
+		return fmt.Errorf("--base-path cannot be empty")
+	}
+	// If the base path is set, use it
+	if home != "" {
+		config.BasePath = home
+	}
+	config.BasePath = utils.ExpandDir(config.BasePath)
+	// bind it to viper so that it can be used during the config parsing
+	viper.Set("base-path", config.BasePath)
+
+	return nil
+}
+
+// parseAccount parses the account key from the command line flags
+func parseAccount() error {
+	// if key is not set, check if alice, bob, or charlie are set
+	// return error if none are set
+	if config.Account.Key == "" {
+		var key string
+		if alice {
+			key = "alice"
+		} else if bob {
+			key = "bob"
+		} else if charlie {
+			key = "charlie"
+		}
+
+		config.Account.Key = key
+	}
+
+	// bind it to viper so that it can be used during the config parsing
+	viper.Set("account.key", config.Account.Key)
+
+	return nil
+}
 
 // NewRootCommand creates the root command
 func NewRootCommand() (*cobra.Command, error) {
@@ -132,17 +147,28 @@ Usage:
 			return execRoot(cmd)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			if cmd.Name() != "gossamer" {
-				return nil
+			if err := setDefaultConfig(Chain(chain)); err != nil {
+				return fmt.Errorf("failed to set default config: %s", err)
 			}
 
-			config, err = ParseConfig(cmd)
-			if err != nil {
-				return err
-			}
+			if cmd.Name() == "gossamer" || cmd.Name() == "init" {
+				if err := parseBasePath(); err != nil {
+					return fmt.Errorf("failed to parse base path: %s", err)
+				}
 
-			if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
-				return err
+				if err := parseAccount(); err != nil {
+					return fmt.Errorf("failed to parse account: %s", err)
+				}
+
+				if cmd.Name() == "gossamer" {
+					if err := configureViper(config.BasePath); err != nil {
+						return fmt.Errorf("failed to configure viper: %s", err)
+					}
+
+					if err := ParseConfig(); err != nil {
+						return fmt.Errorf("failed to parse config: %s", err)
+					}
+				}
 			}
 
 			return nil
@@ -158,30 +184,61 @@ Usage:
 
 // addRootFlags adds the root flags to the command
 func addRootFlags(cmd *cobra.Command) error {
-	// helper flags
-	cmd.Flags().String("chain",
+	// global flags
+	cmd.PersistentFlags().StringVar(&basePath,
+		"base-path",
+		"",
+		"The base path for the node. Defaults to $GSSMRHOME if set")
+	cmd.PersistentFlags().StringVar(&chain,
+		"chain",
 		WestendLocalChain.String(),
 		"The default chain configuration to load. Example: --chain kusama")
-	cmd.Flags().String(
-		"password",
-		"",
-		"Password used to encrypt the keystore")
-
-	// Default Authorities for westend-local
-	cmd.Flags().BoolVar(&alice,
-		"alice",
-		false,
-		"use Alice's key")
-	cmd.Flags().BoolVar(&bob,
-		"bob",
-		false,
-		"use Bob's key")
-	cmd.Flags().BoolVar(&charlie,
-		"charlie",
-		false,
-		"use Charlie's key")
 
 	// Base Config
+	if err := addBaseConfigFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add base config flags: %s", err)
+	}
+
+	// Log Config
+	if err := addLogFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add log flags: %s", err)
+	}
+
+	// Account Config
+	if err := addAccountFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add account flags: %s", err)
+	}
+
+	// Network Config
+	if err := addNetworkFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add network flags: %s", err)
+	}
+
+	// Core Config
+	if err := addCoreFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add core flags: %s", err)
+	}
+
+	// State Config
+	if err := addStateFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add state flags: %s", err)
+	}
+
+	// RPC Config
+	if err := addRPCFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add rpc flags: %s", err)
+	}
+
+	// pprof Config
+	if err := addPprofFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add pprof flags: %s", err)
+	}
+
+	return nil
+}
+
+// addBaseConfigFlags adds the base config flags to the command
+func addBaseConfigFlags(cmd *cobra.Command) error {
 	if err := addStringFlagBindViper(cmd,
 		"name",
 		config.BaseConfig.Name,
@@ -194,13 +251,6 @@ func addRootFlags(cmd *cobra.Command) error {
 		"Identifier for the node",
 		"id"); err != nil {
 		return fmt.Errorf("failed to add --id flag: %s", err)
-	}
-	if err := addStringFlagBindViper(cmd,
-		"base-path",
-		"",
-		"base-path to use for the node",
-		"base-path"); err != nil {
-		return fmt.Errorf("failed to add --base-path flag: %s", err)
 	}
 	if err := addStringFlagBindViper(cmd,
 		"genesis", config.BaseConfig.Genesis,
@@ -243,7 +293,11 @@ func addRootFlags(cmd *cobra.Command) error {
 
 	// TODO: telemetry-url
 
-	// Log Config
+	return nil
+}
+
+// addLogFlags adds the log flags to the command
+func addLogFlags(cmd *cobra.Command) error {
 	cmd.Flags().StringVar(&logLevelCore, "lcore", config.Log.Core, "Core module log level")
 	cmd.Flags().StringVar(&logLevelDigest, "ldigest", config.Log.Digest, "Digest module log level")
 	cmd.Flags().StringVar(&logLevelSync, "lsync", config.Log.Sync, "Sync module log level")
@@ -253,51 +307,6 @@ func addRootFlags(cmd *cobra.Command) error {
 	cmd.Flags().StringVar(&logLevelRuntime, "lruntime", config.Log.Runtime, "Runtime module log level")
 	cmd.Flags().StringVar(&logLevelBABE, "lbabe", config.Log.Babe, "BABE module log level")
 	cmd.Flags().StringVar(&logLevelGRANDPA, "lgrandpa", config.Log.Grandpa, "GRANDPA module log level")
-
-	// Account Config
-	if err := addAccountFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add account flags: %s", err)
-	}
-
-	// Network Config
-	if err := addNetworkFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add network flags: %s", err)
-	}
-
-	// Core Config
-	if err := addCoreFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add core flags: %s", err)
-	}
-
-	// State Config
-	if err := addUintFlagBindViper(cmd,
-		"rewind", config.State.Rewind,
-		"Rewind head of chain to the given block number",
-		"state.rewind"); err != nil {
-		return fmt.Errorf("failed to add --rewind flag: %s", err)
-	}
-
-	// RPC Config
-	if err := addRPCFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add rpc flags: %s", err)
-	}
-
-	// pprof Config
-	cmd.Flags().Bool("pprof.enabled",
-		config.Pprof.Enabled,
-		"enabled")
-	cmd.Flags().String("pprof.listening-address",
-		config.Pprof.ListeningAddress,
-		"Address to listen on for pprof")
-	cmd.Flags().Int("pprof.block-profile-rate",
-		config.Pprof.BlockProfileRate,
-		"The frequency at which the Go runtime samples the state of goroutines to generate block profile information.")
-	cmd.Flags().Int("pprof.mutex-profile-rate",
-		config.Pprof.MutexProfileRate,
-		"The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.")
-
-	// Misc Config
-	cmd.Flags().Bool("dev", false, "dev")
 
 	return nil
 }
@@ -319,6 +328,25 @@ func addAccountFlags(cmd *cobra.Command) error {
 		"account.unlock"); err != nil {
 		return fmt.Errorf("failed to add --unlock flag: %s", err)
 	}
+
+	// Default Account flags
+	cmd.PersistentFlags().BoolVar(&alice,
+		"alice",
+		false,
+		"use Alice's key")
+	cmd.PersistentFlags().BoolVar(&bob,
+		"bob",
+		false,
+		"use Bob's key")
+	cmd.PersistentFlags().BoolVar(&charlie,
+		"charlie",
+		false,
+		"use Charlie's key")
+
+	cmd.Flags().String(
+		"password",
+		"",
+		"Password used to encrypt the keystore")
 
 	return nil
 }
@@ -570,6 +598,36 @@ func addCoreFlags(cmd *cobra.Command) error {
 	return nil
 }
 
+// addStateFlags adds state flags and binds to viper
+func addStateFlags(cmd *cobra.Command) error {
+	if err := addUintFlagBindViper(cmd,
+		"rewind", config.State.Rewind,
+		"Rewind head of chain to the given block number",
+		"state.rewind"); err != nil {
+		return fmt.Errorf("failed to add --rewind flag: %s", err)
+	}
+
+	return nil
+}
+
+// addPprofFlags adds pprof flags and binds to viper
+func addPprofFlags(cmd *cobra.Command) error {
+	cmd.Flags().Bool("pprof.enabled",
+		config.Pprof.Enabled,
+		"enabled")
+	cmd.Flags().String("pprof.listening-address",
+		config.Pprof.ListeningAddress,
+		"Address to listen on for pprof")
+	cmd.Flags().Int("pprof.block-profile-rate",
+		config.Pprof.BlockProfileRate,
+		"The frequency at which the Go runtime samples the state of goroutines to generate block profile information.")
+	cmd.Flags().Int("pprof.mutex-profile-rate",
+		config.Pprof.MutexProfileRate,
+		"The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.")
+
+	return nil
+}
+
 // execRoot executes the root command
 func execRoot(cmd *cobra.Command) error {
 	password, err := cmd.Flags().GetString("password")
@@ -577,10 +635,8 @@ func execRoot(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get password: %s", err)
 	}
 
-	config.BasePath = utils.ExpandDir(config.BasePath)
-
+	// if the node is not initialised, initialise it
 	if !dot.IsNodeInitialised(config.BasePath) {
-		// initialise node (initialise state database and load genesis data)
 		if err := dot.InitNode(config); err != nil {
 			logger.Errorf("failed to initialise node: %s", err)
 			return err
@@ -594,11 +650,17 @@ func execRoot(cmd *cobra.Command) error {
 		return err
 	}
 
-	ks := keystore.NewGlobalKeystore()
+	// Ensure that the base path exists and is accessible
+	// Create the folders(config, data) in the base path if they don't exist
+	// Write the config to the base path
+	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
+		return fmt.Errorf("failed to ensure root: %s", err)
+	}
 
+	ks := keystore.NewGlobalKeystore()
 	if config.Account.Key != "" {
 		if err := loadBuiltInTestKeys(config.Account.Key, *ks); err != nil {
-			return fmt.Errorf("loading built-in test keys: %s", err)
+			return fmt.Errorf("error loading built-in test keys: %s", err)
 		}
 	}
 
@@ -649,9 +711,9 @@ func updateDotConfigFromGenesisData() error {
 	}
 
 	// check genesis id and use genesis id if --chain flag not set
-	//if chain == "" {
-	//	config.ID = gen.ID
-	//}
+	if config.ID == "" {
+		config.ID = gen.ID
+	}
 
 	// check genesis bootnodes and use genesis --bootnodes if name flag not set
 	if len(config.Network.Bootnodes) == 0 {
@@ -758,4 +820,49 @@ func getPassword(msg string) []byte {
 			return password
 		}
 	}
+}
+
+// setDefaultConfig sets the default configuration
+func setDefaultConfig(chain Chain) error {
+	switch chain {
+	case PolkadotChain:
+		config = polkadot.DefaultConfig()
+	case KusamaChain:
+		config = kusama.DefaultConfig()
+	case WestendChain:
+		config = westend.DefaultConfig()
+	case WestendDevChain:
+		config = westenddev.DefaultConfig()
+	case WestendLocalChain:
+		if alice {
+			config = westendlocal.DefaultAliceConfig()
+		} else if bob {
+			config = westendlocal.DefaultBobConfig()
+		} else if charlie {
+			config = westendlocal.DefaultCharlieConfig()
+		} else {
+			config = westendlocal.DefaultConfig()
+		}
+	default:
+		return fmt.Errorf("chain %s not supported", chain)
+	}
+
+	return nil
+}
+
+// configureViper sets up viper to read from the config file and command line flags
+func configureViper(basePath string) error {
+	viper.SetConfigName("config")                          // name of config file (without extension)
+	viper.AddConfigPath(basePath)                          // search `root-directory`
+	viper.AddConfigPath(filepath.Join(basePath, "config")) // search `root-directory/config`
+
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			// ignore not found error, return other errors
+			return err
+		}
+	}
+
+	return nil
 }

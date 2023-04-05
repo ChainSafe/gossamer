@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -22,7 +22,7 @@ import (
 const codeHex = "0x3a636f6465"
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 	config.Genesis = utils.GetWestendDevRawGenesisPath(t)
 
 	expected, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
@@ -61,7 +61,7 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 	config.Genesis = utils.GetWestendDevRawGenesisPath(t)
 	expected, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
 	require.NoError(t, err)
