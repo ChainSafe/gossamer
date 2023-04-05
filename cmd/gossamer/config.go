@@ -605,11 +605,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.GrandpaAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
 	cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
 
-	cfg.BABELead = tomlCfg.BABELead
-	if ctx.IsSet(BABELeadFlag.Name) {
-		cfg.BABELead = ctx.Bool(BABELeadFlag.Name)
-	}
-
 	// check --roles flag and update node configuration
 	if roles := ctx.String(RolesFlag.Name); roles != "" {
 		// convert string to byte

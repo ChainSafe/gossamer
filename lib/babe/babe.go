@@ -23,14 +23,10 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "babe"))
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
-	ctx       context.Context
-	cancel    context.CancelFunc
-	authority bool
-	dev       bool
-	// lead is used when setting up a new network from genesis.
-	// the "lead" node is the node that is designated to build block 1, after which the rest of the nodes
-	// will sync block 1 and determine the first slot of the network based on it
-	lead         bool
+	ctx          context.Context
+	cancel       context.CancelFunc
+	authority    bool
+	dev          bool
 	constants    constants
 	epochHandler *epochHandler
 
@@ -64,7 +60,6 @@ type ServiceConfig struct {
 	AuthData           []types.Authority
 	IsDev              bool
 	Authority          bool
-	Lead               bool
 	Telemetry          Telemetry
 }
 
@@ -112,7 +107,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
-		lead:               cfg.Lead,
 		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  epochLength,
@@ -160,7 +154,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
-		lead:               cfg.Lead,
 		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  epochLength,
