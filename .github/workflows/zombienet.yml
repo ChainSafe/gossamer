@@ -49,8 +49,7 @@ jobs:
             echo "Zombienet for $RUNNER_OS is not supported"
             exit 1
           fi
-          chmod +x $HOME/.local/bin/zombienet
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          chmod +x /usr/local/bin/zombienet
 
       - name: Zombienet test
         run: |
