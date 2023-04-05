@@ -358,7 +358,7 @@ func (s *Service) updateMetrics() {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
-			processStartTimeGauge.Set(getProcessStartTime())
+			processStartTimeGauge.Set(float64(time.Now().Unix()))
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
@@ -373,10 +373,6 @@ func (s *Service) updateMetrics() {
 			outboundStreamsGauge.Set(float64(s.getTotalStreams(false)))
 		}
 	}
-}
-
-func getProcessStartTime() float64 {
-	return float64(time.Now().Unix())
 }
 
 func (s *Service) getTotalStreams(inbound bool) (count int64) {
