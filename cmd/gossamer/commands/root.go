@@ -109,7 +109,7 @@ func parseBasePath() error {
 }
 
 // parseAccount parses the account key from the command line flags
-func parseAccount() error {
+func parseAccount() {
 	// if key is not set, check if alice, bob, or charlie are set
 	// return error if none are set
 	if config.Account.Key == "" {
@@ -127,8 +127,6 @@ func parseAccount() error {
 
 	// bind it to viper so that it can be used during the config parsing
 	viper.Set("account.key", config.Account.Key)
-
-	return nil
 }
 
 // NewRootCommand creates the root command
@@ -156,9 +154,7 @@ Usage:
 					return fmt.Errorf("failed to parse base path: %s", err)
 				}
 
-				if err := parseAccount(); err != nil {
-					return fmt.Errorf("failed to parse account: %s", err)
-				}
+				parseAccount()
 
 				if cmd.Name() == "gossamer" {
 					if err := configureViper(config.BasePath); err != nil {
@@ -200,9 +196,7 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	if err := addLogFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add log flags: %s", err)
-	}
+	addLogFlags(cmd)
 
 	// Account Config
 	if err := addAccountFlags(cmd); err != nil {
@@ -230,9 +224,7 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// pprof Config
-	if err := addPprofFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add pprof flags: %s", err)
-	}
+	addPprofFlags(cmd)
 
 	return nil
 }
@@ -297,7 +289,7 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 }
 
 // addLogFlags adds the log flags to the command
-func addLogFlags(cmd *cobra.Command) error {
+func addLogFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&logLevelCore, "lcore", config.Log.Core, "Core module log level")
 	cmd.Flags().StringVar(&logLevelDigest, "ldigest", config.Log.Digest, "Digest module log level")
 	cmd.Flags().StringVar(&logLevelSync, "lsync", config.Log.Sync, "Sync module log level")
@@ -307,8 +299,6 @@ func addLogFlags(cmd *cobra.Command) error {
 	cmd.Flags().StringVar(&logLevelRuntime, "lruntime", config.Log.Runtime, "Runtime module log level")
 	cmd.Flags().StringVar(&logLevelBABE, "lbabe", config.Log.Babe, "BABE module log level")
 	cmd.Flags().StringVar(&logLevelGRANDPA, "lgrandpa", config.Log.Grandpa, "GRANDPA module log level")
-
-	return nil
 }
 
 // addAccountFlags adds account flags and binds to viper
@@ -611,7 +601,7 @@ func addStateFlags(cmd *cobra.Command) error {
 }
 
 // addPprofFlags adds pprof flags and binds to viper
-func addPprofFlags(cmd *cobra.Command) error {
+func addPprofFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("pprof.enabled",
 		config.Pprof.Enabled,
 		"enabled")
@@ -624,8 +614,6 @@ func addPprofFlags(cmd *cobra.Command) error {
 	cmd.Flags().Int("pprof.mutex-profile-rate",
 		config.Pprof.MutexProfileRate,
 		"The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.")
-
-	return nil
 }
 
 // execRoot executes the root command

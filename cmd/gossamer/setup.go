@@ -11,11 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	// BasePathFlag is the base path flag
-	BasePathFlag = "base-path"
-)
-
 // configureCobraCmd configures the cobra command with the given environment prefix and default base path.
 func configureCobraCmd(cmd *cobra.Command, envPrefix string) {
 	cobra.OnInitialize(func() {
