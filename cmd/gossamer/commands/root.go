@@ -53,8 +53,12 @@ var (
 	// Core Config
 	// role of the node. one of: full, light or authority
 	role string
-	// validator
+	// validator when set, the node will be an authority
 	validator bool
+
+	// Account Config
+	// key to use for the node
+	key string
 )
 
 // Flag values for persistent flags
@@ -175,8 +179,7 @@ func parseBasePath() error {
 func parseAccount() {
 	// if key is not set, check if alice, bob, or charlie are set
 	// return error if none are set
-	if config.Account.Key == "" {
-		var key string
+	if key == "" {
 		if alice {
 			key = "alice"
 		} else if bob {
@@ -184,12 +187,11 @@ func parseAccount() {
 		} else if charlie {
 			key = "charlie"
 		}
-
-		config.Account.Key = key
 	}
 
+	config.Account.Key = key
 	// bind it to viper so that it can be used during the config parsing
-	viper.Set("account.key", config.Account.Key)
+	viper.Set("account.key", key)
 }
 
 // parseRole parses the role from the command line flags
@@ -217,6 +219,10 @@ func parseRole() error {
 
 // parseTelemetryURL parses the telemetry-url from the command line flag
 func parseTelemetryURL() error {
+	if telemetryURLs == "" {
+		return nil
+	}
+
 	var telemetry []genesis.TelemetryEndpoint
 	urlVerbosityPairs := strings.Split(telemetryURLs, ",")
 	for _, pair := range urlVerbosityPairs {
@@ -374,13 +380,10 @@ func addLogFlags(cmd *cobra.Command) {
 
 // addAccountFlags adds account flags and binds to viper
 func addAccountFlags(cmd *cobra.Command) error {
-	if err := addStringFlagBindViper(cmd,
+	cmd.PersistentFlags().StringVar(&key,
 		"key",
-		config.Account.Key,
-		"Keyring to use for the node",
-		"account.key"); err != nil {
-		return fmt.Errorf("failed to add --key flag: %s", err)
-	}
+		"",
+		"Keyring to use for the node")
 
 	if err := addStringFlagBindViper(cmd,
 		"unlock",
