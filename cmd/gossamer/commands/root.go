@@ -159,6 +159,8 @@ Usage:
 
 			return nil
 		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
 	}
 
 	if err := addRootFlags(cmd); err != nil {
