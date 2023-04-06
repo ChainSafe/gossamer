@@ -6,6 +6,10 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -33,6 +37,7 @@ var (
 	// Base Config
 	logLevelGlobal string
 	pruning        string
+	telemetryURLs  string
 
 	// Log Config
 	logLevelCore    string
@@ -95,13 +100,17 @@ Usage:
 					return fmt.Errorf("failed to parse base path: %s", err)
 				}
 
-				if err := parseRole(); err != nil {
-					return fmt.Errorf("failed to parse role: %s", err)
-				}
-
 				parseAccount()
 
 				if cmd.Name() == "gossamer" {
+					if err := parseRole(); err != nil {
+						return fmt.Errorf("failed to parse role: %s", err)
+					}
+
+					if err := parseTelemetryURL(); err != nil {
+						return fmt.Errorf("failed to parse telemetry-url: %s", err.Error())
+					}
+
 					if err := configureViper(config.BasePath); err != nil {
 						return fmt.Errorf("failed to configure viper: %s", err)
 					}
@@ -203,6 +212,34 @@ func parseRole() error {
 
 	config.Core.Role = selectedRole
 	viper.Set("core.role", config.Core.Role)
+	return nil
+}
+
+// parseTelemetryURL parses the telemetry-url from the command line flag
+func parseTelemetryURL() error {
+	var telemetry []genesis.TelemetryEndpoint
+	urlVerbosityPairs := strings.Split(telemetryURLs, ",")
+	for _, pair := range urlVerbosityPairs {
+		urlVerbosity := strings.Split(pair, ":")
+		if len(urlVerbosity) != 2 {
+			return fmt.Errorf("invalid --telemetry-url. URL and verbosity should be specified as a colon-separated list of key-value pairs")
+		}
+
+		url := urlVerbosity[0]
+		verbosityString := urlVerbosity[1]
+		verbosity, err := strconv.Atoi(verbosityString)
+		if err != nil {
+			return fmt.Errorf("invalid --telemetry-url. Failed to parse verbosity: %v", err.Error())
+		}
+
+		telemetry = append(config.TelemetryURLs, genesis.TelemetryEndpoint{
+			Endpoint:  url,
+			Verbosity: verbosity,
+		})
+	}
+
+	viper.Set("telemetry-url", telemetry)
+
 	return nil
 }
 
@@ -310,8 +347,14 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"publish-metrics",
 		config.BaseConfig.PublishMetrics,
 		"Publish metrics to prometheus")
-
-	// TODO: telemetry-url
+	cmd.Flags().StringVar(&telemetryURLs,
+		"telemetry-url",
+		"",
+		`The URL of the telemetry server to connect to.
+This flag can be passed multiple times as a means to specify multiple telemetry endpoints.
+Verbosity levels range from 0-9, with 0 denoting the least verbosity.
+Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss://baz/quz:1
+`)
 
 	return nil
 }
