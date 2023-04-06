@@ -73,19 +73,11 @@ func (raw) Index() uint { //skipcq
 	return 1
 }
 
-func (r raw) String() string { //skipcq:SCC-U1000
-	return fmt.Sprintf("raw(%s)", PoV(r))
-}
-
 type compressed PoV //skipcq
 
 // Index returns VDT index
 func (compressed) Index() uint { //skipcq
 	return 1
-}
-
-func (c compressed) String() string { //skipcq:SCC-U1000
-	return fmt.Sprintf("raw(%s)", PoV(c))
 }
 
 type PoV struct {

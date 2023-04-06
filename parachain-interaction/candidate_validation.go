@@ -216,7 +216,10 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 		return nil, nil, fmt.Errorf("getting validation code: %w", err)
 	}
 
-	validationCodeHash := common.NewHash([]byte(*validationCode))
+	validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))
+	if err != nil {
+		return nil, nil, fmt.Errorf("hashing validation code: %w", err)
+	}
 
 	if validationCodeHash != common.Hash(c.descriptor.ValidationCodeHash) {
 		return nil, nil, errors.New("validation code hash does not match")
