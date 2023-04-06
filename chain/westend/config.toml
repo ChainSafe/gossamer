@@ -1,5 +1,5 @@
 [global]
-basepath = "~/.gossamer/westend"
+basepath = "./tmp/.gossamer/westend"
 log = "info"
 metrics-address = "localhost:9876"
 

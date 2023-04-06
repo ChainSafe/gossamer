@@ -112,7 +112,7 @@ func (s *chainProcessor) processReadyBlocks() {
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //nolint:revive
-	logger.Debugf("processing block data with hash %s", blockData.Hash)
+	// logger.Debugf("processing block data with hash %s", blockData.Hash)
 
 	headerInState, err := c.blockState.HasHeader(blockData.Hash)
 	if err != nil {

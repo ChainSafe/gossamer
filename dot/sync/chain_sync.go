@@ -372,6 +372,10 @@ func (cs *chainSync) logSyncSpeed() {
 			continue
 		}
 
+		cs.Lock()
+		totalWorkers := len(cs.peerState)
+		cs.Unlock()
+
 		switch cs.state {
 		case bootstrap:
 			cs.benchmarker.end(time.Now(), after.Number)
@@ -382,18 +386,20 @@ func (cs *chainSync) logSyncSpeed() {
 				before.Number, after.Number, before.Hash(), after.Hash())
 
 			logger.Infof(
-				"🚣 currently syncing, %d peers connected, "+
+				"🚣 currently syncing, %d connected peers, %d peers available to sync, "+
 					"target block number %d, %.2f average blocks/second, "+
 					"%.2f overall average, finalised block number %d with hash %s",
 				len(cs.network.Peers()),
+				totalWorkers,
 				target, cs.benchmarker.mostRecentAverage(),
 				cs.benchmarker.average(), finalised.Number, finalised.Hash())
 		case tip:
 			logger.Infof(
-				"💤 node waiting, %d peers connected, "+
+				"💤 node waiting, %d connected peers, %d peers available to sync, "+
 					"head block number %d with hash %s, "+
 					"finalised block number %d with hash %s",
 				len(cs.network.Peers()),
+				totalWorkers,
 				after.Number, after.Hash(),
 				finalised.Number, finalised.Hash())
 		}
@@ -669,6 +675,8 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time (#1399)
 		if err := cs.doSync(req, w.peersTried); err != nil {
 			// failed to sync, set worker error and put into result queue
+			logger.Errorf("while executing sync: %q", err)
+
 			w.err = err
 			return
 		}
@@ -719,7 +727,16 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 		}
 	}
 
-	logger.Trace("success! placing block response data in ready queue")
+	logger.Tracef("success! placing %d blocks response data in ready queue", len(resp.BlockData))
+
+	if len(resp.BlockData) > 0 {
+		firstBlockInResponse := resp.BlockData[0]
+		lastBlockInResponse := resp.BlockData[len(resp.BlockData)-1]
+
+		logger.Tracef("processing %d (%s) to %d (%s)",
+			firstBlockInResponse.Header.Number, firstBlockInResponse.Hash,
+			lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
+	}
 
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
@@ -767,7 +784,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 		return
 	}
 
-	logger.Tracef("new ready block number %d with hash %s", bd.Header.Number, bd.Hash)
+	//logger.Tracef("new ready block number %d with hash %s", bd.Header.Number, bd.Hash)
 
 	// see if there are any descendents in the pending queue that are now ready to be processed,
 	// as we have just become aware of their parent block
