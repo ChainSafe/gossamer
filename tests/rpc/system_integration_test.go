@@ -27,13 +27,13 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	const numberOfNodes = 3
 
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
+	con := config.Default()
+	con.Genesis = genesisPath
+	con.Core.Role = common.FullNodeRole
+	con.RPC.Modules = []string{"system", "author", "chain"}
 
 	var nodes []node.Node
 	for i := 0; i < numberOfNodes; i++ {
-		con := config.Default()
-		con.Genesis = genesisPath
-		con.Core.Role = common.FullNodeRole
-		con.RPC.Modules = []string{"system", "author", "chain"}
 		n := node.New(t, con, node.SetIndex(i))
 		nodes = append(nodes, n)
 	}

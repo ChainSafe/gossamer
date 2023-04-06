@@ -14,69 +14,127 @@ import (
 )
 
 const (
+	// DefaultName is the default node name
+	DefaultName = "Westend"
+	// DefaultID is the default node ID
+	DefaultID = "westend_dev"
 	// DefaultBasePath is the default basepath for the westend dev node
 	DefaultBasePath = "~/.gossamer/westend-dev"
+	// DefaultGenesisPath is the default genesis path for the westend dev node
+	DefaultGenesisPath = "./chain/westend-dev/westend-dev-spec-raw.json"
+	// DefaultLogLevel is the default log level for the westend dev node
+	DefaultLogLevel = "info"
+	// DefaultMetricsPort is the default metrics port for the westend dev node
+	DefaultMetricsPort = ":9876"
+	// DefaultRetainBlocks is the default number of blocks to retain
+	DefaultRetainBlocks = uint32(512)
+	// DefaultPruning is the default pruning mode
+	DefaultPruning = pruner.Archive
+
+	// DefaultRole is the default node role
+	DefaultRole = common.AuthorityRole
+	// DefaultWasmInterpreter is the default wasm interpreter
+	DefaultWasmInterpreter = wasmer.Name
+	// DefaultBabeAuthority is the default babe authority
+	DefaultBabeAuthority = true
+	// DefaultGrandpaAuthority is the default grandpa authority
+	DefaultGrandpaAuthority = true
+	// DefaultGrandpaInterval is the default grandpa interval
+	DefaultGrandpaInterval = time.Second
+
+	// DefaultPort is the default port for the westend dev node
+	DefaultPort = 7001
+	// DefaultNoBootstrap is the default bootstrap flag for the westend dev node
+	DefaultNoBootstrap = true
+	// DefaultNoMDNS is the default mdns flag for the westend dev node
+	DefaultNoMDNS = true
+	// DefaultDiscoveryInterval is the default discovery interval for the westend dev node
+	DefaultDiscoveryInterval = time.Second
+
+	// DefaultWSEnabled is the default websocket flag for the westend dev node
+	DefaultWSEnabled = false
+	// DefaultRPCEnabled is the default rpc flag for the westend dev node
+	DefaultRPCEnabled = false
+	// DefaultRPCPort is the default rpc port for the westend dev node
+	DefaultRPCPort = uint32(8545)
+	// DefaultRPCHost is the default rpc host for the westend dev node
+	DefaultRPCHost = "localhost"
+	// DefaultWSPort is the default websocket port for the westend dev node
+	DefaultWSPort = uint32(8546)
+
+	// DefaultPPROFEnabled is the default pprof flag for the westend dev node
+	DefaultPPROFEnabled = false
+	// DefaultPPROFListeningAddress is the default pprof listening address for the westend dev node
+	DefaultPprofListeningAddress = "localhost:6060"
+	// DefaultPPROFBlockProfileRate is the default pprof profile rate for the westend dev node
+	DefaultPPROFBlockProfileRate = 0
+	// DefaultPPROFMutexProfileRate is the default pprof mutex profile rate for the westend dev node
+	DefaultPPROFMutexProfileRate = 0
+)
+
+var (
+	// DefaultRPCModules is the default rpc modules for the westend dev node
+	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"}
 )
 
 // DefaultConfig returns a westend dev node configuration
 func DefaultConfig() *cfg.Config {
 	return &cfg.Config{
 		BaseConfig: cfg.BaseConfig{
-			Name:           "Westend",
-			ID:             "westend_dev",
-			BasePath:       "~/.gossamer/westend-dev",
-			Genesis:        "./chain/westend-dev/westend-dev-spec-raw.json",
-			LogLevel:       "info",
-			MetricsAddress: ":9876",
-			RetainBlocks:   512,
-			Pruning:        pruner.Archive,
+			Name:           DefaultName,
+			ID:             DefaultID,
+			BasePath:       DefaultBasePath,
+			Genesis:        DefaultGenesisPath,
+			LogLevel:       DefaultLogLevel,
+			MetricsAddress: DefaultMetricsPort,
+			RetainBlocks:   DefaultRetainBlocks,
+			Pruning:        DefaultPruning,
 		},
 		Log: &cfg.LogConfig{
-			Core:    "info",
-			Digest:  "info",
-			Sync:    "info",
-			Network: "info",
-			RPC:     "info",
-			State:   "info",
-			Runtime: "info",
-			Babe:    "info",
-			Grandpa: "info",
-			Wasmer:  "info",
+			Core:    DefaultLogLevel,
+			Digest:  DefaultLogLevel,
+			Sync:    DefaultLogLevel,
+			Network: DefaultLogLevel,
+			RPC:     DefaultLogLevel,
+			State:   DefaultLogLevel,
+			Runtime: DefaultLogLevel,
+			Babe:    DefaultLogLevel,
+			Grandpa: DefaultLogLevel,
+			Wasmer:  DefaultLogLevel,
 		},
 		Account: &cfg.AccountConfig{
-			Key:    "alice",
+			Key:    "",
 			Unlock: "",
 		},
 		Core: &cfg.CoreConfig{
-			Role:             common.AuthorityRole,
-			WasmInterpreter:  wasmer.Name,
-			BabeAuthority:    true,
-			GrandpaAuthority: true,
-			GrandpaInterval:  time.Second,
+			Role:             DefaultRole,
+			WasmInterpreter:  DefaultWasmInterpreter,
+			BabeAuthority:    DefaultBabeAuthority,
+			GrandpaAuthority: DefaultGrandpaAuthority,
+			GrandpaInterval:  DefaultGrandpaInterval,
 		},
 		State: &cfg.StateConfig{
 			Rewind: 0,
 		},
 		Network: &cfg.NetworkConfig{
-			Port:              7001,
-			NoBootstrap:       false,
-			NoMDNS:            false,
-			DiscoveryInterval: 10 * time.Second,
+			Port:              DefaultPort,
+			NoBootstrap:       DefaultNoBootstrap,
+			NoMDNS:            DefaultNoMDNS,
+			DiscoveryInterval: DefaultDiscoveryInterval,
 		},
 		RPC: &cfg.RPCConfig{
-			WS:      false,
-			Enabled: false,
-			Port:    8545,
-			Host:    "localhost",
-			Modules: []string{
-				"system", "author", "chain", "state", "rpc",
-				"grandpa", "offchain", "childstate", "syncstate", "payment"},
-			WSPort: 8546,
+			WS:      DefaultWSEnabled,
+			Enabled: DefaultRPCEnabled,
+			Port:    DefaultRPCPort,
+			Host:    DefaultRPCHost,
+			Modules: DefaultRPCModules,
+			WSPort:  DefaultWSPort,
 		},
 		Pprof: &cfg.PprofConfig{
-			ListeningAddress: "localhost:6060",
-			BlockProfileRate: 0,
-			MutexProfileRate: 0,
+			Enabled:          DefaultPPROFEnabled,
+			ListeningAddress: DefaultPprofListeningAddress,
+			BlockProfileRate: DefaultPPROFBlockProfileRate,
+			MutexProfileRate: DefaultPPROFMutexProfileRate,
 		},
 		System: &cfg.SystemConfig{
 			SystemName:    "gossamer",

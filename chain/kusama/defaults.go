@@ -12,14 +12,10 @@ import (
 )
 
 var (
-	// GlobalConfig
-
 	// DefaultName Default node name
 	DefaultName = "Kusama"
 	// DefaultID Default chain ID
 	DefaultID = "ksmcc3"
-	// DefaultConfigPath Default toml configuration path
-	DefaultConfigPath = "./chain/kusama/config.toml"
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = "~/.gossamer/kusama"
 
@@ -53,8 +49,8 @@ var (
 
 	// DefaultAuthority true if BABE block producer
 	DefaultAuthority = false
-	// DefaultRoles Default node roles
-	DefaultRoles = common.FullNodeRole // full node (see Table D.2)
+	// DefaultRole Default node roles
+	DefaultRole = common.FullNodeRole // full node (see Table D.2)
 	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default
 	DefaultWasmInterpreter = wasmer.Name
 
@@ -132,7 +128,7 @@ func DefaultConfig() *cfg.Config {
 			Unlock: DefaultUnlock,
 		},
 		Core: &cfg.CoreConfig{
-			Role:            DefaultRoles,
+			Role:            DefaultRole,
 			WasmInterpreter: DefaultWasmInterpreter,
 		},
 		State: &cfg.StateConfig{

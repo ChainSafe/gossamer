@@ -50,9 +50,7 @@ func stringToAddrInfo(s string) (peer.AddrInfo, error) {
 // stringsToAddrInfos converts a string of peer ids to AddrInfo
 func stringsToAddrInfos(peers []string) ([]peer.AddrInfo, error) {
 	pinfos := make([]peer.AddrInfo, len(peers))
-	logger.Infof("adding peers %v", len(peers))
 	for i, p := range peers {
-		logger.Infof("adding peer %v", i)
 		p, err := stringToAddrInfo(p)
 		if err != nil {
 			return nil, err

@@ -14,14 +14,10 @@ import (
 )
 
 var (
-	// GlobalConfig
-
 	// DefaultName Default node name
 	DefaultName = "Westend"
 	// DefaultID Default chain ID
 	DefaultID = "westend2"
-	// DefaultConfigPath Default toml configuration path
-	DefaultConfigPath = "./chain/westend/config.toml"
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = "~/.gossamer/westend"
 	// DefaultMetricsAddress is the default metrics server listening address.
@@ -54,8 +50,8 @@ var (
 
 	// DefaultAuthority is true if the node is a block producer and a grandpa authority
 	DefaultAuthority = true
-	// DefaultRoles Default node roles
-	DefaultRoles = common.FullNodeRole // authority node (see Table D.2)
+	// DefaultRole Default node roles
+	DefaultRole = common.FullNodeRole // authority node (see Table D.2)
 	// DefaultBabeAuthority is true if the node is a block producer (overwrites previous settings)
 	DefaultBabeAuthority = true
 	// DefaultGrandpaAuthority is true if the node is a grandpa authority (overwrites previous settings)
@@ -134,7 +130,7 @@ func DefaultConfig() *cfg.Config {
 			Unlock: DefaultUnlock,
 		},
 		Core: &cfg.CoreConfig{
-			Role:            DefaultRoles,
+			Role:            DefaultRole,
 			WasmInterpreter: DefaultWasmInterpreter,
 		},
 		State: &cfg.StateConfig{

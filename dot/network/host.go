@@ -91,7 +91,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger.Infof("🕸️ ️Starting libp2p network on %s", addr)
 
 	portString, err := addr.ValueForProtocol(ma.P_TCP)
 	if err != nil {
@@ -102,7 +101,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("🕸️ ️Starting libp2p network")
 	var externalAddr ma.Multiaddr
 
 	switch {
@@ -135,10 +133,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		}
 	}
 
-	logger.Infof("🕸️ ️externalAddr %s", externalAddr)
-
 	// format bootnodes
-	logger.Infof("🕸️ ️bootnodes %s", cfg.Bootnodes)
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bootnodes: %w", err)

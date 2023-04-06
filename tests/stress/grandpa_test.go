@@ -29,13 +29,11 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	n.InitAndStartTest(ctx, t, cancel)
 	nodes := node.Nodes{n}
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 10)
 
 	const getChainHeadTimeout = time.Second
 	err := compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	const getFinalizedHeadTimeout = time.Second
 	prev, err := compareFinalizedHeads(ctx, t, nodes, getFinalizedHeadTimeout)
