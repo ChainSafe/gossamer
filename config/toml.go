@@ -123,6 +123,10 @@ pruning = "{{ .BaseConfig.Pruning }}"
 no-telemetry = {{ .BaseConfig.NoTelemetry }}
 
 # List of telemetry server URLs to connect to
+# Format for each entry:
+# [[telemetry-urls]]
+# endpoint = "wss://telemetry.polkadot.io/submit/"
+# verbosity = 0
 {{range .BaseConfig.TelemetryURLs}} 
 [[telemetry-urls]]
 endpoint = "{{ .Endpoint }}"
@@ -143,6 +147,7 @@ publish-metrics = {{ .BaseConfig.PublishMetrics }}
 [log]
 
 # One of: crit, error, warn, info, debug, trace
+# Defaults to "info"
 
 # Core module log level
 core = "{{ .Log.Core }}"
@@ -242,8 +247,8 @@ listen-address = "{{ .Network.ListenAddress }}"
 [core]
 
 # Role of the gossamer node
-# One of: no-network, full, light, authority
-# Defaults to "full"
+# Represented as an integer
+# One of: 1 (Full), 2 (Light), 3 (Authority)
 role = {{ .Core.Role }}
 
 # Enable BABE authoring
