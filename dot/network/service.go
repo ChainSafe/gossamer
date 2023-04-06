@@ -339,6 +339,7 @@ func (s *Service) Start() error {
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
 	if s.Metrics.Publish {
+		processStartTimeGauge.Set(float64(time.Now().Unix()))
 		go s.updateMetrics()
 	}
 
@@ -358,7 +359,6 @@ func (s *Service) updateMetrics() {
 		case <-s.ctx.Done():
 			return
 		case <-ticker.C:
-			processStartTimeGauge.Set(float64(time.Now().Unix()))
 			peerCountGauge.Set(float64(s.host.peerCount()))
 			connectionsGauge.Set(float64(len(s.host.p2pHost.Network().Conns())))
 			nodeLatencyGauge.Set(float64(
