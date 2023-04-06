@@ -46,6 +46,25 @@ func (c Chain) String() string {
 	return string(c)
 }
 
+// NetworkRole is a string representing a network role
+type NetworkRole string
+
+const (
+	// FullNode is a full node
+	FullNode NetworkRole = "full"
+
+	// LightNode is a light node
+	LightNode NetworkRole = "light"
+
+	// AuthorityNode is an authority node
+	AuthorityNode NetworkRole = "authority"
+)
+
+// String returns the string representation of the network role
+func (n NetworkRole) String() string {
+	return string(n)
+}
+
 // addStringFlagBindViper adds a string flag to the given command and binds it to the given viper name
 func addStringFlagBindViper(cmd *cobra.Command,
 	name,

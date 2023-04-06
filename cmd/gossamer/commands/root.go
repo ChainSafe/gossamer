@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/spf13/viper"
+
 	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -14,9 +19,7 @@ import (
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // Package level variables
@@ -41,6 +44,12 @@ var (
 	logLevelRuntime string
 	logLevelBABE    string
 	logLevelGRANDPA string
+
+	// Core Config
+	// role of the node. one of: full, light or authority
+	role string
+	// validator
+	validator bool
 )
 
 // Flag values for persistent flags
@@ -60,6 +69,61 @@ const (
 	// DefaultHomeEnv is the default environment variable for the base path
 	DefaultHomeEnv = "GSSMRHOME"
 )
+
+// NewRootCommand creates the root command
+func NewRootCommand() (*cobra.Command, error) {
+	cmd := &cobra.Command{
+		Use:   "gossamer",
+		Short: "Official gossamer command-line interface",
+		Long: `Gossamer is a Golang implementation of the Polkadot Host.
+Usage:
+	gossamer --chain westend-local --alice --babe-lead
+	gossamer --chain westend-dev --key alice --port 7002
+	gossamer --chain westend --key bob --port 7003
+	gossamer --chain kusama --key charlie --port 7004
+	gossamer --chain polkadot --key dave --port 7005`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return execRoot(cmd)
+		},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			if err := setDefaultConfig(Chain(chain)); err != nil {
+				return fmt.Errorf("failed to set default config: %s", err)
+			}
+
+			if cmd.Name() == "gossamer" || cmd.Name() == "init" {
+				if err := parseBasePath(); err != nil {
+					return fmt.Errorf("failed to parse base path: %s", err)
+				}
+
+				if err := parseRole(); err != nil {
+					return fmt.Errorf("failed to parse role: %s", err)
+				}
+
+				parseAccount()
+
+				if cmd.Name() == "gossamer" {
+					if err := configureViper(config.BasePath); err != nil {
+						return fmt.Errorf("failed to configure viper: %s", err)
+					}
+
+					if err := ParseConfig(); err != nil {
+						return fmt.Errorf("failed to parse config: %s", err)
+					}
+				}
+			}
+
+			return nil
+		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
+	}
+
+	if err := addRootFlags(cmd); err != nil {
+		return nil, err
+	}
+
+	return cmd, nil
+}
 
 // ParseConfig parses the config from the command line flags
 func ParseConfig() error {
@@ -119,55 +183,27 @@ func parseAccount() {
 	viper.Set("account.key", config.Account.Key)
 }
 
-// NewRootCommand creates the root command
-func NewRootCommand() (*cobra.Command, error) {
-	cmd := &cobra.Command{
-		Use:   "gossamer",
-		Short: "Official gossamer command-line interface",
-		Long: `Gossamer is a Golang implementation of the Polkadot Host.
-Usage:
-	gossamer --chain westend-local --alice --babe-lead
-	gossamer --chain westend-dev --key alice --port 7002
-	gossamer --chain westend --key bob --port 7003
-	gossamer --chain kusama --key charlie --port 7004
-	gossamer --chain polkadot --key dave --port 7005`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return execRoot(cmd)
-		},
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			if err := setDefaultConfig(Chain(chain)); err != nil {
-				return fmt.Errorf("failed to set default config: %s", err)
-			}
-
-			if cmd.Name() == "gossamer" || cmd.Name() == "init" {
-				if err := parseBasePath(); err != nil {
-					return fmt.Errorf("failed to parse base path: %s", err)
-				}
-
-				parseAccount()
-
-				if cmd.Name() == "gossamer" {
-					if err := configureViper(config.BasePath); err != nil {
-						return fmt.Errorf("failed to configure viper: %s", err)
-					}
-
-					if err := ParseConfig(); err != nil {
-						return fmt.Errorf("failed to parse config: %s", err)
-					}
-				}
-			}
-
-			return nil
-		},
-		SilenceErrors: true,
-		SilenceUsage:  true,
+// parseRole parses the role from the command line flags
+func parseRole() error {
+	var selectedRole common.NetworkRole
+	if validator {
+		selectedRole = common.AuthorityRole
+	} else {
+		switch role {
+		case FullNode.String():
+			selectedRole = common.FullNodeRole
+		case LightNode.String():
+			selectedRole = common.LightClientRole
+		case AuthorityNode.String():
+			selectedRole = common.AuthorityRole
+		default:
+			return fmt.Errorf("invalid role: %s", role)
+		}
 	}
 
-	if err := addRootFlags(cmd); err != nil {
-		return nil, err
-	}
-
-	return cmd, nil
+	config.Core.Role = selectedRole
+	viper.Set("core.role", config.Core.Role)
+	return nil
 }
 
 // addRootFlags adds the root flags to the command
@@ -535,7 +571,15 @@ func addRPCFlags(cmd *cobra.Command) error {
 
 // addCoreFlags adds core flags and binds to viper
 func addCoreFlags(cmd *cobra.Command) error {
-	// TODO: role
+	cmd.Flags().StringVar(&role,
+		"role",
+		AuthorityNode.String(),
+		"Role of the node. One of 'full', 'light', or 'authority'.")
+
+	cmd.Flags().BoolVar(&validator,
+		"validator",
+		true,
+		"Run as a validator node")
 
 	if err := addBoolFlagBindViper(cmd,
 		"babe-authority",
