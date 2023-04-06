@@ -290,7 +290,7 @@ func KusamaConfig() (*Config, error) {
 			Unlock: kusama.DefaultUnlock,
 		},
 		Core: CoreConfig{
-			Roles:           kusama.DefaultRoles,
+			Roles:           kusama.DefaultRole,
 			WasmInterpreter: kusama.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
@@ -352,7 +352,7 @@ func PolkadotConfig() (*Config, error) {
 			Unlock: polkadot.DefaultUnlock,
 		},
 		Core: CoreConfig{
-			Roles:           polkadot.DefaultRoles,
+			Roles:           polkadot.DefaultRole,
 			WasmInterpreter: polkadot.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
@@ -414,7 +414,7 @@ func WestendConfig() (*Config, error) {
 			Unlock: westend.DefaultUnlock,
 		},
 		Core: CoreConfig{
-			Roles:           westend.DefaultRoles,
+			Roles:           westend.DefaultRole,
 			WasmInterpreter: westend.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
