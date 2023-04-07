@@ -1,0 +1,13 @@
+Description: Small Network test
+Network: ./0002-basic-network.toml
+Creds: config
+
+# well know functions
+alice: is up
+bob: is up
+
+alice: js-script ./scripts/free-balance.js with "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY" return is equal to 1000000000000000000
+
+alice: js-script ./scripts/free-balance.js with "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty" return is equal to 1000000000000000000
+
+alice: js-script ./scripts/transfer-tokens.js with "Alice,Bob" return is equal to 1 within 200 seconds
