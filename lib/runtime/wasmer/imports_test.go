@@ -423,21 +423,26 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	testkey := []byte("jimboj")
-	inst.ctx.Storage.Put(testkey, []byte{1})
+	testkey := []byte("testkey")
+	err := inst.ctx.Storage.Put(testkey, []byte{1})
+	require.NoError(t, err)
 
-	testkey2 := []byte("jimboj1")
-	inst.ctx.Storage.Put(testkey2, []byte{1})
+	testkey2 := []byte("testkey2")
+	err = inst.ctx.Storage.Put(testkey2, []byte{1})
+	require.NoError(t, err)
 
-	testkey3 := []byte("jimboj2")
-	inst.ctx.Storage.Put(testkey3, []byte{1})
+	testkey3 := []byte("testkey3")
+	err = inst.ctx.Storage.Put(testkey3, []byte{1})
+	require.NoError(t, err)
 
-	testkey4 := []byte("jimboj3")
-	inst.ctx.Storage.Put(testkey4, []byte{1})
+	testkey4 := []byte("testkey4")
+	err = inst.ctx.Storage.Put(testkey4, []byte{1})
+	require.NoError(t, err)
 
-	testkey5 := []byte("spaghet")
+	testkey5 := []byte("keyToKeep")
 	testValue5 := []byte{2}
-	inst.ctx.Storage.Put(testkey5, testValue5)
+	err = inst.ctx.Storage.Put(testkey5, testValue5)
+	require.NoError(t, err)
 
 	enc, err := scale.Marshal(testkey[:3])
 	require.NoError(t, err)
@@ -454,11 +459,13 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	require.NoError(t, err)
 
 	var decVal []byte
-	scale.Unmarshal(encValue, &decVal)
+	err = scale.Unmarshal(encValue, &decVal)
+	require.NoError(t, err)
 
 	var numDeleted uint32
 	// numDeleted represents no. of actual keys deleted
-	scale.Unmarshal(decVal[1:], &numDeleted)
+	err = scale.Unmarshal(decVal[1:], &numDeleted)
+	require.NoError(t, err)
 	require.Equal(t, uint32(2), numDeleted)
 
 	var expectedAllDeleted byte
@@ -477,8 +484,10 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	encValue, err = inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
 	require.NoError(t, err)
 
-	scale.Unmarshal(encValue, &decVal)
-	scale.Unmarshal(decVal[1:], &numDeleted)
+	err = scale.Unmarshal(encValue, &decVal)
+	require.NoError(t, err)
+	err = scale.Unmarshal(decVal[1:], &numDeleted)
+	require.NoError(t, err)
 	require.Equal(t, uint32(2), numDeleted)
 
 	expectedAllDeleted = 0
