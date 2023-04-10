@@ -64,7 +64,7 @@ const (
 
 	// DefaultPPROFEnabled is the default pprof flag for the westend dev node
 	DefaultPPROFEnabled = false
-	// DefaultPPROFListeningAddress is the default pprof listening address for the westend dev node
+	// DefaultPprofListeningAddress is the default pprof listening address for the westend dev node
 	DefaultPprofListeningAddress = "localhost:6060"
 	// DefaultPPROFBlockProfileRate is the default pprof profile rate for the westend dev node
 	DefaultPPROFBlockProfileRate = 0
@@ -74,7 +74,17 @@ const (
 
 var (
 	// DefaultRPCModules is the default rpc modules for the westend dev node
-	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain", "childstate", "syncstate", "payment"}
+	DefaultRPCModules = []string{"system",
+		"author",
+		"chain",
+		"state",
+		"rpc",
+		"grandpa",
+		"offchain",
+		"childstate",
+		"syncstate",
+		"payment",
+	}
 )
 
 // DefaultConfig returns a westend dev node configuration

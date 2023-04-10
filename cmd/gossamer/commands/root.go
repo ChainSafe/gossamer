@@ -5,16 +5,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
-
-	"github.com/ChainSafe/gossamer/lib/genesis"
-
-	"github.com/ChainSafe/gossamer/lib/common"
-
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/spf13/viper"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
@@ -138,120 +128,6 @@ Usage:
 	}
 
 	return cmd, nil
-}
-
-// ParseConfig parses the config from the command line flags
-func ParseConfig() error {
-	if err := viper.Unmarshal(config); err != nil {
-		return fmt.Errorf("failed to unmarshal config: %s", err)
-	}
-
-	if err := config.ValidateBasic(); err != nil {
-		return fmt.Errorf("error in config file: %v", err)
-	}
-
-	return nil
-}
-
-// parseBasePath parses the base path from the command line flags
-func parseBasePath() error {
-	var home string
-	// For the base path, prefer the environment variable over the flag
-	// If neither are set, use the default base path from the config
-	if os.Getenv(DefaultHomeEnv) != "" {
-		home = os.Getenv(DefaultHomeEnv)
-	} else {
-		home = basePath
-	}
-	if config.BasePath == "" && home == "" {
-		return fmt.Errorf("--base-path cannot be empty")
-	}
-	// If the base path is set, use it
-	if home != "" {
-		config.BasePath = home
-	}
-	config.BasePath = utils.ExpandDir(config.BasePath)
-	// bind it to viper so that it can be used during the config parsing
-	viper.Set("base-path", config.BasePath)
-
-	return nil
-}
-
-// parseAccount parses the account key from the command line flags
-func parseAccount() {
-	// if key is not set, check if alice, bob, or charlie are set
-	// return error if none are set
-	if key == "" {
-		if alice {
-			key = "alice"
-		} else if bob {
-			key = "bob"
-		} else if charlie {
-			key = "charlie"
-		}
-	}
-
-	// if key is available, set it in the config
-	if key != "" {
-		config.Account.Key = key
-		// bind it to viper so that it can be used during the config parsing
-		viper.Set("account.key", key)
-	}
-}
-
-// parseRole parses the role from the command line flags
-func parseRole() error {
-	var selectedRole common.NetworkRole
-	if validator {
-		selectedRole = common.AuthorityRole
-	} else {
-		switch role {
-		case cfg.FullNode.String():
-			selectedRole = common.FullNodeRole
-		case cfg.LightNode.String():
-			selectedRole = common.LightClientRole
-		case cfg.AuthorityNode.String():
-			selectedRole = common.AuthorityRole
-		default:
-			return fmt.Errorf("invalid role: %s", role)
-		}
-	}
-
-	config.Core.Role = selectedRole
-	viper.Set("core.role", config.Core.Role)
-	return nil
-}
-
-// parseTelemetryURL parses the telemetry-url from the command line flag
-func parseTelemetryURL() error {
-	if telemetryURLs == "" {
-		return nil
-	}
-
-	var telemetry []genesis.TelemetryEndpoint
-	urlVerbosityPairs := strings.Split(telemetryURLs, ",")
-	for _, pair := range urlVerbosityPairs {
-		urlVerbosity := strings.Split(pair, ":")
-		if len(urlVerbosity) != 2 {
-			return fmt.Errorf("invalid --telemetry-url. URL and verbosity should be specified as a colon-separated list of key-value pairs")
-		}
-
-		url := urlVerbosity[0]
-		verbosityString := urlVerbosity[1]
-		verbosity, err := strconv.Atoi(verbosityString)
-		if err != nil {
-			return fmt.Errorf("invalid --telemetry-url. Failed to parse verbosity: %v", err.Error())
-		}
-
-		telemetry = append(config.TelemetryURLs, genesis.TelemetryEndpoint{
-			Endpoint:  url,
-			Verbosity: verbosity,
-		})
-	}
-
-	viper.Set("telemetry-url", telemetry)
-
-	return nil
 }
 
 // addRootFlags adds the root flags to the command

@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/chain/kusama"
-	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/westend"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/spf13/cobra"
 )
@@ -41,33 +38,12 @@ func execPruneState(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get retain-blocks: %s", err)
 	}
 
-	chainID, err := cmd.Flags().GetString("chain")
-	if err != nil {
-		return fmt.Errorf("failed to get chain: %s", err)
-	}
-
-	basePath, err := cmd.Flags().GetString("base-path")
-	if err != nil {
-		return fmt.Errorf("failed to get base-path: %s", err)
-	}
-
-	if chainID == "" && basePath == "" {
-		return fmt.Errorf("one of chain or base-path must be specified")
+	if basePath == "" {
+		basePath = config.BasePath
 	}
 
 	if basePath == "" {
-		switch chainID {
-		case "polkadot":
-			basePath = polkadot.DefaultBasePath
-		case "kusama":
-			basePath = kusama.DefaultBasePath
-		case "westend":
-			basePath = westend.DefaultBasePath
-		case "westend-dev":
-			basePath = "~/.gossamer/westend-dev"
-		default:
-			return fmt.Errorf("chain %s not supported", chainID)
-		}
+		return fmt.Errorf("basepath must be specified")
 	}
 
 	dbPath := filepath.Join(basePath, "db")
