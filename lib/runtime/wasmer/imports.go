@@ -181,8 +181,14 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmer.Value)
 		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
+	castedRet, err := safeCastInt32(ret)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
 	logger.Debug("generated ed25519 keypair with public key: " + kp.Public().Hex())
-	return []wasmer.Value{wasmer.NewI32(int32(ret))}, nil
+	return []wasmer.Value{wasmer.NewI32(castedRet)}, nil
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
@@ -518,11 +524,14 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value)
 		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
-	// TODO dont think this is safe
-	val := int32(ret)
+	castedRet, err := safeCastInt32(ret)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
 
 	logger.Debug("generated sr25519 keypair with public key: " + kp.Public().Hex())
-	return []wasmer.Value{wasmer.NewI32(val)}, nil
+	return []wasmer.Value{wasmer.NewI32(castedRet)}, nil
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
@@ -789,10 +798,16 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) ([
 		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
+	castedPtr, err := safeCastInt32(ptr)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	// TODO is this safe?
-	return []wasmer.Value{wasmer.NewI32(int32(ptr))}, nil
+	// TODO should i use cased pointer above? Maybe should just panic if safeCast fails
+	return []wasmer.Value{wasmer.NewI32(castedPtr)}, nil
 }
 
 //export ext_trie_blake2_256_ordered_root_version_1
@@ -844,10 +859,16 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.V
 		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
+	castedPtr, err := safeCastInt32(ptr)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	// TODO is this safe cast
-	return []wasmer.Value{wasmer.NewI32(int32(ptr))}, nil
+	// TODO use casted pointer here? Maybe panic?
+	return []wasmer.Value{wasmer.NewI32(castedPtr)}, nil
 }
 
 //export ext_trie_blake2_256_ordered_root_version_2
@@ -1312,7 +1333,13 @@ func ext_allocator_malloc_version_1(env interface{}, args []wasmer.Value) ([]was
 		panic(err)
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(res))}, nil
+	castedRes, err := safeCastInt32(res)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedRes)}, nil
 }
 
 //export ext_hashing_blake2_128_version_1
@@ -1338,7 +1365,13 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasmer.Value) ([]w
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_blake2_256_version_1
@@ -1362,7 +1395,13 @@ func ext_hashing_blake2_256_version_1(env interface{}, args []wasmer.Value) ([]w
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_keccak_256_version_1
@@ -1386,7 +1425,13 @@ func ext_hashing_keccak_256_version_1(env interface{}, args []wasmer.Value) ([]w
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_sha2_256_version_1
@@ -1405,7 +1450,13 @@ func ext_hashing_sha2_256_version_1(env interface{}, args []wasmer.Value) ([]was
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_twox_256_version_1
@@ -1429,7 +1480,13 @@ func ext_hashing_twox_256_version_1(env interface{}, args []wasmer.Value) ([]was
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_twox_128_version_1
@@ -1455,7 +1512,13 @@ func ext_hashing_twox_128_version_1(env interface{}, args []wasmer.Value) ([]was
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_twox_64_version_1
@@ -1481,7 +1544,13 @@ func ext_hashing_twox_64_version_1(env interface{}, args []wasmer.Value) ([]wasm
 		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(out))}, nil
+	castedOut, err := safeCastInt32(out)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
 }
 
 //export ext_offchain_index_set_version_1
@@ -1611,7 +1680,8 @@ func ext_offchain_local_storage_get_version_1(env interface{}, args []wasmer.Val
 		logger.Errorf("failed to allocate memory: %s", err)
 		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
 	}
-	return []wasmer.Value{wasmer.NewI64(int32(ptr))}, nil
+
+	return []wasmer.Value{wasmer.NewI64(ptr)}, nil
 }
 
 //export ext_offchain_local_storage_set_version_1
@@ -1680,7 +1750,14 @@ func ext_offchain_random_seed_version_1(env interface{}, _ []wasmer.Value) ([]wa
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 	}
-	return []wasmer.Value{wasmer.NewI32(ptr)}, nil
+
+	castedPtr, err := safeCastInt32(ptr)
+	if err != nil {
+		logger.Errorf("failed to safely cast pointer: %s", err)
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
+	}
+
+	return []wasmer.Value{wasmer.NewI32(castedPtr)}, nil
 }
 
 //export ext_offchain_submit_transaction_version_1

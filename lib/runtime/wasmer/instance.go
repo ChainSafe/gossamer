@@ -305,7 +305,17 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
 
-	wasmValue, err := runtimeFunc(int32(inputPtr), int32(dataLength))
+	castedInputPointer, err := safeCastInt32(inputPtr)
+	if err != nil {
+		panic(err)
+	}
+
+	castedDataLength, err := safeCastInt32(dataLength)
+	if err != nil {
+		panic(err)
+	}
+
+	wasmValue, err := runtimeFunc(castedInputPointer, castedDataLength)
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}

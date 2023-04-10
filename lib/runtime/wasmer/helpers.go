@@ -5,6 +5,7 @@ package wasmer
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common/types"
@@ -12,6 +13,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/wasmerio/wasmer-go/wasmer"
 )
+
+func safeCastInt32(value uint32) (int32, error) {
+	if value > math.MaxInt32 {
+		return 0, fmt.Errorf("%w", errMemoryValueOutOfBounds)
+	}
+	return int32(value), nil
+}
 
 // toPointerSize converts an uint32 pointer and uint32 size
 // to an int64 pointer size.
