@@ -502,6 +502,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	DefaultTestLogLvl = 0
+
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0929)
 
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
