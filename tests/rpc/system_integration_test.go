@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
@@ -34,7 +36,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 	var nodes []node.Node
 	for i := 0; i < numberOfNodes; i++ {
-		n := node.New(t, con, node.SetIndex(i))
+		n := node.New(t, con, cfg.WestendDevChain, node.SetIndex(i))
 		nodes = append(nodes, n)
 	}
 

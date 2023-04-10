@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/chain/westend"
@@ -24,46 +26,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-// Chain is a string representing a chain
-type Chain string
-
-const (
-	// PolkadotChain is the Polkadot chain
-	PolkadotChain Chain = "polkadot"
-	// KusamaChain is the Kusama chain
-	KusamaChain Chain = "kusama"
-	// WestendChain is the Westend chain
-	WestendChain Chain = "westend"
-	// WestendDevChain is the Westend dev chain
-	WestendDevChain Chain = "westend-dev"
-	// WestendLocalChain is the Westend local chain
-	WestendLocalChain Chain = "westend-local"
-)
-
-// String returns the string representation of the chain
-func (c Chain) String() string {
-	return string(c)
-}
-
-// NetworkRole is a string representing a network role
-type NetworkRole string
-
-const (
-	// FullNode is a full node
-	FullNode NetworkRole = "full"
-
-	// LightNode is a light node
-	LightNode NetworkRole = "light"
-
-	// AuthorityNode is an authority node
-	AuthorityNode NetworkRole = "authority"
-)
-
-// String returns the string representation of the network role
-func (n NetworkRole) String() string {
-	return string(n)
-}
 
 // addStringFlagBindViper adds a string flag to the given command and binds it to the given viper name
 func addStringFlagBindViper(cmd *cobra.Command,
@@ -287,17 +249,17 @@ func getPassword(msg string) []byte {
 }
 
 // setDefaultConfig sets the default configuration
-func setDefaultConfig(chain Chain) error {
+func setDefaultConfig(chain cfg.Chain) error {
 	switch chain {
-	case PolkadotChain:
+	case cfg.PolkadotChain:
 		config = polkadot.DefaultConfig()
-	case KusamaChain:
+	case cfg.KusamaChain:
 		config = kusama.DefaultConfig()
-	case WestendChain:
+	case cfg.WestendChain:
 		config = westend.DefaultConfig()
-	case WestendDevChain:
+	case cfg.WestendDevChain:
 		config = westenddev.DefaultConfig()
-	case WestendLocalChain:
+	case cfg.WestendLocalChain:
 		if alice {
 			config = westendlocal.DefaultAliceConfig()
 		} else if bob {

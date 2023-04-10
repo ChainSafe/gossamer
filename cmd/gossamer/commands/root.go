@@ -95,33 +95,35 @@ Usage:
 			return execRoot(cmd)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			if err := setDefaultConfig(Chain(chain)); err != nil {
+			if err := setDefaultConfig(cfg.Chain(chain)); err != nil {
 				return fmt.Errorf("failed to set default config: %s", err)
 			}
 
-			if cmd.Name() == "gossamer" || cmd.Name() == "init" {
-				if err := parseBasePath(); err != nil {
-					return fmt.Errorf("failed to parse base path: %s", err)
+			if err := parseBasePath(); err != nil {
+				return fmt.Errorf("failed to parse base path: %s", err)
+			}
+
+			if !(cmd.Name() == "gossamer" || cmd.Name() == "init") {
+				return nil
+			}
+
+			parseAccount()
+
+			if cmd.Name() == "gossamer" {
+				if err := parseRole(); err != nil {
+					return fmt.Errorf("failed to parse role: %s", err)
 				}
 
-				parseAccount()
+				if err := parseTelemetryURL(); err != nil {
+					return fmt.Errorf("failed to parse telemetry-url: %s", err.Error())
+				}
 
-				if cmd.Name() == "gossamer" {
-					if err := parseRole(); err != nil {
-						return fmt.Errorf("failed to parse role: %s", err)
-					}
+				if err := configureViper(config.BasePath); err != nil {
+					return fmt.Errorf("failed to configure viper: %s", err)
+				}
 
-					if err := parseTelemetryURL(); err != nil {
-						return fmt.Errorf("failed to parse telemetry-url: %s", err.Error())
-					}
-
-					if err := configureViper(config.BasePath); err != nil {
-						return fmt.Errorf("failed to configure viper: %s", err)
-					}
-
-					if err := ParseConfig(); err != nil {
-						return fmt.Errorf("failed to parse config: %s", err)
-					}
+				if err := ParseConfig(); err != nil {
+					return fmt.Errorf("failed to parse config: %s", err)
 				}
 			}
 
@@ -189,9 +191,12 @@ func parseAccount() {
 		}
 	}
 
-	config.Account.Key = key
-	// bind it to viper so that it can be used during the config parsing
-	viper.Set("account.key", key)
+	// if key is available, set it in the config
+	if key != "" {
+		config.Account.Key = key
+		// bind it to viper so that it can be used during the config parsing
+		viper.Set("account.key", key)
+	}
 }
 
 // parseRole parses the role from the command line flags
@@ -201,11 +206,11 @@ func parseRole() error {
 		selectedRole = common.AuthorityRole
 	} else {
 		switch role {
-		case FullNode.String():
+		case cfg.FullNode.String():
 			selectedRole = common.FullNodeRole
-		case LightNode.String():
+		case cfg.LightNode.String():
 			selectedRole = common.LightClientRole
-		case AuthorityNode.String():
+		case cfg.AuthorityNode.String():
 			selectedRole = common.AuthorityRole
 		default:
 			return fmt.Errorf("invalid role: %s", role)
@@ -258,7 +263,7 @@ func addRootFlags(cmd *cobra.Command) error {
 		"The base path for the node. Defaults to $GSSMRHOME if set")
 	cmd.PersistentFlags().StringVar(&chain,
 		"chain",
-		WestendLocalChain.String(),
+		cfg.WestendLocalChain.String(),
 		"The default chain configuration to load. Example: --chain kusama")
 
 	// Base Config
@@ -619,7 +624,7 @@ func addRPCFlags(cmd *cobra.Command) error {
 func addCoreFlags(cmd *cobra.Command) error {
 	cmd.Flags().StringVar(&role,
 		"role",
-		AuthorityNode.String(),
+		cfg.AuthorityNode.String(),
 		"Role of the node. One of 'full', 'light', or 'authority'.")
 
 	cmd.Flags().BoolVar(&validator,

@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
@@ -31,7 +33,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
 
-	node := node.New(t, tomlConfig)
+	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
@@ -101,7 +103,7 @@ func TestAuthorRPC(t *testing.T) { //nolint:tparallel
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
-	node := node.New(t, tomlConfig)
+	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 

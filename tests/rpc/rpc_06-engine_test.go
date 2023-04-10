@@ -7,6 +7,8 @@ import (
 	"context"
 	"testing"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
@@ -19,7 +21,7 @@ func TestEngineRPC(t *testing.T) { //nolint:tparallel
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
-	node := node.New(t, tomlConfig)
+	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 

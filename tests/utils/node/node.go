@@ -8,44 +8,38 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
-	"github.com/stretchr/testify/require"
 )
 
 // Node is a structure holding all the settings to
 // configure a Gossamer node.
 type Node struct {
 	index      *int
-	configPath string
 	tomlConfig cfg.Config
 	writer     io.Writer
 	logsBuffer *bytes.Buffer
 	binPath    string
+	chain      cfg.Chain
 }
 
 // New returns a node configured using the
 // toml configuration and options given.
-func New(t *testing.T, tomlConfig cfg.Config,
+func New(t *testing.T, tomlConfig cfg.Config, chain cfg.Chain,
 	options ...Option) (node Node) {
 	node.tomlConfig = cfg.Copy(&tomlConfig)
+	node.chain = chain
 	for _, option := range options {
 		option(&node)
 	}
 	node.setDefaults(t)
 	node.setWriterPrefix()
-
-	// Write the configuration to a file.
-	// This replaces the `init` command.
-	err := cfg.EnsureRoot(node.tomlConfig.BasePath, &node.tomlConfig)
-	require.NoError(t, err)
-	node.configPath = filepath.Join(node.tomlConfig.BasePath, "config/config.toml")
 
 	return node
 }
@@ -130,26 +124,13 @@ func (n *Node) setDefaults(t *testing.T) {
 }
 
 // Init initialises the Gossamer node.
-func (n *Node) Init(ctx context.Context) (err error) {
-	cmdInit := exec.CommandContext(ctx, n.binPath, "init", //nolint:gosec
-		"--config", n.configPath,
-	)
-
-	if n.logsBuffer != nil {
-		n.logsBuffer.Reset()
-		n.writer = io.MultiWriter(n.writer, n.logsBuffer)
+func (n *Node) Init() (err error) {
+	// Write the configuration to a file.
+	if err := n.tomlConfig.ValidateBasic(); err != nil {
+		return fmt.Errorf("cannot validate basic config: %w", err)
 	}
 
-	cmdInit.Stdout = n.writer
-	cmdInit.Stderr = n.writer
-
-	err = cmdInit.Start()
-	if err != nil {
-		return fmt.Errorf("cannot start command: %w", err)
-	}
-
-	err = cmdInit.Wait()
-	return n.wrapRuntimeError(ctx, cmdInit, err)
+	return cfg.EnsureRoot(n.tomlConfig.BasePath, &n.tomlConfig)
 }
 
 // Start starts a Gossamer node using the node configuration of
@@ -159,7 +140,7 @@ func (n *Node) Init(ctx context.Context) (err error) {
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
-		"--base-path", n.tomlConfig.BasePath, "--chain", "westend-dev",
+		"--base-path", n.tomlConfig.BasePath, "--chain", n.chain.String(),
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {
@@ -214,8 +195,8 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	//err := n.Init(ctx)
-	//require.NoError(t, err)
+	err := n.Init()
+	require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
 
@@ -296,12 +277,6 @@ func (n *Node) wrapRuntimeError(ctx context.Context, cmd *exec.Cmd,
 		logInformation = "\nLogs:\n" + n.logsBuffer.String()
 	}
 
-	configData, configReadErr := os.ReadFile(n.configPath)
-	configString := string(configData)
-	if configReadErr != nil {
-		configString = configReadErr.Error()
-	}
-
 	return fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s\n\n%s\n\n%s",
-		n, waitErr, cmd, configString, logInformation)
+		n, waitErr, cmd, n.tomlConfig.BasePath, logInformation)
 }

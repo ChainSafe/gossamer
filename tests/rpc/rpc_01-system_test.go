@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
@@ -29,7 +31,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig, cfg.WestendLocalChain)
 
 	nodes.InitAndStartTest(ctx, t, cancel)
 

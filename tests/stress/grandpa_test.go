@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
@@ -22,7 +24,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Genesis = genesisPath
-	n := node.New(t, tomlConfig)
+	n := node.New(t, tomlConfig, cfg.WestendDevChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -54,7 +56,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -78,7 +80,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -102,7 +104,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 
 	tomlConfig := config.LogGrandpa()
 	tomlConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -126,13 +128,13 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
 	time.Sleep(time.Second * 70) // let some rounds run
 
-	node := node.New(t, tomlConfig, node.SetIndex(numNodes-1))
+	node := node.New(t, tomlConfig, cfg.WestendDevChain, node.SetIndex(numNodes-1))
 	node.InitAndStartTest(ctx, t, cancel)
 	nodes = append(nodes, node)
 

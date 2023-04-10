@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
@@ -23,7 +25,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
-	node := node.New(t, tomlConfig)
+	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
@@ -166,7 +168,7 @@ func TestStateRPCAPI(t *testing.T) {
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
-	node := node.New(t, tomlConfig)
+	node := node.New(t, tomlConfig, cfg.WestendLocalChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
@@ -369,7 +371,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
 	tomlConfig.Genesis = genesisPath
-	node := node.New(t, tomlConfig)
+	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 

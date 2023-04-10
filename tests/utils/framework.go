@@ -33,12 +33,12 @@ func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
 	tomlConfig cfg.Config) (*Framework, error) {
 	f := &Framework{}
 
-	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig)
+	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig, cfg.WestendDevChain)
 
-	//err := f.nodes.Init(ctx)
-	//if err != nil {
-	//	return nil, fmt.Errorf("cannot init nodes: %w", err)
-	//}
+	err := f.nodes.Init()
+	if err != nil {
+		return nil, fmt.Errorf("cannot init nodes: %w", err)
+	}
 
 	db, err := scribble.New(t.TempDir(), nil)
 	if err != nil {
@@ -49,7 +49,7 @@ func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
 	return f, nil
 }
 
-// StartNodes calls RestartGossamor for all nodes
+// StartNodes calls RestartGossamer for all nodes
 func (fw *Framework) StartNodes(ctx context.Context, t *testing.T) (
 	runtimeErrors []<-chan error, startErr error) {
 	return fw.nodes.Start(ctx)

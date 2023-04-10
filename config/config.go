@@ -395,3 +395,43 @@ func EnsureRoot(rootDir string, config *Config) error {
 	configFilePath := filepath.Join(rootDir, defaultConfigFilePath)
 	return WriteConfigFile(configFilePath, config)
 }
+
+// Chain is a string representing a chain
+type Chain string
+
+const (
+	// PolkadotChain is the Polkadot chain
+	PolkadotChain Chain = "polkadot"
+	// KusamaChain is the Kusama chain
+	KusamaChain Chain = "kusama"
+	// WestendChain is the Westend chain
+	WestendChain Chain = "westend"
+	// WestendDevChain is the Westend dev chain
+	WestendDevChain Chain = "westend-dev"
+	// WestendLocalChain is the Westend local chain
+	WestendLocalChain Chain = "westend-local"
+)
+
+// String returns the string representation of the chain
+func (c Chain) String() string {
+	return string(c)
+}
+
+// NetworkRole is a string representing a network role
+type NetworkRole string
+
+const (
+	// FullNode is a full node
+	FullNode NetworkRole = "full"
+
+	// LightNode is a light node
+	LightNode NetworkRole = "light"
+
+	// AuthorityNode is an authority node
+	AuthorityNode NetworkRole = "authority"
+)
+
+// String returns the string representation of the network role
+func (n NetworkRole) String() string {
+	return string(n)
+}

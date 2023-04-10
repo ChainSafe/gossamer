@@ -20,24 +20,24 @@ type Nodes []Node
 // as a base config for each node. It overrides some of configuration:
 // - the first node is always the BABE lead (overrides the toml configuration)
 // - the index of each node is incremented per node (overrides the SetIndex option, if set)
-func MakeNodes(t *testing.T, num int, tomlConfig cfg.Config,
+func MakeNodes(t *testing.T, num int, tomlConfig cfg.Config, chain cfg.Chain,
 	options ...Option) (nodes Nodes) {
 	nodes = make(Nodes, num)
 	for i := range nodes {
 		options = append(options, SetIndex(i))
 		tomlConfig.Core.BABELead = i == 0
-		nodes[i] = New(t, tomlConfig, options...)
+		nodes[i] = New(t, tomlConfig, chain, options...)
 	}
 	return nodes
 }
 
 // Init initialises all nodes and returns an error if any
 // init operation failed.
-func (nodes Nodes) Init(ctx context.Context) (err error) {
+func (nodes Nodes) Init() (err error) {
 	initErrors := make(chan error)
 	for _, node := range nodes {
 		go func(node Node) {
-			err := node.Init(ctx) // takes 2 seconds
+			err := node.Init() // takes 2 seconds
 			if err != nil {
 				err = fmt.Errorf("node %s failed to initialise: %w", node, err)
 			}
@@ -95,10 +95,10 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	//err := nodes.Init(ctx)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
+	err := nodes.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	nodesCtx, nodesCancel := context.WithCancel(ctx)
 	runtimeErrors := newErrorsFanIn()

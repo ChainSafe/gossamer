@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -65,7 +67,7 @@ func TestMain(m *testing.M) {
 func TestRestartNode(t *testing.T) {
 	const numNodes = 1
 	defaultConfig := config.Default()
-	nodes := node.MakeNodes(t, numNodes, defaultConfig)
+	nodes := node.MakeNodes(t, numNodes, defaultConfig, cfg.WestendDevChain)
 
 	//err := nodes.Init(context.Background())
 	//require.NoError(t, err)
@@ -108,11 +110,11 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	configNoGrandpa.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
 	configNoGrandpa.Account.Key = "alice"
-	babeLeadNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
+	babeLeadNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(numNodes-1))
 
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.Genesis = genesisPath
-	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority)
+	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority, cfg.WestendDevChain)
 
 	nodes := make(node.Nodes, 0, numNodes)
 	nodes = append(nodes, babeLeadNode)
@@ -139,7 +141,7 @@ func TestSync_Basic(t *testing.T) {
 	config := config.Default()
 	config.Genesis = genesisPath
 	const numNodes = 3
-	nodes := node.MakeNodes(t, numNodes, config)
+	nodes := node.MakeNodes(t, numNodes, config, cfg.WestendDevChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -161,7 +163,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -213,7 +215,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	blockProducingConfig := config.Default()
 	blockProducingConfig.Genesis = genesisPath
 	blockProducingConfig.Core.BABELead = true
-	alice := node.New(t, blockProducingConfig, node.SetIndex(0))
+	alice := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(0))
 
 	alice.InitAndStartTest(ctx, t, cancel)
 
@@ -222,7 +224,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	// start syncing node
 	syncingNodeConfig := config.NoBabe()
 	syncingNodeConfig.Genesis = genesisPath
-	bob := node.New(t, syncingNodeConfig, node.SetIndex(1))
+	bob := node.New(t, syncingNodeConfig, cfg.WestendDevChain, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
 
@@ -254,7 +256,7 @@ func TestSync_Bench(t *testing.T) {
 	configNoGrandpa.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
 
-	alice := node.New(t, configNoGrandpa, node.SetIndex(0))
+	alice := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(0))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	alice.InitAndStartTest(ctx, t, cancel)
@@ -285,7 +287,7 @@ func TestSync_Bench(t *testing.T) {
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.Genesis = genesisPath
 	configNoAuthority.Core.BABELead = true
-	bob := node.New(t, configNoAuthority, node.SetIndex(1))
+	bob := node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
 	require.NoError(t, err)
@@ -363,7 +365,7 @@ func TestSync_Restart(t *testing.T) {
 	blockProducingConfig := config.Default()
 	blockProducingConfig.Genesis = genesisPath
 	blockProducingConfig.Core.BABELead = true
-	producingNode := node.New(t, blockProducingConfig, node.SetIndex(numNodes-1))
+	producingNode := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(numNodes-1))
 
 	//err := producingNode.Init(mainCtx)
 	//require.NoError(t, err)
@@ -382,10 +384,10 @@ func TestSync_Restart(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	noBabeConfig := config.NoBabe()
 	noBabeConfig.Genesis = genesisPath
-	nodes := node.MakeNodes(t, numNodes-1, noBabeConfig)
+	nodes := node.MakeNodes(t, numNodes-1, noBabeConfig, cfg.WestendDevChain)
 	for i, node := range nodes {
-		//err := node.Init(mainCtx)
-		//require.NoError(t, err)
+		err := node.Init()
+		require.NoError(t, err)
 
 		nodeWaitErrs[i+1], err = node.StartAndWait(nodeCtxs[i+1])
 		t.Cleanup(func() {
@@ -458,7 +460,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Genesis = genesisPath
 	configNoGrandpa.Core.BABELead = true
-	producingNode := node.New(t, configNoGrandpa, node.SetIndex(0))
+	producingNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(0))
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
 	nodes := node.Nodes{producingNode}
@@ -467,10 +469,10 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	// Start rest of nodes
 	configNoAuthority.Genesis = genesisPath
-	n := node.New(t, configNoAuthority, node.SetIndex(1))
+	n := node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(1))
 	nodes = append(nodes, n)
 
-	n = node.New(t, configNoAuthority, node.SetIndex(2))
+	n = node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(2))
 	nodes = append(nodes, n)
 
 	// send tx to non-authority node
@@ -630,7 +632,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.RPC.WS = true
 	tomlConfig.Core.BABELead = true
-	producingNode := node.New(t, tomlConfig, node.SetIndex(0))
+	producingNode := node.New(t, tomlConfig, cfg.WestendDevChain, node.SetIndex(0))
 	ctx, cancel := context.WithCancel(context.Background())
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
@@ -804,7 +806,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 			tomlConfig := config.Default()
 			tomlConfig.Genesis = c.genesis
 
-			nodes := node.MakeNodes(t, numNodes, tomlConfig)
+			nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			nodes.InitAndStartTest(ctx, t, cancel)

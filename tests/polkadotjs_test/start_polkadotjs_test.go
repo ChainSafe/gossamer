@@ -55,7 +55,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	tomlConfig.RPC.WSUnsafe = true
 	tomlConfig.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc", "grandpa"}
 	tomlConfig.State = &cfg.StateConfig{}
-	n := node.New(t, tomlConfig)
+	n := node.New(t, tomlConfig, cfg.WestendLocalChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	n.InitAndStartTest(ctx, t, cancel)

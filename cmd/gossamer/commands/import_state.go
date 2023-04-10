@@ -6,10 +6,6 @@ package commands
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/chain/kusama"
-	"github.com/ChainSafe/gossamer/chain/polkadot"
-	"github.com/ChainSafe/gossamer/chain/westend"
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
@@ -40,33 +36,12 @@ Example:
 }
 
 func execImportState(cmd *cobra.Command) error {
-	chainID, err := cmd.Flags().GetString("chain")
-	if err != nil {
-		return fmt.Errorf("failed to get chain: %s", err)
-	}
-
-	basePath, err := cmd.Flags().GetString("base-path")
-	if err != nil {
-		return fmt.Errorf("failed to get base-path: %s", err)
-	}
-
-	if chainID == "" && basePath == "" {
-		return fmt.Errorf("one of chain or base-path must be specified")
+	if basePath == "" {
+		basePath = config.BasePath
 	}
 
 	if basePath == "" {
-		switch Chain(chainID) {
-		case PolkadotChain:
-			basePath = polkadot.DefaultBasePath
-		case KusamaChain:
-			basePath = kusama.DefaultBasePath
-		case WestendChain:
-			basePath = westend.DefaultBasePath
-		case WestendDevChain:
-			basePath = westenddev.DefaultBasePath
-		default:
-			return fmt.Errorf("chain %s not supported", chainID)
-		}
+		return fmt.Errorf("basepath must be specified")
 	}
 
 	firstSlot, err := cmd.Flags().GetUint64("first-slot")
