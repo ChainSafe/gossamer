@@ -13,6 +13,7 @@ import (
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
+	parachaintypes "github.com/ChainSafe/gossamer/parachain-interaction/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -339,10 +340,10 @@ func (mr *MockRuntimeInstanceMockRecorder) OffchainWorker() *gomock.Call {
 }
 
 // ParachainHostPersistedValidationData mocks base method.
-func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(arg0 uint32, arg1 OccupiedCoreAssumption) (*PersistedValidationData, error) {
+func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostPersistedValidationData", arg0, arg1)
-	ret0, _ := ret[0].(*PersistedValidationData)
+	ret0, _ := ret[0].(*parachaintypes.PersistedValidationData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -354,10 +355,10 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostPersistedValidationData(
 }
 
 // ParachainHostValidationCode mocks base method.
-func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 uint32, arg1 OccupiedCoreAssumption) (*ValidationCode, error) {
+func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostValidationCode", arg0, arg1)
-	ret0, _ := ret[0].(*ValidationCode)
+	ret0, _ := ret[0].(*parachaintypes.ValidationCode)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

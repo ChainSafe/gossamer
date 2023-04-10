@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	parachaintypes "github.com/ChainSafe/gossamer/parachain-interaction/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -42,7 +43,7 @@ func (vr *ValidationResult) Value() (scale.VaryingDataTypeValue, error) {
 // data used to form inputs.
 type Valid struct {
 	candidateCommitments    candidateCommitments
-	PersistedValidationData *PersistedValidationData
+	PersistedValidationData *parachaintypes.PersistedValidationData
 }
 
 // Index returns VDT index
@@ -175,14 +176,14 @@ func (CommitmentsHashMismatch) Index() uint {
 	return 12
 }
 
-func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *PersistedValidationData, error) {
-	var PersistedValidationData *PersistedValidationData
+func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *parachaintypes.PersistedValidationData, error) {
+	var PersistedValidationData *parachaintypes.PersistedValidationData
 
 	// TODO: There are three validation functions that gets used alternatively.
 	// Figure out which one to use when.
 
 	// get persisted validation data
-	assumption := OccupiedCoreAssumption{}
+	assumption := parachaintypes.OccupiedCoreAssumption{}
 	// TODO: What value should I choose here?
 	assumption.Set(Included{})
 	// what's the difference between this and last PersistedValidationData?
@@ -384,6 +385,6 @@ type RuntimeInstance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
-	ParachainHostPersistedValidationData(parachaidID uint32, assumption OccupiedCoreAssumption) (*PersistedValidationData, error)
-	ParachainHostValidationCode(parachaidID uint32, assumption OccupiedCoreAssumption) (*ValidationCode, error)
+	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error)
 }

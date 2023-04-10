@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	parachaininteraction "github.com/ChainSafe/gossamer/parachain-interaction"
+	parachaintypes "github.com/ChainSafe/gossamer/parachain-interaction/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -333,8 +333,8 @@ func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
 
 // ParachainHost_persisted_validation_data
-func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaininteraction.OccupiedCoreAssumption,
-) (*parachaininteraction.PersistedValidationData, error) {
+func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+) (*parachaintypes.PersistedValidationData, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachaidID)
@@ -351,7 +351,7 @@ func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, ass
 		return nil, err
 	}
 
-	persistedValidationData := parachaininteraction.PersistedValidationData{}
+	persistedValidationData := parachaintypes.PersistedValidationData{}
 	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
@@ -361,8 +361,8 @@ func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, ass
 }
 
 // ParachainHost_validation_code
-func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaininteraction.OccupiedCoreAssumption,
-) (*parachaininteraction.ValidationCode, error) {
+func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+) (*parachaintypes.ValidationCode, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachaidID)
@@ -379,7 +379,7 @@ func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption p
 		return nil, err
 	}
 
-	validationCode := parachaininteraction.ValidationCode{}
+	validationCode := parachaintypes.ValidationCode{}
 	err = scale.Unmarshal(encodedValidationCode, &validationCode)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)

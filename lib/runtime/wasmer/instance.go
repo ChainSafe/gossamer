@@ -214,7 +214,7 @@ func setupVM(code []byte) (instance wasm.Instance,
 		return instance, nil, fmt.Errorf("%w: %s", ErrWASMDecompress, err)
 	}
 
-	imports, err := importsNodeRuntime()
+	imports, err := ImportsNodeRuntime()
 	if err != nil {
 		return instance, nil, fmt.Errorf("creating node runtime imports: %w", err)
 	}

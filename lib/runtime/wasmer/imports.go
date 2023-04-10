@@ -2088,7 +2088,7 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 }
 
 // importsNodeRuntime returns the WASM imports for the node runtime.
-func importsNodeRuntime() (imports *wasm.Imports, err error) {
+func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
 	imports = wasm.NewImports()
 	// Note imports are closed by the call to wasm.Instance.Close()
 

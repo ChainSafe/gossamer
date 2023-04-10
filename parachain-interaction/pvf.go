@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	wasmer "github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/klauspost/compress/zstd"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -47,6 +48,10 @@ func setupVM(code []byte) (instance wasm.Instance,
 		return instance, nil, fmt.Errorf("%w: %s", ErrWASMDecompress, err)
 	}
 
+	imports, err := wasmer.ImportsNodeRuntime()
+	if err != nil {
+		return instance, nil, fmt.Errorf("creating node runtime imports: %w", err)
+	}
 	// Provide importable memory for newer runtimes
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0. (#1268)
@@ -55,10 +60,14 @@ func setupVM(code []byte) (instance wasm.Instance,
 		return instance, nil, fmt.Errorf("creating web assembly memory: %w", err)
 	}
 
-	// TODO: Do I need any imports here? Not sure!
+	_, err = imports.AppendMemory("memory", memory)
+	if err != nil {
+		return instance, nil, fmt.Errorf("appending memory to imports: %w", err)
+	}
 
 	// Instantiates the WebAssembly module.
-	instance, err = wasm.NewInstance(code)
+	instance, err = wasm.NewInstanceWithImports(code, imports)
+
 	if err != nil {
 		return instance, nil, fmt.Errorf("creating web assembly instance: %w", err)
 	}
