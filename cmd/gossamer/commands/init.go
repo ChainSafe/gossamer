@@ -18,9 +18,6 @@ import (
 const confirmCharacter = "Y"
 
 func init() {
-	InitCmd.Flags().String("genesis",
-		"",
-		"the path to the genesis configuration to load. Example: --genesis genesis.json")
 	InitCmd.Flags().Bool("force",
 		false,
 		"force reinitialization of node")
@@ -63,15 +60,15 @@ func execInit(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to validate config: %s", err)
 	}
 
-	if err := dot.InitNode(config); err != nil {
-		return fmt.Errorf("failed to initialise node: %s", err)
-	}
-
 	// Ensure that the base path exists and is accessible
 	// Create the folders(config, data) in the base path if they don't exist
 	// Write the config to the base path
 	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
 		return fmt.Errorf("failed to ensure root: %s", err)
+	}
+
+	if err := dot.InitNode(config); err != nil {
+		return fmt.Errorf("failed to initialise node: %s", err)
 	}
 
 	logger.Info("node initialised at: " + config.BasePath)

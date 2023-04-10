@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/lib/genesis"
+	substrategenesis "github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/os"
 	"github.com/spf13/cobra"
 )
@@ -67,7 +67,7 @@ func createGenesisWithRuntime(fp string, genesisSpecFilePath string) (string, er
 		return "", err
 	}
 
-	genesisSpec, err := genesis.NewGenesisSpecFromJSON(genesisSpecFilePath)
+	genesisSpec, err := substrategenesis.NewGenesisSpecFromJSON(genesisSpecFilePath)
 	if err != nil {
 		return "", err
 	}

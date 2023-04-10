@@ -56,6 +56,8 @@ var (
 	DefaultGrandpaAuthority = true
 	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default
 	DefaultWasmInterpreter = wasmer.Name
+	// DefaultProtocolID is the default protocol ID
+	DefaultProtocolID = "dot"
 
 	// NetworkConfig
 
@@ -139,6 +141,7 @@ func DefaultConfig() *cfg.Config {
 			Bootnodes:   DefaultNetworkBootnodes,
 			NoBootstrap: DefaultNoBootstrap,
 			NoMDNS:      DefaultNoMDNS,
+			ProtocolID:  DefaultProtocolID,
 		},
 		RPC: &cfg.RPCConfig{
 			Port:    DefaultRPCHTTPPort,

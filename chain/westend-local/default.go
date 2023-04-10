@@ -66,6 +66,7 @@ func DefaultAliceConfig() *cfg.Config {
 			NoBootstrap:       false,
 			NoMDNS:            false,
 			DiscoveryInterval: 10 * time.Second,
+			ProtocolID:        "dot",
 		},
 		RPC: &cfg.RPCConfig{
 			WS:      false,

@@ -6,13 +6,14 @@ package commands
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/lib/keystore"
+
 	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/spf13/cobra"
 )
 
@@ -61,6 +62,7 @@ var (
 	// Initialization flags for node
 	chain    string
 	basePath string
+	genesis  string
 )
 
 // Default values
@@ -95,6 +97,10 @@ Usage:
 
 			if !(cmd.Name() == "gossamer" || cmd.Name() == "init") {
 				return nil
+			}
+
+			if err := parseGenesis(); err != nil {
+				return fmt.Errorf("failed to parse genesis: %s", err)
 			}
 
 			parseAccount()
@@ -141,6 +147,10 @@ func addRootFlags(cmd *cobra.Command) error {
 		"chain",
 		cfg.WestendLocalChain.String(),
 		"The default chain configuration to load. Example: --chain kusama")
+	cmd.Flags().StringVar(&genesis,
+		"genesis",
+		"",
+		"the path to the genesis configuration to load. Example: --genesis genesis.json")
 
 	// Base Config
 	if err := addBaseConfigFlags(cmd); err != nil {
@@ -586,28 +596,6 @@ func execRoot(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get password: %s", err)
 	}
 
-	// if the node is not initialised, initialise it
-	if !dot.IsNodeInitialised(config.BasePath) {
-		if err := dot.InitNode(config); err != nil {
-			logger.Errorf("failed to initialise node: %s", err)
-			return err
-		}
-	}
-
-	// ensure configuration matches genesis data stored during node initialization
-	// but do not overwrite configuration if the corresponding flag value is set
-	if err := updateDotConfigFromGenesisData(); err != nil {
-		logger.Errorf("failed to update config from genesis data: %s", err)
-		return err
-	}
-
-	// Ensure that the base path exists and is accessible
-	// Create the folders(config, data) in the base path if they don't exist
-	// Write the config to the base path
-	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
-		return fmt.Errorf("failed to ensure root: %s", err)
-	}
-
 	ks := keystore.NewGlobalKeystore()
 	if config.Account.Key != "" {
 		if err := loadBuiltInTestKeys(config.Account.Key, *ks); err != nil {
@@ -617,24 +605,38 @@ func execRoot(cmd *cobra.Command) error {
 
 	// load user keys if specified
 	if err := unlockKeystore(ks.Acco, config.BasePath, config.Account.Unlock, password); err != nil {
-		logger.Errorf("failed to unlock keystore: %s", err)
-		return err
+		return fmt.Errorf("failed to unlock keystore: %s", err)
 	}
 
 	if err := unlockKeystore(ks.Babe, config.BasePath, config.Account.Unlock, password); err != nil {
-		logger.Errorf("failed to unlock keystore: %s", err)
-		return err
+		return fmt.Errorf("failed to unlock keystore: %s", err)
 	}
 
 	if err := unlockKeystore(ks.Gran, config.BasePath, config.Account.Unlock, password); err != nil {
-		logger.Errorf("failed to unlock keystore: %s", err)
-		return err
+		return fmt.Errorf("failed to unlock keystore: %s", err)
+	}
+
+	if err := config.ValidateBasic(); err != nil {
+		return fmt.Errorf("failed to validate config: %s", err)
+	}
+
+	// Ensure that the base path exists and is accessible
+	// Create the folders(config, data) in the base path if they don't exist
+	// Write the config to the base path
+	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
+		return fmt.Errorf("failed to ensure root: %s", err)
+	}
+
+	// if the node is not initialised, initialise it
+	if !dot.IsNodeInitialised(config.BasePath) {
+		if err := dot.InitNode(config); err != nil {
+			return fmt.Errorf("failed to initialise node: %s", err)
+		}
 	}
 
 	node, err := dot.NewNode(config, ks)
 	if err != nil {
-		logger.Errorf("failed to create node services: %s", err)
-		return err
+		return fmt.Errorf("failed to create node services: %s", err)
 	}
 
 	logger.Info("starting node " + node.Name + "...")

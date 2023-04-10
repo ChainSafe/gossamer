@@ -41,6 +41,8 @@ const (
 	DefaultGrandpaAuthority = true
 	// DefaultGrandpaInterval is the default grandpa interval
 	DefaultGrandpaInterval = time.Second
+	// DefaultProtocolID is the default protocol ID
+	DefaultProtocolID = "dot"
 
 	// DefaultPort is the default port for the westend dev node
 	DefaultPort = 7001
@@ -131,6 +133,7 @@ func DefaultConfig() *cfg.Config {
 			NoBootstrap:       DefaultNoBootstrap,
 			NoMDNS:            DefaultNoMDNS,
 			DiscoveryInterval: DefaultDiscoveryInterval,
+			ProtocolID:        DefaultProtocolID,
 		},
 		RPC: &cfg.RPCConfig{
 			WS:      DefaultWSEnabled,

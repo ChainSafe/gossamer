@@ -12,7 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/genesis"
+	substrategenesis "github.com/ChainSafe/gossamer/lib/genesis"
+
+	gssmros "github.com/ChainSafe/gossamer/lib/os"
+
 	terminal "golang.org/x/term"
 
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -22,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/chain/westend"
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	westendlocal "github.com/ChainSafe/gossamer/chain/westend-local"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -124,52 +126,6 @@ func addStringSliceFlagBindViper(
 ) error {
 	cmd.PersistentFlags().StringSlice(name, defaultValue, usage)
 	return viper.BindPFlag(viperBindName, cmd.PersistentFlags().Lookup(name))
-}
-
-// updateDotConfigFromGenesisData updates the configuration from genesis data of an initialised node
-func updateDotConfigFromGenesisData() error {
-	// initialise database using data directory
-	db, err := utils.SetupDatabase(config.BasePath, false)
-	if err != nil {
-		return fmt.Errorf("failed to create database: %s", err)
-	}
-
-	// load genesis data from initialised node database
-	gen, err := state.NewBaseState(db).LoadGenesisData()
-	if err != nil {
-		return fmt.Errorf("failed to load genesis data: %s", err)
-	}
-
-	// check genesis id and use genesis id if --id flag not set
-	if config.ID == "" {
-		config.ID = gen.ID
-	}
-
-	// check genesis bootnodes and use genesis --bootnodes if name flag not set
-	if len(config.Network.Bootnodes) == 0 {
-		config.Network.Bootnodes = common.BytesToStringArray(gen.Bootnodes)
-	}
-
-	// check genesis protocol and use genesis --protocol if name flag not set
-	if config.Network.ProtocolID == "" {
-		config.Network.ProtocolID = gen.ProtocolID
-	}
-
-	// close database
-	err = db.Close()
-	if err != nil {
-		return fmt.Errorf("failed to close database: %s", err)
-	}
-
-	logger.Debugf(
-		"configuration after genesis data:" +
-			" name=" + config.Name +
-			" id=" + config.ID +
-			" bootnodes=" + strings.Join(config.Network.Bootnodes, ",") +
-			" protocol=" + config.Network.ProtocolID,
-	)
-
-	return nil
 }
 
 // loadBuiltInTestKeys loads the built-in test keys into the keystore
@@ -283,8 +239,8 @@ func setDefaultConfig(chain cfg.Chain) error {
 // configureViper sets up viper to read from the config file and command line flags
 func configureViper(basePath string) error {
 	viper.SetConfigName("config")                          // name of config file (without extension)
-	viper.AddConfigPath(basePath)                          // search `root-directory`
-	viper.AddConfigPath(filepath.Join(basePath, "config")) // search `root-directory/config`
+	viper.AddConfigPath(basePath)                          // search `base-path`
+	viper.AddConfigPath(filepath.Join(basePath, "config")) // search `base-path/config`
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
@@ -331,6 +287,10 @@ func parseBasePath() error {
 	// bind it to viper so that it can be used during the config parsing
 	viper.Set("base-path", config.BasePath)
 
+	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
+		return fmt.Errorf("failed to create base path: %s", err)
+	}
+
 	return nil
 }
 
@@ -354,6 +314,26 @@ func parseAccount() {
 		// bind it to viper so that it can be used during the config parsing
 		viper.Set("account.key", key)
 	}
+}
+
+// parseGenesis copies the genesis file to the base path
+// if the genesis file is not set, it will use the default genesis file
+func parseGenesis() error {
+	sourceGenesis := config.Genesis
+	destGenesis := cfg.GetGenesisPath(config.BasePath)
+	if genesis != "" {
+		sourceGenesis = genesis
+	}
+
+	// copy genesis file to base path
+	if err := gssmros.CopyFile(sourceGenesis, destGenesis); err != nil {
+		return fmt.Errorf("failed to copy genesis file: %s", err)
+	}
+	config.Genesis = destGenesis
+	// bind it to viper so that it can be used during the config parsing
+	viper.Set("genesis", destGenesis)
+
+	return nil
 }
 
 // parseRole parses the role from the command line flags
@@ -385,7 +365,7 @@ func parseTelemetryURL() error {
 		return nil
 	}
 
-	var telemetry []genesis.TelemetryEndpoint
+	var telemetry []substrategenesis.TelemetryEndpoint
 	urlVerbosityPairs := strings.Split(telemetryURLs, ",")
 	for _, pair := range urlVerbosityPairs {
 		urlVerbosity := strings.Split(pair, ":")
@@ -403,7 +383,7 @@ func parseTelemetryURL() error {
 			return fmt.Errorf("invalid --telemetry-url. Failed to parse verbosity: %v", err.Error())
 		}
 
-		telemetry = append(config.TelemetryURLs, genesis.TelemetryEndpoint{
+		telemetry = append(config.TelemetryURLs, substrategenesis.TelemetryEndpoint{
 			Endpoint:  url,
 			Verbosity: verbosity,
 		})

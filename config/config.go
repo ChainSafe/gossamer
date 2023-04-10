@@ -15,7 +15,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
-const uint32Max = ^uint32(0)
+const (
+	// uint32Max is the maximum value of a uint32
+	uint32Max = ^uint32(0)
+	// defaultGenesisFile is the default genesis file
+	defaultGenesisFile = "genesis.json"
+)
 
 // Config defines the configuration for the gossamer node
 type Config struct {
@@ -434,4 +439,9 @@ const (
 // String returns the string representation of the network role
 func (n NetworkRole) String() string {
 	return string(n)
+}
+
+// GetGenesisPath returns the path to the genesis file.
+func GetGenesisPath(basePath string) string {
+	return filepath.Join(basePath, defaultGenesisFile)
 }
