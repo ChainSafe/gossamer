@@ -60,9 +60,9 @@ var (
 	charlie bool
 
 	// Initialization flags for node
-	chain    string
-	basePath string
-	genesis  string
+	chain       string
+	basePath    string
+	genesisPath string
 )
 
 // Default values
@@ -147,7 +147,7 @@ func addRootFlags(cmd *cobra.Command) error {
 		"chain",
 		cfg.WestendLocalChain.String(),
 		"The default chain configuration to load. Example: --chain kusama")
-	cmd.Flags().StringVar(&genesis,
+	cmd.Flags().StringVar(&genesisPath,
 		"genesis",
 		"",
 		"the path to the genesis configuration to load. Example: --genesis genesis.json")

@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	substrategenesis "github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 
 	gssmros "github.com/ChainSafe/gossamer/lib/os"
 
@@ -321,8 +321,8 @@ func parseAccount() {
 func parseGenesis() error {
 	sourceGenesis := config.Genesis
 	destGenesis := cfg.GetGenesisPath(config.BasePath)
-	if genesis != "" {
-		sourceGenesis = genesis
+	if genesisPath != "" {
+		sourceGenesis = genesisPath
 	}
 
 	// copy genesis file to base path
@@ -365,7 +365,7 @@ func parseTelemetryURL() error {
 		return nil
 	}
 
-	var telemetry []substrategenesis.TelemetryEndpoint
+	var telemetry []genesis.TelemetryEndpoint
 	urlVerbosityPairs := strings.Split(telemetryURLs, ",")
 	for _, pair := range urlVerbosityPairs {
 		urlVerbosity := strings.Split(pair, ":")
@@ -383,7 +383,7 @@ func parseTelemetryURL() error {
 			return fmt.Errorf("invalid --telemetry-url. Failed to parse verbosity: %v", err.Error())
 		}
 
-		telemetry = append(config.TelemetryURLs, substrategenesis.TelemetryEndpoint{
+		telemetry = append(config.TelemetryURLs, genesis.TelemetryEndpoint{
 			Endpoint:  url,
 			Verbosity: verbosity,
 		})
