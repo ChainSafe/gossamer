@@ -141,7 +141,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 	tomlConfig := config.Default()
 	tomlConfig.Genesis = genesisPath
 	tomlConfig.Core.BABELead = true
-	tomlConfig.RPC.WS = true // WS port is set in the node.New constructor
+	tomlConfig.RPC.WSExternal = true // WS port is set in the node.New constructor
 	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)

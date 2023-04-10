@@ -69,10 +69,8 @@ func DefaultAliceConfig() *cfg.Config {
 			ProtocolID:        "dot",
 		},
 		RPC: &cfg.RPCConfig{
-			WS:      false,
-			Enabled: false,
-			Port:    8545,
-			Host:    "localhost",
+			Port: 8545,
+			Host: "localhost",
 			Modules: []string{
 				"system", "author", "chain", "state", "rpc",
 				"grandpa", "offchain", "childstate", "syncstate", "payment"},
@@ -137,10 +135,8 @@ func DefaultBobConfig() *cfg.Config {
 			DiscoveryInterval: 10 * time.Second,
 		},
 		RPC: &cfg.RPCConfig{
-			WS:      false,
-			Enabled: false,
-			Port:    8555,
-			Host:    "localhost",
+			Port: 8555,
+			Host: "localhost",
 			Modules: []string{
 				"system", "author", "chain", "state", "rpc",
 				"grandpa", "offchain", "childstate", "syncstate", "payment"},
@@ -205,10 +201,8 @@ func DefaultCharlieConfig() *cfg.Config {
 			DiscoveryInterval: 10 * time.Second,
 		},
 		RPC: &cfg.RPCConfig{
-			WS:      false,
-			Enabled: false,
-			Port:    8565,
-			Host:    "localhost",
+			Port: 8565,
+			Host: "localhost",
 			Modules: []string{
 				"system", "author", "chain", "state", "rpc",
 				"grandpa", "offchain", "childstate", "syncstate", "payment"},

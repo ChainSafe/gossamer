@@ -143,18 +143,14 @@ type StateConfig struct {
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
-	Enabled          bool     `mapstructure:"enabled,omitempty"`
-	Unsafe           bool     `mapstructure:"unsafe,omitempty"`
-	UnsafeExternal   bool     `mapstructure:"unsafe-external,omitempty"`
-	External         bool     `mapstructure:"external,omitempty"`
-	Port             uint32   `mapstructure:"port,omitempty"`
-	Host             string   `mapstructure:"host,omitempty"`
-	Modules          []string `mapstructure:"modules,omitempty"`
-	WSPort           uint32   `mapstructure:"ws-port,omitempty"`
-	WS               bool     `mapstructure:"ws,omitempty"`
-	WSExternal       bool     `mapstructure:"ws-external,omitempty"`
-	WSUnsafe         bool     `mapstructure:"ws-unsafe,omitempty"`
-	WSUnsafeExternal bool     `mapstructure:"ws-unsafe-external,omitempty"`
+	RPCExternal       bool     `mapstructure:"rpc-external,omitempty"`
+	UnsafeRPCExternal bool     `mapstructure:"unsafe-rpc-external,omitempty"`
+	Port              uint32   `mapstructure:"port,omitempty"`
+	Host              string   `mapstructure:"host,omitempty"`
+	Modules           []string `mapstructure:"modules,omitempty"`
+	WSPort            uint32   `mapstructure:"ws-port,omitempty"`
+	WSExternal        bool     `mapstructure:"ws-external,omitempty"`
+	UnsafeWSExternal  bool     `mapstructure:"unsafe-ws-external,omitempty"`
 }
 
 // PprofConfig contains the configuration for Pprof.
@@ -268,7 +264,7 @@ func (s *StateConfig) ValidateBasic() error {
 
 // ValidateBasic does the basic validation on RPCConfig
 func (r *RPCConfig) ValidateBasic() error {
-	if r.Enabled {
+	if r.IsRPCEnabled() {
 		if r.Port == 0 {
 			return fmt.Errorf("port cannot be empty")
 		}
@@ -276,7 +272,7 @@ func (r *RPCConfig) ValidateBasic() error {
 			return fmt.Errorf("host cannot be empty")
 		}
 	}
-	if r.WS && r.WSPort == 0 {
+	if r.IsWSEnabled() && r.WSPort == 0 {
 		return fmt.Errorf("ws port cannot be empty")
 	}
 
@@ -294,12 +290,12 @@ func (p *PprofConfig) ValidateBasic() error {
 
 // IsRPCEnabled returns true if RPC is enabled.
 func (r *RPCConfig) IsRPCEnabled() bool {
-	return r.Enabled || r.External || r.Unsafe || r.UnsafeExternal
+	return r.UnsafeRPCExternal || r.RPCExternal
 }
 
 // IsWSEnabled returns true if WS is enabled.
 func (r *RPCConfig) IsWSEnabled() bool {
-	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
+	return r.WSExternal || r.UnsafeWSExternal
 }
 
 // Copy creates a copy of the config.
@@ -361,18 +357,14 @@ func Copy(c *Config) Config {
 			Rewind: c.State.Rewind,
 		},
 		RPC: &RPCConfig{
-			Enabled:          c.RPC.Enabled,
-			Unsafe:           c.RPC.Unsafe,
-			UnsafeExternal:   c.RPC.UnsafeExternal,
-			External:         c.RPC.External,
-			Port:             c.RPC.Port,
-			Host:             c.RPC.Host,
-			Modules:          c.RPC.Modules,
-			WSPort:           c.RPC.WSPort,
-			WS:               c.RPC.WS,
-			WSExternal:       c.RPC.WSExternal,
-			WSUnsafe:         c.RPC.WSUnsafe,
-			WSUnsafeExternal: c.RPC.WSUnsafeExternal,
+			UnsafeRPCExternal: c.RPC.UnsafeRPCExternal,
+			RPCExternal:       c.RPC.RPCExternal,
+			Port:              c.RPC.Port,
+			Host:              c.RPC.Host,
+			Modules:           c.RPC.Modules,
+			WSPort:            c.RPC.WSPort,
+			WSExternal:        c.RPC.WSExternal,
+			UnsafeWSExternal:  c.RPC.UnsafeWSExternal,
 		},
 		Pprof: &PprofConfig{
 			Enabled:          c.Pprof.Enabled,

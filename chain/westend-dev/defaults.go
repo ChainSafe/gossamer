@@ -53,10 +53,6 @@ const (
 	// DefaultDiscoveryInterval is the default discovery interval for the westend dev node
 	DefaultDiscoveryInterval = time.Second
 
-	// DefaultWSEnabled is the default websocket flag for the westend dev node
-	DefaultWSEnabled = false
-	// DefaultRPCEnabled is the default rpc flag for the westend dev node
-	DefaultRPCEnabled = false
 	// DefaultRPCPort is the default rpc port for the westend dev node
 	DefaultRPCPort = uint32(8545)
 	// DefaultRPCHost is the default rpc host for the westend dev node
@@ -136,8 +132,6 @@ func DefaultConfig() *cfg.Config {
 			ProtocolID:        DefaultProtocolID,
 		},
 		RPC: &cfg.RPCConfig{
-			WS:      DefaultWSEnabled,
-			Enabled: DefaultRPCEnabled,
 			Port:    DefaultRPCPort,
 			Host:    DefaultRPCHost,
 			Modules: DefaultRPCModules,

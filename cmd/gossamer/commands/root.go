@@ -409,34 +409,18 @@ func addNetworkFlags(cmd *cobra.Command) error {
 // addRPCFlags adds rpc flags and binds to viper
 func addRPCFlags(cmd *cobra.Command) error {
 	if err := addBoolFlagBindViper(cmd,
-		"rpc-enabled",
-		config.RPC.Enabled,
-		"Enable the HTTP-RPC server",
-		"rpc.enabled"); err != nil {
-		return fmt.Errorf("failed to add --rpc-enabled flag: %s", err)
-	}
-
-	if err := addBoolFlagBindViper(cmd,
-		"rpc-unsafe",
-		config.RPC.Unsafe,
-		"Enable the HTTP-RPC server to unsafe procedures",
-		"rpc.unsafe"); err != nil {
-		return fmt.Errorf("failed to add --rpc-unsafe flag: %s", err)
-	}
-
-	if err := addBoolFlagBindViper(cmd,
 		"unsafe-rpc-external",
-		config.RPC.UnsafeExternal,
+		config.RPC.UnsafeRPCExternal,
 		"Enable external HTTP-RPC connections to unsafe procedures",
-		"rpc.unsafe-external"); err != nil {
+		"rpc.unsafe-rpc-external"); err != nil {
 		return fmt.Errorf("failed to add --unsafe-rpc-external flag: %s", err)
 	}
 
 	if err := addBoolFlagBindViper(cmd,
 		"rpc-external",
-		config.RPC.External,
+		config.RPC.RPCExternal,
 		"Enable external HTTP-RPC connections",
-		"rpc.external"); err != nil {
+		"rpc.rpc-external"); err != nil {
 		return fmt.Errorf("failed to add --rpc-external flag: %s", err)
 	}
 
@@ -473,13 +457,6 @@ func addRPCFlags(cmd *cobra.Command) error {
 	}
 
 	if err := addBoolFlagBindViper(cmd,
-		"ws", config.RPC.WS,
-		"Enable the websockets server",
-		"rpc.ws"); err != nil {
-		return fmt.Errorf("failed to add --ws flag: %s", err)
-	}
-
-	if err := addBoolFlagBindViper(cmd,
 		"ws-external",
 		config.RPC.WSExternal,
 		"Enable external websocket connections",
@@ -488,18 +465,10 @@ func addRPCFlags(cmd *cobra.Command) error {
 	}
 
 	if err := addBoolFlagBindViper(cmd,
-		"ws-unsafe",
-		config.RPC.WSUnsafe,
-		"Enable access to websocket unsafe calls",
-		"rpc.ws-unsafe"); err != nil {
-		return fmt.Errorf("failed to add --ws-unsafe flag: %s", err)
-	}
-
-	if err := addBoolFlagBindViper(cmd,
-		"ws-unsafe-external",
-		config.RPC.WSUnsafeExternal,
+		"unsafe-ws-external",
+		config.RPC.UnsafeWSExternal,
 		"Enable external access to websocket unsafe calls",
-		"rpc.ws-unsafe-external"); err != nil {
+		"rpc.unsafe-ws-external"); err != nil {
 		return fmt.Errorf("failed to add --ws-unsafe-external flag: %s", err)
 	}
 

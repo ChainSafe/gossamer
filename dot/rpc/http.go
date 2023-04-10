@@ -45,24 +45,21 @@ type HTTPServerConfig struct {
 	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool
-	RPCUnsafe           bool
 	RPCUnsafeExternal   bool
 	Host                string
 	RPCPort             uint32
-	WS                  bool
 	WSExternal          bool
-	WSUnsafe            bool
 	WSUnsafeExternal    bool
 	WSPort              uint32
 	Modules             []string
 }
 
 func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
-	return h.RPCUnsafe || h.RPCUnsafeExternal
+	return h.RPCUnsafeExternal
 }
 
 func (h *HTTPServerConfig) wsUnsafeEnabled() bool {
-	return h.WSUnsafe || h.WSUnsafeExternal
+	return h.WSUnsafeExternal
 }
 
 func (h *HTTPServerConfig) exposeWS() bool {
@@ -160,7 +157,7 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
-	if !h.serverConfig.WS {
+	if !h.serverConfig.exposeWS() {
 		return nil
 	}
 
@@ -180,7 +177,7 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	if h.serverConfig.WS {
+	if h.serverConfig.exposeWS() {
 		// close all channels and websocket connections
 		for _, conn := range h.wsConns {
 			for _, sub := range conn.Subscriptions {

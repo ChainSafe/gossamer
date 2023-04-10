@@ -33,6 +33,10 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.Genesis = genesisPath
 	con.Core.Role = common.FullNodeRole
 	con.RPC.Modules = []string{"system", "author", "chain"}
+	con.RPC.RPCExternal = true
+	con.RPC.WSExternal = true
+	con.RPC.UnsafeRPCExternal = true
+	con.RPC.UnsafeWSExternal = true
 
 	var nodes []node.Node
 	for i := 0; i < numberOfNodes; i++ {

@@ -100,12 +100,12 @@ func (n *Node) setDefaults(t *testing.T) {
 		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
 	}
 
-	if n.tomlConfig.RPC.Enabled && n.tomlConfig.RPC.Port == 0 {
+	if n.tomlConfig.RPC.IsRPCEnabled() && n.tomlConfig.RPC.Port == 0 {
 		const basePort uint32 = 8540
 		n.tomlConfig.RPC.Port = basePort + uint32(*n.index)
 	}
 
-	if n.tomlConfig.RPC.WS && n.tomlConfig.RPC.WSPort == 0 {
+	if n.tomlConfig.RPC.IsWSEnabled() && n.tomlConfig.RPC.WSPort == 0 {
 		const basePort uint32 = 8546
 		n.tomlConfig.RPC.WSPort = basePort + uint32(*n.index)
 	}

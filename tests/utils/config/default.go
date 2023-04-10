@@ -54,14 +54,12 @@ func Default() cfg.Config {
 			DiscoveryInterval: time.Second * 1,
 		},
 		RPC: &cfg.RPCConfig{
-			Enabled:  true,
-			Unsafe:   true,
-			WSUnsafe: true,
-			Host:     "localhost",
+			UnsafeRPCExternal: true,
+			UnsafeWSExternal:  true,
+			Host:              "localhost",
 			Modules: []string{
 				"system", "author", "chain", "state", "rpc",
 				"grandpa", "offchain", "childstate", "syncstate", "payment"},
-			WS: true,
 		},
 		State:  &cfg.StateConfig{},
 		Pprof:  &cfg.PprofConfig{},

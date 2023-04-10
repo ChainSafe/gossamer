@@ -264,21 +264,13 @@ rewind = {{ .State.Rewind }}
 #######################################################
 [rpc]
 
-# Enable the HTTP-RPC server
-# Defaults to true
-enabled = {{ .RPC.Enabled }}
-
-# Enable the HTTP-RPC server to unsafe procedures
+# Enable external HTTP-RPC connections
 # Defaults to false
-unsafe = {{ .RPC.Unsafe }}
+rpc-external = {{ .RPC.RPCExternal }}
 
 # Enable external HTTP-RPC connections to unsafe procedures
 # Defaults to false
-unsafe-external = {{ .RPC.UnsafeExternal }}
-
-# Enable external HTTP-RPC connections
-# Defaults to false
-external = {{ .RPC.External }}
+unsafe-rpc-external = {{ .RPC.UnsafeRPCExternal }}
 
 # HTTP-RPC server listening port
 # Defaults to 8545
@@ -292,10 +284,6 @@ host = "{{ .RPC.Host }}"
 # Defaults to "system, author, chain, state, rpc, grandpa, offchain, childstate, syncstate, payment"
 modules = [{{ range .RPC.Modules }}"{{ . }}", {{ end }}]
 
-# Enable the websockets server
-# Defaults to false
-ws = {{ .RPC.WS }}
-
 # Websockets server listening port
 # Defaults to 8546
 ws-port = {{ .RPC.WSPort }}
@@ -304,13 +292,9 @@ ws-port = {{ .RPC.WSPort }}
 # Defaults to false
 ws-external = {{ .RPC.WSExternal }}
 
-# Enable the websockets server to unsafe procedures
-# Defaults to false
-ws-unsafe = {{ .RPC.WSUnsafe }}
-
 # Enable external websocket connections to unsafe procedures
 # Defaults to false
-ws-unsafe-external = {{ .RPC.WSUnsafeExternal }}
+unsafe-ws-external = {{ .RPC.UnsafeWSExternal }}
 
 #######################################################
 ###            PPROF Configuration Options          ###

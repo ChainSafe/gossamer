@@ -20,6 +20,7 @@ func main() {
 		commands.BuildSpecCmd,
 		commands.PruneStateCmd,
 		commands.ImportStateCmd,
+		commands.VersionCmd,
 	)
 	configureCobraCmd(rootCmd, "GSSMR")
 	if err := rootCmd.Execute(); err != nil {
