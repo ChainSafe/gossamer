@@ -472,6 +472,11 @@ func addRPCFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --ws-unsafe-external flag: %s", err)
 	}
 
+	// dummy flag to conform with the substrate cli
+	cmd.Flags().String("rpc-cors",
+		"",
+		"dummy flag to conform with the substrate cli")
+
 	return nil
 }
 
