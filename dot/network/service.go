@@ -340,6 +340,7 @@ func (s *Service) Start() error {
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
 	if s.Metrics.Publish {
+		// TODO(ed) remove before commit
 		processStartTimeGauge.Set(float64(time.Now().Unix()))
 		go s.updateMetrics()
 	}
