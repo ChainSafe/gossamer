@@ -60,7 +60,6 @@ func TestUnsafeRPCProtection(t *testing.T) {
 		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev", "syncstate"},
 		RPCPort:           7878,
 		RPCAPI:            NewService(),
-		RPCUnsafe:         false,
 		RPCUnsafeExternal: false,
 	}
 
@@ -146,10 +145,10 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &HTTPServerConfig{
-		Modules:   []string{"system"},
-		RPCPort:   7880,
-		RPCAPI:    NewService(),
-		RPCUnsafe: true,
+		Modules:           []string{"system"},
+		RPCPort:           7880,
+		RPCAPI:            NewService(),
+		RPCUnsafeExternal: true,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -200,9 +199,8 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 		Modules:           []string{"system"},
 		RPCPort:           8786,
 		RPCAPI:            NewService(),
-		RPCUnsafe:         true,
-		RPCUnsafeExternal: false,
 		RPCExternal:       true,
+		RPCUnsafeExternal: true,
 		NetworkAPI:        netmock,
 	}
 

@@ -630,7 +630,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.NoGrandpa()
 	tomlConfig.Genesis = genesisPath
-	tomlConfig.RPC.WS = true
+	tomlConfig.RPC.WSExternal = true
 	tomlConfig.Core.BABELead = true
 	producingNode := node.New(t, tomlConfig, cfg.WestendDevChain, node.SetIndex(0))
 	ctx, cancel := context.WithCancel(context.Background())
