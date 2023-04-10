@@ -389,16 +389,15 @@ func Copy(c *Config) Config {
 
 // EnsureRoot creates the root, config, and data directories if they don't exist,
 // and returns error if it fails.
-func EnsureRoot(rootDir string, config *Config) error {
-	if err := os.EnsureDir(rootDir, DefaultDirPerm); err != nil {
-		panic(err.Error())
+func EnsureRoot(basePath string) error {
+	if err := os.EnsureDir(basePath, DefaultDirPerm); err != nil {
+		return fmt.Errorf("failed to create root directory: %w", err)
 	}
-	if err := os.EnsureDir(filepath.Join(rootDir, defaultConfigDir), DefaultDirPerm); err != nil {
-		panic(err.Error())
+	if err := os.EnsureDir(filepath.Join(basePath, defaultConfigDir), DefaultDirPerm); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	configFilePath := filepath.Join(rootDir, defaultConfigFilePath)
-	return WriteConfigFile(configFilePath, config)
+	return nil
 }
 
 // Chain is a string representing a chain

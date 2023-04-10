@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/ChainSafe/gossamer/cmd/gossamer/commands"
+	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 	)
 	configureCobraCmd(rootCmd, "GSSMR")
 	if err := rootCmd.Execute(); err != nil {
+		log.Errorf("failed to execute root command: %s", err)
 		panic(err)
 	}
 }

@@ -287,8 +287,10 @@ func parseBasePath() error {
 	// bind it to viper so that it can be used during the config parsing
 	viper.Set("base-path", config.BasePath)
 
-	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
-		return fmt.Errorf("failed to create base path: %s", err)
+	// Ensure that the base path exists and is accessible
+	// Create the folders(config, data) in the base path if they don't exist
+	if err := cfg.EnsureRoot(config.BasePath); err != nil {
+		return fmt.Errorf("failed to ensure root: %s", err)
 	}
 
 	return nil

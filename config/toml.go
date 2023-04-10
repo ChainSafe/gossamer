@@ -37,32 +37,13 @@ func init() {
 	}
 }
 
-/****** these are for production settings ***********/
+// WriteConfigFile writes the config to the base path.
+func WriteConfigFile(basePath string, config *Config) error {
+	configFilePath := filepath.Join(basePath, defaultConfigFilePath)
+	return writeConfigFile(configFilePath, config)
+}
 
-// EnsureRoot creates the root, config, and data directories if they don't exist,
-// and panics if it fails.
-//func EnsureRoot(rootDir string) {
-//	if err := os.EnsureDir(rootDir, DefaultDirPerm); err != nil {
-//		panic(err.Error())
-//	}
-//	if err := os.EnsureDir(filepath.Join(rootDir, defaultConfigDir), DefaultDirPerm); err != nil {
-//		panic(err.Error())
-//	}
-//
-//	configFilePath := filepath.Join(rootDir, defaultConfigFilePath)
-//
-//	// Write default config file if missing.
-//	if !os.FileExists(configFilePath) {
-//		writeDefaultConfigFile(configFilePath)
-//	}
-//}
-
-//func writeDefaultConfigFile(configFilePath string) {
-//	WriteConfigFile(configFilePath, DefaultWestendDevConfig())
-//}
-
-// WriteConfigFile renders config using the template and writes it to configFilePath.
-func WriteConfigFile(configFilePath string, config *Config) error {
+func writeConfigFile(configFilePath string, config *Config) error {
 	var buffer bytes.Buffer
 
 	if err := configTemplate.Execute(&buffer, config); err != nil {

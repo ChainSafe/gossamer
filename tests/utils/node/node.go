@@ -11,10 +11,11 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/stretchr/testify/require"
 
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
 )
 
@@ -125,12 +126,17 @@ func (n *Node) setDefaults(t *testing.T) {
 
 // Init initialises the Gossamer node.
 func (n *Node) Init() (err error) {
-	// Write the configuration to a file.
+	// Ensure the base path exists.
+	if err := cfg.EnsureRoot(n.tomlConfig.BasePath); err != nil {
+		return fmt.Errorf("cannot ensure root: %w", err)
+	}
+
 	if err := n.tomlConfig.ValidateBasic(); err != nil {
 		return fmt.Errorf("cannot validate basic config: %w", err)
 	}
 
-	return cfg.EnsureRoot(n.tomlConfig.BasePath, &n.tomlConfig)
+	// Write the configuration to a file.
+	return cfg.WriteConfigFile(n.tomlConfig.BasePath, &n.tomlConfig)
 }
 
 // Start starts a Gossamer node using the node configuration of
@@ -141,6 +147,7 @@ func (n *Node) Init() (err error) {
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
 		"--base-path", n.tomlConfig.BasePath, "--chain", n.chain.String(),
+		"--genesis", n.tomlConfig.Genesis,
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {

@@ -60,10 +60,8 @@ func execInit(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to validate config: %s", err)
 	}
 
-	// Ensure that the base path exists and is accessible
-	// Create the folders(config, data) in the base path if they don't exist
 	// Write the config to the base path
-	if err := cfg.EnsureRoot(config.BasePath, config); err != nil {
+	if err := cfg.WriteConfigFile(config.BasePath, config); err != nil {
 		return fmt.Errorf("failed to ensure root: %s", err)
 	}
 
