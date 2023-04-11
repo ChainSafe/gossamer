@@ -129,6 +129,52 @@ func TestConfig(t *testing.T) {
 			},
 			configMaker: PolkadotConfig,
 		},
+		{
+			name: "westend_default",
+			want: &Config{
+				Global: GlobalConfig{
+					Name:           "Westend",
+					ID:             "westend2",
+					BasePath:       "~/.gossamer/westend",
+					LogLvl:         log.Info,
+					MetricsAddress: "localhost:9876",
+					RetainBlocks:   512,
+					Pruning:        "archive",
+				},
+				Log: LogConfig{
+					CoreLvl:           log.Info,
+					DigestLvl:         log.Info,
+					SyncLvl:           log.Info,
+					NetworkLvl:        log.Info,
+					RPCLvl:            log.Info,
+					StateLvl:          log.Info,
+					RuntimeLvl:        log.Info,
+					BlockProducerLvl:  log.Info,
+					FinalityGadgetLvl: log.Info,
+				},
+				Init: InitConfig{Genesis: "./chain/westend/genesis.json"},
+				Core: CoreConfig{
+					Roles:           common.FullNodeRole,
+					WasmInterpreter: "wasmer",
+				},
+				Network: NetworkConfig{
+					Port: 7001,
+				},
+				RPC: RPCConfig{
+					Port: 8545,
+					Host: "localhost",
+					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
+						"childstate", "syncstate", "payment"},
+					WSPort: 8546,
+				},
+				Pprof: PprofConfig{
+					Settings: pprof.Settings{
+						ListeningAddress: "localhost:6060",
+					},
+				},
+			},
+			configMaker: WestendConfig,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
