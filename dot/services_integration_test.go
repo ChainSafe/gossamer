@@ -411,7 +411,7 @@ func TestCreateStateService(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -478,7 +478,7 @@ func TestCreateCoreService(t *testing.T) {
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -509,7 +509,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 
 	genFile := newTestGenesisFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -528,7 +528,7 @@ func TestCreateSyncService(t *testing.T) {
 
 	genFile := newTestGenesisFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -559,7 +559,7 @@ func TestCreateNetworkService(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -581,7 +581,7 @@ func TestCreateRPCService(t *testing.T) {
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -635,7 +635,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Core.Role = common.FullNodeRole
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -673,7 +673,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Core.Role = common.AuthorityRole
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -743,7 +743,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.RPC.Port = 9545
 	config.RPC.WSPort = 9546
 	config.RPC.WSExternal = true
@@ -842,7 +842,7 @@ func Test_createDigestHandler(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Core.Role = common.AuthorityRole
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)

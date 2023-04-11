@@ -1,8 +1,6 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-//go:build integration
-
 package dot
 
 import (
@@ -23,15 +21,15 @@ const codeHex = "0x3a636f6465"
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 	config := westenddev.DefaultConfig()
-	config.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 
-	expected, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
+	expected, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 	require.NoError(t, err)
 
 	err = InitNode(config)
 	require.NoError(t, err)
 
-	bs, err := BuildFromGenesis(config.Genesis, 0)
+	bs, err := BuildFromGenesis(config.ChainSpec, 0)
 	require.NoError(t, err)
 
 	data, err := bs.ToJSONRaw()
@@ -62,8 +60,8 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
 	config := westenddev.DefaultConfig()
-	config.Genesis = utils.GetWestendDevRawGenesisPath(t)
-	expected, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
+	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
+	expected, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)
 	err = InitNode(config)

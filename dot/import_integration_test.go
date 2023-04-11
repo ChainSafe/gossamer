@@ -91,7 +91,7 @@ func TestImportState_Integration(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	err := InitNode(config)
 	require.NoError(t, err)
 
@@ -124,7 +124,7 @@ func TestImportState(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 	config.BasePath = basepath
 
-	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	nodeInstance := nodeBuilder{}
 	err := nodeInstance.initNode(config)
 	require.NoError(t, err)

@@ -53,7 +53,7 @@ func TestNewNode(t *testing.T) {
 
 	initConfig.Name = "TestNode"
 	initConfig.BasePath = basepath
-	initConfig.Genesis = genFile
+	initConfig.ChainSpec = genFile
 	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
 	initConfig.Core.WasmInterpreter = wasmer.Name
@@ -93,7 +93,7 @@ func TestNewNode(t *testing.T) {
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
 		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
-		gen, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
+		gen, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
@@ -208,7 +208,7 @@ func TestInitNode_Integration(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -225,7 +225,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 
 	genFile := newTestGenesisFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -241,7 +241,7 @@ func TestNodeInitializedIntegration(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	result := IsNodeInitialised(config.BasePath)
@@ -259,7 +259,7 @@ func TestNewNodeIntegration(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -291,7 +291,7 @@ func TestNewNode_Authority(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -326,7 +326,7 @@ func TestStartStopNode(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, config)
 
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 	config.Core.GrandpaAuthority = false
 	config.Core.BabeAuthority = false
@@ -367,7 +367,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
-	config.Genesis = genPath
+	config.ChainSpec = genPath
 	config.BasePath = t.TempDir()
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
@@ -416,7 +416,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
-	config.Genesis = genPath
+	config.ChainSpec = genPath
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
@@ -456,7 +456,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
-	config.Genesis = newTestGenesisAndRuntime(t)
+	config.ChainSpec = newTestGenesisAndRuntime(t)
 	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
