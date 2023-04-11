@@ -54,6 +54,7 @@ func Default() cfg.Config {
 			DiscoveryInterval: time.Second * 1,
 		},
 		RPC: &cfg.RPCConfig{
+			UnsafeRPC:         true,
 			UnsafeRPCExternal: true,
 			UnsafeWSExternal:  true,
 			Host:              "localhost",

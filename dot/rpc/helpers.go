@@ -68,7 +68,7 @@ func rpcValidator(cfg *HTTPServerConfig, validate *validator.Validate) func(r *r
 			return err
 		}
 
-		if !cfg.exposeRPC() || (modules.IsUnsafe(rpcmethod) && cfg.RPCUnsafeExternal) {
+		if !cfg.exposeRPC() || modules.IsUnsafe(rpcmethod) && !cfg.RPCUnsafeExternal {
 			return LocalRequestOnly(r, v)
 		}
 

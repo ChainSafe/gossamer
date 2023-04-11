@@ -409,6 +409,14 @@ func addNetworkFlags(cmd *cobra.Command) error {
 // addRPCFlags adds rpc flags and binds to viper
 func addRPCFlags(cmd *cobra.Command) error {
 	if err := addBoolFlagBindViper(cmd,
+		"unsafe-rpc",
+		config.RPC.UnsafeRPC,
+		"Enable unsafe RPC methods",
+		"rpc.unsafe-rpc"); err != nil {
+		return fmt.Errorf("failed to add --unsafe-rpc flag: %s", err)
+	}
+
+	if err := addBoolFlagBindViper(cmd,
 		"unsafe-rpc-external",
 		config.RPC.UnsafeRPCExternal,
 		"Enable external HTTP-RPC connections to unsafe procedures",

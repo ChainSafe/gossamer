@@ -144,6 +144,7 @@ type StateConfig struct {
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
 	RPCExternal       bool     `mapstructure:"rpc-external,omitempty"`
+	UnsafeRPC         bool     `mapstructure:"unsafe-rpc,omitempty"`
 	UnsafeRPCExternal bool     `mapstructure:"unsafe-rpc-external,omitempty"`
 	Port              uint32   `mapstructure:"port,omitempty"`
 	Host              string   `mapstructure:"host,omitempty"`
@@ -290,7 +291,7 @@ func (p *PprofConfig) ValidateBasic() error {
 
 // IsRPCEnabled returns true if RPC is enabled.
 func (r *RPCConfig) IsRPCEnabled() bool {
-	return r.UnsafeRPCExternal || r.RPCExternal
+	return r.UnsafeRPCExternal || r.RPCExternal || r.UnsafeRPC
 }
 
 // IsWSEnabled returns true if WS is enabled.
@@ -357,6 +358,7 @@ func Copy(c *Config) Config {
 			Rewind: c.State.Rewind,
 		},
 		RPC: &RPCConfig{
+			UnsafeRPC:         c.RPC.UnsafeRPC,
 			UnsafeRPCExternal: c.RPC.UnsafeRPCExternal,
 			RPCExternal:       c.RPC.RPCExternal,
 			Port:              c.RPC.Port,

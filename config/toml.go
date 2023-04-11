@@ -268,6 +268,10 @@ rewind = {{ .State.Rewind }}
 # Defaults to false
 rpc-external = {{ .RPC.RPCExternal }}
 
+# Enable unsafe RPC methods
+# Defaults to false
+unsafe-rpc = {{ .RPC.UnsafeRPC }}
+
 # Enable external HTTP-RPC connections to unsafe procedures
 # Defaults to false
 unsafe-rpc-external = {{ .RPC.UnsafeRPCExternal }}

@@ -61,6 +61,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 		RPCPort:           7878,
 		RPCAPI:            NewService(),
 		RPCUnsafeExternal: false,
+		RPCUnsafe:         false,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -95,6 +96,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 		})
 	}
 }
+
 func TestRPCUnsafeExpose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -148,7 +150,8 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 		Modules:           []string{"system"},
 		RPCPort:           7880,
 		RPCAPI:            NewService(),
-		RPCUnsafeExternal: true,
+		RPCUnsafe:         true,
+		RPCUnsafeExternal: false,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -200,7 +203,8 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 		RPCPort:           8786,
 		RPCAPI:            NewService(),
 		RPCExternal:       true,
-		RPCUnsafeExternal: true,
+		RPCUnsafeExternal: false,
+		RPCUnsafe:         true,
 		NetworkAPI:        netmock,
 	}
 

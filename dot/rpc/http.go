@@ -43,7 +43,7 @@ type HTTPServerConfig struct {
 	SyncStateAPI        SyncStateAPI
 	SyncAPI             SyncAPI
 	NodeStorage         *runtime.NodeStorage
-	RPC                 bool
+	RPCUnsafe           bool
 	RPCExternal         bool
 	RPCUnsafeExternal   bool
 	Host                string
@@ -55,7 +55,7 @@ type HTTPServerConfig struct {
 }
 
 func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
-	return h.RPCUnsafeExternal
+	return h.RPCUnsafeExternal || h.RPCUnsafe
 }
 
 func (h *HTTPServerConfig) wsUnsafeEnabled() bool {
