@@ -20,8 +20,8 @@ const (
 	DefaultID = "westend_dev"
 	// DefaultBasePath is the default basepath for the westend dev node
 	DefaultBasePath = "~/.gossamer/westend-dev"
-	// DefaultGenesisPath is the default genesis path for the westend dev node
-	DefaultGenesisPath = "./chain/westend-dev/westend-dev-spec-raw.json"
+	// DefaultChainSpec is the default chain spec for the westend dev node
+	DefaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
 	// DefaultLogLevel is the default log level for the westend dev node
 	DefaultLogLevel = "info"
 	// DefaultMetricsPort is the default metrics port for the westend dev node
@@ -92,7 +92,7 @@ func DefaultConfig() *cfg.Config {
 			Name:           DefaultName,
 			ID:             DefaultID,
 			BasePath:       DefaultBasePath,
-			Genesis:        DefaultGenesisPath,
+			ChainSpec:      DefaultChainSpec,
 			LogLevel:       DefaultLogLevel,
 			MetricsAddress: DefaultMetricsPort,
 			RetainBlocks:   DefaultRetainBlocks,

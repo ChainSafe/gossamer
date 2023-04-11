@@ -34,8 +34,8 @@ var (
 
 	// InitConfig
 
-	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = "./chain/polkadot/genesis.json"
+	// DefaultChainSpec is the default chain spec configuration path
+	DefaultChainSpec = "./chain/polkadot/genesis.json"
 
 	// AccountConfig
 
@@ -106,7 +106,7 @@ func DefaultConfig() *cfg.Config {
 			Name:           DefaultName,
 			ID:             DefaultID,
 			BasePath:       DefaultBasePath,
-			Genesis:        DefaultGenesis,
+			ChainSpec:      DefaultChainSpec,
 			LogLevel:       DefaultLvl,
 			RetainBlocks:   DefaultRetainBlocks,
 			Pruning:        DefaultPruningMode,

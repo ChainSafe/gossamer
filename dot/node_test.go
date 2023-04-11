@@ -29,7 +29,7 @@ import (
 
 func TestInitNode(t *testing.T) {
 	config := westend_dev.DefaultConfig()
-	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	config.BasePath = t.TempDir()
 	tests := []struct {
 		name   string
@@ -131,7 +131,7 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 func TestNodeInitialized(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 	genFile := NewTestGenesisRawFile(t, config)
-	config.Genesis = genFile
+	config.ChainSpec = genFile
 	config.BasePath = t.TempDir()
 
 	nodeInstance := nodeBuilder{}

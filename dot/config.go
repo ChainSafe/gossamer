@@ -283,7 +283,7 @@ func KusamaConfig() (*Config, error) {
 			FinalityGadgetLvl: defaultLogLevel,
 		},
 		Init: InitConfig{
-			Genesis: kusama.DefaultGenesis,
+			Genesis: kusama.DefaultChainSpec,
 		},
 		Account: AccountConfig{
 			Key:    kusama.DefaultKey,
@@ -345,7 +345,7 @@ func PolkadotConfig() (*Config, error) {
 			FinalityGadgetLvl: defaultLogLevel,
 		},
 		Init: InitConfig{
-			Genesis: polkadot.DefaultGenesis,
+			Genesis: polkadot.DefaultChainSpec,
 		},
 		Account: AccountConfig{
 			Key:    polkadot.DefaultKey,
@@ -407,7 +407,7 @@ func WestendConfig() (*Config, error) {
 			FinalityGadgetLvl: defaultLogLevel,
 		},
 		Init: InitConfig{
-			Genesis: westend.DefaultGenesis,
+			Genesis: westend.DefaultChainSpec,
 		},
 		Account: AccountConfig{
 			Key:    westend.DefaultKey,

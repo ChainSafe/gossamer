@@ -18,9 +18,57 @@ import (
 const (
 	// uint32Max is the maximum value of a uint32
 	uint32Max = ^uint32(0)
-	// defaultGenesisFile is the default genesis file
-	defaultGenesisFile = "genesis.json"
+	// defaultChainSpecFile is the default genesis file
+	defaultChainSpecFile = "chain-spec.json"
+	// defaultBasePath is the default base path
+	defaultBasePath = "~/.gossamer"
+	// defaultLogLevel is the default log level
+	defaultLogLevel = "info"
+	// defaultMetricsAddress is the default metrics address
+	defaultMetricsAddress = ":9876"
+	// defaultRetainBlocks is the default number of blocks to retain
+	defaultRetainBlocks = 512
+	// defaultPruning is the default pruning strategy
+	defaultPruning = pruner.Archive
+
+	// defaultRole is the default node role
+	defaultRole = common.AuthorityRole
+	// defaultWasmInterpreter is the default wasm interpreter
+	defaultWasmInterpreter = wasmer.Name
+
+	// defaultNetworkPort is the default network port
+	defaultNetworkPort = 7001
+	// defaultDiscoveryInterval is the default discovery interval
+	defaultDiscoveryInterval = 10 * time.Second
+
+	// defaultRPCPort is the default RPC port
+	defaultRPCPort = 8545
+	// defaultRPCHost is the default RPC host
+	defaultRPCHost = "localhost"
+	// defaultWSPort is the default WS port
+	defaultWSPort = 8546
+
+	// defaultPprofListenAddress is the default pprof listen address
+	defaultPprofListenAddress = "localhost:6060"
+
+	// defaultSystemName is the default system name
+	defaultSystemName = "Gossamer"
+	// defaultSystemVersion is the default system version
+	defaultSystemVersion = "0.3.2"
 )
+
+var defaultRPCModules = []string{
+	"system",
+	"author",
+	"chain",
+	"state",
+	"rpc",
+	"grandpa",
+	"offchain",
+	"childstate",
+	"syncstate",
+	"payment",
+}
 
 // Config defines the configuration for the gossamer node
 type Config struct {
@@ -73,7 +121,7 @@ type BaseConfig struct {
 	Name           string                      `mapstructure:"name,omitempty"`
 	ID             string                      `mapstructure:"id,omitempty"`
 	BasePath       string                      `mapstructure:"base-path,omitempty"`
-	Genesis        string                      `mapstructure:"genesis,omitempty"`
+	ChainSpec      string                      `mapstructure:"chain-spec,omitempty"`
 	LogLevel       string                      `mapstructure:"log-level,omitempty"`
 	MetricsAddress string                      `mapstructure:"metrics-address,omitempty"`
 	RetainBlocks   uint32                      `mapstructure:"retain-blocks,omitempty"`
@@ -173,8 +221,8 @@ func (b *BaseConfig) ValidateBasic() error {
 	if b.BasePath == "" {
 		return fmt.Errorf("base-path directory cannot be empty")
 	}
-	if b.Genesis == "" {
-		return fmt.Errorf("genesis cannot be empty")
+	if b.ChainSpec == "" {
+		return fmt.Errorf("chain-spec cannot be empty")
 	}
 	if b.MetricsAddress == "" {
 		return fmt.Errorf("metrics address cannot be empty")
@@ -299,6 +347,88 @@ func (r *RPCConfig) IsWSEnabled() bool {
 	return r.WSExternal || r.UnsafeWSExternal
 }
 
+// DefaultConfigFromSpec returns the default configuration.
+func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
+	return &Config{
+		BaseConfig: BaseConfig{
+			Name:           nodeSpec.Name,
+			ID:             nodeSpec.ID,
+			BasePath:       defaultBasePath,
+			ChainSpec:      GetChainSpec(defaultBasePath),
+			LogLevel:       defaultLogLevel,
+			MetricsAddress: defaultMetricsAddress,
+			RetainBlocks:   defaultRetainBlocks,
+			Pruning:        defaultPruning,
+			PublishMetrics: false,
+			NoTelemetry:    false,
+			TelemetryURLs:  nil,
+		},
+		Log: &LogConfig{
+			Core:    defaultLogLevel,
+			Digest:  defaultLogLevel,
+			Sync:    defaultLogLevel,
+			Network: defaultLogLevel,
+			RPC:     defaultLogLevel,
+			State:   defaultLogLevel,
+			Runtime: defaultLogLevel,
+			Babe:    defaultLogLevel,
+			Grandpa: defaultLogLevel,
+			Wasmer:  defaultLogLevel,
+		},
+		Account: &AccountConfig{
+			Key:    "",
+			Unlock: "",
+		},
+		Core: &CoreConfig{
+			Role:             defaultRole,
+			BabeAuthority:    true,
+			GrandpaAuthority: true,
+			WasmInterpreter:  defaultWasmInterpreter,
+			GrandpaInterval:  defaultDiscoveryInterval,
+			BABELead:         false,
+		},
+		Network: &NetworkConfig{
+			Port:              defaultRPCPort,
+			Bootnodes:         nodeSpec.Bootnodes,
+			ProtocolID:        nodeSpec.ProtocolID,
+			NoBootstrap:       false,
+			NoMDNS:            false,
+			MinPeers:          25,
+			MaxPeers:          50,
+			PersistentPeers:   nil,
+			DiscoveryInterval: defaultDiscoveryInterval,
+			PublicIP:          "",
+			PublicDNS:         "",
+			NodeKey:           "",
+			ListenAddress:     "",
+		},
+		State: &StateConfig{
+			Rewind: 0,
+		},
+		RPC: &RPCConfig{
+			RPCExternal:       false,
+			UnsafeRPC:         false,
+			UnsafeRPCExternal: false,
+			Port:              defaultRPCPort,
+			Host:              defaultRPCHost,
+			Modules:           defaultRPCModules,
+			WSPort:            defaultWSPort,
+			WSExternal:        false,
+			UnsafeWSExternal:  false,
+		},
+		Pprof: &PprofConfig{
+			Enabled:          false,
+			ListeningAddress: defaultPprofListenAddress,
+			BlockProfileRate: 0,
+			MutexProfileRate: 0,
+		},
+		System: &SystemConfig{
+			SystemName:    defaultSystemName,
+			SystemVersion: defaultSystemVersion,
+		},
+	}
+}
+
 // Copy creates a copy of the config.
 func Copy(c *Config) Config {
 	return Config{
@@ -306,7 +436,7 @@ func Copy(c *Config) Config {
 			Name:           c.BaseConfig.Name,
 			ID:             c.BaseConfig.ID,
 			BasePath:       c.BaseConfig.BasePath,
-			Genesis:        c.BaseConfig.Genesis,
+			ChainSpec:      c.BaseConfig.ChainSpec,
 			LogLevel:       c.BaseConfig.LogLevel,
 			MetricsAddress: c.MetricsAddress,
 			RetainBlocks:   c.RetainBlocks,
@@ -434,7 +564,7 @@ func (n NetworkRole) String() string {
 	return string(n)
 }
 
-// GetGenesisPath returns the path to the genesis file.
-func GetGenesisPath(basePath string) string {
-	return filepath.Join(basePath, defaultGenesisFile)
+// GetChainSpec returns the path to the chain-spec file.
+func GetChainSpec(basePath string) string {
+	return filepath.Join(basePath, defaultChainSpecFile)
 }

@@ -131,11 +131,11 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 	}
 	logger.Patch(log.SetLevel(globalLogLevel))
 	logger.Infof(
-		"🕸️ initialising node with name %s, id %s, base path %s and genesis %s...",
-		config.Name, config.ID, config.BasePath, config.Genesis)
+		"🕸️ initialising node with name %s, id %s, base path %s and chain-spec %s...",
+		config.Name, config.ID, config.BasePath, config.ChainSpec)
 
 	// create genesis from configuration file
-	gen, err := genesis.NewGenesisFromJSONRaw(config.Genesis)
+	gen, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis from file: %w", err)
 	}
@@ -196,8 +196,8 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 	}
 
 	logger.Infof(
-		"node initialised with name %s, id %s, base path %s, genesis %s, block %v and genesis hash %s",
-		config.Name, config.ID, config.BasePath, config.Genesis, header.Number, header.Hash())
+		"node initialised with name %s, id %s, base path %s, chain-spec %s, block %v and genesis hash %s",
+		config.Name, config.ID, config.BasePath, config.ChainSpec, header.Number, header.Hash())
 
 	return nil
 }

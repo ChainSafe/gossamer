@@ -22,7 +22,7 @@ import (
 func Test_createRuntimeStorage(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 
-	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
@@ -58,7 +58,7 @@ func Test_createRuntimeStorage(t *testing.T) {
 func Test_createSystemService(t *testing.T) {
 	config := westend_dev.DefaultConfig()
 
-	config.Genesis = NewTestGenesisRawFile(t, config)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}

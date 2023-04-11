@@ -60,9 +60,8 @@ var (
 	charlie bool
 
 	// Initialization flags for node
-	chain       string
-	basePath    string
-	genesisPath string
+	chain    string
+	basePath string
 )
 
 // Default values
@@ -87,23 +86,20 @@ Usage:
 			return execRoot(cmd)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			if err := setDefaultConfig(cfg.Chain(chain)); err != nil {
-				return fmt.Errorf("failed to set default config: %s", err)
+			if !(cmd.Name() == "gossamer" || cmd.Name() == "init") {
+				return nil
+			}
+
+			if err := parseChainSpec(chain); err != nil {
+				return fmt.Errorf("failed to parse chain-spec: %s", err)
 			}
 
 			if err := parseBasePath(); err != nil {
 				return fmt.Errorf("failed to parse base path: %s", err)
 			}
 
-			if !(cmd.Name() == "gossamer" || cmd.Name() == "init") {
-				return nil
-			}
-
-			if err := parseGenesis(); err != nil {
-				return fmt.Errorf("failed to parse genesis: %s", err)
-			}
-
 			parseAccount()
+			// TODO: Copy chainspec to basepath if it doesn't exist
 
 			if cmd.Name() == "gossamer" {
 				if err := parseRole(); err != nil {
@@ -147,10 +143,6 @@ func addRootFlags(cmd *cobra.Command) error {
 		"chain",
 		cfg.WestendLocalChain.String(),
 		"The default chain configuration to load. Example: --chain kusama")
-	cmd.Flags().StringVar(&genesisPath,
-		"genesis",
-		"",
-		"the path to the genesis configuration to load. Example: --genesis genesis.json")
 
 	// Base Config
 	if err := addBaseConfigFlags(cmd); err != nil {
@@ -205,12 +197,6 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"Identifier for the node",
 		"id"); err != nil {
 		return fmt.Errorf("failed to add --id flag: %s", err)
-	}
-	if err := addStringFlagBindViper(cmd,
-		"genesis", config.BaseConfig.Genesis,
-		"path to the genesis file",
-		"genesis"); err != nil {
-		return fmt.Errorf("failed to add --genesis flag: %s", err)
 	}
 	if err := addBoolFlagBindViper(cmd,
 		"no-telemetry",

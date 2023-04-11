@@ -79,8 +79,8 @@ id = "{{ .BaseConfig.ID }}"
 # Defaults to "$HOME/.gossamer/<CHAIN>"
 base-path = "{{ .BaseConfig.BasePath }}"
 
-# Path to the genesis JSON file
-genesis = "{{ .BaseConfig.Genesis }}"
+# Path to the chain-spec raw JSON file
+chain-spec = "{{ .BaseConfig.ChainSpec }}"
 
 # Global log level
 # One of: crit, error, warn, info, debug, trace

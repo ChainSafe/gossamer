@@ -35,8 +35,8 @@ var (
 
 	// InitConfig
 
-	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = "./chain/kusama/genesis.json"
+	// DefaultChainSpec is the default chain-spec json path
+	DefaultChainSpec = "./chain/kusama/genesis.json"
 
 	// AccountConfig
 
@@ -104,7 +104,7 @@ func DefaultConfig() *cfg.Config {
 			Name:           DefaultName,
 			ID:             DefaultID,
 			BasePath:       DefaultBasePath,
-			Genesis:        DefaultGenesis,
+			ChainSpec:      DefaultChainSpec,
 			LogLevel:       DefaultLvl,
 			MetricsAddress: DefaultMetricsAddress,
 			RetainBlocks:   DefaultRetainBlocks,

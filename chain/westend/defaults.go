@@ -36,8 +36,8 @@ var (
 
 	// InitConfig
 
-	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = "./chain/westend/genesis.json"
+	// DefaultChainSpec is the default chain specification path
+	DefaultChainSpec = "./chain/westend/genesis.json"
 
 	// AccountConfig
 
@@ -108,7 +108,7 @@ func DefaultConfig() *cfg.Config {
 			Name:           DefaultName,
 			ID:             DefaultID,
 			BasePath:       DefaultBasePath,
-			Genesis:        DefaultGenesis,
+			ChainSpec:      DefaultChainSpec,
 			LogLevel:       DefaultLvl,
 			RetainBlocks:   DefaultRetainBlocks,
 			Pruning:        DefaultPruningMode,

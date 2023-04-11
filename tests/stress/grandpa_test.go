@@ -23,7 +23,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Core.BABELead = true
-	tomlConfig.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	n := node.New(t, tomlConfig, cfg.WestendDevChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +55,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	tomlConfig := config.Default()
-	tomlConfig.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -79,7 +79,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	tomlConfig := config.Default()
-	tomlConfig.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -103,7 +103,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 
 	tomlConfig := config.LogGrandpa()
-	tomlConfig.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -127,7 +127,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	tomlConfig := config.Default()
-	tomlConfig.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)

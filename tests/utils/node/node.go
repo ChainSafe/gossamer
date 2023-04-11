@@ -27,7 +27,6 @@ type Node struct {
 	writer     io.Writer
 	logsBuffer *bytes.Buffer
 	binPath    string
-	chain      cfg.Chain
 }
 
 // New returns a node configured using the
@@ -35,7 +34,6 @@ type Node struct {
 func New(t *testing.T, tomlConfig cfg.Config, chain cfg.Chain,
 	options ...Option) (node Node) {
 	node.tomlConfig = cfg.Copy(&tomlConfig)
-	node.chain = chain
 	for _, option := range options {
 		option(&node)
 	}
@@ -70,8 +68,8 @@ func (n *Node) setDefaults(t *testing.T) {
 		n.tomlConfig.BasePath = t.TempDir()
 	}
 
-	if n.tomlConfig.Genesis == "" {
-		n.tomlConfig.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	if n.tomlConfig.ChainSpec == "" {
+		n.tomlConfig.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 	}
 
 	if n.tomlConfig.Account.Key == "" {
@@ -146,8 +144,8 @@ func (n *Node) Init() (err error) {
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
-		"--base-path", n.tomlConfig.BasePath, "--chain", n.chain.String(),
-		"--genesis", n.tomlConfig.Genesis,
+		"--base-path", n.tomlConfig.BasePath,
+		"--chain", n.tomlConfig.ChainSpec,
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {

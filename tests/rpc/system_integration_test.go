@@ -30,7 +30,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	con := config.Default()
-	con.Genesis = genesisPath
+	con.ChainSpec = genesisPath
 	con.Core.Role = common.FullNodeRole
 	con.RPC.Modules = []string{"system", "author", "chain"}
 	con.RPC.RPCExternal = true
