@@ -393,6 +393,14 @@ func addNetworkFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --node-key flag: %s", err)
 	}
 
+	if err := addStringFlagBindViper(cmd,
+		"listen-addr",
+		config.Network.ListenAddress,
+		"Overrides the listen address used for peer to peer networking",
+		"network.listen-addr"); err != nil {
+		return fmt.Errorf("failed to add --listen-addr flag: %s", err)
+	}
+
 	return nil
 }
 

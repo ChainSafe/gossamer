@@ -220,7 +220,7 @@ public-dns = "{{ .Network.PublicDNS }}"
 node-key = "{{ .Network.NodeKey }}"
 
 # Multiaddress to listen on
-listen-address = "{{ .Network.ListenAddress }}"
+listen-addr = "{{ .Network.ListenAddress }}"
 
 #######################################################
 ###             Core Configuration Options          ###
