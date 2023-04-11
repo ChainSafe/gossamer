@@ -744,11 +744,9 @@ func TestNewWebSocketServer(t *testing.T) {
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.Genesis = genFile
-	config.RPC.External = false
-	config.RPC.WS = true
 	config.RPC.Port = 9545
 	config.RPC.WSPort = 9546
-	config.RPC.WSExternal = false
+	config.RPC.WSExternal = true
 	config.System.SystemName = "gossamer"
 	config.BasePath = t.TempDir()
 
