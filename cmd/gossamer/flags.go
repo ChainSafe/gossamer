@@ -385,10 +385,6 @@ var (
 
 // BABE flags
 var (
-	BABELeadFlag = cli.BoolFlag{
-		Name:  "babe-lead",
-		Usage: `specify whether node should build block 1 of the network. only used when starting a new network`,
-	}
 	ValidatorFlag = cli.BoolFlag{
 		Name: "validator", // TODO(ed) implement
 	}
@@ -461,7 +457,6 @@ var (
 		&TelemetryURLFlag,
 
 		// BABE flags
-		&BABELeadFlag,
 		&ValidatorFlag,
 	}
 )

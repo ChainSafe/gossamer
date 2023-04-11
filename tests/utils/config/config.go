@@ -36,7 +36,6 @@ func NoBabe() (cfg toml.Config) {
 func NoGrandpa() (cfg toml.Config) {
 	cfg = Default()
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BABELead = true
 	cfg.Core.GrandpaInterval = 1
 	return cfg
 }

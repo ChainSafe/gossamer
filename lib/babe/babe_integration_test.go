@@ -41,7 +41,6 @@ func TestService_ProducesBlocks(t *testing.T) {
 		Return(nil).MinTimes(2)
 	cfg := ServiceConfig{
 		Authority:          true,
-		Lead:               true,
 		BlockImportHandler: blockImportHandler,
 	}
 
@@ -90,9 +89,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	cfg := ServiceConfig{
-		Lead: true,
-	}
+	cfg := ServiceConfig{}
 	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	bs := createTestService(t, cfg, gen, genTrie, genHeader, nil)
 	err := bs.Start()
@@ -102,9 +99,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
-	cfg := ServiceConfig{
-		Lead: true,
-	}
+	cfg := ServiceConfig{}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
 	err := babeService.Start()
@@ -136,7 +131,6 @@ func TestService_PauseAndResume(t *testing.T) {
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
-		Lead:      true,
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
