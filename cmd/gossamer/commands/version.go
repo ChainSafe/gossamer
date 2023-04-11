@@ -17,7 +17,7 @@ var VersionCmd = &cobra.Command{
 	Short: "gossamer version",
 	Long:  `gossamer version`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println(fmt.Sprintf("%s version %s", cfg.DefaultSystemName, cfg.DefaultSystemVersion))
+		fmt.Printf("%s version %s\n", cfg.DefaultSystemName, cfg.DefaultSystemVersion)
 		return nil
 	},
 }

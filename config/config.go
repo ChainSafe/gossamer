@@ -388,7 +388,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			BABELead:         false,
 		},
 		Network: &NetworkConfig{
-			Port:              defaultRPCPort,
+			Port:              defaultNetworkPort,
 			Bootnodes:         nodeSpec.Bootnodes,
 			ProtocolID:        nodeSpec.ProtocolID,
 			NoBootstrap:       false,
