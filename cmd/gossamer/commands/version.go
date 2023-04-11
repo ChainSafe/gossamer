@@ -6,6 +6,8 @@ package commands
 import (
 	"fmt"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +17,7 @@ var VersionCmd = &cobra.Command{
 	Short: "gossamer version",
 	Long:  `gossamer version`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("gossamer version 0.3.2")
+		fmt.Println(fmt.Sprintf("%s version %s", cfg.DefaultSystemName, cfg.DefaultSystemVersion))
 		return nil
 	},
 }

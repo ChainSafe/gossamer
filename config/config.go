@@ -51,10 +51,10 @@ const (
 	// defaultPprofListenAddress is the default pprof listen address
 	defaultPprofListenAddress = "localhost:6060"
 
-	// defaultSystemName is the default system name
-	defaultSystemName = "Gossamer"
-	// defaultSystemVersion is the default system version
-	defaultSystemVersion = "0.3.2"
+	// DefaultSystemName is the default system name
+	DefaultSystemName = "Gossamer"
+	// DefaultSystemVersion is the default system version
+	DefaultSystemVersion = "0.3.2"
 )
 
 var defaultRPCModules = []string{
@@ -423,8 +423,8 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			MutexProfileRate: 0,
 		},
 		System: &SystemConfig{
-			SystemName:    defaultSystemName,
-			SystemVersion: defaultSystemVersion,
+			SystemName:    DefaultSystemName,
+			SystemVersion: DefaultSystemVersion,
 		},
 	}
 }
