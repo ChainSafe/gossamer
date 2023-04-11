@@ -24,8 +24,8 @@ const (
 	defaultBasePath = "~/.gossamer"
 	// defaultLogLevel is the default log level
 	defaultLogLevel = "info"
-	// defaultMetricsAddress is the default metrics address
-	defaultMetricsAddress = ":9876"
+	// defaultPrometheusPort is the default prometheus port
+	defaultPrometheusPort = ":9876"
 	// defaultRetainBlocks is the default number of blocks to retain
 	defaultRetainBlocks = 512
 	// defaultPruning is the default pruning strategy
@@ -118,17 +118,17 @@ func (cfg *Config) ValidateBasic() error {
 
 // BaseConfig is to marshal/unmarshal toml global config vars
 type BaseConfig struct {
-	Name           string                      `mapstructure:"name,omitempty"`
-	ID             string                      `mapstructure:"id,omitempty"`
-	BasePath       string                      `mapstructure:"base-path,omitempty"`
-	ChainSpec      string                      `mapstructure:"chain-spec,omitempty"`
-	LogLevel       string                      `mapstructure:"log-level,omitempty"`
-	MetricsAddress string                      `mapstructure:"metrics-address,omitempty"`
-	RetainBlocks   uint32                      `mapstructure:"retain-blocks,omitempty"`
-	Pruning        pruner.Mode                 `mapstructure:"pruning,omitempty"`
-	PublishMetrics bool                        `mapstructure:"publish-metrics"`
-	NoTelemetry    bool                        `mapstructure:"no-telemetry"`
-	TelemetryURLs  []genesis.TelemetryEndpoint `mapstructure:"telemetry-urls,omitempty"`
+	Name               string                      `mapstructure:"name,omitempty"`
+	ID                 string                      `mapstructure:"id,omitempty"`
+	BasePath           string                      `mapstructure:"base-path,omitempty"`
+	ChainSpec          string                      `mapstructure:"chain-spec,omitempty"`
+	LogLevel           string                      `mapstructure:"log-level,omitempty"`
+	PrometheusPort     string                      `mapstructure:"prometheus-port,omitempty"`
+	RetainBlocks       uint32                      `mapstructure:"retain-blocks,omitempty"`
+	Pruning            pruner.Mode                 `mapstructure:"pruning,omitempty"`
+	PrometheusExternal bool                        `mapstructure:"prometheus-external,omitempty"`
+	NoTelemetry        bool                        `mapstructure:"no-telemetry"`
+	TelemetryURLs      []genesis.TelemetryEndpoint `mapstructure:"telemetry-urls,omitempty"`
 }
 
 // SystemConfig represents the system configuration
@@ -224,8 +224,8 @@ func (b *BaseConfig) ValidateBasic() error {
 	if b.ChainSpec == "" {
 		return fmt.Errorf("chain-spec cannot be empty")
 	}
-	if b.MetricsAddress == "" {
-		return fmt.Errorf("metrics address cannot be empty")
+	if b.PrometheusPort == "" {
+		return fmt.Errorf("prometheus port cannot be empty")
 	}
 	if uint32Max < b.RetainBlocks {
 		return fmt.Errorf(
@@ -351,17 +351,17 @@ func (r *RPCConfig) IsWSEnabled() bool {
 func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 	return &Config{
 		BaseConfig: BaseConfig{
-			Name:           nodeSpec.Name,
-			ID:             nodeSpec.ID,
-			BasePath:       defaultBasePath,
-			ChainSpec:      "",
-			LogLevel:       defaultLogLevel,
-			MetricsAddress: defaultMetricsAddress,
-			RetainBlocks:   defaultRetainBlocks,
-			Pruning:        defaultPruning,
-			PublishMetrics: false,
-			NoTelemetry:    false,
-			TelemetryURLs:  nil,
+			Name:               nodeSpec.Name,
+			ID:                 nodeSpec.ID,
+			BasePath:           defaultBasePath,
+			ChainSpec:          "",
+			LogLevel:           defaultLogLevel,
+			PrometheusPort:     defaultPrometheusPort,
+			RetainBlocks:       defaultRetainBlocks,
+			Pruning:            defaultPruning,
+			PrometheusExternal: false,
+			NoTelemetry:        false,
+			TelemetryURLs:      nil,
 		},
 		Log: &LogConfig{
 			Core:    defaultLogLevel,
@@ -433,17 +433,17 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 func Copy(c *Config) Config {
 	return Config{
 		BaseConfig: BaseConfig{
-			Name:           c.BaseConfig.Name,
-			ID:             c.BaseConfig.ID,
-			BasePath:       c.BaseConfig.BasePath,
-			ChainSpec:      c.BaseConfig.ChainSpec,
-			LogLevel:       c.BaseConfig.LogLevel,
-			MetricsAddress: c.MetricsAddress,
-			RetainBlocks:   c.RetainBlocks,
-			Pruning:        c.Pruning,
-			PublishMetrics: c.PublishMetrics,
-			NoTelemetry:    c.NoTelemetry,
-			TelemetryURLs:  c.TelemetryURLs,
+			Name:               c.BaseConfig.Name,
+			ID:                 c.BaseConfig.ID,
+			BasePath:           c.BaseConfig.BasePath,
+			ChainSpec:          c.BaseConfig.ChainSpec,
+			LogLevel:           c.BaseConfig.LogLevel,
+			PrometheusPort:     c.PrometheusPort,
+			RetainBlocks:       c.RetainBlocks,
+			Pruning:            c.Pruning,
+			PrometheusExternal: c.PrometheusExternal,
+			NoTelemetry:        c.NoTelemetry,
+			TelemetryURLs:      c.TelemetryURLs,
 		},
 		Log: &LogConfig{
 			Core:    c.Log.Core,

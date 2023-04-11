@@ -87,9 +87,9 @@ chain-spec = "{{ .BaseConfig.ChainSpec }}"
 # Defaults to "info"
 log-level = "{{ .BaseConfig.LogLevel }}"
 
-# Listen address for the metrics server
+# Listen address for the prometheus server
 # Defaults to "localhost:9876"
-metrics-address = "{{ .BaseConfig.MetricsAddress }}"
+prometheus-port = "{{ .BaseConfig.PrometheusPort }}"
 
 # Retain number of block from latest block while pruning
 # Defaults to 512
@@ -116,7 +116,7 @@ verbosity = {{ .Verbosity }}
 
 # Publish metrics to prometheus
 # Defaults to false
-publish-metrics = {{ .BaseConfig.PublishMetrics }}
+prometheus-external = {{ .BaseConfig.PrometheusExternal }}
 
 #######################################################################
 ###                 Advanced Configuration Options                  ###

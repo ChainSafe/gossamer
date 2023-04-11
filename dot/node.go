@@ -178,7 +178,7 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 			RetainedBlocks: config.RetainBlocks,
 		},
 		Telemetry: telemetryMailer,
-		Metrics:   metrics.NewIntervalConfig(config.PublishMetrics),
+		Metrics:   metrics.NewIntervalConfig(config.PrometheusExternal),
 	}
 
 	// create new state service
@@ -421,9 +421,9 @@ func newNode(config *cfg.Config,
 		node.ServiceRegistry.RegisterService(srvc)
 	}
 
-	if config.PublishMetrics {
-		node.metricsServer = metrics.NewServer(config.MetricsAddress)
-		err := node.metricsServer.Start(config.MetricsAddress)
+	if config.PrometheusExternal {
+		node.metricsServer = metrics.NewServer(config.PrometheusPort)
+		err := node.metricsServer.Start(config.PrometheusPort)
 		if err != nil {
 			return nil, fmt.Errorf("cannot start metrics server: %w", err)
 		}

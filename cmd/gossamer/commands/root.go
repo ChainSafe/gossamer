@@ -210,10 +210,10 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --no-telemetry flag: %s", err)
 	}
 	if err := addStringFlagBindViper(cmd,
-		"metrics-address",
-		config.BaseConfig.MetricsAddress,
-		"Listen address of the metric server",
-		"metrics-address"); err != nil {
+		"prometheus-port",
+		config.BaseConfig.PrometheusPort,
+		"Listen address of the prometheus server",
+		"prometheus-port"); err != nil {
 		return fmt.Errorf("failed to add --metrics-address flag: %s", err)
 	}
 	if err := addUint32FlagBindViper(cmd,
@@ -230,9 +230,9 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"state-pruning",
 		string(config.BaseConfig.Pruning),
 		"State trie online pruning")
-	cmd.Flags().BoolVar(&config.PublishMetrics,
-		"publish-metrics",
-		config.BaseConfig.PublishMetrics,
+	cmd.Flags().BoolVar(&config.PrometheusExternal,
+		"prometheus-external",
+		config.BaseConfig.PrometheusExternal,
 		"Publish metrics to prometheus")
 	cmd.Flags().StringVar(&telemetryURLs,
 		"telemetry-url",

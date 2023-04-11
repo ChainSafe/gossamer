@@ -20,8 +20,8 @@ var (
 	DefaultID = "westend2"
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = "~/.gossamer/westend"
-	// DefaultMetricsAddress is the default metrics server listening address.
-	DefaultMetricsAddress = "localhost:9876"
+	// DefaultPrometheusPort is the default metrics server listening address.
+	DefaultPrometheusPort = "localhost:9876"
 
 	// DefaultLvl is the default log level
 	DefaultLvl = "info"
@@ -112,7 +112,7 @@ func DefaultConfig() *cfg.Config {
 			LogLevel:       DefaultLvl,
 			RetainBlocks:   DefaultRetainBlocks,
 			Pruning:        DefaultPruningMode,
-			MetricsAddress: DefaultMetricsAddress,
+			PrometheusPort: DefaultPrometheusPort,
 			TelemetryURLs:  DefaultTelemetryURLs,
 		},
 		Log: &cfg.LogConfig{

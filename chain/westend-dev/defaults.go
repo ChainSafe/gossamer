@@ -24,8 +24,8 @@ const (
 	DefaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
 	// DefaultLogLevel is the default log level for the westend dev node
 	DefaultLogLevel = "info"
-	// DefaultMetricsPort is the default metrics port for the westend dev node
-	DefaultMetricsPort = ":9876"
+	// DefaultPrometheusPort is the default metrics port for the westend dev node
+	DefaultPrometheusPort = ":9876"
 	// DefaultRetainBlocks is the default number of blocks to retain
 	DefaultRetainBlocks = uint32(512)
 	// DefaultPruning is the default pruning mode
@@ -94,7 +94,7 @@ func DefaultConfig() *cfg.Config {
 			BasePath:       DefaultBasePath,
 			ChainSpec:      DefaultChainSpec,
 			LogLevel:       DefaultLogLevel,
-			MetricsAddress: DefaultMetricsPort,
+			PrometheusPort: DefaultPrometheusPort,
 			RetainBlocks:   DefaultRetainBlocks,
 			Pruning:        DefaultPruning,
 		},

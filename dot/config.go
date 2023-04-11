@@ -266,7 +266,7 @@ func KusamaConfig() (*Config, error) {
 			ID:             kusama.DefaultID,
 			BasePath:       kusama.DefaultBasePath,
 			LogLvl:         defaultLogLevel,
-			MetricsAddress: kusama.DefaultMetricsAddress,
+			MetricsAddress: kusama.DefaultPrometheusPort,
 			RetainBlocks:   kusama.DefaultRetainBlocks,
 			Pruning:        kusama.DefaultPruningMode,
 			TelemetryURLs:  kusama.DefaultTelemetryURLs,
@@ -330,7 +330,7 @@ func PolkadotConfig() (*Config, error) {
 			LogLvl:         defaultLogLevel,
 			RetainBlocks:   polkadot.DefaultRetainBlocks,
 			Pruning:        polkadot.DefaultPruningMode,
-			MetricsAddress: polkadot.DefaultMetricsAddress,
+			MetricsAddress: polkadot.DefaultPrometheusPort,
 			TelemetryURLs:  polkadot.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
@@ -392,7 +392,7 @@ func WestendConfig() (*Config, error) {
 			LogLvl:         defaultLogLevel,
 			RetainBlocks:   westend.DefaultRetainBlocks,
 			Pruning:        westend.DefaultPruningMode,
-			MetricsAddress: westend.DefaultMetricsAddress,
+			MetricsAddress: westend.DefaultPrometheusPort,
 			TelemetryURLs:  westend.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{

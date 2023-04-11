@@ -70,7 +70,7 @@ func (nodeBuilder) createStateService(config *cfg.Config) (*state.Service, error
 	stateConfig := state.Config{
 		Path:     config.BasePath,
 		LogLevel: stateLogLevel,
-		Metrics:  metrics.NewIntervalConfig(config.PublishMetrics),
+		Metrics:  metrics.NewIntervalConfig(config.PrometheusExternal),
 	}
 
 	stateSrvc := state.NewService(stateConfig)
@@ -327,7 +327,7 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 		PublicIP:          config.Network.PublicIP,
 		Telemetry:         telemetryMailer,
 		PublicDNS:         config.Network.PublicDNS,
-		Metrics:           metrics.NewIntervalConfig(config.PublishMetrics),
+		Metrics:           metrics.NewIntervalConfig(config.PrometheusExternal),
 		NodeKey:           config.Network.NodeKey,
 		ListenAddress:     config.Network.ListenAddress,
 	}
