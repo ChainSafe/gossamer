@@ -285,7 +285,8 @@ func (ct changeTree) findApplicableChange(hash common.Hash, number uint,
 			}
 
 			if child.change.announcingHeader.Number <= number && isDescendant {
-				return false, errUnfinalizedAncestor
+				return false, fmt.Errorf("%w: %s (%d)", errUnfinalizedAncestor,
+					child.change.announcingHeader.Hash(), child.change.announcingHeader.Number)
 			}
 		}
 
