@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/westend"
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	westendlocal "github.com/ChainSafe/gossamer/chain/westend-local"
+	gssmros "github.com/ChainSafe/gossamer/lib/os"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 
@@ -217,6 +218,7 @@ func parseChainSpec(chain string) error {
 			return fmt.Errorf("failed to load chain spec: %s", err)
 		}
 		config = cfg.DefaultConfigFromSpec(spec)
+		config.ChainSpec = chain
 	} else {
 		switch cfg.Chain(chain) {
 		case cfg.PolkadotChain:
@@ -327,25 +329,17 @@ func parseAccount() {
 	}
 }
 
-// parseGenesis copies the genesis file to the base path
-// if the genesis file is not set, it will use the default genesis file
-//func parseGenesis() error {
-//	sourceChainSpec := config.ChainSpec
-//	destChainSpec := cfg.GetGenesisPath(config.BasePath)
-//	if genesisPath != "" {
-//		sourceGenesis = genesisPath
-//	}
-//
-//	// copy genesis file to base path
-//	if err := gssmros.CopyFile(sourceGenesis, destGenesis); err != nil {
-//		return fmt.Errorf("failed to copy genesis file: %s", err)
-//	}
-//	config.Genesis = destGenesis
-//	// bind it to viper so that it can be used during the config parsing
-//	viper.Set("genesis", destGenesis)
-//
-//	return nil
-//}
+// copyChainSpec copies the chain-spec file to the base path
+func copyChainSpec(source, destination string) error {
+	if err := gssmros.CopyFile(source, destination); err != nil {
+		return fmt.Errorf("failed to copy genesis file: %s", err)
+	}
+	config.ChainSpec = destination
+	// bind it to viper so that it can be used during the config parsing
+	viper.Set("genesis", destination)
+
+	return nil
+}
 
 // parseRole parses the role from the command line flags
 func parseRole() error {

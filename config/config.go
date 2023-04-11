@@ -354,7 +354,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			Name:           nodeSpec.Name,
 			ID:             nodeSpec.ID,
 			BasePath:       defaultBasePath,
-			ChainSpec:      GetChainSpec(defaultBasePath),
+			ChainSpec:      "",
 			LogLevel:       defaultLogLevel,
 			MetricsAddress: defaultMetricsAddress,
 			RetainBlocks:   defaultRetainBlocks,

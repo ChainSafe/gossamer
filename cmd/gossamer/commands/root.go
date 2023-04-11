@@ -99,7 +99,11 @@ Usage:
 			}
 
 			parseAccount()
-			// TODO: Copy chainspec to basepath if it doesn't exist
+
+			// Copy chain-spec to base-path
+			if err := copyChainSpec(config.ChainSpec, cfg.GetChainSpec(config.BasePath)); err != nil {
+				return fmt.Errorf("failed to copy chain-spec: %s", err)
+			}
 
 			if cmd.Name() == "gossamer" {
 				if err := parseRole(); err != nil {
