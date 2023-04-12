@@ -49,8 +49,8 @@ func Default() cfg.Config {
 			ProtocolID:        "/gossamer/gssmr/0",
 			NoBootstrap:       false,
 			NoMDNS:            false,
-			MinPeers:          1,
-			MaxPeers:          3,
+			MinPeers:          25,
+			MaxPeers:          50,
 			DiscoveryInterval: time.Second * 1,
 		},
 		RPC: &cfg.RPCConfig{
