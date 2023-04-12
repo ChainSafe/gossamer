@@ -181,7 +181,6 @@ type CoreConfig struct {
 	GrandpaAuthority bool               `mapstructure:"grandpa-authority"`
 	WasmInterpreter  string             `mapstructure:"wasm-interpreter,omitempty"`
 	GrandpaInterval  time.Duration      `mapstructure:"grandpa-interval,omitempty"`
-	BABELead         bool               `mapstructure:"babe-lead,omitempty"`
 }
 
 // StateConfig contains the configuration for the state.
@@ -385,7 +384,6 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			GrandpaAuthority: true,
 			WasmInterpreter:  defaultWasmInterpreter,
 			GrandpaInterval:  defaultDiscoveryInterval,
-			BABELead:         false,
 		},
 		Network: &NetworkConfig{
 			Port:              defaultNetworkPort,
@@ -467,7 +465,6 @@ func Copy(c *Config) Config {
 			GrandpaAuthority: c.Core.GrandpaAuthority,
 			WasmInterpreter:  c.Core.WasmInterpreter,
 			GrandpaInterval:  c.Core.GrandpaInterval,
-			BABELead:         c.Core.BABELead,
 		},
 		Network: &NetworkConfig{
 			Port:              c.Network.Port,

@@ -20,7 +20,6 @@ func TestBabeRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	tomlConfig.Core.BABELead = true
 	node := node.New(t, tomlConfig, cfg.WestendDevChain)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)

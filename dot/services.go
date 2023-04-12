@@ -227,7 +227,6 @@ func (nodeBuilder) createBABEServiceWithBuilder(config *cfg.Config, st *state.Se
 		BlockImportHandler: cs,
 		Authority:          config.Core.BabeAuthority,
 		IsDev:              config.ID == "dev",
-		Lead:               config.Core.BABELead,
 		Telemetry:          telemetryMailer,
 	}
 

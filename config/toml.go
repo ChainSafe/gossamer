@@ -247,10 +247,6 @@ wasm-interpreter = "{{ .Core.WasmInterpreter }}"
 # Grandpa interval
 grandpa-interval = "{{ .Core.GrandpaInterval }}"
 
-# Run as a BABE authority and produce blocks
-# Defaults to false
-babe-lead = {{ .Core.BABELead }}
-
 #######################################################
 ###            State Configuration Options          ###
 #######################################################

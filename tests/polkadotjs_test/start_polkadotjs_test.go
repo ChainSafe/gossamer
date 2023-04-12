@@ -49,7 +49,6 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = libutils.GetWestendLocalRawGenesisPath(t)
-	tomlConfig.Core.BABELead = true
 	tomlConfig.RPC.UnsafeRPC = true
 	tomlConfig.RPC.RPCExternal = true
 	tomlConfig.RPC.UnsafeRPCExternal = true

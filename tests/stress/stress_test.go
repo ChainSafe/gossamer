@@ -108,16 +108,15 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
-	configNoGrandpa.Core.BABELead = true
 	configNoGrandpa.Account.Key = "alice"
-	babeLeadNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(numNodes-1))
+	blockProducerNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(numNodes-1))
 
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.ChainSpec = genesisPath
 	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority, cfg.WestendDevChain)
 
 	nodes := make(node.Nodes, 0, numNodes)
-	nodes = append(nodes, babeLeadNode)
+	nodes = append(nodes, blockProducerNode)
 	nodes = append(nodes, noAuthorityNodes...)
 
 	const testTimeout = 20 * time.Minute
@@ -214,7 +213,6 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.ChainSpec = genesisPath
-	blockProducingConfig.Core.BABELead = true
 	alice := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(0))
 
 	alice.InitAndStartTest(ctx, t, cancel)
@@ -254,7 +252,6 @@ func TestSync_Bench(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
-	configNoGrandpa.Core.BABELead = true
 
 	alice := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(0))
 
@@ -286,7 +283,6 @@ func TestSync_Bench(t *testing.T) {
 	// start syncing node
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.ChainSpec = genesisPath
-	configNoAuthority.Core.BABELead = true
 	bob := node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
@@ -364,7 +360,6 @@ func TestSync_Restart(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.ChainSpec = genesisPath
-	blockProducingConfig.Core.BABELead = true
 	producingNode := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(numNodes-1))
 
 	err := producingNode.Init()
@@ -458,7 +453,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
-	configNoGrandpa.Core.BABELead = true
 	producingNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(0))
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
@@ -630,7 +624,6 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	tomlConfig := config.NoGrandpa()
 	tomlConfig.ChainSpec = genesisPath
 	tomlConfig.RPC.WSExternal = true
-	tomlConfig.Core.BABELead = true
 	producingNode := node.New(t, tomlConfig, cfg.WestendDevChain, node.SetIndex(0))
 	ctx, cancel := context.WithCancel(context.Background())
 	producingNode.InitAndStartTest(ctx, t, cancel)

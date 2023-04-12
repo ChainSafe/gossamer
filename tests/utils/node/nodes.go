@@ -18,14 +18,12 @@ type Nodes []Node
 
 // MakeNodes creates `num` nodes using the `tomlConfig`
 // as a base config for each node. It overrides some of configuration:
-// - the first node is always the BABE lead (overrides the toml configuration)
 // - the index of each node is incremented per node (overrides the SetIndex option, if set)
 func MakeNodes(t *testing.T, num int, tomlConfig cfg.Config, chain cfg.Chain,
 	options ...Option) (nodes Nodes) {
 	nodes = make(Nodes, num)
 	for i := range nodes {
 		options = append(options, SetIndex(i))
-		tomlConfig.Core.BABELead = i == 0
 		nodes[i] = New(t, tomlConfig, chain, options...)
 	}
 	return nodes

@@ -36,7 +36,6 @@ func NoBabe() (config cfg.Config) {
 func NoGrandpa() (config cfg.Config) {
 	config = Default()
 	config.Core.GrandpaAuthority = false
-	config.Core.BABELead = true
 	config.Core.GrandpaInterval = 1
 	return config
 }

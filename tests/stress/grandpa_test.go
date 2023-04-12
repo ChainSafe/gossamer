@@ -22,7 +22,6 @@ import (
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Core.BABELead = true
 	tomlConfig.ChainSpec = genesisPath
 	n := node.New(t, tomlConfig, cfg.WestendDevChain)
 

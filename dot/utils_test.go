@@ -123,7 +123,6 @@ func TestNewTestConfig(t *testing.T) {
 				Core: CoreConfig{
 					Roles:            4,
 					BabeAuthority:    true,
-					BABELead:         false,
 					GrandpaAuthority: true,
 					WasmInterpreter:  "wasmer",
 					GrandpaInterval:  1000000000,

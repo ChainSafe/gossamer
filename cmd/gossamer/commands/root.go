@@ -530,14 +530,6 @@ func addCoreFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --grandpa-interval flag: %s", err)
 	}
 
-	if err := addBoolFlagBindViper(cmd,
-		"babe-lead",
-		config.Core.BABELead,
-		"Run as a BABE authority and produce blocks",
-		"core.babe-lead"); err != nil {
-		return fmt.Errorf("failed to add --babe-lead flag: %s", err)
-	}
-
 	return nil
 }
 

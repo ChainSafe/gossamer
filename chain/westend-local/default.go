@@ -56,7 +56,6 @@ func DefaultAliceConfig() *cfg.Config {
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
 			GrandpaInterval:  time.Second,
-			BABELead:         true,
 		},
 		State: &cfg.StateConfig{
 			Rewind: 0,
@@ -123,7 +122,6 @@ func DefaultBobConfig() *cfg.Config {
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
 			GrandpaInterval:  time.Second,
-			BABELead:         true,
 		},
 		State: &cfg.StateConfig{
 			Rewind: 0,
@@ -189,7 +187,6 @@ func DefaultCharlieConfig() *cfg.Config {
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
 			GrandpaInterval:  time.Second,
-			BABELead:         true,
 		},
 		State: &cfg.StateConfig{
 			Rewind: 0,
