@@ -346,6 +346,87 @@ func (r *RPCConfig) IsWSEnabled() bool {
 	return r.WSExternal || r.UnsafeWSExternal
 }
 
+// DefaultConfig returns the default configuration.
+func DefaultConfig() *Config {
+	return &Config{
+		BaseConfig: BaseConfig{
+			Name:               "Gossamer",
+			ID:                 "gssmr",
+			BasePath:           defaultBasePath,
+			ChainSpec:          "",
+			LogLevel:           defaultLogLevel,
+			PrometheusPort:     defaultPrometheusPort,
+			RetainBlocks:       defaultRetainBlocks,
+			Pruning:            defaultPruning,
+			PrometheusExternal: false,
+			NoTelemetry:        false,
+			TelemetryURLs:      nil,
+		},
+		Log: &LogConfig{
+			Core:    defaultLogLevel,
+			Digest:  defaultLogLevel,
+			Sync:    defaultLogLevel,
+			Network: defaultLogLevel,
+			RPC:     defaultLogLevel,
+			State:   defaultLogLevel,
+			Runtime: defaultLogLevel,
+			Babe:    defaultLogLevel,
+			Grandpa: defaultLogLevel,
+			Wasmer:  defaultLogLevel,
+		},
+		Account: &AccountConfig{
+			Key:    "",
+			Unlock: "",
+		},
+		Core: &CoreConfig{
+			Role:             defaultRole,
+			BabeAuthority:    true,
+			GrandpaAuthority: true,
+			WasmInterpreter:  defaultWasmInterpreter,
+			GrandpaInterval:  defaultDiscoveryInterval,
+		},
+		Network: &NetworkConfig{
+			Port:              defaultNetworkPort,
+			Bootnodes:         nil,
+			ProtocolID:        "/gossamer/gssmr/0",
+			NoBootstrap:       false,
+			NoMDNS:            false,
+			MinPeers:          25,
+			MaxPeers:          50,
+			PersistentPeers:   nil,
+			DiscoveryInterval: defaultDiscoveryInterval,
+			PublicIP:          "",
+			PublicDNS:         "",
+			NodeKey:           "",
+			ListenAddress:     "",
+		},
+		State: &StateConfig{
+			Rewind: 0,
+		},
+		RPC: &RPCConfig{
+			RPCExternal:       false,
+			UnsafeRPC:         false,
+			UnsafeRPCExternal: false,
+			Port:              defaultRPCPort,
+			Host:              defaultRPCHost,
+			Modules:           defaultRPCModules,
+			WSPort:            defaultWSPort,
+			WSExternal:        false,
+			UnsafeWSExternal:  false,
+		},
+		Pprof: &PprofConfig{
+			Enabled:          false,
+			ListeningAddress: defaultPprofListenAddress,
+			BlockProfileRate: 0,
+			MutexProfileRate: 0,
+		},
+		System: &SystemConfig{
+			SystemName:    DefaultSystemName,
+			SystemVersion: DefaultSystemVersion,
+		},
+	}
+}
+
 // DefaultConfigFromSpec returns the default configuration.
 func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 	return &Config{
@@ -546,6 +627,9 @@ func (c Chain) String() string {
 type NetworkRole string
 
 const (
+	// NoNetworkRole is no network role
+	NoNetworkRole NetworkRole = "none"
+
 	// FullNode is a full node
 	FullNode NetworkRole = "full"
 

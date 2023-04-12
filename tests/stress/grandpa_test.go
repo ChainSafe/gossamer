@@ -23,7 +23,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	n := node.New(t, tomlConfig, cfg.WestendDevChain)
+	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -133,7 +133,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	time.Sleep(time.Second * 70) // let some rounds run
 
-	node := node.New(t, tomlConfig, cfg.WestendDevChain, node.SetIndex(numNodes-1))
+	node := node.New(t, tomlConfig, node.SetIndex(numNodes-1))
 	node.InitAndStartTest(ctx, t, cancel)
 	nodes = append(nodes, node)
 

@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -36,7 +34,7 @@ func TestChainRPC(t *testing.T) {
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
 
-	node := node.New(t, tomlConfig, cfg.WestendDevChain)
+	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
@@ -140,7 +138,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
 	tomlConfig.RPC.WSExternal = true // WS port is set in the node.New constructor
-	node := node.New(t, tomlConfig, cfg.WestendDevChain)
+	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 

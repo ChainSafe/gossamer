@@ -109,7 +109,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
 	configNoGrandpa.Account.Key = "alice"
-	blockProducerNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(numNodes-1))
+	blockProducerNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
 
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.ChainSpec = genesisPath
@@ -213,7 +213,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.ChainSpec = genesisPath
-	alice := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(0))
+	alice := node.New(t, blockProducingConfig, node.SetIndex(0))
 
 	alice.InitAndStartTest(ctx, t, cancel)
 
@@ -222,7 +222,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	// start syncing node
 	syncingNodeConfig := config.NoBabe()
 	syncingNodeConfig.ChainSpec = genesisPath
-	bob := node.New(t, syncingNodeConfig, cfg.WestendDevChain, node.SetIndex(1))
+	bob := node.New(t, syncingNodeConfig, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
 
@@ -253,7 +253,7 @@ func TestSync_Bench(t *testing.T) {
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
 
-	alice := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(0))
+	alice := node.New(t, configNoGrandpa, node.SetIndex(0))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	alice.InitAndStartTest(ctx, t, cancel)
@@ -283,7 +283,7 @@ func TestSync_Bench(t *testing.T) {
 	// start syncing node
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.ChainSpec = genesisPath
-	bob := node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(1))
+	bob := node.New(t, configNoAuthority, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
 	require.NoError(t, err)
@@ -360,7 +360,7 @@ func TestSync_Restart(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.ChainSpec = genesisPath
-	producingNode := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(numNodes-1))
+	producingNode := node.New(t, blockProducingConfig, node.SetIndex(numNodes-1))
 
 	err := producingNode.Init()
 	require.NoError(t, err)
@@ -453,7 +453,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
-	producingNode := node.New(t, configNoGrandpa, cfg.WestendDevChain, node.SetIndex(0))
+	producingNode := node.New(t, configNoGrandpa, node.SetIndex(0))
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
 	nodes := node.Nodes{producingNode}
@@ -462,10 +462,10 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	// Start rest of nodes
 	configNoAuthority.ChainSpec = genesisPath
-	n := node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(1))
+	n := node.New(t, configNoAuthority, node.SetIndex(1))
 	nodes = append(nodes, n)
 
-	n = node.New(t, configNoAuthority, cfg.WestendDevChain, node.SetIndex(2))
+	n = node.New(t, configNoAuthority, node.SetIndex(2))
 	nodes = append(nodes, n)
 
 	// send tx to non-authority node
@@ -624,7 +624,7 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	tomlConfig := config.NoGrandpa()
 	tomlConfig.ChainSpec = genesisPath
 	tomlConfig.RPC.WSExternal = true
-	producingNode := node.New(t, tomlConfig, cfg.WestendDevChain, node.SetIndex(0))
+	producingNode := node.New(t, tomlConfig, node.SetIndex(0))
 	ctx, cancel := context.WithCancel(context.Background())
 	producingNode.InitAndStartTest(ctx, t, cancel)
 

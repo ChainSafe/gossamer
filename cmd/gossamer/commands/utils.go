@@ -336,7 +336,7 @@ func copyChainSpec(source, destination string) error {
 	}
 	config.ChainSpec = destination
 	// bind it to viper so that it can be used during the config parsing
-	viper.Set("genesis", destination)
+	viper.Set("chain-spec", destination)
 
 	return nil
 }

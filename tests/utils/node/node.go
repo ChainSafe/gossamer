@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
@@ -31,7 +33,7 @@ type Node struct {
 
 // New returns a node configured using the
 // toml configuration and options given.
-func New(t *testing.T, tomlConfig cfg.Config, chain cfg.Chain,
+func New(t *testing.T, tomlConfig cfg.Config,
 	options ...Option) (node Node) {
 	node.tomlConfig = cfg.Copy(&tomlConfig)
 	for _, option := range options {
@@ -146,6 +148,7 @@ func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr e
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
 		"--base-path", n.tomlConfig.BasePath,
 		"--chain", n.tomlConfig.ChainSpec,
+		"--role", config.ParseNetworkRole(n.tomlConfig.Core.Role),
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {

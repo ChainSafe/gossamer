@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 )
 
@@ -21,7 +19,7 @@ func Test_Node_InitAndStartTest(t *testing.T) {
 
 	tomlConfig := config.Default()
 
-	n := New(t, tomlConfig, cfg.WestendDevChain)
+	n := New(t, tomlConfig)
 
 	n.InitAndStartTest(ctx, t, cancel)
 

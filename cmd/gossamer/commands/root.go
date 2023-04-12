@@ -12,14 +12,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/spf13/cobra"
 )
 
 // Package level variables
 var (
-	config = westenddev.DefaultConfig()
+	config = cfg.DefaultConfig()
 	logger = log.NewFromGlobal(log.AddContext("pkg", "cmd"))
 )
 
@@ -145,7 +144,7 @@ func addRootFlags(cmd *cobra.Command) error {
 		"The base path for the node. Defaults to $GSSMRHOME if set")
 	cmd.PersistentFlags().StringVar(&chain,
 		"chain",
-		cfg.WestendLocalChain.String(),
+		"",
 		"The default chain configuration to load. Example: --chain kusama")
 
 	// Base Config
@@ -490,12 +489,12 @@ func addRPCFlags(cmd *cobra.Command) error {
 func addCoreFlags(cmd *cobra.Command) error {
 	cmd.Flags().StringVar(&role,
 		"role",
-		cfg.AuthorityNode.String(),
+		cfg.FullNode.String(),
 		"Role of the node. One of 'full', 'light', or 'authority'.")
 
 	cmd.Flags().BoolVar(&validator,
 		"validator",
-		true,
+		false,
 		"Run as a validator node")
 
 	if err := addBoolFlagBindViper(cmd,

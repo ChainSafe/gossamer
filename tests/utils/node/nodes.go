@@ -24,7 +24,7 @@ func MakeNodes(t *testing.T, num int, tomlConfig cfg.Config, chain cfg.Chain,
 	nodes = make(Nodes, num)
 	for i := range nodes {
 		options = append(options, SetIndex(i))
-		nodes[i] = New(t, tomlConfig, chain, options...)
+		nodes[i] = New(t, tomlConfig, options...)
 	}
 	return nodes
 }
