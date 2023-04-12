@@ -255,7 +255,7 @@ func WestendDevConfig() *Config {
 
 // KusamaConfig returns a kusama node configuration
 func KusamaConfig() (*Config, error) {
-	defaultLogLevel, err := log.ParseLevel(westend.DefaultLvl)
+	defaultLogLevel, err := log.ParseLevel(kusama.DefaultLvl)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func KusamaConfig() (*Config, error) {
 
 // PolkadotConfig returns a "polkadot" node configuration
 func PolkadotConfig() (*Config, error) {
-	defaultLogLevel, err := log.ParseLevel(westend.DefaultLvl)
+	defaultLogLevel, err := log.ParseLevel(polkadot.DefaultLvl)
 	if err != nil {
 		return nil, err
 	}

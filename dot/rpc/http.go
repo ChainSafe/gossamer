@@ -55,7 +55,7 @@ type HTTPServerConfig struct {
 }
 
 func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
-	return h.RPCUnsafeExternal || h.RPCUnsafe
+	return h.RPCUnsafe || h.RPCUnsafeExternal
 }
 
 func (h *HTTPServerConfig) wsUnsafeEnabled() bool {

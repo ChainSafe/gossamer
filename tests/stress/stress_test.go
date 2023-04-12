@@ -69,8 +69,8 @@ func TestRestartNode(t *testing.T) {
 	defaultConfig := config.Default()
 	nodes := node.MakeNodes(t, numNodes, defaultConfig, cfg.WestendDevChain)
 
-	//err := nodes.Init(context.Background())
-	//require.NoError(t, err)
+	err := nodes.Init()
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -367,10 +367,9 @@ func TestSync_Restart(t *testing.T) {
 	blockProducingConfig.Core.BABELead = true
 	producingNode := node.New(t, blockProducingConfig, cfg.WestendDevChain, node.SetIndex(numNodes-1))
 
-	//err := producingNode.Init(mainCtx)
-	//require.NoError(t, err)
+	err := producingNode.Init()
+	require.NoError(t, err)
 
-	var err error
 	nodeWaitErrs[0], err = producingNode.StartAndWait(nodeCtxs[0])
 	t.Cleanup(func() {
 		// note we need to use indexes since these

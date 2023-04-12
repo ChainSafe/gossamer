@@ -27,7 +27,6 @@ func newTestGenesisFile(t *testing.T, config *cfg.Config) (filename string) {
 	t.Helper()
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
-	fmt.Println(fp)
 	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
