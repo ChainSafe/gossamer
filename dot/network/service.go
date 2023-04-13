@@ -89,7 +89,7 @@ var (
 	})
 	processStartTimeGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "substrate", // Note: this is using substrate namespace because that is what zombienet uses
-		//  to confirm nodes have started TODO: consider other ways to handle this.
+		//  to confirm nodes have started TODO: consider other ways to handle this, see issue #3205
 		Name: "process_start_time_seconds",
 		Help: "gossamer process start seconds unix timestamp, " +
 			"using substrate namespace so zombienet detects node start",

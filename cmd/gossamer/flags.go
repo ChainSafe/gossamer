@@ -314,7 +314,7 @@ var (
 		Aliases: []string{"unsafe-ws-external"}, // unsafe-ws-external is argument used by polkadot node
 		Usage:   "Enable external access to websocket unsafe calls",
 	}
-	// RPCCorsFlag dummy flag provided to conform to polkadot flags
+	// RPCCorsFlag dummy flag provided to conform to polkadot flags, TODO: see issue #3205
 	RPCCorsFlag = cli.StringFlag{
 		Name:  "rpc-cors",
 		Usage: "dummy place holder to conform with polkadot cli flags",
@@ -386,7 +386,7 @@ var (
 // BABE flags
 var (
 	ValidatorFlag = cli.BoolFlag{
-		Name: "validator", // TODO(ed) implement
+		Name: "validator",
 	}
 )
 
