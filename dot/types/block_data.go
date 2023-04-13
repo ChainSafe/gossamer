@@ -31,6 +31,10 @@ func (bd *BlockData) Number() uint {
 	return bd.Header.Number
 }
 
+func (bd *BlockData) LessOrEqual(o *BlockData) bool {
+	return bd.Header.Number <= o.Header.Number
+}
+
 func (bd *BlockData) String() string {
 	str := fmt.Sprintf("Hash=%s ", bd.Hash)
 

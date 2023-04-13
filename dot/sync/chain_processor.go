@@ -141,7 +141,7 @@ func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //n
 			if err != nil {
 				return fmt.Errorf("processing block data with header and body: %w", err)
 			}
-			logger.Debugf("block with hash %s processed", blockData.Hash)
+			//logger.Debugf("block with hash %s processed", blockData.Hash)
 		}
 
 		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
@@ -269,7 +269,7 @@ func (s *chainProcessor) handleBlock(block *types.Block, announceImportedBlock b
 		return err
 	}
 
-	logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())
+	//logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())
 
 	blockHash := block.Header.Hash()
 	s.telemetry.SendMessage(telemetry.NewBlockImport(

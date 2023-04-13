@@ -114,6 +114,9 @@ type chainSync struct {
 	blockState BlockState
 	network    Network
 
+	// to replace the worker queue
+	workerPool *syncWorkerPool
+
 	// queue of work created by setting peer heads
 	workQueue chan *peerState
 
@@ -204,16 +207,15 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		logSyncTicker:    logSyncTicker,
 		logSyncTickerC:   logSyncTicker.C,
 		logSyncDone:      make(chan struct{}),
+		workerPool:       newSyncWorkerPool(cfg.net),
 	}
 }
 
 func (cs *chainSync) start() {
-	// wait until we have received at least `minPeers` peer heads
+	// wait until we have a minimal workers in the sync worker pool
 	for {
-		cs.RLock()
-		n := len(cs.peerState)
-		cs.RUnlock()
-		if n >= cs.minPeers {
+		totalAvailable := cs.workerPool.totalWorkers()
+		if totalAvailable >= uint(cs.minPeers) {
 			break
 		}
 		time.Sleep(time.Millisecond * 100)
@@ -223,6 +225,7 @@ func (cs *chainSync) start() {
 
 	pendingBlockDoneCh := make(chan struct{})
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
+
 	go cs.pendingBlocks.run(pendingBlockDoneCh)
 	go cs.sync()
 	cs.logSyncStarted = true
@@ -267,15 +270,11 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 }
 
 // setPeerHead sets a peer's best known block and potentially adds the peer's state to the workQueue
-func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error {
-	ps := &peerState{
-		who:    p,
-		hash:   hash,
-		number: number,
+func (cs *chainSync) setPeerHead(p peer.ID, bestHash common.Hash, bestNumber uint) error {
+	err := cs.workerPool.addWorker(p, bestHash, bestNumber)
+	if err != nil {
+		logger.Errorf("adding a potential worker: %s", err)
 	}
-	cs.Lock()
-	cs.peerState[p] = ps
-	cs.Unlock()
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not
@@ -284,15 +283,15 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		return fmt.Errorf("best block header: %w", err)
 	}
 
-	if ps.number <= head.Number {
+	if bestNumber <= head.Number {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
+		ourHash, err := cs.blockState.GetHashByNumber(bestNumber)
 		if err != nil {
 			return fmt.Errorf("get block hash by number: %w", err)
 		}
 
-		if ourHash == ps.hash {
+		if ourHash == bestHash {
 			return nil
 		}
 
@@ -307,7 +306,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 		// their block hash doesn't match ours for that number (ie. they are on a different
 		// chain), and also the highest finalised block is higher than that number.
 		// thus the peer is on an invalid chain
-		if fin.Number >= ps.number {
+		if fin.Number >= bestNumber {
 			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
 			// perhaps we need another field in `peerState` to mark whether the state is valid or not
 			cs.network.ReportPeer(peerset.ReputationChange{
@@ -315,12 +314,12 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 				Reason: peerset.BadBlockAnnouncementReason,
 			}, p)
 			return fmt.Errorf("%w: for peer %s and block number %d",
-				errPeerOnInvalidFork, p, ps.number)
+				errPeerOnInvalidFork, p, bestNumber)
 		}
 
 		// peer is on a fork, check if we have processed the fork already or not
 		// ie. is their block written to our db?
-		has, err := cs.blockState.HasHeader(ps.hash)
+		has, err := cs.blockState.HasHeader(bestHash)
 		if err != nil {
 			return fmt.Errorf("has header: %w", err)
 		}
@@ -333,12 +332,11 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error
 
 	// the peer has a higher best block than us, or they are on some fork we are not aware of
 	// add it to the disjoint block set
-	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number); err != nil {
+	if err = cs.pendingBlocks.addHashAndNumber(bestHash, bestNumber); err != nil {
 		return fmt.Errorf("add hash and number: %w", err)
 	}
 
-	cs.workQueue <- ps
-	logger.Debugf("set peer %s head with block number %d and hash %s", p, number, hash)
+	//cs.workQueue <- nil
 	return nil
 }
 
@@ -372,9 +370,7 @@ func (cs *chainSync) logSyncSpeed() {
 			continue
 		}
 
-		cs.Lock()
-		totalWorkers := len(cs.peerState)
-		cs.Unlock()
+		totalWorkers := cs.workerPool.totalWorkers()
 
 		switch cs.state {
 		case bootstrap:
@@ -432,24 +428,51 @@ func (cs *chainSync) sync() {
 			if err := cs.handleResult(res); err != nil {
 				logger.Errorf("failed to handle chain sync result: %s", err)
 			}
+
+		// TODO: re-think the usage of ticker in bootstrap mode but in tip sync mode
+		// we should use it when we don't receive a block-announcement for a while (let's say for a slot duration time)
 		case <-ticker.C:
 			cs.maybeSwitchMode()
 
-			workers, err := cs.handler.handleTick()
-			if err != nil {
-				logger.Errorf("failed to handle tick: %s", err)
-				continue
-			}
-
-			for _, worker := range workers {
-				cs.tryDispatchWorker(worker)
-			}
 		case fin := <-cs.finalisedCh:
 			// on finalised block, call pendingBlocks.removeLowerBlocks() to remove blocks on
 			// invalid forks from the pending blocks set
 			cs.pendingBlocks.removeLowerBlocks(fin.Header.Number)
 		case <-cs.ctx.Done():
 			return
+		default:
+			cs.maybeSwitchMode()
+
+			if cs.state == bootstrap {
+				cs.workerPool.useConnectedPeers()
+
+				head, err := cs.blockState.BestBlockHeader()
+				if err != nil {
+					logger.Errorf("getting best block header while syncing: %s", err)
+					continue
+				}
+
+				availablePeers := cs.workerPool.totalWorkers()
+				startRequestAt := head.Number + 1
+				targetBlockNumber := startRequestAt + uint(availablePeers)*128
+				requests, err := ascedingBlockRequest(
+					startRequestAt, targetBlockNumber, bootstrapRequestData)
+
+				if err != nil {
+					logger.Errorf("failed to setup ascending block requests: %s", err)
+				}
+
+				expectedAmountOfBlocks := totalRequestedBlocks(requests)
+				wg := sync.WaitGroup{}
+
+				resultsQueue := make(chan *syncTaskResult)
+
+				wg.Add(1)
+				go cs.handleWorkersResults(resultsQueue, expectedAmountOfBlocks, &wg)
+				cs.workerPool.submitRequests(requests, resultsQueue)
+
+				wg.Wait()
+			}
 		}
 	}
 }
@@ -671,6 +694,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		return
 	}
 
+	logger.Debugf("created %d request to be dispatched", len(reqs))
 	for _, req := range reqs {
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time (#1399)
 		if err := cs.doSync(req, w.peersTried); err != nil {
@@ -683,6 +707,133 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
+// handleWorkersResults, every time we submit requests to workers they results should be computed here
+// and every cicle we should endup with a complete chain, whenever we identify
+// any error from a worker we should evaluate the error and re-insert the request
+// in the queue and wait for it to completes
+func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, totalBlocks uint32, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	logger.Infof("starting handleWorkersResults, waiting %d blocks", totalBlocks)
+	syncingChain := make([]*types.BlockData, 0, totalBlocks)
+
+loop:
+	for {
+		select {
+		// TODO: implement a case to stop
+		case taskResult := <-workersResults:
+			logger.Infof("task result: peer(%s), error: %v, hasResponse: %v",
+				taskResult.who, taskResult.err != nil, taskResult.response != nil)
+
+			if taskResult.err != nil {
+				switch {
+				// TODO add this worker in a ignorePeers list, implement some expiration time for
+				// peers added to it (peerJail where peers have a release date and maybe extend the punishment
+				// if fail again ang again Jimmy's + Diego's idea)
+				case strings.Contains(taskResult.err.Error(), "dial backoff") ||
+					taskResult.err.Error() == "protocol not supported":
+
+					logger.Criticalf("response invalid: %s", taskResult.err)
+					cs.workerPool.shutdownWorker(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue
+				}
+			}
+
+			who := taskResult.who
+			request := taskResult.request
+			response := taskResult.response
+
+			if request.Direction == network.Descending {
+				// reverse blocks before pre-validating and placing in ready queue
+				reverseBlockData(response.BlockData)
+			}
+
+			err := cs.validateResponse(request, response, who)
+			switch {
+			case errors.Is(err, errEmptyBlockData):
+				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				continue
+			case errors.Is(err, errUnknownParent):
+			case err != nil:
+				logger.Criticalf("response invalid: %s", err)
+				cs.workerPool.shutdownWorker(taskResult.who)
+				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				continue
+			}
+
+			if len(response.BlockData) > 0 {
+				firstBlockInResponse := response.BlockData[0]
+				lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
+
+				logger.Tracef("processing %d blocks: %d (%s) to %d (%s)",
+					len(response.BlockData),
+					firstBlockInResponse.Header.Number, firstBlockInResponse.Hash,
+					lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
+			}
+
+			previousLen := len(syncingChain)
+
+			syncingChain = mergeSortedSlices(syncingChain, response.BlockData)
+			logger.Infof("building a syncing chain, previous length: %d, current length: %d",
+				previousLen, len(syncingChain))
+
+			if len(syncingChain) >= int(totalBlocks) {
+				break loop
+			}
+		}
+	}
+
+	logger.Infof("synced %d blocks, starting process", len(syncingChain))
+	// response was validated! place into ready block queue
+	for _, bd := range syncingChain {
+		// block is ready to be processed!
+		cs.handleReadyBlock(bd)
+	}
+}
+
+type LessOrEqual[T any] interface {
+	LessOrEqual(T) bool
+}
+
+func mergeSortedSlices[T LessOrEqual[T]](a, b []T) []T {
+	// if one slice is empty just return the other
+	switch {
+	case len(a) < 1:
+		return b
+	case len(b) < 1:
+		return a
+	}
+
+	aIndex, bIndex := 0, 0
+	resultSlice := make([]T, 0, len(a)+len(b))
+
+	for aIndex < 0 && bIndex < 0 {
+		elemA := a[aIndex]
+		elemB := b[bIndex]
+
+		if elemA.LessOrEqual(elemB) {
+			resultSlice = append(resultSlice, elemA)
+			aIndex++
+		} else {
+			resultSlice = append(resultSlice, elemB)
+			bIndex++
+		}
+	}
+
+	// if there is remaining items in both arrays after the ordering phase
+	// we just append them in the result slice
+	for idx := aIndex; idx < len(a); idx++ {
+		resultSlice = append(resultSlice, a[idx])
+	}
+
+	for idx := bIndex; idx < len(b); idx++ {
+		resultSlice = append(resultSlice, b[idx])
+	}
+
+	return resultSlice
+}
+
 func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) *workerError {
 	// determine which peers have the blocks we want to request
 	peers := cs.determineSyncPeers(req, peersTried)
@@ -693,12 +844,12 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 		}
 	}
 
-	// send out request and potentially receive response, error if timeout
-	logger.Tracef("sending out block request: %s", req)
-
 	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
 	who := peers[idx.Int64()]
+
+	// send out request and potentially receive response, error if timeout
+	logger.Tracef("sending out block request to %s: %s", who, req)
 	resp, err := cs.network.DoBlockRequest(who, req)
 	if err != nil {
 		return &workerError{

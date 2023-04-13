@@ -590,6 +590,10 @@ func (s *Service) NetworkState() common.NetworkState {
 	}
 }
 
+func (s *Service) TotalConnectedPeers() []peer.ID {
+	return s.host.p2pHost.Network().Peers()
+}
+
 // Peers returns information about connected peers needed for the rpc server
 func (s *Service) Peers() []common.PeerInfo {
 	var peers []common.PeerInfo

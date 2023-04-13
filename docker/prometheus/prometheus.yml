@@ -10,4 +10,4 @@ scrape_configs:
   - job_name: gossamer
     metrics_path: /metrics
     static_configs:
-      - targets: ["gossamer:9876"]
+      - targets: ["host.docker.internal:9876"]
