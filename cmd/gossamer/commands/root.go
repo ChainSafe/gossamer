@@ -235,17 +235,27 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"retain-blocks"); err != nil {
 		return fmt.Errorf("failed to add --retain-blocks flag: %s", err)
 	}
-	cmd.Flags().StringVar(&logLevelGlobal,
-		"log", config.BaseConfig.LogLevel,
-		"Global log level. Supports levels critical (silent), error, warn, info, debug and trace")
-	cmd.Flags().StringVar(&pruning,
+	if err := addStringFlagBindViper(cmd,
+		"log",
+		config.BaseConfig.LogLevel,
+		"Global log level. Supports levels critical (silent), error, warn, info, debug and trace",
+		"log"); err != nil {
+		return fmt.Errorf("failed to add --log flag: %s", err)
+	}
+	if err := addStringFlagBindViper(cmd,
 		"state-pruning",
 		string(config.BaseConfig.Pruning),
-		"State trie online pruning")
-	cmd.Flags().BoolVar(&config.PrometheusExternal,
+		"State trie online pruning",
+		"state-pruning"); err != nil {
+		return fmt.Errorf("failed to add --state-pruning flag: %s", err)
+	}
+	if err := addBoolFlagBindViper(cmd,
 		"prometheus-external",
 		config.BaseConfig.PrometheusExternal,
-		"Publish metrics to prometheus")
+		"Publish metrics to prometheus",
+		"prometheus-external"); err != nil {
+		return fmt.Errorf("failed to add --prometheus-external flag: %s", err)
+	}
 	cmd.Flags().StringVar(&telemetryURLs,
 		"telemetry-url",
 		"",
