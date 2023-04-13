@@ -32,7 +32,8 @@ func (bd *BlockData) Number() uint {
 }
 
 func (bd *BlockData) LessOrEqual(o *BlockData) bool {
-	return bd.Header.Number <= o.Header.Number
+	res := bd.Header.Number <= o.Header.Number
+	return res
 }
 
 func (bd *BlockData) String() string {

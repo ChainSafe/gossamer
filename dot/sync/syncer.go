@@ -46,13 +46,19 @@ func NewService(cfg *Config) (*Service, error) {
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
 
 	csCfg := chainSyncConfig{
-		bs:            cfg.BlockState,
-		net:           cfg.Network,
-		readyBlocks:   readyBlocks,
-		pendingBlocks: pendingBlocks,
-		minPeers:      cfg.MinPeers,
-		maxPeers:      cfg.MaxPeers,
-		slotDuration:  cfg.SlotDuration,
+		bs:                 cfg.BlockState,
+		net:                cfg.Network,
+		readyBlocks:        readyBlocks,
+		pendingBlocks:      pendingBlocks,
+		minPeers:           cfg.MinPeers,
+		maxPeers:           cfg.MaxPeers,
+		slotDuration:       cfg.SlotDuration,
+		storageState:       cfg.StorageState,
+		transactionState:   cfg.TransactionState,
+		babeVerifier:       cfg.BabeVerifier,
+		finalityGadget:     cfg.FinalityGadget,
+		blockImportHandler: cfg.BlockImportHandler,
+		telemetry:          cfg.Telemetry,
 	}
 	chainSync := newChainSync(csCfg)
 
@@ -81,14 +87,14 @@ func NewService(cfg *Config) (*Service, error) {
 // Start begins the chainSync and chainProcessor modules. It begins syncing in bootstrap mode
 func (s *Service) Start() error {
 	go s.chainSync.start()
-	go s.chainProcessor.processReadyBlocks()
+	//go s.chainProcessor.processReadyBlocks()
 	return nil
 }
 
 // Stop stops the chainSync and chainProcessor modules
 func (s *Service) Stop() error {
 	s.chainSync.stop()
-	s.chainProcessor.stop()
+	//s.chainProcessor.stop()
 	return nil
 }
 

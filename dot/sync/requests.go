@@ -15,7 +15,7 @@ func ascedingBlockRequest(startNumber uint, targetNumber uint, requestedData byt
 	if diff == 0 {
 		one := uint32(1)
 		return []*network.BlockRequestMessage{
-			&network.BlockRequestMessage{
+			{
 				RequestedData: requestedData,
 				StartingBlock: *variadic.MustNewUint32OrHash(uint32(startNumber)),
 				Direction:     network.Ascending,
@@ -43,7 +43,7 @@ func ascedingBlockRequest(startNumber uint, targetNumber uint, requestedData byt
 			Direction:     network.Ascending,
 			Max:           &max,
 		}
-		startNumber += maxResponseSize
+		startNumber += uint(max)
 	}
 
 	return reqs, nil
