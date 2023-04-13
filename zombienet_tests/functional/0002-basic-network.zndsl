@@ -11,13 +11,13 @@ bob: is up
 {% set nodeAddresses = ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty", "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"] %}
 
-# Check nodes are up, syncing and have expected beginning balances
+# Check nodes are up, synced and have expected beginning balances
 {% for node in nodes %}
     {{node}}: is up
     {{node}}: reports gossamer_network_syncer_is_synced is 1 within 30 seconds
 
     {% for address in nodeAddresses %}
-        alice: js-script ./scripts/free-balance.js with "{{address}}" return is equal to 1000000000000000000
+        {{node}}: js-script ./scripts/free-balance.js with "{{address}}" return is equal to 1000000000000000000
     {% endfor %}
 {% endfor %}
 
