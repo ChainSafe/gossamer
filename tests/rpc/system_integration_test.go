@@ -37,6 +37,10 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.RPC.UnsafeRPCExternal = true
 	con.RPC.UnsafeWSExternal = true
 
+	// TODO: Figure out how this is making the test pass
+	con.Network.MinPeers = 5
+	con.Network.MaxPeers = 50
+
 	var nodes []node.Node
 	for i := 0; i < numberOfNodes; i++ {
 		n := node.New(t, con, node.SetIndex(i))
