@@ -7,7 +7,7 @@ chain = "westend-local"
 name = "alice"
 command = "gossamer"
 validator = true
-args = ["--key alice", "--babe-lead"]
+args = ["--key alice"]
 
 [[relaychain.nodes]]
 name = "bob"
