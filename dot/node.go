@@ -422,8 +422,9 @@ func newNode(config *cfg.Config,
 	}
 
 	if config.PrometheusExternal {
-		node.metricsServer = metrics.NewServer(config.PrometheusPort)
-		err := node.metricsServer.Start(config.PrometheusPort)
+		address := fmt.Sprintf(":%d", config.PrometheusPort)
+		node.metricsServer = metrics.NewServer(address)
+		err := node.metricsServer.Start(address)
 		if err != nil {
 			return nil, fmt.Errorf("cannot start metrics server: %w", err)
 		}

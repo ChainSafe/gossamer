@@ -94,7 +94,7 @@ func DefaultConfig() *cfg.Config {
 			BasePath:       DefaultBasePath,
 			ChainSpec:      DefaultChainSpec,
 			LogLevel:       DefaultLogLevel,
-			PrometheusPort: DefaultPrometheusPort,
+			PrometheusPort: uint32(9876),
 			RetainBlocks:   DefaultRetainBlocks,
 			Pruning:        DefaultPruning,
 		},

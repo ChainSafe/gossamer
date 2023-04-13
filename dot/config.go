@@ -41,16 +41,16 @@ type Config struct {
 
 // GlobalConfig is used for every node command
 type GlobalConfig struct {
-	Name           string
-	ID             string
-	BasePath       string
-	LogLvl         log.Level
-	PublishMetrics bool
-	MetricsAddress string
-	NoTelemetry    bool
-	TelemetryURLs  []genesis.TelemetryEndpoint
-	RetainBlocks   uint32
-	Pruning        pruner.Mode
+	Name               string
+	ID                 string
+	BasePath           string
+	LogLvl             log.Level
+	PrometheusExternal bool
+	PrometheusPort     uint32
+	NoTelemetry        bool
+	TelemetryURLs      []genesis.TelemetryEndpoint
+	RetainBlocks       uint32
+	Pruning            pruner.Mode
 }
 
 // LogConfig represents the log levels for individual packages
@@ -196,7 +196,7 @@ func WestendDevConfig() *Config {
 			ID:             "westend_dev",
 			BasePath:       "~/.gossamer/westend-dev",
 			LogLvl:         log.Info,
-			MetricsAddress: ":9876",
+			PrometheusPort: 9876,
 			RetainBlocks:   512,
 			Pruning:        pruner.Archive,
 		},
@@ -265,7 +265,7 @@ func KusamaConfig() (*Config, error) {
 			ID:             kusama.DefaultID,
 			BasePath:       kusama.DefaultBasePath,
 			LogLvl:         defaultLogLevel,
-			MetricsAddress: kusama.DefaultPrometheusPort,
+			PrometheusPort: kusama.DefaultPrometheusPort,
 			RetainBlocks:   kusama.DefaultRetainBlocks,
 			Pruning:        kusama.DefaultPruningMode,
 			TelemetryURLs:  kusama.DefaultTelemetryURLs,
@@ -329,7 +329,7 @@ func PolkadotConfig() (*Config, error) {
 			LogLvl:         defaultLogLevel,
 			RetainBlocks:   polkadot.DefaultRetainBlocks,
 			Pruning:        polkadot.DefaultPruningMode,
-			MetricsAddress: polkadot.DefaultPrometheusPort,
+			PrometheusPort: polkadot.DefaultPrometheusPort,
 			TelemetryURLs:  polkadot.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{
@@ -391,7 +391,7 @@ func WestendConfig() (*Config, error) {
 			LogLvl:         defaultLogLevel,
 			RetainBlocks:   westend.DefaultRetainBlocks,
 			Pruning:        westend.DefaultPruningMode,
-			MetricsAddress: westend.DefaultPrometheusPort,
+			PrometheusPort: westend.DefaultPrometheusPort,
 			TelemetryURLs:  westend.DefaultTelemetryURLs,
 		},
 		Log: LogConfig{

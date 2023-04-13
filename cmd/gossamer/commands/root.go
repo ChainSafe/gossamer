@@ -221,7 +221,7 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"no-telemetry"); err != nil {
 		return fmt.Errorf("failed to add --no-telemetry flag: %s", err)
 	}
-	if err := addStringFlagBindViper(cmd,
+	if err := addUint32FlagBindViper(cmd,
 		"prometheus-port",
 		config.BaseConfig.PrometheusPort,
 		"Listen address of the prometheus server",

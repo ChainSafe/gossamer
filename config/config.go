@@ -25,7 +25,7 @@ const (
 	// defaultLogLevel is the default log level
 	defaultLogLevel = "info"
 	// defaultPrometheusPort is the default prometheus port
-	defaultPrometheusPort = ":9876"
+	defaultPrometheusPort = uint32(9876)
 	// defaultRetainBlocks is the default number of blocks to retain
 	defaultRetainBlocks = 512
 	// defaultPruning is the default pruning strategy
@@ -127,7 +127,7 @@ type BaseConfig struct {
 	BasePath           string                      `mapstructure:"base-path,omitempty"`
 	ChainSpec          string                      `mapstructure:"chain-spec,omitempty"`
 	LogLevel           string                      `mapstructure:"log-level,omitempty"`
-	PrometheusPort     string                      `mapstructure:"prometheus-port,omitempty"`
+	PrometheusPort     uint32                      `mapstructure:"prometheus-port,omitempty"`
 	RetainBlocks       uint32                      `mapstructure:"retain-blocks,omitempty"`
 	Pruning            pruner.Mode                 `mapstructure:"pruning,omitempty"`
 	PrometheusExternal bool                        `mapstructure:"prometheus-external,omitempty"`
@@ -227,7 +227,7 @@ func (b *BaseConfig) ValidateBasic() error {
 	if b.ChainSpec == "" {
 		return fmt.Errorf("chain-spec cannot be empty")
 	}
-	if b.PrometheusPort == "" {
+	if b.PrometheusPort == 0 {
 		return fmt.Errorf("prometheus port cannot be empty")
 	}
 	if uint32Max < b.RetainBlocks {
@@ -440,7 +440,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			BasePath:           defaultBasePath,
 			ChainSpec:          "",
 			LogLevel:           defaultLogLevel,
-			PrometheusPort:     defaultPrometheusPort,
+			PrometheusPort:     uint32(9876),
 			RetainBlocks:       defaultRetainBlocks,
 			Pruning:            defaultPruning,
 			PrometheusExternal: false,

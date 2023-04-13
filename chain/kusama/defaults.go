@@ -20,7 +20,7 @@ var (
 	DefaultBasePath = "~/.gossamer/kusama"
 
 	// DefaultPrometheusPort is the default metrics server listening address.
-	DefaultPrometheusPort = "localhost:9876"
+	DefaultPrometheusPort = uint32(9876)
 
 	// DefaultLvl is the default log level
 	DefaultLvl = "info"

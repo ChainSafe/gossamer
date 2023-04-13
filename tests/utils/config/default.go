@@ -17,7 +17,7 @@ func Default() cfg.Config {
 			Name:           "Gossamer",
 			ID:             "gssmr",
 			LogLevel:       "info",
-			PrometheusPort: "localhost:9876",
+			PrometheusPort: uint32(9876),
 			RetainBlocks:   256,
 			Pruning:        "archive",
 		},
