@@ -239,13 +239,10 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"log",
 		config.BaseConfig.LogLevel,
 		"Global log level. Supports levels critical (silent), error, warn, info, debug and trace")
-	if err := addStringFlagBindViper(cmd,
+	cmd.Flags().StringVar(&pruning,
 		"state-pruning",
 		string(config.BaseConfig.Pruning),
-		"State trie online pruning",
-		"state-pruning"); err != nil {
-		return fmt.Errorf("failed to add --state-pruning flag: %s", err)
-	}
+		"State trie online pruning")
 	if err := addBoolFlagBindViper(cmd,
 		"prometheus-external",
 		config.BaseConfig.PrometheusExternal,
