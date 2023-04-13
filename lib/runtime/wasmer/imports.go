@@ -48,11 +48,13 @@ package wasmer
 // extern int64_t ext_default_child_storage_next_key_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_read_version_1(void *context, int64_t a, int64_t b, int64_t c, int32_t d);
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
+// extern int32_t ext_default_child_storage_root_version_2(void *context, int64_t a, int32_t b);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
+// extern int64_t ext_default_child_storage_clear_prefix_version_2(void *context, int64_t a, int64_t b, int64_t c);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
 //
 // extern void ext_allocator_free_version_1(void *context, int32_t a);
@@ -66,6 +68,7 @@ package wasmer
 // extern int32_t ext_hashing_twox_128_version_1(void *context, int64_t a);
 // extern int32_t ext_hashing_twox_64_version_1(void *context, int64_t a);
 //
+// extern void ext_offchain_index_clear_version_1(void *context, int64_t a);
 // extern void ext_offchain_index_set_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_offchain_is_validator_version_1(void *context);
 // extern void ext_offchain_local_storage_clear_version_1(void *context, int32_t a, int64_t b);
@@ -1060,6 +1063,11 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 	}
 }
 
+//export ext_default_child_storage_clear_prefix_version_2
+func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, childStorageKey, prefixSpan, limit C.int64_t) C.int64_t {
+	return C.int64_t(0)
+}
+
 //export ext_default_child_storage_exists_version_1
 func ext_default_child_storage_exists_version_1(context unsafe.Pointer,
 	childStorageKey, key C.int64_t) C.int32_t {
@@ -1158,6 +1166,34 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer,
 	return C.int64_t(root)
 }
 
+//export ext_default_child_storage_root_version_2
+func ext_default_child_storage_root_version_2(context unsafe.Pointer,
+	childStorageKey C.int64_t, stateVersion C.int32_t) (ptrSize C.int32_t) {
+	logger.Debug("executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
+	if err != nil {
+		logger.Errorf("failed to retrieve child: %s", err)
+		return 0
+	}
+
+	childRoot, err := child.Hash()
+	if err != nil {
+		logger.Errorf("failed to encode child root: %s", err)
+		return 0
+	}
+
+	root, err := toWasmMemoryOptional(instanceContext, childRoot[:])
+	if err != nil {
+		logger.Errorf("failed to allocate: %s", err)
+		return 0
+	}
+
+	return C.int32_t(root)
+}
+
 //export ext_default_child_storage_set_version_1
 func ext_default_child_storage_set_version_1(context unsafe.Pointer,
 	childStorageKeySpan, keySpan, valueSpan C.int64_t) {
@@ -1179,6 +1215,12 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer,
 		logger.Errorf("failed to set value in child storage: %s", err)
 		return
 	}
+}
+
+//export ext_offchain_index_clear_version_1
+func ext_offchain_index_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
+	// Remove a key and its associated value from the Offchain DB.
+	// https://github.com/paritytech/substrate/blob/4d608f9c42e8d70d835a748fa929e59a99497e90/primitives/io/src/lib.rs#L1213
 }
 
 //export ext_default_child_storage_storage_kill_version_1
@@ -2116,12 +2158,14 @@ func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2},
 		{"ext_crypto_start_batch_verify_version_1", ext_crypto_start_batch_verify_version_1, C.ext_crypto_start_batch_verify_version_1},
 		{"ext_default_child_storage_clear_prefix_version_1", ext_default_child_storage_clear_prefix_version_1, C.ext_default_child_storage_clear_prefix_version_1},
+		{"ext_default_child_storage_clear_prefix_version_2", ext_default_child_storage_clear_prefix_version_2, C.ext_default_child_storage_clear_prefix_version_2},
 		{"ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1},
 		{"ext_default_child_storage_exists_version_1", ext_default_child_storage_exists_version_1, C.ext_default_child_storage_exists_version_1},
 		{"ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1, C.ext_default_child_storage_get_version_1},
 		{"ext_default_child_storage_next_key_version_1", ext_default_child_storage_next_key_version_1, C.ext_default_child_storage_next_key_version_1},
 		{"ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1, C.ext_default_child_storage_read_version_1},
 		{"ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1, C.ext_default_child_storage_root_version_1},
+		{"ext_default_child_storage_root_version_2", ext_default_child_storage_root_version_2, C.ext_default_child_storage_root_version_2},
 		{"ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1, C.ext_default_child_storage_set_version_1},
 		{"ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1},
 		{"ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2, C.ext_default_child_storage_storage_kill_version_2},
@@ -2139,6 +2183,7 @@ func ImportsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_misc_print_num_version_1", ext_misc_print_num_version_1, C.ext_misc_print_num_version_1},
 		{"ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1, C.ext_misc_print_utf8_version_1},
 		{"ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1, C.ext_misc_runtime_version_version_1},
+		{"ext_offchain_index_clear_version_1", ext_offchain_index_clear_version_1, C.ext_offchain_index_clear_version_1},
 		{"ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1},
 		{"ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1},
 		{"ext_offchain_index_set_version_1", ext_offchain_index_set_version_1, C.ext_offchain_index_set_version_1},
