@@ -48,7 +48,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 	for _, node := range nodes {
 		node.InitAndStartTest(ctx, t, cancel)
-		const timeBetweenStart = 5 * time.Second
+		const timeBetweenStart = 0 * time.Second
 		timer := time.NewTimer(timeBetweenStart)
 		select {
 		case <-timer.C:

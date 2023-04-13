@@ -33,7 +33,7 @@ func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
 	tomlConfig cfg.Config) (*Framework, error) {
 	f := &Framework{}
 
-	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig, cfg.WestendDevChain)
+	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig)
 
 	err := f.nodes.Init()
 	if err != nil {

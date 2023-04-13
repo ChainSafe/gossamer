@@ -130,6 +130,8 @@ func DefaultConfig() *cfg.Config {
 			NoMDNS:            DefaultNoMDNS,
 			DiscoveryInterval: DefaultDiscoveryInterval,
 			ProtocolID:        DefaultProtocolID,
+			MinPeers:          cfg.DefaultMinPeers,
+			MaxPeers:          cfg.DefaultMaxPeers,
 		},
 		RPC: &cfg.RPCConfig{
 			Port:    DefaultRPCPort,

@@ -196,6 +196,8 @@ func DefaultCharlieConfig() *cfg.Config {
 			NoBootstrap:       false,
 			NoMDNS:            false,
 			DiscoveryInterval: 10 * time.Second,
+			MinPeers:          cfg.DefaultMinPeers,
+			MaxPeers:          cfg.DefaultMaxPeers,
 		},
 		RPC: &cfg.RPCConfig{
 			Port: 8565,

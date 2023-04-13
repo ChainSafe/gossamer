@@ -49,14 +49,15 @@ func Default() cfg.Config {
 			ProtocolID:        "/gossamer/gssmr/0",
 			NoBootstrap:       false,
 			NoMDNS:            false,
-			MinPeers:          25,
-			MaxPeers:          50,
+			MinPeers:          1,
+			MaxPeers:          3,
 			DiscoveryInterval: time.Second * 1,
 		},
 		RPC: &cfg.RPCConfig{
 			UnsafeRPC:         true,
 			UnsafeRPCExternal: true,
 			UnsafeWSExternal:  true,
+			WSExternal:        true,
 			Host:              "localhost",
 			Modules: []string{
 				"system", "author", "chain", "state", "rpc",

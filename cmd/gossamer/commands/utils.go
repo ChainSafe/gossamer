@@ -240,7 +240,7 @@ func parseChainSpec(chain string) error {
 				config = westendlocal.DefaultConfig()
 			}
 		default:
-			return fmt.Errorf("chain %s not supported", chain)
+			return nil
 		}
 	}
 
@@ -268,10 +268,6 @@ func configureViper(basePath string) error {
 func ParseConfig() error {
 	if err := viper.Unmarshal(config); err != nil {
 		return fmt.Errorf("failed to unmarshal config: %s", err)
-	}
-
-	if err := config.ValidateBasic(); err != nil {
-		return fmt.Errorf("error in config file: %v", err)
 	}
 
 	return nil

@@ -40,6 +40,10 @@ const (
 	defaultNetworkPort = 7001
 	// defaultDiscoveryInterval is the default discovery interval
 	defaultDiscoveryInterval = 10 * time.Second
+	// DefaultMinPeers is the default minimum number of peers
+	DefaultMinPeers = 5
+	// DefaultMaxPeers is the default maximum number of peers
+	DefaultMaxPeers = 50
 
 	// defaultRPCPort is the default RPC port
 	defaultRPCPort = 8545
@@ -389,10 +393,10 @@ func DefaultConfig() *Config {
 			Port:              defaultNetworkPort,
 			Bootnodes:         nil,
 			ProtocolID:        "/gossamer/gssmr/0",
-			NoBootstrap:       false,
-			NoMDNS:            false,
-			MinPeers:          25,
-			MaxPeers:          50,
+			NoBootstrap:       true,
+			NoMDNS:            true,
+			MinPeers:          DefaultMinPeers,
+			MaxPeers:          DefaultMaxPeers,
 			PersistentPeers:   nil,
 			DiscoveryInterval: defaultDiscoveryInterval,
 			PublicIP:          "",

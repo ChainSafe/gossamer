@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
@@ -55,7 +53,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -79,7 +77,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -103,7 +101,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 
 	tomlConfig := config.LogGrandpa()
 	tomlConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 
@@ -127,7 +125,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 

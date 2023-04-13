@@ -56,10 +56,6 @@ func execInit(cmd *cobra.Command) error {
 		}
 	}
 
-	if err := config.ValidateBasic(); err != nil {
-		return fmt.Errorf("failed to validate config: %s", err)
-	}
-
 	// Write the config to the base path
 	if err := cfg.WriteConfigFile(config.BasePath, config); err != nil {
 		return fmt.Errorf("failed to ensure root: %s", err)

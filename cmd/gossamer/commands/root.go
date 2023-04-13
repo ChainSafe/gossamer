@@ -5,6 +5,7 @@ package commands
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -99,26 +100,38 @@ Usage:
 
 			parseAccount()
 
-			// Copy chain-spec to base-path
-			if err := copyChainSpec(config.ChainSpec, cfg.GetChainSpec(config.BasePath)); err != nil {
-				return fmt.Errorf("failed to copy chain-spec: %s", err)
+			if err := parseRole(); err != nil {
+				return fmt.Errorf("failed to parse role: %s", err)
+			}
+
+			if err := parseTelemetryURL(); err != nil {
+				return fmt.Errorf("failed to parse telemetry-url: %s", err.Error())
+			}
+
+			// If no chain-spec is provided, it should already exist in the base-path
+			// If a chain-spec is provided, it should be copied to the base-path
+			if config.ChainSpec == "" {
+				if _, err := os.Stat(cfg.GetChainSpec(config.BasePath)); os.IsNotExist(err) {
+					return fmt.Errorf("chain-spec not found in base-path and no chain-spec provided")
+				}
+			} else {
+				// Copy chain-spec to base-path
+				if err := copyChainSpec(config.ChainSpec, cfg.GetChainSpec(config.BasePath)); err != nil {
+					return fmt.Errorf("failed to copy chain-spec: %s", err)
+				}
 			}
 
 			if cmd.Name() == "gossamer" {
-				if err := parseRole(); err != nil {
-					return fmt.Errorf("failed to parse role: %s", err)
-				}
-
-				if err := parseTelemetryURL(); err != nil {
-					return fmt.Errorf("failed to parse telemetry-url: %s", err.Error())
-				}
-
 				if err := configureViper(config.BasePath); err != nil {
 					return fmt.Errorf("failed to configure viper: %s", err)
 				}
 
 				if err := ParseConfig(); err != nil {
 					return fmt.Errorf("failed to parse config: %s", err)
+				}
+
+				if err := config.ValidateBasic(); err != nil {
+					return fmt.Errorf("error in config file: %v", err)
 				}
 			}
 

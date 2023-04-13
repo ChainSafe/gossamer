@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
@@ -26,7 +24,7 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	utils.Logger.Patch(log.SetLevel(log.Info))
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
 

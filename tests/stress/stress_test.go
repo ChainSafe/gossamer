@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -67,7 +65,7 @@ func TestMain(m *testing.M) {
 func TestRestartNode(t *testing.T) {
 	const numNodes = 1
 	defaultConfig := config.Default()
-	nodes := node.MakeNodes(t, numNodes, defaultConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, defaultConfig)
 
 	err := nodes.Init()
 	require.NoError(t, err)
@@ -113,7 +111,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.ChainSpec = genesisPath
-	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority, cfg.WestendDevChain)
+	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority)
 
 	nodes := make(node.Nodes, 0, numNodes)
 	nodes = append(nodes, blockProducerNode)
@@ -140,7 +138,7 @@ func TestSync_Basic(t *testing.T) {
 	config := config.Default()
 	config.ChainSpec = genesisPath
 	const numNodes = 3
-	nodes := node.MakeNodes(t, numNodes, config, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, config)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -162,7 +160,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -378,7 +376,7 @@ func TestSync_Restart(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	noBabeConfig := config.NoBabe()
 	noBabeConfig.ChainSpec = genesisPath
-	nodes := node.MakeNodes(t, numNodes-1, noBabeConfig, cfg.WestendDevChain)
+	nodes := node.MakeNodes(t, numNodes-1, noBabeConfig)
 	for i, node := range nodes {
 		err := node.Init()
 		require.NoError(t, err)
@@ -798,7 +796,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 			tomlConfig := config.Default()
 			tomlConfig.ChainSpec = c.genesis
 
-			nodes := node.MakeNodes(t, numNodes, tomlConfig, cfg.WestendDevChain)
+			nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			nodes.InitAndStartTest(ctx, t, cancel)
