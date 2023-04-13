@@ -235,13 +235,10 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"retain-blocks"); err != nil {
 		return fmt.Errorf("failed to add --retain-blocks flag: %s", err)
 	}
-	if err := addStringFlagBindViper(cmd,
+	cmd.Flags().StringVar(&logLevelGlobal,
 		"log",
 		config.BaseConfig.LogLevel,
-		"Global log level. Supports levels critical (silent), error, warn, info, debug and trace",
-		"log"); err != nil {
-		return fmt.Errorf("failed to add --log flag: %s", err)
-	}
+		"Global log level. Supports levels critical (silent), error, warn, info, debug and trace")
 	if err := addStringFlagBindViper(cmd,
 		"state-pruning",
 		string(config.BaseConfig.Pruning),
