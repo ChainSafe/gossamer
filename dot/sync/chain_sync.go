@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
 
 const (
@@ -296,6 +294,15 @@ func (cs *chainSync) setPeerHead(p peer.ID, bestHash common.Hash, bestNumber uin
 		logger.Errorf("adding a potential worker: %s", err)
 	}
 
+	ps := &peerState{
+		who:    p,
+		hash:   bestHash,
+		number: bestNumber,
+	}
+	cs.Lock()
+	cs.peerState[p] = ps
+	cs.Unlock()
+
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not
 	head, err := cs.blockState.BestBlockHeader()
@@ -439,6 +446,7 @@ func (cs *chainSync) sync() {
 }
 
 func (cs *chainSync) executeBootstrapSync() error {
+	const maxRequestAllowed uint = 40
 	for {
 		head, err := cs.blockState.BestBlockHeader()
 		if err != nil {
@@ -446,17 +454,22 @@ func (cs *chainSync) executeBootstrapSync() error {
 		}
 
 		startRequestAt := head.Number + 1
-
-		fmt.Printf("=====> REQUEST FROM  %d; BEST BLOCK HEADER: %d\n", startRequestAt, head.Number+1)
 		cs.workerPool.useConnectedPeers()
 
+		// we build the set of requests based on the amount of available peers
+		// in the worker pool, if we have more peers than `maxRequestAllowed`
+		// so we limit to `maxRequestAllowed` to avoid the error
+		// cannot reserve outbound connection: resource limit exceeded
 		availablePeers := cs.workerPool.totalWorkers()
+		if availablePeers > maxRequestAllowed {
+			availablePeers = maxRequestAllowed
+		}
+
 		targetBlockNumber := startRequestAt + uint(availablePeers)*128
 
 		fmt.Printf("=====> requesting from %d targeting %d\n", startRequestAt, targetBlockNumber)
 		requests, err := ascedingBlockRequest(
 			startRequestAt, targetBlockNumber, bootstrapRequestData)
-
 		if err != nil {
 			logger.Errorf("failed to setup ascending block requests: %s", err)
 		}
@@ -555,25 +568,33 @@ func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, t
 
 loop:
 	for {
+		// in a case where we don't handle workers results we should check the pool
+		idleDuration := 3 * time.Minute
+		idleTicker := time.NewTimer(idleDuration)
+
 		select {
+		case <-idleTicker.C:
+			logger.Warnf("idle ticker triggered! checking pool")
+			cs.workerPool.useConnectedPeers()
+			continue
+
 		// TODO: implement a case to stop
 		case taskResult := <-workersResults:
+			if !idleTicker.Stop() {
+				<-idleTicker.C
+			}
+
 			logger.Infof("task result: peer(%s), error: %v, hasResponse: %v",
 				taskResult.who, taskResult.err != nil, taskResult.response != nil)
 
 			if taskResult.err != nil {
-				switch {
+				logger.Criticalf("task result error: %s", taskResult.err)
 				// TODO add this worker in a ignorePeers list, implement some expiration time for
 				// peers added to it (peerJail where peers have a release date and maybe extend the punishment
 				// if fail again ang again Jimmy's + Diego's idea)
-				case strings.Contains(taskResult.err.Error(), "dial backoff") ||
-					taskResult.err.Error() == "protocol not supported":
-
-					logger.Criticalf("response invalid: %s", taskResult.err)
-					cs.workerPool.shutdownWorker(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
-					continue
-				}
+				cs.workerPool.shutdownWorker(taskResult.who, true)
+				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				continue
 			}
 
 			who := taskResult.who
@@ -589,7 +610,7 @@ loop:
 			switch {
 			case errors.Is(err, errResponseIsNotChain):
 				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.shutdownWorker(taskResult.who)
+				cs.workerPool.shutdownWorker(taskResult.who, true)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			case errors.Is(err, errEmptyBlockData):
@@ -598,7 +619,7 @@ loop:
 			case errors.Is(err, errUnknownParent):
 			case err != nil:
 				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.shutdownWorker(taskResult.who)
+				cs.workerPool.shutdownWorker(taskResult.who, true)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			}
@@ -625,7 +646,6 @@ loop:
 	}
 
 	logger.Infof("synced %d blocks, starting process", len(syncingChain))
-
 	if len(syncingChain) >= 2 {
 		// ensuring the parents are in the right place
 		parentElement := syncingChain[0]
@@ -930,50 +950,6 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 	return nil
 }
 
-// determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersTried map[peer.ID]struct{}) []peer.ID {
-	var start uint32
-	if req.StartingBlock.IsUint32() {
-		start = req.StartingBlock.Uint32()
-	}
-
-	cs.RLock()
-	defer cs.RUnlock()
-
-	// if we're currently ignoring all our peers, clear out the list.
-	if len(cs.peerState) == len(cs.ignorePeers) {
-		cs.RUnlock()
-		cs.Lock()
-		for p := range cs.ignorePeers {
-			delete(cs.ignorePeers, p)
-		}
-		cs.Unlock()
-		cs.RLock()
-	}
-
-	peers := make([]peer.ID, 0, len(cs.peerState))
-
-	for p, state := range cs.peerState {
-		if _, has := cs.ignorePeers[p]; has {
-			continue
-		}
-
-		if _, has := peersTried[p]; has {
-			continue
-		}
-
-		// if peer definitely doesn't have any blocks we want in the request,
-		// don't request from them
-		if start > 0 && uint32(state.number) < start {
-			continue
-		}
-
-		peers = append(peers, p)
-	}
-
-	return peers
-}
-
 // validateResponse performs pre-validation of a block response before placing it into either the
 // pendingBlocks or readyBlocks set.
 // It checks the following:
@@ -1100,87 +1076,4 @@ func (cs *chainSync) getHighestBlock() (highestBlock uint, err error) {
 	}
 
 	return highestBlock, nil
-}
-
-func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
-	diff := int(*w.targetNumber) - int(*w.startNumber)
-	if diff < 0 && w.direction != network.Descending {
-		return nil, errInvalidDirection
-	}
-
-	if diff > 0 && w.direction != network.Ascending {
-		return nil, errInvalidDirection
-	}
-
-	// start and end block are the same, just request 1 block
-	if diff == 0 {
-		diff = 1
-	}
-
-	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
-	// take absolute value of difference between start and target
-	numBlocks := diff
-	if numBlocks < 0 {
-		numBlocks = -numBlocks
-	}
-	numRequests := uint(numBlocks) / maxResponseSize
-
-	if numBlocks%maxResponseSize != 0 {
-		numRequests++
-	}
-
-	startNumber := *w.startNumber
-	reqs := make([]*network.BlockRequestMessage, numRequests)
-
-	for i := uint(0); i < numRequests; i++ {
-		// check if we want to specify a size
-		max := uint32(maxResponseSize)
-
-		if w.direction == network.Descending && i == numRequests-1 {
-			size := numBlocks % maxResponseSize
-			if size == 0 {
-				size = maxResponseSize
-			}
-			max = uint32(size)
-		}
-
-		var start *variadic.Uint32OrHash
-		if w.startHash.IsEmpty() {
-			// worker startHash is unspecified if we are in bootstrap mode
-			start = variadic.MustNewUint32OrHash(uint32(startNumber))
-		} else {
-			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
-			start = variadic.MustNewUint32OrHash(w.startHash)
-
-			// if we're doing descending requests and not at the last (highest starting) request,
-			// then use number as start block
-			if w.direction == network.Descending && i != numRequests-1 {
-				start = variadic.MustNewUint32OrHash(startNumber)
-			}
-		}
-
-		reqs[i] = &network.BlockRequestMessage{
-			RequestedData: w.requestData,
-			StartingBlock: *start,
-			Direction:     w.direction,
-			Max:           &max,
-		}
-
-		switch w.direction {
-		case network.Ascending:
-			startNumber += maxResponseSize
-		case network.Descending:
-			startNumber -= maxResponseSize
-		}
-	}
-
-	// if our direction is descending, we want to send out the request with the lowest
-	// startNumber first
-	if w.direction == network.Descending {
-		for i, j := 0, len(reqs)-1; i < j; i, j = i+1, j-1 {
-			reqs[i], reqs[j] = reqs[j], reqs[i]
-		}
-	}
-
-	return reqs, nil
 }
