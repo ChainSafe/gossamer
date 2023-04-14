@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -286,15 +285,9 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	// execute pvf and if we can't, throw an error handle_execute_pvf
 	// from output of validation_backend, you can create candidate commitments, which will be the item to return
 
-	wasmInstance, err := setupVM(*validationCode)
+	instance, err := setupVM(*validationCode)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setting up VM: %w", err)
-	}
-
-	instance := Instance{
-		vm: wasmInstance,
-		// Allocator: allocator,
-		mutex: sync.Mutex{},
 	}
 
 	validationResults, err := instance.ValidateBlock(validationParams)
