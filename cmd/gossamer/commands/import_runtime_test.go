@@ -15,6 +15,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestImportRuntime(t *testing.T) {
+	testCode := []byte("somecode")
+
+	filename := filepath.Join(t.TempDir(), "test.wasm")
+	err := os.WriteFile(filename, testCode, os.ModePerm)
+	require.NoError(t, err)
+
+	westendChainSpec := utils.GetWestendDevHumanReadableGenesisPath(t)
+
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(ImportRuntimeCmd)
+
+	rootCmd.SetArgs([]string{ImportRuntimeCmd.Name(), "--wasm-file", filename, "--chain", westendChainSpec})
+	err = rootCmd.Execute()
+	require.NoError(t, err)
+}
+
 // TestCreateGenesisWithRuntime test "gossamer import-runtime"
 func TestCreateGenesisWithRuntime(t *testing.T) {
 	testCode := []byte("somecode")

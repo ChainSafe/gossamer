@@ -12,21 +12,20 @@ import (
 
 func init() {
 	BuildSpecCmd.Flags().Bool("raw", false, "print raw genesis json")
-	BuildSpecCmd.Flags().String("genesis", "", "path to human-readable genesis JSON file")
 	BuildSpecCmd.Flags().
-		String("output-path", "", "path to output the recently created genesis JSON file")
+		String("output-path", "", "path to output the recently created chain-spec JSON file")
 }
 
 // BuildSpecCmd is the command to generate genesis JSON
 var BuildSpecCmd = &cobra.Command{
 	Use:   "build-spec",
-	Short: "Generates genesis JSON data, and can convert to raw genesis data",
-	Long: `The build-spec command outputs current genesis JSON data.
+	Short: "Generates chain-spec JSON data, and can convert to raw chain-spec data",
+	Long: `The build-spec command outputs current chain-spec JSON data.
 Usage: gossamer build-spec
-To generate raw genesis file from default:
-	gossamer build-spec --raw --output genesis.json
-To generate raw genesis file from specific genesis file:
-	gossamer build-spec --raw --genesis genesis-spec.json --output-path genesis.json`,
+To generate raw chain-spec file from default:
+	gossamer build-spec --raw --output chain-spec.json
+To generate raw chain-spec file from specific chain-spec file:
+	gossamer build-spec --raw --chain chain-spec.json --output-path chain-spec-raw.json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := execBuildSpec(cmd); err != nil {
 			return err
@@ -37,23 +36,24 @@ To generate raw genesis file from specific genesis file:
 
 // execBuildSpec executes the build-spec command
 func execBuildSpec(cmd *cobra.Command) error {
+	var err error
 	raw, err := cmd.Flags().GetBool("raw")
 	if err != nil {
 		return fmt.Errorf("failed to get raw value: %s", err)
 	}
 
-	genesisSpec, err := cmd.Flags().GetString("genesis-spec")
+	chainSpec, err := cmd.Flags().GetString("chain")
 	if err != nil {
 		return fmt.Errorf("failed to get genesis-spec value: %s", err)
 	}
 
-	basePath, err := cmd.Flags().GetString("base-path")
+	basePath, err = cmd.Flags().GetString("base-path")
 	if err != nil {
 		return fmt.Errorf("failed to get base-path value: %s", err)
 	}
 
-	if genesisSpec == "" && basePath == "" {
-		return fmt.Errorf("one of genesis-spec or base-path must be specified")
+	if chainSpec == "" && basePath == "" {
+		return fmt.Errorf("one of chain or base-path must be specified")
 	}
 
 	outputPath, err := cmd.Flags().GetString("output-path")
@@ -63,8 +63,8 @@ func execBuildSpec(cmd *cobra.Command) error {
 
 	var bs *dot.BuildSpec
 
-	if genesisSpec != "" {
-		bs, err = dot.BuildFromGenesis(genesisSpec, 0)
+	if chainSpec != "" {
+		bs, err = dot.BuildFromGenesis(chainSpec, 0)
 		if err != nil {
 			return err
 		}

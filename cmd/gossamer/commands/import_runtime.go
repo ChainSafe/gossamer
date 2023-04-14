@@ -16,7 +16,6 @@ import (
 
 func init() {
 	ImportRuntimeCmd.Flags().String("wasm-file", "", "path to wasm runtime binary file")
-	ImportRuntimeCmd.Flags().String("genesis-file", "", "path to genesis file")
 }
 
 // ImportRuntimeCmd is the command to import a runtime binary into a genesis file
@@ -44,15 +43,15 @@ func execImportRuntime(cmd *cobra.Command) error {
 		return fmt.Errorf("wasm-file must be specified")
 	}
 
-	genesisFile, err := cmd.Flags().GetString("genesis-file")
+	chainSpec, err := cmd.Flags().GetString("chain")
 	if err != nil {
-		return fmt.Errorf("failed to get genesis-file: %s", err)
+		return fmt.Errorf("failed to get chain-spec: %s", err)
 	}
-	if genesisFile == "" {
-		return fmt.Errorf("genesis-file must be specified")
+	if chainSpec == "" {
+		return fmt.Errorf("chain must be specified")
 	}
 
-	out, err := createGenesisWithRuntime(wasmFile, genesisFile)
+	out, err := createGenesisWithRuntime(wasmFile, chainSpec)
 	if err != nil {
 		return err
 	}
@@ -68,13 +67,13 @@ func createGenesisWithRuntime(fp string, genesisSpecFilePath string) (string, er
 		return "", err
 	}
 
-	genesisSpec, err := genesis.NewGenesisSpecFromJSON(genesisSpecFilePath)
+	chainSpec, err := genesis.NewGenesisSpecFromJSON(genesisSpecFilePath)
 	if err != nil {
 		return "", err
 	}
 
-	genesisSpec.Genesis.Runtime["system"]["code"] = fmt.Sprintf("0x%x", runtime)
-	jsonSpec, err := json.MarshalIndent(genesisSpec, "", "\t")
+	chainSpec.Genesis.Runtime["system"]["code"] = fmt.Sprintf("0x%x", runtime)
+	jsonSpec, err := json.MarshalIndent(chainSpec, "", "\t")
 	if err != nil {
 		return "", err
 	}
