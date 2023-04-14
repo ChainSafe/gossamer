@@ -306,7 +306,6 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 
 	s := &sr25519.Signature{}
 
-	fmt.Printf("b %s\n", b)
 	err := s.Decode(b)
 	if err != nil {
 		return false, fmt.Errorf("decoding: %w", err)

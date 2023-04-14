@@ -247,7 +247,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	validationParams := ValidationParameters{
 		ParentHeadData: PersistedValidationData.ParentHead,
 		// TODO: Fill up block data
-		// BlockData: ,
+		BlockData:              types.BlockData{},
 		RelayParentNumber:      PersistedValidationData.RelayParentNumber,
 		RelayParentStorageRoot: PersistedValidationData.RelayParentStorageRoot,
 	}

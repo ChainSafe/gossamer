@@ -48,7 +48,7 @@ package wasmer
 // extern int64_t ext_default_child_storage_next_key_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_read_version_1(void *context, int64_t a, int64_t b, int64_t c, int32_t d);
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
-// extern int32_t ext_default_child_storage_root_version_2(void *context, int64_t a, int32_t b);
+// extern int64_t ext_default_child_storage_root_version_2(void *context, int64_t a, int32_t b);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
@@ -1168,7 +1168,7 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer,
 
 //export ext_default_child_storage_root_version_2
 func ext_default_child_storage_root_version_2(context unsafe.Pointer,
-	childStorageKey C.int64_t, stateVersion C.int32_t) (ptrSize C.int32_t) {
+	childStorageKey C.int64_t, stateVersion C.int32_t) (ptrSize C.int64_t) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
@@ -1191,7 +1191,7 @@ func ext_default_child_storage_root_version_2(context unsafe.Pointer,
 		return 0
 	}
 
-	return C.int32_t(root)
+	return C.int64_t(root)
 }
 
 //export ext_default_child_storage_set_version_1

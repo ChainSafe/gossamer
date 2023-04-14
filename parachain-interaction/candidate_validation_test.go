@@ -2,6 +2,7 @@ package parachaininteraction
 
 import (
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -74,7 +75,7 @@ func TestValidateFromChainState(t *testing.T) {
 	fileContent, err := ioutil.ReadFile("test-validation-code.txt")
 	require.NoError(t, err)
 
-	validationCodeBytes, err := common.HexToBytes(string(fileContent))
+	validationCodeBytes, err := common.HexToBytes(strings.TrimSpace(string(fileContent)))
 	require.NoError(t, err)
 
 	validationCode := parachaintypes.ValidationCode(validationCodeBytes)
