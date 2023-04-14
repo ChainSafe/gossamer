@@ -11,26 +11,22 @@ import (
 
 // TestBuildSpec test "gossamer build-spec --chain=chain-spec-raw.json"
 func TestBuildSpec(t *testing.T) {
-	chainSpec := "./test_inputs/test-chain-spec-raw.json"
-
 	rootCmd, err := NewRootCommand()
 	require.NoError(t, err)
 	rootCmd.AddCommand(BuildSpecCmd)
 
-	rootCmd.SetArgs([]string{BuildSpecCmd.Name(), "--chain", chainSpec})
+	rootCmd.SetArgs([]string{BuildSpecCmd.Name(), "--chain", testChainSpec})
 	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
 // TestBuildSpecRaw test "gossamer build-spec --chain=chain-spec-raw.json --raw"
 func TestBuildSpecRaw(t *testing.T) {
-	chainSpec := "./test_inputs/test-chain-spec-raw.json"
-
 	rootCmd, err := NewRootCommand()
 	require.NoError(t, err)
 	rootCmd.AddCommand(BuildSpecCmd)
 
-	rootCmd.SetArgs([]string{BuildSpecCmd.Name(), "--chain", chainSpec, "--raw"})
+	rootCmd.SetArgs([]string{BuildSpecCmd.Name(), "--chain", testChainSpec, "--raw"})
 	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
@@ -40,7 +36,6 @@ func TestBuildSpecRaw(t *testing.T) {
 //	"gossamer init --chain chain-spec-raw.json --base-path=basepath && \
 //		gossamer build-spec --base-path=basepath"
 func TestBuildSpecFromDB(t *testing.T) {
-	chainSpec := "./test_inputs/test-chain-spec-raw.json"
 	basepath := t.TempDir()
 
 	rootCmd, err := NewRootCommand()
@@ -48,7 +43,7 @@ func TestBuildSpecFromDB(t *testing.T) {
 	rootCmd.AddCommand(BuildSpecCmd, InitCmd)
 
 	// Init the node
-	rootCmd.SetArgs([]string{InitCmd.Name(), "--base-path", basepath, "--chain", chainSpec})
+	rootCmd.SetArgs([]string{InitCmd.Name(), "--base-path", basepath, "--chain", testChainSpec})
 	err = rootCmd.Execute()
 	require.NoError(t, err)
 

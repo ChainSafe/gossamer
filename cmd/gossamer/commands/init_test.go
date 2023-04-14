@@ -9,16 +9,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testChainSpec = "./test_inputs/test-chain-spec-raw.json"
+
 // TestInitFromChainSpec test "gossamer init --chain=./test_inputs/test-chain-spec-raw.json"
 func TestInitFromChainSpec(t *testing.T) {
 	basepath := t.TempDir()
-	chainSpec := "./test_inputs/test-chain-spec-raw.json"
 
 	rootCmd, err := NewRootCommand()
 	require.NoError(t, err)
 	rootCmd.AddCommand(InitCmd)
 
-	rootCmd.SetArgs([]string{InitCmd.Name(), "--base-path", basepath, "--chain", chainSpec})
+	rootCmd.SetArgs([]string{InitCmd.Name(), "--base-path", basepath, "--chain", testChainSpec})
 	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
