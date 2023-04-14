@@ -41,9 +41,9 @@ const (
 	// defaultDiscoveryInterval is the default discovery interval
 	defaultDiscoveryInterval = 10 * time.Second
 	// DefaultMinPeers is the default minimum number of peers
-	DefaultMinPeers = 5
+	DefaultMinPeers = 0
 	// DefaultMaxPeers is the default maximum number of peers
-	DefaultMaxPeers = 50
+	DefaultMaxPeers = 0
 
 	// defaultRPCPort is the default RPC port
 	defaultRPCPort = 8545
@@ -61,6 +61,7 @@ const (
 	DefaultSystemVersion = "0.3.2"
 )
 
+// DefaultRPCModules the default RPC modules
 var DefaultRPCModules = []string{
 	"system",
 	"author",
