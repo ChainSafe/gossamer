@@ -15,8 +15,12 @@ func TestAccountGenerate(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
 
-	AccountCmd.SetArgs([]string{"generate", directory})
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "generate", directory})
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -24,9 +28,14 @@ func TestAccountGenerate(t *testing.T) {
 func TestAccountGeneratePassword(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"generate", directory, "--password=VerySecurePassword"})
 
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "generate", directory, "--password=VerySecurePassword"})
+
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -34,9 +43,14 @@ func TestAccountGeneratePassword(t *testing.T) {
 func TestAccountGenerateEd25519(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"generate", directory, "--scheme=ed25519"})
 
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "generate", directory, "--scheme=ed25519"})
+
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -44,9 +58,14 @@ func TestAccountGenerateEd25519(t *testing.T) {
 func TestAccountGenerateSr25519(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"generate", directory, "--scheme=sr25519"})
 
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "generate", directory, "--scheme=sr25519"})
+
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -54,9 +73,14 @@ func TestAccountGenerateSr25519(t *testing.T) {
 func TestAccountGenerateSecp256k1(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"generate", directory, "--scheme=secp256k1"})
 
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "generate", directory, "--scheme=secp256k1"})
+
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -64,9 +88,14 @@ func TestAccountGenerateSecp256k1(t *testing.T) {
 func TestAccountImport(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"import", directory, "--keystore-file=./test_inputs/test-key.key"})
 
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "import", directory, "--keystore-file=./test_inputs/test-key.key"})
+
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -74,12 +103,18 @@ func TestAccountImport(t *testing.T) {
 func TestAccountImportRaw(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"import-raw",
+
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account",
+		"import-raw",
 		directory,
 		"--keystore-file=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09",
 		"--password=VerySecurePassword"})
 
-	err := AccountCmd.Execute()
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
 
@@ -87,8 +122,13 @@ func TestAccountImportRaw(t *testing.T) {
 func TestAccountList(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)
-	AccountCmd.SetArgs([]string{"list", directory})
 
-	err := AccountCmd.Execute()
+	rootCmd, err := NewRootCommand()
+	require.NoError(t, err)
+	rootCmd.AddCommand(AccountCmd)
+
+	rootCmd.SetArgs([]string{"account", "list", directory})
+
+	err = rootCmd.Execute()
 	require.NoError(t, err)
 }
