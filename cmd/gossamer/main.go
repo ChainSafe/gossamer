@@ -27,7 +27,7 @@ func main() {
 		commands.ImportStateCmd,
 		commands.VersionCmd,
 	)
-	configureCobraCmd(rootCmd, "GSSMR")
+	configureCobraCmd("GSSMR")
 	if err := rootCmd.Execute(); err != nil {
 		log.Errorf("failed to execute root command: %s", err)
 		panic(err)
@@ -35,7 +35,7 @@ func main() {
 }
 
 // configureCobraCmd configures the cobra command with the given environment prefix and default base path.
-func configureCobraCmd(cmd *cobra.Command, envPrefix string) {
+func configureCobraCmd(envPrefix string) {
 	cobra.OnInitialize(func() {
 		if err := initEnv(envPrefix); err != nil {
 			return
