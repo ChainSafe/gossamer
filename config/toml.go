@@ -89,7 +89,7 @@ log-level = "{{ .BaseConfig.LogLevel }}"
 
 # Listen address for the prometheus server
 # Defaults to "localhost:9876"
-prometheus-port = "{{ .BaseConfig.PrometheusPort }}"
+prometheus-port = {{ .BaseConfig.PrometheusPort }}
 
 # Retain number of block from latest block while pruning
 # Defaults to 512
@@ -182,7 +182,7 @@ unlock = "{{ .Account.Unlock }}"
 port = {{ .Network.Port }}
 
 # Comma separated node URLs for network discovery bootstrap
-bootnodes = [{{ StringsJoin .Network.Bootnodes ", " }}]
+bootnodes = "{{ StringsJoin .Network.Bootnodes ", " }}"
 
 # Protocol ID to use
 protocol-id = "{{ .Network.ProtocolID }}"
@@ -204,7 +204,7 @@ min-peers = {{ .Network.MinPeers }}
 max-peers = {{ .Network.MaxPeers }}
 
 # Comma separated list of peers to always keep connected to
-persistent-peers = [{{ StringsJoin .Network.PersistentPeers ", " }}]
+persistent-peers = "{{ StringsJoin .Network.PersistentPeers ", " }}"
 
 # Interval to perform peer discovery in duration
 # Format: "10s", "1m", "1h"
@@ -229,7 +229,7 @@ listen-addr = "{{ .Network.ListenAddress }}"
 
 # Role of the gossamer node
 # Represented as an integer
-# One of: 1 (Full), 2 (Light), 3 (Authority)
+# One of: 1 (Full), 2 (Light), 4 (Authority)
 role = {{ .Core.Role }}
 
 # Enable BABE authoring

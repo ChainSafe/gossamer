@@ -61,7 +61,7 @@ const (
 	DefaultSystemVersion = "0.3.2"
 )
 
-var defaultRPCModules = []string{
+var DefaultRPCModules = []string{
 	"system",
 	"author",
 	"chain",
@@ -175,7 +175,7 @@ type NetworkConfig struct {
 	PublicIP          string        `mapstructure:"public-ip"`
 	PublicDNS         string        `mapstructure:"public-dns"`
 	NodeKey           string        `mapstructure:"node-key"`
-	ListenAddress     string        `mapstructure:"listen-address"`
+	ListenAddress     string        `mapstructure:"listen-addr"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -393,7 +393,7 @@ func DefaultConfig() *Config {
 			Port:              defaultNetworkPort,
 			Bootnodes:         nil,
 			ProtocolID:        "/gossamer/gssmr/0",
-			NoBootstrap:       true,
+			NoBootstrap:       false,
 			NoMDNS:            true,
 			MinPeers:          DefaultMinPeers,
 			MaxPeers:          DefaultMaxPeers,
@@ -413,7 +413,7 @@ func DefaultConfig() *Config {
 			UnsafeRPCExternal: false,
 			Port:              defaultRPCPort,
 			Host:              defaultRPCHost,
-			Modules:           defaultRPCModules,
+			Modules:           DefaultRPCModules,
 			WSPort:            defaultWSPort,
 			WSExternal:        false,
 			UnsafeWSExternal:  false,
@@ -476,8 +476,8 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			ProtocolID:        nodeSpec.ProtocolID,
 			NoBootstrap:       false,
 			NoMDNS:            false,
-			MinPeers:          0,
-			MaxPeers:          0,
+			MinPeers:          DefaultMinPeers,
+			MaxPeers:          DefaultMaxPeers,
 			PersistentPeers:   nil,
 			DiscoveryInterval: defaultDiscoveryInterval,
 			PublicIP:          "",
@@ -494,7 +494,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			UnsafeRPCExternal: false,
 			Port:              defaultRPCPort,
 			Host:              defaultRPCHost,
-			Modules:           defaultRPCModules,
+			Modules:           DefaultRPCModules,
 			WSPort:            defaultWSPort,
 			WSExternal:        false,
 			UnsafeWSExternal:  false,

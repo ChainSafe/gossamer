@@ -325,6 +325,22 @@ func parseAccount() {
 	}
 }
 
+// parseRPC parses the rpc config from the command line flags
+func parseRPC() {
+	// if rpc modules is not set, set it to the default
+	// if rpc modules is set to unsafe, set it to all modules
+	//TODO: refactor this to follow the same pattern as substrate
+	// Substrate accepts `unsafe`,`safe` and `auto` for --rpc-methods
+	if rpcModules == "unsafe" || rpcModules == "" {
+		config.RPC.Modules = cfg.DefaultRPCModules
+	} else {
+		config.RPC.Modules = strings.Split(rpcModules, ",")
+	}
+
+	// bind it to viper so that it can be used during the config parsing
+	viper.Set("rpc.modules", config.RPC.Modules)
+}
+
 // copyChainSpec copies the chain-spec file to the base path
 func copyChainSpec(source, destination string) error {
 	if err := gssmros.CopyFile(source, destination); err != nil {

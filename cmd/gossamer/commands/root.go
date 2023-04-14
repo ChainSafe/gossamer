@@ -50,6 +50,10 @@ var (
 	// Account Config
 	// key to use for the node
 	key string
+
+	// RPC Config
+	// RPC modules to enable
+	rpcModules string
 )
 
 // Flag values for persistent flags
@@ -107,6 +111,8 @@ Usage:
 			if err := parseTelemetryURL(); err != nil {
 				return fmt.Errorf("failed to parse telemetry-url: %s", err.Error())
 			}
+
+			parseRPC()
 
 			// If no chain-spec is provided, it should already exist in the base-path
 			// If a chain-spec is provided, it should be copied to the base-path
@@ -462,13 +468,10 @@ func addRPCFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --rpc-host flag: %s", err)
 	}
 
-	if err := addStringSliceFlagBindViper(cmd,
+	cmd.PersistentFlags().StringVar(&rpcModules,
 		"rpc-methods",
-		config.RPC.Modules,
-		"API modules to enable via HTTP-RPC, comma separated list",
-		"rpc.modules"); err != nil {
-		return fmt.Errorf("failed to add --rpc-methods flag: %s", err)
-	}
+		"",
+		"API modules to enable via HTTP-RPC, comma separated list")
 
 	if err := addUint32FlagBindViper(cmd,
 		"ws-port",
