@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestImportRuntime test "gossamer import-runtime --wasm-file test.wasm --chain westend-dev.json"
 func TestImportRuntime(t *testing.T) {
 	testCode := []byte("somecode")
 
@@ -33,7 +34,7 @@ func TestImportRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestCreateGenesisWithRuntime test "gossamer import-runtime"
+// TestCreateGenesisWithRuntime test createGenesisWithRuntime
 func TestCreateGenesisWithRuntime(t *testing.T) {
 	testCode := []byte("somecode")
 	testHex := common.BytesToHex(testCode)

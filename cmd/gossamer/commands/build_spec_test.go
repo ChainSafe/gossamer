@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestBuildSpec test "gossamer build-spec --chain=chain-spec-raw.json"
 func TestBuildSpec(t *testing.T) {
 	chainSpec := "./test_inputs/test-chain-spec-raw.json"
 
@@ -21,6 +22,7 @@ func TestBuildSpec(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestBuildSpecRaw test "gossamer build-spec --chain=chain-spec-raw.json --raw"
 func TestBuildSpecRaw(t *testing.T) {
 	chainSpec := "./test_inputs/test-chain-spec-raw.json"
 
@@ -33,6 +35,10 @@ func TestBuildSpecRaw(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestBuildSpecFromDB test init and build-spec
+//
+//	"gossamer init --chain chain-spec-raw.json --base-path=basepath && \
+//		gossamer build-spec --base-path=basepath"
 func TestBuildSpecFromDB(t *testing.T) {
 	chainSpec := "./test_inputs/test-chain-spec-raw.json"
 	basepath := t.TempDir()

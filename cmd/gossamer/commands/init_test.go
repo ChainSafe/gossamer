@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestInitFromChainSpec test "gossamer init --chain=./test_inputs/test-chain-spec-raw.json"
 func TestInitFromChainSpec(t *testing.T) {
 	basepath := t.TempDir()
 	chainSpec := "./test_inputs/test-chain-spec-raw.json"
