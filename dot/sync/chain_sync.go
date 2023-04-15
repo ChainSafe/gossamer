@@ -430,30 +430,48 @@ func (cs *chainSync) logSyncSpeed() {
 }
 
 func (cs *chainSync) sync() {
-
 	for {
+		currentTarget := cs.getTarget()
+		logger.Infof("CURRENT SYNC TARGET: %d", currentTarget)
+
 		cs.maybeSwitchMode()
 		if cs.state == bootstrap {
+			logger.Infof("using bootstrap sync")
 			err := cs.executeBootstrapSync()
 			if err != nil {
 				logger.Errorf("executing bootstrap sync: %s", err)
 				return
 			}
 		} else {
-			// TODO executeTipSync()
+			logger.Infof("using tip sync")
+			err := cs.executeTipSync()
+			if err != nil {
+				logger.Errorf("executing tip sync: %s", err)
+				return
+			}
 		}
 	}
 }
 
+func (cs *chainSync) executeTipSync() error {
+	return nil
+
+}
+
+const maxRequestAllowed uint = 40
+
 func (cs *chainSync) executeBootstrapSync() error {
-	const maxRequestAllowed uint = 40
+	endBootstrapSync := false
 	for {
-		head, err := cs.blockState.BestBlockHeader()
+		if endBootstrapSync {
+			return nil
+		}
+		bestBlockHeader, err := cs.blockState.BestBlockHeader()
 		if err != nil {
 			return fmt.Errorf("getting best block header while syncing: %w", err)
 		}
 
-		startRequestAt := head.Number + 1
+		startRequestAt := bestBlockHeader.Number + 1
 		cs.workerPool.useConnectedPeers()
 
 		// we build the set of requests based on the amount of available peers
@@ -466,6 +484,14 @@ func (cs *chainSync) executeBootstrapSync() error {
 		}
 
 		targetBlockNumber := startRequestAt + uint(availablePeers)*128
+
+		realTarget := cs.getTarget()
+		if targetBlockNumber > realTarget {
+			diff := targetBlockNumber - realTarget
+			numOfRequestsToDrop := (diff / 128) + 1
+			targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
+			endBootstrapSync = true
+		}
 
 		fmt.Printf("=====> requesting from %d targeting %d\n", startRequestAt, targetBlockNumber)
 		requests, err := ascedingBlockRequest(
@@ -480,7 +506,7 @@ func (cs *chainSync) executeBootstrapSync() error {
 		resultsQueue := make(chan *syncTaskResult)
 
 		wg.Add(1)
-		go cs.handleWorkersResults(resultsQueue, expectedAmountOfBlocks, &wg)
+		go cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks, &wg)
 		cs.workerPool.submitRequests(requests, resultsQueue)
 
 		wg.Wait()
@@ -499,9 +525,7 @@ func (cs *chainSync) maybeSwitchMode() {
 	case head.Number+maxResponseSize < target:
 		// we are at least 128 blocks behind the head, switch to bootstrap
 		cs.setMode(bootstrap)
-	case head.Number >= target:
-		// bootstrap complete, switch state to tip if not already
-		// and begin near-head fork-sync
+	case head.Number+maxResponseSize > target:
 		cs.setMode(tip)
 	default:
 		// head is between (target-128, target), and we don't want to switch modes.
@@ -560,28 +584,28 @@ func (cs *chainSync) getTarget() uint {
 // and every cicle we should endup with a complete chain, whenever we identify
 // any error from a worker we should evaluate the error and re-insert the request
 // in the queue and wait for it to completes
-func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, totalBlocks uint32, wg *sync.WaitGroup) {
+func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	logger.Infof("starting handleWorkersResults, waiting %d blocks", totalBlocks)
-	syncingChain := make([]*types.BlockData, 0, totalBlocks)
+	syncingChain := make([]*types.BlockData, totalBlocks)
 
 loop:
 	for {
 		// in a case where we don't handle workers results we should check the pool
 		idleDuration := 3 * time.Minute
-		idleTicker := time.NewTimer(idleDuration)
+		idleTimer := time.NewTimer(idleDuration)
 
 		select {
-		case <-idleTicker.C:
+		case <-idleTimer.C:
 			logger.Warnf("idle ticker triggered! checking pool")
 			cs.workerPool.useConnectedPeers()
 			continue
 
 		// TODO: implement a case to stop
 		case taskResult := <-workersResults:
-			if !idleTicker.Stop() {
-				<-idleTicker.C
+			if !idleTimer.Stop() {
+				<-idleTimer.C
 			}
 
 			logger.Infof("task result: peer(%s), error: %v, hasResponse: %v",
@@ -634,14 +658,20 @@ loop:
 					lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
 			}
 
-			previousLen := len(syncingChain)
-			syncingChain = mergeSortedSlices(syncingChain, response.BlockData)
-			logger.Infof("building a syncing chain, previous length: %d, current length: %d",
-				previousLen, len(syncingChain))
-
-			if len(syncingChain) >= int(totalBlocks) {
-				break loop
+			for _, blockInResponse := range response.BlockData {
+				blockExactIndex := blockInResponse.Header.Number - startAtBlock
+				syncingChain[blockExactIndex] = blockInResponse
 			}
+
+			// we need to check if we've filled all positions
+			// otherwise we should wait for more responses
+			for _, element := range syncingChain {
+				if element == nil {
+					continue loop
+				}
+			}
+
+			break loop
 		}
 	}
 
@@ -667,48 +697,6 @@ loop:
 			return
 		}
 	}
-}
-
-type LessOrEqual[T any] interface {
-	LessOrEqual(T) bool
-}
-
-func mergeSortedSlices[T LessOrEqual[T]](a, b []T) []T {
-	// if one slice is empty just return the other
-	switch {
-	case len(a) < 1:
-		return b
-	case len(b) < 1:
-		return a
-	}
-
-	aIndex, bIndex := 0, 0
-	resultSlice := make([]T, 0, len(a)+len(b))
-
-	for aIndex < len(a) && bIndex < len(b) {
-		elemA := a[aIndex]
-		elemB := b[bIndex]
-
-		if elemA.LessOrEqual(elemB) {
-			resultSlice = append(resultSlice, elemA)
-			aIndex++
-		} else {
-			resultSlice = append(resultSlice, elemB)
-			bIndex++
-		}
-	}
-
-	// if there is remaining items in both arrays after the ordering phase
-	// we just append them in the result slice
-	for idx := aIndex; idx < len(a); idx++ {
-		resultSlice = append(resultSlice, a[idx])
-	}
-
-	for idx := bIndex; idx < len(b); idx++ {
-		resultSlice = append(resultSlice, b[idx])
-	}
-
-	return resultSlice
 }
 
 func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {

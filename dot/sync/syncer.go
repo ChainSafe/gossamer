@@ -17,10 +17,9 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
-	blockState     BlockState
-	chainSync      ChainSync
-	chainProcessor ChainProcessor
-	network        Network
+	blockState BlockState
+	chainSync  ChainSync
+	network    Network
 }
 
 // Config is the configuration for the sync Service.
@@ -62,25 +61,10 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 	chainSync := newChainSync(csCfg)
 
-	cpCfg := chainProcessorConfig{
-		readyBlocks:        readyBlocks,
-		pendingBlocks:      pendingBlocks,
-		syncer:             chainSync,
-		blockState:         cfg.BlockState,
-		storageState:       cfg.StorageState,
-		transactionState:   cfg.TransactionState,
-		babeVerifier:       cfg.BabeVerifier,
-		finalityGadget:     cfg.FinalityGadget,
-		blockImportHandler: cfg.BlockImportHandler,
-		telemetry:          cfg.Telemetry,
-	}
-	chainProcessor := newChainProcessor(cpCfg)
-
 	return &Service{
-		blockState:     cfg.BlockState,
-		chainSync:      chainSync,
-		chainProcessor: chainProcessor,
-		network:        cfg.Network,
+		blockState: cfg.BlockState,
+		chainSync:  chainSync,
+		network:    cfg.Network,
 	}, nil
 }
 

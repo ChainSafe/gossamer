@@ -30,7 +30,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return &syncWorkerPool{
 		network:     net,
 		workers:     make(map[peer.ID]*syncWorker),
-		taskQueue:   make(chan *syncTask),
+		taskQueue:   make(chan *syncTask, maxRequestAllowed+1),
 		ignorePeers: make(map[peer.ID]time.Time),
 	}
 }
@@ -72,8 +72,6 @@ func (s *syncWorkerPool) addWorker(who peer.ID, bestHash common.Hash, bestNumber
 	s.l.Lock()
 	defer s.l.Unlock()
 
-	// delete it since it sends a block announcement so it might be
-	// a valid peer to request blocks for now
 	_, has := s.ignorePeers[who]
 	if has {
 		delete(s.ignorePeers, who)
