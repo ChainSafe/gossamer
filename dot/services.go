@@ -442,6 +442,11 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		return nil, err
 	}
 
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		Network:            net,
@@ -455,6 +460,7 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		MaxPeers:           cfg.Network.MaxPeers,
 		SlotDuration:       slotDuration,
 		Telemetry:          telemetryMailer,
+		BadBlocks:          genesisData.BadBlocks,
 	}
 
 	return sync.NewService(syncCfg)

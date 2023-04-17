@@ -174,6 +174,7 @@ type chainSync struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 type chainSyncConfig struct {
@@ -189,6 +190,7 @@ type chainSyncConfig struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 func newChainSync(cfg chainSyncConfig) *chainSync {
@@ -226,6 +228,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		logSyncTickerC:     logSyncTicker.C,
 		logSyncDone:        make(chan struct{}),
 		workerPool:         newSyncWorkerPool(cfg.net),
+		badBlocks:          cfg.badBlocks,
 	}
 }
 
@@ -632,6 +635,10 @@ loop:
 
 			err := cs.validateResponse(request, response, who)
 			switch {
+			case errors.Is(err, errBadBlock):
+				logger.Criticalf("Rejecting known bad block: $s", err)
+				cs.workerPool.shutdownWorker(taskResult.who, true)
+				cs.workerPool.submitRequest(taskResult.request, workersResults)
 			case errors.Is(err, errResponseIsNotChain):
 				logger.Criticalf("response invalid: %s", err)
 				cs.workerPool.shutdownWorker(taskResult.who, true)
@@ -1013,6 +1020,13 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	requestedData := req.RequestedData
+
+	for _, badBlockHash := range cs.badBlocks {
+		if bd.Hash.String() == badBlockHash {
+			logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash)
+			return errBadBlock
+		}
+	}
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
 		cs.network.ReportPeer(peerset.ReputationChange{
