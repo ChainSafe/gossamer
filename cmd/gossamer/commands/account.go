@@ -27,14 +27,16 @@ var AccountCmd = &cobra.Command{
 Examples: 
 
 To generate a new sr25519 account: 
-	gossamer account --generate
+	gossamer account generate --keystore-path=path/to/location --scheme=sr25519
 To generate a new ed25519 account: 
-	gossamer account --generate --ed25519
+	gossamer account generate --ed25519
 To generate a new secp256k1 account: 
-	gossamer account --generate --secp256k1
+	gossamer account generate --keystore-path=path/to/location --scheme secp256k1
 To import a keystore file: 
-	gossamer account --import=path/to/file
-To list keys: gossamer account --list`,
+	gossamer account import --keystore-path=path/to/location --keystore-file=keystore.json
+To import a raw key:
+	gossamer account import-raw --keystore-path=path/to/location --keystore-file=keystore.json
+To list keys: gossamer account list --keystore-path=path/to/location`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			logger.Errorf("account command cannot be empty")
