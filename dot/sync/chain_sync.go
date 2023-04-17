@@ -458,8 +458,6 @@ func (cs *chainSync) executeTipSync() error {
 
 }
 
-const maxRequestAllowed uint = 40
-
 func (cs *chainSync) executeBootstrapSync() error {
 	endBootstrapSync := false
 	for {
@@ -593,7 +591,7 @@ func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, s
 loop:
 	for {
 		// in a case where we don't handle workers results we should check the pool
-		idleDuration := 3 * time.Minute
+		idleDuration := time.Minute
 		idleTimer := time.NewTimer(idleDuration)
 
 		select {

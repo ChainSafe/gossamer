@@ -1,5 +1,6 @@
 [global]
 basepath = "./tmp/gossamer/westend"
+#basepath = "/Volumes/SDD01/gossamer_1m_402k_synced_copy/westend"
 log = "info"
 metrics-address = "localhost:9876"
 
@@ -7,7 +8,7 @@ metrics-address = "localhost:9876"
 core = ""
 network = ""
 rpc = ""
-state = ""
+state = "trace"
 runtime = ""
 babe = ""
 grandpa = ""

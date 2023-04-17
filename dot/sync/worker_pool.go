@@ -26,6 +26,8 @@ type syncWorkerPool struct {
 	ignorePeers map[peer.ID]time.Time
 }
 
+const maxRequestAllowed uint = 40
+
 func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return &syncWorkerPool{
 		network:     net,
@@ -113,7 +115,12 @@ func (s *syncWorkerPool) shutdownWorker(who peer.ID, ignore bool) {
 		return
 	}
 
-	peer.Stop()
+	go func() {
+		logger.Warnf("trying to stop %s (ignore=%v)", who, ignore)
+		peer.Stop()
+		logger.Warnf("peer %s stopped", who)
+	}()
+
 	delete(s.workers, who)
 
 	if ignore {

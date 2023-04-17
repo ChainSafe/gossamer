@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -55,9 +54,6 @@ func (s *syncWorker) update(bestHash common.Hash, bestNumber uint) {
 	s.bestHash = bestHash
 	s.bestNumber = bestNumber
 }
-
-var errBadPeerWorker = errors.New("bad peer worker")
-var errBadBlock = errors.New("bad block")
 
 func (s *syncWorker) Start(tasks <-chan *syncTask, wg *sync.WaitGroup) {
 	wg.Add(1)
