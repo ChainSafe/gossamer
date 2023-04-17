@@ -19,7 +19,7 @@ const (
 	// uint32Max is the maximum value of a uint32
 	uint32Max = ^uint32(0)
 	// defaultChainSpecFile is the default genesis file
-	defaultChainSpecFile = "chain-spec.json"
+	defaultChainSpecFile = "chain-spec-raw.json"
 	// defaultBasePath is the default base path
 	defaultBasePath = "~/.gossamer"
 	// defaultLogLevel is the default log level
