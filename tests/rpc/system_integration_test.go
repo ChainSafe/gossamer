@@ -38,6 +38,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.RPC.UnsafeWSExternal = true
 
 	// TODO: Figure out how this is making the test pass
+	// https://github.com/ChainSafe/gossamer/issues/3212
 	con.Network.MinPeers = 5
 	con.Network.MaxPeers = 50
 
