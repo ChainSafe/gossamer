@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -1021,11 +1022,9 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 
 	requestedData := req.RequestedData
 
-	for _, badBlockHash := range cs.badBlocks {
-		if bd.Hash.String() == badBlockHash {
-			logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash)
-			return errBadBlock
-		}
+	if slices.Contains(cs.badBlocks, bd.Hash.String()) {
+		logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash)
+		return errBadBlock
 	}
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
