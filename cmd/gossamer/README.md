@@ -101,13 +101,24 @@ to the capabilities defined in the [`lib/crypto`](../../lib/crypto) and [`lib/ke
 This subcommand provides capabilities that are similar to
 [Parity's Subkey utility](https://docs.substrate.io/v3/tools/subkey).
 
-The command can be invoked with the following subcommands:
+The account command supports following arguments:
+- `generate` - generates a new key pair; specify `--scheme ed25519`, `--scheme secp256k1`, or `--scheme sr25519` (default)
+- `list` - lists the keys in the Gossamer keystore
+- `import` - imports a key from a keystore file
+- `import-raw` - imports a raw key from a keystore file
 
-- `gossamer account generate` - creates a new key pair; specify `--scheme ed25519`, `--scheme secp256k1`, or `--scheme sr25519` (default)
+Supported flags:
+- `keystore-path` - path to the Gossamer keystore
+- `keystore-file` - path to the keystore file
+- `chain` - path to the human-readable chain-spec file
+- `--scheme` - `ed25519`, `secp256k1`, or `sr25519` (default)
+- `--password` - allows the user to provide a password to either encrypt a generated key or unlock the Gossamer keystore
+
+Examples:
+- `gossamer account generate --scheme ed25519` - generates an `ed25519` key pair
 - `gossamer account list` - lists the keys in the Gossamer keystore
-- `gossamer account import` - imports a key from a keystore file
-- `gossamer account import --raw` - imports a raw key from a keystore file
-- `gossamer account --password` - allows the user to provide a password to either encrypt a generated key or unlock the Gossamer keystore
+- `gossamer account import --keystore-file keystore.json` - imports a key from a keystore file
+- `gossamer account import-raw --keystore-file keystore.json` - imports a raw key from a keystore file
 
 ### Import Runtime Command
 
@@ -125,6 +136,13 @@ represent the Gossamer default configuration.
 - `--chain` - path to the human-readable chain-spec file that should be compiled into a format that Gossamer can
   consume
 - `--raw` - when this flag is present, the output will be a raw genesis spec described as a JSON document
+- `--output-path` - path to the file where the compiled chain-spec should be written
+
+Examples:
+- `gossamer build-spec --chain chain-spec.json --output-path compiled-chain-spec.json` - compiles a human-readable
+  chain-spec into a format that Gossamer can consume
+- `gossamer build-spec --chain chain-spec.json --raw --output-path compiled-chain-spec.json` - compiles a human-readable
+  chain-spec into a format that Gossamer can consume, and outputs the raw genesis spec as a JSON document
 
 ### Import State Command
 
@@ -139,6 +157,11 @@ of a JSON file. The input for this subcommand can be retrieved from
   [Polkadot on Polkascan](https://polkascan.io/polkadot/log/1-0))
 - `--header` - path to a JSON file that describes the block header corresponding to the given state
 - `--state` - path to a JSON file that contains the key-value pairs with which to seed Gossamer storage
+- `--chain` - path to the human-readable chain-spec file
+
+Examples:
+- `gossamer import-state --first-slot 1 --header header.json --state state.json --chain chain-spec.json` - seeds Gossamer
+  storage with key-value pairs from a JSON file
 
 ## Client Components
 
