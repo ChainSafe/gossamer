@@ -389,20 +389,6 @@ func (mr *MockRuntimeMockRecorder) Stop() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockRuntime)(nil).Stop))
 }
 
-// UpdateRuntimeCode mocks base method.
-func (m *MockRuntime) UpdateRuntimeCode(arg0 []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateRuntimeCode", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateRuntimeCode indicates an expected call of UpdateRuntimeCode.
-func (mr *MockRuntimeMockRecorder) UpdateRuntimeCode(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRuntimeCode", reflect.TypeOf((*MockRuntime)(nil).UpdateRuntimeCode), arg0)
-}
-
 // ValidateTransaction mocks base method.
 func (m *MockRuntime) ValidateTransaction(arg0 types.Extrinsic) (*transaction.Validity, error) {
 	m.ctrl.T.Helper()

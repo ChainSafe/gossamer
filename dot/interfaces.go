@@ -43,7 +43,6 @@ type Telemetry interface {
 // Note: only used internally in `loadRuntime` and
 // `createRuntime`.
 type runtimeInterface interface {
-	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() runtime.NodeStorage
 	NetworkService() runtime.BasicNetwork

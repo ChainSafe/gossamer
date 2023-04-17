@@ -83,10 +83,6 @@ func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (*Instance, error) {
-	return newInstance(code, cfg)
-}
-
-func newInstance(code []byte, cfg Config) (*Instance, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 	if len(code) == 0 {
 		return nil, ErrCodeEmpty
@@ -255,28 +251,6 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 
 	return version, nil
-}
-
-// UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	cfg := Config{
-		Storage:     in.ctx.Storage,
-		Keystore:    in.ctx.Keystore,
-		NodeStorage: in.ctx.NodeStorage,
-		Network:     in.ctx.Network,
-		Transaction: in.ctx.Transaction,
-	}
-
-	next, err := newInstance(code, cfg)
-	if err != nil {
-		return err
-	}
-
-	in.vm = next.vm
-	in.ctx = next.ctx
-
-	logger.Infof("updated runtime", "specification version", in.ctx.Version.SpecVersion)
-	return nil
 }
 
 // Exec calls the given function with the given data
