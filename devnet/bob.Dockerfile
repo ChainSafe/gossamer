@@ -38,10 +38,9 @@ WORKDIR /gossamer
 
 ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-    --publish-metrics \
-    --metrics-address=":9876" \
-    --rpc \
+    --prometheus-external \
+    --prometheus-port=9876 \
     --port 7001 \
-    --pubdns=${key}
+    --public-dns=${key}
 
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp
