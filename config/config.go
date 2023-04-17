@@ -77,7 +77,7 @@ var DefaultRPCModules = []string{
 
 // Config defines the configuration for the gossamer node
 type Config struct {
-	BaseConfig `               mapstructure:",squash"`
+	BaseConfig `mapstructure:",squash"`
 	Log        *LogConfig     `mapstructure:"log"`
 	Account    *AccountConfig `mapstructure:"account"`
 	Core       *CoreConfig    `mapstructure:"core"`
