@@ -13,7 +13,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -23,35 +22,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-func newTestHandler(t *testing.T) (*Handler, *state.Service) {
-	testDatadirPath := t.TempDir()
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	config := state.Config{
-		Path:      testDatadirPath,
-		Telemetry: telemetryMock,
-	}
-	stateSrvc := state.NewService(config)
-	stateSrvc.UseMemDB()
-
-	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
-	require.NoError(t, err)
-
-	err = stateSrvc.SetupBase()
-	require.NoError(t, err)
-
-	err = stateSrvc.Start()
-	require.NoError(t, err)
-
-	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
-	require.NoError(t, err)
-	return dh, stateSrvc
-}
 
 func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	handler, _ := newTestHandler(t)

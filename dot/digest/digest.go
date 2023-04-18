@@ -96,7 +96,6 @@ func (h *Handler) HandleDigests(header *types.Header) error {
 // toConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.
 func (h *Handler) toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
 	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
-
 	for _, d := range scaleVaryingTypes {
 		digestValue, err := d.Value()
 		if err != nil {
@@ -164,6 +163,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 			return err
 		}
 
+		fmt.Printf("going to handle: %s\n", data.String())
 		return h.grandpaState.HandleGRANDPADigest(header, data)
 	case types.BabeEngineID:
 		data := types.NewBabeConsensusDigest()

@@ -132,6 +132,10 @@ func (oc *orderedPendingChanges) pruneChanges(hash common.Hash, isDescendantOf i
 	return nil
 }
 
+func (oc *orderedPendingChanges) reset() {
+	*oc = make([]pendingChange, 0)
+}
+
 type pendingChangeNode struct {
 	change *pendingChange
 	nodes  []*pendingChangeNode
@@ -314,4 +318,8 @@ func (ct *changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendant
 
 	*ct = onBranchChanges
 	return nil
+}
+
+func (ct *changeTree) reset() {
+	*ct = []*pendingChangeNode{}
 }
