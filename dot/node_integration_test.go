@@ -14,8 +14,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/tests/utils/config"
-
 	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -56,7 +54,7 @@ func TestNewNode(t *testing.T) {
 	initConfig.Name = "TestNode"
 	initConfig.BasePath = basepath
 	initConfig.ChainSpec = genFile
-	initConfig.Account.Key = config.AliceKey
+	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
 	initConfig.Core.WasmInterpreter = wasmer.Name
 
@@ -270,11 +268,11 @@ func TestNewNodeIntegration(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore(config.AliceKey, ks.Gran, ed25519keyRing)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
 	require.NoError(t, err)
 	sr25519keyRing, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore(config.AliceKey, ks.Babe, sr25519keyRing)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
 	config.Core.Role = common.FullNodeRole
@@ -302,13 +300,13 @@ func TestNewNode_Authority(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore(config.AliceKey, ks.Gran, ed25519keyRing)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Gran.Size())
 
 	sr25519keyRing, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore(config.AliceKey, ks.Babe, sr25519keyRing)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Babe.Size())
 
@@ -340,12 +338,12 @@ func TestStartStopNode(t *testing.T) {
 
 	ed25519keyRing, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore(config.AliceKey, ks.Gran, ed25519keyRing)
+	err = keystore.LoadKeystore("alice", ks.Gran, ed25519keyRing)
 	require.NoError(t, err)
 
 	sr25519keyRing, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
-	err = keystore.LoadKeystore(config.AliceKey, ks.Babe, sr25519keyRing)
+	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
 	config.Core.Role = common.FullNodeRole
