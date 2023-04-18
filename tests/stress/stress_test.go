@@ -106,7 +106,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
-	configNoGrandpa.Account.Key = "alice"
+	configNoGrandpa.Account.Key = config.AliceKey
 	blockProducerNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
 
 	configNoAuthority := config.NotAuthority()

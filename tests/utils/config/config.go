@@ -7,6 +7,11 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 )
 
+const (
+	// AliceKey is the key for Alice.
+	AliceKey = "alice"
+)
+
 // LogGrandpa generates a grandpa config.
 func LogGrandpa() (config cfg.Config) {
 	config = Default()

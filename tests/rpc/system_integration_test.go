@@ -86,7 +86,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		for _, node := range nodes {
 			//TODO: remove this once the issue has been addressed
 			// https://github.com/ChainSafe/gossamer/issues/3030
-			if node.Key() == "alice" {
+			if node.Key() == config.AliceKey {
 				continue
 			}
 			endpoint := rpc.NewEndpoint(node.RPCPort())
@@ -112,7 +112,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 			//TODO: remove this once the issue has been addressed
 			// https://github.com/ChainSafe/gossamer/issues/3030
-			if node.Key() == "alice" {
+			if node.Key() == config.AliceKey {
 				t.Logf("Skipping test for alice")
 				t.Skip()
 			}

@@ -27,7 +27,7 @@ import (
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Account.Key = "alice"
+	tomlConfig.Account.Key = config.AliceKey
 	tomlConfig.ChainSpec = genesisPath
 
 	node := node.New(t, tomlConfig)

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/tests/utils/config"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -27,7 +29,7 @@ func TestLoadKeystore(t *testing.T) {
 	sr25519KeyRing, err := NewSr25519Keyring()
 	require.NoError(t, err)
 
-	err = LoadKeystore("alice", ks, sr25519KeyRing)
+	err = LoadKeystore(config.AliceKey, ks, sr25519KeyRing)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Size())
 
