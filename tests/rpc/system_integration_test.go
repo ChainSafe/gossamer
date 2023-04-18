@@ -69,7 +69,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		for _, node := range nodes {
 			endpoint := rpc.NewEndpoint(node.RPCPort())
 			var response modules.SystemHealthResponse
-			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", "{}", &response)
+			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
 			if response.Peers != len(nodes)-1 {
 				return false, nil
 			}
@@ -91,13 +91,14 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 			}
 			endpoint := rpc.NewEndpoint(node.RPCPort())
 			var response modules.SystemHealthResponse
-			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", "{}", &response)
+			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
 			if response.IsSyncing {
 				return false, nil
 			}
 		}
 		return true, nil
 	})
+	require.NoError(t, err)
 
 	t.Logf("All nodes have %d peers and synced", len(nodes)-1)
 
@@ -122,7 +123,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Parallel()
 
 				var response modules.SystemHealthResponse
-				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", "{}", &response)
+				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
 
 				expectedResponse := modules.SystemHealthResponse{
 					Peers:           len(nodes) - 1,
@@ -137,7 +138,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 				var response modules.SystemNetworkStateResponse
 
-				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", "{}", &response)
+				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", &response)
 
 				// TODO assert response
 			})
@@ -147,7 +148,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 				var response modules.SystemPeersResponse
 
-				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", "{}", &response)
+				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", &response)
 
 				assert.GreaterOrEqual(t, len(response), len(nodes)-2)
 
@@ -157,12 +158,11 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	}
 }
 
-func fetchWithTimeoutFromEndpoint(t *testing.T, endpoint, method,
-	params string, target interface{}) {
+func fetchWithTimeoutFromEndpoint(t *testing.T, endpoint, method string, target interface{}) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	body, err := rpc.Post(ctx, endpoint, method, params)
+	body, err := rpc.Post(ctx, endpoint, method, "{}")
 	cancel()
 	require.NoError(t, err)
 
