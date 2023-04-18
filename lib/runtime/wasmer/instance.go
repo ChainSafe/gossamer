@@ -291,6 +291,9 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 
 	wasmValue, err := runtimeFunc(castedInputPointer, castedDataLength)
 	if err != nil {
+		if errors.Is(err, errMemoryValueOutOfBounds) {
+			panic(fmt.Errorf("executing runtime function: %v", err))
+		}
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
