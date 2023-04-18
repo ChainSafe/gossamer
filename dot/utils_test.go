@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/tests/utils/config"
-
 	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -120,7 +118,7 @@ func TestNewTestConfig(t *testing.T) {
 					BlockProducerLvl:  3,
 					FinalityGadgetLvl: 3,
 				},
-				Account: AccountConfig{Key: config.AliceKey},
+				Account: AccountConfig{Key: "alice"},
 				Init:    InitConfig{Genesis: "./chain/westend-dev/westend-dev-spec-raw.json"},
 				Core: CoreConfig{
 					Roles:            4,
