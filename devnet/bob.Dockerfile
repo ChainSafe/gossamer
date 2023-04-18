@@ -26,7 +26,7 @@ ARG key
 RUN test -n "$key"
 ENV key=${key}
 
-RUN gossamer --key=${key} init
+RUN gossamer --key=${key} init  --chain chain/$CHAIN/$CHAIN-spec.json --base-path ~/.gossamer/gssmr
 
 ARG METRICS_NAMESPACE=gossamer.local.devnet
 
@@ -36,7 +36,8 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${ke
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
+ENTRYPOINT service datadog-agent start && gossamer --base-path ~/.gossamer/gssmr \
+    --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
     --prometheus-external \
     --prometheus-port=9876 \
