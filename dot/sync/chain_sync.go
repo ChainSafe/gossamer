@@ -455,7 +455,6 @@ func (cs *chainSync) sync() {
 
 func (cs *chainSync) executeTipSync() error {
 	return nil
-
 }
 
 func (cs *chainSync) executeBootstrapSync() error {
@@ -464,11 +463,11 @@ func (cs *chainSync) executeBootstrapSync() error {
 		if endBootstrapSync {
 			return nil
 		}
+
 		bestBlockHeader, err := cs.blockState.BestBlockHeader()
 		if err != nil {
 			return fmt.Errorf("getting best block header while syncing: %w", err)
 		}
-
 		startRequestAt := bestBlockHeader.Number + 1
 		cs.workerPool.useConnectedPeers()
 
