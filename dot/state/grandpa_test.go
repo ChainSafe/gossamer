@@ -600,10 +600,11 @@ func TestApplyForcedChanges(t *testing.T) {
 
 	tests := map[string]struct {
 		wantErr error
-		// 2 index array where the 0 index describes the fork and the 1 index describes the header
+		// 2 indexed array where the 0 index describes the fork and the 1 index describes the header
 		importedHeader              [2]int
 		expectedGRANDPAAuthoritySet []types.GrandpaAuthoritiesRaw
 		expectedSetID               uint64
+		expectedPruning             bool
 
 		generateForks func(t *testing.T, blockState *BlockState) [][]*types.Header
 		changes       func(*GrandpaState, [][]*types.Header)
@@ -613,6 +614,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			importedHeader:              [2]int{0, 3}, // chain A from and header number 4
 			expectedSetID:               0,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+			expectedPruning:             false,
 		},
 		"apply_forced_change_without_pending_scheduled_changes": {
 			generateForks: genericForks,
@@ -639,8 +641,9 @@ func TestApplyForcedChanges(t *testing.T) {
 					},
 				})
 			},
-			importedHeader: [2]int{0, 9}, // import block number 10 from fork A
-			expectedSetID:  1,
+			importedHeader:  [2]int{0, 9}, // import block number 10 from fork A
+			expectedSetID:   1,
+			expectedPruning: true,
 			expectedGRANDPAAuthoritySet: []types.GrandpaAuthoritiesRaw{
 				{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
 				{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
@@ -663,6 +666,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			},
 			importedHeader:              [2]int{2, 1}, // import block number 7 from chain C
 			expectedSetID:               0,
+			expectedPruning:             false,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
 		},
 		"import_block_from_another_fork_should_do_nothing": {
@@ -681,6 +685,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			},
 			importedHeader:              [2]int{1, 9}, // import block number 12 from chain B
 			expectedSetID:               0,
+			expectedPruning:             false,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
 		},
 		"apply_forced_change_with_pending_scheduled_changes_should_fail": {
@@ -720,6 +725,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			wantErr:                     errPendingScheduledChanges,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
 			expectedSetID:               0,
+			expectedPruning:             false,
 		},
 	}
 
@@ -744,12 +750,25 @@ func TestApplyForcedChanges(t *testing.T) {
 			selectedFork := forks[tt.importedHeader[0]]
 			selectedImportedHeader := selectedFork[tt.importedHeader[1]]
 
+			amountOfForced := gs.forcedChanges.Len()
+			amountOfScheduled := gs.scheduledChangeRoots.Len()
+
 			err = gs.ApplyForcedChanges(selectedImportedHeader)
 			if tt.wantErr != nil {
 				require.Error(t, err)
 				require.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
+			}
+
+			if tt.expectedPruning {
+				// we should reset the changes set once a forced change is applied
+				const expectedLen = 0
+				require.Equal(t, expectedLen, gs.forcedChanges.Len())
+				require.Equal(t, expectedLen, gs.scheduledChangeRoots.Len())
+			} else {
+				require.Equal(t, amountOfForced, gs.forcedChanges.Len())
+				require.Equal(t, amountOfScheduled, gs.scheduledChangeRoots.Len())
 			}
 
 			currentSetID, err := gs.GetCurrentSetID()
