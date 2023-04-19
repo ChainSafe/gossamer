@@ -227,7 +227,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("%w: %s", errPendingScheduledChanges, dependant.change)
 	}
 
-	logger.Debugf("applying forced change: %s", forcedChange)
+	logger.Debugf("Applying authority set forced change: %s", forcedChange)
 
 	// TODO(#3218) afg.applying_forced_authority_set_change
 
@@ -257,7 +257,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("cannot set change set id at block")
 	}
 
-	logger.Debugf("Applying authority set forced change: %s", forcedChange)
+	logger.Debugf("Applied authority set forced change: %s", forcedChange)
 
 	s.forcedChanges.pruneAll()
 	s.scheduledChangeRoots.pruneAll()
