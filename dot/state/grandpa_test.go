@@ -727,6 +727,41 @@ func TestApplyForcedChanges(t *testing.T) {
 			expectedSetID:               0,
 			expectedPruning:             false,
 		},
+
+		"apply_forced_change_should_prune_scheduled_changes": {
+			generateForks: genericForks,
+			changes: func(gs *GrandpaState, headers [][]*types.Header) {
+				chainBBlock12 := headers[1][9]
+				chainBBlock11 := headers[1][8]
+				chainBBlock10 := headers[1][7]
+
+				addScheduledChanges := []*types.Header{chainBBlock10, chainBBlock11, chainBBlock12}
+				for _, blockHeader := range addScheduledChanges {
+					gs.addScheduledChange(blockHeader, types.GrandpaScheduledChange{
+						Delay: 0,
+						Auths: []types.GrandpaAuthoritiesRaw{
+							{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+						},
+					})
+				}
+
+				// add a forced change for block 9 from chain C
+				chainCBlock9 := headers[2][2]
+				gs.addForcedChange(chainCBlock9, types.GrandpaForcedChange{
+					Delay:              3,
+					BestFinalizedBlock: 2,
+					Auths: []types.GrandpaAuthoritiesRaw{
+						{Key: keyring.KeyCharlie.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
+						{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
+					},
+				})
+			},
+			importedHeader:              [2]int{2, 7}, // import block 12 from chain C
+			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+			expectedSetID:               0,
+			expectedPruning:             false,
+		},
 	}
 
 	for tname, tt := range tests {
