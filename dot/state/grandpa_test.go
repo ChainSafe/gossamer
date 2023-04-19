@@ -735,6 +735,7 @@ func TestApplyForcedChanges(t *testing.T) {
 				chainBBlock11 := headers[1][8]
 				chainBBlock10 := headers[1][7]
 
+				// add scheduled changes for block 10, 11 and 12 from for B
 				addScheduledChanges := []*types.Header{chainBBlock10, chainBBlock11, chainBBlock12}
 				for _, blockHeader := range addScheduledChanges {
 					gs.addScheduledChange(blockHeader, types.GrandpaScheduledChange{
@@ -745,7 +746,8 @@ func TestApplyForcedChanges(t *testing.T) {
 					})
 				}
 
-				// add a forced change for block 9 from chain C
+				// add a forced change for block 9 from chain C with delay of 3 blocks
+				// once block 11 got imported Gossamer should clean up all the scheduled + forced changes
 				chainCBlock9 := headers[2][2]
 				gs.addForcedChange(chainCBlock9, types.GrandpaForcedChange{
 					Delay:              3,
