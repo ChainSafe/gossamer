@@ -25,7 +25,7 @@ func TestLoadConfig(t *testing.T) {
 	err := dot.InitNode(cfg)
 	require.NoError(t, err)
 
-	err = loadConfig(dotConfigToToml(cfg), cfgFile)
+	err = loadConfigFromFile(dotConfigToToml(cfg), cfgFile)
 	require.NoError(t, err)
 }
 
@@ -43,7 +43,7 @@ func TestLoadConfigWestendDev(t *testing.T) {
 	projectRootPath := utils.GetProjectRootPathTest(t)
 	configPath := filepath.Join(projectRootPath, "./chain/westend-dev/config.toml")
 
-	err = loadConfig(dotConfigToToml(cfg), configPath)
+	err = loadConfigFromFile(dotConfigToToml(cfg), configPath)
 	require.NoError(t, err)
 }
 
@@ -60,6 +60,6 @@ func TestLoadConfigKusama(t *testing.T) {
 	projectRootPath := utils.GetProjectRootPathTest(t)
 	kusamaConfigPath := filepath.Join(projectRootPath, "./chain/kusama/config.toml")
 
-	err = loadConfig(dotConfigToToml(cfg), kusamaConfigPath)
+	err = loadConfigFromFile(dotConfigToToml(cfg), kusamaConfigPath)
 	require.NoError(t, err)
 }

@@ -76,6 +76,12 @@ type StateStorageQueryRangeRequest struct {
 	EndBlock   common.Hash `json:"block"`
 }
 
+// StateStorageQueryAtRequest holds json fields
+type StateStorageQueryAtRequest struct {
+	Keys []string    `json:"keys" validate:"required"`
+	At   common.Hash `json:"at"`
+}
+
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
@@ -467,10 +473,13 @@ func (sm *StateModule) QueryStorage(
 			var hexValue *string
 			if len(value) > 0 {
 				hexValue = stringPtr(common.BytesToHex(value))
+			} else if value != nil { // empty byte slice value
+				hexValue = stringPtr("0x")
 			}
 
 			differentValueEncountered := i == startBlockNumber ||
 				lastValue[j] == nil && hexValue != nil ||
+				lastValue[j] != nil && hexValue == nil ||
 				lastValue[j] != nil && *lastValue[j] != *hexValue
 			if differentValueEncountered {
 				changes = append(changes, [2]*string{stringPtr(key), hexValue})
@@ -486,6 +495,40 @@ func (sm *StateModule) QueryStorage(
 	}
 
 	*res = response
+	return nil
+}
+
+// QueryStorageAt queries historical storage entries (by key) at the block hash given or
+// the best block if the given block hash is nil
+func (sm *StateModule) QueryStorageAt(
+	_ *http.Request, request *StateStorageQueryAtRequest, response *[]StorageChangeSetResponse) error {
+	atBlockHash := request.At
+	if atBlockHash.IsEmpty() {
+		atBlockHash = sm.blockAPI.BestBlockHash()
+	}
+
+	changes := make([][2]*string, len(request.Keys))
+
+	for i, key := range request.Keys {
+		value, err := sm.storageAPI.GetStorageByBlockHash(&atBlockHash, common.MustHexToBytes(key))
+		if err != nil {
+			return fmt.Errorf("getting value by block hash: %w", err)
+		}
+		var hexValue *string
+		if len(value) > 0 {
+			hexValue = stringPtr(common.BytesToHex(value))
+		} else if value != nil { // empty byte slice value
+			hexValue = stringPtr("0x")
+		}
+
+		changes[i] = [2]*string{stringPtr(key), hexValue}
+	}
+
+	*response = []StorageChangeSetResponse{{
+		Block:   &atBlockHash,
+		Changes: changes,
+	}}
+
 	return nil
 }
 

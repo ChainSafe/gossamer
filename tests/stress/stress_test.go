@@ -106,7 +106,6 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
-	configNoGrandpa.Core.BABELead = true
 	configNoGrandpa.Account.Key = "alice"
 	babeLeadNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
 
@@ -212,7 +211,6 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.Init.Genesis = genesisPath
-	blockProducingConfig.Core.BABELead = true
 	alice := node.New(t, blockProducingConfig, node.SetIndex(0))
 
 	alice.InitAndStartTest(ctx, t, cancel)
@@ -252,7 +250,6 @@ func TestSync_Bench(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
-	configNoGrandpa.Core.BABELead = true
 
 	alice := node.New(t, configNoGrandpa, node.SetIndex(0))
 
@@ -284,7 +281,6 @@ func TestSync_Bench(t *testing.T) {
 	// start syncing node
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.Init.Genesis = genesisPath
-	configNoAuthority.Core.BABELead = true
 	bob := node.New(t, configNoAuthority, node.SetIndex(1))
 
 	bob.InitAndStartTest(ctx, t, cancel)
@@ -362,7 +358,6 @@ func TestSync_Restart(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	blockProducingConfig := config.Default()
 	blockProducingConfig.Init.Genesis = genesisPath
-	blockProducingConfig.Core.BABELead = true
 	producingNode := node.New(t, blockProducingConfig, node.SetIndex(numNodes-1))
 
 	err := producingNode.Init(mainCtx)
@@ -456,7 +451,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.Init.Genesis = genesisPath
-	configNoGrandpa.Core.BABELead = true
 	producingNode := node.New(t, configNoGrandpa, node.SetIndex(0))
 	producingNode.InitAndStartTest(ctx, t, cancel)
 
@@ -628,7 +622,6 @@ func Test_SubmitAndWatchExtrinsic(t *testing.T) {
 	tomlConfig := config.NoGrandpa()
 	tomlConfig.Init.Genesis = genesisPath
 	tomlConfig.RPC.WS = true
-	tomlConfig.Core.BABELead = true
 	producingNode := node.New(t, tomlConfig, node.SetIndex(0))
 	ctx, cancel := context.WithCancel(context.Background())
 	producingNode.InitAndStartTest(ctx, t, cancel)

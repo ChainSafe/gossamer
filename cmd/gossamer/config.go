@@ -26,10 +26,10 @@ import (
 var (
 	// DefaultCfg is the default configuration for the node.
 	DefaultCfg                  = dot.PolkadotConfig
-	defaultKusamaConfigPath     = "./chain/kusama/config.toml"
-	defaultPolkadotConfigPath   = "./chain/polkadot/config.toml"
-	defaultWestendDevConfigPath = "./chain/westend-dev/config.toml"
-	defaultWestendConfigPath    = "./chain/westend/config.toml"
+	defaultKusamaConfigPath     = "kusama/config.toml"
+	defaultPolkadotConfigPath   = "polkadot/config.toml"
+	defaultWestendDevConfigPath = "westend-dev/config.toml"
+	defaultWestendConfigPath    = "westend/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -37,7 +37,7 @@ var (
 func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 	cfgPath := ctx.String(ConfigFlag.Name)
 	if cfgPath == "" {
-		return loadConfig(cfg, defaultPolkadotConfigPath)
+		return loadConfigFromResource(cfg, defaultPolkadotConfigPath)
 	}
 
 	logger.Info("loading toml configuration from " + cfgPath + "...")
@@ -48,7 +48,7 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 			"overwriting default configuration with id " + cfg.Global.ID +
 				" with toml configuration values from " + cfgPath)
 	}
-	return loadConfig(cfg, cfgPath)
+	return loadConfigFromFile(cfg, cfgPath)
 }
 
 func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) {
@@ -68,22 +68,22 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			logger.Info("loading toml configuration from " + defaultKusamaConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KusamaConfig()
-			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultKusamaConfigPath)
 		case "polkadot":
 			logger.Info("loading toml configuration from " + defaultPolkadotConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
-			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultPolkadotConfigPath)
 		case "westend-dev":
 			logger.Info("loading toml configuration from " + defaultWestendDevConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.WestendDevConfig()
-			err = loadConfig(tomlCfg, defaultWestendDevConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultWestendDevConfigPath)
 		case "westend":
 			logger.Info("loading toml configuration from " + defaultWestendConfigPath + "...")
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.WestendConfig()
-			err = loadConfig(tomlCfg, defaultWestendConfigPath)
+			err = loadConfigFromResource(tomlCfg, defaultWestendConfigPath)
 		default:
 			logger.Info("loading chain config from " + id + "...")
 			fileInfo, err := os.Stat(id)
@@ -604,11 +604,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.BabeAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
 	cfg.GrandpaAuthority = common.Roles(tomlCfg.Roles) == common.AuthorityRole
 	cfg.GrandpaInterval = time.Second * time.Duration(tomlCfg.GrandpaInterval)
-
-	cfg.BABELead = tomlCfg.BABELead
-	if ctx.IsSet(BABELeadFlag.Name) {
-		cfg.BABELead = ctx.Bool(BABELeadFlag.Name)
-	}
 
 	// check --roles flag and update node configuration
 	if roles := ctx.String(RolesFlag.Name); roles != "" {

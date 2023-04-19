@@ -111,7 +111,6 @@ type NetworkConfig struct {
 type CoreConfig struct {
 	Roles            common.Roles
 	BabeAuthority    bool
-	BABELead         bool
 	GrandpaAuthority bool
 	WasmInterpreter  string
 	GrandpaInterval  time.Duration
