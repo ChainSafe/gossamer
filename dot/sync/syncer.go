@@ -41,13 +41,11 @@ type Config struct {
 func NewService(cfg *Config) (*Service, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
-	readyBlocks := newBlockQueue(maxResponseSize * 30)
 	pendingBlocks := newDisjointBlockSet(pendingBlocksLimit)
 
 	csCfg := chainSyncConfig{
 		bs:                 cfg.BlockState,
 		net:                cfg.Network,
-		readyBlocks:        readyBlocks,
 		pendingBlocks:      pendingBlocks,
 		minPeers:           cfg.MinPeers,
 		maxPeers:           cfg.MaxPeers,

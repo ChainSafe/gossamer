@@ -116,9 +116,6 @@ type chainSync struct {
 	// to replace the worker queue
 	workerPool *syncWorkerPool
 
-	// queue of work created by setting peer heads
-	workQueue chan *peerState
-
 	// workers are put here when they are completed so we can handle their result
 	resultQueue chan *worker
 
@@ -130,17 +127,6 @@ type chainSync struct {
 
 	// current workers that are attempting to obtain blocks
 	workerState *workerState
-
-	// blocks which are ready to be processed are put into this queue
-	// the `chainProcessor` will read from this channel and process the blocks
-	// note: blocks must not be put into this channel unless their parent is known
-	//
-	// there is a case where we request and process "duplicate" blocks, which is where there
-	// are some blocks in this queue, and at the same time, the bootstrap worker errors and dispatches
-	// a new worker with start=(current best head), which results in the blocks in the queue
-	// getting re-requested (as they have not been processed yet)
-	// to fix this, we track the blocks that are in the queue
-	readyBlocks *blockQueue
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -179,7 +165,6 @@ type chainSync struct {
 type chainSyncConfig struct {
 	bs                 BlockState
 	net                Network
-	readyBlocks        *blockQueue
 	pendingBlocks      DisjointBlockSet
 	minPeers, maxPeers int
 	slotDuration       time.Duration
@@ -208,12 +193,10 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		cancel:             cancel,
 		blockState:         cfg.bs,
 		network:            cfg.net,
-		workQueue:          make(chan *peerState, 1024),
 		resultQueue:        make(chan *worker, 1024),
 		peerState:          make(map[peer.ID]*peerState),
 		ignorePeers:        make(map[peer.ID]struct{}),
 		workerState:        newWorkerState(),
-		readyBlocks:        cfg.readyBlocks,
 		pendingBlocks:      cfg.pendingBlocks,
 		state:              bootstrap,
 		handler:            newBootstrapSyncer(cfg.bs),
@@ -231,11 +214,15 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 
 func (cs *chainSync) start() {
 	// wait until we have a minimal workers in the sync worker pool
+	// and we have a clear target otherwise just wait
 	for {
+		_, err := cs.getTarget()
 		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) {
+
+		if err == nil && totalAvailable >= uint(cs.minPeers) {
 			break
 		}
+
 		time.Sleep(time.Millisecond * 100)
 	}
 
@@ -287,9 +274,9 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
-// setPeerHead sets a peer's best known block and potentially adds the peer's state to the workQueue
+// setPeerHead sets a peer's best known block
 func (cs *chainSync) setPeerHead(p peer.ID, bestHash common.Hash, bestNumber uint) error {
-	err := cs.workerPool.addWorker(p, bestHash, bestNumber)
+	err := cs.workerPool.addWorkerFromBlockAnnounce(p, bestHash, bestNumber)
 	if err != nil {
 		logger.Errorf("adding a potential worker: %s", err)
 	}
@@ -363,7 +350,6 @@ func (cs *chainSync) setPeerHead(p peer.ID, bestHash common.Hash, bestNumber uin
 		return fmt.Errorf("add hash and number: %w", err)
 	}
 
-	//cs.workQueue <- nil
 	return nil
 }
 
@@ -402,7 +388,13 @@ func (cs *chainSync) logSyncSpeed() {
 		switch cs.state {
 		case bootstrap:
 			cs.benchmarker.end(time.Now(), after.Number)
-			target := cs.getTarget()
+			target, err := cs.getTarget()
+			if errors.Is(err, errUnableToGetTarget) {
+				continue
+			} else if err != nil {
+				logger.Errorf("while getting target: %s", err)
+				continue
+			}
 
 			logger.Infof(
 				"🔗 imported blocks from %d to %d (hashes [%s ... %s])",
@@ -431,29 +423,40 @@ func (cs *chainSync) logSyncSpeed() {
 
 func (cs *chainSync) sync() {
 	for {
-		currentTarget := cs.getTarget()
-		logger.Infof("CURRENT SYNC TARGET: %d", currentTarget)
+		err := cs.maybeSwitchMode()
+		if err != nil {
+			logger.Errorf("trying to switch mode: %w", err)
+			return
+		}
 
-		cs.maybeSwitchMode()
 		if cs.state == bootstrap {
 			logger.Infof("using bootstrap sync")
-			err := cs.executeBootstrapSync()
-			if err != nil {
-				logger.Errorf("executing bootstrap sync: %s", err)
-				return
-			}
+			err = cs.executeBootstrapSync()
 		} else {
 			logger.Infof("using tip sync")
-			err := cs.executeTipSync()
-			if err != nil {
-				logger.Errorf("executing tip sync: %s", err)
-				return
-			}
+			err = cs.executeTipSync()
+		}
+
+		if err != nil {
+			logger.Errorf("executing bootstrap sync: %s", err)
+			continue
 		}
 	}
 }
 
 func (cs *chainSync) executeTipSync() error {
+	cs.workerPool.stopEphemeralWorkers()
+
+	for {
+		slotDurationTimer := time.NewTimer(cs.slotDuration)
+
+		select {
+		case <-slotDurationTimer.C:
+		case <-
+		}
+
+	}
+
 	return nil
 }
 
@@ -482,7 +485,11 @@ func (cs *chainSync) executeBootstrapSync() error {
 
 		targetBlockNumber := startRequestAt + uint(availablePeers)*128
 
-		realTarget := cs.getTarget()
+		realTarget, err := cs.getTarget()
+		if err != nil {
+			return fmt.Errorf("while getting target: %w", err)
+		}
+
 		if targetBlockNumber > realTarget {
 			diff := targetBlockNumber - realTarget
 			numOfRequestsToDrop := (diff / 128) + 1
@@ -510,60 +517,50 @@ func (cs *chainSync) executeBootstrapSync() error {
 	}
 }
 
-func (cs *chainSync) maybeSwitchMode() {
+func (cs *chainSync) maybeSwitchMode() error {
 	head, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Errorf("failed to get best block header: %s", err)
-		return
+		return fmt.Errorf("getting best block header: %w", err)
 	}
 
-	target := cs.getTarget()
+	target, err := cs.getTarget()
+	if err != nil {
+		return fmt.Errorf("getting target: %w", err)
+	}
+
 	switch {
 	case head.Number+maxResponseSize < target:
 		// we are at least 128 blocks behind the head, switch to bootstrap
-		cs.setMode(bootstrap)
+		cs.state = bootstrap
+		isSyncedGauge.Set(float64(cs.state))
+		logger.Debugf("switched sync mode to %d", cs.state)
+
 	case head.Number+maxResponseSize > target:
-		cs.setMode(tip)
+		cs.state = tip
+		isSyncedGauge.Set(float64(cs.state))
+		logger.Debugf("switched sync mode to %d", cs.state)
+
 	default:
 		// head is between (target-128, target), and we don't want to switch modes.
 	}
+
+	return nil
 }
 
-// setMode stops all existing workers and clears the worker set and switches the `handler`
-// based on the new mode, if the mode is different than previous
-func (cs *chainSync) setMode(mode chainSyncState) {
-	if cs.state == mode {
-		return
-	}
-
-	// stop all current workers and clear set
-	cs.workerState.reset()
-
-	// update handler to respective mode
-	switch mode {
-	case bootstrap:
-		cs.handler = newBootstrapSyncer(cs.blockState)
-	case tip:
-		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks, nil)
-	}
-
-	cs.state = mode
-	isSyncedGauge.Set(float64(cs.state))
-	logger.Debugf("switched sync mode to %d", mode)
-}
+var errUnableToGetTarget = errors.New("unable to get target")
 
 // getTarget takes the average of all peer heads
 // TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
-func (cs *chainSync) getTarget() uint {
+func (cs *chainSync) getTarget() (uint, error) {
 	cs.RLock()
 	defer cs.RUnlock()
 
 	// in practice, this shouldn't happen, as we only start the module once we have some peer states
 	if len(cs.peerState) == 0 {
 		// return max uint32 instead of 0, as returning 0 would switch us to tip mode unexpectedly
-		return uint(1<<32 - 1)
+		return 0, errUnableToGetTarget
 	}
 
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
@@ -574,7 +571,7 @@ func (cs *chainSync) getTarget() uint {
 
 	sum, count := nonOutliersSumCount(uintArr)
 	quotientBigInt := big.NewInt(0).Div(sum, big.NewInt(int64(count)))
-	return uint(quotientBigInt.Uint64())
+	return uint(quotientBigInt.Uint64()), nil
 }
 
 // handleWorkersResults, every time we submit requests to workers they results should be computed here
@@ -697,11 +694,6 @@ loop:
 }
 
 func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
-	if cs.readyBlocks.has(bd.Hash) {
-		logger.Tracef("ignoring block %s (%d) in response, already in ready queue", bd.Hash, bd.Header.Number)
-		return nil
-	}
-
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
@@ -981,10 +973,6 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 			// check that we know the parent of the first block (or it's in the ready queue)
 			has, _ := cs.blockState.HasHeader(curr.ParentHash)
 			if has {
-				continue
-			}
-
-			if cs.readyBlocks.has(curr.ParentHash) {
 				continue
 			}
 

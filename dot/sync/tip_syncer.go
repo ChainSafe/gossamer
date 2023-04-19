@@ -19,16 +19,14 @@ type handleReadyBlockFunc func(*types.BlockData)
 type tipSyncer struct {
 	blockState       BlockState
 	pendingBlocks    DisjointBlockSet
-	readyBlocks      *blockQueue
 	handleReadyBlock handleReadyBlockFunc
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue,
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet,
 	handleReadyBlock handleReadyBlockFunc) *tipSyncer {
 	return &tipSyncer{
 		blockState:       blockState,
 		pendingBlocks:    pendingBlocks,
-		readyBlocks:      readyBlocks,
 		handleReadyBlock: handleReadyBlock,
 	}
 }
@@ -199,7 +197,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			return nil, err
 		}
 
-		if has || s.readyBlocks.has(block.header.ParentHash) {
+		if has {
 			// block is ready, as parent is known!
 			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
 			s.handleReadyBlock(block.toBlockData())

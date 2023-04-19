@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"golang.org/x/exp/maps"
 )
 
 type syncTask struct {
@@ -70,7 +71,7 @@ func (s *syncWorkerPool) useConnectedPeers() {
 	}
 }
 
-func (s *syncWorkerPool) addWorker(who peer.ID, bestHash common.Hash, bestNumber uint) error {
+func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common.Hash, bestNumber uint) error {
 	s.l.Lock()
 	defer s.l.Unlock()
 
@@ -81,6 +82,7 @@ func (s *syncWorkerPool) addWorker(who peer.ID, bestHash common.Hash, bestNumber
 
 	worker, has := s.workers[who]
 	if has {
+		worker.isEphemeral = false
 		worker.update(bestHash, bestNumber)
 		return nil
 	}
@@ -126,6 +128,24 @@ func (s *syncWorkerPool) shutdownWorker(who peer.ID, ignore bool) {
 	if ignore {
 		ignorePeerTimeout := time.Now().Add(ignorePeerTimeout)
 		s.ignorePeers[who] = ignorePeerTimeout
+	}
+}
+
+func (s *syncWorkerPool) stopEphemeralWorkers() {
+	s.l.Lock()
+	defer s.l.Unlock()
+
+	workersKeys := maps.Keys(s.workers)
+
+	for _, who := range workersKeys {
+		worker, has := s.workers[who]
+		if !has || !worker.isEphemeral {
+			continue
+		}
+
+		worker.Stop()
+		delete(s.ignorePeers, who)
+		delete(s.workers, who)
 	}
 }
 
