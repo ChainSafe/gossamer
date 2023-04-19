@@ -327,6 +327,24 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
+// ParachainHostValidators Returns the validator set at the current state.
+// The specified validators are responsible for backing parachains for the current state.
+func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
+	ret, err := in.Exec(runtime.ParachainHostValidators, []byte{})
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("ret", ret)
+
+	var gar []types.ValidatorID
+	err = scale.Unmarshal(ret, &gar)
+	if err != nil {
+		return nil, err
+	}
+
+	return types.ValidatorIDToValidator(gar)
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive

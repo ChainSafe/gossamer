@@ -100,6 +100,7 @@ type Runtime interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
+	ParachainHostValidators() ([]types.Validator, error)
 }
 
 // BabeConfigurer returns the babe configuration of the runtime.

@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -1189,4 +1190,61 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	}
 	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	require.NoError(t, err)
+}
+
+func TestInstance_ParachainHostValidators_NodeRuntime(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+
+	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+	require.NoError(t, err)
+
+	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
+
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
+	auths, err := rt.ParachainHostValidators()
+	require.NoError(t, err)
+
+	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	authBBytes, _ := common.HexToBytes("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+
+	authA, _ := sr25519.NewPublicKey(authABytes)
+	authB, _ := sr25519.NewPublicKey(authBBytes)
+
+	expected := []types.Validator{
+		{Key: authA},
+		{Key: authB},
+	}
+
+	require.Equal(t, expected, auths)
+}
+
+func TestInstance_ParachainHostValidators_PolkadotRuntime(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+
+	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
+	require.NoError(t, err)
+
+	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
+	tt.Put(key, value)
+
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME_v0929, tt)
+
+	auths, err := rt.ParachainHostValidators()
+	t.Logf("auths: %v", auths)
+	require.NoError(t, err)
+
+	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	authBBytes, _ := common.HexToBytes("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+
+	authA, _ := sr25519.NewPublicKey(authABytes)
+	authB, _ := sr25519.NewPublicKey(authBBytes)
+
+	expected := []types.Validator{
+		{Key: authA},
+		{Key: authB},
+	}
+
+	require.Equal(t, expected, auths)
 }
