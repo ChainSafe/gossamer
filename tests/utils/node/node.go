@@ -83,7 +83,7 @@ func (n *Node) setDefaults(t *testing.T) {
 	}
 
 	if n.tomlConfig.Network.Port == 0 {
-		const basePort uint16 = 7000
+		const basePort uint16 = 7004
 		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
 	}
 
