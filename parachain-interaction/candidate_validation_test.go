@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	parachaintypes "github.com/ChainSafe/gossamer/parachain-interaction/types"
@@ -29,7 +30,7 @@ func TestValidateFromChainState(t *testing.T) {
 			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"),
 			Collator:                    *collatorID,
 			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"),
-			PovHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"),
+			PoVHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"),
 			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"),
 			Signature:                   collatorSignature(signature),
 			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"),
@@ -62,6 +63,13 @@ func TestValidateFromChainState(t *testing.T) {
 		//   }
 	}
 
+	pov := PoV{
+		BlockData: types.BlockData{
+			Hash:   common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"),
+			Header: types.NewEmptyHeader(),
+			Body:   &types.Body{},
+		},
+	}
 	ctrl := gomock.NewController(t)
 	mockInstance := NewMockRuntimeInstance(ctrl)
 
@@ -71,6 +79,8 @@ func TestValidateFromChainState(t *testing.T) {
 		RelayParentStorageRoot: common.MustHexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		MaxPovSize:             uint32(1024),
 	}
+
+	mockPoVRequestor := NewMockPoVRequestor(ctrl)
 
 	fileContent, err := ioutil.ReadFile("test-validation-code.txt")
 	require.NoError(t, err)
@@ -84,9 +94,10 @@ func TestValidateFromChainState(t *testing.T) {
 	mockInstance.EXPECT().ParachainHostPersistedValidationData(uint32(1000), gomock.Any()).Return(&persistedValidationData, nil)
 	mockInstance.EXPECT().ParachainHostValidationCode(uint32(1000), gomock.Any()).Return(&validationCode, nil)
 
+	mockPoVRequestor.EXPECT().RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
 	// get PersistedValidationData and ValidationCode from polkadot test
 	// candidateCommitment, persistedValidationData, err := ValidateFromChainState(mockInstance, candidateReceipt)
-	_, _, err = ValidateFromChainState(mockInstance, candidateReceipt)
+	_, _, err = ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
 	require.NoError(t, err)
 
 }

@@ -175,7 +175,11 @@ func (CommitmentsHashMismatch) Index() uint {
 	return 12
 }
 
-func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt) (*candidateCommitments, *parachaintypes.PersistedValidationData, error) {
+type PoVRequestor interface {
+	RequestPoV(povHash common.Hash) PoV
+}
+
+func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt) (*candidateCommitments, *parachaintypes.PersistedValidationData, error) {
 	var PersistedValidationData *parachaintypes.PersistedValidationData
 
 	// TODO: There are three validation functions that gets used alternatively.
@@ -194,7 +198,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	// check that the candidate does not exceed any parameters in the persisted validation data
 
 	// TODO: Get PoV from Candidate
-	var pov PoV
+	pov := povRequestor.RequestPoV(c.descriptor.PoVHash)
 
 	// basic checks
 
@@ -246,7 +250,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 	validationParams := ValidationParameters{
 		ParentHeadData: PersistedValidationData.ParentHead,
 		// TODO: Fill up block data
-		BlockData:              types.BlockData{},
+		BlockData:              pov.BlockData,
 		RelayParentNumber:      PersistedValidationData.RelayParentNumber,
 		RelayParentStorageRoot: PersistedValidationData.RelayParentStorageRoot,
 	}
@@ -324,9 +328,13 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, c CandidateReceipt)
 }
 
 type ValidationParameters struct {
-	ParentHeadData         headData
-	BlockData              types.BlockData
-	RelayParentNumber      uint32
+	// Previous head-data.
+	ParentHeadData headData
+	// The collation body.
+	BlockData types.BlockData
+	// The current relay-chain block number.
+	RelayParentNumber uint32
+	// The relay-chain block's storage root.
 	RelayParentStorageRoot common.Hash
 }
 

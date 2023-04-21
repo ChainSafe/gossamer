@@ -80,6 +80,7 @@ func (compressed) Index() uint { //skipcq
 	return 1
 }
 
+// Proof of Validity
 type PoV struct {
 	BlockData types.BlockData `scale:"1"`
 }

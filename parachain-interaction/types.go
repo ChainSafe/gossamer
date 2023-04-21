@@ -45,8 +45,8 @@ type CandidateDescriptor struct {
 	// Thus it cannot be derived entirely from the relay-parent.
 	PersistedValidationDataHash common.Hash `scale:"4"`
 
-	// PovHash is the hash of the `pov-block`.
-	PovHash common.Hash `scale:"5"`
+	// PoVHash is the hash of the `pov-block`.
+	PoVHash common.Hash `scale:"5"`
 	// ErasureRoot is the root of a block's erasure encoding Merkle tree.
 	ErasureRoot common.Hash `scale:"6"`
 
@@ -72,7 +72,7 @@ func (cd CandidateDescriptor) CheckCollatorSignature() error {
 	}
 	copy(payload[32:32+buffer.Len()], buffer.Bytes())
 	copy(payload[36:68], cd.PersistedValidationDataHash.ToBytes())
-	copy(payload[68:100], cd.PovHash.ToBytes())
+	copy(payload[68:100], cd.PoVHash.ToBytes())
 	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
 
 	return sr25519.VerifySignature(cd.Collator.Encode(), cd.Signature[:], payload[:])
