@@ -151,7 +151,7 @@ type OccupiedCore struct {
 	// The hash of the candidate occupying the core.
 	CandidateHash common.Hash `scale:"7"`
 	// The descriptor of the candidate occupying the core.
-	CandidateDescriptor types.CandidateDescriptor `scale:"8"`
+	CandidateDescriptor CandidateDescriptor `scale:"8"`
 }
 
 // Occupied Core information about a core which is currently occupied.
@@ -243,3 +243,11 @@ type CandidateCommitments struct {
 
 // SessionIndex is a session index.
 type SessionIndex uint32
+
+// CommittedCandidateReceipt A candidate-receipt with commitments directly included.
+type CommittedCandidateReceipt struct {
+	// The candidate descriptor.
+	Descriptor CandidateDescriptor `scale:"1"`
+	// The commitments made by the parachain.
+	Commitments CandidateCommitments `scale:"2"`
+}

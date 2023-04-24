@@ -425,6 +425,29 @@ func (in *Instance) ParachainHostSessionIndexForChild() (types.SessionIndex, err
 	return sessionIndex, nil
 }
 
+// ParachainHostCandidatePendingAvailability Returns the receipt of a candidate pending availability for any parachain assigned to an occupied availability core.
+func (in *Instance) ParachainHostCandidatePendingAvailability(parachainID types.ParaID) (*types.CommittedCandidateReceipt, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachainID)
+	if err != nil {
+		return nil, fmt.Errorf("error while encoding parachainID: %w", err)
+	}
+
+	encodedCandidateReceipt, err := in.Exec(runtime.ParachainHostCandidatePendingAvailability, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("error while executing runtime: %w", err)
+	}
+
+	var candidateReceipt types.CommittedCandidateReceipt
+	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
+	if err != nil {
+		return nil, fmt.Errorf("error while scale decoding: %w", err)
+	}
+
+	return &candidateReceipt, nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
