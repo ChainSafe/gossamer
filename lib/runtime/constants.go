@@ -73,4 +73,6 @@ const (
 	ParachainHostSessionIndexForChild = "ParachainHost_session_index_for_child"
 	// ParachainHostCandidatePendingAvailability is the runtime API call ParachainHost_candidate_pending_availability
 	ParachainHostCandidatePendingAvailability = "ParachainHost_candidate_pending_availability"
+	// ParachainHostSessionInfo is the runtime API call ParachainHost_session_info
+	ParachainHostSessionInfo = "ParachainHost_session_info"
 )

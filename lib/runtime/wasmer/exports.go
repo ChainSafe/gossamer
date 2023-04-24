@@ -448,6 +448,29 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(parachainID types.
 	return &candidateReceipt, nil
 }
 
+// ParachainHostSessionInfo Returns the session info of the given session, if available.
+func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*types.SessionInfo, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(sessionIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error while encoding sessionIndex: %w", err)
+	}
+
+	encodedSessionInfo, err := in.Exec(runtime.ParachainHostSessionInfo, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("error while executing runtime: %w", err)
+	}
+
+	var sessionInfo types.SessionInfo
+	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
+	if err != nil {
+		return nil, fmt.Errorf("error while scale decoding: %w", err)
+	}
+
+	return &sessionInfo, nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive

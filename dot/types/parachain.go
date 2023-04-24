@@ -251,3 +251,41 @@ type CommittedCandidateReceipt struct {
 	// The commitments made by the parachain.
 	Commitments CandidateCommitments `scale:"2"`
 }
+
+// AssignmentID The public key of a keypair used by a validator for determining assignments
+// to approve included parachain candidates.
+type AssignmentID sr25519.PublicKey
+
+// SessionInfo Information about validator sets of a session.
+type SessionInfo struct {
+	// All the validators actively participating in parachain consensus.
+	// Indices are into the broader validator set.
+	ActiveValidatorIndices []ValidatorIndex `scale:"1"`
+	// A secure random seed for the session, gathered from BABE.
+	RandomSeed [32]byte `scale:"2"`
+	// The amount of sessions to keep for disputes.
+	DisputePeriod SessionIndex `scale:"3"`
+	// Validators in canonical ordering.
+	Validators map[ValidatorIndex]ValidatorID `scale:"4"`
+	// Validators' authority discovery keys for the session in canonical ordering.
+	DiscoveryKeys []Authority `scale:"5"`
+	// The assignment keys for validators.
+	AssignmentKeys []AssignmentID `scale:"6"`
+	// Validators in shuffled ordering - these are the validator groups as produced
+	// by the `Scheduler` module for the session and are typically referred to by
+	// `GroupIndex`.
+	ValidatorGroups map[GroupIndex][]ValidatorIndex `scale:"7"`
+	// The number of availability cores used by the protocol during this session.
+	NCores uint32 `scale:"8"`
+	// The zeroth delay tranche width.
+	ZerothDelayTrancheWidth uint32 `scale:"9"`
+	// The number of samples we do of `relay_vrf_modulo`.
+	RelayVRFModuloSamples uint32 `scale:"10"`
+	// The number of delay tranches in total.
+	NDelayTranches uint32 `scale:"11"`
+	// How many slots (BABE / SASSAFRAS) must pass before an assignment is considered a
+	// no-show.
+	NoShowSlots uint32 `scale:"12"`
+	// The number of validators needed to approve a block.
+	NeededApprovals uint32 `scale:"13"`
+}
