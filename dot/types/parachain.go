@@ -210,6 +210,7 @@ func NewCoreState() (CoreState, error) {
 	return CoreState(vdt), nil
 }
 
+// UpwardMessage A message from a parachain to its Relay Chain.
 type UpwardMessage []byte
 
 // OutboundHrmpMessage is an HRMP message seen from the perspective of a sender.
@@ -239,3 +240,6 @@ type CandidateCommitments struct {
 	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
 	HrmpWatermark uint32 `scale:"6"`
 }
+
+// SessionIndex is a session index.
+type SessionIndex uint32

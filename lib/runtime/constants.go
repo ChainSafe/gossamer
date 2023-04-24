@@ -69,4 +69,6 @@ const (
 	ParachainHostAvailabilityCores = "ParachainHost_availability_cores"
 	// ParachainHostCheckValidationOutputs is the runtime API call ParachainHost_check_validation_outputs
 	ParachainHostCheckValidationOutputs = "ParachainHost_check_validation_outputs"
+	// ParachainHostSessionIndexForChild is the runtime API call ParachainHost_session_index_for_child
+	ParachainHostSessionIndexForChild = "ParachainHost_session_index_for_child"
 )

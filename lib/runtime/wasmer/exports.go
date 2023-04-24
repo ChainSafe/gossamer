@@ -409,6 +409,22 @@ func (in *Instance) ParachainHostCheckValidationOutputs(parachainID types.ParaID
 	return isValid, nil
 }
 
+// ParachainHostSessionIndexForChild Returns the session index that is expected at the child of a block.
+func (in *Instance) ParachainHostSessionIndexForChild() (types.SessionIndex, error) {
+	ret, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
+	if err != nil {
+		return 0, err
+	}
+
+	var sessionIndex types.SessionIndex
+	err = scale.Unmarshal(ret, &sessionIndex)
+	if err != nil {
+		return 0, err
+	}
+
+	return sessionIndex, nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
