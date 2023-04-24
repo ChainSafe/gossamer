@@ -471,6 +471,53 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*
 	return &sessionInfo, nil
 }
 
+// ParachainHostDMQContents Returns all the pending inbound messages in the downward message queue for a given parachain.
+func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.DownwardMessage, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachainID)
+	if err != nil {
+		return nil, fmt.Errorf("error while encoding parachainID: %w", err)
+	}
+
+	encodedDownwardMessages, err := in.Exec(runtime.ParachainHostDMQContents, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("error while executing runtime: %w", err)
+	}
+
+	var downwardMessages []types.DownwardMessage
+	err = scale.Unmarshal(encodedDownwardMessages, &downwardMessages)
+	if err != nil {
+		return nil, fmt.Errorf("error while scale decoding: %w", err)
+	}
+
+	return downwardMessages, nil
+}
+
+// ParachainHostInboundHrmpChannelsContents Returns the contents of all channels addressed to the given recipient.
+// Channels that have no messages in them are also included.
+func (in *Instance) ParachainHostInboundHrmpChannelsContents(recipient types.ParaID) ([]types.InboundHrmpMessage, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(recipient)
+	if err != nil {
+		return nil, fmt.Errorf("error while encoding recipient: %w", err)
+	}
+
+	encodedInboundHrmpMessages, err := in.Exec(runtime.ParachainHostInboundHrmpChannelsContents, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("error while executing runtime: %w", err)
+	}
+
+	var inboundHrmpMessages []types.InboundHrmpMessage
+	err = scale.Unmarshal(encodedInboundHrmpMessages, &inboundHrmpMessages)
+	if err != nil {
+		return nil, fmt.Errorf("error while scale decoding: %w", err)
+	}
+
+	return inboundHrmpMessages, nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive

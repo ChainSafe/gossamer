@@ -10,6 +10,8 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
+type BlockNumber uint32
+
 // ValidatorID represents a validator ID
 type ValidatorID [sr25519.PublicKeyLength]byte
 
@@ -288,4 +290,26 @@ type SessionInfo struct {
 	NoShowSlots uint32 `scale:"12"`
 	// The number of validators needed to approve a block.
 	NeededApprovals uint32 `scale:"13"`
+}
+
+// DownwardMessage A message sent from the relay-chain down to a parachain.
+type DownwardMessage []byte
+
+// InboundDownwardMessage A wrapped version of `DownwardMessage`. The difference is that it has attached the block number when
+// the message was sent.
+type InboundDownwardMessage struct {
+	// The block number at which these messages were put into the downward message queue.
+	SentAt BlockNumber `scale:"1"`
+	// The actual downward message to processes.
+	Message DownwardMessage `scale:"2"`
+}
+
+// InboundHrmpMessage An HRMP message seen from the perspective of a recipient.
+type InboundHrmpMessage struct {
+	// The block number at which this message was sent.
+	// Specifically, it is the block number at which the candidate that sends this message was
+	// enacted.
+	SentAt BlockNumber `scale:"1"`
+	// The message payload.
+	Message []byte `scale:"2"`
 }
