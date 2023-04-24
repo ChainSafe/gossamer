@@ -194,7 +194,8 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 	logger.Debugf("Applying authority set change scheduled at block #%d",
 		changeToApply.change.announcingHeader.Number)
 
-	// TODO: add afg.applying_scheduled_authority_set_change telemetry info here
+	// TODO(#3218): add afg.applying_scheduled_authority_set_change telemetry info here
+
 	return nil
 }
 
@@ -226,10 +227,9 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("%w: %s", errPendingScheduledChanges, dependant.change)
 	}
 
-	logger.Debugf("applying forced change: %s", forcedChange)
+	logger.Debugf("Applying authority set forced change: %s", forcedChange)
 
-	// TODO: send the telemetry messages here
-	// afg.applying_forced_authority_set_change
+	// TODO(#3218) afg.applying_forced_authority_set_change
 
 	currentSetID, err := s.GetCurrentSetID()
 	if err != nil {
@@ -257,9 +257,10 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("cannot set change set id at block")
 	}
 
-	logger.Debugf("Applying authority set forced change at block #%d",
-		forcedChange.announcingHeader.Number)
+	logger.Debugf("Applied authority set forced change: %s", forcedChange)
 
+	s.forcedChanges.pruneAll()
+	s.scheduledChangeRoots.pruneAll()
 	return nil
 }
 
