@@ -29,8 +29,13 @@ var (
 )
 
 func TestNewGrandpaStateFromGenesis(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
+	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths, telemetryMock)
 	require.NoError(t, err)
 
 	currSetID, err := gs.GetCurrentSetID()
@@ -47,8 +52,13 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 }
 
 func TestGrandpaState_SetNextChange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
+	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths, telemetryMock)
 	require.NoError(t, err)
 
 	err = gs.SetNextChange(testAuths, 1)
@@ -64,8 +74,13 @@ func TestGrandpaState_SetNextChange(t *testing.T) {
 }
 
 func TestGrandpaState_IncrementSetID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
+	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths, telemetryMock)
 	require.NoError(t, err)
 
 	setID, err := gs.IncrementSetID()
@@ -74,8 +89,13 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 }
 
 func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
+	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths, telemetryMock)
 	require.NoError(t, err)
 
 	err = gs.SetNextChange(testAuths, 100)
@@ -107,8 +127,13 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 }
 
 func TestGrandpaState_LatestRound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	db := NewInMemoryDB(t)
-	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths)
+	gs, err := NewGrandpaStateFromGenesis(db, nil, testAuths, telemetryMock)
 	require.NoError(t, err)
 
 	r, err := gs.GetLatestRound()
@@ -145,13 +170,18 @@ func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
 	db := NewInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
-	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil, telemetryMock)
 	require.NoError(t, err)
 
 	/*
@@ -281,13 +311,18 @@ func updateHighestFinalizedHeaderOrDefault(t *testing.T, bs *BlockState, newHigh
 func TestForcedScheduledChangesOrder(t *testing.T) {
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
 	db := NewInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
-	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil, telemetryMock)
 	require.NoError(t, err)
 
 	aliceHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
@@ -347,13 +382,18 @@ func TestForcedScheduledChangesOrder(t *testing.T) {
 func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
 	db := NewInMemoryDB(t)
 	blockState := testBlockState(t, db)
 
-	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+	gs, err := NewGrandpaStateFromGenesis(db, blockState, nil, telemetryMock)
 	require.NoError(t, err)
 
 	aliceHeaders := issueBlocksWithBABEPrimary(t, keyring.KeyAlice, gs.blockState,
@@ -528,10 +568,15 @@ func TestNextGrandpaAuthorityChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
+			ctrl := gomock.NewController(t)
+
+			telemetryMock := NewMockTelemetry(ctrl)
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, nil)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, nil, telemetryMock)
 			require.NoError(t, err)
 
 			const sizeOfChain = 10
@@ -772,11 +817,16 @@ func TestApplyForcedChanges(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
+			ctrl := gomock.NewController(t)
+
+			telemetryMock := NewMockTelemetry(ctrl)
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, blockState)
@@ -907,11 +957,16 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
+			ctrl := gomock.NewController(t)
+
+			telemetryMock := NewMockTelemetry(ctrl)
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)
@@ -1136,11 +1191,16 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
+			ctrl := gomock.NewController(t)
+
+			telemetryMock := NewMockTelemetry(ctrl)
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)
@@ -1363,6 +1423,11 @@ func TestApplyScheduledChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
+			ctrl := gomock.NewController(t)
+
+			telemetryMock := NewMockTelemetry(ctrl)
+			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
@@ -1370,7 +1435,7 @@ func TestApplyScheduledChange(t *testing.T) {
 			require.NoError(t, err)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)

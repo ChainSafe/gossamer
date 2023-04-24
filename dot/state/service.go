@@ -151,7 +151,7 @@ func (s *Service) Start() (err error) {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
 
-	s.Grandpa = NewGrandpaState(s.db, s.Block)
+	s.Grandpa = NewGrandpaState(s.db, s.Block, s.Telemetry)
 	num, _ := s.Block.BestBlockNumber()
 	logger.Infof(
 		"created state service with head %s, highest number %d and genesis hash %s",
