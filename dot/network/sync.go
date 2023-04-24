@@ -5,6 +5,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -102,6 +103,8 @@ func (s *Service) handleWarpSyncProofResponse(stream libp2pnetwork.Stream) (inte
 	return nil, nil
 }
 
+var ErrReceivedEmptyMessage = errors.New("received empty message")
+
 func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
 	// allocating a new (large) buffer every time slows down the syncing by a dramatic amount,
 	// as malloc is one of the most CPU intensive tasks.
@@ -120,7 +123,7 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	}
 
 	if n == 0 {
-		return nil, fmt.Errorf("received empty message")
+		return nil, fmt.Errorf("%w", ErrReceivedEmptyMessage)
 	}
 
 	msg := new(BlockResponseMessage)

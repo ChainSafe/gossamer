@@ -2,10 +2,30 @@ package sync
 
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
 
-func ascedingBlockRequest(startNumber uint, targetNumber uint, requestedData byte) ([]*network.BlockRequestMessage, error) {
+func singleBlockRequest(blockHash common.Hash, requestedData byte) *network.BlockRequestMessage {
+	one := uint32(1)
+	return &network.BlockRequestMessage{
+		RequestedData: requestedData,
+		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
+		Direction:     network.Ascending,
+		Max:           &one,
+	}
+}
+
+func descendingBlockRequest(blockHash common.Hash, amount uint32, requestedData byte) *network.BlockRequestMessage {
+	return &network.BlockRequestMessage{
+		RequestedData: requestedData,
+		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
+		Direction:     network.Descending,
+		Max:           &amount,
+	}
+}
+
+func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData byte) ([]*network.BlockRequestMessage, error) {
 	diff := int(targetNumber) - int(startNumber)
 	if diff < 0 {
 		return nil, errInvalidDirection

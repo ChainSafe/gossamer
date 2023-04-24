@@ -8,12 +8,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"golang.org/x/exp/maps"
 )
 
 type syncTask struct {
-	request  *network.BlockRequestMessage
-	resultCh chan<- *syncTaskResult
+	ignorePeer map[peer.ID]struct{}
+	request    *network.BlockRequestMessage
+	resultCh   chan<- *syncTaskResult
 }
 
 type syncWorkerPool struct {
@@ -65,7 +65,6 @@ func (s *syncWorkerPool) useConnectedPeers() {
 		// should remove them and use only peers who send us
 		// block announcements
 		ephemeralSyncWorker := newSyncWorker(s.ctx, connectedPeer, common.Hash{}, 0, s.network)
-		ephemeralSyncWorker.isEphemeral = true
 		ephemeralSyncWorker.Start(s.taskQueue, &s.wg)
 		s.workers[connectedPeer] = ephemeralSyncWorker
 	}
@@ -82,7 +81,6 @@ func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common
 
 	worker, has := s.workers[who]
 	if has {
-		worker.isEphemeral = false
 		worker.update(bestHash, bestNumber)
 		return nil
 	}
@@ -97,6 +95,18 @@ func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common
 
 func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
+		ignorePeer: make(map[peer.ID]struct{}),
+		request:    request,
+		resultCh:   resultCh,
+	}
+}
+
+func (s *syncWorkerPool) submitRequestIgnoring(request *network.BlockRequestMessage, toIgnore peer.ID, resultCh chan<- *syncTaskResult) {
+	s.taskQueue <- &syncTask{
+		ignorePeer: map[peer.ID]struct {
+		}{
+			toIgnore: {},
+		},
 		request:  request,
 		resultCh: resultCh,
 	}
@@ -128,24 +138,6 @@ func (s *syncWorkerPool) shutdownWorker(who peer.ID, ignore bool) {
 	if ignore {
 		ignorePeerTimeout := time.Now().Add(ignorePeerTimeout)
 		s.ignorePeers[who] = ignorePeerTimeout
-	}
-}
-
-func (s *syncWorkerPool) stopEphemeralWorkers() {
-	s.l.Lock()
-	defer s.l.Unlock()
-
-	workersKeys := maps.Keys(s.workers)
-
-	for _, who := range workersKeys {
-		worker, has := s.workers[who]
-		if !has || !worker.isEphemeral {
-			continue
-		}
-
-		worker.Stop()
-		delete(s.ignorePeers, who)
-		delete(s.workers, who)
 	}
 }
 

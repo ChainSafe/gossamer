@@ -20,7 +20,6 @@ type syncTaskResult struct {
 // for requesting blocks, once a peer is disconnected or is ignored
 // we can just disable its worker.
 type syncWorker struct {
-	isEphemeral bool
 	// context shared between all workers
 	ctx context.Context
 	l   sync.RWMutex
@@ -72,6 +71,10 @@ func (s *syncWorker) Start(tasks <-chan *syncTask, wg *sync.WaitGroup) {
 			case <-s.stopCh:
 				return
 			case task := <-tasks:
+				if _, toIgnore := task.ignorePeer[s.who]; toIgnore {
+					continue
+				}
+
 				request := task.request
 				logger.Infof("[EXECUTING] worker %s: block request: %s", s.who, request)
 

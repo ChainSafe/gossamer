@@ -51,7 +51,7 @@ modules = [
 ws-port = 8546
 
 [pprof]
-enabled = false
+enabled = true
 listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0
