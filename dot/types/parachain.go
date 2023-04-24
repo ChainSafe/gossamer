@@ -209,3 +209,33 @@ func NewCoreState() (CoreState, error) {
 
 	return CoreState(vdt), nil
 }
+
+type UpwardMessage []byte
+
+// OutboundHrmpMessage is an HRMP message seen from the perspective of a sender.
+type OutboundHrmpMessage struct {
+	Recipient uint32 `scale:"1"`
+	Data      []byte `scale:"2"`
+}
+
+// ValidationCode is Parachain validation code.
+type ValidationCode []byte
+
+// headData is Parachain head data included in the chain.
+type headData []byte
+
+// CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
+type CandidateCommitments struct {
+	// Messages destined to be interpreted by the Relay chain itself.
+	UpwardMessages []UpwardMessage `scale:"1"`
+	// Horizontal messages sent by the parachain.
+	HorizontalMessages []OutboundHrmpMessage `scale:"2"`
+	// New validation code.
+	NewValidationCode *ValidationCode `scale:"3"`
+	// The head-data produced as a result of execution.
+	HeadData headData `scale:"4"`
+	// The number of messages processed from the DMQ.
+	ProcessedDownwardMessages uint32 `scale:"5"`
+	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
+	HrmpWatermark uint32 `scale:"6"`
+}

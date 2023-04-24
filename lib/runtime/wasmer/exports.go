@@ -381,6 +381,34 @@ func (in *Instance) ParachainHostAvailabilityCores() (any, error) {
 	return availabilityCores, nil
 }
 
+// ParachainHostCheckValidationOutputs Checks the validation outputs of a candidate.
+// Returns true if the candidate is valid.
+func (in *Instance) ParachainHostCheckValidationOutputs(parachainID types.ParaID, outputs types.CandidateCommitments) (bool, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachainID)
+	if err != nil {
+		return false, fmt.Errorf("error while encoding parachainID: %w", err)
+	}
+	err = encoder.Encode(outputs)
+	if err != nil {
+		return false, fmt.Errorf("error while encoding outputs: %w", err)
+	}
+
+	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostCheckValidationOutputs, buffer.Bytes())
+	if err != nil {
+		return false, fmt.Errorf("error while executing runtime: %w", err)
+	}
+
+	var isValid bool
+	err = scale.Unmarshal(encodedPersistedValidationData, &isValid)
+	if err != nil {
+		return false, fmt.Errorf("error while scale decoding: %w", err)
+	}
+
+	return isValid, nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
