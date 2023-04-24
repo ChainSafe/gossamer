@@ -334,7 +334,6 @@ func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("ret", ret)
 
 	var gar []types.ValidatorID
 	err = scale.Unmarshal(ret, &gar)
@@ -343,6 +342,23 @@ func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 	}
 
 	return types.ValidatorIDToValidator(gar)
+}
+
+// ParachainHostValidatorGroups Returns the validator groups used during the current session.
+// The validators in the groups are referred to by the validator set Id.
+func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, error) {
+	ret, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	var validatorGroups types.ValidatorGroups
+	err = scale.Unmarshal(ret, &validatorGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	return &validatorGroups, nil
 }
 
 func (in *Instance) RandomSeed()          {} //nolint:revive

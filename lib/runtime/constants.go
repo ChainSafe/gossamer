@@ -63,4 +63,6 @@ const (
 	TransactionPaymentCallAPIQueryCallFeeDetails = "TransactionPaymentCallApi_query_call_fee_details"
 	// ParachainHostValidators is the runtime API call ParachainHost_validators
 	ParachainHostValidators = "ParachainHost_validators"
+	// ParachainHostValidatorGroups is the runtime API call ParachainHost_validator_groups
+	ParachainHostValidatorGroups = "ParachainHost_validator_groups"
 )

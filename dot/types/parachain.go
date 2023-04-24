@@ -8,6 +8,7 @@ import (
 // ValidatorID represents a validator ID
 type ValidatorID [sr25519.PublicKeyLength]byte
 
+// Validator represents a validator
 type Validator struct {
 	Key crypto.PublicKey
 }
@@ -36,4 +37,24 @@ func ValidatorIDToValidator(ids []ValidatorID) ([]Validator, error) {
 	}
 
 	return validators, nil
+}
+
+// ValidatorIndex represents a validator index
+type ValidatorIndex uint32
+
+// GroupRotationInfo represents the group rotation info
+type GroupRotationInfo struct {
+	// SessionStartBlock is the block number at which the session started
+	SessionStartBlock uint64 `scale:"1"`
+	// GroupRotationFrequency indicates how often groups rotate. 0 means never.
+	GroupRotationFrequency uint64 `scale:"2"`
+	// Now indicates the current block number.
+	Now uint64 `scale:"3"`
+}
+
+type ValidatorGroups struct {
+	// Validators is an array the validator set Ids
+	Validators [][]ValidatorIndex `scale:"1"`
+	// GroupRotationInfo is the group rotation info
+	GroupRotationInfo GroupRotationInfo `scale:"2"`
 }
