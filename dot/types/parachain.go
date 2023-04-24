@@ -154,13 +154,13 @@ type OccupiedCore struct {
 	CandidateDescriptor types.CandidateDescriptor `scale:"8"`
 }
 
-type Occupied scale.VaryingDataType
+type Occupied OccupiedCore
 
 func (Occupied) Index() uint {
 	return 0
 }
 
-type Scheduled scale.VaryingDataType
+type Scheduled ScheduledCore
 
 func (Scheduled) Index() uint {
 	return 1
