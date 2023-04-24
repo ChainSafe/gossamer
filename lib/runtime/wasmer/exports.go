@@ -361,6 +361,26 @@ func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, erro
 	return &validatorGroups, nil
 }
 
+// ParachainHostAvailabilityCores Returns information on all availability cores
+func (in *Instance) ParachainHostAvailabilityCores() (any, error) {
+	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	availabilityCores, err := scale.NewVaryingDataType(types.Scheduled{}, types.Occupied{}, types.Free{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = scale.Unmarshal(ret, &availabilityCores)
+	if err != nil {
+		return nil, err
+	}
+
+	return availabilityCores, nil
+}
+
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive

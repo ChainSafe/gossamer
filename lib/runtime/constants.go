@@ -65,4 +65,6 @@ const (
 	ParachainHostValidators = "ParachainHost_validators"
 	// ParachainHostValidatorGroups is the runtime API call ParachainHost_validator_groups
 	ParachainHostValidatorGroups = "ParachainHost_validator_groups"
+	// ParachainHostAvailabilityCores is the runtime API call ParachainHost_availability_cores
+	ParachainHostAvailabilityCores = "ParachainHost_availability_cores"
 )
