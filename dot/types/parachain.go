@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -61,8 +63,6 @@ type ValidatorGroups struct {
 	// GroupRotationInfo is the group rotation info
 	GroupRotationInfo GroupRotationInfo `scale:"2"`
 }
-
-//
 
 // ParaID The ID of a para scheduled.
 type ParaID uint32
@@ -154,20 +154,58 @@ type OccupiedCore struct {
 	CandidateDescriptor types.CandidateDescriptor `scale:"8"`
 }
 
+// Occupied Core information about a core which is currently occupied.
 type Occupied OccupiedCore
 
+// Index returns the index
 func (Occupied) Index() uint {
 	return 0
 }
 
+// Scheduled Core information about a core which is currently scheduled.
 type Scheduled ScheduledCore
 
+// Index returns the index
 func (Scheduled) Index() uint {
 	return 1
 }
 
+// Free Core information about a core which is currently free.
 type Free scale.VaryingDataType
 
+// Index returns the index
 func (Free) Index() uint {
 	return 2
+}
+
+// CoreState represents the state of a particular availability core.
+type CoreState scale.VaryingDataType
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (va *CoreState) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*va)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*va = CoreState(vdt)
+	return nil
+}
+
+// Value returns the value from the underlying VaryingDataType
+func (va *CoreState) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*va)
+	return vdt.Value()
+}
+
+// NewCoreState returns a new CoreState
+func NewCoreState() (CoreState, error) {
+	vdt, err := scale.NewVaryingDataType(Occupied{}, Scheduled{}, Free{})
+	if err != nil {
+		return CoreState{}, fmt.Errorf("failed to create varying data type: %w", err)
+	}
+
+	return CoreState(vdt), nil
 }

@@ -368,7 +368,7 @@ func (in *Instance) ParachainHostAvailabilityCores() (any, error) {
 		return nil, err
 	}
 
-	availabilityCores, err := scale.NewVaryingDataType(types.Scheduled{}, types.Occupied{}, types.Free{})
+	availabilityCores, err := types.NewCoreState()
 	if err != nil {
 		return nil, err
 	}
