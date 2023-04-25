@@ -87,6 +87,10 @@ See their [README](https://github.com/wasmerio/wasmer-go) for me info on support
 Currently, there are no known issues regarding this within the Gossamer repo, but if you run into one please open an issue
 on our GitHub.
 
+If you are an Apple Silicon user make sure the `GOARCH` env variable is 
+set to `arm64` by executing `go env`, if the variable contains another value you can change
+by executing `go env -w GOARCH=arm64`
+
 ## Use Gossamer
 
 A comprehensive guide to
