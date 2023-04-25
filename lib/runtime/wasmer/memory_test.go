@@ -49,7 +49,6 @@ func createInstance(t *testing.T) (*wasmer.Instance, error) {
 }
 
 func TestMemory_Length(t *testing.T) {
-	t.Parallel()
 	const pageLength uint32 = 65536
 	instance, err := createInstance(t)
 	require.NoError(t, err)
@@ -66,7 +65,6 @@ func TestMemory_Length(t *testing.T) {
 }
 
 func TestMemory_Grow(t *testing.T) {
-	t.Parallel()
 	const pageLength uint32 = 65536
 	instance, err := createInstance(t)
 	require.NoError(t, err)
@@ -89,7 +87,6 @@ func TestMemory_Grow(t *testing.T) {
 }
 
 func TestMemory_Data(t *testing.T) {
-	t.Parallel()
 	instance, err := createInstance(t)
 	require.NoError(t, err)
 
@@ -134,7 +131,6 @@ func TestMemory_Data(t *testing.T) {
 }
 
 func TestMemory_CheckBounds(t *testing.T) {
-	t.Parallel()
 	testCases := []struct {
 		name      string
 		value     uint64
@@ -162,8 +158,6 @@ func TestMemory_CheckBounds(t *testing.T) {
 	for _, test := range testCases {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
 			res, err := checkBounds(test.value)
 			assert.ErrorIs(t, err, test.expErr)
 			if test.expErr != nil {
