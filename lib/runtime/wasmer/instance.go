@@ -300,7 +300,10 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 	wasmValueAsI64 := wasmer.NewI64(wasmValue)
 	outputPtr, outputLength := splitPointerSize(wasmValueAsI64.I64())
 	memory = in.ctx.Memory.Data() // call Data() again to get larger slice
-	return memory[outputPtr : outputPtr+outputLength], nil
+
+	allocatedData := make([]byte, outputLength)
+	copy(allocatedData[:], memory[outputPtr:outputPtr+outputLength])
+	return allocatedData, nil
 }
 
 // NodeStorage to get reference to runtime node service
