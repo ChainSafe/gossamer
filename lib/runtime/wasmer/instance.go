@@ -165,8 +165,6 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 		return nil, err
 	}
 
-	logger.Info("instantiated runtime!!!")
-
 	if hasExportedMemory {
 		memory, err = wasmInstance.Exports.GetMemory("memory")
 		if err != nil {
@@ -244,6 +242,8 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 		return version, fmt.Errorf("creating runtime instance: %w", err)
 	}
 	defer instance.Stop()
+
+	logger.Info("instantiated runtime!!!")
 
 	version, err = instance.version()
 	if err != nil {
