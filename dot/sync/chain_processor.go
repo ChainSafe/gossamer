@@ -55,6 +55,7 @@ type chainProcessorConfig struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
