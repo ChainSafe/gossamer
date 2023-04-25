@@ -258,6 +258,18 @@ type CommittedCandidateReceipt struct {
 // to approve included parachain candidates.
 type AssignmentID sr25519.PublicKey
 
+// IndexedValidator A validator with its index.
+type IndexedValidator struct {
+	Index     ValidatorIndex `scale:"-"`
+	Validator Validator      `scale:"2"`
+}
+
+// IndexedValidatorGroup A validator group with its group index.
+type IndexedValidatorGroup struct {
+	GroupIndex []GroupIndex     `scale:"-"`
+	Validators []ValidatorIndex `scale:"2"`
+}
+
 // SessionInfo Information about validator sets of a session.
 type SessionInfo struct {
 	// All the validators actively participating in parachain consensus.
@@ -268,7 +280,7 @@ type SessionInfo struct {
 	// The amount of sessions to keep for disputes.
 	DisputePeriod SessionIndex `scale:"3"`
 	// Validators in canonical ordering.
-	Validators map[ValidatorIndex]ValidatorID `scale:"4"`
+	Validators []IndexedValidator `scale:"4"`
 	// Validators' authority discovery keys for the session in canonical ordering.
 	DiscoveryKeys []Authority `scale:"5"`
 	// The assignment keys for validators.
@@ -276,7 +288,7 @@ type SessionInfo struct {
 	// Validators in shuffled ordering - these are the validator groups as produced
 	// by the `Scheduler` module for the session and are typically referred to by
 	// `GroupIndex`.
-	ValidatorGroups map[GroupIndex][]ValidatorIndex `scale:"7"`
+	ValidatorGroups []IndexedValidatorGroup `scale:"7"`
 	// The number of availability cores used by the protocol during this session.
 	NCores uint32 `scale:"8"`
 	// The zeroth delay tranche width.
