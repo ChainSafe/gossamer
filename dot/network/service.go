@@ -31,13 +31,11 @@ const (
 
 	// the following are sub-protocols used by the node
 	syncID          = "/sync/2"
-	warpSyncID      = "/sync/warp"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	warpSyncMaxResponseSize = 16 * 1024 * 1024
-	maxMessageSize          = 1024 * 64 // 64kb for now
+	maxMessageSize = 1024 * 64 // 64kb for now
 )
 
 var (
@@ -249,8 +247,6 @@ func (s *Service) Start() error {
 	}
 
 	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
-	// TODO: enable this protocol to receive request from other nodes
-	//s.host.registerStreamHandler(s.host.protocolID+warpSync, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
@@ -590,7 +586,7 @@ func (s *Service) NetworkState() common.NetworkState {
 	}
 }
 
-func (s *Service) TotalConnectedPeers() []peer.ID {
+func (s *Service) AllConnectedPeers() []peer.ID {
 	return s.host.p2pHost.Network().Peers()
 }
 

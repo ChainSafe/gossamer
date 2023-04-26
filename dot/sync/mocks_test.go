@@ -650,16 +650,16 @@ func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
 
-// TotalConnectedPeers mocks base method.
-func (m *MockNetwork) TotalConnectedPeers() []peer.ID {
+// AllConnectedPeers mocks base method.
+func (m *MockNetwork) AllConnectedPeers() []peer.ID {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TotalConnectedPeers")
+	ret := m.ctrl.Call(m, "AllConnectedPeers")
 	ret0, _ := ret[0].([]peer.ID)
 	return ret0
 }
 
-// TotalConnectedPeers indicates an expected call of TotalConnectedPeers.
-func (mr *MockNetworkMockRecorder) TotalConnectedPeers() *gomock.Call {
+// AllConnectedPeers indicates an expected call of AllConnectedPeers.
+func (mr *MockNetworkMockRecorder) AllConnectedPeers() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TotalConnectedPeers", reflect.TypeOf((*MockNetwork)(nil).TotalConnectedPeers))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllConnectedPeers", reflect.TypeOf((*MockNetwork)(nil).AllConnectedPeers))
 }

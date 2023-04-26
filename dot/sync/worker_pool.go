@@ -47,7 +47,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 const ignorePeerTimeout = 2 * time.Minute
 
 func (s *syncWorkerPool) useConnectedPeers() {
-	connectedPeers := s.network.TotalConnectedPeers()
+	connectedPeers := s.network.AllConnectedPeers()
 
 	s.l.Lock()
 	defer s.l.Unlock()

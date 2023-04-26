@@ -14,37 +14,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-var (
-	blockRequestTimeout = time.Second * 20
-)
-
-func (s *Service) RequestWarpProof(to peer.ID, request *WarpSyncProofRequestMessage) (warpSyncResponse interface{}, err error) {
-	legacyWarpSyncID := s.host.protocolID + warpSyncID
-
-	s.host.p2pHost.ConnManager().Protect(to, "")
-	defer s.host.p2pHost.ConnManager().Unprotect(to, "")
-
-	ctx, cancel := context.WithTimeout(s.ctx, blockRequestTimeout)
-	defer cancel()
-
-	stream, err := s.host.p2pHost.NewStream(ctx, to, legacyWarpSyncID)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		err := stream.Close()
-		if err != nil {
-			logger.Warnf("failed to close stream: %s", err)
-		}
-	}()
-
-	if err = s.host.writeToStream(stream, request); err != nil {
-		return nil, err
-	}
-
-	return s.handleWarpSyncProofResponse(stream)
-}
+var blockRequestTimeout = time.Second * 20
+var ErrReceivedEmptyMessage = errors.New("received empty message")
 
 // DoBlockRequest sends a request to the given peer.
 // If a response is received within a certain time period, it is returned,
@@ -76,34 +47,6 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 
 	return s.receiveBlockResponse(stream)
 }
-
-func (s *Service) handleWarpSyncProofResponse(stream libp2pnetwork.Stream) (interface{}, error) {
-	s.blockResponseBufMu.Lock()
-	defer s.blockResponseBufMu.Unlock()
-
-	// TODO: should we create another buffer pool for warp proof response buffers?
-	buf := s.blockResponseBuf
-
-	n, err := readStream(stream, &buf, warpSyncMaxResponseSize)
-	if err != nil {
-		return nil, fmt.Errorf("reading warp sync stream: %w", err)
-	}
-
-	if n == 0 {
-		return nil, fmt.Errorf("empty warp sync proof")
-	}
-
-	fmt.Printf("WARP PROOF BYTES ---> %v\n", buf[:n])
-	warpProof := new(WarpSyncProofResponse)
-	err = warpProof.Decode(buf[:n])
-	if err != nil {
-		panic(fmt.Sprintf("failed to decode warp proof: %s", err))
-	}
-	fmt.Printf("WARP PROOF ---> %v\n", warpProof)
-	return nil, nil
-}
-
-var ErrReceivedEmptyMessage = errors.New("received empty message")
 
 func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
 	// allocating a new (large) buffer every time slows down the syncing by a dramatic amount,
