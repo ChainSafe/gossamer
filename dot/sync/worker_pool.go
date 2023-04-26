@@ -67,12 +67,9 @@ func (s *syncWorkerPool) useConnectedPeers() {
 			}
 		}
 
-		// they are ephemeral because once we reach the tip we
-		// should remove them and use only peers who send us
-		// block announcements
-		ephemeralSyncWorker := newSyncWorker(s.ctx, connectedPeer, common.Hash{}, 0, s.network)
-		ephemeralSyncWorker.Start(s.taskQueue, &s.wg)
-		s.workers[connectedPeer] = ephemeralSyncWorker
+		worker := newSyncWorker(s.ctx, connectedPeer, common.Hash{}, 0, s.network)
+		worker.Start(s.taskQueue, &s.wg)
+		s.workers[connectedPeer] = worker
 	}
 }
 
@@ -100,9 +97,6 @@ func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common
 }
 
 func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
-	s.l.RLock()
-	defer s.l.RUnlock()
-
 	s.taskQueue <- &syncTask{
 		request:  request,
 		resultCh: resultCh,
@@ -141,11 +135,5 @@ func (s *syncWorkerPool) shutdownWorker(who peer.ID, ignore bool) {
 func (s *syncWorkerPool) totalWorkers() (total uint) {
 	s.l.RLock()
 	defer s.l.RUnlock()
-
-	total = 0
-	for range s.workers {
-		total++
-	}
-
-	return total
+	return uint(len(s.workers))
 }

@@ -90,12 +90,7 @@ func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockA
 func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
 	header := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
-	err := s.chainSync.setBlockAnnounce(from, header)
-	if err != nil {
-		logger.Errorf("setting block announce: %s", err)
-	}
-
-	return err
+	return s.chainSync.setBlockAnnounce(from, header)
 }
 
 // IsSynced exposes the synced state
