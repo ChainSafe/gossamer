@@ -90,7 +90,7 @@
             "type": "prometheus",
             "uid": "prometheus_id"
           },
-          "expr": "go_goroutines{instance=~\".*internal.*\"}",
+          "expr": "go_goroutines{instance=~\".*gossamer.*\"}",
           "refId": "A"
         }
       ],
@@ -148,7 +148,7 @@
             "type": "prometheus",
             "uid": "prometheus_id"
           },
-          "expr": "go_threads{instance=~\".*internal.*\"}",
+          "expr": "go_threads{instance=~\".*gossamer.*\"}",
           "refId": "A"
         }
       ],
@@ -207,7 +207,7 @@
             "type": "prometheus",
             "uid": "prometheus_id"
           },
-          "expr": "process_resident_memory_bytes{instance=~\".*internal.*\"}",
+          "expr": "process_resident_memory_bytes{instance=~\".*gossamer.*\"}",
           "refId": "A"
         }
       ],
@@ -292,7 +292,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{instance=~\".*internal.*\"}",
+          "expr": "process_resident_memory_bytes{instance=~\".*gossamer.*\"}",
           "legendFormat": "Resident memory",
           "range": true,
           "refId": "A"
@@ -303,7 +303,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "go_memstats_heap_inuse_bytes{instance=~\".*internal.*\"}",
+          "expr": "go_memstats_heap_inuse_bytes{instance=~\".*gossamer.*\"}",
           "hide": false,
           "legendFormat": "Heap",
           "range": true,
@@ -315,7 +315,7 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
-          "expr": "go_memstats_stack_inuse_bytes{instance=~\".*internal.*\"}",
+          "expr": "go_memstats_stack_inuse_bytes{instance=~\".*gossamer.*\"}",
           "hide": false,
           "legendFormat": "Stack",
           "range": true,

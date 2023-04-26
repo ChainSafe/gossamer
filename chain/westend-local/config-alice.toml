@@ -1,5 +1,5 @@
 [global]
-basepath = "./tmp/.gossamer/westend-local-alice"
+basepath = "~/.gossamer/westend-local-alice"
 log = "info"
 metrics-address = ":9876"
 
@@ -11,20 +11,21 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = "trace"
-digest = "trace"
+sync = ""
+digest = ""
 
 [init]
 genesis = "./chain/westend-local/westend-local-spec-raw.json"
 
 [account]
-key = ""
+key = "alice"
 unlock = ""
 
 [core]
 roles = 4
-babe-authority = false
-grandpa-authority = false
+babe-authority = true
+grandpa-authority = true
+babe-lead = true
 
 [network]
 port = 7001
@@ -51,7 +52,7 @@ modules = [
 ws-port = 8546
 
 [pprof]
-enabled = true
+enabled = false
 listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0
