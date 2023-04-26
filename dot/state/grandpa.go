@@ -92,7 +92,6 @@ func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.Va
 	case types.GrandpaScheduledChange:
 		return s.addScheduledChange(header, val)
 	case types.GrandpaForcedChange:
-		fmt.Printf("adding a forced change\n")
 		return s.addForcedChange(header, val)
 	case types.GrandpaOnDisabled:
 		return nil
@@ -125,7 +124,6 @@ func (s *GrandpaState) addForcedChange(header *types.Header, fc types.GrandpaFor
 		return fmt.Errorf("cannot import forced change: %w", err)
 	}
 
-	fmt.Printf("there are now %d possible forced changes\n", s.forcedChanges.Len())
 	logger.Debugf("there are now %d possible forced changes", s.forcedChanges.Len())
 	return nil
 }
@@ -259,12 +257,8 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("cannot set change set id at block")
 	}
 
-	logger.Debug("reseting scheduled changes and forced changes")
-	s.scheduledChangeRoots.reset()
-	s.forcedChanges.reset()
-
-	logger.Debugf("Applying authority set forced change on block #%d made at block #%d",
-		importedBlockHeader.Number, forcedChange.announcingHeader.Number)
+	logger.Debugf("Applying authority set forced change at block #%d",
+		forcedChange.announcingHeader.Number)
 
 	return nil
 }

@@ -132,10 +132,6 @@ func (oc *orderedPendingChanges) pruneChanges(hash common.Hash, isDescendantOf i
 	return nil
 }
 
-func (oc *orderedPendingChanges) reset() {
-	*oc = make([]pendingChange, 0)
-}
-
 type pendingChangeNode struct {
 	change *pendingChange
 	nodes  []*pendingChangeNode
@@ -289,8 +285,7 @@ func (ct changeTree) findApplicableChange(hash common.Hash, number uint,
 			}
 
 			if child.change.announcingHeader.Number <= number && isDescendant {
-				return false, fmt.Errorf("%w: %s (%d)", errUnfinalizedAncestor,
-					child.change.announcingHeader.Hash(), child.change.announcingHeader.Number)
+				return false, errUnfinalizedAncestor
 			}
 		}
 
@@ -318,8 +313,4 @@ func (ct *changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendant
 
 	*ct = onBranchChanges
 	return nil
-}
-
-func (ct *changeTree) reset() {
-	*ct = []*pendingChangeNode{}
 }
