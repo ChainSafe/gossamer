@@ -11,7 +11,7 @@ func singleBlockRequest(blockHash common.Hash, requestedData byte) *network.Bloc
 	return &network.BlockRequestMessage{
 		RequestedData: requestedData,
 		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
-		Direction:     network.Ascending,
+		Direction:     network.Descending,
 		Max:           &one,
 	}
 }

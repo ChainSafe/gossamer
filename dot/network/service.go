@@ -248,7 +248,7 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleWarpSyncStream)
+	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
 	// TODO: enable this protocol to receive request from other nodes
 	//s.host.registerStreamHandler(s.host.protocolID+warpSync, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)

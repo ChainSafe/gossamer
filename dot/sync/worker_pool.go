@@ -11,9 +11,15 @@ import (
 )
 
 type syncTask struct {
-	ignorePeer map[peer.ID]struct{}
-	request    *network.BlockRequestMessage
-	resultCh   chan<- *syncTaskResult
+	request  *network.BlockRequestMessage
+	resultCh chan<- *syncTaskResult
+}
+
+type syncTaskResult struct {
+	who      peer.ID
+	request  *network.BlockRequestMessage
+	response *network.BlockResponseMessage
+	err      error
 }
 
 type syncWorkerPool struct {
@@ -94,19 +100,10 @@ func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common
 }
 
 func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
-	s.taskQueue <- &syncTask{
-		ignorePeer: make(map[peer.ID]struct{}),
-		request:    request,
-		resultCh:   resultCh,
-	}
-}
+	s.l.RLock()
+	defer s.l.RUnlock()
 
-func (s *syncWorkerPool) submitRequestIgnoring(request *network.BlockRequestMessage, toIgnore peer.ID, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
-		ignorePeer: map[peer.ID]struct {
-		}{
-			toIgnore: {},
-		},
 		request:  request,
 		resultCh: resultCh,
 	}

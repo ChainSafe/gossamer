@@ -3,8 +3,8 @@
   "id": "westend_local_testnet",
   "chainType": "Local",
   "bootNodes": [
-    "/ip4/127.0.0.1/tcp/30337/p2p/12D3KooWR1Kt3XD9Z1TpXMdTrAS6kJzcVnPArG35nt5bnZHmdbAr",
-    "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWNqk6b381NG7BLQsFEvdEZjoUi1LJ7fjaci1asycY3Kx1"
+    "/ip4/127.0.0.1/tcp/30337/p2p/12D3KooWEFF1y4eJ5viWdU7Tn6UtdjVY6LiZfmg6dVdCyDocNc6q",
+    "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWCS3voVrcMs4xW1qaFQhRpMttncmjFfGCNpDHaNkTkVQk"
   ],
   "telemetryEndpoints": null,
   "protocolId": "dot",

@@ -148,14 +148,6 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage, maxBlockResponseSize)
 }
 
-func (s *Service) handleWarpSyncStream(stream libp2pnetwork.Stream) {
-	if stream == nil {
-		return
-	}
-
-	fmt.Printf("====> %v\n", stream)
-}
-
 func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)

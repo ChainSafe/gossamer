@@ -4,17 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
-
-type syncTaskResult struct {
-	who      peer.ID
-	request  *network.BlockRequestMessage
-	response *network.BlockResponseMessage
-	err      error
-}
 
 // syncWorker represents a available peer that could be a source
 // for requesting blocks, once a peer is disconnected or is ignored
@@ -54,7 +46,7 @@ func (s *syncWorker) update(bestHash common.Hash, bestNumber uint) {
 	s.bestNumber = bestNumber
 }
 
-func (s *syncWorker) Start(tasks <-chan *syncTask, wg *sync.WaitGroup) {
+func (s *syncWorker) Start(tasks chan *syncTask, wg *sync.WaitGroup) {
 	wg.Add(1)
 
 	go func() {
@@ -70,11 +62,8 @@ func (s *syncWorker) Start(tasks <-chan *syncTask, wg *sync.WaitGroup) {
 			select {
 			case <-s.stopCh:
 				return
-			case task := <-tasks:
-				if _, toIgnore := task.ignorePeer[s.who]; toIgnore {
-					continue
-				}
 
+			case task := <-tasks:
 				request := task.request
 				logger.Infof("[EXECUTING] worker %s: block request: %s", s.who, request)
 
@@ -85,7 +74,12 @@ func (s *syncWorker) Start(tasks <-chan *syncTask, wg *sync.WaitGroup) {
 					logger.Infof("[FINISHED] worker %s: block data amount: %d", s.who, len(response.BlockData))
 				}
 
-				task.resultCh <- &syncTaskResult{s.who, request, response, err}
+				task.resultCh <- &syncTaskResult{
+					who:      s.who,
+					request:  request,
+					response: response,
+					err:      err,
+				}
 			}
 		}
 	}()

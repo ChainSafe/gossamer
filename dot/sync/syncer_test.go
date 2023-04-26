@@ -252,8 +252,7 @@ func TestService_Start(t *testing.T) {
 	})
 
 	service := Service{
-		chainSync:      chainSync,
-		chainProcessor: chainProcessor,
+		chainSync: chainSync,
 	}
 
 	err := service.Start()
@@ -271,8 +270,7 @@ func TestService_Stop(t *testing.T) {
 	chainProcessor.EXPECT().stop()
 
 	service := &Service{
-		chainSync:      chainSync,
-		chainProcessor: chainProcessor,
+		chainSync: chainSync,
 	}
 
 	err := service.Stop()
