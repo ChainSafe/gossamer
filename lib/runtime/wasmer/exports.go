@@ -362,7 +362,7 @@ func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, erro
 }
 
 // ParachainHostAvailabilityCores Returns information on all availability cores
-func (in *Instance) ParachainHostAvailabilityCores() (any, error) {
+func (in *Instance) ParachainHostAvailabilityCores() (*types.CoreState, error) {
 	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, err
@@ -378,7 +378,7 @@ func (in *Instance) ParachainHostAvailabilityCores() (any, error) {
 		return nil, err
 	}
 
-	return availabilityCores, nil
+	return &availabilityCores, nil
 }
 
 // ParachainHostCheckValidationOutputs Checks the validation outputs of a candidate.
@@ -446,6 +446,27 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(parachainID types.
 	}
 
 	return &candidateReceipt, nil
+}
+
+// ParachainHostCandidateEvents Returns an array of candidate events that occurred within the latest state.
+func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
+	ret, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	candidateEvent, err := types.NewCandidateEventVDT()
+	if err != nil {
+		return nil, err
+	}
+
+	candidateEvents := scale.NewVaryingDataTypeSlice(candidateEvent)
+	err = scale.Unmarshal(ret, &candidateEvents)
+	if err != nil {
+		return nil, err
+	}
+
+	return &candidateEvents, nil
 }
 
 // ParachainHostSessionInfo Returns the session info of the given session, if available.

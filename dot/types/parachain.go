@@ -325,3 +325,78 @@ type InboundHrmpMessage struct {
 	// The message payload.
 	Message []byte `scale:"2"`
 }
+
+// CandidateReceipt A receipt for a parachain candidate.
+type CandidateReceipt struct {
+	// The candidate descriptor.
+	Descriptor CandidateDescriptor `scale:"1"`
+	// The candidate event.
+	CommitmentsHash common.Hash `scale:"2"`
+}
+
+// HeadData Parachain head data included in the chain.
+type HeadData []byte
+
+// CoreIndex The unique (during session) index of a core.
+type CoreIndex uint32
+
+// CandidateBacked This candidate receipt was backed in the most recent block.
+// This includes the core index the candidate is now occupying.
+type CandidateBacked scale.VaryingDataType
+
+// Index returns the VaryingDataType Index
+func (CandidateBacked) Index() uint {
+	return 0
+}
+
+// CandidateIncluded This candidate receipt was included and became a parablock at the most recent block.
+// This includes the core index the candidate was occupying as well as the group responsible
+// for backing the candidate.
+type CandidateIncluded scale.VaryingDataType
+
+// Index returns the VaryingDataType Index
+func (CandidateIncluded) Index() uint {
+	return 1
+}
+
+// CandidateTimedOut A candidate that timed out.
+// / This candidate receipt was not made available in time and timed out.
+// / This includes the core index the candidate was occupying.
+type CandidateTimedOut scale.VaryingDataType
+
+// Index returns the VaryingDataType Index
+func (CandidateTimedOut) Index() uint {
+	return 2
+}
+
+// CandidateEvent A candidate event.
+type CandidateEvent scale.VaryingDataType
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (va *CandidateEvent) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*va)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*va = CandidateEvent(vdt)
+	return nil
+}
+
+// Value returns the value from the underlying VaryingDataType
+func (va *CandidateEvent) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*va)
+	return vdt.Value()
+}
+
+// NewCandidateEventVDT returns a new CandidateEvent VaryingDataType
+func NewCandidateEventVDT() (scale.VaryingDataType, error) {
+	vdt, err := scale.NewVaryingDataType(CandidateBacked{}, CandidateIncluded{}, CandidateTimedOut{})
+	if err != nil {
+		return scale.VaryingDataType{}, fmt.Errorf("failed to create varying data type: %w", err)
+	}
+
+	return vdt, nil
+}
