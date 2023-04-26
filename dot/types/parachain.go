@@ -342,7 +342,12 @@ type CoreIndex uint32
 
 // CandidateBacked This candidate receipt was backed in the most recent block.
 // This includes the core index the candidate is now occupying.
-type CandidateBacked scale.VaryingDataType
+type CandidateBacked struct {
+	CandidateReceipt CandidateReceipt `scale:"1"`
+	HeadData         HeadData         `scale:"2"`
+	CoreIndex        CoreIndex        `scale:"3"`
+	GroupIndex       GroupIndex       `scale:"4"`
+}
 
 // Index returns the VaryingDataType Index
 func (CandidateBacked) Index() uint {
@@ -352,7 +357,12 @@ func (CandidateBacked) Index() uint {
 // CandidateIncluded This candidate receipt was included and became a parablock at the most recent block.
 // This includes the core index the candidate was occupying as well as the group responsible
 // for backing the candidate.
-type CandidateIncluded scale.VaryingDataType
+type CandidateIncluded struct {
+	CandidateReceipt CandidateReceipt `scale:"1"`
+	HeadData         HeadData         `scale:"2"`
+	CoreIndex        CoreIndex        `scale:"3"`
+	GroupIndex       GroupIndex       `scale:"4"`
+}
 
 // Index returns the VaryingDataType Index
 func (CandidateIncluded) Index() uint {
@@ -362,7 +372,11 @@ func (CandidateIncluded) Index() uint {
 // CandidateTimedOut A candidate that timed out.
 // / This candidate receipt was not made available in time and timed out.
 // / This includes the core index the candidate was occupying.
-type CandidateTimedOut scale.VaryingDataType
+type CandidateTimedOut struct {
+	CandidateReceipt CandidateReceipt `scale:"1"`
+	HeadData         HeadData         `scale:"2"`
+	CoreIndex        CoreIndex        `scale:"3"`
+}
 
 // Index returns the VaryingDataType Index
 func (CandidateTimedOut) Index() uint {
