@@ -47,8 +47,6 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 
 		err = rpc.DecodeScale(data, &response)
 		require.NoError(t, err)
-
-		// TODO assert stateCallResponse
 	})
 
 	t.Run("state_getKeysPaged", func(t *testing.T) {
