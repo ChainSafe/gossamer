@@ -180,12 +180,10 @@ type PoVRequestor interface {
 }
 
 func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt) (*candidateCommitments, *parachaintypes.PersistedValidationData, error) {
-	var PersistedValidationData *parachaintypes.PersistedValidationData
-
 	// TODO: There are three validation functions that gets used alternatively.
 	// Figure out which one to use when.
 
-	// get persisted validation data
+	// todo: OccupiedCoreAssumption using runtime call assumed validation data
 	assumption := parachaintypes.OccupiedCoreAssumption{}
 	// TODO: What value should I choose here?
 	assumption.Set(Included{})
@@ -211,6 +209,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 	encoded_pov_size := buffer.Len()
 	if encoded_pov_size > int(PersistedValidationData.MaxPovSize) {
+		fmt.Printf("encoded_pov_size: %d\n", encoded_pov_size)
 		return nil, nil, errors.New("validation input is over the limit")
 	}
 
@@ -247,6 +246,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	// }
 
 	// Instead of looking at the rust code, looks at https://spec.polkadot.network/#sect-parachain-runtime instead
+	fmt.Printf("pov.BlockData 0x%x\n", pov.BlockData)
 	validationParams := ValidationParameters{
 		ParentHeadData: PersistedValidationData.ParentHead,
 		// TODO: Fill up block data
@@ -317,6 +317,9 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, errors.New("value not of type Valid")
 	}
 
+	// TODO: check validation output using runtime call of the same name
+	// RuntimeApiRequest::CheckValidationOutputs(
+
 	return &validityInfo.candidateCommitments, validityInfo.PersistedValidationData, nil
 
 	// The candidate does not exceed any parameters in the persisted validation data (Definition 227).
@@ -331,7 +334,7 @@ type ValidationParameters struct {
 	// Previous head-data.
 	ParentHeadData headData
 	// The collation body.
-	BlockData types.BlockData
+	BlockData []byte //types.BlockData
 	// The current relay-chain block number.
 	RelayParentNumber uint32
 	// The relay-chain block's storage root.
