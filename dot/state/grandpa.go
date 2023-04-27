@@ -200,7 +200,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 		changeToApply.change.announcingHeader.Number)
 
 	canonHeightString := strconv.FormatUint(uint64(changeToApply.change.announcingHeader.Number), 10)
-	s.blockState.telemetry.SendMessage(telemetry.NewAfgApplyingScheduledAuthoritySetChange(
+	s.telemetry.SendMessage(telemetry.NewAfgApplyingScheduledAuthoritySetChange(
 		canonHeightString,
 	))
 
@@ -238,7 +238,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 	logger.Debugf("Applying authority set forced change: %s", forcedChange)
 
 	canonHeightString := strconv.FormatUint(uint64(forcedChange.announcingHeader.Number), 10)
-	s.blockState.telemetry.SendMessage(telemetry.NewAfgApplyingForcedAuthoritySetChange(
+	s.telemetry.SendMessage(telemetry.NewAfgApplyingForcedAuthoritySetChange(
 		canonHeightString,
 	))
 
