@@ -155,6 +155,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
+		logger.Info("instantiated runtime!!!")
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrWasmInterpreterName, cfg.Core.WasmInterpreter)
 	}

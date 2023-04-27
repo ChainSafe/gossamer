@@ -244,7 +244,6 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 
 // Instance is the interface to interact with the runtime.
 type Instance interface {
-	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork

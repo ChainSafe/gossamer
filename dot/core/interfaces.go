@@ -24,7 +24,6 @@ import (
 
 // RuntimeInstance for runtime methods
 type RuntimeInstance interface {
-	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() runtime.NodeStorage
 	NetworkService() runtime.BasicNetwork

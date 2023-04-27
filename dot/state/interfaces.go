@@ -68,7 +68,6 @@ type NewBatcher interface {
 
 // Runtime interface.
 type Runtime interface {
-	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() runtime.NodeStorage
 	NetworkService() runtime.BasicNetwork
