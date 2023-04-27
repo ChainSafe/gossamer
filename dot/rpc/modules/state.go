@@ -23,7 +23,7 @@ type StateGetReadProofRequest struct {
 // StateCallRequest holds json fields
 type StateCallRequest struct {
 	Method string       `json:"method"`
-	Data   string       `json:"params"`
+	Params string       `json:"params"`
 	Block  *common.Hash `json:"block"`
 }
 
@@ -252,9 +252,9 @@ func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCa
 		return err
 	}
 
-	request, err := common.HexToBytes(req.Data)
+	request, err := common.HexToBytes(req.Params)
 	if err != nil {
-		return fmt.Errorf("cannot convert hex data %s to bytes: %w", req.Data, err)
+		return fmt.Errorf("cannot convert hex data %s to bytes: %w", req.Params, err)
 	}
 
 	response, err := rt.Exec(req.Method, request)
