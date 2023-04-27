@@ -294,7 +294,7 @@ func TestCall(t *testing.T) {
 	mockStorageAPI := mocks.NewMockStorageAPI(ctrl)
 	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
 	mockBlockAPI.EXPECT().BestBlockHash().Return(testHash)
-	mockBlockAPI.EXPECT().GetRuntime(common.Hash{}).Return(rt, nil)
+	mockBlockAPI.EXPECT().GetRuntime(testHash).Return(rt, nil)
 
 	sm := NewStateModule(mockNetworkAPI, mockStorageAPI, nil, mockBlockAPI)
 
