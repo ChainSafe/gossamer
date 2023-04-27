@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -67,13 +66,13 @@ func (s *syncWorkerPool) useConnectedPeers() {
 			}
 		}
 
-		worker := newSyncWorker(s.ctx, connectedPeer, common.Hash{}, 0, s.network)
+		worker := newSyncWorker(s.ctx, connectedPeer, s.network)
 		worker.Start(s.taskQueue, &s.wg)
 		s.workers[connectedPeer] = worker
 	}
 }
 
-func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common.Hash, bestNumber uint) error {
+func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID) error {
 	s.l.Lock()
 	defer s.l.Unlock()
 
@@ -82,13 +81,12 @@ func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID, bestHash common
 		delete(s.ignorePeers, who)
 	}
 
-	worker, has := s.workers[who]
+	_, has = s.workers[who]
 	if has {
-		worker.update(bestHash, bestNumber)
 		return nil
 	}
 
-	syncWorker := newSyncWorker(s.ctx, who, bestHash, bestNumber, s.network)
+	syncWorker := newSyncWorker(s.ctx, who, s.network)
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 
 	syncWorker.Start(s.taskQueue, &s.wg)

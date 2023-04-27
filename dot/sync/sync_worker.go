@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -19,31 +18,18 @@ type syncWorker struct {
 	doneCh chan struct{}
 	stopCh chan struct{}
 
-	who        peer.ID
-	network    Network
-	bestHash   common.Hash
-	bestNumber uint
+	who     peer.ID
+	network Network
 }
 
-func newSyncWorker(ctx context.Context, who peer.ID,
-	bestHash common.Hash, bestNumber uint, network Network) *syncWorker {
+func newSyncWorker(ctx context.Context, who peer.ID, network Network) *syncWorker {
 	return &syncWorker{
-		ctx:        ctx,
-		who:        who,
-		bestHash:   bestHash,
-		bestNumber: bestNumber,
-		network:    network,
-		doneCh:     make(chan struct{}),
-		stopCh:     make(chan struct{}),
+		ctx:     ctx,
+		who:     who,
+		network: network,
+		doneCh:  make(chan struct{}),
+		stopCh:  make(chan struct{}),
 	}
-}
-
-func (s *syncWorker) update(bestHash common.Hash, bestNumber uint) {
-	s.l.Lock()
-	defer s.l.Unlock()
-
-	s.bestHash = bestHash
-	s.bestNumber = bestNumber
 }
 
 func (s *syncWorker) Start(tasks chan *syncTask, wg *sync.WaitGroup) {
@@ -56,7 +42,7 @@ func (s *syncWorker) Start(tasks chan *syncTask, wg *sync.WaitGroup) {
 			logger.Infof("[SHUTDOWN] worker %s", s.who)
 		}()
 
-		logger.Infof("worker %s started, waiting for tasks...", s.who)
+		logger.Debugf("worker %s started, waiting for tasks...", s.who)
 
 		for {
 			select {
@@ -65,13 +51,13 @@ func (s *syncWorker) Start(tasks chan *syncTask, wg *sync.WaitGroup) {
 
 			case task := <-tasks:
 				request := task.request
-				logger.Infof("[EXECUTING] worker %s: block request: %s", s.who, request)
 
+				logger.Debugf("[EXECUTING] worker %s: block request: %s", s.who, request)
 				response, err := s.network.DoBlockRequest(s.who, request)
 				if err != nil {
-					logger.Infof("[FINISHED] worker %s: err: %s", s.who, err)
+					logger.Debugf("[FINISHED] worker %s: err: %s", s.who, err)
 				} else if response != nil {
-					logger.Infof("[FINISHED] worker %s: block data amount: %d", s.who, len(response.BlockData))
+					logger.Debugf("[FINISHED] worker %s: block data amount: %d", s.who, len(response.BlockData))
 				}
 
 				task.resultCh <- &syncTaskResult{

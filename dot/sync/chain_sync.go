@@ -119,7 +119,6 @@ type chainSync struct {
 	blockState BlockState
 	network    Network
 
-	// to replace the worker queue
 	workerPool      *syncWorkerPool
 	blockAnnounceCh chan announcedBlock
 
@@ -134,17 +133,13 @@ type chainSync struct {
 	pendingBlocks      DisjointBlockSet
 	pendingBlockDoneCh chan<- struct{}
 
-	// bootstrap or tip (near-head)
-
-	state chainSyncState
-
+	state       chainSyncState
 	benchmarker *syncBenchmarker
 
 	finalisedCh <-chan *types.FinalisationInfo
 
-	minPeers         int
-	maxWorkerRetries uint16
-	slotDuration     time.Duration
+	minPeers     int
+	slotDuration time.Duration
 
 	logSyncTicker  *time.Ticker
 	logSyncTickerC <-chan time.Time // channel as field for unit testing
@@ -196,12 +191,12 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		benchmarker:        newSyncBenchmarker(syncSamplesToKeep),
 		finalisedCh:        cfg.bs.GetFinalisedNotifierChannel(),
 		minPeers:           cfg.minPeers,
-		maxWorkerRetries:   uint16(cfg.maxPeers),
 		slotDuration:       cfg.slotDuration,
 		logSyncTicker:      logSyncTicker,
 		logSyncTickerC:     logSyncTicker.C,
 		logSyncDone:        make(chan struct{}),
 		workerPool:         newSyncWorkerPool(cfg.net),
+		blockAnnounceCh:    make(chan announcedBlock, cfg.maxPeers),
 	}
 }
 
@@ -223,8 +218,6 @@ func (cs *chainSync) start() {
 
 	pendingBlockDoneCh := make(chan struct{})
 	cs.pendingBlockDoneCh = pendingBlockDoneCh
-
-	cs.blockAnnounceCh = make(chan announcedBlock, 50)
 
 	go cs.pendingBlocks.run(cs.finalisedCh, pendingBlockDoneCh)
 	go cs.sync()
@@ -336,7 +329,7 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 
 // setPeerHead sets a peer's best known block
 func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber uint) error {
-	err := cs.workerPool.addWorkerFromBlockAnnounce(who, bestHash, bestNumber)
+	err := cs.workerPool.addWorkerFromBlockAnnounce(who)
 	if err != nil {
 		logger.Errorf("adding a potential worker: %s", err)
 	}
