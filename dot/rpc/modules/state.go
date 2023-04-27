@@ -85,7 +85,7 @@ type StateStorageQueryAtRequest struct {
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
-// StateCallResponse holds json fields
+// StateCallResponse holds the result of the call
 type StateCallResponse string
 
 // StateKeysResponse field to store the state keys
