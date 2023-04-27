@@ -26,9 +26,13 @@ type syncWorkerPool struct {
 	l   sync.RWMutex
 	wg  sync.WaitGroup
 
-	network     Network
-	taskQueue   chan *syncTask
-	workers     map[peer.ID]*syncWorker
+	network   Network
+	taskQueue chan *syncTask
+	workers   map[peer.ID]*syncWorker
+
+	// TODO add this worker in a ignorePeers list, implement some expiration time for
+	// peers added to it (peerJail where peers have a release date and maybe extend the punishment
+	// if fail again ang again Jimmy's + Diego's idea)
 	ignorePeers map[peer.ID]time.Time
 }
 

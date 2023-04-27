@@ -11,10 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const (
-	// maxResponseSize is maximum number of block data a BlockResponse message can contain
-	maxResponseSize = 128
-)
+// maxResponseSize is maximum number of block data a BlockResponse message can contain
+const maxResponseSize = 128
 
 // CreateBlockResponse creates a block response message from a block request message
 func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {

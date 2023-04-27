@@ -25,11 +25,8 @@ func descendingBlockRequest(blockHash common.Hash, amount uint32, requestedData 
 	}
 }
 
-func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData byte) ([]*network.BlockRequestMessage, error) {
+func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData byte) []*network.BlockRequestMessage {
 	diff := int(targetNumber) - int(startNumber)
-	if diff < 0 {
-		return nil, errInvalidDirection
-	}
 
 	// start and end block are the same, just request 1 block
 	if diff == 0 {
@@ -41,7 +38,7 @@ func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData by
 				Direction:     network.Ascending,
 				Max:           &one,
 			},
-		}, nil
+		}
 	}
 
 	numRequests := uint(diff) / maxResponseSize
@@ -66,17 +63,5 @@ func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData by
 		startNumber += uint(max)
 	}
 
-	return reqs, nil
-}
-
-func totalRequestedBlocks(requests []*network.BlockRequestMessage) uint32 {
-	acc := uint32(0)
-
-	for _, request := range requests {
-		if request.Max != nil {
-			acc += *request.Max
-		}
-	}
-
-	return acc
+	return reqs
 }

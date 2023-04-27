@@ -442,7 +442,7 @@ func (cs *chainSync) executeTipSync() error {
 
 			// if the announced block contains a lower number than our best
 			// block header, let's check if it is greater than our latests
-			// finalized header, if so this block is likeli to be a fork
+			// finalized header, if so this block belongs to a fork chain
 			if announcedNumber < bestBlockHeader.Number {
 				highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
 				if err != nil {
@@ -594,36 +594,37 @@ func (cs *chainSync) executeBootstrapSync() error {
 
 		// we build the set of requests based on the amount of available peers
 		// in the worker pool, if we have more peers than `maxRequestAllowed`
-		// so we limit to `maxRequestAllowed` to avoid the error
+		// so we limit to `maxRequestAllowed` to avoid the error:
 		// cannot reserve outbound connection: resource limit exceeded
-		availablePeers := cs.workerPool.totalWorkers()
-		if availablePeers > maxRequestAllowed {
-			availablePeers = maxRequestAllowed
+		availableWorkers := cs.workerPool.totalWorkers()
+		if availableWorkers > maxRequestAllowed {
+			availableWorkers = maxRequestAllowed
 		}
 
-		targetBlockNumber := startRequestAt + uint(availablePeers)*128
-
+		// targetBlockNumber is the virtual target we will request, however
+		// we should bound it to the real target which is collected through
+		// block announces received from other peers
+		targetBlockNumber := startRequestAt + uint(availableWorkers)*128
 		realTarget, err := cs.getTarget()
 		if err != nil {
 			return fmt.Errorf("while getting target: %w", err)
 		}
 
 		if targetBlockNumber > realTarget {
+			// basically if our virtual target is beyond the real target
+			// that means we are fell requests far from the tip, then we
+			// calculate the correct amount of missing requests and then
+			// change to tip sync which should take care of the rest
 			diff := targetBlockNumber - realTarget
 			numOfRequestsToDrop := (diff / 128) + 1
 			targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
 			endBootstrapSync = true
 		}
 
-		requests, err := ascedingBlockRequests(
-			startRequestAt, targetBlockNumber, bootstrapRequestData)
-		if err != nil {
-			logger.Errorf("failed to setup ascending block requests: %s", err)
-		}
+		requests := ascedingBlockRequests(startRequestAt, targetBlockNumber, bootstrapRequestData)
+		expectedAmountOfBlocks := uint32(len(requests) * 128)
 
-		expectedAmountOfBlocks := totalRequestedBlocks(requests)
 		wg := sync.WaitGroup{}
-
 		resultsQueue := make(chan *syncTaskResult)
 
 		wg.Add(1)
@@ -728,9 +729,6 @@ loop:
 					continue
 				}
 
-				// TODO add this worker in a ignorePeers list, implement some expiration time for
-				// peers added to it (peerJail where peers have a release date and maybe extend the punishment
-				// if fail again ang again Jimmy's + Diego's idea)
 				cs.workerPool.shutdownWorker(taskResult.who, true)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
@@ -795,10 +793,9 @@ loop:
 		parentElement := syncingChain[0]
 		for _, element := range syncingChain[1:] {
 			if parentElement.Header.Hash() != element.Header.ParentHash {
-				logger.Criticalf("expected %s be parent of %s", parentElement.Header.Hash(), element.Header.ParentHash)
-				panic("")
+				panic(fmt.Sprintf("expected %s be parent of %s",
+					parentElement.Header.Hash(), element.Header.ParentHash))
 			}
-
 			parentElement = element
 		}
 	}
