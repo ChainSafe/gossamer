@@ -201,11 +201,13 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 	if cfg.testVersion != nil {
 		instance.ctx.Version = *cfg.testVersion
 	} else {
-		instance.ctx.Version, err = instance.version()
-		if err != nil {
-			instance.close()
-			return nil, fmt.Errorf("getting instance version: %w", err)
-		}
+		// TODO: find a way to get rid of this block.
+		// Initialise version when someone calls Version() for the first time.
+		// instance.ctx.Version, err = instance.version()
+		// if err != nil {
+		// 	instance.close()
+		// 	return nil, fmt.Errorf("getting instance version: %w", err)
+		// }
 	}
 
 	return instance, nil

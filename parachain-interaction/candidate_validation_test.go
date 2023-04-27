@@ -101,7 +101,9 @@ func TestValidateFromChainState(t *testing.T) {
 
 	// validationCodeBytes, err := common.HexToBytes(strings.TrimSpace(string(fileContent)))
 	// require.NoError(t, err)
-	runtimeFilePath := "/home/kishan/code/polkadot/target/debug/wbuild/test-parachain-adder/test_parachain_adder.wasm"
+
+	// TODO: put this in the
+	runtimeFilePath := "./test_parachain_adder.wasm"
 	validationCodeBytes, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)
 

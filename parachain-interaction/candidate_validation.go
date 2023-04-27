@@ -344,6 +344,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		ProcessedDownwardMessages: validationResults.ProcessedDownwardMessages,
 		HrmpWatermark:             validationResults.HrmpWatermark,
 	}
+
 	return &candidateCommitments, nil, nil
 
 	// The candidate does not exceed any parameters in the persisted validation data (Definition 227).
