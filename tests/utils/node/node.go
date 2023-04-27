@@ -94,9 +94,7 @@ func (n *Node) setDefaults(t *testing.T) {
 	}
 
 	if n.tomlConfig.Network.Port == 0 {
-		// cannot use 7000 on macOS
-		// it is being used by the AirPlay service
-		const basePort uint16 = 8000
+		const basePort uint16 = 7004
 		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
 	}
 
