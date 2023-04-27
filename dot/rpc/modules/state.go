@@ -247,7 +247,12 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 
 // Call makes a call to the runtime.
 func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCallResponse) error {
-	rt, err := sm.blockAPI.GetRuntime(sm.blockAPI.BestBlockHash())
+	var blockHash = sm.blockAPI.BestBlockHash()
+	if req.Block != nil {
+		blockHash = *req.Block
+	}
+
+	rt, err := sm.blockAPI.GetRuntime(blockHash)
 	if err != nil {
 		return err
 	}
