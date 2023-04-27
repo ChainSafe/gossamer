@@ -164,6 +164,7 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
+		logger.Info("instantiated runtime!!!")
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrWasmInterpreterName, config.Core.WasmInterpreter)
 	}
@@ -466,6 +467,11 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		return nil, err
 	}
 
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
 	syncLogLevel, err := log.ParseLevel(config.Log.Sync)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
@@ -483,6 +489,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		MaxPeers:           config.Network.MaxPeers,
 		SlotDuration:       slotDuration,
 		Telemetry:          telemetryMailer,
+		BadBlocks:          genesisData.BadBlocks,
 	}
 
 	return sync.NewService(syncCfg)
