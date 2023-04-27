@@ -252,27 +252,17 @@ func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCa
 		return err
 	}
 
-	requestData, err := common.HexToBytes(req.Data)
+	request, err := common.HexToBytes(req.Data)
 	if err != nil {
 		return fmt.Errorf("cannot convert hex data %s to bytes: %w", req.Data, err)
 	}
 
-	switch req.Method {
-	case runtime.CoreVersion:
-		version, err := rt.Exec(runtime.CoreVersion, requestData)
-		if err != nil {
-			return err
-		}
-		*res = StateCallResponse(common.BytesToHex(version))
-	case runtime.CoreInitializeBlock:
-
-	case runtime.Metadata:
-		metadata, err := rt.Exec(runtime.Metadata, requestData)
-		if err != nil {
-			return err
-		}
-		*res = StateCallResponse(common.BytesToHex(metadata))
+	response, err := rt.Exec(req.Method, request)
+	if err != nil {
+		return err
 	}
+
+	*res = StateCallResponse(common.BytesToHex(response))
 	return nil
 }
 
