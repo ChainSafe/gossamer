@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -33,9 +34,9 @@ type DisjointBlockSet interface {
 	addJustification(common.Hash, []byte) error
 	removeBlock(common.Hash)
 	removeLowerBlocks(num uint)
-	getBlock(common.Hash) *pendingBlock
 	getBlocks() []*pendingBlock
-	getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData
+	getBlock(common.Hash) *pendingBlock
+	hasBlock(common.Hash) bool
 	size() int
 }
 
@@ -272,12 +273,6 @@ func (s *disjointBlockSet) size() int {
 	return len(s.blocks)
 }
 
-func (s *disjointBlockSet) getChildren(hash common.Hash) map[common.Hash]struct{} {
-	s.RLock()
-	defer s.RUnlock()
-	return s.parentToChildren[hash]
-}
-
 func (s *disjointBlockSet) getBlock(hash common.Hash) *pendingBlock {
 	s.RLock()
 	defer s.RUnlock()
@@ -288,32 +283,5 @@ func (s *disjointBlockSet) getBlocks() []*pendingBlock {
 	s.RLock()
 	defer s.RUnlock()
 
-	blocks := make([]*pendingBlock, len(s.blocks))
-	i := 0
-	for _, b := range s.blocks {
-		blocks[i] = b
-		i++
-	}
-	return blocks
-}
-
-// getReadyDescendants recursively checks for descendants that are ready to be processed
-func (s *disjointBlockSet) getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData {
-	children := s.getChildren(curr)
-	if len(children) == 0 {
-		return ready
-	}
-
-	for c := range children {
-		b := s.getBlock(c)
-		if b == nil || b.header == nil || b.body == nil {
-			continue
-		}
-
-		// if the entire block's data is known, it's ready!
-		ready = append(ready, b.toBlockData())
-		ready = s.getReadyDescendants(c, ready)
-	}
-
-	return ready
+	return maps.Values(s.blocks)
 }

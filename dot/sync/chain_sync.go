@@ -25,12 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const (
-	// maxWorkers is the maximum number of parallel sync workers
-	maxWorkers = 12
-)
-
 var _ ChainSync = &chainSync{}
+var errUnableToGetTarget = errors.New("unable to get target")
 
 type chainSyncState byte
 
@@ -65,28 +61,6 @@ type peerState struct {
 	who    peer.ID
 	hash   common.Hash
 	number uint
-}
-
-// workHandler handles new potential work (ie. reported peer state, block announces), results from dispatched workers,
-// and stored pending work (ie. pending blocks set)
-// workHandler should be implemented by `bootstrapSync` and `tipSync`
-type workHandler interface {
-	// handleNewPeerState returns a new worker based on a peerState.
-	// The worker may be nil in which case we do nothing.
-	handleNewPeerState(*peerState) (*worker, error)
-
-	// handleWorkerResult handles the result of a worker, which may be
-	// nil or error. It optionally returns a new worker to be dispatched.
-	handleWorkerResult(w *worker) (workerToRetry *worker, err error)
-
-	// hasCurrentWorker is called before a worker is to be dispatched to
-	// check whether it is a duplicate. this function returns whether there is
-	// a worker that covers the scope of the proposed worker; if true,
-	// ignore the proposed worker
-	hasCurrentWorker(*worker, map[uint64]*worker) bool
-
-	// handleTick handles a timer tick
-	handleTick() ([]*worker, error)
 }
 
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
@@ -306,14 +280,14 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 		}
 	}
 
-	pendingBlock := cs.pendingBlocks.getBlock(blockAnnounceHeaderHash)
-	if pendingBlock != nil {
-		return fmt.Errorf("block %s (#%d) in the pending set",
+	hasPendingBlock := cs.pendingBlocks.hasBlock(blockAnnounceHeaderHash)
+	if hasPendingBlock {
+		return fmt.Errorf("block %s (#%d) already in the pending set",
 			blockAnnounceHeaderHash, blockAnnounceHeader.Number)
 	}
 
 	if err = cs.pendingBlocks.addHeader(blockAnnounceHeader); err != nil {
-		return err
+		return fmt.Errorf("adding pending block header: %w", err)
 	}
 
 	// we assume that if a peer sends us a block announce for a certain block,
@@ -421,10 +395,11 @@ func (cs *chainSync) sync() {
 			return
 		}
 
-		if cs.state == bootstrap {
+		switch {
+		case cs.state == bootstrap:
 			logger.Infof("using bootstrap sync")
 			err = cs.executeBootstrapSync()
-		} else {
+		case cs.state == tip:
 			logger.Infof("using tip sync")
 			err = cs.executeTipSync()
 		}
@@ -689,8 +664,6 @@ func (cs *chainSync) maybeSwitchMode() error {
 	return nil
 }
 
-var errUnableToGetTarget = errors.New("unable to get target")
-
 // getTarget takes the average of all peer heads
 // TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
 // head block number, it would leave us in bootstrap mode forever
@@ -723,7 +696,7 @@ func (cs *chainSync) getTarget() (uint, error) {
 func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	logger.Infof("starting handleWorkersResults, waiting %d blocks", totalBlocks)
+	logger.Debugf("starting handleWorkersResults, waiting %d blocks", totalBlocks)
 	syncingChain := make([]*types.BlockData, totalBlocks)
 
 loop:
@@ -816,7 +789,7 @@ loop:
 		}
 	}
 
-	logger.Infof("synced %d blocks, starting process", len(syncingChain))
+	logger.Debugf("synced %d blocks, starting process", totalBlocks)
 	if len(syncingChain) >= 2 {
 		// ensuring the parents are in the right place
 		parentElement := syncingChain[0]
@@ -871,8 +844,6 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 		logger.Errorf("new ready block number (unknown) with hash %s", bd.Hash)
 		return nil
 	}
-
-	//logger.Tracef("new ready block number %d with hash %s", bd.Header.Number, bd.Hash)
 
 	err := cs.processBlockData(*bd)
 	if err != nil {
