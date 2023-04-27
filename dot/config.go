@@ -17,8 +17,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
-// TODO: update config to have toml rules and perhaps un-export some fields, since we don't want to expose all
-// the internal config options, also type conversions might be needed from toml -> internal types (#1848)
+// TODO: update config to have toml rules and perhaps un-export some fields,
+// also type conversions might be needed from toml -> internal types (#1848)
 
 // Config is a collection of configurations throughout the system
 type Config struct {

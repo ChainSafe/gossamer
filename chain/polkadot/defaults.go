@@ -20,11 +20,11 @@ var (
 
 // DefaultConfig returns a polkadot node configuration
 func DefaultConfig() *cfg.Config {
-	config := cfg.Copy(DefaultConfig())
+	config := DefaultConfig()
 	config.BasePath = defaultBasePath
 	config.ID = defaultID
 	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec
 
-	return &config
+	return config
 }
