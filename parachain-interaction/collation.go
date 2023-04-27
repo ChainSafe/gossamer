@@ -85,7 +85,7 @@ type PoV struct {
 	BlockData []byte `scale:"1"` // types.BlockData `scale:"1"`
 }
 
-type BlockData []byte
+// type BlockData []byte
 
 // The parachain block that is created by a collator.
 //

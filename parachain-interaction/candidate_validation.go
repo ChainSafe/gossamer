@@ -15,171 +15,188 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type ValidationResult scale.VaryingDataType
+// type ValidationResult scale.VaryingDataType
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (vr *ValidationResult) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*vr)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*vr = ValidationResult(vdt)
-	return nil
-}
+// // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+// func (vr *ValidationResult) Set(val scale.VaryingDataTypeValue) (err error) {
+// 	// cast to VaryingDataType to use VaryingDataType.Set method
+// 	vdt := scale.VaryingDataType(*vr)
+// 	err = vdt.Set(val)
+// 	if err != nil {
+// 		return fmt.Errorf("setting value to varying data type: %w", err)
+// 	}
+// 	// store original ParentVDT with VaryingDataType that has been set
+// 	*vr = ValidationResult(vdt)
+// 	return nil
+// }
 
-// Value will return value from underying VaryingDataType
-func (vr *ValidationResult) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*vr)
-	return vdt.Value()
-}
+// // Value will return value from underying VaryingDataType
+// func (vr *ValidationResult) Value() (scale.VaryingDataTypeValue, error) {
+// 	vdt := scale.VaryingDataType(*vr)
+// 	return vdt.Value()
+// }
 
-// TODO: Finish ValidationResult by adding valid and invalid runtimes
+// // TODO: Finish ValidationResult by adding valid and invalid runtimes
 
-// Candidate is valid. The validation process yields these outputs and the persisted validation
-// data used to form inputs.
-type Valid struct {
-	candidateCommitments    candidateCommitments
-	PersistedValidationData *parachaintypes.PersistedValidationData
-}
+// // Candidate is valid. The validation process yields these outputs and the persisted validation
+// // data used to form inputs.
+// type Valid struct {
+// 	CandidateCommitments    CandidateCommitments
+// 	PersistedValidationData *parachaintypes.PersistedValidationData
+// }
 
-// Index returns VDT index
-func (Valid) Index() uint {
-	return 1
-}
+// // Index returns VDT index
+// func (Valid) Index() uint {
+// 	return 1
+// }
 
-type Invalid InvalidCandidate
+// type Invalid InvalidCandidate
 
-// Index returns VDT index
-func (Invalid) Index() uint {
-	return 2
-}
+// // Index returns VDT index
+// func (Invalid) Index() uint {
+// 	return 2
+// }
 
-// Candidate invalidity details
-type InvalidCandidate scale.VaryingDataType
+// // Candidate invalidity details
+// type InvalidCandidate scale.VaryingDataType
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (ic *InvalidCandidate) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*ic)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*ic = InvalidCandidate(vdt)
-	return nil
-}
+// // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+// func (ic *InvalidCandidate) Set(val scale.VaryingDataTypeValue) (err error) {
+// 	// cast to VaryingDataType to use VaryingDataType.Set method
+// 	vdt := scale.VaryingDataType(*ic)
+// 	err = vdt.Set(val)
+// 	if err != nil {
+// 		return fmt.Errorf("setting value to varying data type: %w", err)
+// 	}
+// 	// store original ParentVDT with VaryingDataType that has been set
+// 	*ic = InvalidCandidate(vdt)
+// 	return nil
+// }
 
-// Value will return value from underying VaryingDataType
-func (ic *InvalidCandidate) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*ic)
-	return vdt.Value()
-}
+// // Value will return value from underying VaryingDataType
+// func (ic *InvalidCandidate) Value() (scale.VaryingDataTypeValue, error) {
+// 	vdt := scale.VaryingDataType(*ic)
+// 	return vdt.Value()
+// }
 
-// Failed to execute `validate_block`. This includes function panicking.
-type ExecutionError string
+// // Failed to execute `validate_block`. This includes function panicking.
+// type ExecutionError string
 
-// Index returns VDT index
-func (ExecutionError) Index() uint {
-	return 1
-}
+// // Index returns VDT index
+// func (ExecutionError) Index() uint {
+// 	return 1
+// }
 
-// Validation outputs check doesn't pass.
-type InvalidOutputs struct{}
+// // Validation outputs check doesn't pass.
+// type InvalidOutputs struct{}
 
-// Index returns VDT index
-func (InvalidOutputs) Index() uint {
-	return 2
-}
+// // Index returns VDT index
+// func (InvalidOutputs) Index() uint {
+// 	return 2
+// }
 
-// Execution timeout
-type Timeout struct{}
+// // Execution timeout
+// type Timeout struct{}
 
-// Index returns VDT index
-func (Timeout) Index() uint {
-	return 3
-}
+// // Index returns VDT index
+// func (Timeout) Index() uint {
+// 	return 3
+// }
 
-// Validation input is over the limit.
-type ParamsTooLarge uint64
+// // Validation input is over the limit.
+// type ParamsTooLarge uint64
 
-// Index returns VDT index
-func (ParamsTooLarge) Index() uint {
-	return 4
-}
+// // Index returns VDT index
+// func (ParamsTooLarge) Index() uint {
+// 	return 4
+// }
 
-// Code size is over the limit.
-type CodeTooLarge uint64
+// // Code size is over the limit.
+// type CodeTooLarge uint64
 
-// Index returns VDT index
-func (CodeTooLarge) Index() uint {
-	return 5
-}
+// // Index returns VDT index
+// func (CodeTooLarge) Index() uint {
+// 	return 5
+// }
 
-// Code does not decompress correctly.
-type CodeDecompressionFailure struct{}
+// // Code does not decompress correctly.
+// type CodeDecompressionFailure struct{}
 
-// Index returns VDT index
-func (CodeDecompressionFailure) Index() uint {
-	return 6
-}
+// // Index returns VDT index
+// func (CodeDecompressionFailure) Index() uint {
+// 	return 6
+// }
 
-// PoV does not decompress correctly.
-type PoVDecompressionFailure struct{}
+// // PoV does not decompress correctly.
+// type PoVDecompressionFailure struct{}
 
-// Index returns VDT index
-func (PoVDecompressionFailure) Index() uint {
-	return 7
-}
+// // Index returns VDT index
+// func (PoVDecompressionFailure) Index() uint {
+// 	return 7
+// }
 
-// Validation function returned invalid data.
-type BadReturn struct{}
+// // Validation function returned invalid data.
+// type BadReturn struct{}
 
-// Index returns VDT index
-func (BadReturn) Index() uint {
-	return 8
-}
+// // Index returns VDT index
+// func (BadReturn) Index() uint {
+// 	return 8
+// }
 
-// Invalid relay chain parent.
-type BadParent struct{}
+// // Invalid relay chain parent.
+// type BadParent struct{}
 
-// Index returns VDT index
-func (BadParent) Index() uint {
-	return 9
-}
+// // Index returns VDT index
+// func (BadParent) Index() uint {
+// 	return 9
+// }
 
-// Para head hash does not match.
-type PoVHashMismatch struct{}
+// // Para head hash does not match.
+// type PoVHashMismatch struct{}
 
-// Index returns VDT index
-func (PoVHashMismatch) Index() uint {
-	return 10
-}
+// // Index returns VDT index
+// func (PoVHashMismatch) Index() uint {
+// 	return 10
+// }
 
-// Validation code hash does not match.
-type CodeHashMismatch struct{}
+// // Validation code hash does not match.
+// type CodeHashMismatch struct{}
 
-// Index returns VDT index
-func (CodeHashMismatch) Index() uint {
-	return 11
-}
+// // Index returns VDT index
+// func (CodeHashMismatch) Index() uint {
+// 	return 11
+// }
 
-// Validation has generated different candidate commitments.
-type CommitmentsHashMismatch struct{}
+// // Validation has generated different candidate commitments.
+// type CommitmentsHashMismatch struct{}
 
-// Index returns VDT index
-func (CommitmentsHashMismatch) Index() uint {
-	return 12
+// // Index returns VDT index
+// func (CommitmentsHashMismatch) Index() uint {
+// 	return 12
+// }
+
+// Similar to CandidateCommitments, but different order.
+type ValidationResult struct {
+	// The head-data is the new head data that should be included in the relay chain state.
+	HeadData headData `scale:"1"`
+	// NewValidationCode is an update to the validation code that should be scheduled in the relay chain.
+	NewValidationCode *ValidationCode `scale:"2"`
+	// UpwardMessages are upward messages send by the Parachain.
+	UpwardMessages []upwardMessage `scale:"3"`
+	// HorizontalMessages are Outbound horizontal messages sent by the parachain.
+	HorizontalMessages []outboundHrmpMessage `scale:"4"`
+
+	// The number of messages processed from the DMQ. It is expected that the Parachain processes them from first to last.
+	ProcessedDownwardMessages uint32 `scale:"5"`
+	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
+	HrmpWatermark uint32 `scale:"6"`
 }
 
 type PoVRequestor interface {
 	RequestPoV(povHash common.Hash) PoV
 }
 
-func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt) (*candidateCommitments, *parachaintypes.PersistedValidationData, error) {
+func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt) (*CandidateCommitments, *parachaintypes.PersistedValidationData, error) {
 	// TODO: There are three validation functions that gets used alternatively.
 	// Figure out which one to use when.
 
@@ -219,14 +236,14 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, fmt.Errorf("getting validation code: %w", err)
 	}
 
-	validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))
-	if err != nil {
-		return nil, nil, fmt.Errorf("hashing validation code: %w", err)
-	}
+	// validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("hashing validation code: %w", err)
+	// }
 
-	if validationCodeHash != common.Hash(c.descriptor.ValidationCodeHash) {
-		return nil, nil, errors.New("validation code hash does not match")
-	}
+	// if validationCodeHash != common.Hash(c.descriptor.ValidationCodeHash) {
+	// 	return nil, nil, errors.New("validation code hash does not match")
+	// }
 
 	// check candidate signature
 	err = c.descriptor.CheckCollatorSignature()
@@ -246,8 +263,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	// }
 
 	// Instead of looking at the rust code, looks at https://spec.polkadot.network/#sect-parachain-runtime instead
-	fmt.Printf("pov.BlockData 0x%x\n", pov.BlockData)
-	validationParams := ValidationParameters{
+	ValidationParams := ValidationParameters{
 		ParentHeadData: PersistedValidationData.ParentHead,
 		// TODO: Fill up block data
 		BlockData:              pov.BlockData,
@@ -294,33 +310,41 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, fmt.Errorf("setting up VM: %w", err)
 	}
 
-	validationResults, err := instance.ValidateBlock(validationParams)
+	validationResults, err := instance.ValidateBlock(ValidationParams)
 	if err != nil {
 		return nil, nil, fmt.Errorf("executing validate_block: %w", err)
 	}
 
-	value, err := validationResults.Value()
-	if err != nil {
-		return nil, nil, fmt.Errorf("getting value of validation results: %w", err)
-	}
+	// value, err := validationResults.Value()
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("getting value of validation results: %w", err)
+	// }
 
-	// Invalid
-	if value.Index() == 2 {
-		// deal with the invalid candidate error
-	} else if value.Index() != 1 {
-		return nil, nil, errors.New("invalid value")
-	}
+	// // Invalid
+	// if value.Index() == 2 {
+	// 	// deal with the invalid candidate error
+	// } else if value.Index() != 1 {
+	// 	return nil, nil, errors.New("invalid value")
+	// }
 
-	// Valid
-	validityInfo, ok := value.(Valid)
-	if !ok {
-		return nil, nil, errors.New("value not of type Valid")
-	}
+	// // Valid
+	// validityInfo, ok := value.(Valid)
+	// if !ok {
+	// 	return nil, nil, errors.New("value not of type Valid")
+	// }
 
 	// TODO: check validation output using runtime call of the same name
 	// RuntimeApiRequest::CheckValidationOutputs(
 
-	return &validityInfo.candidateCommitments, validityInfo.PersistedValidationData, nil
+	candidateCommitments := CandidateCommitments{
+		UpwardMessages:            validationResults.UpwardMessages,
+		HorizontalMessages:        validationResults.HorizontalMessages,
+		NewValidationCode:         validationResults.NewValidationCode,
+		HeadData:                  validationResults.HeadData,
+		ProcessedDownwardMessages: validationResults.ProcessedDownwardMessages,
+		HrmpWatermark:             validationResults.HrmpWatermark,
+	}
+	return &candidateCommitments, nil, nil
 
 	// The candidate does not exceed any parameters in the persisted validation data (Definition 227).
 

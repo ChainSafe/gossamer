@@ -13,12 +13,11 @@ var (
 	ErrCodeEmpty         = errors.New("code is empty")
 	ErrWASMDecompress    = errors.New("wasm decompression failed")
 	ErrInstanceIsStopped = errors.New("instance is stopped")
-
-	ErrExportFunctionNotFound = errors.New("export function not found")
 )
 
 func setupVM(code []byte) (*Instance, error) {
 	cfg := runtimewasmer.Config{}
+
 	instance, err := runtimewasmer.NewInstance(code, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("creating instance: %w", err)

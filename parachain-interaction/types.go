@@ -83,8 +83,8 @@ type CandidateReceipt struct {
 	commitmentsHash common.Hash         `scale:"2"`
 }
 
-// candidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
-type candidateCommitments struct {
+// CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
+type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
 	UpwardMessages []upwardMessage `scale:"1"`
 	// Horizontal messages sent by the parachain.
