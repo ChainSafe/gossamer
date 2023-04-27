@@ -20,7 +20,7 @@ var (
 
 // DefaultConfig returns a polkadot node configuration
 func DefaultConfig() *cfg.Config {
-	config := DefaultConfig()
+	config := cfg.DefaultConfig()
 	config.BasePath = defaultBasePath
 	config.ID = defaultID
 	config.Name = defaultName
