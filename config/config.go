@@ -22,38 +22,38 @@ const (
 	defaultChainSpecFile = "chain-spec-raw.json"
 	// defaultBasePath is the default base path
 	defaultBasePath = "~/.gossamer"
-	// defaultLogLevel is the default log level
-	defaultLogLevel = "info"
-	// defaultPrometheusPort is the default prometheus port
-	defaultPrometheusPort = uint32(9876)
-	// defaultRetainBlocks is the default number of blocks to retain
-	defaultRetainBlocks = 512
-	// defaultPruning is the default pruning strategy
-	defaultPruning = pruner.Archive
+	// DefaultLogLevel is the default log level
+	DefaultLogLevel = "info"
+	// DefaultPrometheusPort is the default prometheus port
+	DefaultPrometheusPort = uint32(9876)
+	// DefaultRetainBlocks is the default number of blocks to retain
+	DefaultRetainBlocks = 512
+	// DefaultPruning is the default pruning strategy
+	DefaultPruning = pruner.Archive
 
-	// defaultRole is the default node role
-	defaultRole = common.AuthorityRole
-	// defaultWasmInterpreter is the default wasm interpreter
-	defaultWasmInterpreter = wasmer.Name
+	// DefaultRole is the default node role
+	DefaultRole = common.AuthorityRole
+	// DefaultWasmInterpreter is the default wasm interpreter
+	DefaultWasmInterpreter = wasmer.Name
 
-	// defaultNetworkPort is the default network port
-	defaultNetworkPort = 7001
-	// defaultDiscoveryInterval is the default discovery interval
-	defaultDiscoveryInterval = 10 * time.Second
+	// DefaultNetworkPort is the default network port
+	DefaultNetworkPort = 7001
+	// DefaultDiscoveryInterval is the default discovery interval
+	DefaultDiscoveryInterval = 10 * time.Second
 	// DefaultMinPeers is the default minimum number of peers
 	DefaultMinPeers = 0
 	// DefaultMaxPeers is the default maximum number of peers
 	DefaultMaxPeers = 0
 
-	// defaultRPCPort is the default RPC port
-	defaultRPCPort = 8545
-	// defaultRPCHost is the default RPC host
-	defaultRPCHost = "localhost"
-	// defaultWSPort is the default WS port
-	defaultWSPort = 8546
+	// DefaultRPCPort is the default RPC port
+	DefaultRPCPort = 8545
+	// DefaultRPCHost is the default RPC host
+	DefaultRPCHost = "localhost"
+	// DefaultWSPort is the default WS port
+	DefaultWSPort = 8546
 
-	// defaultPprofListenAddress is the default pprof listen address
-	defaultPprofListenAddress = "localhost:6060"
+	// DefaultPprofListenAddress is the default pprof listen address
+	DefaultPprofListenAddress = "localhost:6060"
 
 	// DefaultSystemName is the default system name
 	DefaultSystemName = "Gossamer"
@@ -359,39 +359,39 @@ func DefaultConfig() *Config {
 			ID:                 "gssmr",
 			BasePath:           defaultBasePath,
 			ChainSpec:          "",
-			LogLevel:           defaultLogLevel,
-			PrometheusPort:     defaultPrometheusPort,
-			RetainBlocks:       defaultRetainBlocks,
-			Pruning:            defaultPruning,
+			LogLevel:           DefaultLogLevel,
+			PrometheusPort:     DefaultPrometheusPort,
+			RetainBlocks:       DefaultRetainBlocks,
+			Pruning:            DefaultPruning,
 			PrometheusExternal: false,
 			NoTelemetry:        false,
 			TelemetryURLs:      nil,
 		},
 		Log: &LogConfig{
-			Core:    defaultLogLevel,
-			Digest:  defaultLogLevel,
-			Sync:    defaultLogLevel,
-			Network: defaultLogLevel,
-			RPC:     defaultLogLevel,
-			State:   defaultLogLevel,
-			Runtime: defaultLogLevel,
-			Babe:    defaultLogLevel,
-			Grandpa: defaultLogLevel,
-			Wasmer:  defaultLogLevel,
+			Core:    DefaultLogLevel,
+			Digest:  DefaultLogLevel,
+			Sync:    DefaultLogLevel,
+			Network: DefaultLogLevel,
+			RPC:     DefaultLogLevel,
+			State:   DefaultLogLevel,
+			Runtime: DefaultLogLevel,
+			Babe:    DefaultLogLevel,
+			Grandpa: DefaultLogLevel,
+			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
 			Key:    "",
 			Unlock: "",
 		},
 		Core: &CoreConfig{
-			Role:             defaultRole,
+			Role:             DefaultRole,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
-			WasmInterpreter:  defaultWasmInterpreter,
-			GrandpaInterval:  defaultDiscoveryInterval,
+			WasmInterpreter:  DefaultWasmInterpreter,
+			GrandpaInterval:  DefaultDiscoveryInterval,
 		},
 		Network: &NetworkConfig{
-			Port:              defaultNetworkPort,
+			Port:              DefaultNetworkPort,
 			Bootnodes:         nil,
 			ProtocolID:        "/gossamer/gssmr/0",
 			NoBootstrap:       false,
@@ -399,7 +399,7 @@ func DefaultConfig() *Config {
 			MinPeers:          DefaultMinPeers,
 			MaxPeers:          DefaultMaxPeers,
 			PersistentPeers:   nil,
-			DiscoveryInterval: defaultDiscoveryInterval,
+			DiscoveryInterval: DefaultDiscoveryInterval,
 			PublicIP:          "",
 			PublicDNS:         "",
 			NodeKey:           "",
@@ -412,16 +412,16 @@ func DefaultConfig() *Config {
 			RPCExternal:       false,
 			UnsafeRPC:         false,
 			UnsafeRPCExternal: false,
-			Port:              defaultRPCPort,
-			Host:              defaultRPCHost,
+			Port:              DefaultRPCPort,
+			Host:              DefaultRPCHost,
 			Modules:           DefaultRPCModules,
-			WSPort:            defaultWSPort,
+			WSPort:            DefaultWSPort,
 			WSExternal:        false,
 			UnsafeWSExternal:  false,
 		},
 		Pprof: &PprofConfig{
 			Enabled:          false,
-			ListeningAddress: defaultPprofListenAddress,
+			ListeningAddress: DefaultPprofListenAddress,
 			BlockProfileRate: 0,
 			MutexProfileRate: 0,
 		},
@@ -440,39 +440,39 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			ID:                 nodeSpec.ID,
 			BasePath:           defaultBasePath,
 			ChainSpec:          "",
-			LogLevel:           defaultLogLevel,
+			LogLevel:           DefaultLogLevel,
 			PrometheusPort:     uint32(9876),
-			RetainBlocks:       defaultRetainBlocks,
-			Pruning:            defaultPruning,
+			RetainBlocks:       DefaultRetainBlocks,
+			Pruning:            DefaultPruning,
 			PrometheusExternal: false,
 			NoTelemetry:        false,
 			TelemetryURLs:      nil,
 		},
 		Log: &LogConfig{
-			Core:    defaultLogLevel,
-			Digest:  defaultLogLevel,
-			Sync:    defaultLogLevel,
-			Network: defaultLogLevel,
-			RPC:     defaultLogLevel,
-			State:   defaultLogLevel,
-			Runtime: defaultLogLevel,
-			Babe:    defaultLogLevel,
-			Grandpa: defaultLogLevel,
-			Wasmer:  defaultLogLevel,
+			Core:    DefaultLogLevel,
+			Digest:  DefaultLogLevel,
+			Sync:    DefaultLogLevel,
+			Network: DefaultLogLevel,
+			RPC:     DefaultLogLevel,
+			State:   DefaultLogLevel,
+			Runtime: DefaultLogLevel,
+			Babe:    DefaultLogLevel,
+			Grandpa: DefaultLogLevel,
+			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
 			Key:    "",
 			Unlock: "",
 		},
 		Core: &CoreConfig{
-			Role:             defaultRole,
+			Role:             DefaultRole,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
-			WasmInterpreter:  defaultWasmInterpreter,
-			GrandpaInterval:  defaultDiscoveryInterval,
+			WasmInterpreter:  DefaultWasmInterpreter,
+			GrandpaInterval:  DefaultDiscoveryInterval,
 		},
 		Network: &NetworkConfig{
-			Port:              defaultNetworkPort,
+			Port:              DefaultNetworkPort,
 			Bootnodes:         nodeSpec.Bootnodes,
 			ProtocolID:        nodeSpec.ProtocolID,
 			NoBootstrap:       false,
@@ -480,7 +480,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			MinPeers:          DefaultMinPeers,
 			MaxPeers:          DefaultMaxPeers,
 			PersistentPeers:   nil,
-			DiscoveryInterval: defaultDiscoveryInterval,
+			DiscoveryInterval: DefaultDiscoveryInterval,
 			PublicIP:          "",
 			PublicDNS:         "",
 			NodeKey:           "",
@@ -493,16 +493,16 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			RPCExternal:       false,
 			UnsafeRPC:         false,
 			UnsafeRPCExternal: false,
-			Port:              defaultRPCPort,
-			Host:              defaultRPCHost,
+			Port:              DefaultRPCPort,
+			Host:              DefaultRPCHost,
 			Modules:           DefaultRPCModules,
-			WSPort:            defaultWSPort,
+			WSPort:            DefaultWSPort,
 			WSExternal:        false,
 			UnsafeWSExternal:  false,
 		},
 		Pprof: &PprofConfig{
 			Enabled:          false,
-			ListeningAddress: defaultPprofListenAddress,
+			ListeningAddress: DefaultPprofListenAddress,
 			BlockProfileRate: 0,
 			MutexProfileRate: 0,
 		},
