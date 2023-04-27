@@ -12,8 +12,8 @@ type afgApplyingForcedAuthoritySetChange AfgApplyingForcedAuthoritySetChange
 
 var _ json.Marshaler = (*AfgApplyingForcedAuthoritySetChange)(nil)
 
-// AfgApplyingForcedAuthoritySetChange is a telemetry message of type `afg.applying_scheduled_authority_set_change`
-// which is meant to be sent when an scheduled change is applied
+// AfgApplyingForcedAuthoritySetChange is a telemetry message of type `afg.applying_forced_authority_set_change`
+// which is meant to be sent when a forced change is applied
 type AfgApplyingForcedAuthoritySetChange struct {
 	Block string `json:"block"`
 }
