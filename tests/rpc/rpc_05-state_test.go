@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
@@ -34,10 +36,17 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	t.Run("state_call", func(t *testing.T) {
 		t.Parallel()
 
-		const params = `["", "","0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"]`
-		var response modules.StateCallResponse
+		const params = `["Core_version", "0x"]`
+		var response runtime.Version
 
-		fetchWithTimeout(ctx, t, "state_call", params, &response)
+		ctx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		endpoint := rpc.NewEndpoint(node.RPCPort())
+		data, err := rpc.Post(ctx, endpoint, "state_call", params)
+		require.NoError(t, err)
+
+		err = rpc.DecodeScale(data, &response)
+		require.NoError(t, err)
 
 		// TODO assert stateCallResponse
 	})

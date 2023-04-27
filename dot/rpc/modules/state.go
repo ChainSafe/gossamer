@@ -23,7 +23,7 @@ type StateGetReadProofRequest struct {
 // StateCallRequest holds json fields
 type StateCallRequest struct {
 	Method string       `json:"method"`
-	Data   []byte       `json:"data"`
+	Data   string       `json:"params"`
 	Block  *common.Hash `json:"block"`
 }
 
@@ -86,7 +86,7 @@ type StateStorageQueryAtRequest struct {
 type StateStorageKeysQuery [][]byte
 
 // StateCallResponse holds json fields
-type StateCallResponse []byte
+type StateCallResponse string
 
 // StateKeysResponse field to store the state keys
 type StateKeysResponse [][]byte
@@ -245,10 +245,34 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	return nil
 }
 
-// Call isn't implemented properly yet.
-func (sm *StateModule) Call(_ *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
-	_ = sm.networkAPI
-	_ = sm.storageAPI
+// Call makes a call to the runtime.
+func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCallResponse) error {
+	rt, err := sm.blockAPI.GetRuntime(sm.blockAPI.BestBlockHash())
+	if err != nil {
+		return err
+	}
+
+	requestData, err := common.HexToBytes(req.Data)
+	if err != nil {
+		return fmt.Errorf("cannot convert hex data %s to bytes: %w", req.Data, err)
+	}
+
+	switch req.Method {
+	case runtime.CoreVersion:
+		version, err := rt.Exec(runtime.CoreVersion, requestData)
+		if err != nil {
+			return err
+		}
+		*res = StateCallResponse(common.BytesToHex(version))
+	case runtime.CoreInitializeBlock:
+
+	case runtime.Metadata:
+		metadata, err := rt.Exec(runtime.Metadata, requestData)
+		if err != nil {
+			return err
+		}
+		*res = StateCallResponse(common.BytesToHex(metadata))
+	}
 	return nil
 }
 
