@@ -26,10 +26,7 @@ var ImportRuntimeCmd = &cobra.Command{
 Example: 
 	gossamer import-runtime --wasm-file runtime.wasm --genesis-file genesis.json > updated_genesis.json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := execImportRuntime(cmd); err != nil {
-			return err
-		}
-		return nil
+		return execImportRuntime(cmd)
 	},
 }
 

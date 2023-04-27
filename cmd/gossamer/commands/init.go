@@ -32,10 +32,7 @@ Examples:
 	gossamer init --genesis genesis.json
 	gossamer init --chain westend`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := execInit(cmd); err != nil {
-			return err
-		}
-		return nil
+		return execInit(cmd)
 	},
 }
 

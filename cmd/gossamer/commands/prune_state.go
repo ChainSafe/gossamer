@@ -24,10 +24,7 @@ var PruneStateCmd = &cobra.Command{
 All trie nodes that do not belong to the specified version state will be deleted from the database.
 The default pruning target is the HEAD-256 state`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := execPruneState(cmd); err != nil {
-			return err
-		}
-		return nil
+		return execPruneState(cmd)
 	},
 }
 

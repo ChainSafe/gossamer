@@ -27,10 +27,7 @@ To generate raw chain-spec file from default:
 To generate raw chain-spec file from specific chain-spec file:
 	gossamer build-spec --raw --chain chain-spec.json --output-path chain-spec-raw.json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := execBuildSpec(cmd); err != nil {
-			return err
-		}
-		return nil
+		return execBuildSpec(cmd)
 	},
 }
 

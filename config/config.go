@@ -251,9 +251,6 @@ func (a *AccountConfig) ValidateBasic() error {
 	if a.Key == "" {
 		return fmt.Errorf("key cannot be empty")
 	}
-	//if a.Unlock == "" {
-	//	return fmt.Errorf("unlock cannot be empty")
-	//}
 
 	return nil
 }
@@ -263,42 +260,18 @@ func (n *NetworkConfig) ValidateBasic() error {
 	if n.Port == 0 {
 		return fmt.Errorf("port cannot be empty")
 	}
-	//if n.ProtocolID == "" {
-	//	return fmt.Errorf("protocol cannot be empty")
-	//}
-	//if n.MinPeers == 0 {
-	//	return fmt.Errorf("minimum-peers cannot be empty")
-	//}
-	//if n.MaxPeers == 0 {
-	//	return fmt.Errorf("maximum-peers cannot be empty")
-	//}
+	if n.ProtocolID == "" {
+		return fmt.Errorf("protocol cannot be empty")
+	}
 	if n.DiscoveryInterval == 0 {
 		return fmt.Errorf("discovery-interval cannot be empty")
 	}
-	//if n.PublicIP == "" {
-	//	return fmt.Errorf("public IP cannot be empty")
-	//}
-	//if n.PublicDNS == "" {
-	//	return fmt.Errorf("public DNS cannot be empty")
-	//}
 
 	return nil
 }
 
 // ValidateBasic does the basic validation on CoreConfig
 func (c *CoreConfig) ValidateBasic() error {
-	//if c.SlotDuration == 0 {
-	//	return fmt.Errorf("slot duration cannot be empty")
-	//}
-	//if c.EpochLength == 0 {
-	//	return fmt.Errorf("epoch length cannot be empty")
-	//}
-	if c.WasmInterpreter == "" {
-		return fmt.Errorf("wasm interpreter cannot be empty")
-	}
-	if c.GrandpaInterval == 0 {
-		return fmt.Errorf("grandpa interval cannot be empty")
-	}
 	if c.WasmInterpreter == "" {
 		return fmt.Errorf("wasm-interpreter cannot be empty")
 	}
@@ -311,7 +284,6 @@ func (c *CoreConfig) ValidateBasic() error {
 
 // ValidateBasic does the basic validation on StateConfig
 func (s *StateConfig) ValidateBasic() error {
-
 	return nil
 }
 

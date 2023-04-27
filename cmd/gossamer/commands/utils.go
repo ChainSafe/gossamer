@@ -382,7 +382,6 @@ func parseTelemetryURL() error {
 		return nil
 	}
 
-	var telemetry []genesis.TelemetryEndpoint
 	urlVerbosityPairs := strings.Split(telemetryURLs, ",")
 	for _, pair := range urlVerbosityPairs {
 		urlVerbosity := strings.Split(pair, ":")
@@ -400,13 +399,13 @@ func parseTelemetryURL() error {
 			return fmt.Errorf("invalid --telemetry-url. Failed to parse verbosity: %v", err.Error())
 		}
 
-		telemetry = append(config.TelemetryURLs, genesis.TelemetryEndpoint{
+		config.TelemetryURLs = append(config.TelemetryURLs, genesis.TelemetryEndpoint{
 			Endpoint:  url,
 			Verbosity: verbosity,
 		})
 	}
 
-	viper.Set("telemetry-url", telemetry)
+	viper.Set("telemetry-url", config.TelemetryURLs)
 
 	return nil
 }

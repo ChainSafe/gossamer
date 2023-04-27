@@ -39,13 +39,8 @@ func init() {
 
 // WriteConfigFile writes the config to the base path.
 func WriteConfigFile(basePath string, config *Config) error {
-	configFilePath := filepath.Join(basePath, defaultConfigFilePath)
-	return writeConfigFile(configFilePath, config)
-}
-
-func writeConfigFile(configFilePath string, config *Config) error {
 	var buffer bytes.Buffer
-
+	configFilePath := filepath.Join(basePath, defaultConfigFilePath)
 	if err := configTemplate.Execute(&buffer, config); err != nil {
 		return fmt.Errorf("failed to render config template: %w", err)
 	}
