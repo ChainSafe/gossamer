@@ -230,11 +230,11 @@ func parseChainSpec(chain string) error {
 		case cfg.WestendDevChain:
 			config = westenddev.DefaultConfig()
 		case cfg.WestendLocalChain:
-			if alice {
+			if alice || key == "alice" {
 				config = westendlocal.DefaultAliceConfig()
-			} else if bob {
+			} else if bob || key == "bob" {
 				config = westendlocal.DefaultBobConfig()
-			} else if charlie {
+			} else if charlie || key == "charlie" {
 				config = westendlocal.DefaultCharlieConfig()
 			} else {
 				config = westendlocal.DefaultConfig()
