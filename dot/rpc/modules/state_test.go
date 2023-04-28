@@ -301,7 +301,6 @@ func TestCall(t *testing.T) {
 	req := &StateCallRequest{
 		Method: "Core_version",
 		Params: "0x",
-		Block:  &testHash,
 	}
 	var res StateCallResponse
 	err := sm.Call(nil, req, &res)
