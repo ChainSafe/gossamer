@@ -1572,7 +1572,6 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		errMsg   string
 	}{
 		{
-			// TODO this test case is causing grief
 			key:      []byte(`fakekey`),
 			limit:    optLimit2,
 			expected: []byte{0, 0, 0, 0, 0},
