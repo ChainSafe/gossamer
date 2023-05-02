@@ -76,7 +76,7 @@ type Runtime interface {
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
-	Version() (version runtime.Version)
+	Version() (runtime.Version, error)
 	Metadata() (metadata []byte, err error)
 	BabeConfigurer
 	GrandpaAuthorities() ([]types.Authority, error)

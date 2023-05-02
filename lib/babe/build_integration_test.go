@@ -198,7 +198,8 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	err = codec.Decode(metadataBytes, meta)
 	require.NoError(t, err)
 
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 
 	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
 		keyRing.KeyCharlie.Public().Hex())
@@ -272,7 +273,9 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 	err = codec.Decode(metadataBytes, meta)
 	require.NoError(t, err)
 
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
+
 	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
 		keyRing.KeyCharlie.Public().Hex())
 	require.NoError(t, err)

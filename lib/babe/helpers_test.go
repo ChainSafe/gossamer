@@ -303,7 +303,8 @@ func createSecondaryVRFPreDigest(t *testing.T,
 
 func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
 	bestBlockHash common.Hash) types.Extrinsic {
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
 	require.NoError(t, err)
 	var extrinsicParts [][]byte
