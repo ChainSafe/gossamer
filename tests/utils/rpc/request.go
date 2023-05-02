@@ -57,7 +57,7 @@ var (
 )
 
 // Decode decodes []body into the target interface.
-// It assumes that the response.Result is a JSON-encoded value.
+// It assumes that the response.Result is an optional JSON-encoded value.
 func Decode(body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
@@ -96,7 +96,7 @@ func Decode(body []byte, target interface{}) error {
 
 // DecodeScale decodes []body into the target interface.
 // It assumes that the response.Result is a SCALE-encoded value.
-func DecodeScale(body []byte, target interface{}) error {
+func DecodeScale(body []byte, target any) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
@@ -119,20 +119,18 @@ func DecodeScale(body []byte, target interface{}) error {
 	var result string
 	err = json.Unmarshal(response.Result, &result)
 	if err != nil {
-		return fmt.Errorf("cannot decode response result: %s: %w",
+		return fmt.Errorf("decode response result: %s: %w",
 			string(response.Result), err)
 	}
 
-	scaleRawMessage, err := common.HexToBytes(result)
+	resultBytes, err := common.HexToBytes(result)
 	if err != nil {
-		return fmt.Errorf("cannot convert to bytes: %s: %w",
-			result, err)
+		return fmt.Errorf("convert hex to bytes: %w", err)
 	}
 
-	err = scale.Unmarshal(scaleRawMessage, target)
+	err = scale.Unmarshal(resultBytes, target)
 	if err != nil {
-		return fmt.Errorf("cannot decode response result: %s: %w",
-			string(response.Result), err)
+		return fmt.Errorf("decode response result: %w", err)
 	}
 
 	return nil

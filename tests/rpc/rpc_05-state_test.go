@@ -33,6 +33,8 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	getBlockHashCancel()
 	require.NoError(t, err)
 
+	// TODO: Improve runtime tests
+	// https://github.com/ChainSafe/gossamer/issues/3234
 	t.Run("state_call", func(t *testing.T) {
 		t.Parallel()
 

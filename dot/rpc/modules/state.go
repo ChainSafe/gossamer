@@ -256,17 +256,17 @@ func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCa
 
 	rt, err := sm.blockAPI.GetRuntime(blockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("get runtime: %w", err)
 	}
 
 	request, err := common.HexToBytes(req.Params)
 	if err != nil {
-		return fmt.Errorf("cannot convert hex data %s to bytes: %w", req.Params, err)
+		return fmt.Errorf("convert hex to bytes: %w", err)
 	}
 
 	response, err := rt.Exec(req.Method, request)
 	if err != nil {
-		return err
+		return fmt.Errorf("runtime exec: %w", err)
 	}
 
 	*res = StateCallResponse(common.BytesToHex(response))

@@ -283,8 +283,8 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 }
 
 // TestCall tests the state_call.
-// TODO: cover more cases in Zombienet tests
-// https://github.com/ChainSafe/gossamer/issues/3229
+// TODO: Improve runtime tests
+// https://github.com/ChainSafe/gossamer/issues/3234
 func TestCall(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	testHash := common.NewHash([]byte{0x01, 0x02})
