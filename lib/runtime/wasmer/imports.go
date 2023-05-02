@@ -652,7 +652,7 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil //nolint
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
 	logger.Debugf(
@@ -703,7 +703,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil //nolint
+		return []wasmer.Value{wasmer.NewI32(0)}, nil
 	}
 
 	logger.Debugf(

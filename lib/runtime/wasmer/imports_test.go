@@ -1,4 +1,4 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -1572,6 +1572,7 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		errMsg   string
 	}{
 		{
+			// TODO this test case is causing grief
 			key:      []byte(`fakekey`),
 			limit:    optLimit2,
 			expected: []byte{0, 0, 0, 0, 0},

@@ -1,4 +1,4 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package wasmer
@@ -6,6 +6,7 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"math/big"
 	"os"
 	"testing"
@@ -21,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -161,7 +161,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	return append(append(append(h0, h1...), h2...), pub...)
 }
 
-func TestNodeRuntime_ValidateTransaction(t *testing.T) {
+func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
@@ -316,8 +316,9 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 			authorityID := babeConfig.GenesisAuthorities[0].Key
 
 			const slot = uint64(10)
-			_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+			res, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
 			require.NoError(t, err)
+			require.Nil(t, res)
 		})
 	}
 }
@@ -505,6 +506,22 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
+
+// TODO fix
+//func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
+//	DefaultTestLogLvl = 0
+//
+//	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+//
+//	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
+//
+//	// reset state back to parent state before executing
+//	parentState := storage.NewTrieState(nil)
+//	instance.SetContextStorage(parentState)
+//
+//	_, err := instance.ExecuteBlock(block)
+//	require.NoError(t, err)
+//}
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
@@ -1103,10 +1120,10 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	authorityID := identityPubKey.AsBytes()
 
-	encodedOpaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
-	require.NoError(t, err)
+	res, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	// Since the input is not valid with respect to the instance, an empty proof is returned
-	require.Empty(t, encodedOpaqueKeyOwnershipProof)
+	require.NoError(t, err)
+	require.Nil(t, res)
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
