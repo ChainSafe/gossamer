@@ -251,11 +251,11 @@ func (b *Buffered[I]) flush(waker *Waker) (bool, error) {
 		go func() {
 			b.mtx.Lock()
 			defer func() {
-				b.mtx.Unlock()
 				b.readyCh <- nil
 				if waker != nil {
 					waker.Wake()
 				}
+				b.mtx.Unlock()
 			}()
 
 			for len(b.buffer) > 0 {
