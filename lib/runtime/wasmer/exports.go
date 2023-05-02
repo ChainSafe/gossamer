@@ -115,8 +115,7 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
 	}
-
-	// TODO check with team if returning error is preferred or should we keep just returning empty value
+	
 	if keyOwnershipProof == nil {
 		return nil, nil
 	}
