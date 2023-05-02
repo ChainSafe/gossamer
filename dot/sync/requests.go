@@ -25,8 +25,12 @@ func descendingBlockRequest(blockHash common.Hash, amount uint32, requestedData 
 	}
 }
 
-func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData byte) []*network.BlockRequestMessage {
-	diff := int(targetNumber) - int(startNumber)
+func ascedingBlockRequests(startNumber, targetNumber uint, requestedData byte) []*network.BlockRequestMessage {
+	if startNumber > targetNumber {
+		return []*network.BlockRequestMessage{}
+	}
+
+	diff := targetNumber - startNumber
 
 	// start and end block are the same, just request 1 block
 	if diff == 0 {
@@ -41,17 +45,29 @@ func ascedingBlockRequests(startNumber uint, targetNumber uint, requestedData by
 		}
 	}
 
-	numRequests := uint(diff) / maxResponseSize
-	if diff%maxResponseSize != 0 {
+	numRequests := diff / maxResponseSize
+	// we should check if the diff is in the maxResponseSize bounds
+	// otherwise we should increase the numRequests by one, take this
+	// example, we want to sync from 0 to 259, the diff is 259
+	// then the num of requests is 2 (uint(259)/uint(128)) however two requests will
+	// retrieve only 256 blocks (each request can retrive a max of 128 blocks), so we should
+	// create one more request to retrive those missing blocks, 3 in this example.
+	missingBlocks := diff % maxResponseSize
+	if missingBlocks != 0 {
 		numRequests++
 	}
 
 	reqs := make([]*network.BlockRequestMessage, numRequests)
-
 	// check if we want to specify a size
 	const max = uint32(maxResponseSize)
 	for i := uint(0); i < numRequests; i++ {
 		max := max
+
+		lastIteration := numRequests - 1
+		if i == lastIteration && missingBlocks != 0 {
+			max = uint32(missingBlocks)
+		}
+
 		start := variadic.MustNewUint32OrHash(startNumber)
 
 		reqs[i] = &network.BlockRequestMessage{

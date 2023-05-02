@@ -34,8 +34,8 @@ type DisjointBlockSet interface {
 	addJustification(common.Hash, []byte) error
 	removeBlock(common.Hash)
 	removeLowerBlocks(num uint)
-	getBlocks() []*pendingBlock
 	getBlock(common.Hash) *pendingBlock
+	getBlocks() []*pendingBlock
 	hasBlock(common.Hash) bool
 	size() int
 }
