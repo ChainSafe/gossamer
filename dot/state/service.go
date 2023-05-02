@@ -233,7 +233,7 @@ func (s *Service) Rewind(toBlock uint) error {
 		}
 	}
 
-	//return s.Base.StoreBestBlockHash(newHead)
+	// return s.Base.StoreBestBlockHash(newHead)
 	return nil
 }
 

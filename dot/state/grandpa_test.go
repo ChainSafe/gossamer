@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -126,7 +127,7 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
 	header := testGenesisHeader
 
 	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
@@ -608,6 +609,7 @@ func TestApplyForcedChanges(t *testing.T) {
 
 		generateForks func(t *testing.T, blockState *BlockState) [][]*types.Header
 		changes       func(*GrandpaState, [][]*types.Header)
+		telemetryMock *MockTelemetry
 	}{
 		"no_forced_changes": {
 			generateForks:               genericForks,
@@ -615,6 +617,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			expectedSetID:               0,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
 			expectedPruning:             false,
+			telemetryMock:               nil,
 		},
 		"apply_forced_change_without_pending_scheduled_changes": {
 			generateForks: genericForks,
@@ -649,6 +652,14 @@ func TestApplyForcedChanges(t *testing.T) {
 				{Key: keyring.KeyBob.Public().(*sr25519.PublicKey).AsBytes()},
 				{Key: keyring.KeyDave.Public().(*sr25519.PublicKey).AsBytes()},
 			},
+			telemetryMock: func() *MockTelemetry {
+				ctrl := gomock.NewController(t)
+
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(gomock.Eq(&telemetry.AfgApplyingForcedAuthoritySetChange{Block: "8"})).Times(1)
+
+				return telemetryMock
+			}(),
 		},
 		"import_block_before_forced_change_should_do_nothing": {
 			generateForks: genericForks,
@@ -668,6 +679,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			expectedSetID:               0,
 			expectedPruning:             false,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+			telemetryMock:               nil,
 		},
 		"import_block_from_another_fork_should_do_nothing": {
 			generateForks: genericForks,
@@ -687,6 +699,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			expectedSetID:               0,
 			expectedPruning:             false,
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
+			telemetryMock:               nil,
 		},
 		"apply_forced_change_with_pending_scheduled_changes_should_fail": {
 			generateForks: genericForks,
@@ -726,8 +739,8 @@ func TestApplyForcedChanges(t *testing.T) {
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
 			expectedSetID:               0,
 			expectedPruning:             false,
+			telemetryMock:               nil,
 		},
-
 		"apply_forced_change_should_prune_scheduled_changes": {
 			generateForks: genericForks,
 			changes: func(gs *GrandpaState, headers [][]*types.Header) {
@@ -763,6 +776,7 @@ func TestApplyForcedChanges(t *testing.T) {
 			expectedGRANDPAAuthoritySet: genesisGrandpaVoters,
 			expectedSetID:               0,
 			expectedPruning:             false,
+			telemetryMock:               nil,
 		},
 	}
 
@@ -772,16 +786,11 @@ func TestApplyForcedChanges(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			ctrl := gomock.NewController(t)
-
-			telemetryMock := NewMockTelemetry(ctrl)
-			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, tt.telemetryMock)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, blockState)
@@ -903,7 +912,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 					},
 				})
 			},
-			finalizedHeader: [2]int{0, 3}, //finalize header number 4 from chain A
+			finalizedHeader: [2]int{0, 3}, // finalize header number 4 from chain A
 		},
 	}
 
@@ -912,16 +921,11 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			ctrl := gomock.NewController(t)
-
-			telemetryMock := NewMockTelemetry(ctrl)
-			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, nil)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)
@@ -1232,6 +1236,7 @@ func TestApplyScheduledChange(t *testing.T) {
 		expectedSetID                   uint64
 		expectedAuthoritySet            []types.GrandpaVoter
 		changeSetIDAt                   uint
+		telemetryMock                   *MockTelemetry
 	}{
 		"empty_scheduled_changes_only_update_the_forced_changes": {
 			generateForks: genericForks,
@@ -1264,6 +1269,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				auths, _ := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
 				return types.NewGrandpaVotersFromAuthorities(auths)
 			}(),
+			telemetryMock: nil,
 		},
 		"pending_scheduled_changes_should_return_error": {
 			generateForks: genericForks,
@@ -1298,6 +1304,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				auths, _ := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
 				return types.NewGrandpaVotersFromAuthorities(auths)
 			}(),
+			telemetryMock: nil,
 		},
 		"no_changes_to_apply_should_only_update_the_scheduled_roots": {
 			generateForks: genericForks,
@@ -1328,6 +1335,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				auths, _ := types.GrandpaAuthoritiesRawToAuthorities(genesisGrandpaVoters)
 				return types.NewGrandpaVotersFromAuthorities(auths)
 			}(),
+			telemetryMock: nil,
 		},
 		"apply_scheduled_change_should_change_voters_and_set_id": {
 			generateForks: genericForks,
@@ -1365,6 +1373,16 @@ func TestApplyScheduledChange(t *testing.T) {
 				})
 				return types.NewGrandpaVotersFromAuthorities(auths)
 			}(),
+			telemetryMock: func() *MockTelemetry {
+				ctrl := gomock.NewController(t)
+
+				telemetryMock := NewMockTelemetry(ctrl)
+				telemetryMock.EXPECT().SendMessage(
+					gomock.Eq(&telemetry.AfgApplyingScheduledAuthoritySetChange{Block: "6"}),
+				).Times(1)
+
+				return telemetryMock
+			}(),
 		},
 	}
 
@@ -1373,11 +1391,6 @@ func TestApplyScheduledChange(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 
-			ctrl := gomock.NewController(t)
-
-			telemetryMock := NewMockTelemetry(ctrl)
-			telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
 			db := NewInMemoryDB(t)
 			blockState := testBlockState(t, db)
 
@@ -1385,7 +1398,7 @@ func TestApplyScheduledChange(t *testing.T) {
 			require.NoError(t, err)
 
 			voters := types.NewGrandpaVotersFromAuthorities(genesisAuths)
-			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, telemetryMock)
+			gs, err := NewGrandpaStateFromGenesis(db, blockState, voters, tt.telemetryMock)
 			require.NoError(t, err)
 
 			forks := tt.generateForks(t, gs.blockState)
