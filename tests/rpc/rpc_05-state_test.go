@@ -39,7 +39,6 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		t.Parallel()
 
 		const params = `["Core_version", "0x"]`
-		var response runtime.Version
 
 		rpcCtx, rpcCancel := context.WithTimeout(ctx, 10*time.Second)
 		defer rpcCancel()
@@ -47,6 +46,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		data, err := rpc.Post(rpcCtx, endpoint, "state_call", params)
 		require.NoError(t, err)
 
+		var response runtime.Version
 		err = rpc.DecodeScale(data, &response)
 		require.NoError(t, err)
 	})
