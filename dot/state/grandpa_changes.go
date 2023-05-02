@@ -22,8 +22,8 @@ type pendingChange struct {
 }
 
 func (p pendingChange) String() string {
-	return fmt.Sprintf("announcing header: %s (%d), delay: %d, next authorities: %d",
-		p.announcingHeader.Hash(), p.announcingHeader.Number, p.delay, len(p.nextAuthorities))
+	return fmt.Sprintf("announcing header: %s (#%d), delay: %d, effective block number: %d, next authorities: %d",
+		p.announcingHeader.Hash().Short(), p.announcingHeader.Number, p.delay, p.effectiveNumber(), len(p.nextAuthorities))
 }
 
 func (p *pendingChange) effectiveNumber() uint {
@@ -130,6 +130,10 @@ func (oc *orderedPendingChanges) pruneChanges(hash common.Hash, isDescendantOf i
 
 	*oc = onBranchForcedChanges
 	return nil
+}
+
+func (oc *orderedPendingChanges) pruneAll() {
+	*oc = make([]pendingChange, 0, oc.Len())
 }
 
 type pendingChangeNode struct {
@@ -313,4 +317,8 @@ func (ct *changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendant
 
 	*ct = onBranchChanges
 	return nil
+}
+
+func (ct *changeTree) pruneAll() {
+	*ct = []*pendingChangeNode{}
 }

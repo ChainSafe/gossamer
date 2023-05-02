@@ -155,6 +155,7 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
+		logger.Info("instantiated runtime!!!")
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrWasmInterpreterName, cfg.Core.WasmInterpreter)
 	}
@@ -214,7 +215,6 @@ func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, 
 		BlockImportHandler: cs,
 		Authority:          cfg.Core.BabeAuthority,
 		IsDev:              cfg.Global.ID == "dev",
-		Lead:               cfg.Core.BABELead,
 		Telemetry:          telemetryMailer,
 	}
 
@@ -442,6 +442,11 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		return nil, err
 	}
 
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		Network:            net,
@@ -455,6 +460,7 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		MaxPeers:           cfg.Network.MaxPeers,
 		SlotDuration:       slotDuration,
 		Telemetry:          telemetryMailer,
+		BadBlocks:          genesisData.BadBlocks,
 	}
 
 	return sync.NewService(syncCfg)

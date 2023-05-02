@@ -25,7 +25,6 @@ unlock = ""
 roles = 4
 babe-authority = true
 grandpa-authority = true
-babe-lead = true
 
 [network]
 port = 7001

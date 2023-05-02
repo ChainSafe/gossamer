@@ -35,6 +35,7 @@ type Config struct {
 	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
 	Telemetry          Telemetry
+	BadBlocks          []string
 }
 
 // NewService returns a new *sync.Service
@@ -56,6 +57,7 @@ func NewService(cfg *Config) (*Service, error) {
 		finalityGadget:     cfg.FinalityGadget,
 		blockImportHandler: cfg.BlockImportHandler,
 		telemetry:          cfg.Telemetry,
+		badBlocks:          cfg.BadBlocks,
 	}
 	chainSync := newChainSync(csCfg)
 

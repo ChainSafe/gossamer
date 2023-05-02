@@ -706,6 +706,8 @@ func TestWorkerToRequests(t *testing.T) {
 
 func TestChainSync_validateResponse(t *testing.T) {
 	t.Parallel()
+	badBlockHash := common.NewHash([]byte("badblockhash"))
+
 	tests := map[string]struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
 		networkBuilder    func(ctrl *gomock.Controller) Network
@@ -813,6 +815,31 @@ func TestChainSync_validateResponse(t *testing.T) {
 			},
 			expectedError: errUnknownParent,
 		},
+		"handle_error_bad_block": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				return mockBlockState
+			},
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				return NewMockNetwork(ctrl)
+			},
+			req: &network.BlockRequestMessage{
+				RequestedData: network.RequestedDataHeader,
+			},
+			resp: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Hash: badBlockHash,
+						Header: &types.Header{
+							Number: 2,
+						},
+						Body: &types.Body{},
+					},
+				},
+			},
+			expectedError: errBadBlock,
+		},
 		"no_error": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
@@ -858,6 +885,9 @@ func TestChainSync_validateResponse(t *testing.T) {
 				pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
 				readyBlocks:   newBlockQueue(maxResponseSize),
 				net:           tt.networkBuilder(ctrl),
+				badBlocks: []string{
+					badBlockHash.String(),
+				},
 			}
 			cs := newChainSync(cfg)
 

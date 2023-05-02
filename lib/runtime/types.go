@@ -57,4 +57,5 @@ type Context struct {
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
 	Version         Version
+	Memory          Memory
 }

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
-
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/stretchr/testify/require"
@@ -165,7 +164,7 @@ func TestExportCommand(t *testing.T) {
 			config := ctx.String(ConfigFlag.Name)
 
 			cfg := new(ctoml.Config)
-			err = loadConfig(cfg, config)
+			err = loadConfigFromFile(cfg, config)
 			require.NoError(t, err)
 
 			require.Equal(t, dotConfigToToml(c.expected), cfg)

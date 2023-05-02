@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -126,6 +127,7 @@ type chainSync struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 type chainSyncConfig struct {
@@ -140,6 +142,7 @@ type chainSyncConfig struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 func newChainSync(cfg chainSyncConfig) *chainSync {
@@ -171,6 +174,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		logSyncDone:        make(chan struct{}),
 		workerPool:         newSyncWorkerPool(cfg.net),
 		blockAnnounceCh:    make(chan announcedBlock, cfg.maxPeers),
+		badBlocks:          cfg.badBlocks,
 	}
 }
 
@@ -1050,6 +1054,7 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 // It checks the following:
 //   - the response is not empty
 //   - the response contains all the expected fields
+//   - the block is not contained in the bad block list
 //   - each block has the correct parent, ie. the response constitutes a valid chain
 func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 	resp *network.BlockResponseMessage, p peer.ID) error {
@@ -1120,6 +1125,11 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	requestedData := req.RequestedData
+
+	if slices.Contains(cs.badBlocks, bd.Hash.String()) {
+		logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash)
+		return errBadBlock
+	}
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
 		cs.network.ReportPeer(peerset.ReputationChange{
