@@ -5,17 +5,15 @@ package wasmer
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
-
 	"errors"
 	"math"
-
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/stretchr/testify/require"
-
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func genesisFromRawJSON(t *testing.T, jsonFilepath string) (gen genesis.Genesis) {

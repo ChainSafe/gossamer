@@ -5,7 +5,6 @@ package wasmer
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -14,8 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-var errEmptyKeyOwnershipProof = errors.New("key ownership proof is nil")
 
 // ValidateTransaction runs the extrinsic through the runtime function
 // TaggedTransactionQueue_validate_transaction and returns *transaction.Validity. The error can

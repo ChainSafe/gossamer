@@ -5,11 +5,12 @@ package wasmer
 
 import (
 	"context"
+	"os"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 // test used for ensuring runtime exec calls can be made concurrently

@@ -6,7 +6,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"math/big"
 	"os"
 	"testing"
@@ -22,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -506,22 +506,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
-
-// TODO fix
-//func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
-//	DefaultTestLogLvl = 0
-//
-//	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
-//
-//	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
-//
-//	// reset state back to parent state before executing
-//	parentState := storage.NewTrieState(nil)
-//	instance.SetContextStorage(parentState)
-//
-//	_, err := instance.ExecuteBlock(block)
-//	require.NoError(t, err)
-//}
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
