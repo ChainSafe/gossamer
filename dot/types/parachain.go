@@ -200,7 +200,7 @@ func (va *CoreState) Value() (scale.VaryingDataTypeValue, error) {
 func NewCoreStateVDT() (scale.VaryingDataType, error) {
 	vdt, err := scale.NewVaryingDataType(OccupiedCore{}, ScheduledCore{}, Free{})
 	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("failed to create varying data type: %w", err)
+		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
 	}
 
 	return vdt, nil
@@ -329,10 +329,14 @@ type CandidateReceipt struct {
 }
 
 // HeadData Parachain head data included in the chain.
-type HeadData []byte
+type HeadData struct {
+	Data []byte `scale:"1"`
+}
 
 // CoreIndex The unique (during session) index of a core.
-type CoreIndex uint32
+type CoreIndex struct {
+	Index uint32 `scale:"1"`
+}
 
 // CandidateBacked This candidate receipt was backed in the most recent block.
 // This includes the core index the candidate is now occupying.
@@ -354,7 +358,7 @@ func (CandidateBacked) Index() uint {
 type CandidateIncluded struct {
 	CandidateReceipt CandidateReceipt `scale:"1"`
 	HeadData         HeadData         `scale:"2"`
-	CoreIndex        CoreIndex        `scale:"3"`
+	CoreIndex        uint32           `scale:"-"`
 	GroupIndex       GroupIndex       `scale:"4"`
 }
 
@@ -403,7 +407,7 @@ func (va *CandidateEvent) Value() (scale.VaryingDataTypeValue, error) {
 func NewCandidateEventVDT() (scale.VaryingDataType, error) {
 	vdt, err := scale.NewVaryingDataType(CandidateBacked{}, CandidateIncluded{}, CandidateTimedOut{})
 	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("failed to create varying data type: %w", err)
+		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
 	}
 
 	return vdt, nil
