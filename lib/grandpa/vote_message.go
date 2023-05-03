@@ -288,7 +288,7 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof: %w", err)
 	} else if opaqueKeyOwnershipProof == nil {
-		return fmt.Errorf("%w", errEmptyKeyOwnershipProof)
+		return errEmptyKeyOwnershipProof
 	}
 
 	grandpaEquivocation := types.GrandpaEquivocation{

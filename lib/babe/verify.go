@@ -364,7 +364,7 @@ func (b *verifier) submitAndReportEquivocation(
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
 	} else if keyOwnershipProof == nil {
-		return fmt.Errorf("%w", errEmptyKeyOwnershipProof)
+		return errEmptyKeyOwnershipProof
 	}
 
 	equivocationProof := &types.BabeEquivocationProof{
