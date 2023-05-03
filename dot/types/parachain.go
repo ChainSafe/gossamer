@@ -121,14 +121,6 @@ type CandidateDescriptor struct {
 	ValidationCodeHash ValidationCodeHash `scale:"9"`
 }
 
-// ScheduledCore Information about a core which is currently occupied.
-type ScheduledCore struct {
-	// The ID of a para scheduled.
-	ParaID ParaID
-	// The collator required to author the block, if any.
-	Collator *Collator
-}
-
 // OccupiedCore Information about a core which is currently occupied.
 type OccupiedCore struct {
 	// NOTE: this has no ParaId as it can be deduced from the candidate descriptor.
@@ -156,19 +148,21 @@ type OccupiedCore struct {
 	CandidateDescriptor CandidateDescriptor `scale:"8"`
 }
 
-// Occupied Core information about a core which is currently occupied.
-type Occupied OccupiedCore
-
 // Index returns the index
-func (Occupied) Index() uint {
+func (OccupiedCore) Index() uint {
 	return 0
 }
 
-// Scheduled Core information about a core which is currently scheduled.
-type Scheduled ScheduledCore
+// ScheduledCore Information about a core which is currently occupied.
+type ScheduledCore struct {
+	// The ID of a para scheduled.
+	ParaID ParaID
+	// The collator required to author the block, if any.
+	Collator *Collator
+}
 
 // Index returns the index
-func (Scheduled) Index() uint {
+func (ScheduledCore) Index() uint {
 	return 1
 }
 
@@ -202,14 +196,14 @@ func (va *CoreState) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
-// NewCoreState returns a new CoreState
-func NewCoreState() (CoreState, error) {
-	vdt, err := scale.NewVaryingDataType(Occupied{}, Scheduled{}, Free{})
+// NewCoreStateVDT returns a new CoreState VaryingDataType
+func NewCoreStateVDT() (scale.VaryingDataType, error) {
+	vdt, err := scale.NewVaryingDataType(OccupiedCore{}, ScheduledCore{}, Free{})
 	if err != nil {
-		return CoreState{}, fmt.Errorf("failed to create varying data type: %w", err)
+		return scale.VaryingDataType{}, fmt.Errorf("failed to create varying data type: %w", err)
 	}
 
-	return CoreState(vdt), nil
+	return vdt, nil
 }
 
 // UpwardMessage A message from a parachain to its Relay Chain.

@@ -362,16 +362,17 @@ func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, erro
 }
 
 // ParachainHostAvailabilityCores Returns information on all availability cores
-func (in *Instance) ParachainHostAvailabilityCores() (*types.CoreState, error) {
+func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
 	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	availabilityCores, err := types.NewCoreState()
+	coreStateVDT, err := types.NewCoreStateVDT()
 	if err != nil {
 		return nil, err
 	}
+	availabilityCores := scale.NewVaryingDataTypeSlice(coreStateVDT)
 
 	err = scale.Unmarshal(ret, &availabilityCores)
 	if err != nil {

@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package types
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// Test_Validators tests the scale encoding and decoding of a Validator struct
 func Test_Validators(t *testing.T) {
 	t.Parallel()
 
@@ -55,6 +59,7 @@ func Test_Validators(t *testing.T) {
 	require.Equal(t, resultHex, common.BytesToHex(encoded))
 }
 
+// Test_ValidatorGroup tests the validator group encoding and decoding.
 func Test_ValidatorGroup(t *testing.T) {
 	t.Parallel()
 
@@ -83,5 +88,45 @@ func Test_ValidatorGroup(t *testing.T) {
 	encoded, err := scale.Marshal(validatorGroups)
 	require.NoError(t, err)
 
+	require.Equal(t, result, common.BytesToHex(encoded))
+}
+
+// Test_AvailabilityCoresScheduled tests the CoreState VDT with ScheduledCore encoding and decoding.
+// TODO: cover it for other CoreState variants
+func Test_AvailabilityCoresScheduled(t *testing.T) {
+	t.Parallel()
+
+	result := "0x0c01e80300000001e90300000001ea03000000"
+	resultBytes, err := common.HexToBytes(result)
+	require.NoError(t, err)
+
+	availabilityCoreVDT, err := NewCoreStateVDT()
+	require.NoError(t, err)
+	availabilityCores := scale.NewVaryingDataTypeSlice(availabilityCoreVDT)
+	err = scale.Unmarshal(resultBytes, &availabilityCores)
+	require.NoError(t, err)
+
+	vdt, err := NewCoreStateVDT()
+	require.NoError(t, err)
+	expected := scale.NewVaryingDataTypeSlice(vdt)
+	err = expected.Add(
+		ScheduledCore{
+			ParaID:   1000,
+			Collator: nil,
+		},
+		ScheduledCore{
+			ParaID:   1001,
+			Collator: nil,
+		},
+		ScheduledCore{
+			ParaID:   1002,
+			Collator: nil,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, expected, availabilityCores)
+
+	encoded, err := scale.Marshal(availabilityCores)
+	require.NoError(t, err)
 	require.Equal(t, result, common.BytesToHex(encoded))
 }
