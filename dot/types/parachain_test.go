@@ -130,3 +130,22 @@ func Test_AvailabilityCoresScheduled(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, result, common.BytesToHex(encoded))
 }
+
+// TestSessionIndex tests the SessionIndex encoding and decoding.
+func TestSessionIndex(t *testing.T) {
+	t.Parallel()
+
+	result := "0x0f690000"
+	resultBytes, err := common.HexToBytes(result)
+	require.NoError(t, err)
+
+	var sessionIndex SessionIndex
+	err = scale.Unmarshal(resultBytes, &sessionIndex)
+	require.NoError(t, err)
+
+	require.Equal(t, SessionIndex(26895), sessionIndex)
+
+	encoded, err := scale.Marshal(sessionIndex)
+	require.NoError(t, err)
+	require.Equal(t, result, common.BytesToHex(encoded))
+}
