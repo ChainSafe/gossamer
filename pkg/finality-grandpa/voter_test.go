@@ -664,3 +664,41 @@ waitForPrevote:
 	err := voter.Stop()
 	assert.NoError(t, err)
 }
+
+func TestBuffered(t *testing.T) {
+	in := make(chan int32)
+	buffered := newBuffered(in)
+
+	run := true
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for run {
+			buffered.Push(999)
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for run {
+			buffered.flush(NewWaker())
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range in {
+		}
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	buffered.Close()
+
+	run = false
+	wg.Wait()
+}

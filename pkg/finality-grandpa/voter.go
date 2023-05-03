@@ -241,6 +241,10 @@ func (b *Buffered[I]) Poll(waker *Waker) (bool, error) {
 }
 
 func (b *Buffered[I]) flush(waker *Waker) (bool, error) {
+	if b.inner == nil {
+		return false, fmt.Errorf("inner channel has been closed")
+	}
+
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	if len(b.buffer) == 0 {
@@ -248,24 +252,23 @@ func (b *Buffered[I]) flush(waker *Waker) (bool, error) {
 	}
 	select {
 	case <-b.readyCh:
-		go func() {
-			b.mtx.Lock()
-			defer func() {
-				b.readyCh <- nil
-				if waker != nil {
-					waker.Wake()
-				}
-				b.mtx.Unlock()
-			}()
-
-			for len(b.buffer) > 0 {
-				b.inner <- b.buffer[0]
-				b.buffer = b.buffer[1:]
-				if waker != nil {
-					waker.Wake()
-				}
-			}
+		// b.mtx.Lock()
+		defer func() {
+			b.readyCh <- nil
+			// if waker != nil {
+			// 	waker.Wake()
+			// }
+			// b.mtx.Unlock()
 		}()
+
+		for len(b.buffer) > 0 {
+			b.inner <- b.buffer[0]
+			b.buffer = b.buffer[1:]
+			if waker != nil {
+				waker.Wake()
+			}
+		}
+
 	default:
 	}
 	return false, nil
@@ -275,6 +278,7 @@ func (b *Buffered[I]) Close() {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	close(b.inner)
+	b.inner = nil
 }
 
 // Instantiates the given last round, to be backgrounded until its estimate is finalized.
