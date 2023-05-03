@@ -4,6 +4,8 @@
 package sync
 
 import (
+	"time"
+
 	"context"
 	"errors"
 	"testing"
@@ -72,15 +74,15 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 		number                    uint
 		errWrapped                error
 		errMessage                string
-		expectedPeerIDToPeerState map[peer.ID]*peerState
-		expectedQueuedPeerStates  []*peerState
+		expectedPeerIDToPeerState map[peer.ID]*peerView
+		expectedQueuedPeerStates  []*peerView
 	}{
 		"best_block_header_error": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().BestBlockHeader().Return(nil, errTest)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 				}
 			},
@@ -89,7 +91,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     1,
 			errWrapped: errTest,
 			errMessage: "best block header: test error",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -105,7 +107,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				blockState.EXPECT().GetHashByNumber(uint(1)).
 					Return(common.Hash{}, errTest)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 				}
 			},
@@ -114,7 +116,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     1,
 			errWrapped: errTest,
 			errMessage: "get block hash by number: test error",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -129,14 +131,14 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(1)).Return(someHash, nil)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 				}
 			},
 			peerID: somePeer,
 			hash:   someHash,
 			number: 1,
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -153,7 +155,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 					Return(common.Hash{2}, nil) // other hash than someHash
 				blockState.EXPECT().GetHighestFinalisedHeader().Return(nil, errTest)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 				}
 			},
@@ -162,7 +164,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     1,
 			errWrapped: errTest,
 			errMessage: "get highest finalised header: test error",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -185,7 +187,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 					Reason: peerset.BadBlockAnnouncementReason,
 				}, somePeer)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 					network:    network,
 				}
@@ -195,7 +197,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     1,
 			errWrapped: errPeerOnInvalidFork,
 			errMessage: "peer is on an invalid fork: for peer ZiCa and block number 1",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -218,7 +220,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 					Reason: peerset.BadBlockAnnouncementReason,
 				}, somePeer)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 					network:    network,
 				}
@@ -228,7 +230,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     1,
 			errWrapped: errPeerOnInvalidFork,
 			errMessage: "peer is on an invalid fork: for peer ZiCa and block number 1",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -249,7 +251,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
 				blockState.EXPECT().HasHeader(someHash).Return(false, errTest)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 				}
 			},
@@ -258,7 +260,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     2,
 			errWrapped: errTest,
 			errMessage: "has header: test error",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -279,14 +281,14 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
 				blockState.EXPECT().HasHeader(someHash).Return(true, nil)
 				return &chainSync{
-					peerState:  map[peer.ID]*peerState{},
+					peerView:   map[peer.ID]*peerView{},
 					blockState: blockState,
 				}
 			},
 			peerID: somePeer,
 			hash:   someHash,
 			number: 2,
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -303,7 +305,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				pendingBlocks.EXPECT().addHashAndNumber(someHash, uint(2)).
 					Return(errTest)
 				return &chainSync{
-					peerState:     map[peer.ID]*peerState{},
+					peerView:      map[peer.ID]*peerView{},
 					blockState:    blockState,
 					pendingBlocks: pendingBlocks,
 				}
@@ -313,7 +315,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			number:     2,
 			errWrapped: errTest,
 			errMessage: "add hash and number: test error",
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
@@ -330,25 +332,25 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 				pendingBlocks.EXPECT().addHashAndNumber(someHash, uint(2)).
 					Return(nil)
 				return &chainSync{
-					peerState:     map[peer.ID]*peerState{},
+					peerView:      map[peer.ID]*peerView{},
 					blockState:    blockState,
 					pendingBlocks: pendingBlocks,
 					// buffered of 1 so setPeerHead can write to it
 					// without a consumer of the channel on the other end.
-					workQueue: make(chan *peerState, 1),
+					workQueue: make(chan *peerView, 1),
 				}
 			},
 			peerID: somePeer,
 			hash:   someHash,
 			number: 2,
-			expectedPeerIDToPeerState: map[peer.ID]*peerState{
+			expectedPeerIDToPeerState: map[peer.ID]*peerView{
 				somePeer: {
 					who:    somePeer,
 					hash:   someHash,
 					number: 2,
 				},
 			},
-			expectedQueuedPeerStates: []*peerState{
+			expectedQueuedPeerStates: []*peerView{
 				{
 					who:    somePeer,
 					hash:   someHash,
@@ -372,7 +374,7 @@ func Test_chainSync_setPeerHead(t *testing.T) {
 			if testCase.errWrapped != nil {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
-			assert.Equal(t, testCase.expectedPeerIDToPeerState, chainSync.peerState)
+			assert.Equal(t, testCase.expectedPeerIDToPeerState, chainSync.peerView)
 
 			require.Equal(t, len(testCase.expectedQueuedPeerStates), len(chainSync.workQueue))
 			for _, expectedPeerState := range testCase.expectedQueuedPeerStates {
@@ -410,11 +412,11 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	defer cs.cancel()
 
 	testPeer := peer.ID("noot")
-	cs.peerState[testPeer] = &peerState{
+	cs.peerView[testPeer] = &peerView{
 		number: 1000,
 	}
 
-	cs.workQueue <- cs.peerState[testPeer]
+	cs.workQueue <- cs.peerView[testPeer]
 
 	select {
 	case res := <-cs.resultQueue:
@@ -452,11 +454,11 @@ func TestChainSync_sync_tip(t *testing.T) {
 	defer cs.cancel()
 
 	testPeer := peer.ID("noot")
-	cs.peerState[testPeer] = &peerState{
+	cs.peerView[testPeer] = &peerView{
 		number: 999,
 	}
 
-	cs.workQueue <- cs.peerState[testPeer]
+	cs.workQueue <- cs.peerView[testPeer]
 	<-done
 	require.Equal(t, tip, cs.state)
 }
@@ -465,7 +467,7 @@ func TestChainSync_getTarget(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cs := newTestChainSync(ctrl)
 	require.Equal(t, uint(1<<32-1), cs.getTarget())
-	cs.peerState = map[peer.ID]*peerState{
+	cs.peerView = map[peer.ID]*peerView{
 		"a": {
 			number: 0, // outlier
 		},
@@ -491,7 +493,7 @@ func TestChainSync_getTarget(t *testing.T) {
 
 	require.Equal(t, uint(130), cs.getTarget()) // sum:650/count:5= avg:130
 
-	cs.peerState = map[peer.ID]*peerState{
+	cs.peerView = map[peer.ID]*peerView{
 		"testA": {
 			number: 1000,
 		},
@@ -924,7 +926,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNoPeers, workerErr.err)
 
-	cs.peerState["noot"] = &peerState{
+	cs.peerView["noot"] = &peerView{
 		number: 100,
 	}
 
@@ -1096,10 +1098,10 @@ func TestChainSync_determineSyncPeers(t *testing.T) {
 	peersTried := make(map[peer.ID]struct{})
 
 	// test base case
-	cs.peerState[testPeerA] = &peerState{
+	cs.peerView[testPeerA] = &peerView{
 		number: 129,
 	}
-	cs.peerState[testPeerB] = &peerState{
+	cs.peerView[testPeerB] = &peerView{
 		number: 257,
 	}
 
@@ -1347,12 +1349,12 @@ func Test_chainSync_setBlockAnnounce(t *testing.T) {
 				return chainSync{
 					blockState:    mockBlockState,
 					pendingBlocks: mockDisjointBlockSet,
-					peerState:     make(map[peer.ID]*peerState),
+					peerView:      make(map[peer.ID]*peerView),
 					// creating an buffered channel for this specific test
 					// since it will put a work on the queue and an unbufered channel
 					// will hang until we read on this channel and the goal is to
 					// put the work on the channel and don't block
-					workQueue: make(chan *peerState, 1),
+					workQueue: make(chan *peerView, 1),
 				}
 			},
 		},
@@ -1382,7 +1384,7 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		peerState        map[peer.ID]*peerState
+		peerState        map[peer.ID]*peerView
 		wantHighestBlock uint
 		expectedError    error
 	}{
@@ -1392,7 +1394,7 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 		},
 		{
 			name:             "base case",
-			peerState:        map[peer.ID]*peerState{"1": {number: 2}},
+			peerState:        map[peer.ID]*peerView{"1": {number: 2}},
 			wantHighestBlock: 2,
 		},
 	}
@@ -1401,7 +1403,7 @@ func Test_chainSync_getHighestBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			cs := &chainSync{
-				peerState: tt.peerState,
+				peerView: tt.peerState,
 			}
 			gotHighestBlock, err := cs.getHighestBlock()
 			if tt.expectedError != nil {
@@ -1622,13 +1624,12 @@ func Test_chainSync_handleResult(t *testing.T) {
 	}
 }
 
-func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller, readyBlocks *blockQueue) *chainSync {
+func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller) *chainSync {
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
 	cfg := chainSyncConfig{
 		bs:            mockBlockState,
-		readyBlocks:   readyBlocks,
 		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
 		minPeers:      1,
 		maxPeers:      5,
@@ -1639,6 +1640,5 @@ func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller, readyBlocks *block
 }
 
 func newTestChainSync(ctrl *gomock.Controller) *chainSync {
-	readyBlocks := newBlockQueue(maxResponseSize)
-	return newTestChainSyncWithReadyBlocks(ctrl, readyBlocks)
+	return newTestChainSyncWithReadyBlocks(ctrl)
 }

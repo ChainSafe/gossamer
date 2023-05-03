@@ -20,6 +20,7 @@ var (
 	errRequestStartTooHigh     = errors.New("request start number is higher than our best block")
 
 	// chainSync errors
+	errUnableToGetTarget            = errors.New("unable to get target")
 	errEmptyBlockData               = errors.New("empty block data")
 	errNilBlockData                 = errors.New("block data is nil")
 	errNilResponse                  = errors.New("block response is nil")

@@ -15,8 +15,9 @@ type syncWorker struct {
 	ctx context.Context
 	l   sync.RWMutex
 
-	doneCh chan struct{}
-	stopCh chan struct{}
+	releaseCh chan struct{}
+	doneCh    chan struct{}
+	stopCh    chan struct{}
 
 	who     peer.ID
 	network Network
@@ -24,15 +25,16 @@ type syncWorker struct {
 
 func newSyncWorker(ctx context.Context, who peer.ID, network Network) *syncWorker {
 	return &syncWorker{
-		ctx:     ctx,
-		who:     who,
-		network: network,
-		doneCh:  make(chan struct{}),
-		stopCh:  make(chan struct{}),
+		ctx:       ctx,
+		who:       who,
+		network:   network,
+		doneCh:    make(chan struct{}),
+		stopCh:    make(chan struct{}),
+		releaseCh: make(chan struct{}),
 	}
 }
 
-func (s *syncWorker) Start(tasks chan *syncTask, wg *sync.WaitGroup) {
+func (s *syncWorker) Start(tasks <-chan *syncTask, wg *sync.WaitGroup) {
 	wg.Add(1)
 
 	go func() {
@@ -45,30 +47,45 @@ func (s *syncWorker) Start(tasks chan *syncTask, wg *sync.WaitGroup) {
 		logger.Debugf("worker %s started, waiting for tasks...", s.who)
 
 		for {
+			s.waitForTasks(tasks)
+
+			logger.Debugf("[WAITING RELEASE] worker %s", s.who)
 			select {
+			case <-s.releaseCh:
 			case <-s.stopCh:
 				return
-
-			case task := <-tasks:
-				request := task.request
-
-				logger.Debugf("[EXECUTING] worker %s: block request: %s", s.who, request)
-				response, err := s.network.DoBlockRequest(s.who, request)
-				if err != nil {
-					logger.Debugf("[FINISHED] worker %s: err: %s", s.who, err)
-				} else if response != nil {
-					logger.Debugf("[FINISHED] worker %s: block data amount: %d", s.who, len(response.BlockData))
-				}
-
-				task.resultCh <- &syncTaskResult{
-					who:      s.who,
-					request:  request,
-					response: response,
-					err:      err,
-				}
 			}
 		}
 	}()
+}
+
+func (s *syncWorker) waitForTasks(tasks <-chan *syncTask) {
+	select {
+	case <-s.stopCh:
+		return
+
+	case task := <-tasks:
+		request := task.request
+
+		logger.Debugf("[EXECUTING] worker %s: block request: %s", s.who, request)
+		response, err := s.network.DoBlockRequest(s.who, request)
+		if err != nil {
+			logger.Debugf("[FINISHED] worker %s: err: %s", s.who, err)
+		} else if response != nil {
+			logger.Debugf("[FINISHED] worker %s: block data amount: %d", s.who, len(response.BlockData))
+		}
+
+		task.resultCh <- &syncTaskResult{
+			who:      s.who,
+			request:  request,
+			response: response,
+			err:      err,
+		}
+	}
+}
+
+func (s *syncWorker) Release() {
+	s.releaseCh <- struct{}{}
 }
 
 func (s *syncWorker) Stop() {

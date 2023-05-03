@@ -9,6 +9,11 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const (
+	ignorePeerTimeout      = 2 * time.Minute
+	maxRequestAllowed uint = 40
+)
+
 type syncTask struct {
 	request  *network.BlockRequestMessage
 	resultCh chan<- *syncTaskResult
@@ -36,8 +41,6 @@ type syncWorkerPool struct {
 	ignorePeers map[peer.ID]time.Time
 }
 
-const maxRequestAllowed uint = 40
-
 func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return &syncWorkerPool{
 		network:     net,
@@ -46,8 +49,6 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 		ignorePeers: make(map[peer.ID]time.Time),
 	}
 }
-
-const ignorePeerTimeout = 2 * time.Minute
 
 func (s *syncWorkerPool) useConnectedPeers() {
 	connectedPeers := s.network.AllConnectedPeers()
@@ -76,7 +77,7 @@ func (s *syncWorkerPool) useConnectedPeers() {
 	}
 }
 
-func (s *syncWorkerPool) addWorkerFromBlockAnnounce(who peer.ID) error {
+func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) error {
 	s.l.Lock()
 	defer s.l.Unlock()
 
@@ -111,23 +112,29 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage,
 	}
 }
 
-func (s *syncWorkerPool) shutdownWorker(who peer.ID, ignore bool) {
+func (s *syncWorkerPool) releaseWorker(who peer.ID) {
 	s.l.Lock()
-	defer s.l.Unlock()
-
 	peer, has := s.workers[who]
+	s.l.Unlock()
+
 	if !has {
 		return
 	}
 
-	go func() {
-		logger.Warnf("trying to stop %s (ignore=%v)", who, ignore)
-		peer.Stop()
-		logger.Warnf("peer %s stopped", who)
-	}()
+	peer.Release()
+}
 
+func (s *syncWorkerPool) shutdownWorker(who peer.ID, ignore bool) {
+	s.l.Lock()
+	peer, has := s.workers[who]
+	s.l.Unlock()
+
+	if !has {
+		return
+	}
+
+	peer.Stop()
 	delete(s.workers, who)
-
 	if ignore {
 		ignorePeerTimeout := time.Now().Add(ignorePeerTimeout)
 		s.ignorePeers[who] = ignorePeerTimeout

@@ -59,9 +59,8 @@ func ascedingBlockRequests(startNumber, targetNumber uint, requestedData byte) [
 
 	reqs := make([]*network.BlockRequestMessage, numRequests)
 	// check if we want to specify a size
-	const max = uint32(maxResponseSize)
 	for i := uint(0); i < numRequests; i++ {
-		max := max
+		max := uint32(maxResponseSize)
 
 		lastIteration := numRequests - 1
 		if i == lastIteration && missingBlocks != 0 {

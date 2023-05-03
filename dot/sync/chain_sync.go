@@ -27,7 +27,6 @@ import (
 )
 
 var _ ChainSync = &chainSync{}
-var errUnableToGetTarget = errors.New("unable to get target")
 
 type chainSyncState byte
 
@@ -57,8 +56,8 @@ var (
 	})
 )
 
-// peerState tracks our peers's best reported blocks
-type peerState struct {
+// peerView tracks our peers's best reported blocks
+type peerView struct {
 	who    peer.ID
 	hash   common.Hash
 	number uint
@@ -99,8 +98,8 @@ type chainSync struct {
 
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
-	peerStateLock sync.RWMutex
-	peerState     map[peer.ID]*peerState
+	peerViewLock sync.RWMutex
+	peerView     map[peer.ID]*peerView
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -162,7 +161,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		cancel:             cancel,
 		blockState:         cfg.bs,
 		network:            cfg.net,
-		peerState:          make(map[peer.ID]*peerState),
+		peerView:           make(map[peer.ID]*peerView),
 		pendingBlocks:      cfg.pendingBlocks,
 		state:              bootstrap,
 		benchmarker:        newSyncBenchmarker(syncSamplesToKeep),
@@ -307,15 +306,15 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 
 // setPeerHead sets a peer's best known block
 func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber uint) error {
-	err := cs.workerPool.addWorkerFromBlockAnnounce(who)
+	err := cs.workerPool.fromBlockAnnounce(who)
 	if err != nil {
 		logger.Errorf("adding a potential worker: %s", err)
 	}
 
-	cs.peerStateLock.Lock()
-	defer cs.peerStateLock.Unlock()
+	cs.peerViewLock.Lock()
+	defer cs.peerViewLock.Unlock()
 
-	cs.peerState[who] = &peerState{
+	cs.peerView[who] = &peerView{
 		who:    who,
 		hash:   bestHash,
 		number: bestNumber,
@@ -616,7 +615,7 @@ func (cs *chainSync) executeBootstrapSync() error {
 
 		if targetBlockNumber > realTarget {
 			// basically if our virtual target is beyond the real target
-			// that means we are fell requests far from the tip, then we
+			// that means we are few requests far from the tip, then we
 			// calculate the correct amount of missing requests and then
 			// change to tip sync which should take care of the rest
 			diff := targetBlockNumber - realTarget
@@ -674,18 +673,18 @@ func (cs *chainSync) maybeSwitchMode() error {
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() (uint, error) {
-	cs.peerStateLock.RLock()
-	defer cs.peerStateLock.RUnlock()
+	cs.peerViewLock.RLock()
+	defer cs.peerViewLock.RUnlock()
 
 	// in practice, this shouldn't happen, as we only start the module once we have some peer states
-	if len(cs.peerState) == 0 {
+	if len(cs.peerView) == 0 {
 		// return max uint32 instead of 0, as returning 0 would switch us to tip mode unexpectedly
 		return 0, errUnableToGetTarget
 	}
 
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	uintArr := make([]uint, 0, len(cs.peerState))
-	for _, ps := range cs.peerState {
+	uintArr := make([]uint, 0, len(cs.peerView))
+	for _, ps := range cs.peerView {
 		uintArr = append(uintArr, ps.number)
 	}
 
@@ -701,7 +700,7 @@ func (cs *chainSync) getTarget() (uint, error) {
 func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	logger.Debugf("starting handleWorkersResults, waiting %d blocks", totalBlocks)
+	logger.Debugf("handling workers results, waiting for %d blocks", totalBlocks)
 	syncingChain := make([]*types.BlockData, totalBlocks)
 
 loop:
@@ -722,18 +721,17 @@ loop:
 				<-idleTimer.C
 			}
 
-			logger.Infof("task result: peer(%s), error: %v, hasResponse: %v",
+			logger.Debugf("task result: peer(%s), with error: %v, with response: %v",
 				taskResult.who, taskResult.err != nil, taskResult.response != nil)
 
 			if taskResult.err != nil {
-				logger.Criticalf("task result error: %s", taskResult.err)
+				logger.Errorf("task result: peer(%s) error: %s",
+					taskResult.who, taskResult.err)
 
-				if errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
-					continue
+				// if we receive and empty message from the stream we don't need to shutdown the worker
+				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+					cs.workerPool.shutdownWorker(taskResult.who, true)
 				}
-
-				cs.workerPool.shutdownWorker(taskResult.who, true)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			}
@@ -765,6 +763,7 @@ loop:
 				continue
 			}
 
+			cs.workerPool.releaseWorker(who)
 			if len(response.BlockData) > 0 {
 				firstBlockInResponse := response.BlockData[0]
 				lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
@@ -1166,14 +1165,14 @@ func (cs *chainSync) validateJustification(bd *types.BlockData) error {
 }
 
 func (cs *chainSync) getHighestBlock() (highestBlock uint, err error) {
-	cs.peerStateLock.RLock()
-	defer cs.peerStateLock.RUnlock()
+	cs.peerViewLock.RLock()
+	defer cs.peerViewLock.RUnlock()
 
-	if len(cs.peerState) == 0 {
+	if len(cs.peerView) == 0 {
 		return 0, errNoPeers
 	}
 
-	for _, ps := range cs.peerState {
+	for _, ps := range cs.peerView {
 		if ps.number < highestBlock {
 			continue
 		}

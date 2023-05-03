@@ -119,18 +119,18 @@ func (mr *MockDisjointBlockSetMockRecorder) getBlocks() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getBlocks", reflect.TypeOf((*MockDisjointBlockSet)(nil).getBlocks))
 }
 
-// getReadyDescendants mocks base method.
-func (m *MockDisjointBlockSet) getReadyDescendants(arg0 common.Hash, arg1 []*types.BlockData) []*types.BlockData {
+// hasBlock mocks base method.
+func (m *MockDisjointBlockSet) hasBlock(arg0 common.Hash) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getReadyDescendants", arg0, arg1)
-	ret0, _ := ret[0].([]*types.BlockData)
+	ret := m.ctrl.Call(m, "hasBlock", arg0)
+	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// getReadyDescendants indicates an expected call of getReadyDescendants.
-func (mr *MockDisjointBlockSetMockRecorder) getReadyDescendants(arg0, arg1 interface{}) *gomock.Call {
+// hasBlock indicates an expected call of hasBlock.
+func (mr *MockDisjointBlockSetMockRecorder) hasBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getReadyDescendants", reflect.TypeOf((*MockDisjointBlockSet)(nil).getReadyDescendants), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasBlock", reflect.TypeOf((*MockDisjointBlockSet)(nil).hasBlock), arg0)
 }
 
 // removeBlock mocks base method.
@@ -158,15 +158,15 @@ func (mr *MockDisjointBlockSetMockRecorder) removeLowerBlocks(arg0 interface{}) 
 }
 
 // run mocks base method.
-func (m *MockDisjointBlockSet) run(arg0 <-chan struct{}) {
+func (m *MockDisjointBlockSet) run(arg0 <-chan *types.FinalisationInfo, arg1 <-chan struct{}) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "run", arg0)
+	m.ctrl.Call(m, "run", arg0, arg1)
 }
 
 // run indicates an expected call of run.
-func (mr *MockDisjointBlockSetMockRecorder) run(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) run(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), arg0, arg1)
 }
 
 // size mocks base method.
