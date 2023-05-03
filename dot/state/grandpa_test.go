@@ -127,7 +127,7 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{})).Times(1)
 	header := testGenesisHeader
 
 	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
