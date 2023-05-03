@@ -30,6 +30,8 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
+
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 )
 
 // NewInMemoryDB creates a new in-memory database
@@ -275,6 +277,12 @@ type Instance interface {
 	RandomSeed()
 	OffchainWorker()
 	GenerateSessionKeys()
+	ParachainHostPersistedValidationData(
+		parachaidID uint32,
+		assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
 }
 
 // Versioner returns the version from the runtime.

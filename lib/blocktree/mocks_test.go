@@ -11,6 +11,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "github.com/golang/mock/gomock"
@@ -336,6 +337,36 @@ func (m *MockRuntime) OffchainWorker() {
 func (mr *MockRuntimeMockRecorder) OffchainWorker() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OffchainWorker", reflect.TypeOf((*MockRuntime)(nil).OffchainWorker))
+}
+
+// ParachainHostPersistedValidationData mocks base method.
+func (m *MockRuntime) ParachainHostPersistedValidationData(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostPersistedValidationData", arg0, arg1)
+	ret0, _ := ret[0].(*parachaintypes.PersistedValidationData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostPersistedValidationData indicates an expected call of ParachainHostPersistedValidationData.
+func (mr *MockRuntimeMockRecorder) ParachainHostPersistedValidationData(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostPersistedValidationData", reflect.TypeOf((*MockRuntime)(nil).ParachainHostPersistedValidationData), arg0, arg1)
+}
+
+// ParachainHostValidationCode mocks base method.
+func (m *MockRuntime) ParachainHostValidationCode(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostValidationCode", arg0, arg1)
+	ret0, _ := ret[0].(*parachaintypes.ValidationCode)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostValidationCode indicates an expected call of ParachainHostValidationCode.
+func (mr *MockRuntimeMockRecorder) ParachainHostValidationCode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCode", reflect.TypeOf((*MockRuntime)(nil).ParachainHostValidationCode), arg0, arg1)
 }
 
 // PaymentQueryInfo mocks base method.

@@ -10,6 +10,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 )
 
 // Runtime interface.
@@ -45,4 +47,10 @@ type Runtime interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
+	ParachainHostPersistedValidationData(
+		parachaidID uint32,
+		assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
 }

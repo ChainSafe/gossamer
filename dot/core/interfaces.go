@@ -20,6 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 )
 
 // RuntimeInstance for runtime methods
@@ -59,6 +61,12 @@ type RuntimeInstance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
+	ParachainHostPersistedValidationData(
+		parachaidID uint32,
+		assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
 }
 
 // BlockState interface for block state methods

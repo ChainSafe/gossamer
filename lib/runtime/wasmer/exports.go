@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -330,3 +331,62 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
+
+// ParachainHostPersistedValidationData returns persisted validation data for the given parachain id.
+func (in *Instance) ParachainHostPersistedValidationData(
+	parachaidID uint32,
+	assumption parachaintypes.OccupiedCoreAssumption,
+) (*parachaintypes.PersistedValidationData, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachaidID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	err = encoder.Encode(assumption)
+	if err != nil {
+		return nil, fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+
+	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostPersistedValidationData, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("persistedValidationData: ", encodedPersistedValidationData)
+	persistedValidationData := parachaintypes.PersistedValidationData{}
+	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return &persistedValidationData, nil
+}
+
+// ParachainHostValidationCode returns validation code for the given parachain id.
+func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+) (*parachaintypes.ValidationCode, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachaidID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain id: %w", err)
+	}
+	err = encoder.Encode(assumption)
+	if err != nil {
+		return nil, fmt.Errorf("encoding occupied core assumption: %w", err)
+	}
+
+	encodedValidationCode, err := in.Exec(runtime.ParachainHostValidationCode, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	validationCode := parachaintypes.ValidationCode{}
+	err = scale.Unmarshal(encodedValidationCode, &validationCode)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return &validationCode, nil
+}
