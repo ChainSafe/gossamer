@@ -52,15 +52,15 @@ type ValidatorIndex uint32
 // GroupRotationInfo represents the group rotation info
 type GroupRotationInfo struct {
 	// SessionStartBlock is the block number at which the session started
-	SessionStartBlock uint64 `scale:"1"`
+	SessionStartBlock uint32 `scale:"1"`
 	// GroupRotationFrequency indicates how often groups rotate. 0 means never.
-	GroupRotationFrequency uint64 `scale:"2"`
+	GroupRotationFrequency uint32 `scale:"2"`
 	// Now indicates the current block number.
-	Now uint64 `scale:"3"`
+	Now uint32 `scale:"3"`
 }
 
 type ValidatorGroups struct {
-	// Validators is an array the validator set Ids
+	// Validators is an array of validator set Ids
 	Validators [][]ValidatorIndex `scale:"1"`
 	// GroupRotationInfo is the group rotation info
 	GroupRotationInfo GroupRotationInfo `scale:"2"`

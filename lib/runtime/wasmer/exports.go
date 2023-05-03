@@ -335,13 +335,13 @@ func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 		return nil, err
 	}
 
-	var gar []types.ValidatorID
-	err = scale.Unmarshal(ret, &gar)
+	var validatorIDs []types.ValidatorID
+	err = scale.Unmarshal(ret, &validatorIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	return types.ValidatorIDToValidator(gar)
+	return types.ValidatorIDToValidator(validatorIDs)
 }
 
 // ParachainHostValidatorGroups Returns the validator groups used during the current session.
