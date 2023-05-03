@@ -161,7 +161,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	return append(append(append(h0, h1...), h2...), pub...)
 }
 
-func TestNodeRuntime_ValidateTransaction(t *testing.T) {
+func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
@@ -316,8 +316,9 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 			authorityID := babeConfig.GenesisAuthorities[0].Key
 
 			const slot = uint64(10)
-			_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+			res, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
 			require.NoError(t, err)
+			require.Nil(t, res)
 		})
 	}
 }
@@ -1103,10 +1104,10 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	authorityID := identityPubKey.AsBytes()
 
-	encodedOpaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
-	require.NoError(t, err)
+	opaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	// Since the input is not valid with respect to the instance, an empty proof is returned
-	require.Empty(t, encodedOpaqueKeyOwnershipProof)
+	require.NoError(t, err)
+	require.Nil(t, opaqueKeyOwnershipProof)
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
