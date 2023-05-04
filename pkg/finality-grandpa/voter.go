@@ -8,21 +8,23 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type WakerChan[Item any] struct {
+type wakerChan[Item any] struct {
 	in    chan Item
 	out   chan Item
 	waker *Waker
 }
 
-func NewWakerChan[Item any](in chan Item) *WakerChan[Item] {
-	return &WakerChan[Item]{
+func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
+	wc := &wakerChan[Item]{
 		in:    in,
 		out:   make(chan Item),
 		waker: nil,
 	}
+	go wc.start()
+	return wc
 }
 
-func (wc *WakerChan[Item]) start() {
+func (wc *wakerChan[Item]) start() {
 	for item := range wc.in {
 		if wc.waker != nil {
 			wc.waker.Wake()
@@ -31,12 +33,12 @@ func (wc *WakerChan[Item]) start() {
 	}
 }
 
-func (wc *WakerChan[Item]) SetWaker(waker *Waker) {
+func (wc *wakerChan[Item]) SetWaker(waker *Waker) {
 	wc.waker = waker
 }
 
 // Chan returns a channel to consume `Item`.  Not thread safe, only supports one consumer
-func (wc *WakerChan[Item]) Chan() chan Item {
+func (wc *wakerChan[Item]) Chan() chan Item {
 	return wc.out
 }
 
@@ -48,27 +50,24 @@ type Timer interface {
 type Output[Hash comparable, Number constraints.Unsigned] chan Message[Hash, Number]
 
 // The input stream used to communicate with the outside world.
-type Input[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
-	wakerChan *WakerChan[SignedMessageError[Hash, Number, Signature, ID]]
-}
+type Input[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] chan SignedMessageError[Hash, Number, Signature, ID]
 
-func newInput[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
-	in chan SignedMessageError[Hash, Number, Signature, ID],
-) *Input[Hash, Number, Signature, ID] {
-	wc := NewWakerChan(in)
-	go wc.start()
-	input := Input[Hash, Number, Signature, ID]{wc}
-	return &input
-}
+// func newInput[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
+// 	in chan SignedMessageError[Hash, Number, Signature, ID],
+// ) *Input[Hash, Number, Signature, ID] {
+// 	wc := newWakerChan(in)
+// 	input := Input[Hash, Number, Signature, ID]{wc}
+// 	return &input
+// }
 
-func (input *Input[Hash, Number, Signature, ID]) SetWaker(waker *Waker) {
-	input.wakerChan.SetWaker(waker)
-}
+// func (input *Input[Hash, Number, Signature, ID]) SetWaker(waker *Waker) {
+// 	input.wakerChan.SetWaker(waker)
+// }
 
-// Chan returns a channel to consume SignedMessageError.  Not thread safe, only supports one consumer
-func (input *Input[Hash, Number, Signature, ID]) Chan() chan SignedMessageError[Hash, Number, Signature, ID] {
-	return input.wakerChan.Chan()
-}
+// // Chan returns a channel to consume SignedMessageError.  Not thread safe, only supports one consumer
+// func (input *Input[Hash, Number, Signature, ID]) Chan() chan SignedMessageError[Hash, Number, Signature, ID] {
+// 	return input.wakerChan.Chan()
+// }
 
 type SignedMessageError[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
 	SignedMessage SignedMessage[Hash, Number, Signature, ID]
@@ -81,25 +80,22 @@ type BestChainOutput[Hash comparable, Number constraints.Unsigned] struct {
 
 // Associated future type for the environment used when asynchronously computing the
 // best chain to vote on. See also [`Self::best_chain_containing`].
-type BestChain[Hash comparable, Number constraints.Unsigned] struct {
-	wakerChan *WakerChan[BestChainOutput[Hash, Number]]
-}
+type BestChain[Hash comparable, Number constraints.Unsigned] chan BestChainOutput[Hash, Number]
 
-func NewBestChain[Hash comparable, Number constraints.Unsigned](in chan BestChainOutput[Hash, Number]) *BestChain[Hash, Number] {
-	wc := NewWakerChan(in)
-	go wc.start()
-	bestChain := BestChain[Hash, Number]{wc}
-	return &bestChain
-}
+// func NewBestChain[Hash comparable, Number constraints.Unsigned](in chan BestChainOutput[Hash, Number]) *BestChain[Hash, Number] {
+// 	wc := newWakerChan(in)
+// 	bestChain := BestChain[Hash, Number]{wc}
+// 	return &bestChain
+// }
 
-func (bc *BestChain[Hash, Number]) SetWaker(waker *Waker) {
-	bc.wakerChan.SetWaker(waker)
-}
+// func (bc *BestChain[Hash, Number]) SetWaker(waker *Waker) {
+// 	bc.wakerChan.SetWaker(waker)
+// }
 
-// Chan returns a channel to consume SignedMessageError.  Not thread safe, only supports one consumer
-func (bc *BestChain[Hash, Number]) Chan() chan BestChainOutput[Hash, Number] {
-	return bc.wakerChan.Chan()
-}
+// // Chan returns a channel to consume SignedMessageError.  Not thread safe, only supports one consumer
+// func (bc *BestChain[Hash, Number]) Chan() chan BestChainOutput[Hash, Number] {
+// 	return bc.wakerChan.Chan()
+// }
 
 // Necessary environment for a voter.
 //
@@ -1006,7 +1002,7 @@ func validateCatchUp[Hash constraints.Ordered, Number constraints.Unsigned, Sign
 
 	// import prevotes first
 	for _, sp := range catchUp.Prevotes {
-		_, err := round.ImportPrevote(env, sp.Prevote, sp.ID, sp.Signature)
+		_, err := round.importPrevote(env, sp.Prevote, sp.ID, sp.Signature)
 		if err != nil {
 			fmt.Println("Ignoring invalid catch up, error importing prevote:", err)
 			return nil
@@ -1015,7 +1011,7 @@ func validateCatchUp[Hash constraints.Ordered, Number constraints.Unsigned, Sign
 
 	// then precommits.
 	for _, sp := range catchUp.Precommits {
-		_, err := round.ImportPrecommit(env, Precommit[Hash, Number](sp.Precommit), sp.ID, sp.Signature)
+		_, err := round.importPrecommit(env, Precommit[Hash, Number](sp.Precommit), sp.ID, sp.Signature)
 		if err != nil {
 			fmt.Println("Ignoring invalid catch up, error importing precommit:", err)
 			return nil

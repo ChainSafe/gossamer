@@ -122,17 +122,17 @@ func TestRound_EstimateIsValid(t *testing.T) {
 		Base:        HashNumber[string, uint32]{"C", 4},
 	})
 
-	_, err := round.ImportPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Alice", "Alice")
+	_, err := round.importPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Alice", "Alice")
 	assert.NoError(t, err)
 
-	_, err = round.ImportPrevote(chain, Prevote[string, uint32]{"ED", 10}, "Bob", "Bob")
+	_, err = round.importPrevote(chain, Prevote[string, uint32]{"ED", 10}, "Bob", "Bob")
 	assert.NoError(t, err)
 
 	assert.Equal(t, HashNumber[string, uint32]{"E", 6}, *round.prevoteGhost)
 	assert.Equal(t, HashNumber[string, uint32]{"E", 6}, *round.estimate)
 	assert.False(t, round.completable)
 
-	_, err = round.ImportPrevote(chain, Prevote[string, uint32]{"F", 7}, "Eve", "Eve")
+	_, err = round.importPrevote(chain, Prevote[string, uint32]{"F", 7}, "Eve", "Eve")
 	assert.NoError(t, err)
 
 	assert.Equal(t, HashNumber[string, uint32]{"E", 6}, *round.prevoteGhost)
@@ -152,11 +152,11 @@ func TestRound_Finalization(t *testing.T) {
 		Base:        HashNumber[string, uint32]{"C", 4},
 	})
 
-	ir1, err := round.ImportPrecommit(chain, Precommit[string, uint32]{"FC", 10}, "Alice", "Alice")
+	ir1, err := round.importPrecommit(chain, Precommit[string, uint32]{"FC", 10}, "Alice", "Alice")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir1)
 
-	ir1, err = round.ImportPrecommit(chain, Precommit[string, uint32]{"ED", 10}, "Bob", "Bob")
+	ir1, err = round.importPrecommit(chain, Precommit[string, uint32]{"ED", 10}, "Bob", "Bob")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir1)
 
@@ -164,22 +164,22 @@ func TestRound_Finalization(t *testing.T) {
 
 	// import some prevotes.
 	{
-		ir, err := round.ImportPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Alice", "Alice")
+		ir, err := round.importPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Alice", "Alice")
 		assert.NoError(t, err)
 		assert.NotNil(t, ir)
 
-		ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"ED", 10}, "Bob", "Bob")
+		ir, err = round.importPrevote(chain, Prevote[string, uint32]{"ED", 10}, "Bob", "Bob")
 		assert.NoError(t, err)
 		assert.NotNil(t, ir)
 
-		ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"EA", 7}, "Eve", "Eve")
+		ir, err = round.importPrevote(chain, Prevote[string, uint32]{"EA", 7}, "Eve", "Eve")
 		assert.NoError(t, err)
 		assert.NotNil(t, ir)
 
 		assert.Equal(t, &HashNumber[string, uint32]{"E", 6}, round.finalized)
 	}
 
-	ir1, err = round.ImportPrecommit(chain, Precommit[string, uint32]{"EA", 7}, "Eve", "Eve")
+	ir1, err = round.importPrecommit(chain, Precommit[string, uint32]{"EA", 7}, "Eve", "Eve")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir1)
 
@@ -200,7 +200,7 @@ func TestRound_EquivocateDoesNotDoubleCount(t *testing.T) {
 	})
 
 	// first prevote by eve
-	ir, err := round.ImportPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Eve", "Eve-1")
+	ir, err := round.importPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Eve", "Eve-1")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 	assert.Nil(t, ir.Equivocation)
@@ -208,13 +208,13 @@ func TestRound_EquivocateDoesNotDoubleCount(t *testing.T) {
 	assert.Nil(t, round.prevoteGhost)
 
 	// second prevote by eve: comes with equivocation proof
-	ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"ED", 10}, "Eve", "Eve-2")
+	ir, err = round.importPrevote(chain, Prevote[string, uint32]{"ED", 10}, "Eve", "Eve-2")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 	assert.NotNil(t, ir.Equivocation)
 
 	// third prevote: returns nothing.
-	ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"F", 7}, "Eve", "Eve-2")
+	ir, err = round.importPrevote(chain, Prevote[string, uint32]{"F", 7}, "Eve", "Eve-2")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 	assert.Nil(t, ir.Equivocation)
@@ -222,7 +222,7 @@ func TestRound_EquivocateDoesNotDoubleCount(t *testing.T) {
 	// three eves together would be enough.
 	assert.Nil(t, round.prevoteGhost)
 
-	ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"FA", 8}, "Bob", "Bob-1")
+	ir, err = round.importPrevote(chain, Prevote[string, uint32]{"FA", 8}, "Bob", "Bob-1")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 	assert.Nil(t, ir.Equivocation)
@@ -243,21 +243,21 @@ func TestRound_HistoricalVotesWorks(t *testing.T) {
 		Base:        HashNumber[string, uint32]{"C", 4},
 	})
 
-	ir, err := round.ImportPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Alice", "Alice")
+	ir, err := round.importPrevote(chain, Prevote[string, uint32]{"FC", 10}, "Alice", "Alice")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 
 	round.historicalVotes.SetPrevotedIdx()
 
-	ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"EA", 7}, "Eve", "Eve")
+	ir, err = round.importPrevote(chain, Prevote[string, uint32]{"EA", 7}, "Eve", "Eve")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 
-	ir1, err := round.ImportPrecommit(chain, Precommit[string, uint32]{"EA", 7}, "Eve", "Eve")
+	ir1, err := round.importPrecommit(chain, Precommit[string, uint32]{"EA", 7}, "Eve", "Eve")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir1)
 
-	ir, err = round.ImportPrevote(chain, Prevote[string, uint32]{"EC", 10}, "Alice", "Alice")
+	ir, err = round.importPrevote(chain, Prevote[string, uint32]{"EC", 10}, "Alice", "Alice")
 	assert.NoError(t, err)
 	assert.NotNil(t, ir)
 

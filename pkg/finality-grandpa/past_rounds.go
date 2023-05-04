@@ -142,7 +142,7 @@ type roundCommitter[
 	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID],
 ] struct {
 	commitTimer   Timer
-	importCommits *WakerChan[Commit[Hash, Number, Signature, ID]]
+	importCommits *wakerChan[Commit[Hash, Number, Signature, ID]]
 	lastCommit    *Commit[Hash, Number, Signature, ID]
 
 	// pollChan is used to signal back to backgroundRound to poll again
@@ -152,7 +152,7 @@ type roundCommitter[
 func newRoundCommitter[
 	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
 	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID],
-](commitTimer Timer, commitReceiver *WakerChan[Commit[Hash, Number, Signature, ID]]) *roundCommitter[Hash, Number, Signature, ID, E] {
+](commitTimer Timer, commitReceiver *wakerChan[Commit[Hash, Number, Signature, ID]]) *roundCommitter[Hash, Number, Signature, ID, E] {
 	return &roundCommitter[Hash, Number, Signature, ID, E]{
 		commitTimer, commitReceiver, nil, make(chan any),
 	}
@@ -253,7 +253,7 @@ func (p *PastRounds[Hash, Number, Signature, ID, E]) Push(env E, round VotingRou
 		inner: round,
 		// this will get updated in a call to PastRounds.UpdateFinalized() on next poll
 		finalizedNumber: 0,
-		roundCommitter:  newRoundCommitter[Hash, Number, Signature, ID, E](env.RoundCommitTimer(), NewWakerChan(ch)),
+		roundCommitter:  newRoundCommitter[Hash, Number, Signature, ID, E](env.RoundCommitTimer(), newWakerChan(ch)),
 	}
 	p.pastRounds = append(p.pastRounds, background)
 	p.commitSenders[roundNumber] = ch

@@ -13,14 +13,13 @@ type ID uint32
 type Signature uint32
 
 type timer struct {
-	wakerChan *WakerChan[error]
+	wakerChan *wakerChan[error]
 	expired   bool
 }
 
 func newTimer(in <-chan time.Time) *timer {
 	inErr := make(chan error)
-	wc := NewWakerChan(inErr)
-	go wc.start()
+	wc := newWakerChan(inErr)
 	timer := timer{wakerChan: wc}
 	go func() {
 		<-in
@@ -95,7 +94,7 @@ func (e *environment) BestChainContaining(base string) BestChain[string, uint32]
 
 	ch := make(chan BestChainOutput[string, uint32], 1)
 	ch <- BestChainOutput[string, uint32]{Value: e.chain.BestChainContaining(base)}
-	return *NewBestChain(ch)
+	return ch
 }
 
 func (e *environment) RoundData(round uint64, outgoing chan Message[string, uint32]) RoundData[ID, Timer, SignedMessageError[string, uint32, Signature, ID]] {

@@ -57,7 +57,7 @@ type VotingRound[Hash constraints.Ordered, Number constraints.Unsigned, Signatur
 	env               E
 	voting            voting
 	votes             *Round[ID, Hash, Number, Signature] // this is not an Option in the rust code. Using a pointer for copylocks
-	incoming          *Input[Hash, Number, Signature, ID]
+	incoming          *wakerChan[SignedMessageError[Hash, Number, Signature, ID]]
 	outgoing          *Buffered[Message[Hash, Number]]
 	state             any
 	bridgedRoundState *PriorView[Hash, Number]
@@ -99,7 +99,7 @@ func NewVotingRound[
 	return VotingRound[Hash, Number, Signature, ID, E]{
 		votes:             votes,
 		voting:            voting,
-		incoming:          newInput(roundData.Incoming),
+		incoming:          newWakerChan(roundData.Incoming),
 		outgoing:          newBuffered(outgoing),
 		state:             Start[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer},
 		bridgedRoundState: nil,
@@ -127,7 +127,7 @@ func NewVotingRoundCompleted[
 	return VotingRound[Hash, Number, Signature, ID, E]{
 		votes:             votes,
 		voting:            votingNo,
-		incoming:          newInput(roundData.Incoming),
+		incoming:          newWakerChan(roundData.Incoming),
 		outgoing:          newBuffered(outgoing),
 		state:             nil,
 		bridgedRoundState: nil,
@@ -323,7 +323,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(
 		signature := signedPrecommit.Signature
 		id := signedPrecommit.ID
 
-		importResult, err := vr.votes.ImportPrecommit(vr.env, precommit, id, signature)
+		importResult, err := vr.votes.importPrecommit(vr.env, precommit, id, signature)
 		if err != nil {
 			return nil, err
 		}
@@ -378,7 +378,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) HandleVote(vote SignedMes
 	switch message := message.Value().(type) {
 	case Prevote[Hash, Number]:
 		prevote := message
-		importResult, err := vr.votes.ImportPrevote(vr.env, prevote, vote.ID, vote.Signature)
+		importResult, err := vr.votes.importPrevote(vr.env, prevote, vote.ID, vote.Signature)
 		if err != nil {
 			return err
 		}
@@ -387,7 +387,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) HandleVote(vote SignedMes
 		}
 	case Precommit[Hash, Number]:
 		precommit := message
-		importResult, err := vr.votes.ImportPrecommit(vr.env, precommit, vote.ID, vote.Signature)
+		importResult, err := vr.votes.importPrecommit(vr.env, precommit, vote.ID, vote.Signature)
 		if err != nil {
 			return err
 		}
@@ -565,9 +565,10 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, las
 	}
 
 	var finishPrevoting = func(precommitTimer Timer, base Hash, bestChain BestChain[Hash, Number], waker *Waker) error {
-		bestChain.SetWaker(waker)
+		wakerChan := newWakerChan(bestChain)
+		wakerChan.SetWaker(waker)
 		var best *HashNumber[Hash, Number]
-		res := <-bestChain.Chan()
+		res := <-wakerChan.Chan()
 		switch {
 		case res.Error != nil:
 			return res.Error
