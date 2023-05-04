@@ -98,7 +98,7 @@ type CandidateDescriptor struct {
 	RelayParent common.Hash `scale:"2"`
 
 	// Collator is the collator's relay-chain account ID
-	Collator sr25519.PublicKey `scale:"3"`
+	Collator CollatorID `scale:"3"`
 
 	// PersistedValidationDataHash is the blake2-256 hash of the persisted validation data. This is extra data derived from
 	// relay-chain state which may vary based on bitfields included before the candidate.
@@ -228,7 +228,7 @@ type CandidateCommitments struct {
 	// Horizontal messages sent by the parachain.
 	HorizontalMessages []OutboundHrmpMessage `scale:"2"`
 	// New validation code.
-	NewValidationCode *ValidationCode `scale:"3"`
+	NewValidationCode ValidationCode `scale:"3"`
 	// The head-data produced as a result of execution.
 	HeadData headData `scale:"4"`
 	// The number of messages processed from the DMQ.
@@ -255,12 +255,12 @@ type AssignmentID sr25519.PublicKey
 // IndexedValidator A validator with its index.
 type IndexedValidator struct {
 	Index     ValidatorIndex `scale:"-"`
-	Validator Validator      `scale:"2"`
+	Validator []ValidatorID  `scale:"2"`
 }
 
 // IndexedValidatorGroup A validator group with its group index.
 type IndexedValidatorGroup struct {
-	GroupIndex []GroupIndex     `scale:"-"`
+	GroupIndex []GroupIndex     `scale:"1"`
 	Validators []ValidatorIndex `scale:"2"`
 }
 
@@ -270,15 +270,15 @@ type SessionInfo struct {
 	// Indices are into the broader validator set.
 	ActiveValidatorIndices []ValidatorIndex `scale:"1"`
 	// A secure random seed for the session, gathered from BABE.
-	RandomSeed [32]byte `scale:"2"`
+	RandomSeed [32]uint8 `scale:"2"`
 	// The amount of sessions to keep for disputes.
 	DisputePeriod SessionIndex `scale:"3"`
 	// Validators in canonical ordering.
 	Validators []IndexedValidator `scale:"4"`
 	// Validators' authority discovery keys for the session in canonical ordering.
-	DiscoveryKeys []Authority `scale:"5"`
+	DiscoveryKeys []byte `scale:"5"`
 	// The assignment keys for validators.
-	AssignmentKeys []AssignmentID `scale:"6"`
+	AssignmentKeys []byte `scale:"6"`
 	// Validators in shuffled ordering - these are the validator groups as produced
 	// by the `Scheduler` module for the session and are typically referred to by
 	// `GroupIndex`.
@@ -317,7 +317,7 @@ type InboundHrmpMessage struct {
 	// enacted.
 	SentAt BlockNumber `scale:"1"`
 	// The message payload.
-	Message []byte `scale:"2"`
+	Data []byte `scale:"2"`
 }
 
 // CandidateReceipt A receipt for a parachain candidate.
