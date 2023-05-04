@@ -492,7 +492,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	if err != nil {
 		return version, fmt.Errorf("setting up runtime: %w", err)
 	}
-	return rt.Version(), nil
+	return rt.Version()
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
@@ -578,7 +578,10 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 // buildExternalTransaction builds an external transaction based on the current transaction queue API version
 // See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	if err != nil {
+		return nil, err
+	}
 	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
 	if err != nil {
 		return nil, err

@@ -393,7 +393,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					}},
 					TransactionVersion: transactionVersion,
 					StateVersion:       stateVersion,
-				})
+				}, nil)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)

@@ -193,13 +193,7 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 	}
 
 	if cfg.testVersion != nil {
-		instance.ctx.Version = *cfg.testVersion
-	} else {
-		instance.ctx.Version, err = instance.version()
-		if err != nil {
-			instance.close()
-			return nil, fmt.Errorf("getting instance version: %w", err)
-		}
+		instance.ctx.Version = cfg.testVersion
 	}
 
 	return instance, nil
@@ -245,7 +239,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 
 	logger.Info("instantiated runtime!!!")
 
-	version, err = instance.version()
+	version, err = instance.Version()
 	if err != nil {
 		return version, fmt.Errorf("running runtime: %w", err)
 	}

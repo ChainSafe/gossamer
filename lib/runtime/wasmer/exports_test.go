@@ -32,7 +32,7 @@ var testKeyOwnershipProof types.OpaqueKeyOwnershipProof = types.OpaqueKeyOwnersh
 
 func Test_Instance_Version(t *testing.T) {
 	type instanceVersioner interface {
-		Version() (version runtime.Version)
+		Version() (runtime.Version, error)
 	}
 
 	testCases := map[string]struct {
@@ -145,7 +145,8 @@ func Test_Instance_Version(t *testing.T) {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			instance := testCase.instanceBuilder(t)
-			version := instance.Version()
+			version, err := instance.Version()
+			require.NoError(t, err)
 			assert.Equal(t, testCase.expectedVersion, version)
 		})
 	}

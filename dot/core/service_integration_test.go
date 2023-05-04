@@ -446,7 +446,9 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	rtExpected := rt.Version()
+	rtExpected, err := rt.Version()
+	require.NoError(t, err)
+
 	rtv, err := s.GetRuntimeVersion(nil)
 	require.NoError(t, err)
 	require.Equal(t, rtExpected, rtv)
@@ -506,7 +508,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	v := rt.Version()
+	v, err := rt.Version()
+	require.NoError(t, err)
+
 	currSpecVersion := v.SpecVersion     // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
@@ -540,7 +544,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	parentRt, err := s.blockState.GetRuntime(hash)
 	require.NoError(t, err)
 
-	v = parentRt.Version()
+	v, err = parentRt.Version()
+	require.NoError(t, err)
+
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
@@ -561,13 +567,16 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err = s.blockState.GetRuntime(bhash1)
 	require.NoError(t, err)
 
-	v = rt.Version()
+	v, err = rt.Version()
+	require.NoError(t, err)
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(rtUpdateBhash)
 	require.NoError(t, err)
 
-	v = rt.Version()
+	v, err = rt.Version()
+	require.NoError(t, err)
+
 	require.Equal(t, v.SpecVersion, updatedSpecVersion)
 }
 
