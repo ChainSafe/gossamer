@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	dotsync "github.com/ChainSafe/gossamer/dot/sync"
@@ -492,7 +493,7 @@ func (n *nodeBuilder) loadRuntime(cfg *Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
-	runtimeCode := make(map[string]runtimeInterface)
+	runtimeCode := make(map[string]runtimeinterface.Instance)
 	for i := range blocks {
 		hash := &blocks[i]
 		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))

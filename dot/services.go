@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
@@ -111,7 +112,7 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 
 func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
-	rt runtimeInterface, err error) {
+	rt runtimeinterface.Instance, err error) {
 	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
