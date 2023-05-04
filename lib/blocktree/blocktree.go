@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -504,12 +505,12 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
+func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtimeinterface.Instance) {
 	bt.runtimes.set(hash, in)
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtimeinterface.Instance, error) {
 	ins := bt.runtimes.get(hash)
 	if ins == nil {
 		return nil, fmt.Errorf("%w for hash %s", ErrFailedToGetRuntime, hash)
