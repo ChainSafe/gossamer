@@ -639,7 +639,7 @@ type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
-	runtime       Runtime
+	runtime       runtimeinterface.Instance
 	stateSrv      *state.Service
 	network       coreNetwork
 	storageState  coreStorageState
