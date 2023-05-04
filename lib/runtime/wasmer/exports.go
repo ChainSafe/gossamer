@@ -121,13 +121,17 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
 
-	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
+	var keyOwnershipProof *types.OpaqueKeyOwnershipProof
 	err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
 	}
 
-	return keyOwnershipProof, nil
+	if keyOwnershipProof == nil {
+		return nil, nil
+	}
+
+	return *keyOwnershipProof, nil
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
@@ -308,13 +312,17 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 		return nil, err
 	}
 
-	keyOwnershipProof := types.GrandpaOpaqueKeyOwnershipProof{}
+	var keyOwnershipProof *types.GrandpaOpaqueKeyOwnershipProof
 	err = scale.Unmarshal(encodedOpaqueKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 
-	return keyOwnershipProof, nil
+	if keyOwnershipProof == nil {
+		return nil, nil
+	}
+
+	return *keyOwnershipProof, nil
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic reports an equivocation report to the runtime.
