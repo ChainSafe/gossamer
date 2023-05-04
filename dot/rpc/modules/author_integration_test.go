@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	network "github.com/ChainSafe/gossamer/dot/network"
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	telemetry "github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -43,10 +44,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstance func(*testing.T, *storage.TrieState) Runtime
+type useRuntimeInstance func(*testing.T, *storage.TrieState) runtimeinterface.Instance
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtimeinterface.Instance) {
 	t.Helper()
 
 	cfg := wasmer.Config{
@@ -63,7 +64,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance runtimeinterface.Instance) {
 	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)

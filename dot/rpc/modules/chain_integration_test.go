@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -381,7 +382,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt Runtime) {
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtimeinterface.Instance) {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
