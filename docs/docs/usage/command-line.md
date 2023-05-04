@@ -78,7 +78,7 @@ List of available ***subcommands***:
 
 ```
 SUBCOMMANDS:
-    help           Shows a list of commands or help for one command
+    help, h           Shows a list of commands or help for one command
     account        Create and manage node keystore accounts
     export         Export configuration values to TOML configuration file
     init           Initialise node databases and load genesis data to state

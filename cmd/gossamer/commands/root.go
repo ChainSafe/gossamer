@@ -81,7 +81,7 @@ func NewRootCommand() (*cobra.Command, error) {
 		Short: "Official gossamer command-line interface",
 		Long: `Gossamer is a Golang implementation of the Polkadot Host.
 Usage:
-	gossamer --chain westend-local --alice --babe-lead
+	gossamer --chain westend-local --alice
 	gossamer --chain westend-dev --key alice --port 7002
 	gossamer --chain westend --key bob --port 7003
 	gossamer --chain kusama --key charlie --port 7004
