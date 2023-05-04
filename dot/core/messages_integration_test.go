@@ -15,6 +15,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -27,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createExtrinsic(t *testing.T, rt runtimeinterface.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)

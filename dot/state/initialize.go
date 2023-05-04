@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -148,7 +149,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (Runtime, error) {
+func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtimeinterface.Instance, error) {
 	// load genesis state into database
 	genTrie := rtstorage.NewTrieState(t)
 

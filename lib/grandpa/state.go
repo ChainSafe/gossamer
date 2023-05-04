@@ -4,11 +4,11 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -35,7 +35,7 @@ type BlockState interface {
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 	BestBlockHash() common.Hash
-	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
+	GetRuntime(blockHash common.Hash) (instance runtimeinterface.Instance, err error)
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state

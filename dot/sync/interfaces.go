@@ -9,7 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -34,8 +34,8 @@ type BlockState interface {
 	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetRuntime(blockHash common.Hash) (runtime state.Runtime, err error)
-	StoreRuntime(blockHash common.Hash, runtime state.Runtime)
+	GetRuntime(blockHash common.Hash) (runtime runtimeinterface.Instance, err error)
+	StoreRuntime(blockHash common.Hash, runtime runtimeinterface.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	GetHeaderByNumber(num uint) (*types.Header, error)

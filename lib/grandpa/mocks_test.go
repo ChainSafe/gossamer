@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
-	state "github.com/ChainSafe/gossamer/dot/state"
+	runtimeinterface "github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
@@ -241,10 +241,10 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (state.Runtime, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtimeinterface.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(state.Runtime)
+	ret0, _ := ret[0].(runtimeinterface.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

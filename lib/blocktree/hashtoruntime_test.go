@@ -36,7 +36,7 @@ func Test_hashToRuntime_get(t *testing.T) {
 		"hash_does_not_exist": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]runtimeinterface.Instance{
-					{4, 5, 6}: NewMockRuntime(nil),
+					{4, 5, 6}: NewMockInstance(nil),
 				},
 			},
 			hash: common.Hash{1, 2, 3},
@@ -44,11 +44,11 @@ func Test_hashToRuntime_get(t *testing.T) {
 		"hash_exists": {
 			htr: &hashToRuntime{
 				mapping: map[Hash]runtimeinterface.Instance{
-					{1, 2, 3}: NewMockRuntime(nil),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 			hash:     common.Hash{1, 2, 3},
-			instance: NewMockRuntime(nil),
+			instance: NewMockInstance(nil),
 		},
 	}
 
@@ -78,17 +78,17 @@ func Test_hashToRuntime_set(t *testing.T) {
 				mapping: map[Hash]runtimeinterface.Instance{},
 			},
 			hash:     common.Hash{1, 2, 3},
-			instance: NewMockRuntime(nil),
+			instance: NewMockInstance(nil),
 			expectedHtr: &hashToRuntime{
 				mapping: map[Hash]runtimeinterface.Instance{
-					{1, 2, 3}: NewMockRuntime(nil),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 		},
 		"override_instance": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]runtimeinterface.Instance{
-					{1, 2, 3}: NewMockRuntime(nil),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 			hash:     common.Hash{1, 2, 3},
@@ -135,7 +135,7 @@ func Test_hashToRuntime_delete(t *testing.T) {
 		"hash_deleted": {
 			initialHtr: &hashToRuntime{
 				mapping: map[Hash]runtimeinterface.Instance{
-					{1, 2, 3}: NewMockRuntime(nil),
+					{1, 2, 3}: NewMockInstance(nil),
 				},
 			},
 			hash: common.Hash{1, 2, 3},
@@ -193,7 +193,7 @@ func Test_hashToRuntime_threadSafety(t *testing.T) {
 
 	htr := newHashToRuntime()
 	hash := common.Hash{1, 2, 3}
-	instance := NewMockRuntime(nil)
+	instance := NewMockInstance(nil)
 
 	for i := 0; i < parallelism; i++ {
 		go runInLoop(func() {

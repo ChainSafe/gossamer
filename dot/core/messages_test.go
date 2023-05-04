@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -40,7 +41,7 @@ type mockBestHeader struct {
 }
 
 type mockGetRuntime struct {
-	runtime RuntimeInstance
+	runtime runtimeinterface.Instance
 	err     error
 }
 
@@ -72,7 +73,7 @@ type mockValidateTxn struct {
 }
 
 type mockRuntime struct {
-	runtime           *MockRuntimeInstance
+	runtime           *MockInstance
 	setContextStorage *mockSetContextStorage
 	validateTxn       *mockValidateTxn
 }
@@ -117,9 +118,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
 	ctrl := gomock.NewController(t)
-	runtimeMock := NewMockRuntimeInstance(ctrl)
-	runtimeMock2 := NewMockRuntimeInstance(ctrl)
-	runtimeMock3 := NewMockRuntimeInstance(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+	runtimeMock2 := NewMockInstance(ctrl)
+	runtimeMock3 := NewMockInstance(ctrl)
 
 	invalidTransaction := runtime.NewInvalidTransaction()
 	err := invalidTransaction.Set(runtime.Future{})

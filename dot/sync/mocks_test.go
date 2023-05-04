@@ -9,7 +9,7 @@ import (
 
 	network "github.com/ChainSafe/gossamer/dot/network"
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
-	state "github.com/ChainSafe/gossamer/dot/state"
+	runtimeinterface "github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -263,10 +263,10 @@ func (mr *MockBlockStateMockRecorder) GetReceipt(arg0 interface{}) *gomock.Call 
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (state.Runtime, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtimeinterface.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(state.Runtime)
+	ret0, _ := ret[0].(runtimeinterface.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -367,7 +367,7 @@ func (mr *MockBlockStateMockRecorder) SetJustification(arg0, arg1 interface{}) *
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 state.Runtime) {
+func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtimeinterface.Instance) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StoreRuntime", arg0, arg1)
 }

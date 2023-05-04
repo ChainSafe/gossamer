@@ -5,6 +5,7 @@ package modules
 
 import (
 	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -46,7 +47,7 @@ type BlockAPI interface {
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
+	GetRuntime(blockHash common.Hash) (instance runtimeinterface.Instance, err error)
 }
 
 // NetworkAPI interface for network state methods

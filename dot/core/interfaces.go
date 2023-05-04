@@ -11,55 +11,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
-
-// RuntimeInstance for runtime methods
-type RuntimeInstance interface {
-	Stop()
-	NodeStorage() runtime.NodeStorage
-	NetworkService() runtime.BasicNetwork
-	Keystore() *keystore.GlobalKeystore
-	Validator() bool
-	Exec(function string, data []byte) ([]byte, error)
-	SetContextStorage(s runtime.Storage)
-	GetCodeHash() common.Hash
-	Version() (version runtime.Version)
-	Metadata() ([]byte, error)
-	BabeConfiguration() (*types.BabeConfiguration, error)
-	GrandpaAuthorities() ([]types.Authority, error)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	InitializeBlock(header *types.Header) error
-	InherentExtrinsics(data []byte) ([]byte, error)
-	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlock() (*types.Header, error)
-	ExecuteBlock(block *types.Block) ([]byte, error)
-	DecodeSessionKeys(enc []byte) ([]byte, error)
-	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
-	CheckInherents()
-	BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
-		types.OpaqueKeyOwnershipProof, error)
-	BabeSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.BabeEquivocationProof,
-		keyOwnershipProof types.OpaqueKeyOwnershipProof,
-	) error
-	RandomSeed()
-	OffchainWorker()
-	GenerateSessionKeys()
-	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-		types.GrandpaOpaqueKeyOwnershipProof, error)
-	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
-	) error
-}
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -69,9 +27,9 @@ type BlockState interface {
 	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in state.Runtime, bHash common.Hash) error
-	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
-	StoreRuntime(blockHash common.Hash, runtime state.Runtime)
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtimeinterface.Instance, bHash common.Hash) error
+	GetRuntime(blockHash common.Hash) (instance runtimeinterface.Instance, err error)
+	StoreRuntime(blockHash common.Hash, runtime runtimeinterface.Instance)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 }
 

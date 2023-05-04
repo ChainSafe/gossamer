@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -64,7 +65,7 @@ type Config struct {
 	TransactionState TransactionState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          RuntimeInstance
+	Runtime          runtimeinterface.Instance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
