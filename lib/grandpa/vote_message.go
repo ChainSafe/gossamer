@@ -17,7 +17,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-var errBeforeFinalizedBlock = errors.New("before latest finalized block")
+var (
+	errBeforeFinalizedBlock   = errors.New("before latest finalized block")
+	errEmptyKeyOwnershipProof = errors.New("key ownership proof is nil")
+)
 
 type networkVoteMessage struct {
 	from peer.ID
@@ -284,6 +287,8 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	opaqueKeyOwnershipProof, err := runtime.GrandpaGenerateKeyOwnershipProof(setID, pubKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof: %w", err)
+	} else if opaqueKeyOwnershipProof == nil {
+		return errEmptyKeyOwnershipProof
 	}
 
 	grandpaEquivocation := types.GrandpaEquivocation{
