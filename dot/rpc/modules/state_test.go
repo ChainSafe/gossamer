@@ -19,6 +19,9 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"unsafe"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 
@@ -305,6 +308,8 @@ func TestCall(t *testing.T) {
 	var res StateCallResponse
 	err := sm.Call(nil, req, &res)
 	assert.NoError(t, err)
+
+	require.Greater(t, int(unsafe.Sizeof(res)), 0) //nolint:staticcheck
 }
 
 func TestStateModuleGetMetadata(t *testing.T) {

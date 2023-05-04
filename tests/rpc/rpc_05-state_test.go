@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -47,8 +48,10 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		require.NoError(t, err)
 
 		var response runtime.Version
-		err = rpc.DecodeScale(data, &response)
+		err = rpc.DecodeScaleUnmarshal(data, &response)
 		require.NoError(t, err)
+
+		require.Greater(t, int(unsafe.Sizeof(response)), 0) //nolint:staticcheck
 	})
 
 	t.Run("state_getKeysPaged", func(t *testing.T) {

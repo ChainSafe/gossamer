@@ -94,9 +94,9 @@ func Decode(body []byte, target interface{}) error {
 	return nil
 }
 
-// DecodeScale decodes []body into the target interface.
+// DecodeScaleUnmarshal decodes []body into the result.
 // It assumes that the response.Result is a SCALE-encoded value.
-func DecodeScale(body []byte, target any) error {
+func DecodeScaleUnmarshal(body []byte, target any) error {
 	var result string
 	err := Decode(body, &result)
 	if err != nil {
