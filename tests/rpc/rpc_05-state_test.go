@@ -50,7 +50,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		err = rpc.DecodeScaleUnmarshal(data, &response)
 		require.NoError(t, err)
 
-		require.NotEqualf(t, 0, len(response.SpecName), "response must not be empty") //nolint:staticcheck
+		require.NotEqualf(t, 0, len(response.SpecName), "response must not be empty")
 	})
 
 	t.Run("state_getKeysPaged", func(t *testing.T) {
