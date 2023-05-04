@@ -51,17 +51,6 @@ func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) AncestorNode() *Hash {
 	return &h
 }
 
-// Chain context necessary for implementation of the finality gadget.
-type Chain[Hash, Number comparable] interface {
-	// Get the ancestry of a block up to but not including the base hash.
-	// Should be in reverse order from `block`'s parent.
-	//
-	// If the block is not a descendent of `base`, returns an error.
-	Ancestry(base, block Hash) ([]Hash, error)
-	// Returns true if `block` is a descendent of or equal to the given `base`.
-	IsEqualOrDescendantOf(base, block Hash) bool
-}
-
 // Maintains a DAG of blocks in the chain which have votes attached to them,
 // and vote data which is accumulated along edges.
 type VoteGraph[Hash constraints.Ordered, Number constraints.Unsigned, VoteNode voteNodeI[VoteNode, Vote], Vote any] struct {

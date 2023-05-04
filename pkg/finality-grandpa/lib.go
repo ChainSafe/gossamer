@@ -25,6 +25,29 @@ type Precommit[Hash, Number any] targetHashTargetNumber[Hash, Number]
 // A primary proposed block, this is a broadcast of the last round's estimate.
 type PrimaryPropose[Hash, Number any] targetHashTargetNumber[Hash, Number]
 
+// Chain context necessary for implementation of the finality gadget.
+type Chain[Hash, Number comparable] interface {
+	// Get the ancestry of a block up to but not including the base hash.
+	// Should be in reverse order from `block`'s parent.
+	//
+	// If the block is not a descendent of `base`, returns an error.
+	Ancestry(base, block Hash) ([]Hash, error)
+	// Returns true if `block` is a descendent of or equal to the given `base`.
+	IsEqualOrDescendantOf(base, block Hash) bool
+}
+
+// An equivocation (double-vote) in a given round.
+type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
+	// The round number equivocated in.
+	RoundNumber uint64
+	// The identity of the equivocator.
+	Identity ID
+	// The first vote in the equivocation.
+	First voteSignature[Vote, Signature]
+	// The second vote in the equivocation.
+	Second voteSignature[Vote, Signature]
+}
+
 // A protocol message or vote.
 type Message[Hash, Number any] struct {
 	value any
@@ -295,7 +318,7 @@ func ValidateCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signa
 	)
 
 	for _, signedPrecommit := range validPrecommits {
-		importResult, err := round.ImportPrecommit(chain, signedPrecommit.Precommit, signedPrecommit.ID, signedPrecommit.Signature)
+		importResult, err := round.importPrecommit(chain, signedPrecommit.Precommit, signedPrecommit.ID, signedPrecommit.Signature)
 		if err != nil {
 			return CommitValidationResult{}, err
 		}

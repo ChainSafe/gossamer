@@ -81,14 +81,14 @@ func (vm VoteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) b
 	}
 }
 
-type VoteTracker[ID constraints.Ordered, Vote, Signature comparable] struct {
+type voteTracker[ID constraints.Ordered, Vote, Signature comparable] struct {
 	votes         *btree.Map[ID, VoteMultiplicity[Vote, Signature]]
 	currentWeight VoteWeight
 	mtx           sync.RWMutex
 }
 
-func NewVoteTracker[ID constraints.Ordered, Vote, Signature comparable]() VoteTracker[ID, Vote, Signature] {
-	return VoteTracker[ID, Vote, Signature]{
+func newVoteTracker[ID constraints.Ordered, Vote, Signature comparable]() voteTracker[ID, Vote, Signature] {
+	return voteTracker[ID, Vote, Signature]{
 		votes: btree.NewMap[ID, VoteMultiplicity[Vote, Signature]](2),
 	}
 }
@@ -103,7 +103,7 @@ func NewVoteTracker[ID constraints.Ordered, Vote, Signature comparable]() VoteTr
 //
 // since this struct doesn't track the round-number of votes, that must be set
 // by the caller.
-func (vt *VoteTracker[ID, Vote, Signature]) AddVote(id ID, vote Vote, signature Signature, weight VoterWeight) (*VoteMultiplicity[Vote, Signature], bool) {
+func (vt *voteTracker[ID, Vote, Signature]) AddVote(id ID, vote Vote, signature Signature, weight VoterWeight) (*VoteMultiplicity[Vote, Signature], bool) {
 	vt.mtx.Lock()
 	defer vt.mtx.Unlock()
 
@@ -151,7 +151,7 @@ type idVoteSignature[ID, Vote, Signature comparable] struct {
 	voteSignature[Vote, Signature]
 }
 
-func (vt *VoteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID, Vote, Signature]) {
+func (vt *voteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID, Vote, Signature]) {
 	vt.mtx.RLock()
 	defer vt.mtx.RUnlock()
 
@@ -177,18 +177,8 @@ func (vt *VoteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID,
 	return
 }
 
-func (vt *VoteTracker[ID, Vote, Signature]) Participation() (weight VoteWeight, numParticipants int) {
+func (vt *voteTracker[ID, Vote, Signature]) Participation() (weight VoteWeight, numParticipants int) {
 	return vt.currentWeight, vt.votes.Len()
-}
-
-// Parameters for starting a round.
-type RoundParams[ID constraints.Ordered, Hash comparable, Number constraints.Unsigned] struct {
-	// The round number for votes.
-	RoundNumber uint64
-	// Actors and weights in the round.
-	Voters VoterSet[ID]
-	// The base block to build on.
-	Base HashNumber[Hash, Number]
 }
 
 // State of the round.
@@ -213,13 +203,23 @@ func NewRoundState[Hash, Number any](genesis HashNumber[Hash, Number]) RoundStat
 	}
 }
 
+// Parameters for starting a round.
+type RoundParams[ID constraints.Ordered, Hash comparable, Number constraints.Unsigned] struct {
+	// The round number for votes.
+	RoundNumber uint64
+	// Actors and weights in the round.
+	Voters VoterSet[ID]
+	// The base block to build on.
+	Base HashNumber[Hash, Number]
+}
+
 // Stores data for a round.
 type Round[ID constraints.Ordered, Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable] struct {
 	number          uint64
 	context         Context[ID]
 	graph           VoteGraph[Hash, Number, *VoteNode[ID], Vote[ID]]    // DAG of blocks which have been voted on.
-	prevotes        VoteTracker[ID, Prevote[Hash, Number], Signature]   // tracks prevotes that have been counted
-	precommits      VoteTracker[ID, Precommit[Hash, Number], Signature] // tracks precommits
+	prevotes        voteTracker[ID, Prevote[Hash, Number], Signature]   // tracks prevotes that have been counted
+	precommits      voteTracker[ID, Precommit[Hash, Number], Signature] // tracks precommits
 	historicalVotes HistoricalVotes[Hash, Number, Signature, ID]        // historical votes
 	prevoteGhost    *HashNumber[Hash, Number]                           // current memoized prevote-GHOST block
 	precommitGhost  *HashNumber[Hash, Number]                           // current memoized precommit-GHOST block
@@ -229,7 +229,7 @@ type Round[ID constraints.Ordered, Hash constraints.Ordered, Number constraints.
 }
 
 // Result of importing a Prevote or Precommit.
-type ImportResult[ID constraints.Ordered, P, Signature comparable] struct {
+type importResult[ID constraints.Ordered, P, Signature comparable] struct {
 	ValidVoter   bool
 	Duplicated   bool
 	Equivocation *Equivocation[ID, P, Signature]
@@ -247,8 +247,8 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 		number:          roundParams.RoundNumber,
 		context:         NewContext(roundParams.Voters),
 		graph:           NewVoteGraph[Hash, Number, *VoteNode[ID], Vote[ID]](roundParams.Base.Hash, roundParams.Base.Number, newVoteNode(), newVoteNode),
-		prevotes:        NewVoteTracker[ID, Prevote[Hash, Number], Signature](),
-		precommits:      NewVoteTracker[ID, Precommit[Hash, Number], Signature](),
+		prevotes:        newVoteTracker[ID, Prevote[Hash, Number], Signature](),
+		precommits:      newVoteTracker[ID, Precommit[Hash, Number], Signature](),
 		historicalVotes: NewHistoricalVotes[Hash, Number, Signature, ID](),
 	}
 }
@@ -262,10 +262,10 @@ func (r *Round[ID, H, N, S]) Number() uint64 {
 // and a bool indicating if the vote is duplicated (see `ImportResult`).
 //
 // Ignores duplicate prevotes (not equivocations).
-func (r *Round[ID, H, N, S]) ImportPrevote(
+func (r *Round[ID, H, N, S]) importPrevote(
 	chain Chain[H, N], prevote Prevote[H, N], signer ID, signature S,
-) (*ImportResult[ID, Prevote[H, N], S], error) {
-	ir := ImportResult[ID, Prevote[H, N], S]{}
+) (*importResult[ID, Prevote[H, N], S], error) {
+	ir := importResult[ID, Prevote[H, N], S]{}
 
 	info := r.context.Voters().Get(signer)
 	if info == nil {
@@ -348,10 +348,10 @@ func (r *Round[ID, H, N, S]) ImportPrevote(
 // equivocation, and a bool indicating if the vote is duplicated (see `ImportResult`).
 //
 // Ignores duplicate precommits (not equivocations).
-func (r *Round[ID, H, N, S]) ImportPrecommit(
+func (r *Round[ID, H, N, S]) importPrecommit(
 	chain Chain[H, N], precommit Precommit[H, N], signer ID, signature S,
-) (*ImportResult[ID, Precommit[H, N], S], error) {
-	ir := ImportResult[ID, Precommit[H, N], S]{}
+) (*importResult[ID, Precommit[H, N], S], error) {
+	ir := importResult[ID, Precommit[H, N], S]{}
 
 	info := r.context.Voters().Get(signer)
 	if info == nil {
@@ -605,6 +605,20 @@ func (r *Round[ID, H, N, S]) FinalizingPrecommits(chain Chain[H, N]) *[]SignedPr
 	return &findValidPrecommits
 }
 
+// Fetch the "round-estimate": the best block which might have been finalized
+// in this round.
+//
+// Returns `None` when new new blocks could have been finalized in this round,
+// according to our estimate.
+func (r *Round[ID, H, N, S]) Estimate() *HashNumber[H, N] {
+	return r.estimate
+}
+
+// Fetch the most recently finalized block.
+func (r *Round[ID, H, N, S]) Finalized() *HashNumber[H, N] {
+	return r.finalized
+}
+
 // Returns `true` when the round is completable.
 //
 // This is the case when the round-estimate is an ancestor of the prevote-ghost head,
@@ -673,12 +687,4 @@ func (r *Round[ID, H, N, S]) SetPrevotedIdx() {
 // It should be called inmediatly after precommiting.
 func (r *Round[ID, H, N, S]) SetPrecommittedIdx() {
 	r.historicalVotes.SetPrecommittedIdx()
-}
-
-// An equivocation (double-vote) in a given round.
-type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
-	RoundNumber uint64
-	Identity    ID
-	First       voteSignature[Vote, Signature]
-	Second      voteSignature[Vote, Signature]
 }
