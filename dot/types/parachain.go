@@ -250,12 +250,12 @@ type CommittedCandidateReceipt struct {
 
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
-type AssignmentID sr25519.PublicKey
+type AssignmentID [32]byte
 
 // IndexedValidator A validator with its index.
 type IndexedValidator struct {
-	Index     ValidatorIndex `scale:"-"`
-	Validator []ValidatorID  `scale:"2"`
+	Index     []ValidatorIndex `scale:"-"`
+	Validator []ValidatorID    `scale:"2"`
 }
 
 // IndexedValidatorGroup A validator group with its group index.
@@ -264,25 +264,28 @@ type IndexedValidatorGroup struct {
 	Validators []ValidatorIndex `scale:"2"`
 }
 
+// AuthorityDiscoveryID An authority discovery key.
+type AuthorityDiscoveryID [32]byte
+
 // SessionInfo Information about validator sets of a session.
 type SessionInfo struct {
 	// All the validators actively participating in parachain consensus.
 	// Indices are into the broader validator set.
 	ActiveValidatorIndices []ValidatorIndex `scale:"1"`
 	// A secure random seed for the session, gathered from BABE.
-	RandomSeed [32]uint8 `scale:"2"`
+	RandomSeed [32]byte `scale:"2"`
 	// The amount of sessions to keep for disputes.
 	DisputePeriod SessionIndex `scale:"3"`
 	// Validators in canonical ordering.
-	Validators []IndexedValidator `scale:"4"`
+	Validators []ValidatorID `scale:"4"`
 	// Validators' authority discovery keys for the session in canonical ordering.
-	DiscoveryKeys []byte `scale:"5"`
+	DiscoveryKeys []AuthorityDiscoveryID `scale:"5"`
 	// The assignment keys for validators.
-	AssignmentKeys []byte `scale:"6"`
+	AssignmentKeys []AssignmentID `scale:"6"`
 	// Validators in shuffled ordering - these are the validator groups as produced
 	// by the `Scheduler` module for the session and are typically referred to by
 	// `GroupIndex`.
-	ValidatorGroups []IndexedValidatorGroup `scale:"7"`
+	ValidatorGroups []ValidatorIndex `scale:"7"`
 	// The number of availability cores used by the protocol during this session.
 	NCores uint32 `scale:"8"`
 	// The zeroth delay tranche width.
@@ -358,7 +361,7 @@ func (CandidateBacked) Index() uint {
 type CandidateIncluded struct {
 	CandidateReceipt CandidateReceipt `scale:"1"`
 	HeadData         HeadData         `scale:"2"`
-	CoreIndex        uint32           `scale:"-"`
+	CoreIndex        uint32           `scale:"3"`
 	GroupIndex       GroupIndex       `scale:"4"`
 }
 
