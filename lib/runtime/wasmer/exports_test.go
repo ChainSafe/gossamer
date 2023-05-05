@@ -956,7 +956,6 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			continue
 		}
 		require.NoError(t, err)
-		require.NoError(t, err)
 		require.NotNil(t, info)
 		require.Equal(t, test.expect, info)
 	}

@@ -404,7 +404,10 @@ func (in *Instance) ParachainHostAvailabilityCores() (*types.AvailabilityCores, 
 
 // ParachainHostCheckValidationOutputs Checks the validation outputs of a candidate.
 // Returns true if the candidate is valid.
-func (in *Instance) ParachainHostCheckValidationOutputs(parachainID types.ParaID, outputs types.CandidateCommitments) (bool, error) {
+func (in *Instance) ParachainHostCheckValidationOutputs(
+	parachainID types.ParaID,
+	outputs types.CandidateCommitments,
+) (bool, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -446,8 +449,11 @@ func (in *Instance) ParachainHostSessionIndexForChild() (types.SessionIndex, err
 	return sessionIndex, nil
 }
 
-// ParachainHostCandidatePendingAvailability Returns the receipt of a candidate pending availability for any parachain assigned to an occupied availability core.
-func (in *Instance) ParachainHostCandidatePendingAvailability(parachainID types.ParaID) (*types.CommittedCandidateReceipt, error) {
+// ParachainHostCandidatePendingAvailability Returns the receipt of a candidate pending availability
+// for any parachain assigned to an occupied availability core.
+func (in *Instance) ParachainHostCandidatePendingAvailability(
+	parachainID types.ParaID,
+) (*types.CommittedCandidateReceipt, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -514,7 +520,8 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*
 	return &sessionInfo, nil
 }
 
-// ParachainHostDMQContents Returns all the pending inbound messages in the downward message queue for a given parachain.
+// ParachainHostDMQContents Returns all the pending inbound messages
+// in the downward message queue for a given parachain.
 func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.DownwardMessage, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -539,7 +546,9 @@ func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.
 
 // ParachainHostInboundHrmpChannelsContents Returns the contents of all channels addressed to the given recipient.
 // Channels that have no messages in them are also included.
-func (in *Instance) ParachainHostInboundHrmpChannelsContents(recipient types.ParaID) ([]types.InboundHrmpMessage, error) {
+func (in *Instance) ParachainHostInboundHrmpChannelsContents(
+	recipient types.ParaID,
+) ([]types.InboundHrmpMessage, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(recipient)
