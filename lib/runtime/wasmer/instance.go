@@ -83,10 +83,6 @@ func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (*Instance, error) {
-	return newInstance(code, cfg)
-}
-
-func newInstance(code []byte, cfg Config) (*Instance, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 	if len(code) == 0 {
 		return nil, ErrCodeEmpty
@@ -169,8 +165,6 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 		return nil, err
 	}
 
-	logger.Info("instantiated runtime!!!")
-
 	if hasExportedMemory {
 		memory, err = wasmInstance.Exports.GetMemory("memory")
 		if err != nil {
@@ -199,15 +193,7 @@ func newInstance(code []byte, cfg Config) (*Instance, error) {
 	}
 
 	if cfg.testVersion != nil {
-		instance.ctx.Version = *cfg.testVersion
-	} else {
-		// TODO: find a way to get rid of this block.
-		// Initialise version when someone calls Version() for the first time.
-		// instance.ctx.Version, err = instance.version()
-		// if err != nil {
-		// 	instance.close()
-		// 	return nil, fmt.Errorf("getting instance version: %w", err)
-		// }
+		instance.ctx.Version = cfg.testVersion
 	}
 
 	return instance, nil
@@ -251,7 +237,9 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 	defer instance.Stop()
 
-	version, err = instance.version()
+	logger.Info("instantiated runtime!!!")
+
+	version, err = instance.Version()
 	if err != nil {
 		return version, fmt.Errorf("running runtime: %w", err)
 	}
@@ -269,7 +257,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 		Transaction: in.ctx.Transaction,
 	}
 
-	next, err := newInstance(code, cfg)
+	next, err := NewInstance(code, cfg)
 	if err != nil {
 		return err
 	}
@@ -319,13 +307,19 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 
 	wasmValue, err := runtimeFunc(castedInputPointer, castedDataLength)
 	if err != nil {
+		if errors.Is(err, errMemoryValueOutOfBounds) {
+			panic(fmt.Errorf("executing runtime function: %v", err))
+		}
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
 	wasmValueAsI64 := wasmer.NewI64(wasmValue)
 	outputPtr, outputLength := splitPointerSize(wasmValueAsI64.I64())
 	memory = in.ctx.Memory.Data() // call Data() again to get larger slice
-	return memory[outputPtr : outputPtr+outputLength], nil
+
+	allocatedData := make([]byte, outputLength)
+	copy(allocatedData[:], memory[outputPtr:outputPtr+outputLength])
+	return allocatedData, nil
 }
 
 // NodeStorage to get reference to runtime node service

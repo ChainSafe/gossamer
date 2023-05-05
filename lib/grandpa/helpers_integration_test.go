@@ -151,7 +151,7 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t), telemetryMock)
 	require.NoError(t, err)
 
 	return &state.Service{

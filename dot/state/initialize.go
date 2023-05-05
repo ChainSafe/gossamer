@@ -87,7 +87,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths)
+	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
 	}
@@ -162,6 +162,8 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (Runt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
 	}
+
+	logger.Info("instantiated runtime!!!")
 
 	return r, nil
 }

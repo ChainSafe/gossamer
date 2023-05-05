@@ -14,7 +14,6 @@ import (
 
 // Runtime interface.
 type Runtime interface {
-	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() runtime.NodeStorage
 	NetworkService() runtime.BasicNetwork
@@ -23,7 +22,7 @@ type Runtime interface {
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s runtime.Storage)
 	GetCodeHash() common.Hash
-	Version() (version runtime.Version)
+	Version() (runtime.Version, error)
 	Metadata() (metadata []byte, err error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)

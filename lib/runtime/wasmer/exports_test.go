@@ -32,9 +32,8 @@ import (
 var testKeyOwnershipProof types.OpaqueKeyOwnershipProof = types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
 func Test_Instance_Version(t *testing.T) {
-	t.Parallel()
 	type instanceVersioner interface {
-		Version() (version runtime.Version)
+		Version() (runtime.Version, error)
 	}
 
 	testCases := map[string]struct {
@@ -146,9 +145,9 @@ func Test_Instance_Version(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			instance := testCase.instanceBuilder(t)
-			version := instance.Version()
+			version, err := instance.Version()
+			require.NoError(t, err)
 			assert.Equal(t, testCase.expectedVersion, version)
 		})
 	}
@@ -164,7 +163,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 	return append(append(append(h0, h1...), h2...), pub...)
 }
 
-func TestNodeRuntime_ValidateTransaction(t *testing.T) {
+func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
 	genTrie, err := NewTrieFromGenesis(gen)
@@ -281,7 +280,6 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
-	t.Parallel()
 	testCases := []struct {
 		name          string
 		targetRuntime string
@@ -298,8 +296,6 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt := trie.NewEmptyTrie()
 			randomnessValue, err := common.HexToHash("0x01")
 			require.NoError(t, err)
@@ -322,14 +318,14 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 			authorityID := babeConfig.GenesisAuthorities[0].Key
 
 			const slot = uint64(10)
-			_, err = rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
+			res, err := rt.BabeGenerateKeyOwnershipProof(slot, authorityID)
 			require.NoError(t, err)
+			require.Nil(t, res)
 		})
 	}
 }
 
 func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
-	t.Parallel()
 	testCases := []struct {
 		name          string
 		targetRuntime string
@@ -346,8 +342,6 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt := trie.NewEmptyTrie()
 			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
 			authorityID := types.AuthorityID{1}
@@ -990,7 +984,6 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
-	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1048,7 +1041,6 @@ func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
-	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1109,20 +1101,18 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 }
 
 func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
-	t.Parallel()
 	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	authorityID := identityPubKey.AsBytes()
 
-	encodedOpaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
-	require.NoError(t, err)
+	opaqueKeyOwnershipProof, err := instance.GrandpaGenerateKeyOwnershipProof(uint64(0), authorityID)
 	// Since the input is not valid with respect to the instance, an empty proof is returned
-	require.Empty(t, encodedOpaqueKeyOwnershipProof)
+	require.NoError(t, err)
+	require.Nil(t, opaqueKeyOwnershipProof)
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
-	t.Parallel()
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
