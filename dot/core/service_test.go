@@ -252,7 +252,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			},
 			blockHash:  common.Hash{0x01},
 			errWrapped: wasmer.ErrWASMDecompress,
-			errMessage: "creating new runtime instance: setting up VM: " +
+			errMessage: "creating new runtime instance: " +
 				"wasm decompression failed: unexpected EOF",
 		},
 		"store_code_substitution_block_hash_error": {
@@ -583,7 +583,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -648,7 +648,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
@@ -864,7 +864,7 @@ func TestService_handleChainReorg(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
@@ -903,7 +903,7 @@ func TestService_handleChainReorg(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
@@ -1158,7 +1158,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMock, nil)
 		runtimeMock.EXPECT().SetContextStorage(ts)
-		runtimeMock.EXPECT().Version().Return(rv)
+		runtimeMock.EXPECT().Version().Return(rv, nil)
 		service := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
@@ -1262,7 +1262,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMockErr.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		service := &Service{
 			storageState:     mockStorageState,
@@ -1296,7 +1296,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockStorageState := NewMockStorageState(ctrl)

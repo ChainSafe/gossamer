@@ -13,8 +13,6 @@ import (
 )
 
 func Test_NewTrieFromGenesis(t *testing.T) {
-	t.Parallel()
-
 	testCases := map[string]struct {
 		genesis     genesis.Genesis
 		expectedKV  map[string]string
@@ -64,8 +62,6 @@ func Test_NewTrieFromGenesis(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			tr, err := NewTrieFromGenesis(testCase.genesis)
 
 			require.ErrorIs(t, err, testCase.errSentinel)
