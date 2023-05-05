@@ -7,11 +7,13 @@ import "encoding/json"
 
 // telemetry message types
 const (
-	afgAuthoritySetMsg        = "afg.authority_set"
-	afgFinalizedBlocksUpToMsg = "afg.finalized_blocks_up_to"
-	afgReceivedCommitMsg      = "afg.received_commit"
-	afgReceivedPrecommitMsg   = "afg.received_precommit"
-	afgReceivedPrevoteMsg     = "afg.received_prevote"
+	afgAuthoritySetMsg                        = "afg.authority_set"
+	afgFinalizedBlocksUpToMsg                 = "afg.finalized_blocks_up_to"
+	afgReceivedCommitMsg                      = "afg.received_commit"
+	afgReceivedPrecommitMsg                   = "afg.received_precommit"
+	afgReceivedPrevoteMsg                     = "afg.received_prevote"
+	afgApplyingScheduledAuthoritySetChangeMsg = "afg.applying_scheduled_authority_set_change"
+	afgApplyingForcedAuthoritySetChangeMsg    = "afg.applying_forced_authority_set_change"
 
 	blockImportMsg = "block.import"
 
