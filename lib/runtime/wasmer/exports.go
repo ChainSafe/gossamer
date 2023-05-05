@@ -351,13 +351,13 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 	ret, err := in.Exec(runtime.ParachainHostValidators, []byte{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var validatorIDs []types.ValidatorID
 	err = scale.Unmarshal(ret, &validatorIDs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return types.ValidatorIDToValidator(validatorIDs)
@@ -368,13 +368,13 @@ func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, error) {
 	ret, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var validatorGroups types.ValidatorGroups
 	err = scale.Unmarshal(ret, &validatorGroups)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return &validatorGroups, nil
@@ -384,18 +384,18 @@ func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, erro
 func (in *Instance) ParachainHostAvailabilityCores() (*types.AvailabilityCores, error) {
 	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	coreStateVDT, err := types.NewCoreStateVDT()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new vdt: %w", err)
 	}
 
 	vdtSlice := scale.NewVaryingDataTypeSlice(coreStateVDT)
 	err = scale.Unmarshal(ret, &vdtSlice)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	availabilityCores := types.AvailabilityCores(vdtSlice)
@@ -412,22 +412,22 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
 	if err != nil {
-		return false, fmt.Errorf("error while encoding parachainID: %w", err)
+		return false, fmt.Errorf("encode parachainID: %w", err)
 	}
 	err = encoder.Encode(outputs)
 	if err != nil {
-		return false, fmt.Errorf("error while encoding outputs: %w", err)
+		return false, fmt.Errorf("encode outputs: %w", err)
 	}
 
 	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostCheckValidationOutputs, buffer.Bytes())
 	if err != nil {
-		return false, fmt.Errorf("error while executing runtime: %w", err)
+		return false, fmt.Errorf("exec: %w", err)
 	}
 
 	var isValid bool
 	err = scale.Unmarshal(encodedPersistedValidationData, &isValid)
 	if err != nil {
-		return false, fmt.Errorf("error while scale decoding: %w", err)
+		return false, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return isValid, nil
@@ -437,13 +437,13 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 func (in *Instance) ParachainHostSessionIndexForChild() (types.SessionIndex, error) {
 	ret, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("exec: %w", err)
 	}
 
 	var sessionIndex types.SessionIndex
 	err = scale.Unmarshal(ret, &sessionIndex)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return sessionIndex, nil
@@ -458,18 +458,18 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
 	if err != nil {
-		return nil, fmt.Errorf("error while encoding parachainID: %w", err)
+		return nil, fmt.Errorf("encode parachainID: %w", err)
 	}
 
 	encodedCandidateReceipt, err := in.Exec(runtime.ParachainHostCandidatePendingAvailability, buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("error while executing runtime: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var candidateReceipt types.CommittedCandidateReceipt
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
-		return nil, fmt.Errorf("error while scale decoding: %w", err)
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return &candidateReceipt, nil
@@ -479,18 +479,18 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 func (in *Instance) ParachainHostCandidateEvents() (*types.CandidateEvents, error) {
 	ret, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	candidateEvent, err := types.NewCandidateEventVDT()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new vdt: %w", err)
 	}
 
 	vdts := scale.NewVaryingDataTypeSlice(candidateEvent)
 	err = scale.Unmarshal(ret, &vdts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	candidateEvents := types.CandidateEvents(vdts)
@@ -503,18 +503,18 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(sessionIndex)
 	if err != nil {
-		return nil, fmt.Errorf("error while encoding sessionIndex: %w", err)
+		return nil, fmt.Errorf("encode sessionIndex: %w", err)
 	}
 
 	encodedSessionInfo, err := in.Exec(runtime.ParachainHostSessionInfo, buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("error while executing runtime: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var sessionInfo types.SessionInfo
 	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
 	if err != nil {
-		return nil, fmt.Errorf("error while scale decoding: %w", err)
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return &sessionInfo, nil
@@ -527,18 +527,18 @@ func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
 	if err != nil {
-		return nil, fmt.Errorf("error while encoding parachainID: %w", err)
+		return nil, fmt.Errorf("encode parachainID: %w", err)
 	}
 
 	encodedDownwardMessages, err := in.Exec(runtime.ParachainHostDMQContents, buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("error while executing runtime: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var downwardMessages []types.DownwardMessage
 	err = scale.Unmarshal(encodedDownwardMessages, &downwardMessages)
 	if err != nil {
-		return nil, fmt.Errorf("error while scale decoding: %w", err)
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return downwardMessages, nil
@@ -553,18 +553,18 @@ func (in *Instance) ParachainHostInboundHrmpChannelsContents(
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(recipient)
 	if err != nil {
-		return nil, fmt.Errorf("error while encoding recipient: %w", err)
+		return nil, fmt.Errorf("encode recipient: %w", err)
 	}
 
 	encodedInboundHrmpMessages, err := in.Exec(runtime.ParachainHostInboundHrmpChannelsContents, buffer.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("error while executing runtime: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var inboundHrmpMessages []types.InboundHrmpMessage
 	err = scale.Unmarshal(encodedInboundHrmpMessages, &inboundHrmpMessages)
 	if err != nil {
-		return nil, fmt.Errorf("error while scale decoding: %w", err)
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return inboundHrmpMessages, nil
