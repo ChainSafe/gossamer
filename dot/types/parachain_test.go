@@ -263,7 +263,7 @@ func TestCandidateEvent(t *testing.T) {
 	err = scale.Unmarshal(resultBytes, &candidateEvents)
 	require.NoError(t, err)
 
-	// TODO: assert candidateEvents
+	require.Greater(t, len(candidateEvents.Types), 0)
 
 	encoded, err := scale.Marshal(candidateEvents)
 	require.NoError(t, err)
