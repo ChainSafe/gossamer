@@ -312,8 +312,8 @@ type SessionInfo struct {
 // DownwardMessage A message sent from the relay-chain down to a parachain.
 type DownwardMessage []byte
 
-// InboundDownwardMessage A wrapped version of `DownwardMessage`. The difference is that it has attached the block number when
-// the message was sent.
+// InboundDownwardMessage A wrapped version of `DownwardMessage`.
+// The difference is that it has attached the block number when the message was sent.
 type InboundDownwardMessage struct {
 	// The block number at which these messages were put into the downward message queue.
 	SentAt BlockNumber `scale:"1"`
