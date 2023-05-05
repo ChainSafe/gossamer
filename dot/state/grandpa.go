@@ -7,8 +7,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -40,17 +42,19 @@ type GrandpaState struct {
 
 	forcedChanges        *orderedPendingChanges
 	scheduledChangeRoots *changeTree
+	telemetry            Telemetry
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
 func NewGrandpaStateFromGenesis(db *chaindb.BadgerDB, bs *BlockState,
-	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
+	genesisAuthorities []types.GrandpaVoter, telemetry Telemetry) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
 		db:                   grandpaDB,
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),
+		telemetry:            telemetry,
 	}
 
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
@@ -73,12 +77,13 @@ func NewGrandpaStateFromGenesis(db *chaindb.BadgerDB, bs *BlockState,
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db *chaindb.BadgerDB, bs *BlockState) *GrandpaState {
+func NewGrandpaState(db *chaindb.BadgerDB, bs *BlockState, telemetry Telemetry) *GrandpaState {
 	return &GrandpaState{
 		db:                   chaindb.NewTable(db, grandpaPrefix),
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),
+		telemetry:            telemetry,
 	}
 }
 
@@ -194,7 +199,10 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 	logger.Debugf("Applying authority set change scheduled at block #%d",
 		changeToApply.change.announcingHeader.Number)
 
-	// TODO(#3218): add afg.applying_scheduled_authority_set_change telemetry info here
+	canonHeightString := strconv.FormatUint(uint64(changeToApply.change.announcingHeader.Number), 10)
+	s.telemetry.SendMessage(telemetry.NewAfgApplyingScheduledAuthoritySetChange(
+		canonHeightString,
+	))
 
 	return nil
 }
@@ -229,7 +237,10 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 
 	logger.Debugf("Applying authority set forced change: %s", forcedChange)
 
-	// TODO(#3218) afg.applying_forced_authority_set_change
+	canonHeightString := strconv.FormatUint(uint64(forcedChange.announcingHeader.Number), 10)
+	s.telemetry.SendMessage(telemetry.NewAfgApplyingForcedAuthoritySetChange(
+		canonHeightString,
+	))
 
 	currentSetID, err := s.GetCurrentSetID()
 	if err != nil {

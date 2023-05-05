@@ -433,37 +433,17 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO this test failing is related too issue #3136
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
-	t.Skip()
-	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
-
-	cfg := ServiceConfig{
-		Keypair: kp,
-	}
-
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	verificationManager := NewVerificationManager(babeService.blockState, babeService.epochState)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
-
-	epochData.threshold = maxThreshold
-	epochData.authorities = []types.Authority{
-		{
-			Key: kp.Public().(*sr25519.PublicKey),
-		},
-	}
-
-	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
-	})
 
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
@@ -481,13 +461,13 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(&block.Header)
+	err = verificationManager.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(&block2.Header)
+	err = verificationManager.VerifyBlock(&block2.Header)
 	require.ErrorIs(t, err, ErrProducerEquivocated)
 	require.EqualError(t, err, fmt.Sprintf("%s for block header %s", ErrProducerEquivocated, block2.Header.Hash()))
 }

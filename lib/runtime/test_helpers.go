@@ -217,7 +217,7 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	rv, err := rt.Version()
 	require.NoError(t, err)
 
 	c, err := ctypes.NewCall(meta, call, args...)
@@ -288,7 +288,7 @@ type Instance interface {
 // Versioner returns the version from the runtime.
 // This should return the cached version and be cheap to execute.
 type Versioner interface {
-	Version() (version Version)
+	Version() (Version, error)
 }
 
 // Metadataer returns the metadata from the runtime.
