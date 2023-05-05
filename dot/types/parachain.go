@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package types
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
+// BlockNumber represents a block number
 type BlockNumber uint32
 
 // ValidatorID represents a validator ID
@@ -59,6 +63,7 @@ type GroupRotationInfo struct {
 	Now uint32 `scale:"3"`
 }
 
+// ValidatorGroups represents the validator groups
 type ValidatorGroups struct {
 	// Validators is an array of validator set Ids
 	Validators [][]ValidatorIndex `scale:"1"`
