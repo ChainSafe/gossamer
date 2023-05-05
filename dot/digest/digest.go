@@ -202,8 +202,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		return nil
 
 	case types.VersionedNextConfigData:
-		nextVersionedConfigData := digestValue.(types.VersionedNextConfigData)
-		nextConfigDataVersion, err := nextVersionedConfigData.Value()
+		nextConfigDataVersion, err := val.Value()
 		if err != nil {
 			return fmt.Errorf("getting digest value: %w", err)
 		}
