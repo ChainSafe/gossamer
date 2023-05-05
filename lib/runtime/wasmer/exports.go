@@ -380,8 +380,8 @@ func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, erro
 	return &validatorGroups, nil
 }
 
-// ParachainHostAvailabilityCores Returns information on all availability cores
-func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
+// ParachainHostAvailabilityCores Returns the availability cores for the current state.
+func (in *Instance) ParachainHostAvailabilityCores() (*types.AvailabilityCores, error) {
 	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, err
@@ -391,13 +391,14 @@ func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlic
 	if err != nil {
 		return nil, err
 	}
-	availabilityCores := scale.NewVaryingDataTypeSlice(coreStateVDT)
 
-	err = scale.Unmarshal(ret, &availabilityCores)
+	vdtSlice := scale.NewVaryingDataTypeSlice(coreStateVDT)
+	err = scale.Unmarshal(ret, &vdtSlice)
 	if err != nil {
 		return nil, err
 	}
 
+	availabilityCores := types.AvailabilityCores(vdtSlice)
 	return &availabilityCores, nil
 }
 
@@ -469,7 +470,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(parachainID types.
 }
 
 // ParachainHostCandidateEvents Returns an array of candidate events that occurred within the latest state.
-func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
+func (in *Instance) ParachainHostCandidateEvents() (*types.CandidateEvents, error) {
 	ret, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
 		return nil, err
@@ -480,12 +481,13 @@ func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice,
 		return nil, err
 	}
 
-	candidateEvents := scale.NewVaryingDataTypeSlice(candidateEvent)
-	err = scale.Unmarshal(ret, &candidateEvents)
+	vdts := scale.NewVaryingDataTypeSlice(candidateEvent)
+	err = scale.Unmarshal(ret, &vdts)
 	if err != nil {
 		return nil, err
 	}
 
+	candidateEvents := types.CandidateEvents(vdts)
 	return &candidateEvents, nil
 }
 

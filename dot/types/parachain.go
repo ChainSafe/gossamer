@@ -177,6 +177,9 @@ func (Free) Index() uint {
 // CoreState represents the state of a particular availability core.
 type CoreState scale.VaryingDataType
 
+// AvailabilityCores represents a slice of CoreState
+type AvailabilityCores scale.VaryingDataTypeSlice
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (va *CoreState) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
@@ -405,6 +408,9 @@ func (va *CandidateEvent) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*va)
 	return vdt.Value()
 }
+
+// CandidateEvents is a slice of CandidateEvent
+type CandidateEvents scale.VaryingDataTypeSlice
 
 // NewCandidateEventVDT returns a new CandidateEvent VaryingDataType
 func NewCandidateEventVDT() (scale.VaryingDataType, error) {

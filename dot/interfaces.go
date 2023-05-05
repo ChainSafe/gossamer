@@ -74,5 +74,4 @@ type runtimeInterface interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
-	ParachainHostValidators() ([]types.Validator, error)
 }
