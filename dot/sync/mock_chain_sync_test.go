@@ -66,11 +66,9 @@ func (mr *MockChainSyncMockRecorder) setBlockAnnounce(from, header interface{}) 
 }
 
 // setPeerHead mocks base method.
-func (m *MockChainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) error {
+func (m *MockChainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "setPeerHead", p, hash, number)
-	ret0, _ := ret[0].(error)
-	return ret0
+	m.ctrl.Call(m, "setPeerHead", p, hash, number)
 }
 
 // setPeerHead indicates an expected call of setPeerHead.
