@@ -3,7 +3,6 @@ package parachaininteraction
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -83,24 +82,4 @@ func (compressed) Index() uint { //skipcq
 // Proof of Validity
 type PoV struct {
 	BlockData []byte `scale:"1"` // types.BlockData `scale:"1"`
-}
-
-// type BlockData []byte
-
-// The parachain block that is created by a collator.
-//
-// This is send as PoV (proof of validity block) to the relay-chain validators. There it will be
-// passed to the parachain validation Wasm blob to be validated.
-type ParachainBlockData struct {
-	// Header is the header of the parachain block.
-	Header types.Header
-	// Extrinsics are extrinsics of the parachain block.
-	Extrinsics []types.Extrinsic
-	// StorageProof has the data that is required to emulate the storage accesses executed by all extrinsics.
-	StorageProof CompactProof
-}
-
-// CompactProof is a compact proof of a trie node.
-type CompactProof struct {
-	EncodedNodes [][]byte
 }

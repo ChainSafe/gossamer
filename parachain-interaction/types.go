@@ -61,21 +61,30 @@ type CandidateDescriptor struct {
 	ValidationCodeHash validationCodeHash `scale:"9"`
 }
 
-func (cd CandidateDescriptor) CheckCollatorSignature() error {
+func (cd CandidateDescriptor) createSignaturePayload() ([]byte, error) {
 	var payload [132]byte
 	copy(payload[0:32], cd.RelayParent.ToBytes())
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(cd.ParaID)
 	if err != nil {
-		return fmt.Errorf("encoding parachain id: %w", err)
+		return nil, fmt.Errorf("encoding parachain id: %w", err)
 	}
 	copy(payload[32:32+buffer.Len()], buffer.Bytes())
 	copy(payload[36:68], cd.PersistedValidationDataHash.ToBytes())
 	copy(payload[68:100], cd.PoVHash.ToBytes())
 	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
 
-	return sr25519.VerifySignature(cd.Collator.Encode(), cd.Signature[:], payload[:])
+	return payload[:], nil
+}
+
+func (cd CandidateDescriptor) CheckCollatorSignature() error {
+	payload, err := cd.createSignaturePayload()
+	if err != nil {
+		return fmt.Errorf("creating signature payload: %w", err)
+	}
+
+	return sr25519.VerifySignature(cd.Collator.Encode(), cd.Signature[:], payload)
 }
 
 type CandidateReceipt struct {
