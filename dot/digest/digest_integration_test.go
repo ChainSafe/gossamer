@@ -387,10 +387,10 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 		SecondarySlots: 1,
 	}
 
-	VersionedNextConfigData := types.NewVersionedNextConfigData()
-	VersionedNextConfigData.Set(nextConfigData)
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.Set(nextConfigData)
 
-	err := digest.Set(VersionedNextConfigData)
+	err := digest.Set(versionedNextConfigData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)

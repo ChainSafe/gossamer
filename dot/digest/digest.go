@@ -189,7 +189,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 	case types.NextEpochData:
 		currEpoch, err := h.epochState.GetEpochForBlock(header)
 		if err != nil {
-			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
+			return fmt.Errorf("getting epoch for block %d (%s): %w",
 				header.Number, headerHash, err)
 		}
 
@@ -212,7 +212,7 @@ func (h *Handler) handleBabeConsensusDigest(digest scale.VaryingDataType, header
 		case types.NextConfigDataV1:
 			currEpoch, err := h.epochState.GetEpochForBlock(header)
 			if err != nil {
-				return fmt.Errorf("cannot get epoch for block %d (%s): %w", header.Number, headerHash, err)
+				return fmt.Errorf("getting epoch for block %d (%s): %w", header.Number, headerHash, err)
 			}
 			nextEpoch := currEpoch + 1
 			h.epochState.StoreBABENextConfigData(nextEpoch, headerHash, nextConfigData)
