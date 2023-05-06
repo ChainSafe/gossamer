@@ -1,5 +1,5 @@
 [global]
-basepath = "./tmp/westend"
+basepath = "~/.gossamer/westend"
 log = "info"
 metrics-address = "localhost:9876"
 
@@ -7,10 +7,10 @@ metrics-address = "localhost:9876"
 core = ""
 network = ""
 rpc = ""
-state = ""
+state = "trace"
 runtime = ""
 babe = ""
-grandpa = ""
+grandpa = "trace"
 sync = "trace"
 digest = "trace"
 

@@ -11,8 +11,8 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = "trace"
-digest = "trace"
+sync = ""
+digest = ""
 
 [init]
 genesis = "./chain/westend-local/westend-local-spec-raw.json"
