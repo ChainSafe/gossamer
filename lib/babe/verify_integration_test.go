@@ -544,7 +544,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	aliceBlockNextEpoch := types.NextEpochData{
 		Authorities: authorities[3:],
 	}
-	aliceBlockNextConfigData := types.NextConfigData{
+	aliceBlockNextConfigData := types.NextConfigDataV1{
 		C1:             9,
 		C2:             10,
 		SecondarySlots: 1,
@@ -555,7 +555,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	bobBlockNextEpoch := types.NextEpochData{
 		Authorities: authorities[6:],
 	}
-	bobBlockNextConfigData := types.NextConfigData{
+	bobBlockNextConfigData := types.NextConfigDataV1{
 		C1:             3,
 		C2:             8,
 		SecondarySlots: 1,
@@ -672,7 +672,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 // blocks that contains different consensus messages digests
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
-	nextEpoch types.NextEpochData, nextConfig types.NextConfigData) *types.Header {
+	nextEpoch types.NextEpochData, nextConfig types.NextConfigDataV1) *types.Header {
 	t.Helper()
 
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(0), 0))
@@ -691,7 +691,11 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 	require.NoError(t, babeConsensusDigestNextEpoch.Set(nextEpoch))
 
 	babeConsensusDigestNextConfigData := types.NewBabeConsensusDigest()
-	require.NoError(t, babeConsensusDigestNextConfigData.Set(nextConfig))
+
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.Set(nextConfig)
+
+	require.NoError(t, babeConsensusDigestNextConfigData.Set(versionedNextConfigData))
 
 	nextEpochData, err := scale.Marshal(babeConsensusDigestNextEpoch)
 	require.NoError(t, err)
