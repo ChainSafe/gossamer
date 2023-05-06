@@ -172,7 +172,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		logSyncTicker:      logSyncTicker,
 		logSyncTickerC:     logSyncTicker.C,
 		logSyncDone:        make(chan struct{}),
-		workerPool:         newSyncWorkerPool(cfg.net),
+		workerPool:         newSyncWorkerPool(ctx, cfg.net),
 		blockAnnounceCh:    make(chan announcedBlock, cfg.maxPeers),
 		badBlocks:          cfg.badBlocks,
 	}
@@ -203,7 +203,6 @@ func (cs *chainSync) start() {
 
 func (cs *chainSync) stop() {
 	close(cs.stopCh)
-	<-cs.workerPool.doneCh
 
 	cs.cancel()
 	if cs.logSyncStarted {

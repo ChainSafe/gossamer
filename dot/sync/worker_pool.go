@@ -47,14 +47,16 @@ type syncWorkerPool struct {
 	workers   map[peer.ID]*peerSyncWorker
 
 	availablePeerCh chan peer.ID
+	ctx             context.Context
 }
 
-func newSyncWorkerPool(net Network) *syncWorkerPool {
+func newSyncWorkerPool(ctx context.Context, net Network) *syncWorkerPool {
 	return &syncWorkerPool{
 		network:         net,
 		availablePeerCh: make(chan peer.ID, maxRequestsAllowed),
 		workers:         make(map[peer.ID]*peerSyncWorker),
 		taskQueue:       make(chan *syncTask, maxRequestsAllowed),
+		ctx:             ctx,
 	}
 }
 
@@ -133,11 +135,11 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 // getFirstAvailable returns the very first peer available and changes
 // its status from available to busy, if there is no peer avaible then
 // it blocks until find one
-func (s *syncWorkerPool) getFirstAvailable(ctx context.Context, expected *peer.ID) (peer.ID, error) {
+func (s *syncWorkerPool) getFirstAvailable(expected *peer.ID) (peer.ID, error) {
 	for {
 		select {
 		// If we are shutting down the workers we have to handle the context cancellation and return earlier
-		case <-ctx.Done():
+		case <-s.ctx.Done():
 			return peer.ID(""), context.Canceled
 
 		// Wait for available peers in available peers channel
@@ -177,29 +179,26 @@ func (s *syncWorkerPool) getFirstAvailable(ctx context.Context, expected *peer.I
 }
 
 func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
-	ctx, cancel := context.WithCancel(context.Background())
-
 	for {
 		select {
 		case <-stopCh:
 			//wait for ongoing requests to be finished before returning
-			cancel()
 			s.wg.Wait()
 			return
 
 		case task := <-s.taskQueue:
 			s.wg.Add(1)
-			go s.executeRequest(ctx, s.network, task, &s.wg)
+			go s.executeRequest(s.network, task, &s.wg)
 		}
 	}
 }
 
-func (s *syncWorkerPool) executeRequest(ctx context.Context, network Network, task *syncTask, wg *sync.WaitGroup) {
+func (s *syncWorkerPool) executeRequest(network Network, task *syncTask, wg *sync.WaitGroup) {
 	defer wg.Done()
 	request := task.request
 
 	// Blocks until it find an available peer to use
-	availablePeer, err := s.getFirstAvailable(ctx, task.boundTo)
+	availablePeer, err := s.getFirstAvailable(task.boundTo)
 
 	// If we get a context canceled error we return earlier since we are shutting down the workers
 	if err != nil {
