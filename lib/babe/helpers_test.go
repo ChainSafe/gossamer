@@ -184,6 +184,8 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
+	dbSrv.Transaction = state.NewTransactionState(telemetryMock)
+
 	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
@@ -215,6 +217,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	nodeStorage.BaseDB = dbSrv.Base
 
 	rtCfg.NodeStorage = nodeStorage
+	rtCfg.Transaction = dbSrv.Transaction
 	runtime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
@@ -303,7 +306,8 @@ func createSecondaryVRFPreDigest(t *testing.T,
 
 func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
 	bestBlockHash common.Hash) types.Extrinsic {
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
 	require.NoError(t, err)
 	var extrinsicParts [][]byte
