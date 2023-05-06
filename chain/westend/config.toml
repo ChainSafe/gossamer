@@ -10,9 +10,9 @@ rpc = ""
 state = ""
 runtime = ""
 babe = ""
-grandpa = "trace"
-sync = "trace"
-digest = "trace"
+grandpa = ""
+sync = ""
+digest = ""
 
 [init]
 genesis = "./chain/westend/genesis.json"
