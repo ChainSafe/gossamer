@@ -298,10 +298,10 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 	// it is likely they will receive this block and its ancestors before us.
 
 	// * disabling for deployment in staging
-	// cs.blockAnnounceCh <- announcedBlock{
-	// 	who:    who,
-	// 	header: blockAnnounceHeader,
-	// }
+	cs.blockAnnounceCh <- announcedBlock{
+		who:    who,
+		header: blockAnnounceHeader,
+	}
 	return nil
 }
 

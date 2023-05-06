@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -47,23 +46,16 @@ type syncWorkerPool struct {
 	taskQueue chan *syncTask
 	workers   map[peer.ID]*peerSyncWorker
 
-	waiting         bool
 	availablePeerCh chan peer.ID
-
-	waitingBounded   *peer.ID
-	availableBounded chan struct{}
-	waitBoundedLock  sync.Mutex
 }
 
 func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return &syncWorkerPool{
-		network:          net,
-		waiting:          false,
-		doneCh:           make(chan struct{}),
-		availablePeerCh:  make(chan peer.ID),
-		availableBounded: make(chan struct{}),
-		workers:          make(map[peer.ID]*peerSyncWorker),
-		taskQueue:        make(chan *syncTask, maxRequestsAllowed),
+		network:         net,
+		doneCh:          make(chan struct{}),
+		availablePeerCh: make(chan peer.ID, maxRequestsAllowed),
+		workers:         make(map[peer.ID]*peerSyncWorker),
+		taskQueue:       make(chan *syncTask, maxRequestsAllowed),
 	}
 }
 
@@ -114,19 +106,8 @@ func (s *syncWorkerPool) releaseWorker(who peer.ID) {
 		return
 	}
 
-	if s.waitingBounded != nil && *s.waitingBounded == who {
-		s.waitingBounded = nil
-		s.workers[who] = &peerSyncWorker{status: busy}
-		s.availableBounded <- struct{}{}
-		return
-	}
-
 	s.workers[who] = &peerSyncWorker{status: available}
-
-	if s.waiting {
-		s.waiting = false
-		s.availablePeerCh <- who
-	}
+	s.availablePeerCh <- who
 }
 
 func (s *syncWorkerPool) punishPeer(who peer.ID) {
@@ -150,77 +131,42 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 	return uint(len(s.workers))
 }
 
-var errPeerNotFound = errors.New("peer not found")
-var errNoPeersAvailable = errors.New("no peers available")
-
-// getAvailablePeer returns the very first peer available and changes
+// getFirstAvailable returns the very first peer available and changes
 // its status from available to busy, if there is no peer avaible then
-// the caller should wait for availablePeerCh
-func (s *syncWorkerPool) searchForAvailable() (peer.ID, error) {
-	s.l.RLock()
-	defer s.l.RUnlock()
-
-	for peerID, peerSync := range s.workers {
-		switch peerSync.status {
-		case punished:
-			// if the punishedTime has passed then we mark it
-			// as available and notify it availability if needed
-			// otherwise we keep the peer in the punishment and don't notify
-			if peerSync.punishedTime.Before(time.Now()) {
-				peerSync.status = busy
-				s.workers[peerID] = peerSync
-				return peerID, nil
+// it blocks until find one
+func (s *syncWorkerPool) getFirstAvailable(peer *peer.ID) peer.ID {
+	for {
+		select {
+		case firstAvailable := <-s.availablePeerCh:
+			if peer != nil { // We are looking for a specific peer
+				if firstAvailable == *peer {
+					return firstAvailable
+				} else {
+					// TODO: find a way to improve this and prevent starvation
+					// If we don't find it we return it to the channel so other routine could take it
+					s.availablePeerCh <- firstAvailable
+				}
+			} else { // We are not looking for a specific peer so we can return the first one available
+				return firstAvailable
 			}
-		case available:
-			peerSync.status = busy
-			s.workers[peerID] = peerSync
-			return peerID, nil
 		default:
+			// Those who are punished are not in the channel so we have to look for them in the workers map
+			s.l.RLock()
+			for peerID, peerSync := range s.workers {
+				switch peerSync.status {
+				case punished:
+					// if the punishedTime has passed then we mark it
+					// as available and notify it availability if needed
+					// otherwise we keep the peer in the punishment and don't notify
+					if peerSync.punishedTime.Before(time.Now()) {
+						s.workers[peerID].punishedTime = time.Time{}
+						return peerID
+					}
+				}
+			}
+			s.l.RUnlock()
 		}
 	}
-
-	s.waiting = true
-	return peer.ID(""), errNoPeersAvailable //could not found an available peer to dispatch
-}
-
-func (s *syncWorkerPool) searchForExactAvailable(peerID peer.ID) (bool, error) {
-	s.l.RLock()
-	defer s.l.RUnlock()
-	peerSync, has := s.workers[peerID]
-	if !has {
-		return false, errPeerNotFound
-	}
-
-	switch peerSync.status {
-	case punished:
-		// if the punishedTime has passed then we mark it
-		// as available and notify it availability if needed
-		// otherwise we keep the peer in the punishment and don't notify
-		if peerSync.punishedTime.Before(time.Now()) {
-			peerSync.status = busy
-			s.workers[peerID] = peerSync
-			return true, nil
-		}
-	case available:
-		peerSync.status = busy
-		s.workers[peerID] = peerSync
-		return true, nil
-	default:
-	}
-
-	return peerSync.status == available, nil
-}
-
-func (s *syncWorkerPool) waitPeerAndExecute(network Network, who peer.ID, availableBounded <-chan struct{}, task *syncTask, wg *sync.WaitGroup) {
-	s.waitBoundedLock.Lock()
-	s.waitingBounded = &who
-
-	logger.Debugf("[WAITING] bounded task to peer %s in idle state: %s", who, task.request)
-	<-availableBounded
-	logger.Debugf("[WAITING] got the peer %s to handle task: %s", who, task)
-	s.waitBoundedLock.Unlock()
-
-	executeRequest(network, who, task, wg)
 }
 
 func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
@@ -233,56 +179,34 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 			return
 
 		case task := <-s.taskQueue:
-			var availablePeer peer.ID
-			if task.boundTo != nil {
-				isAvailable, err := s.searchForExactAvailable(*task.boundTo)
-				if err != nil {
-					logger.Errorf("while checking peer %s available: %s",
-						*task.boundTo, task.request)
-					continue
-				}
-
-				if isAvailable {
-					availablePeer = *task.boundTo
-				} else {
-					s.wg.Add(1)
-					go s.waitPeerAndExecute(s.network, *task.boundTo, s.availableBounded, task, &s.wg)
-					continue
-				}
-			} else {
-				var err error
-				availablePeer, err = s.searchForAvailable()
-				if err != nil {
-					if errors.Is(err, errNoPeersAvailable) {
-						logger.Debugf("[WAITING] task in idle state: %s", task.request)
-						availablePeer = <-s.availablePeerCh
-						logger.Debugf("[WAITING] got the peer %s to handle task: %s", availablePeer, task)
-					} else {
-						logger.Errorf("while searching for available peer: %s", task.request)
-					}
-				}
-			}
-
 			s.wg.Add(1)
-			go executeRequest(s.network, availablePeer, task, &s.wg)
+			go s.executeRequest(s.network, task, &s.wg)
 		}
 	}
 }
 
-func executeRequest(network Network, who peer.ID, task *syncTask, wg *sync.WaitGroup) {
+func (s *syncWorkerPool) executeRequest(network Network, task *syncTask, wg *sync.WaitGroup) {
 	defer wg.Done()
 	request := task.request
 
-	logger.Debugf("[EXECUTING] worker %s: block request: %s", who, request)
-	response, err := network.DoBlockRequest(who, request)
+	// Blocks until it find an available peer to use
+	availablePeer := s.getFirstAvailable(task.boundTo)
+	// Change the peer status
+	// TODO: check if we really need to sync here since this is the only routine modifying the interal status
+	s.l.Lock()
+	s.workers[availablePeer].status = busy
+	s.l.Unlock()
+
+	logger.Debugf("[EXECUTING] worker for peer %s: block request: %s", availablePeer, request)
+	response, err := network.DoBlockRequest(availablePeer, request)
 	if err != nil {
-		logger.Debugf("[FINISHED] worker %s: err: %s", who, err)
+		logger.Debugf("[FINISHED] error getting blocks from peer %s: err: %s", request, availablePeer, err)
 	} else if response != nil {
-		logger.Debugf("[FINISHED] worker %s: block data amount: %d", who, len(response.BlockData))
+		logger.Debugf("[FINISHED] success getting blocks from peer %s: block data amount: %d", availablePeer, len(response.BlockData))
 	}
 
 	task.resultCh <- &syncTaskResult{
-		who:      who,
+		who:      availablePeer,
 		request:  request,
 		response: response,
 		err:      err,
