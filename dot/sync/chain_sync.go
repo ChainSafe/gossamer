@@ -296,10 +296,12 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 	// that is also has the chain up until and including that block.
 	// this may not be a valid assumption, but perhaps we can assume that
 	// it is likely they will receive this block and its ancestors before us.
-	cs.blockAnnounceCh <- announcedBlock{
-		who:    who,
-		header: blockAnnounceHeader,
-	}
+
+	// * disabling for deployment in staging
+	// cs.blockAnnounceCh <- announcedBlock{
+	// 	who:    who,
+	// 	header: blockAnnounceHeader,
+	// }
 	return nil
 }
 
@@ -514,11 +516,10 @@ func (cs *chainSync) executeTipSync() error {
 			return fmt.Errorf("while requesting pending blocks")
 		}
 	}
-
 }
 
 func (cs *chainSync) requestPendingBlocks() error {
-	logger.Info("starting request pending blocks")
+	logger.Infof("total of pending blocks: %d", cs.pendingBlocks.size())
 	if cs.pendingBlocks.size() == 0 {
 		return nil
 	}
@@ -618,7 +619,7 @@ func (cs *chainSync) executeBootstrapSync() error {
 		}
 
 		requests := ascedingBlockRequests(startRequestAt, targetBlockNumber, bootstrapRequestData)
-		expectedAmountOfBlocks := uint32(len(requests) * 128)
+		expectedAmountOfBlocks := totalOfBlocksRequested(requests)
 
 		wg := sync.WaitGroup{}
 		resultsQueue := make(chan *syncTaskResult)

@@ -11,20 +11,20 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = ""
-digest = ""
+sync = "trace"
+digest = "trace"
 
 [init]
 genesis = "./chain/westend-local/westend-local-spec-raw.json"
 
 [account]
-key = "alice"
+key = ""
 unlock = ""
 
 [core]
 roles = 4
-babe-authority = true
-grandpa-authority = true
+babe-authority = false
+grandpa-authority = false
 
 [network]
 port = 7001

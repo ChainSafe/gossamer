@@ -48,18 +48,22 @@ type syncWorkerPool struct {
 	workers   map[peer.ID]*peerSyncWorker
 
 	waiting         bool
-	waitingBounded  bool
 	availablePeerCh chan peer.ID
+
+	waitingBounded   *peer.ID
+	availableBounded chan struct{}
+	waitBoundedLock  sync.Mutex
 }
 
 func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return &syncWorkerPool{
-		network:         net,
-		waiting:         false,
-		doneCh:          make(chan struct{}),
-		availablePeerCh: make(chan peer.ID),
-		workers:         make(map[peer.ID]*peerSyncWorker),
-		taskQueue:       make(chan *syncTask, maxRequestsAllowed),
+		network:          net,
+		waiting:          false,
+		doneCh:           make(chan struct{}),
+		availablePeerCh:  make(chan peer.ID),
+		availableBounded: make(chan struct{}),
+		workers:          make(map[peer.ID]*peerSyncWorker),
+		taskQueue:        make(chan *syncTask, maxRequestsAllowed),
 	}
 }
 
@@ -110,7 +114,15 @@ func (s *syncWorkerPool) releaseWorker(who peer.ID) {
 		return
 	}
 
+	if s.waitingBounded != nil && *s.waitingBounded == who {
+		s.waitingBounded = nil
+		s.workers[who] = &peerSyncWorker{status: busy}
+		s.availableBounded <- struct{}{}
+		return
+	}
+
 	s.workers[who] = &peerSyncWorker{status: available}
+
 	if s.waiting {
 		s.waiting = false
 		s.availablePeerCh <- who
@@ -171,7 +183,7 @@ func (s *syncWorkerPool) searchForAvailable() (peer.ID, error) {
 	return peer.ID(""), errNoPeersAvailable //could not found an available peer to dispatch
 }
 
-func (s *syncWorkerPool) isPeerAvailable(peerID peer.ID) (bool, error) {
+func (s *syncWorkerPool) searchForExactAvailable(peerID peer.ID) (bool, error) {
 	s.l.RLock()
 	defer s.l.RUnlock()
 	peerSync, has := s.workers[peerID]
@@ -179,7 +191,36 @@ func (s *syncWorkerPool) isPeerAvailable(peerID peer.ID) (bool, error) {
 		return false, errPeerNotFound
 	}
 
+	switch peerSync.status {
+	case punished:
+		// if the punishedTime has passed then we mark it
+		// as available and notify it availability if needed
+		// otherwise we keep the peer in the punishment and don't notify
+		if peerSync.punishedTime.Before(time.Now()) {
+			peerSync.status = busy
+			s.workers[peerID] = peerSync
+			return true, nil
+		}
+	case available:
+		peerSync.status = busy
+		s.workers[peerID] = peerSync
+		return true, nil
+	default:
+	}
+
 	return peerSync.status == available, nil
+}
+
+func (s *syncWorkerPool) waitPeerAndExecute(network Network, who peer.ID, availableBounded <-chan struct{}, task *syncTask, wg *sync.WaitGroup) {
+	s.waitBoundedLock.Lock()
+	s.waitingBounded = &who
+
+	logger.Debugf("[WAITING] bounded task to peer %s in idle state: %s", who, task.request)
+	<-availableBounded
+	logger.Debugf("[WAITING] got the peer %s to handle task: %s", who, task)
+	s.waitBoundedLock.Unlock()
+
+	executeRequest(network, who, task, wg)
 }
 
 func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
@@ -194,20 +235,19 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 		case task := <-s.taskQueue:
 			var availablePeer peer.ID
 			if task.boundTo != nil {
-				isAvailable, err := s.isPeerAvailable(*task.boundTo)
+				isAvailable, err := s.searchForExactAvailable(*task.boundTo)
 				if err != nil {
-					if errors.Is(err, errPeerNotFound) {
-						// TODO: check if there is a better solution
-						continue
-					}
+					logger.Errorf("while checking peer %s available: %s",
+						*task.boundTo, task.request)
+					continue
 				}
 
 				if isAvailable {
 					availablePeer = *task.boundTo
 				} else {
-					logger.Debugf("[WAITING] task in idle state: %s", task.request)
-					availablePeer = <-s.availablePeerCh
-					logger.Debugf("[WAITING] got the peer %s to  handle task: %s", availablePeer, task)
+					s.wg.Add(1)
+					go s.waitPeerAndExecute(s.network, *task.boundTo, s.availableBounded, task, &s.wg)
+					continue
 				}
 			} else {
 				var err error
@@ -216,10 +256,9 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 					if errors.Is(err, errNoPeersAvailable) {
 						logger.Debugf("[WAITING] task in idle state: %s", task.request)
 						availablePeer = <-s.availablePeerCh
-						logger.Debugf("[WAITING] got the peer %s to  handle task: %s", availablePeer, task)
+						logger.Debugf("[WAITING] got the peer %s to handle task: %s", availablePeer, task)
 					} else {
-						// TODO: check if there is a better solution
-						continue
+						logger.Errorf("while searching for available peer: %s", task.request)
 					}
 				}
 			}
