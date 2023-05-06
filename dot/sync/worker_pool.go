@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -38,9 +39,8 @@ type peerSyncWorker struct {
 }
 
 type syncWorkerPool struct {
-	wg     sync.WaitGroup
-	l      sync.RWMutex
-	doneCh chan struct{}
+	wg sync.WaitGroup
+	l  sync.RWMutex
 
 	network   Network
 	taskQueue chan *syncTask
@@ -52,7 +52,6 @@ type syncWorkerPool struct {
 func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return &syncWorkerPool{
 		network:         net,
-		doneCh:          make(chan struct{}),
 		availablePeerCh: make(chan peer.ID, maxRequestsAllowed),
 		workers:         make(map[peer.ID]*peerSyncWorker),
 		taskQueue:       make(chan *syncTask, maxRequestsAllowed),
@@ -134,23 +133,31 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 // getFirstAvailable returns the very first peer available and changes
 // its status from available to busy, if there is no peer avaible then
 // it blocks until find one
-func (s *syncWorkerPool) getFirstAvailable(peer *peer.ID) peer.ID {
+func (s *syncWorkerPool) getFirstAvailable(ctx context.Context, expected *peer.ID) (peer.ID, error) {
 	for {
 		select {
+		// If we are shutting down the workers we have to handle the context cancellation and return earlier
+		case <-ctx.Done():
+			return peer.ID(""), context.Canceled
+
+		// Wait for available peers in available peers channel
 		case firstAvailable := <-s.availablePeerCh:
-			if peer != nil { // We are looking for a specific peer
-				if firstAvailable == *peer {
-					return firstAvailable
+			// If we are looking for an specific peer we have to check if current is the one we are looking
+			// if it's not we have to return it to the channel so other routine could take it
+			// if we are not looking for an specific peer we will return the one we got
+			if expected != nil {
+				if firstAvailable == *expected {
+					return firstAvailable, nil
 				} else {
 					// TODO: find a way to improve this and prevent starvation
-					// If we don't find it we return it to the channel so other routine could take it
 					s.availablePeerCh <- firstAvailable
 				}
-			} else { // We are not looking for a specific peer so we can return the first one available
-				return firstAvailable
+			} else {
+				return firstAvailable, nil
 			}
+
+		// Those who are punished are not in the channel so we have to look for them in the workers map
 		default:
-			// Those who are punished are not in the channel so we have to look for them in the workers map
 			s.l.RLock()
 			for peerID, peerSync := range s.workers {
 				switch peerSync.status {
@@ -160,7 +167,7 @@ func (s *syncWorkerPool) getFirstAvailable(peer *peer.ID) peer.ID {
 					// otherwise we keep the peer in the punishment and don't notify
 					if peerSync.punishedTime.Before(time.Now()) {
 						s.workers[peerID].punishedTime = time.Time{}
-						return peerID
+						return peerID, nil
 					}
 				}
 			}
@@ -170,27 +177,37 @@ func (s *syncWorkerPool) getFirstAvailable(peer *peer.ID) peer.ID {
 }
 
 func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
-	defer close(s.doneCh)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	for {
 		select {
 		case <-stopCh:
 			//wait for ongoing requests to be finished before returning
+			cancel()
 			s.wg.Wait()
 			return
 
 		case task := <-s.taskQueue:
 			s.wg.Add(1)
-			go s.executeRequest(s.network, task, &s.wg)
+			go s.executeRequest(ctx, s.network, task, &s.wg)
 		}
 	}
 }
 
-func (s *syncWorkerPool) executeRequest(network Network, task *syncTask, wg *sync.WaitGroup) {
+func (s *syncWorkerPool) executeRequest(ctx context.Context, network Network, task *syncTask, wg *sync.WaitGroup) {
 	defer wg.Done()
 	request := task.request
 
 	// Blocks until it find an available peer to use
-	availablePeer := s.getFirstAvailable(task.boundTo)
+	availablePeer, err := s.getFirstAvailable(ctx, task.boundTo)
+
+	// If we get a context canceled error we return earlier since we are shutting down the workers
+	if err != nil {
+		if err == context.Canceled {
+			return
+		}
+	}
+
 	// Change the peer status
 	// TODO: check if we really need to sync here since this is the only routine modifying the interal status
 	s.l.Lock()
