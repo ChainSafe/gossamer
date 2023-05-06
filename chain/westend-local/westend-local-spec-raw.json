@@ -2,7 +2,10 @@
   "name": "Westend Local Testnet",
   "id": "westend_local_testnet",
   "chainType": "Local",
-  "bootNodes": [],
+  "bootNodes": [
+    "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWJ6ykeQHZAC95vFfVVATuqF41Z8xt8kjdmyzHo8NjcBsA",
+    "/ip4/127.0.0.1/tcp/30331/p2p/12D3KooWBYjPKQ5Q8atgKgFB7qMZhbQYTPREjkHWn2xpNSHuivgT"
+  ],
   "telemetryEndpoints": null,
   "protocolId": "dot",
   "properties": null,
