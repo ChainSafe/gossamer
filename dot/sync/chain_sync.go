@@ -756,7 +756,6 @@ loop:
 				continue
 			}
 
-			cs.workerPool.releaseWorker(who)
 			if len(response.BlockData) > 0 {
 				firstBlockInResponse := response.BlockData[0]
 				lastBlockInResponse := response.BlockData[len(response.BlockData)-1]

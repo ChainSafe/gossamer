@@ -46,17 +46,15 @@ type syncWorkerPool struct {
 	taskQueue chan *syncTask
 	workers   map[peer.ID]*peerSyncWorker
 
-	availablePeerCh chan peer.ID
-	ctx             context.Context
+	ctx context.Context
 }
 
 func newSyncWorkerPool(ctx context.Context, net Network) *syncWorkerPool {
 	return &syncWorkerPool{
-		network:         net,
-		availablePeerCh: make(chan peer.ID, maxRequestsAllowed),
-		workers:         make(map[peer.ID]*peerSyncWorker),
-		taskQueue:       make(chan *syncTask, maxRequestsAllowed),
-		ctx:             ctx,
+		network:   net,
+		workers:   make(map[peer.ID]*peerSyncWorker),
+		taskQueue: make(chan *syncTask, maxRequestsAllowed),
+		ctx:       ctx,
 	}
 }
 
@@ -99,16 +97,19 @@ func (s *syncWorkerPool) releaseWorker(who peer.ID) {
 
 	peerSync, has := s.workers[who]
 	if !has {
-		peerSync = &peerSyncWorker{status: available}
-	}
+		s.workers[who] = &peerSyncWorker{status: available}
+	} else {
+		switch peerSync.status {
+		case available:
+		case busy:
+			s.workers[who] = &peerSyncWorker{status: available}
 
-	// if the punishment is still valid we do nothing
-	if peerSync.status == punished && peerSync.punishedTime.After(time.Now()) {
-		return
+		case punished:
+			if peerSync.punishedTime.Before(time.Now()) {
+				s.workers[who] = &peerSyncWorker{status: available}
+			}
+		}
 	}
-
-	s.workers[who] = &peerSyncWorker{status: available}
-	s.availablePeerCh <- who
 }
 
 func (s *syncWorkerPool) punishPeer(who peer.ID) {
@@ -138,31 +139,23 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 func (s *syncWorkerPool) getFirstAvailable(expected *peer.ID) (peer.ID, error) {
 	for {
 		select {
-		// If we are shutting down the workers we have to handle the context cancellation and return earlier
 		case <-s.ctx.Done():
 			return peer.ID(""), context.Canceled
-
-		// Wait for available peers in available peers channel
-		case firstAvailable := <-s.availablePeerCh:
-			// If we are looking for an specific peer we have to check if current is the one we are looking
-			// if it's not we have to return it to the channel so other routine could take it
-			// if we are not looking for an specific peer we will return the one we got
-			if expected != nil {
-				if firstAvailable == *expected {
-					return firstAvailable, nil
-				} else {
-					// TODO: find a way to improve this and prevent starvation
-					s.availablePeerCh <- firstAvailable
-				}
-			} else {
-				return firstAvailable, nil
-			}
-
-		// Those who are punished are not in the channel so we have to look for them in the workers map
 		default:
 			s.l.RLock()
+			defer s.l.RUnlock()
+
+			var availablePeer peer.ID
 			for peerID, peerSync := range s.workers {
 				switch peerSync.status {
+				case available:
+					if expected != nil {
+						if availablePeer != *expected {
+							availablePeer = peerID
+						}
+					} else {
+						availablePeer = peerID
+					}
 				case punished:
 					// if the punishedTime has passed then we mark it
 					// as available and notify it availability if needed
@@ -173,7 +166,10 @@ func (s *syncWorkerPool) getFirstAvailable(expected *peer.ID) (peer.ID, error) {
 					}
 				}
 			}
-			s.l.RUnlock()
+			if availablePeer != peer.ID("") {
+				s.workers[availablePeer].status = busy
+				return availablePeer, nil
+			}
 		}
 	}
 }
@@ -199,19 +195,12 @@ func (s *syncWorkerPool) executeRequest(network Network, task *syncTask, wg *syn
 
 	// Blocks until it find an available peer to use
 	availablePeer, err := s.getFirstAvailable(task.boundTo)
-
 	// If we get a context canceled error we return earlier since we are shutting down the workers
 	if err != nil {
 		if err == context.Canceled {
 			return
 		}
 	}
-
-	// Change the peer status
-	// TODO: check if we really need to sync here since this is the only routine modifying the interal status
-	s.l.Lock()
-	s.workers[availablePeer].status = busy
-	s.l.Unlock()
 
 	logger.Debugf("[EXECUTING] worker for peer %s: block request: %s", availablePeer, request)
 	response, err := network.DoBlockRequest(availablePeer, request)
@@ -227,4 +216,6 @@ func (s *syncWorkerPool) executeRequest(network Network, task *syncTask, wg *syn
 		response: response,
 		err:      err,
 	}
+
+	s.releaseWorker(availablePeer)
 }
