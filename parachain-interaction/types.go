@@ -92,24 +92,8 @@ type CandidateReceipt struct {
 	commitmentsHash common.Hash         `scale:"2"`
 }
 
-// CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
-type CandidateCommitments struct {
-	// Messages destined to be interpreted by the Relay chain itself.
-	UpwardMessages []upwardMessage `scale:"1"`
-	// Horizontal messages sent by the parachain.
-	HorizontalMessages []outboundHrmpMessage `scale:"2"`
-	// New validation code.
-	NewValidationCode *ValidationCode `scale:"3"`
-	// The head-data produced as a result of execution.
-	HeadData headData `scale:"4"`
-	// The number of messages processed from the DMQ.
-	ProcessedDownwardMessages uint32 `scale:"5"`
-	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
-	HrmpWatermark uint32 `scale:"6"`
-}
-
 // Included means the candidate occupying the core was made available and included to free the core.
-type Included scale.VaryingDataType //skipcq
+type Included struct{}
 
 // Index returns VDT index
 func (Included) Index() uint { //skipcq
@@ -121,7 +105,7 @@ func (Included) String() string { //skipcq
 }
 
 // TimedOut means the candidate occupying the core timed out and freed the core without advancing the para.
-type TimedOut scale.VaryingDataType //skipcq
+type TimedOut struct{}
 
 // Index returns VDT index
 func (TimedOut) Index() uint { //skipcq
@@ -133,7 +117,7 @@ func (TimedOut) String() string { //skipcq
 }
 
 // Free means the core was not occupied to begin with.
-type Free scale.VaryingDataType //skipcq
+type Free struct{}
 
 // Index returns VDT index
 func (Free) Index() uint { //skipcq

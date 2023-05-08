@@ -339,6 +339,21 @@ func (mr *MockRuntimeInstanceMockRecorder) OffchainWorker() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OffchainWorker", reflect.TypeOf((*MockRuntimeInstance)(nil).OffchainWorker))
 }
 
+// ParachainHostCheckValidationOutputs mocks base method.
+func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 uint32, arg1 types0.CandidateCommitments) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCheckValidationOutputs", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCheckValidationOutputs indicates an expected call of ParachainHostCheckValidationOutputs.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCheckValidationOutputs", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostCheckValidationOutputs), arg0, arg1)
+}
+
 // ParachainHostPersistedValidationData mocks base method.
 func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(arg0 uint32, arg1 types0.OccupiedCoreAssumption) (*types0.PersistedValidationData, error) {
 	m.ctrl.T.Helper()

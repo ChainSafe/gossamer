@@ -93,17 +93,16 @@ func TestValidateFromChainState(t *testing.T) {
 	}
 
 	ctrl := gomock.NewController(t)
+
 	mockInstance := NewMockRuntimeInstance(ctrl)
+	mockInstance.EXPECT().ParachainHostPersistedValidationData(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).Return(&persistedValidationData, nil)
+	mockInstance.EXPECT().ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).Return(&validationCode, nil)
+	mockInstance.EXPECT().ParachainHostCheckValidationOutputs(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.CandidateCommitments{})).Return(true, nil)
 
 	mockPoVRequestor := NewMockPoVRequestor(ctrl)
-
-	mockInstance.EXPECT().ParachainHostPersistedValidationData(uint32(1000), gomock.Any()).Return(&persistedValidationData, nil)
-	mockInstance.EXPECT().ParachainHostValidationCode(uint32(1000), gomock.Any()).Return(&validationCode, nil)
-
 	mockPoVRequestor.EXPECT().RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
-	// get PersistedValidationData and ValidationCode from polkadot test
-	// candidateCommitment, persistedValidationData, err := ValidateFromChainState(mockInstance, candidateReceipt)
-	_, _, err = ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
+
+	_, _, _, err = ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
 	require.NoError(t, err)
 
 }

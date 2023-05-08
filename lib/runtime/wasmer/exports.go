@@ -406,3 +406,34 @@ func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption p
 
 	return &validationCode, nil
 }
+
+// ParachainHostCheckValidationOutputs Checks the validation outputs of a candidate.
+// Returns true if the candidate is valid.
+func (in *Instance) ParachainHostCheckValidationOutputs(
+	parachainID uint32,
+	outputs parachaintypes.CandidateCommitments,
+) (bool, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachainID)
+	if err != nil {
+		return false, fmt.Errorf("encode parachainID: %w", err)
+	}
+	err = encoder.Encode(outputs)
+	if err != nil {
+		return false, fmt.Errorf("encode outputs: %w", err)
+	}
+
+	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostCheckValidationOutputs, buffer.Bytes())
+	if err != nil {
+		return false, fmt.Errorf("exec: %w", err)
+	}
+
+	var isValid bool
+	err = scale.Unmarshal(encodedPersistedValidationData, &isValid)
+	if err != nil {
+		return false, fmt.Errorf("unmarshal: %w", err)
+	}
+
+	return isValid, nil
+}

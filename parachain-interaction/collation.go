@@ -20,7 +20,7 @@ type Collation struct {
 	// New validation code.
 	NewValidationCode *ValidationCode `scale:"3"`
 	// The head-data produced as a result of execution.
-	HeadData headData `scale:"4"`
+	HeadData HeadData `scale:"4"`
 	// Proof to verify the state transition of the parachain.
 	ProofOfValidity MaybeCompressedPoV `scale:"5"`
 	// The number of messages processed from the DMQ.
@@ -41,8 +41,8 @@ type outboundHrmpMessage struct {
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 
-// headData is Parachain head data included in the chain.
-type headData []byte
+// HeadData is Parachain head data included in the chain.
+type HeadData []byte
 
 type MaybeCompressedPoV scale.VaryingDataType
 
