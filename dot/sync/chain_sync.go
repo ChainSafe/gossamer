@@ -722,8 +722,9 @@ loop:
 
 				// if we receive and empty message from the stream we don't need to shutdown the worker
 				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.punishPeer(taskResult.who, true)
 				}
+
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			}
@@ -741,7 +742,7 @@ loop:
 			switch {
 			case errors.Is(err, errResponseIsNotChain):
 				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.punishPeer(taskResult.who)
+				cs.workerPool.punishPeer(taskResult.who, false)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			case errors.Is(err, errEmptyBlockData):
@@ -750,7 +751,7 @@ loop:
 			case errors.Is(err, errUnknownParent):
 			case err != nil:
 				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.punishPeer(taskResult.who)
+				cs.workerPool.punishPeer(taskResult.who, false)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			}

@@ -54,6 +54,7 @@ ws-external = false
 
 
 [pprof]
+enabled = true
 listening-address = "localhost:6060"
 block-rate = 0
 mutex-rate = 0

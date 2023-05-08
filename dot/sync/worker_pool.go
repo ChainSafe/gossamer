@@ -17,7 +17,7 @@ const (
 
 const (
 	ignorePeerTimeout       = 2 * time.Minute
-	maxRequestsAllowed uint = 45
+	maxRequestsAllowed uint = 40
 )
 
 type syncTask struct {
@@ -43,9 +43,10 @@ type syncWorkerPool struct {
 	l      sync.RWMutex
 	doneCh chan struct{}
 
-	network   Network
-	taskQueue chan *syncTask
-	workers   map[peer.ID]*peerSyncWorker
+	network     Network
+	taskQueue   chan *syncTask
+	workers     map[peer.ID]*peerSyncWorker
+	ignorePeers map[peer.ID]struct{}
 
 	waiting         bool
 	availablePeerCh chan peer.ID
@@ -64,6 +65,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 		availableBounded: make(chan struct{}),
 		workers:          make(map[peer.ID]*peerSyncWorker),
 		taskQueue:        make(chan *syncTask, maxRequestsAllowed),
+		ignorePeers:      make(map[peer.ID]struct{}),
 	}
 }
 
@@ -104,6 +106,12 @@ func (s *syncWorkerPool) releaseWorker(who peer.ID) {
 	s.l.Lock()
 	defer s.l.Unlock()
 
+	_, toIgnore := s.ignorePeers[who]
+	if toIgnore {
+		delete(s.workers, who)
+		return
+	}
+
 	peerSync, has := s.workers[who]
 	if !has {
 		peerSync = &peerSyncWorker{status: available}
@@ -129,9 +137,15 @@ func (s *syncWorkerPool) releaseWorker(who peer.ID) {
 	}
 }
 
-func (s *syncWorkerPool) punishPeer(who peer.ID) {
+func (s *syncWorkerPool) punishPeer(who peer.ID, ignore bool) {
 	s.l.Lock()
 	defer s.l.Unlock()
+
+	if ignore {
+		s.ignorePeers[who] = struct{}{}
+		delete(s.workers, who)
+		return
+	}
 
 	_, has := s.workers[who]
 	if !has {
