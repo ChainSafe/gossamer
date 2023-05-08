@@ -171,8 +171,8 @@ var errNoPeersAvailable = errors.New("no peers available")
 // its status from available to busy, if there is no peer avaible then
 // the caller should wait for availablePeerCh
 func (s *syncWorkerPool) searchForAvailable() (peer.ID, error) {
-	s.l.RLock()
-	defer s.l.RUnlock()
+	s.l.Lock()
+	defer s.l.Unlock()
 
 	for peerID, peerSync := range s.workers {
 		switch peerSync.status {
@@ -198,8 +198,9 @@ func (s *syncWorkerPool) searchForAvailable() (peer.ID, error) {
 }
 
 func (s *syncWorkerPool) searchForExactAvailable(peerID peer.ID) (bool, error) {
-	s.l.RLock()
-	defer s.l.RUnlock()
+	s.l.Lock()
+	defer s.l.Unlock()
+
 	peerSync, has := s.workers[peerID]
 	if !has {
 		return false, errPeerNotFound
