@@ -21,8 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -240,41 +238,6 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	require.NoError(t, err)
 
 	return extEnc
-}
-
-// Instance is the interface to interact with the runtime.
-type Instance interface {
-	Stop()
-	NodeStorage() NodeStorage
-	NetworkService() BasicNetwork
-	Keystore() *keystore.GlobalKeystore
-	Validator() bool
-	Exec(function string, data []byte) ([]byte, error)
-	SetContextStorage(s Storage)
-	GetCodeHash() common.Hash
-	Versioner
-	Metadataer
-	BabeConfiguration() (*types.BabeConfiguration, error)
-	GrandpaAuthorities() ([]types.Authority, error)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	InitializeBlock(header *types.Header) error
-	InherentExtrinsics(data []byte) ([]byte, error)
-	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlock() (*types.Header, error)
-	ExecuteBlock(block *types.Block) ([]byte, error)
-	DecodeSessionKeys(enc []byte) ([]byte, error)
-	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
-	BabeGenerateKeyOwnershipProof(slot uint64, offenderPublicKey [32]byte) (types.OpaqueKeyOwnershipProof, error)
-	BabeSubmitReportEquivocationUnsignedExtrinsic(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error
-	CheckInherents()
-	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-		types.GrandpaOpaqueKeyOwnershipProof, error)
-	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
-	) error
-	RandomSeed()
-	OffchainWorker()
-	GenerateSessionKeys()
 }
 
 // Versioner returns the version from the runtime.

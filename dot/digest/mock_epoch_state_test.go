@@ -79,7 +79,7 @@ func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 interface{}) *gomock
 }
 
 // StoreBABENextConfigData mocks base method.
-func (m *MockEpochState) StoreBABENextConfigData(arg0 uint64, arg1 common.Hash, arg2 types.NextConfigData) {
+func (m *MockEpochState) StoreBABENextConfigData(arg0 uint64, arg1 common.Hash, arg2 types.NextConfigDataV1) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StoreBABENextConfigData", arg0, arg1, arg2)
 }
