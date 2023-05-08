@@ -1,10 +1,12 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package types
+package parachain
 
 import (
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -21,12 +23,12 @@ func Test_Validators(t *testing.T) {
 	resultBytes, err := common.HexToBytes(resultHex)
 	require.NoError(t, err)
 
-	var validatorIDs []ValidatorID
+	var validatorIDs []types.ValidatorID
 	err = scale.Unmarshal(resultBytes, &validatorIDs)
 	require.NoError(t, err)
 
-	var validators []Validator
-	validators, err = ValidatorIDToValidator(validatorIDs)
+	var validators []types.Validator
+	validators, err = types.ValidatorIDToValidator(validatorIDs)
 	require.NoError(t, err)
 
 	expected := []common.Address{
@@ -68,14 +70,14 @@ func Test_ValidatorGroup(t *testing.T) {
 	require.NoError(t, err)
 
 	validatorGroups := ValidatorGroups{
-		Validators:        [][]ValidatorIndex{},
+		Validators:        [][]types.ValidatorIndex{},
 		GroupRotationInfo: GroupRotationInfo{},
 	}
 	err = scale.Unmarshal(resultBytes, &validatorGroups)
 	require.NoError(t, err)
 
 	expected := ValidatorGroups{
-		Validators: [][]ValidatorIndex{{0, 1, 2, 3, 4, 5}, {6, 7, 8, 9, 10, 11}, {12, 13, 14, 15, 16}},
+		Validators: [][]types.ValidatorIndex{{0, 1, 2, 3, 4, 5}, {6, 7, 8, 9, 10, 11}, {12, 13, 14, 15, 16}},
 		GroupRotationInfo: GroupRotationInfo{
 			SessionStartBlock:      15657314,
 			GroupRotationFrequency: 10,

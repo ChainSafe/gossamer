@@ -1,19 +1,20 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package types
+package parachain
 
 import (
 	"fmt"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
-// GroupRotationInfo represents the group rotation info
+// GroupRotationInfo A helper data-type for tracking validator-group rotations.
 type GroupRotationInfo struct {
 	// SessionStartBlock is the block number at which the session started
 	SessionStartBlock uint32 `scale:"1"`
@@ -26,18 +27,18 @@ type GroupRotationInfo struct {
 // ValidatorGroups represents the validator groups
 type ValidatorGroups struct {
 	// Validators is an array of validator set Ids
-	Validators [][]ValidatorIndex `scale:"1"`
+	Validators [][]types.ValidatorIndex `scale:"1"`
 	// GroupRotationInfo is the group rotation info
 	GroupRotationInfo GroupRotationInfo `scale:"2"`
 }
 
-// ParaID The ID of a para scheduled.
+// ParaID The ID of a parachain.
 type ParaID uint32
 
 // GroupIndex The unique (during session) index of a validator group.
 type GroupIndex uint32
 
-// CollatorID represents a collator ID
+// CollatorID represents the public key of a collator
 type CollatorID [sr25519.PublicKeyLength]byte
 
 // Collator represents a collator
@@ -103,7 +104,6 @@ type OccupiedCore struct {
 	// A bitfield with 1 bit for each validator in the set. `1` bits mean that the corresponding
 	// validators has attested to availability on-chain. A 2/3+ majority of `1` bits means that
 	// this will be available.
-	// TODO: this should be a bitvec
 	Availability []byte `scale:"5"`
 	// The group assigned to distribute availability pieces of this candidate.
 	GroupResponsible GroupIndex `scale:"6"`
@@ -222,14 +222,14 @@ type AssignmentID [32]byte
 
 // IndexedValidator A validator with its index.
 type IndexedValidator struct {
-	Index     []ValidatorIndex `scale:"-"`
-	Validator []ValidatorID    `scale:"2"`
+	Index     []types.ValidatorIndex `scale:"-"`
+	Validator []types.ValidatorID    `scale:"2"`
 }
 
 // IndexedValidatorGroup A validator group with its group index.
 type IndexedValidatorGroup struct {
-	GroupIndex []GroupIndex     `scale:"1"`
-	Validators []ValidatorIndex `scale:"2"`
+	GroupIndex []GroupIndex           `scale:"1"`
+	Validators []types.ValidatorIndex `scale:"2"`
 }
 
 // AuthorityDiscoveryID An authority discovery key.
@@ -239,13 +239,13 @@ type AuthorityDiscoveryID [32]byte
 type SessionInfo struct {
 	// All the validators actively participating in parachain consensus.
 	// Indices are into the broader validator set.
-	ActiveValidatorIndices []ValidatorIndex `scale:"1"`
+	ActiveValidatorIndices []types.ValidatorIndex `scale:"1"`
 	// A secure random seed for the session, gathered from BABE.
 	RandomSeed [32]byte `scale:"2"`
 	// The amount of sessions to keep for disputes.
 	DisputePeriod SessionIndex `scale:"3"`
 	// Validators in canonical ordering.
-	Validators []ValidatorID `scale:"4"`
+	Validators []types.ValidatorID `scale:"4"`
 	// Validators' authority discovery keys for the session in canonical ordering.
 	DiscoveryKeys []AuthorityDiscoveryID `scale:"5"`
 	// The assignment keys for validators.
@@ -253,7 +253,7 @@ type SessionInfo struct {
 	// Validators in shuffled ordering - these are the validator groups as produced
 	// by the `Scheduler` module for the session and are typically referred to by
 	// `GroupIndex`.
-	ValidatorGroups []ValidatorIndex `scale:"7"`
+	ValidatorGroups []types.ValidatorIndex `scale:"7"`
 	// The number of availability cores used by the protocol during this session.
 	NCores uint32 `scale:"8"`
 	// The zeroth delay tranche width.
@@ -276,7 +276,7 @@ type DownwardMessage []byte
 // The difference is that it has attached the block number when the message was sent.
 type InboundDownwardMessage struct {
 	// The block number at which these messages were put into the downward message queue.
-	SentAt BlockNumber `scale:"1"`
+	SentAt types.BlockNumber `scale:"1"`
 	// The actual downward message to processes.
 	Message DownwardMessage `scale:"2"`
 }
@@ -286,7 +286,7 @@ type InboundHrmpMessage struct {
 	// The block number at which this message was sent.
 	// Specifically, it is the block number at which the candidate that sends this message was
 	// enacted.
-	SentAt BlockNumber `scale:"1"`
+	SentAt types.BlockNumber `scale:"1"`
 	// The message payload.
 	Data []byte `scale:"2"`
 }
