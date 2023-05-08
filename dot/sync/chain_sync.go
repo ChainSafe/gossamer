@@ -305,7 +305,7 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 
 // setPeerHead sets a peer's best known block
 func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber uint) {
-	cs.workerPool.fromBlockAnnounce(who)
+	cs.workerPool.newPeer(who)
 	cs.peerViewLock.Lock()
 	defer cs.peerViewLock.Unlock()
 
@@ -756,7 +756,6 @@ loop:
 				continue
 			}
 
-			cs.workerPool.releaseWorker(who)
 			if len(response.BlockData) > 0 {
 				firstBlockInResponse := response.BlockData[0]
 				lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
