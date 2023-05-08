@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -16,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-func (s *Service) validateTransaction(head *types.Header, rt runtimeinterface.Instance,
+func (s *Service) validateTransaction(head *types.Header, rt runtime.Instance,
 	tx types.Extrinsic) (validity *transaction.Validity, err error) {
 	s.storageState.Lock()
 

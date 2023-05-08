@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -658,7 +657,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		"expected different code hash after runtime update")
 }
 
-func buildTestBlockWithoutExtrinsics(t *testing.T, instance runtimeinterface.Instance,
+func buildTestBlockWithoutExtrinsics(t *testing.T, instance runtime.Instance,
 	parentHeader *types.Header, slotNumber, timestamp uint64) *types.Block {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, slotNumber).ToPreRuntimeDigest()

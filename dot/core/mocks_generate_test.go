@@ -4,4 +4,4 @@
 package core
 
 //go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,StorageState,TransactionState,Network,CodeSubstitutedState,Telemetry
-//go:generate mockgen -destination=mock_runtime_instance_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/runtimeinterface Instance
+//go:generate mockgen -destination=mock_runtime_instance_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance

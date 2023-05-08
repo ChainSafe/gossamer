@@ -11,19 +11,19 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
-func buildBlockWithSlotAndTimestamp(t *testing.T, instance runtimeinterface.Instance,
+func buildBlockWithSlotAndTimestamp(t *testing.T, instance runtime.Instance,
 	parent *types.Header, currentSlot, timestamp uint64) *types.Block {
 	t.Helper()
 
@@ -95,7 +95,7 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance runtimeinterface.Inst
 }
 
 func buildAndAddBlocksToState(t *testing.T,
-	runtime runtimeinterface.Instance, blockState *state.BlockState, amount uint) {
+	runtime runtime.Instance, blockState *state.BlockState, amount uint) {
 
 	t.Helper()
 

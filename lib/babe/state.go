@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -27,8 +27,8 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(blockNumber uint) (bool, error)
-	GetRuntime(blockHash common.Hash) (runtime runtimeinterface.Instance, err error)
-	StoreRuntime(common.Hash, runtimeinterface.Instance)
+	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
+	StoreRuntime(common.Hash, runtime.Instance)
 	ImportedBlockNotifierManager
 }
 

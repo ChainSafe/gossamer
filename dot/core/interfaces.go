@@ -11,10 +11,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -27,9 +27,9 @@ type BlockState interface {
 	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtimeinterface.Instance, bHash common.Hash) error
-	GetRuntime(blockHash common.Hash) (instance runtimeinterface.Instance, err error)
-	StoreRuntime(blockHash common.Hash, runtime runtimeinterface.Instance)
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
 }
 

@@ -8,9 +8,9 @@ import (
 	reflect "reflect"
 	time "time"
 
-	runtimeinterface "github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "github.com/golang/mock/gomock"
@@ -182,10 +182,10 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtimeinterface.Instance, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(runtimeinterface.Instance)
+	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -242,7 +242,7 @@ func (mr *MockBlockStateMockRecorder) NumberIsFinalised(arg0 interface{}) *gomoc
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtimeinterface.Instance) {
+func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtime.Instance) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StoreRuntime", arg0, arg1)
 }

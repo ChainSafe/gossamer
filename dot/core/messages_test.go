@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -41,7 +40,7 @@ type mockBestHeader struct {
 }
 
 type mockGetRuntime struct {
-	runtime runtimeinterface.Instance
+	runtime runtime.Instance
 	err     error
 }
 

@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
-	runtimeinterface "github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	state "github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
@@ -352,10 +351,10 @@ func (mr *MockBlockAPIMockRecorder) GetJustification(arg0 interface{}) *gomock.C
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockAPI) GetRuntime(arg0 common.Hash) (runtimeinterface.Instance, error) {
+func (m *MockBlockAPI) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(runtimeinterface.Instance)
+	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

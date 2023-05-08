@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/runtimeinterface"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -829,7 +828,7 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 
 // HandleRuntimeChanges handles the update in runtime.
 func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	rt runtimeinterface.Instance, bHash common.Hash) error {
+	rt runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
@@ -907,12 +906,12 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 }
 
 // GetRuntime gets the runtime instance pointer for the block hash given.
-func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtimeinterface.Instance, err error) {
+func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
 	return bs.bt.GetBlockRuntime(blockHash)
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtimeinterface.Instance) {
+func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 
