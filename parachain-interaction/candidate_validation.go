@@ -171,9 +171,6 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	// 	return nil, nil, errors.New("value not of type Valid")
 	// }
 
-	// TODO: check validation output using runtime call of the same name
-	// RuntimeApiRequest::CheckValidationOutputs(
-
 	candidateCommitments := CandidateCommitments{
 		UpwardMessages:            validationResults.UpwardMessages,
 		HorizontalMessages:        validationResults.HorizontalMessages,
@@ -182,6 +179,9 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		ProcessedDownwardMessages: validationResults.ProcessedDownwardMessages,
 		HrmpWatermark:             validationResults.HrmpWatermark,
 	}
+
+	// TODO: check validation output using runtime call of the same name
+	// RuntimeApiRequest::CheckValidationOutputs(
 
 	return &candidateCommitments, nil, nil
 

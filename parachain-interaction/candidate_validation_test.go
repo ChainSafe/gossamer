@@ -13,7 +13,6 @@ import (
 )
 
 func createTestCandidateReceiptAndValidationCode(t *testing.T) (CandidateReceipt, parachaintypes.ValidationCode) {
-
 	// this wasm was achieved by building polkadot's adder test parachain
 	runtimeFilePath := "./test_parachain_adder.wasm"
 	validationCodeBytes, err := os.ReadFile(runtimeFilePath)
@@ -55,8 +54,8 @@ func createTestCandidateReceiptAndValidationCode(t *testing.T) (CandidateReceipt
 	candidateReceipt.descriptor.Signature = collatorSignature(signature)
 
 	return candidateReceipt, validationCode
-
 }
+
 func TestValidateFromChainState(t *testing.T) {
 	// https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Frpc.polkadot.io#/explorer/query/0xebf6e4c13a92e4c92cfa9129ad7f4f86d469ca189e5eefefbf7df609023648fd
 
