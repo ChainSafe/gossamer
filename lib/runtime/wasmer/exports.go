@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/lib/parachain"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -365,13 +367,13 @@ func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 
 // ParachainHostValidatorGroups Returns the validator groups used during the current session.
 // The validators in the groups are referred to by the validator set Id.
-func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, error) {
+func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
 	ret, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var validatorGroups types.ValidatorGroups
+	var validatorGroups parachain.ValidatorGroups
 	err = scale.Unmarshal(ret, &validatorGroups)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
@@ -381,13 +383,13 @@ func (in *Instance) ParachainHostValidatorGroups() (*types.ValidatorGroups, erro
 }
 
 // ParachainHostAvailabilityCores Returns the availability cores for the current state.
-func (in *Instance) ParachainHostAvailabilityCores() (*types.AvailabilityCores, error) {
+func (in *Instance) ParachainHostAvailabilityCores() (*parachain.AvailabilityCores, error) {
 	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	coreStateVDT, err := types.NewCoreStateVDT()
+	coreStateVDT, err := parachain.NewCoreStateVDT()
 	if err != nil {
 		return nil, fmt.Errorf("new vdt: %w", err)
 	}
@@ -398,15 +400,15 @@ func (in *Instance) ParachainHostAvailabilityCores() (*types.AvailabilityCores, 
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	availabilityCores := types.AvailabilityCores(vdtSlice)
+	availabilityCores := parachain.AvailabilityCores(vdtSlice)
 	return &availabilityCores, nil
 }
 
 // ParachainHostCheckValidationOutputs Checks the validation outputs of a candidate.
 // Returns true if the candidate is valid.
 func (in *Instance) ParachainHostCheckValidationOutputs(
-	parachainID types.ParaID,
-	outputs types.CandidateCommitments,
+	parachainID parachain.ParaID,
+	outputs parachain.CandidateCommitments,
 ) (bool, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -434,13 +436,13 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 }
 
 // ParachainHostSessionIndexForChild Returns the session index that is expected at the child of a block.
-func (in *Instance) ParachainHostSessionIndexForChild() (types.SessionIndex, error) {
+func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
 	ret, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
 	if err != nil {
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
-	var sessionIndex types.SessionIndex
+	var sessionIndex parachain.SessionIndex
 	err = scale.Unmarshal(ret, &sessionIndex)
 	if err != nil {
 		return 0, fmt.Errorf("unmarshal: %w", err)
@@ -452,8 +454,8 @@ func (in *Instance) ParachainHostSessionIndexForChild() (types.SessionIndex, err
 // ParachainHostCandidatePendingAvailability Returns the receipt of a candidate pending availability
 // for any parachain assigned to an occupied availability core.
 func (in *Instance) ParachainHostCandidatePendingAvailability(
-	parachainID types.ParaID,
-) (*types.CommittedCandidateReceipt, error) {
+	parachainID parachain.ParaID,
+) (*parachain.CommittedCandidateReceipt, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -466,7 +468,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var candidateReceipt types.CommittedCandidateReceipt
+	var candidateReceipt parachain.CommittedCandidateReceipt
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
@@ -476,13 +478,13 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 }
 
 // ParachainHostCandidateEvents Returns an array of candidate events that occurred within the latest state.
-func (in *Instance) ParachainHostCandidateEvents() (*types.CandidateEvents, error) {
+func (in *Instance) ParachainHostCandidateEvents() (*parachain.CandidateEvents, error) {
 	ret, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	candidateEvent, err := types.NewCandidateEventVDT()
+	candidateEvent, err := parachain.NewCandidateEventVDT()
 	if err != nil {
 		return nil, fmt.Errorf("new vdt: %w", err)
 	}
@@ -493,12 +495,12 @@ func (in *Instance) ParachainHostCandidateEvents() (*types.CandidateEvents, erro
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	candidateEvents := types.CandidateEvents(vdts)
+	candidateEvents := parachain.CandidateEvents(vdts)
 	return &candidateEvents, nil
 }
 
 // ParachainHostSessionInfo Returns the session info of the given session, if available.
-func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*types.SessionInfo, error) {
+func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(sessionIndex)
@@ -511,7 +513,7 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var sessionInfo types.SessionInfo
+	var sessionInfo parachain.SessionInfo
 	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
@@ -522,7 +524,7 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex types.SessionIndex) (*
 
 // ParachainHostDMQContents Returns all the pending inbound messages
 // in the downward message queue for a given parachain.
-func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.DownwardMessage, error) {
+func (in *Instance) ParachainHostDMQContents(parachainID parachain.ParaID) ([]parachain.DownwardMessage, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -535,7 +537,7 @@ func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var downwardMessages []types.DownwardMessage
+	var downwardMessages []parachain.DownwardMessage
 	err = scale.Unmarshal(encodedDownwardMessages, &downwardMessages)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
@@ -547,8 +549,8 @@ func (in *Instance) ParachainHostDMQContents(parachainID types.ParaID) ([]types.
 // ParachainHostInboundHrmpChannelsContents Returns the contents of all channels addressed to the given recipient.
 // Channels that have no messages in them are also included.
 func (in *Instance) ParachainHostInboundHrmpChannelsContents(
-	recipient types.ParaID,
-) ([]types.InboundHrmpMessage, error) {
+	recipient parachain.ParaID,
+) ([]parachain.InboundHrmpMessage, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(recipient)
@@ -561,7 +563,7 @@ func (in *Instance) ParachainHostInboundHrmpChannelsContents(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var inboundHrmpMessages []types.InboundHrmpMessage
+	var inboundHrmpMessages []parachain.InboundHrmpMessage
 	err = scale.Unmarshal(encodedInboundHrmpMessages, &inboundHrmpMessages)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
