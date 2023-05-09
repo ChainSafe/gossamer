@@ -58,6 +58,57 @@ func (o *OccupiedCoreAssumption) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
+// NewOccupiedCoreAssumption creates a new OccupiedCoreAssumption vdt.
+func NewOccupiedCoreAssumption(val scale.VaryingDataTypeValue) OccupiedCoreAssumption {
+	vdt, err := scale.NewVaryingDataType(Included{}, TimedOut{}, Free{})
+	if err != nil {
+		panic(err)
+	}
+
+	return OccupiedCoreAssumption(vdt)
+}
+
+// Included means the candidate occupying the core was made available and included to free the core.
+type Included struct{}
+
+// Index returns VDT index
+func (Included) Index() uint {
+	return 0
+}
+
+func (Included) String() string {
+	return "Included"
+}
+
+// TimedOut means the candidate occupying the core timed out and freed the core without advancing the para.
+type TimedOut struct{}
+
+// Index returns VDT index
+func (TimedOut) Index() uint {
+	return 1
+}
+
+func (TimedOut) String() string {
+	return "TimedOut"
+}
+
+// Free means the core was not occupied to begin with.
+type Free struct{}
+
+// Index returns VDT index
+func (Free) Index() uint {
+	return 2
+}
+
+func (Free) String() string {
+	return "Free"
+}
+
+// PoV is for proof of validity
+type PoV struct {
+	BlockData []byte `scale:"1"`
+}
+
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 

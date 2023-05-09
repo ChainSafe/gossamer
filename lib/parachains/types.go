@@ -85,42 +85,6 @@ type CandidateReceipt struct {
 	commitmentsHash common.Hash         `scale:"2"`
 }
 
-// Included means the candidate occupying the core was made available and included to free the core.
-type Included struct{}
-
-// Index returns VDT index
-func (Included) Index() uint { //skipcq
-	return 0
-}
-
-func (Included) String() string { //skipcq
-	return "Included"
-}
-
-// TimedOut means the candidate occupying the core timed out and freed the core without advancing the para.
-type TimedOut struct{}
-
-// Index returns VDT index
-func (TimedOut) Index() uint { //skipcq
-	return 1
-}
-
-func (TimedOut) String() string { //skipcq
-	return "TimedOut"
-}
-
-// Free means the core was not occupied to begin with.
-type Free struct{}
-
-// Index returns VDT index
-func (Free) Index() uint { //skipcq
-	return 2
-}
-
-func (Free) String() string { //skipcq
-	return "Free"
-}
-
 // PoV is for proof of validity
 type PoV struct {
 	BlockData []byte `scale:"1"` // types.BlockData `scale:"1"`

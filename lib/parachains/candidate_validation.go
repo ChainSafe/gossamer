@@ -29,14 +29,12 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 
 	var mergedError error
 
-	for _, assumptionValue := range []scale.VaryingDataTypeValue{Included{}, TimedOut{}, Free{}} {
-		assumption := parachaintypes.OccupiedCoreAssumption{}
-		err := assumption.Set(assumptionValue)
-		if err != nil {
-			mergedError = fmt.Errorf("%s; setting assumption: %w", mergedError, err)
-			continue
-		}
-
+	for _, assumptionValue := range []scale.VaryingDataTypeValue{
+		parachaintypes.Included{},
+		parachaintypes.TimedOut{},
+		parachaintypes.Free{},
+	} {
+		assumption := parachaintypes.NewOccupiedCoreAssumption(assumptionValue)
 		PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
 		if err != nil {
 			mergedError = fmt.Errorf("%s; %w", mergedError, err)
