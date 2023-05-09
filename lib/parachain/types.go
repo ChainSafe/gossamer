@@ -63,7 +63,7 @@ type CandidateDescriptor struct {
 	// on this for deduplication. Removing this field is likely to break things.
 	RelayParent common.Hash `scale:"2"`
 
-	// Collator is the collator's relay-chain account ID
+	// Collator is the collator's sr25519 public key.
 	Collator CollatorID `scale:"3"`
 
 	// PersistedValidationDataHash is the blake2-256 hash of the persisted validation data. This is extra data derived from
@@ -123,7 +123,7 @@ type ScheduledCore struct {
 	// The ID of a para scheduled.
 	ParaID ParaID
 	// The collator required to author the block, if any.
-	Collator *Collator
+	Collator *CollatorID
 }
 
 // Index returns the index
@@ -132,7 +132,8 @@ func (ScheduledCore) Index() uint {
 }
 
 // Free Core information about a core which is currently free.
-type Free scale.VaryingDataType
+type Free struct {
+}
 
 // Index returns the index
 func (Free) Index() uint {
