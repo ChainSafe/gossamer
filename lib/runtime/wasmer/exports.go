@@ -352,8 +352,9 @@ func (in *Instance) RandomSeed()          {} //nolint:revive
 func (in *Instance) OffchainWorker()      {} //nolint:revive
 func (in *Instance) GenerateSessionKeys() {} //nolint:revive
 
-// ParachainHost_persisted_validation_data
-func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+// ParachainHostPersistedValidationData gets validation data for the give parachain id.
+func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32,
+	assumption parachaintypes.OccupiedCoreAssumption,
 ) (*parachaintypes.PersistedValidationData, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -380,7 +381,7 @@ func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, ass
 	return &persistedValidationData, nil
 }
 
-// ParachainHost_validation_code
+// ParachainHostValidationCode gets validataion code for the given parachain id.
 func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 ) (*parachaintypes.ValidationCode, error) {
 	buffer := bytes.NewBuffer(nil)

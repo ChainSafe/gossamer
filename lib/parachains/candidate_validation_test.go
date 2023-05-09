@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachains
 
 import (
@@ -30,12 +33,12 @@ func createTestCandidateReceiptAndValidationCode(t *testing.T) (CandidateReceipt
 	candidateReceipt := CandidateReceipt{
 		descriptor: CandidateDescriptor{
 			ParaID:                      uint32(1000),
-			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"),
+			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"), //nolint:lll
 			Collator:                    *collatorID,
-			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"),
-			PoVHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"),
-			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"),
-			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"),
+			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"), //nolint:lll
+			PoVHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"), //nolint:lll
+			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), //nolint:lll
+			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"), //nolint:lll
 			ValidationCodeHash:          validationCodeHash(validationCodeHashV),
 		},
 
@@ -57,7 +60,6 @@ func createTestCandidateReceiptAndValidationCode(t *testing.T) (CandidateReceipt
 }
 
 func TestValidateFromChainState(t *testing.T) {
-	// https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Frpc.polkadot.io#/explorer/query/0xebf6e4c13a92e4c92cfa9129ad7f4f86d469ca189e5eefefbf7df609023648fd
 
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
 
@@ -73,9 +75,9 @@ func TestValidateFromChainState(t *testing.T) {
 
 	// NOTE: adder parachain internally compares postState with bd.State in it's validate_block,
 	// so following is necessary.
-	encoded_state, err := scale.Marshal(uint64(1))
+	encodedState, err := scale.Marshal(uint64(1))
 	require.NoError(t, err)
-	postState, err := common.Keccak256(encoded_state)
+	postState, err := common.Keccak256(encodedState)
 	require.NoError(t, err)
 
 	hd, err := scale.Marshal(HeadDataInAdderParachain{
@@ -95,12 +97,21 @@ func TestValidateFromChainState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockInstance := NewMockRuntimeInstance(ctrl)
-	mockInstance.EXPECT().ParachainHostPersistedValidationData(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).Return(&persistedValidationData, nil)
-	mockInstance.EXPECT().ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).Return(&validationCode, nil)
-	mockInstance.EXPECT().ParachainHostCheckValidationOutputs(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.CandidateCommitments{})).Return(true, nil)
+	mockInstance.EXPECT().
+		ParachainHostPersistedValidationData(
+			uint32(1000),
+			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+		Return(&persistedValidationData, nil)
+	mockInstance.EXPECT().
+		ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+		Return(&validationCode, nil)
+	mockInstance.EXPECT().
+		ParachainHostCheckValidationOutputs(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.CandidateCommitments{})).
+		Return(true, nil)
 
 	mockPoVRequestor := NewMockPoVRequestor(ctrl)
-	mockPoVRequestor.EXPECT().RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
+	mockPoVRequestor.EXPECT().
+		RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
 
 	_, _, _, err = ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
 	require.NoError(t, err)

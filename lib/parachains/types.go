@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachains
 
 import (
@@ -15,7 +18,7 @@ type collatorSignature [sr25519.SignatureLength]byte
 // validationCodeHash is the blake2-256 hash of the validation code bytes.
 type validationCodeHash common.Hash
 
-// candidateDescriptor is a unique descriptor of the candidate receipt.
+// CandidateDescriptor is a unique descriptor of the candidate receipt.
 type CandidateDescriptor struct {
 	// The ID of the para this is a candidate for.
 	ParaID uint32 `scale:"1"`
@@ -67,7 +70,7 @@ func (cd CandidateDescriptor) createSignaturePayload() ([]byte, error) {
 	return payload[:], nil
 }
 
-func (cd CandidateDescriptor) CheckCollatorSignature() error {
+func (cd CandidateDescriptor) checkCollatorSignature() error {
 	payload, err := cd.createSignaturePayload()
 	if err != nil {
 		return fmt.Errorf("creating signature payload: %w", err)
@@ -76,6 +79,7 @@ func (cd CandidateDescriptor) CheckCollatorSignature() error {
 	return sr25519.VerifySignature(cd.Collator.Encode(), cd.Signature[:], payload)
 }
 
+// CandidateReceipt contains information about the candidate and a proof of the results of its execution.
 type CandidateReceipt struct {
 	descriptor      CandidateDescriptor `scale:"1"`
 	commitmentsHash common.Hash         `scale:"2"`

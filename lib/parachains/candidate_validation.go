@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachains
 
 import (
@@ -15,20 +18,28 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
 // TODO: Implement PoV requestor
 type PoVRequestor interface {
 	RequestPoV(povHash common.Hash) PoV
 }
 
-func getValidationData(runtimeInstance RuntimeInstance, paraID uint32) (*parachaintypes.PersistedValidationData, *parachaintypes.ValidationCode, error) {
+func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
+) (*parachaintypes.PersistedValidationData, *parachaintypes.ValidationCode, error) {
+
 	var mergedError error
 
 	for _, assumptionValue := range []scale.VaryingDataTypeValue{Included{}, TimedOut{}, Free{}} {
 		assumption := parachaintypes.OccupiedCoreAssumption{}
-		assumption.Set(assumptionValue)
+		err := assumption.Set(assumptionValue)
+		if err != nil {
+			mergedError = fmt.Errorf("%s; setting assumption: %w", mergedError, err)
+			continue
+		}
+
 		PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
 		if err != nil {
-			mergedError = fmt.Errorf("%s %w", mergedError, err)
+			mergedError = fmt.Errorf("%s; %w", mergedError, err)
 			continue
 		}
 
@@ -43,7 +54,11 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32) (*paracha
 	return nil, nil, fmt.Errorf("getting persisted validation data: %w", mergedError)
 }
 
-func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt) (*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
+// ValidateFromChainState validates a candidate parachain block with provided parameters using relay-chain
+// state and using the parachain runtime.
+func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt,
+) (*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
+
 	PersistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.descriptor.ParaID)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("getting validation data: %w", err)
@@ -61,8 +76,8 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("encoding pov: %w", err)
 	}
-	encoded_pov_size := buffer.Len()
-	if encoded_pov_size > int(PersistedValidationData.MaxPovSize) {
+	encodedPoVSize := buffer.Len()
+	if encodedPoVSize > int(PersistedValidationData.MaxPovSize) {
 		return nil, nil, false, errors.New("validation input is over the limit")
 	}
 
@@ -76,7 +91,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 
 	// check candidate signature
-	err = c.descriptor.CheckCollatorSignature()
+	err = c.descriptor.checkCollatorSignature()
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
 	}
@@ -115,6 +130,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	return &candidateCommitments, PersistedValidationData, isValid, nil
 }
 
+// ValidationParameters contains parameters for evaluating the parachain validity function.
 type ValidationParameters struct {
 	// Previous head-data.
 	ParentHeadData parachaintypes.HeadData
@@ -164,7 +180,9 @@ type RuntimeInstance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
-	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error)
-	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error)
+	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
 	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
 }

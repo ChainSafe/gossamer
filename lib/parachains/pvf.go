@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachains
 
 import (
@@ -16,7 +19,7 @@ var (
 	ErrInstanceIsStopped = errors.New("instance is stopped")
 )
 
-// Similar to CandidateCommitments, but different order.
+// ValidationResult is result received from validate_block. It is  similar to CandidateCommitments, but different order.
 type ValidationResult struct {
 	// The head-data is the new head data that should be included in the relay chain state.
 	HeadData parachaintypes.HeadData `scale:"1"`
@@ -43,10 +46,12 @@ func setupVM(code []byte) (*Instance, error) {
 	return &Instance{instance}, nil
 }
 
+// Instance is a wrapper around the wasmer runtime instance.
 type Instance struct {
 	*runtimewasmer.Instance
 }
 
+// ValidateBlock validates a block by calling parachain runtime's validate_block call and returns the result.
 func (in *Instance) ValidateBlock(params ValidationParameters) (
 	*ValidationResult, error) {
 

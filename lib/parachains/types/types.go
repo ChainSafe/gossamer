@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachaintypes
 
 import (
@@ -7,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// The validation data provides information about how to create the inputs for validation of a candidate.
+// PersistedValidationData provides information about how to create the inputs for validation of a candidate.
 // This information is derived from the chain state and will vary from para to para, although some
 // fields may be the same for every para.
 //
@@ -33,7 +36,7 @@ type PersistedValidationData struct {
 	MaxPovSize             uint32
 }
 
-// An assumption being made about the state of an occupied core.
+// OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
 type OccupiedCoreAssumption scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
