@@ -1049,6 +1049,11 @@ func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wa
 	return nil, nil
 }
 
+//export ext_default_child_storage_clear_prefix_version_2
+func ext_default_child_storage_clear_prefix_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+	return []wasmer.Value{wasmer.NewI64(0)}, nil
+}
+
 //export ext_default_child_storage_exists_version_1
 func ext_default_child_storage_exists_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Debug("executing...")
@@ -1162,6 +1167,42 @@ func ext_default_child_storage_root_version_1(env interface{}, args []wasmer.Val
 	return []wasmer.Value{wasmer.NewI64(root)}, nil
 }
 
+//export ext_default_child_storage_root_version_2
+func ext_default_child_storage_root_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+
+	logger.Debug("executing...")
+
+	instanceContext := env.(*runtime.Context)
+	storage := instanceContext.Storage
+
+	childStorageKey := args[0].I64()
+	// stateVersion := args[1].I32()
+
+	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
+	if err != nil {
+		logger.Errorf("failed to retrieve child: %s", err)
+		return []wasmer.Value{wasmer.NewI64(0)}, nil
+
+	}
+
+	childRoot, err := child.Hash()
+	if err != nil {
+		logger.Errorf("failed to encode child root: %s", err)
+		return []wasmer.Value{wasmer.NewI64(0)}, nil
+
+	}
+
+	root, err := toWasmMemoryOptional(instanceContext, childRoot[:])
+	if err != nil {
+		logger.Errorf("failed to allocate: %s", err)
+		return []wasmer.Value{wasmer.NewI64(0)}, nil
+
+	}
+
+	return []wasmer.Value{wasmer.NewI64(root)}, nil
+
+}
+
 //export ext_default_child_storage_set_version_1
 func ext_default_child_storage_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
 	logger.Debug("executing...")
@@ -1185,6 +1226,13 @@ func ext_default_child_storage_set_version_1(env interface{}, args []wasmer.Valu
 		logger.Errorf("failed to set value in child storage: %s", err)
 		return nil, nil
 	}
+	return nil, nil
+}
+
+//export ext_offchain_index_clear_version_1
+func ext_offchain_index_clear_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+	// Remove a key and its associated value from the Offchain DB.
+	// https://github.com/paritytech/substrate/blob/4d608f9c42e8d70d835a748fa929e59a99497e90/primitives/io/src/lib.rs#L1213
 	return nil, nil
 }
 

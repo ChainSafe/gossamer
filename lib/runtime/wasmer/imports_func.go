@@ -29,6 +29,12 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *runtime
 		importsMap["memory"] = memory
 	}
 
+	importsMap["ext_offchain_index_clear_version_1"] = wasmer.NewFunctionWithEnvironment(store,
+		wasmer.NewFunctionType(
+			wasmer.NewValueTypes(wasmer.I64),
+			wasmer.NewValueTypes(),
+		), ctx, ext_offchain_index_clear_version_1)
+
 	importsMap["ext_logging_log_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
 			wasmer.NewValueTypes(wasmer.I32, wasmer.I64, wasmer.I64),
@@ -257,6 +263,12 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *runtime
 			wasmer.NewValueTypes(),
 		), ctx, ext_default_child_storage_clear_prefix_version_1)
 
+	importsMap["ext_default_child_storage_clear_prefix_version_2"] = wasmer.NewFunctionWithEnvironment(store,
+		wasmer.NewFunctionType(
+			wasmer.NewValueTypes(wasmer.I64, wasmer.I64, wasmer.I64),
+			wasmer.NewValueTypes(wasmer.I64),
+		), ctx, ext_default_child_storage_clear_prefix_version_2)
+
 	importsMap["ext_default_child_storage_exists_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
 			wasmer.NewValueTypes(wasmer.I64, wasmer.I64),
@@ -280,6 +292,12 @@ func importsNodeRuntime(store *wasmer.Store, memory *wasmer.Memory, ctx *runtime
 			wasmer.NewValueTypes(wasmer.I64),
 			wasmer.NewValueTypes(wasmer.I64),
 		), ctx, ext_default_child_storage_root_version_1)
+
+	importsMap["ext_default_child_storage_root_version_2"] = wasmer.NewFunctionWithEnvironment(store,
+		wasmer.NewFunctionType(
+			wasmer.NewValueTypes(wasmer.I64, wasmer.I32),
+			wasmer.NewValueTypes(wasmer.I64),
+		), ctx, ext_default_child_storage_root_version_2)
 
 	importsMap["ext_default_child_storage_set_version_1"] = wasmer.NewFunctionWithEnvironment(store,
 		wasmer.NewFunctionType(
