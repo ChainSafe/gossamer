@@ -350,7 +350,7 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 
 // ParachainHostValidators Returns the validator set at the current state.
 // The specified validators are responsible for backing parachains for the current state.
-func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
+func (in *Instance) ParachainHostValidators() ([]types.ValidatorID, error) {
 	ret, err := in.Exec(runtime.ParachainHostValidators, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
@@ -362,7 +362,7 @@ func (in *Instance) ParachainHostValidators() ([]types.Validator, error) {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	return types.ValidatorIDToValidator(validatorIDs)
+	return validatorIDs, nil
 }
 
 // ParachainHostValidatorGroups Returns the validator groups used during the current session.
@@ -389,18 +389,12 @@ func (in *Instance) ParachainHostAvailabilityCores() (*parachain.AvailabilityCor
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	coreStateVDT, err := parachain.NewCoreStateVDT()
-	if err != nil {
-		return nil, fmt.Errorf("new vdt: %w", err)
-	}
-
-	vdtSlice := scale.NewVaryingDataTypeSlice(coreStateVDT)
-	err = scale.Unmarshal(ret, &vdtSlice)
+	availabilityCores, err := parachain.NewAvailabilityCores()
+	err = scale.Unmarshal(ret, &availabilityCores)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	availabilityCores := parachain.AvailabilityCores(vdtSlice)
 	return &availabilityCores, nil
 }
 
@@ -484,18 +478,15 @@ func (in *Instance) ParachainHostCandidateEvents() (*parachain.CandidateEvents, 
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	candidateEvent, err := parachain.NewCandidateEventVDT()
+	candidateEvents, err := parachain.NewCandidateEvents()
 	if err != nil {
-		return nil, fmt.Errorf("new vdt: %w", err)
+		return nil, fmt.Errorf("create new candidate events: %w", err)
 	}
-
-	vdts := scale.NewVaryingDataTypeSlice(candidateEvent)
-	err = scale.Unmarshal(ret, &vdts)
+	err = scale.Unmarshal(ret, &candidateEvents)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	candidateEvents := parachain.CandidateEvents(vdts)
 	return &candidateEvents, nil
 }
 

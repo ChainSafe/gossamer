@@ -142,9 +142,6 @@ func (Free) Index() uint {
 // CoreState represents the state of a particular availability core.
 type CoreState scale.VaryingDataType
 
-// AvailabilityCores represents a slice of CoreState
-type AvailabilityCores scale.VaryingDataTypeSlice
-
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (va *CoreState) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
@@ -172,6 +169,19 @@ func NewCoreStateVDT() (scale.VaryingDataType, error) {
 	}
 
 	return vdt, nil
+}
+
+// AvailabilityCores represents a slice of CoreState
+type AvailabilityCores scale.VaryingDataTypeSlice
+
+// NewAvailabilityCores returns a new AvailabilityCores
+func NewAvailabilityCores() (AvailabilityCores, error) {
+	vdt, err := NewCoreStateVDT()
+	if err != nil {
+		return AvailabilityCores{}, fmt.Errorf("create varying data type: %w", err)
+	}
+
+	return AvailabilityCores(scale.NewVaryingDataTypeSlice(vdt)), nil
 }
 
 // UpwardMessage A message from a parachain to its Relay Chain.
@@ -374,9 +384,6 @@ func (va *CandidateEvent) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
-// CandidateEvents is a slice of CandidateEvent
-type CandidateEvents scale.VaryingDataTypeSlice
-
 // NewCandidateEventVDT returns a new CandidateEvent VaryingDataType
 func NewCandidateEventVDT() (scale.VaryingDataType, error) {
 	vdt, err := scale.NewVaryingDataType(CandidateBacked{}, CandidateIncluded{}, CandidateTimedOut{})
@@ -385,4 +392,17 @@ func NewCandidateEventVDT() (scale.VaryingDataType, error) {
 	}
 
 	return vdt, nil
+}
+
+// CandidateEvents is a vdt slice of CandidateEvent
+type CandidateEvents scale.VaryingDataTypeSlice
+
+// NewCandidateEvents returns a new CandidateEvents
+func NewCandidateEvents() (CandidateEvents, error) {
+	vdt, err := NewCandidateEventVDT()
+	if err != nil {
+		return CandidateEvents{}, fmt.Errorf("create varying data type: %w", err)
+	}
+
+	return CandidateEvents(scale.NewVaryingDataTypeSlice(vdt)), nil
 }
