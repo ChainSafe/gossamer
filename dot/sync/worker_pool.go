@@ -54,7 +54,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 		network:     net,
 		doneCh:      make(chan struct{}),
 		workers:     make(map[peer.ID]*peerSyncWorker),
-		taskQueue:   make(chan *syncTask, maxRequestsAllowed),
+		taskQueue:   make(chan *syncTask),
 		ignorePeers: make(map[peer.ID]struct{}),
 	}
 
@@ -64,15 +64,21 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 
 func (s *syncWorkerPool) useConnectedPeers() {
 	connectedPeers := s.network.AllConnectedPeers()
+	s.l.Lock()
+	defer s.l.Unlock()
+
 	for _, connectedPeer := range connectedPeers {
 		s.newPeer(connectedPeer)
 	}
 }
 
-func (s *syncWorkerPool) newPeer(who peer.ID) {
+func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
 	s.l.Lock()
 	defer s.l.Unlock()
+	s.newPeer(who)
+}
 
+func (s *syncWorkerPool) newPeer(who peer.ID) {
 	_, toIgnore := s.ignorePeers[who]
 	if toIgnore {
 		return
@@ -178,7 +184,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 		select {
 		case <-stopCh:
 			//wait for ongoing requests to be finished before returning
-			s.wg.Wait()
+			//s.wg.Wait()
 			return
 
 		case task := <-s.taskQueue:
@@ -199,7 +205,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 					s.l.Unlock()
 
 					s.wg.Add(1)
-					go s.executeRequest(peerID, task, &s.wg)
+					go s.executeRequest(peerID, task)
 					break
 				} else {
 					s.availableCond.Wait()
@@ -209,13 +215,13 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 	}
 }
 
-func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask, wg *sync.WaitGroup) {
+func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	defer func() {
 		s.l.Lock()
 		s.workers[who] = &peerSyncWorker{status: available}
 		s.l.Unlock()
 		s.availableCond.Signal()
-		wg.Done()
+		s.wg.Done()
 	}()
 	request := task.request
 

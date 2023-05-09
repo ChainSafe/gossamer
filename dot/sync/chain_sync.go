@@ -305,7 +305,8 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 
 // setPeerHead sets a peer's best known block
 func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber uint) {
-	cs.workerPool.newPeer(who)
+	cs.workerPool.fromBlockAnnounce(who)
+
 	cs.peerViewLock.Lock()
 	defer cs.peerViewLock.Unlock()
 
@@ -317,8 +318,10 @@ func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber u
 }
 
 func (cs *chainSync) logSyncSpeed() {
-	defer close(cs.logSyncDone)
-	defer cs.logSyncTicker.Stop()
+	defer func() {
+		cs.logSyncTicker.Stop()
+		close(cs.logSyncDone)
+	}()
 
 	for {
 		before, err := cs.blockState.BestBlockHeader()
@@ -580,12 +583,13 @@ func (cs *chainSync) executeBootstrapSync() error {
 			return nil
 		}
 
+		cs.workerPool.useConnectedPeers()
+
 		bestBlockHeader, err := cs.blockState.BestBlockHeader()
 		if err != nil {
 			return fmt.Errorf("getting best block header while syncing: %w", err)
 		}
 		startRequestAt := bestBlockHeader.Number + 1
-		cs.workerPool.useConnectedPeers()
 
 		// we build the set of requests based on the amount of available peers
 		// in the worker pool, if we have more peers than `maxRequestAllowed`
