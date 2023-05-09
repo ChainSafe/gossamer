@@ -27,7 +27,7 @@ func (b Bitfield) IsBlank() bool {
 // As a result, this bitfield has all bits set that are set in either bitfield.
 //
 // This function only allocates if this bitfield is shorter than the other
-// bitfield, in which case it is resized accordingly to accomodate for all
+// bitfield, in which case it is resized accordingly to accommodate for all
 // bits of the other bitfield.
 func (b *Bitfield) Merge(other Bitfield) *Bitfield {
 	if len(b.bits) < len(other.bits) {
@@ -41,7 +41,7 @@ func (b *Bitfield) Merge(other Bitfield) *Bitfield {
 
 // Set a bit in the bitfield at the specified position.
 //
-// If the bitfield is not large enough to accomodate for a bit set
+// If the bitfield is not large enough to accommodate for a bit set
 // at the specified position, it is resized accordingly.
 func (b *Bitfield) SetBit(position uint) {
 	wordOff := position / 64
@@ -75,28 +75,28 @@ func (b Bitfield) Iter1sOdd() []Bit1 {
 // this bitfield with another bitfield, without modifying either
 // bitfield, starting at bit position `start` and moving in steps
 // of size `2^step` per word.
-func (bf Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 {
+func (b Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 {
 	switch {
-	case len(bf.bits) == len(other.bits):
-		zipped := make([]uint64, len(bf.bits))
-		for i, a := range bf.bits {
+	case len(b.bits) == len(other.bits):
+		zipped := make([]uint64, len(b.bits))
+		for i, a := range b.bits {
 			b := other.bits[i]
 			zipped[i] = a | b
 		}
 		return iter1s(zipped, start, step)
-	case len(bf.bits) < len(other.bits):
+	case len(b.bits) < len(other.bits):
 		zipped := make([]uint64, len(other.bits))
-		for i, b := range other.bits {
+		for i, bit := range other.bits {
 			var a uint64
-			if i < len(bf.bits) {
-				a = bf.bits[i]
+			if i < len(b.bits) {
+				a = b.bits[i]
 			}
-			zipped[i] = a | b
+			zipped[i] = a | bit
 		}
 		return iter1s(zipped, start, step)
-	case len(bf.bits) > len(other.bits):
-		zipped := make([]uint64, len(bf.bits))
-		for i, a := range bf.bits {
+	case len(b.bits) > len(other.bits):
+		zipped := make([]uint64, len(b.bits))
+		for i, a := range b.bits {
 			var b uint64
 			if i < len(other.bits) {
 				b = other.bits[i]

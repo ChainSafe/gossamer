@@ -56,10 +56,17 @@ func (v voting) isPrimary() bool {
 }
 
 // Logic for a voter on a specific round.
-type VotingRound[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]] struct {
-	env               E
-	voting            voting
-	votes             *Round[ID, Hash, Number, Signature] // this is not an Option in the rust code. Using a pointer for copylocks
+type VotingRound[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	E Environment[Hash, Number, Signature, ID],
+] struct {
+	env    E
+	voting voting
+	// this is not an Option in the rust code. Using a pointer for copylocks
+	votes             *Round[ID, Hash, Number, Signature]
 	incoming          *wakerChan[SignedMessageError[Hash, Number, Signature, ID]]
 	outgoing          *Buffered[Message[Hash, Number]]
 	state             any
@@ -84,7 +91,7 @@ func NewVotingRound[
 	roundParams := RoundParams[ID, Hash, Number]{
 		RoundNumber: roundNumber,
 		Voters:      voters,
-		Base:        HashNumber[Hash, Number](base),
+		Base:        base,
 	}
 
 	votes := NewRound[ID, Hash, Number, Signature](roundParams)
@@ -277,7 +284,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) Voters() VoterSet[ID] {
 
 // Get the best block finalized in this round.
 func (vr *VotingRound[Hash, Number, Signature, ID, E]) Finalized() *HashNumber[Hash, Number] {
-	return (*HashNumber[Hash, Number])(vr.votes.State().Finalized)
+	return vr.votes.State().Finalized
 }
 
 // Get the current total weight of prevotes.
@@ -312,12 +319,14 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrecommitIDs() []ID {
 
 // Check a commit. If it's valid, import all the votes into the round as well.
 // Returns the finalized base if it checks out.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(commit Commit[Hash, Number, Signature, ID]) (*HashNumber[Hash, Number], error) {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(
+	commit Commit[Hash, Number, Signature, ID],
+) (*HashNumber[Hash, Number], error) {
 	cvr, err := ValidateCommit[Hash, Number](commit, vr.Voters(), vr.env)
 	if err != nil {
 		return nil, err
 	}
-	if cvr.Valid() {
+	if !cvr.Valid() {
 		return nil, nil
 	}
 
@@ -339,7 +348,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(
 }
 
 // Get a clone of the finalized sender.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan finalizedNotification[Hash, Number, Signature, ID] {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan finalizedNotification[Hash, Number, Signature, ID] { //nolint:lll
 	return vr.finalizedSender
 }
 
@@ -372,7 +381,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) HistoricalVotes() Histori
 }
 
 // Handle a vote manually.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) HandleVote(vote SignedMessage[Hash, Number, Signature, ID]) error {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) HandleVote(vote SignedMessage[Hash, Number, Signature, ID]) error { //nolint:lll
 	message := vote.Message
 	if !vr.env.IsEqualOrDescendantOf(vr.votes.Base().Hash, message.Target().Hash) {
 		return nil
@@ -508,9 +517,12 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 				vr.state = Proposed[Timer]{prevoteTimer, precommitTimer}
 
 				return nil
-			} else {
-				fmt.Printf("Last round estimate has been finalized, not sending primary block hint for round %d\n", vr.votes.Number())
 			}
+			fmt.Printf(
+				"Last round estimate has been finalized, not sending primary block hint for round %d\n",
+				vr.votes.Number(),
+			)
+
 		case maybeEstimate == nil && vr.voting.isPrimary():
 			fmt.Printf("Last round estimate does not exist, not sending primary block hint for round %d\n", vr.votes.Number())
 		default:
@@ -523,7 +535,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, lastRoundState *RoundState[Hash, Number]) error {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
 	state := vr.state
 	vr.state = nil
 
@@ -631,7 +643,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, las
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *Waker, lastRoundState *RoundState[Hash, Number]) error {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *Waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
 	state := vr.state
 	vr.state = nil
 	if state == nil {
@@ -691,7 +703,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *Waker, l
 }
 
 // construct a prevote message based on local state.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoundState *RoundState[Hash, Number]) (h Hash, bc BestChain[Hash, Number]) {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoundState *RoundState[Hash, Number]) (h Hash, bc BestChain[Hash, Number]) { //nolint:lll
 	lastRoundEstimate := lastRoundState.Estimate
 	if lastRoundEstimate == nil {
 		panic("Rounds only started when prior round completable; qed")
@@ -713,7 +725,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 		}
 
 		// if the blocks are equal, we don't check ancestry.
-		if HashNumber[Hash, Number](*(primaryBlock)) == *lastPrevoteG {
+		if *primaryBlock == *lastPrevoteG {
 			findDescendentOf = primaryBlock.Hash
 		} else if primaryBlock.Hash >= lastPrevoteG.Hash {
 			findDescendentOf = lastRoundEstimate.Hash
@@ -735,7 +747,8 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 				// 	last_round_estimate,
 				// );
 				fmt.Printf(
-					"Possible case of massive equivocation: last round prevote GHOST: %v is not a descendant of last round estimate: %v\n",
+					"Possible case of massive equivocation: last round prevote GHOST: %v"+
+						"is not a descendant of last round estimate: %v\n",
 					lastPrevoteG,
 					lastRoundEstimate,
 				)
@@ -772,15 +785,18 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrecommit() Prec
 	var t HashNumber[Hash, Number]
 	switch target := vr.votes.State().PrevoteGHOST; target {
 	case nil:
-		t = HashNumber[Hash, Number](vr.votes.Base())
+		t = vr.votes.Base()
 	default:
-		t = HashNumber[Hash, Number](*target)
+		t = *target
 	}
 	return Precommit[Hash, Number]{t.Hash, t.Number}
 }
 
 // notify when new blocks are finalized or when the round-estimate is updated
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) notify(lastState RoundState[Hash, Number], newState RoundState[Hash, Number]) {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) notify(
+	lastState RoundState[Hash, Number],
+	newState RoundState[Hash, Number],
+) {
 	// `RoundState` attributes have pointers to values so comparison here is on pointer address.
 	// It's assumed that the `Round` attributes will use a new address for new values.
 	// Given the caller of this function, we know that new values will use new addresses

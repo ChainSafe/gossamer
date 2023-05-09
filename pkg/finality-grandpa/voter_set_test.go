@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (vs VoterSet[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
+func (vs VoterSet[ID]) Generate(rand *rand.Rand, _ int) reflect.Value {
 	for {
 		idsValue, ok := quick.Value(reflect.TypeOf(make([]ID, 0)), rand)
 		if !ok {
@@ -51,25 +51,25 @@ func TestVoterSet_Equality(t *testing.T) {
 			v2 := NewVoterSet(v)
 			assert.NotNil(t, v1)
 			return assert.Equal(t, v1, v2)
-		} else {
-			// either no authority has a valid weight
-			var noValIDWeight = true
-			for _, iw := range v {
-				if iw.Weight != 0 {
-					noValIDWeight = false
-					break
-				}
-			}
-			if noValIDWeight == true {
-				return true
-			}
-			// or the total weight overflows a u64
-			sum := big.NewInt(0)
-			for _, iw := range v {
-				sum.Add(sum, new(big.Int).SetUint64(uint64(iw.Weight)))
-			}
-			return sum.Cmp(new(big.Int).SetUint64(uint64(math.MaxUint64))) > 0
 		}
+		// either no authority has a valid weight
+		var noValIDWeight = true
+		for _, iw := range v {
+			if iw.Weight != 0 {
+				noValIDWeight = false
+				break
+			}
+		}
+		if noValIDWeight == true {
+			return true
+		}
+		// or the total weight overflows a u64
+		sum := big.NewInt(0)
+		for _, iw := range v {
+			sum.Add(sum, new(big.Int).SetUint64(uint64(iw.Weight)))
+		}
+		return sum.Cmp(new(big.Int).SetUint64(uint64(math.MaxUint64))) > 0
+
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)
@@ -91,9 +91,8 @@ func TestVoterSet_TotalWeight(t *testing.T) {
 		v1 := NewVoterSet(v)
 		if v1 != nil {
 			return assert.Equal(t, expected, v1.totalWeight)
-		} else {
-			return assert.Equal(t, expected, VoterWeight(0))
 		}
+		return assert.Equal(t, expected, VoterWeight(0))
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)

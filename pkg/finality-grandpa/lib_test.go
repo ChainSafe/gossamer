@@ -51,8 +51,8 @@ func TestValidateCommit(t *testing.T) {
 
 	assert.False(t, result.Valid())
 
-	// after adding one more commit targetting the same block we are over
-	// the finalization threshold and the commit should be valid
+	// after adding one more commit targeting the same block we are over
+	// the finalisation threshold and the commit should be valid
 	precommits = append(precommits, makePrecommit("C", 3, 67))
 
 	result, err = ValidateCommit[string, uint, string](

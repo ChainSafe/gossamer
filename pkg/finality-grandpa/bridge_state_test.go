@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestBridgeState(t *testing.T) {
+func TestBridgeState(_ *testing.T) {
 	initial := RoundState[string, int32]{}
 
 	prior, latter := BridgeState(initial)
@@ -22,11 +22,7 @@ func TestBridgeState(t *testing.T) {
 	}
 
 	var waitForFinality = func() bool {
-		if latter.Get(waker).Finalized != nil {
-			return true
-		} else {
-			return false
-		}
+		return latter.Get(waker).Finalized != nil
 	}
 
 	wg.Add(2)

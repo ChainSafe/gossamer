@@ -91,7 +91,13 @@ func (brc *backgroundRoundChange[Hash, Number, Signature, ID]) SetVariant(varian
 	}
 }
 
-func setBackgroundRoundChangeVariant[Hash, Number, Signature, ID any, V backgroundRoundChanges[Hash, Number, Signature, ID]](
+func setBackgroundRoundChangeVariant[
+	Hash,
+	Number,
+	Signature,
+	ID any,
+	V backgroundRoundChanges[Hash, Number, Signature, ID],
+](
 	change *backgroundRoundChange[Hash, Number, Signature, ID], variant V,
 ) {
 	change.variant = variant
@@ -101,7 +107,11 @@ type backgroundRoundChanges[Hash, Number, Signature, ID any] interface {
 	concluded | committed[Hash, Number, Signature, ID]
 }
 
-func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (bool, backgroundRoundChange[Hash, Number, Signature, ID], error) {
+func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (
+	bool,
+	backgroundRoundChange[Hash, Number, Signature, ID],
+	error,
+) {
 	br.waker = waker
 
 	_, err := br.inner.poll(waker)
@@ -135,9 +145,8 @@ func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (b
 		change := backgroundRoundChange[Hash, Number, Signature, ID]{}
 		change.SetVariant(concluded(br.roundNumber()))
 		return true, change, nil
-	} else {
-		return false, backgroundRoundChange[Hash, Number, Signature, ID]{}, nil
 	}
+	return false, backgroundRoundChange[Hash, Number, Signature, ID]{}, nil
 }
 
 type roundCommitter[
@@ -155,7 +164,10 @@ type roundCommitter[
 func newRoundCommitter[
 	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
 	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID],
-](commitTimer Timer, commitReceiver *wakerChan[Commit[Hash, Number, Signature, ID]]) *roundCommitter[Hash, Number, Signature, ID, E] {
+](
+	commitTimer Timer,
+	commitReceiver *wakerChan[Commit[Hash, Number, Signature, ID]],
+) *roundCommitter[Hash, Number, Signature, ID, E] {
 	return &roundCommitter[Hash, Number, Signature, ID, E]{
 		commitTimer, commitReceiver, nil, make(chan any),
 	}
@@ -283,7 +295,10 @@ func (p *PastRounds[Hash, Number, Signature, ID, E]) VotingRounds() []VotingRoun
 
 // import the commit into the given backgrounded round. If not possible,
 // just return and process the commit.
-func (p PastRounds[Hash, Number, Signature, ID, E]) ImportCommit(roundNumber uint64, commit Commit[Hash, Number, Signature, ID]) *Commit[Hash, Number, Signature, ID] {
+func (p PastRounds[Hash, Number, Signature, ID, E]) ImportCommit(
+	roundNumber uint64,
+	commit Commit[Hash, Number, Signature, ID],
+) *Commit[Hash, Number, Signature, ID] {
 	sender, ok := p.commitSenders[roundNumber]
 	if !ok {
 		return &commit
@@ -301,7 +316,11 @@ type numberCommit[Hash, Number, Signature, ID any] struct {
 	Commit Commit[Hash, Number, Signature, ID]
 }
 
-func (p *PastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *Waker) (ready bool, nc *numberCommit[Hash, Number, Signature, ID], err error) {
+func (p *PastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *Waker) (
+	ready bool,
+	nc *numberCommit[Hash, Number, Signature, ID],
+	err error,
+) {
 	for {
 		if len(p.pastRounds) == 0 {
 			return true, nc, nil
@@ -321,8 +340,8 @@ func (p *PastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *Waker) (rea
 				round := br.inner
 				err := round.Env().Concluded(
 					round.RoundNumber(),
-					RoundState[Hash, Number](round.RoundState()),
-					HashNumber[Hash, Number](round.DagBase()),
+					round.RoundState(),
+					round.DagBase(),
 					round.HistoricalVotes(),
 				)
 				if err != nil {

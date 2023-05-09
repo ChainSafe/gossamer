@@ -100,7 +100,10 @@ func (e *environment) BestChainContaining(base string) BestChain[string, uint32]
 	return ch
 }
 
-func (e *environment) RoundData(round uint64, outgoing chan Message[string, uint32]) RoundData[ID, Timer, SignedMessageError[string, uint32, Signature, ID]] {
+func (e *environment) RoundData(
+	round uint64,
+	outgoing chan Message[string, uint32],
+) RoundData[ID, Timer, SignedMessageError[string, uint32, Signature, ID]] {
 	incoming := e.network.MakeRoundComms(round, e.localID, outgoing)
 
 	rd := RoundData[ID, Timer, SignedMessageError[string, uint32, Signature, ID]]{
@@ -121,8 +124,8 @@ func (e *environment) RoundCommitTimer() Timer {
 func (e *environment) Completed(
 	round uint64,
 	state RoundState[string, uint32],
-	base HashNumber[string, uint32],
-	votes HistoricalVotes[string, uint32, Signature, ID],
+	_ HashNumber[string, uint32],
+	_ HistoricalVotes[string, uint32, Signature, ID],
 ) error {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
@@ -132,9 +135,9 @@ func (e *environment) Completed(
 
 func (e *environment) Concluded(
 	round uint64,
-	state RoundState[string, uint32],
-	base HashNumber[string, uint32],
-	votes HistoricalVotes[string, uint32, Signature, ID],
+	_ RoundState[string, uint32],
+	_ HashNumber[string, uint32],
+	_ HistoricalVotes[string, uint32, Signature, ID],
 ) error {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
@@ -145,7 +148,7 @@ func (e *environment) Concluded(
 func (e *environment) FinalizeBlock(
 	hash string,
 	number uint32,
-	round uint64,
+	_ uint64,
 	commit Commit[string, uint32, Signature, ID],
 ) error {
 	e.mtx.Lock()
@@ -169,15 +172,15 @@ func (e *environment) FinalizeBlock(
 	return nil
 }
 
-func (e *environment) Proposed(round uint64, propose PrimaryPropose[string, uint32]) error {
+func (e *environment) Proposed(_ uint64, _ PrimaryPropose[string, uint32]) error {
 	return nil
 }
 
-func (e *environment) Prevoted(round uint64, prevote Prevote[string, uint32]) error {
+func (e *environment) Prevoted(_ uint64, _ Prevote[string, uint32]) error {
 	return nil
 }
 
-func (e *environment) Precommitted(round uint64, precommit Precommit[string, uint32]) error {
+func (e *environment) Precommitted(_ uint64, _ Precommit[string, uint32]) error {
 	return nil
 }
 
@@ -258,7 +261,10 @@ func NewRoundNetwork() *RoundNetwork {
 	return &rn
 }
 
-func (rn *RoundNetwork) AddNode(f func(Message[string, uint32]) SignedMessageError[string, uint32, Signature, ID], out chan Message[string, uint32]) (in chan SignedMessageError[string, uint32, Signature, ID]) {
+func (rn *RoundNetwork) AddNode(
+	f func(Message[string, uint32]) SignedMessageError[string, uint32, Signature, ID],
+	out chan Message[string, uint32],
+) (in chan SignedMessageError[string, uint32, Signature, ID]) {
 	return rn.BroadcastNetwork.AddNode(f, out)
 }
 
@@ -272,7 +278,10 @@ func NewGlobalMessageNetwork() *GlobalMessageNetwork {
 	return &gmn
 }
 
-func (gmn *GlobalMessageNetwork) AddNode(f func(CommunicationOut) globalInItem, out chan CommunicationOut) (in chan globalInItem) {
+func (gmn *GlobalMessageNetwork) AddNode(
+	f func(CommunicationOut) globalInItem,
+	out chan CommunicationOut,
+) (in chan globalInItem) {
 	return gmn.BroadcastNetwork.AddNode(f, out)
 }
 
@@ -290,7 +299,11 @@ func NewNetwork() *Network {
 	}
 }
 
-func (n *Network) MakeRoundComms(roundNumber uint64, nodeID ID, out chan Message[string, uint32]) (in chan SignedMessageError[string, uint32, Signature, ID]) {
+func (n *Network) MakeRoundComms(
+	roundNumber uint64,
+	nodeID ID,
+	out chan Message[string, uint32],
+) (in chan SignedMessageError[string, uint32, Signature, ID]) {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
 

@@ -193,7 +193,8 @@ func TestVoteGraph_GhostMergeNoteAtNodeOneSideWeighted(t *testing.T) {
 	assert.NoError(t, vg.Insert("H2", 9, createUintVoteNode(150), c))
 
 	assert.Equal(t, &HashNumber[string, uint]{"F", 7}, vg.FindGHOST(nil, func(i *uintVoteNode) bool { return *i >= 250 }))
-	assert.Equal(t, &HashNumber[string, uint]{"F", 7}, vg.FindGHOST(&HashNumber[string, uint]{"F", 7}, func(i *uintVoteNode) bool { return *i >= 250 }))
+	assert.Equal(t, &HashNumber[string, uint]{"F", 7},
+		vg.FindGHOST(&HashNumber[string, uint]{"F", 7}, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"F", 7},
 		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"F", 7},
@@ -248,7 +249,8 @@ func TestVoteGraph_WalkBackFromBlockInEdgeForkBelow(t *testing.T) {
 
 	for _, block := range []string{"D1", "D2", "E1", "E2", "F1", "F2", "G2"} {
 		number := c.Number(block)
-		assert.Equal(t, &HashNumber[string, uint]{"C", 4}, vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x > 5 }))
+		assert.Equal(t, &HashNumber[string, uint]{"C", 4},
+			vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x > 5 }))
 	}
 }
 
@@ -264,10 +266,12 @@ func TestVoteGraph_WalkBackFromForkBlockNodeBelow(t *testing.T) {
 	assert.NoError(t, vg.Insert("F1", 7, createUintVoteNode(5), c))
 	assert.NoError(t, vg.Insert("G2", 8, createUintVoteNode(5), c))
 
-	assert.Equal(t, &HashNumber[string, uint]{"D", 5}, vg.FindAncestor("G2", 8, func(x *uintVoteNode) bool { return *x > 5 }))
+	assert.Equal(t, &HashNumber[string, uint]{"D", 5},
+		vg.FindAncestor("G2", 8, func(x *uintVoteNode) bool { return *x > 5 }))
 	for _, block := range []string{"E1", "E2", "F1", "F2", "G2"} {
 		number := c.Number(block)
-		assert.Equal(t, &HashNumber[string, uint]{"D", 5}, vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x > 5 }))
+		assert.Equal(t, &HashNumber[string, uint]{"D", 5},
+			vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x > 5 }))
 	}
 }
 
@@ -286,7 +290,8 @@ func TestVoteGraph_WalkBackAtNode(t *testing.T) {
 
 	for _, block := range []string{"C", "D1", "D2", "E1", "E2", "F1", "F2", "I1"} {
 		number := c.Number(block)
-		assert.Equal(t, &HashNumber[string, uint]{"C", 4}, vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x >= 20 }))
+		assert.Equal(t, &HashNumber[string, uint]{"C", 4},
+			vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x >= 20 }))
 	}
 }
 
@@ -340,5 +345,6 @@ func TestVoteGraph_FindAncestorIsLargest(t *testing.T) {
 	assert.NoError(t, vg.Insert("A1", 2, createUintVoteNode(1), c))
 	assert.NoError(t, vg.Insert("A2", 2, createUintVoteNode(1), c))
 
-	assert.Equal(t, &HashNumber[string, uint]{"A", 1}, vg.FindAncestor("A", 1, func(x *uintVoteNode) bool { return *x >= 2 }))
+	assert.Equal(t, &HashNumber[string, uint]{"A", 1},
+		vg.FindAncestor("A", 1, func(x *uintVoteNode) bool { return *x >= 2 }))
 }
