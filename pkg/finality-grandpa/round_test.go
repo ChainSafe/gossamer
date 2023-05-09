@@ -142,7 +142,7 @@ func TestRound_EstimateIsValid(t *testing.T) {
 	assert.Equal(t, HashNumber[string, uint32]{"E", 6}, *round.estimate)
 }
 
-func TestRound_Finalization(t *testing.T) {
+func TestRound_Finalisation(t *testing.T) {
 	chain := NewDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	chain.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})

@@ -98,7 +98,7 @@ func NewVote[ID constraints.Ordered](v VoterInfo, p Phase) Vote[ID] {
 // Get the voter who cast the vote from the given voter set,
 // if it is contained in that set.
 func (v Vote[ID]) voter(vs VoterSet[ID]) *idVoterInfo[ID] {
-	return vs.Nth(uint(v.bit.Position / 2))
+	return vs.Nth(v.bit.Position / 2)
 }
 
 func weight[ID constraints.Ordered](bits []Bit1, voters VoterSet[ID]) (total VoteWeight) {

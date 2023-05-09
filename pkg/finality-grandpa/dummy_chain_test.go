@@ -46,11 +46,11 @@ func NewDummyChain() *dummyChain {
 	return dc
 }
 
-func (mc *dummyChain) Ancestry(base, block string) (ancestors []string, err error) {
+func (dc *dummyChain) Ancestry(base, block string) (ancestors []string, err error) {
 	ancestors = make([]string, 0)
 loop:
 	for {
-		br, ok := mc.inner[block]
+		br, ok := dc.inner[block]
 		if !ok {
 			// TODO: make this sentinel error on entire package
 			return nil, fmt.Errorf("Block not descendent of base")
@@ -68,16 +68,13 @@ loop:
 	return ancestors, nil
 }
 
-func (mc *dummyChain) IsEqualOrDescendantOf(base, block string) bool {
+func (dc *dummyChain) IsEqualOrDescendantOf(base, block string) bool {
 	if base == block {
 		return true
 	}
 
-	_, err := mc.Ancestry(base, block)
-	if err != nil {
-		return false
-	}
-	return true
+	_, err := dc.Ancestry(base, block)
+	return err == nil
 }
 
 func (dc *dummyChain) PushBlocks(parent string, blocks []string) {

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (p Phase) Generate(rand *rand.Rand, size int) reflect.Value {
+func (p Phase) Generate(rand *rand.Rand, _ int) reflect.Value {
 	index := rand.Intn(2)
 	return reflect.ValueOf([]Phase{PrevotePhase, PrecommitPhase}[index])
 }
