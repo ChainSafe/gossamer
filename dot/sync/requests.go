@@ -58,7 +58,6 @@ func ascedingBlockRequests(startNumber, targetNumber uint, requestedData byte) [
 	}
 
 	reqs := make([]*network.BlockRequestMessage, numRequests)
-	// check if we want to specify a size
 	for i := uint(0); i < numRequests; i++ {
 		max := uint32(maxResponseSize)
 
@@ -81,7 +80,7 @@ func ascedingBlockRequests(startNumber, targetNumber uint, requestedData byte) [
 	return reqs
 }
 
-func totalOfBlocksRequested(requests []*network.BlockRequestMessage) (total uint32) {
+func totalBlocksRequested(requests []*network.BlockRequestMessage) (total uint32) {
 	for _, request := range requests {
 		if request.Max != nil {
 			total += *request.Max

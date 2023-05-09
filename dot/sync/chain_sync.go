@@ -621,7 +621,7 @@ func (cs *chainSync) executeBootstrapSync() error {
 		}
 
 		requests := ascedingBlockRequests(startRequestAt, targetBlockNumber, bootstrapRequestData)
-		expectedAmountOfBlocks := totalOfBlocksRequested(requests)
+		expectedAmountOfBlocks := totalBlocksRequested(requests)
 
 		wg := sync.WaitGroup{}
 		resultsQueue := make(chan *syncTaskResult)
