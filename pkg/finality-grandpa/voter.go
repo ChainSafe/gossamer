@@ -53,26 +53,19 @@ type Timer interface {
 type Output[Hash comparable, Number constraints.Unsigned] chan Message[Hash, Number]
 
 // The input stream used to communicate with the outside world.
-type Input[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] chan SignedMessageError[Hash, Number, Signature, ID]
+type Input[
+	Hash comparable,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] chan SignedMessageError[Hash, Number, Signature, ID]
 
-// func newInput[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
-// 	in chan SignedMessageError[Hash, Number, Signature, ID],
-// ) *Input[Hash, Number, Signature, ID] {
-// 	wc := newWakerChan(in)
-// 	input := Input[Hash, Number, Signature, ID]{wc}
-// 	return &input
-// }
-
-// func (input *Input[Hash, Number, Signature, ID]) SetWaker(waker *Waker) {
-// 	input.wakerChan.SetWaker(waker)
-// }
-
-// // Chan returns a channel to consume SignedMessageError.  Not thread safe, only supports one consumer
-// func (input *Input[Hash, Number, Signature, ID]) Chan() chan SignedMessageError[Hash, Number, Signature, ID] {
-// 	return input.wakerChan.Chan()
-// }
-
-type SignedMessageError[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
+type SignedMessageError[
+	Hash comparable,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] struct {
 	SignedMessage SignedMessage[Hash, Number, Signature, ID]
 	Error         error
 }
@@ -84,21 +77,6 @@ type BestChainOutput[Hash comparable, Number constraints.Unsigned] struct {
 // Associated future type for the environment used when asynchronously computing the
 // best chain to vote on. See also [`Self::best_chain_containing`].
 type BestChain[Hash comparable, Number constraints.Unsigned] chan BestChainOutput[Hash, Number]
-
-// func NewBestChain[Hash comparable, Number constraints.Unsigned](in chan BestChainOutput[Hash, Number]) *BestChain[Hash, Number] {
-// 	wc := newWakerChan(in)
-// 	bestChain := BestChain[Hash, Number]{wc}
-// 	return &bestChain
-// }
-
-// func (bc *BestChain[Hash, Number]) SetWaker(waker *Waker) {
-// 	bc.wakerChan.SetWaker(waker)
-// }
-
-// // Chan returns a channel to consume SignedMessageError.  Not thread safe, only supports one consumer
-// func (bc *BestChain[Hash, Number]) Chan() chan BestChainOutput[Hash, Number] {
-// 	return bc.wakerChan.Chan()
-// }
 
 // Necessary environment for a voter.
 //
@@ -130,10 +108,13 @@ type Environment[Hash comparable, Number constraints.Unsigned, Signature compara
 	//
 	// Furthermore, this means that actual logic of creating and verifying
 	// signatures is flexible and can be maintained outside this crate.
-	RoundData(round uint64, outgoing chan Message[Hash, Number]) RoundData[ID, Timer, SignedMessageError[Hash, Number, Signature, ID]]
+	RoundData(
+		round uint64,
+		outgoing chan Message[Hash, Number],
+	) RoundData[ID, Timer, SignedMessageError[Hash, Number, Signature, ID]]
 
 	// Return a timer that will be used to delay the broadcast of a commit
-	// message. This delay should not be static to minimize the amount of
+	// message. This delay should not be static to minimise the amount of
 	// commit messages that are sent (e.g. random value in [0, 1] seconds).
 	RoundCommitTimer() Timer
 
@@ -287,7 +268,13 @@ func (b *Buffered[I]) Close() {
 // the estimate backwards and conclude the round (i.e. finalize its estimate).
 //
 // may only be called with non-zero last round.
-func instantiateLastRound[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]](
+func instantiateLastRound[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	E Environment[Hash, Number, Signature, ID],
+](
 	voters VoterSet[ID],
 	lastRoundVotes []SignedMessage[Hash, Number, Signature, ID],
 	lastRoundNumber uint64,
@@ -297,7 +284,7 @@ func instantiateLastRound[Hash constraints.Ordered, Number constraints.Unsigned,
 ) *VotingRound[Hash, Number, Signature, ID, E] {
 	lastRoundTracker := NewRound[ID, Hash, Number, Signature](RoundParams[ID, Hash, Number]{
 		Voters:      voters,
-		Base:        HashNumber[Hash, Number](lastRoundBase),
+		Base:        lastRoundBase,
 		RoundNumber: lastRoundNumber,
 	})
 
@@ -315,39 +302,54 @@ func instantiateLastRound[Hash constraints.Ordered, Number constraints.Unsigned,
 
 	if lastRound.RoundState().Completable {
 		return &lastRound
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // The inner state of a voter aggregating the currently running round state
 // (i.e. best and background rounds). This state exists separately since it's
 // useful to wrap in a `Arc<Mutex<_>>` for sharing.
-type innerVoterState[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]] struct {
+type innerVoterState[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable, ID constraints.Ordered,
+	E Environment[Hash, Number, Signature, ID],
+] struct {
 	bestRound  VotingRound[Hash, Number, Signature, ID, E]
 	pastRounds PastRounds[Hash, Number, Signature, ID, E]
 	sync.Mutex
 }
 
-// Communication between nodes that is not round-localized.
+// Communication between nodes that is not round-localised.
 type CommunicationOut struct {
 	variant any
 }
 
-type CommuincationOutVariants[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] interface {
+type CommuincationOutVariants[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] interface {
 	CommunicationOutCommit[Hash, Number, Signature, ID]
 }
 
-func setCommunicationOut[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered, T CommuincationOutVariants[Hash, Number, Signature, ID]](co *CommunicationOut, variant T) {
+func setCommunicationOut[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	T CommuincationOutVariants[Hash, Number, Signature, ID],
+](co *CommunicationOut, variant T) {
 	co.variant = variant
 }
 
-type CommunicationOutCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] numberCommit[Hash, Number, Signature, ID]
-
-//  {
-// 	Number uint64
-// 	Commit Commit[Hash, Number, Signature, ID]
-// }
+type CommunicationOutCommit[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] numberCommit[Hash, Number, Signature, ID]
 
 type CommitProcessingOutcome struct {
 	variant any
@@ -420,16 +422,31 @@ func setCommunicationIn[
 	ci.variant = variant
 }
 
-type CommunicationInVariants[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] interface {
+type CommunicationInVariants[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] interface {
 	CommunicationInCommit[Hash, Number, Signature, ID] | CommunicationInCatchUp[Hash, Number, Signature, ID]
 }
-type CommunicationInCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
+type CommunicationInCommit[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] struct {
 	Number        uint64
 	CompactCommit CompactCommit[Hash, Number, Signature, ID]
 	Callback      func(CommitProcessingOutcome)
 }
 
-type CommunicationInCatchUp[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
+type CommunicationInCatchUp[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] struct {
 	CatchUp  CatchUp[Hash, Number, Signature, ID]
 	Callback func(CatchUpProcessingOutcome)
 }
@@ -443,7 +460,7 @@ type globalInItem struct {
 // and caches votes.
 //
 // This voter also implements the commit protocol.
-// The commit protocol allows a node to broadcast a message that finalizes a
+// The commit protocol allows a node to broadcast a message that finalises a
 // given block and includes a set of precommits as proof.
 //
 // - When a round is completable and we precommitted we start a commit timer
@@ -455,7 +472,7 @@ type globalInItem struct {
 // broadcast a commit.
 //
 // Additionally, we also listen to commit messages from rounds that aren't
-// currently running, we validate the commit and dispatch a finalization
+// currently running, we validate the commit and dispatch a finalisation
 // notification (if any) to the environment.
 type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
 	env                    Environment[Hash, Number, Signature, ID]
@@ -501,7 +518,8 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	_, lastRoundState := BridgeState(NewRoundState(lastRoundBase))
 
 	if lastRoundNumber > 0 {
-		maybeCompletedLastRound := instantiateLastRound(voters, lastRoundVotes, lastRoundNumber, lastRoundBase, finalizedSender, env)
+		maybeCompletedLastRound := instantiateLastRound(
+			voters, lastRoundVotes, lastRoundNumber, lastRoundBase, finalizedSender, env)
 
 		if maybeCompletedLastRound != nil {
 			lastRound := *maybeCompletedLastRound
@@ -602,7 +620,7 @@ finalizedNotifications:
 // a currently backgrounded round, we send it to that round so that when we commit
 // on that round, our commit message will be informed by those that we've seen.
 //
-// Otherwise, we will simply handle the commit and issue a finalization command
+// Otherwise, we will simply handle the commit and issue a finalisation command
 // to the environment.
 func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *Waker) error {
 	// TODO: implement waker chans
@@ -707,14 +725,14 @@ loop:
 				if state.Finalized != nil {
 					fNum := state.Finalized.Number
 					if fNum > v.lastFinalizedInRounds.Number {
-						v.lastFinalizedInRounds = HashNumber[Hash, Number](*state.Finalized)
+						v.lastFinalizedInRounds = *state.Finalized
 					}
 				}
 
 				err := v.env.Completed(
 					justCompleted.RoundNumber(),
-					RoundState[Hash, Number](justCompleted.RoundState()),
-					HashNumber[Hash, Number](justCompleted.DagBase()),
+					justCompleted.RoundState(),
+					justCompleted.DagBase(),
 					justCompleted.HistoricalVotes(),
 				)
 				if err != nil {
@@ -789,12 +807,15 @@ func (v *Voter[Hash, Number, Signature, ID]) completedBestRound() error {
 	v.inner.Lock()
 	defer v.inner.Unlock()
 
-	v.env.Completed(
+	err := v.env.Completed(
 		v.inner.bestRound.RoundNumber(),
-		RoundState[Hash, Number](v.inner.bestRound.RoundState()),
-		HashNumber[Hash, Number](v.inner.bestRound.DagBase()),
+		v.inner.bestRound.RoundState(),
+		v.inner.bestRound.DagBase(),
 		v.inner.bestRound.HistoricalVotes(),
 	)
+	if err != nil {
+		return err
+	}
 
 	oldRoundNumber := v.inner.bestRound.RoundNumber()
 
@@ -866,7 +887,13 @@ func (v *Voter[Hash, Number, Signature, ID]) poll(waker *Waker) (bool, error) {
 	return v.processBestRound(waker)
 }
 
-type sharedVoteState[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]] struct {
+type sharedVoteState[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	E Environment[Hash, Number, Signature, ID],
+] struct {
 	inner *innerVoterState[Hash, Number, Signature, ID, E]
 	mtx   sync.Mutex
 }
@@ -923,7 +950,13 @@ type VoterState[ID comparable] interface {
 // Validate the given catch up and return a completed round with all prevotes
 // and precommits from the catch up imported. If the catch up is invalid `None`
 // is returned instead.
-func validateCatchUp[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]](
+func validateCatchUp[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	E Environment[Hash, Number, Signature, ID],
+](
 	catchUp CatchUp[Hash, Number, Signature, ID],
 	env E,
 	voters VoterSet[ID],
@@ -1014,7 +1047,7 @@ func validateCatchUp[Hash constraints.Ordered, Number constraints.Unsigned, Sign
 
 	// then precommits.
 	for _, sp := range catchUp.Precommits {
-		_, err := round.importPrecommit(env, Precommit[Hash, Number](sp.Precommit), sp.ID, sp.Signature)
+		_, err := round.importPrecommit(env, sp.Precommit, sp.ID, sp.Signature)
 		if err != nil {
 			fmt.Println("Ignoring invalid catch up, error importing precommit:", err)
 			return nil

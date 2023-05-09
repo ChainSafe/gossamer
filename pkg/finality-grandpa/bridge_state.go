@@ -28,7 +28,6 @@ func (w *Waker) Wake() {
 		default:
 		}
 	}()
-	return
 }
 
 func (w *Waker) Chan() chan any {
@@ -97,7 +96,10 @@ func (lv *LatterView[H, N]) Get(waker *Waker) (state RoundState[H, N]) {
 //
 // The latter view is held by the subsequent round, which blocks certain activity
 // while waiting for events on an older round.
-func BridgeState[Hash, Number any](initial RoundState[Hash, Number]) (PriorView[Hash, Number], LatterView[Hash, Number]) {
+func BridgeState[Hash, Number any](initial RoundState[Hash, Number]) (
+	PriorView[Hash, Number],
+	LatterView[Hash, Number],
+) {
 	br := bridged[Hash, Number]{
 		inner: initial,
 		waker: NewWaker(),

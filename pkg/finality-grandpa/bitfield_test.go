@@ -42,7 +42,7 @@ func (b Bitfield) testBit(position uint) bool {
 func Test_SetBit(t *testing.T) {
 	f := func(a Bitfield, idx uint) bool {
 		// let's bound the max bitfield index at 2^24. this is needed because when calling
-		// `set_bit` we will extend the backing vec to accomodate the given bitfield size, this
+		// `set_bit` we will extend the backing vec to accommodate the given bitfield size, this
 		// way we restrict the maximum allocation size to 16MB.
 		idx = uint(math.Min(float64(idx), 1<<24))
 		a.SetBit(idx)

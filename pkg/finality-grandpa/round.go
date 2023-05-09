@@ -42,7 +42,10 @@ type voteMultiplicityValue[Vote, Signature comparable] interface {
 	Single[Vote, Signature] | Equivocated[Vote, Signature]
 }
 
-func setVoteMultiplicity[Vote, Signature comparable, T voteMultiplicityValue[Vote, Signature]](vm *VoteMultiplicity[Vote, Signature], val T) {
+func setVoteMultiplicity[
+	Vote, Signature comparable,
+	T voteMultiplicityValue[Vote, Signature],
+](vm *VoteMultiplicity[Vote, Signature], val T) {
 	vm.value = val
 }
 
@@ -106,7 +109,12 @@ func newVoteTracker[ID constraints.Ordered, Vote, Signature comparable]() voteTr
 //
 // since this struct doesn't track the round-number of votes, that must be set
 // by the caller.
-func (vt *voteTracker[ID, Vote, Signature]) AddVote(id ID, vote Vote, signature Signature, weight VoterWeight) (*VoteMultiplicity[Vote, Signature], bool) {
+func (vt *voteTracker[ID, Vote, Signature]) AddVote(
+	id ID,
+	vote Vote,
+	signature Signature,
+	weight VoterWeight,
+) (*VoteMultiplicity[Vote, Signature], bool) {
 	vt.mtx.Lock()
 	defer vt.mtx.Unlock()
 
@@ -247,9 +255,14 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 		return &VoteNode[ID]{NewBitfield()}
 	}
 	return &Round[ID, Hash, Number, Signature]{
-		number:          roundParams.RoundNumber,
-		context:         NewContext(roundParams.Voters),
-		graph:           NewVoteGraph[Hash, Number, *VoteNode[ID], Vote[ID]](roundParams.Base.Hash, roundParams.Base.Number, newVoteNode(), newVoteNode),
+		number:  roundParams.RoundNumber,
+		context: NewContext(roundParams.Voters),
+		graph: NewVoteGraph[Hash, Number, *VoteNode[ID], Vote[ID]](
+			roundParams.Base.Hash,
+			roundParams.Base.Number,
+			newVoteNode(),
+			newVoteNode,
+		),
 		prevotes:        newVoteTracker[ID, Prevote[Hash, Number], Signature](),
 		precommits:      newVoteTracker[ID, Precommit[Hash, Number], Signature](),
 		historicalVotes: NewHistoricalVotes[Hash, Number, Signature, ID](),
@@ -544,9 +557,8 @@ func (yv *yieldVotes[H, N, S]) voteSignature() *voteSignature[Precommit[H, N], S
 		if yv.yielded == 0 {
 			yv.yielded++
 			return &voteSignature[Precommit[H, N], S]{vm.Vote, vm.Signature}
-		} else {
-			return nil
 		}
+		return nil
 	case Equivocated[Precommit[H, N], S]:
 		a := vm[0]
 		b := vm[1]

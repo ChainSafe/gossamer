@@ -52,10 +52,10 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 			if !has {
 				voters.Set(iw.ID, VoterInfo{
 					position: 0, // The total order is determined afterwards.
-					weight:   VoterWeight(iw.Weight),
+					weight:   iw.Weight,
 				})
 			} else {
-				vi.weight = VoterWeight(iw.Weight)
+				vi.weight = iw.Weight
 				voters.Set(iw.ID, vi)
 			}
 		}
@@ -80,8 +80,8 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 
 	return &VoterSet[ID]{
 		voters:      orderedVoters,
-		totalWeight: VoterWeight(totalWeight),
-		threshold:   threshold(VoterWeight(totalWeight)),
+		totalWeight: totalWeight,
+		threshold:   threshold(totalWeight),
 	}
 }
 
@@ -172,5 +172,5 @@ func threshold(totalWeight VoterWeight) VoterWeight {
 	var faulty = (totalWeight - 1) / 3
 	// TODO: check that this computation is NonZero
 	// VoterWeight::new(total_weight.get() - faulty).expect("subtrahend > minuend; qed")
-	return VoterWeight(totalWeight - faulty)
+	return totalWeight - faulty
 }

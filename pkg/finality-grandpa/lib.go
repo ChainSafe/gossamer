@@ -198,7 +198,7 @@ type CatchUp[Hash, Number, Signature, ID any] struct {
 }
 
 // Authentication data for a set of many messages, currently a set of precommit signatures but
-// in the future could be optimized with BLS signature aggregation.
+// in the future could be optimised with BLS signature aggregation.
 type MultiAuthData[Signature, ID any] []struct {
 	Signature Signature
 	ID        ID
@@ -253,7 +253,12 @@ func (cvr CommitValidationResult) NumInvalidVoters() uint {
 // Duplicate votes or votes from voters not in the voter-set will be ignored,
 // but it is recommended for the caller of this function to remove those at
 // signature-verification time.
-func ValidateCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
+func ValidateCommit[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+](
 	commit Commit[Hash, Number, Signature, ID],
 	voters VoterSet[ID],
 	chain Chain[Hash, Number],
@@ -266,14 +271,14 @@ func ValidateCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signa
 	var validPrecommits []SignedPrecommit[Hash, Number, Signature, ID]
 	for _, signed := range commit.Precommits {
 		if !voters.Contains(signed.ID) {
-			validationResult.numInvalidVoters += 1
+			validationResult.numInvalidVoters++
 			continue
 		}
 		validPrecommits = append(validPrecommits, signed)
 	}
 
 	// the base of the round should be the lowest block for which we can find a
-	// precommit (any vote would only have been accepted if it was targetting a
+	// precommit (any vote would only have been accepted if it was targeting a
 	// block higher or equal to the round base)
 	var base HashNumber[Hash, Number]
 	var targets []HashNumber[Hash, Number]
@@ -288,9 +293,8 @@ func ValidateCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signa
 	})
 	if len(targets) == 0 {
 		return validationResult, nil
-	} else {
-		base = targets[0]
 	}
+	base = targets[0]
 
 	// check that all precommits are for blocks that are equal to or descendants
 	// of the round base
@@ -321,13 +325,18 @@ func ValidateCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signa
 	)
 
 	for _, signedPrecommit := range validPrecommits {
-		importResult, err := round.importPrecommit(chain, signedPrecommit.Precommit, signedPrecommit.ID, signedPrecommit.Signature)
+		importResult, err := round.importPrecommit(
+			chain,
+			signedPrecommit.Precommit,
+			signedPrecommit.ID,
+			signedPrecommit.Signature,
+		)
 		if err != nil {
 			return CommitValidationResult{}, err
 		}
 		switch {
 		case importResult.Equivocation != nil:
-			validationResult.numEquivocations += 1
+			validationResult.numEquivocations++
 			// allow only one equivocation per voter, as extras are redundant.
 			if equivocated.Contains(signedPrecommit.ID) {
 				return validationResult, nil
@@ -335,7 +344,7 @@ func ValidateCommit[Hash constraints.Ordered, Number constraints.Unsigned, Signa
 			equivocated.Insert(signedPrecommit.ID)
 		default:
 			if importResult.Duplicated {
-				validationResult.numDuplicatedPrecommits += 1
+				validationResult.numDuplicatedPrecommits++
 			}
 		}
 	}
