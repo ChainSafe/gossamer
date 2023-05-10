@@ -41,9 +41,9 @@ const (
 	// DefaultDiscoveryInterval is the default discovery interval
 	DefaultDiscoveryInterval = 10 * time.Second
 	// DefaultMinPeers is the default minimum number of peers
-	DefaultMinPeers = 0
+	DefaultMinPeers = 5
 	// DefaultMaxPeers is the default maximum number of peers
-	DefaultMaxPeers = 0
+	DefaultMaxPeers = 50
 
 	// DefaultRPCPort is the default RPC port
 	DefaultRPCPort = 8545
