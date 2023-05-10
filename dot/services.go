@@ -116,7 +116,7 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 
 func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service,
 	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
-	rt runtimeInterface, err error) {
+	rt runtime.Instance, err error) {
 	logger.Info("creating runtime with interpreter " + config.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code

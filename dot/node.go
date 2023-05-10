@@ -517,7 +517,7 @@ func (n *nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
-	runtimeCode := make(map[string]runtimeInterface)
+	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
 		hash := &blocks[i]
 		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
