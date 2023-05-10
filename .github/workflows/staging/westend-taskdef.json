@@ -28,6 +28,12 @@
                 }
             ],
             "environment": [],
+            "mountPoints": [
+                {
+                    "sourceVolume": "gossamer-db-shared-disk",
+                    "containerPath": "/root/.gossamer/westend/db"
+                }
+            ],
             "image": "500822580415.dkr.ecr.us-east-2.amazonaws.com/gossamer-westend",
             "essential": true,
             "name": "gossamer-westend"
@@ -45,5 +51,14 @@
     "requiresCompatibilities": [
         "EC2"
     ],
-    "cpu": "4096"
+    "cpu": "4096",
+    "volumes": [
+        {
+            "name": "gossamer-db-shared-disk",
+            "efsVolumeConfiguration": {
+                "fileSystemId": "fs-00ff50cbc8bceb2cc",
+                "rootDirectory": "/"
+            }
+        }
+    ]
 }
