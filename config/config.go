@@ -31,6 +31,9 @@ const (
 	// DefaultPruning is the default pruning strategy
 	DefaultPruning = pruner.Archive
 
+	// defaultAccount is the default account key
+	defaultAccount = "alice"
+
 	// DefaultRole is the default node role
 	DefaultRole = common.AuthorityRole
 	// DefaultWasmInterpreter is the default wasm interpreter
@@ -352,7 +355,7 @@ func DefaultConfig() *Config {
 			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
-			Key:    "",
+			Key:    defaultAccount,
 			Unlock: "",
 		},
 		Core: &CoreConfig{
