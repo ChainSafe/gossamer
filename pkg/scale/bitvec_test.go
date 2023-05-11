@@ -1,0 +1,187 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
+package scale
+
+import (
+	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
+)
+
+func NewTestBitVec(size uint, bits []uint8) BitVec {
+	return &bitVec{
+		size: size,
+		bits: bits,
+	}
+}
+
+func TestBitVec(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		in         string
+		wantBitVec BitVec
+		wantErr    bool
+	}{
+		{
+			name:       "empty_bitvec",
+			in:         "0x00",
+			wantBitVec: NewBitVec(nil),
+			wantErr:    false,
+		},
+		{
+			name:       "1_byte",
+			in:         "0x2055",
+			wantBitVec: NewBitVec([]uint8{1, 0, 1, 0, 1, 0, 1, 0}),
+			wantErr:    false,
+		},
+		{
+			name: "4_bytes",
+			in:   "0x645536aa01",
+			wantBitVec: NewBitVec([]uint8{
+				1, 0, 1, 0, 1, 0, 1, 0,
+				0, 1, 1, 0, 1, 1, 0, 0,
+				0, 1, 0, 1, 0, 1, 0, 1,
+				1}),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resultBytes, err := common.HexToBytes(tt.in)
+			require.NoError(t, err)
+
+			bv := NewBitVec(nil)
+			err = Unmarshal(resultBytes, &bv)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.wantBitVec.Size(), bv.Size())
+			require.Equal(t, tt.wantBitVec.Size(), bv.Size())
+
+			b, err := Marshal(bv)
+			require.NoError(t, err)
+			require.Equal(t, resultBytes, b)
+		})
+	}
+}
+
+func TestBitVecBytes(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		in      BitVec
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "empty_bitvec",
+			in:      NewBitVec(nil),
+			want:    []byte(nil),
+			wantErr: false,
+		},
+		{
+			name:    "1_byte",
+			in:      NewBitVec([]uint8{1, 0, 1, 0, 1, 0, 1, 0}),
+			want:    []byte{0x55},
+			wantErr: false,
+		},
+		{
+			name: "4_bytes",
+			in: NewBitVec([]uint8{
+				1, 0, 1, 0, 1, 0, 1, 0,
+				0, 1, 1, 0, 1, 1, 0, 0,
+				0, 1, 0, 1, 0, 1, 0, 1,
+				1}),
+			want:    []byte{0x55, 0x36, 0xaa, 0x1},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, tt.in.Bytes())
+		})
+	}
+}
+
+func TestBitVecBytesToBits(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		in      []byte
+		want    []uint8
+		wantErr bool
+	}{
+		{
+			name:    "empty",
+			in:      []byte(nil),
+			want:    []uint8(nil),
+			wantErr: false,
+		},
+		{
+			name:    "1_byte",
+			in:      []byte{0x55},
+			want:    []uint8{1, 0, 1, 0, 1, 0, 1, 0},
+			wantErr: false,
+		},
+		{
+			name: "4_bytes",
+			in:   []byte{0x55, 0x36, 0xaa, 0x1},
+			want: []uint8{1, 0, 1, 0, 1, 0, 1, 0,
+				0, 1, 1, 0, 1, 1, 0, 0,
+				0, 1, 0, 1, 0, 1, 0, 1,
+				1, 0, 0, 0, 0, 0, 0, 0},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, bytesToBits(tt.in, uint(len(tt.in)*byteSize)))
+		})
+	}
+}
+
+func TestBitVecBitsToBytes(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		in      []uint8
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "empty",
+			in:      []uint8(nil),
+			want:    []byte{},
+			wantErr: false,
+		},
+		{
+			name:    "1_byte",
+			in:      []uint8{1, 0, 1, 0, 1, 0, 1, 0},
+			want:    []byte{0x55},
+			wantErr: false,
+		},
+		{
+			name: "4_bytes",
+			in: []uint8{1, 0, 1, 0, 1, 0, 1, 0,
+				0, 1, 1, 0, 1, 1, 0, 0,
+				0, 1, 0, 1, 0, 1, 0, 1,
+				1, 0, 0, 0, 0, 0, 0, 0},
+			want: []byte{0x55, 0x36, 0xaa, 0x1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, bitsToBytes(tt.in))
+		})
+	}
+}
