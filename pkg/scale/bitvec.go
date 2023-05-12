@@ -15,21 +15,23 @@ const (
 // followed by the actual bits, rounded up to the nearest byte
 type BitVec interface {
 	// Bits returns the bits in the BitVec
-	Bits() []uint8
+	Bits() []bool
 	// Bytes returns the byte representation of the Bits
 	Bytes() []byte
 	// Size returns the number of bits in the BitVec
 	Size() uint
 }
 
+var _ BitVec = (*bitVec)(nil)
+
 // bitVec implements BitVec
 type bitVec struct {
-	size uint    `scale:"1"`
-	bits []uint8 `scale:"2"`
+	size uint   `scale:"1"`
+	bits []bool `scale:"2"`
 }
 
 // NewBitVec returns a new BitVec with the given bits
-func NewBitVec(bits []uint8) BitVec {
+func NewBitVec(bits []bool) BitVec {
 	var size uint
 	if bits != nil {
 		size = uint(len(bits))
@@ -42,7 +44,7 @@ func NewBitVec(bits []uint8) BitVec {
 }
 
 // Bits returns the bits in the BitVec
-func (bv *bitVec) Bits() []uint8 {
+func (bv *bitVec) Bits() []bool {
 	return bv.bits
 }
 
@@ -57,19 +59,19 @@ func (bv *bitVec) Size() uint {
 }
 
 // bitsToBytes converts a slice of bits to a slice of bytes
-func bitsToBytes(bits []uint8) []byte {
+func bitsToBytes(bits []bool) []byte {
 	bitLength := len(bits)
 	numOfBytes := (bitLength + (byteSize - 1)) / byteSize
 	bytes := make([]byte, numOfBytes)
 
 	if len(bits)%byteSize != 0 {
 		// Pad with zeros to make the number of bits a multiple of byteSize
-		pad := make([]uint8, byteSize-len(bits)%byteSize)
+		pad := make([]bool, byteSize-len(bits)%byteSize)
 		bits = append(bits, pad...)
 	}
 
 	for i := 0; i < bitLength; i++ {
-		if bits[i] == 1 {
+		if bits[i] {
 			byteIndex := i / byteSize
 			bitIndex := i % byteSize
 			bytes[byteIndex] |= 1 << bitIndex
@@ -80,8 +82,8 @@ func bitsToBytes(bits []uint8) []byte {
 }
 
 // bytesToBits converts a slice of bytes to a slice of bits
-func bytesToBits(b []byte, size uint) []uint8 {
-	var bits []uint8
+func bytesToBits(b []byte, size uint) []bool {
+	var bits []bool
 	for _, uint8val := range b {
 		end := size
 		if end > byteSize {
@@ -90,7 +92,7 @@ func bytesToBits(b []byte, size uint) []uint8 {
 		size -= end
 
 		for j := uint(0); j < end; j++ {
-			bit := (uint8val >> j) & 1
+			bit := (uint8val>>j)&1 == 1
 			bits = append(bits, bit)
 		}
 	}

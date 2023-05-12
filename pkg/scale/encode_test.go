@@ -937,16 +937,17 @@ var (
 		},
 		{
 			name: "BitVec{Size:_8}",
-			in:   NewBitVec([]uint8{1, 0, 1, 0, 1, 0, 1, 0}),
+			in:   NewBitVec([]bool{true, false, true, false, true, false, true, false}),
 			want: []byte{0x20, 0x55},
 		},
 		{
 			name: "BitVec{Size:_25}",
-			in: NewBitVec([]uint8{
-				1, 0, 1, 0, 1, 0, 1, 0,
-				0, 1, 1, 0, 1, 1, 0, 0,
-				0, 1, 0, 1, 0, 1, 0, 1,
-				1}),
+			in: NewBitVec([]bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true,
+			}),
 			want: []byte{0x64, 0x55, 0x36, 0xaa, 0x1},
 		},
 	}

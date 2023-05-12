@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewTestBitVec(size uint, bits []uint8) BitVec {
+func NewTestBitVec(size uint, bits []bool) BitVec {
 	return &bitVec{
 		size: size,
 		bits: bits,
@@ -34,17 +34,18 @@ func TestBitVec(t *testing.T) {
 		{
 			name:       "1_byte",
 			in:         "0x2055",
-			wantBitVec: NewBitVec([]uint8{1, 0, 1, 0, 1, 0, 1, 0}),
+			wantBitVec: NewBitVec([]bool{true, false, true, false, true, false, true, false}),
 			wantErr:    false,
 		},
 		{
 			name: "4_bytes",
 			in:   "0x645536aa01",
-			wantBitVec: NewBitVec([]uint8{
-				1, 0, 1, 0, 1, 0, 1, 0,
-				0, 1, 1, 0, 1, 1, 0, 0,
-				0, 1, 0, 1, 0, 1, 0, 1,
-				1}),
+			wantBitVec: NewBitVec([]bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true,
+			}),
 			wantErr: false,
 		},
 	}
@@ -85,17 +86,18 @@ func TestBitVecBytes(t *testing.T) {
 		},
 		{
 			name:    "1_byte",
-			in:      NewBitVec([]uint8{1, 0, 1, 0, 1, 0, 1, 0}),
+			in:      NewBitVec([]bool{true, false, true, false, true, false, true, false}),
 			want:    []byte{0x55},
 			wantErr: false,
 		},
 		{
 			name: "4_bytes",
-			in: NewBitVec([]uint8{
-				1, 0, 1, 0, 1, 0, 1, 0,
-				0, 1, 1, 0, 1, 1, 0, 0,
-				0, 1, 0, 1, 0, 1, 0, 1,
-				1}),
+			in: NewBitVec([]bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true,
+			}),
 			want:    []byte{0x55, 0x36, 0xaa, 0x1},
 			wantErr: false,
 		},
@@ -114,28 +116,30 @@ func TestBitVecBytesToBits(t *testing.T) {
 	tests := []struct {
 		name    string
 		in      []byte
-		want    []uint8
+		want    []bool
 		wantErr bool
 	}{
 		{
 			name:    "empty",
 			in:      []byte(nil),
-			want:    []uint8(nil),
+			want:    []bool(nil),
 			wantErr: false,
 		},
 		{
 			name:    "1_byte",
 			in:      []byte{0x55},
-			want:    []uint8{1, 0, 1, 0, 1, 0, 1, 0},
+			want:    []bool{true, false, true, false, true, false, true, false},
 			wantErr: false,
 		},
 		{
 			name: "4_bytes",
 			in:   []byte{0x55, 0x36, 0xaa, 0x1},
-			want: []uint8{1, 0, 1, 0, 1, 0, 1, 0,
-				0, 1, 1, 0, 1, 1, 0, 0,
-				0, 1, 0, 1, 0, 1, 0, 1,
-				1, 0, 0, 0, 0, 0, 0, 0},
+			want: []bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true, false, false, false, false, false, false, false,
+			},
 			wantErr: false,
 		},
 	}
@@ -152,28 +156,30 @@ func TestBitVecBitsToBytes(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		in      []uint8
+		in      []bool
 		want    []byte
 		wantErr bool
 	}{
 		{
 			name:    "empty",
-			in:      []uint8(nil),
+			in:      []bool(nil),
 			want:    []byte{},
 			wantErr: false,
 		},
 		{
 			name:    "1_byte",
-			in:      []uint8{1, 0, 1, 0, 1, 0, 1, 0},
+			in:      []bool{true, false, true, false, true, false, true, false},
 			want:    []byte{0x55},
 			wantErr: false,
 		},
 		{
 			name: "4_bytes",
-			in: []uint8{1, 0, 1, 0, 1, 0, 1, 0,
-				0, 1, 1, 0, 1, 1, 0, 0,
-				0, 1, 0, 1, 0, 1, 0, 1,
-				1, 0, 0, 0, 0, 0, 0, 0},
+			in: []bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true,
+			},
 			want: []byte{0x55, 0x36, 0xaa, 0x1},
 		},
 	}
