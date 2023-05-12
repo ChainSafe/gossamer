@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
@@ -29,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -244,6 +246,16 @@ func parseChainSpec(chain string) error {
 		}
 	}
 
+	// parse chain spec and set config fields
+	spec, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
+	if err != nil {
+		return fmt.Errorf("failed to load chain spec: %s", err)
+	}
+
+	config.ID = spec.ID
+	config.Network.Bootnodes = spec.Bootnodes
+	config.Network.ProtocolID = spec.ProtocolID
+
 	return nil
 }
 
@@ -252,6 +264,8 @@ func configureViper(basePath string) error {
 	viper.SetConfigName("config")                          // name of config file (without extension)
 	viper.AddConfigPath(basePath)                          // search `base-path`
 	viper.AddConfigPath(filepath.Join(basePath, "config")) // search `base-path/config`
+
+	setViperDefault(config)
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
@@ -349,7 +363,6 @@ func copyChainSpec(source, destination string) error {
 	config.ChainSpec = destination
 	// bind it to viper so that it can be used during the config parsing
 	viper.Set("chain-spec", destination)
-
 	return nil
 }
 
@@ -406,6 +419,65 @@ func parseTelemetryURL() error {
 	}
 
 	viper.Set("telemetry-url", config.TelemetryURLs)
-
 	return nil
+}
+
+// setViperDefault sets the default values for the config
+// The method goes through the config struct and binds each field to viper
+// in the format <parent-name>.<field-name> = <field-value>
+// The name of the field is taken from the mapstructure tag
+func setViperDefault(config *cfg.Config) {
+	configType := reflect.TypeOf(*config)
+	configValue := reflect.ValueOf(*config)
+
+	for i := 0; i < configType.NumField(); i++ {
+		field := configType.Field(i)
+
+		mapstructureTag := field.Tag.Get("mapstructure")
+		if mapstructureTag == "" {
+			continue
+		}
+
+		tagParts := strings.Split(mapstructureTag, ",")
+		if len(tagParts) > 0 && tagParts[0] == "-" {
+			continue
+		}
+
+		parentPrefix := tagParts[0]
+		if field.Type.Kind() == reflect.Struct || field.Type.Kind() == reflect.Ptr {
+			subType := field.Type
+			if subType.Kind() == reflect.Ptr {
+				subType = subType.Elem()
+			}
+
+			for j := 0; j < subType.NumField(); j++ {
+				subField := subType.Field(j)
+				subMapstructureTag := subField.Tag.Get("mapstructure")
+				if subMapstructureTag == "" {
+					continue
+				}
+
+				subTagParts := strings.Split(subMapstructureTag, ",")
+				if len(subTagParts) > 0 && subTagParts[0] == "-" {
+					continue
+				}
+
+				prefix := subTagParts[0]
+				if parentPrefix != "" {
+					prefix = parentPrefix + "." + subTagParts[0]
+				}
+
+				var value interface{}
+				if configValue.Field(i).Kind() == reflect.Ptr {
+					value = configValue.Field(i).Elem().Field(j).Interface()
+				} else {
+					value = configValue.Field(i).Field(j).Interface()
+				}
+
+				if !viper.IsSet(prefix) {
+					viper.SetDefault(prefix, value)
+				}
+			}
+		}
+	}
 }

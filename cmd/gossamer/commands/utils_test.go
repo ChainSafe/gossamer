@@ -8,7 +8,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/spf13/viper"
+
+	"github.com/ChainSafe/gossamer/chain/westend"
 )
 
 func TestAddStringFlagBindViper(t *testing.T) {
@@ -202,5 +207,62 @@ func TestAddStringSliceFlagBindViper(t *testing.T) {
 	viperValue = viper.GetStringSlice("testBindName")
 	if len(viperValue) != 2 || viperValue[0] != "value1" || viperValue[1] != "value2" {
 		t.Fatalf("Expected Viper value 'testBindName' to be ['value1', 'value2'], got '%v'", viperValue)
+	}
+}
+
+func TestBindToViper(t *testing.T) {
+	t.Parallel()
+
+	config = westend.DefaultConfig()
+	setViperDefault(config)
+
+	tests := []struct {
+		name     string
+		expected any
+		result   any
+	}{
+		{
+			expected: config.Name,
+			result:   viper.Get("name"),
+		},
+		{
+			expected: config.ID,
+			result:   viper.Get("id"),
+		},
+		{
+			expected: config.BasePath,
+			result:   viper.Get("basepath"),
+		},
+		{
+			expected: config.LogLevel,
+			result:   viper.Get("log-level"),
+		},
+		{
+			expected: config.Log.Core,
+			result:   viper.Get("log.core"),
+		},
+		{
+			expected: config.Core.Role,
+			result:   viper.Get("core.role"),
+		},
+		{
+			expected: config.Network.NoMDNS,
+			result:   viper.Get("network.nomdns"),
+		},
+		{
+			expected: config.RPC.Port,
+			result:   viper.Get("rpc.port"),
+		},
+		{
+			expected: config.Account.Key,
+			result:   viper.Get("account.key"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.expected, tt.result)
+		})
 	}
 }

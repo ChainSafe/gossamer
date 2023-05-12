@@ -21,7 +21,7 @@ const (
 	// defaultChainSpecFile is the default genesis file
 	defaultChainSpecFile = "chain-spec-raw.json"
 	// defaultBasePath is the default base path
-	defaultBasePath = "~/.gossamer"
+	defaultBasePath = "~/.gossamer/gssmr"
 	// DefaultLogLevel is the default log level
 	DefaultLogLevel = "info"
 	// DefaultPrometheusPort is the default prometheus port
@@ -436,7 +436,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
-			Key:    "",
+			Key:    defaultAccount,
 			Unlock: "",
 		},
 		Core: &CoreConfig{

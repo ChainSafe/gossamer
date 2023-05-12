@@ -25,6 +25,10 @@ func DefaultConfig() *cfg.Config {
 	config.ID = defaultID
 	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.Core.Role = 1
+	config.Network.NoMDNS = false
 
 	return config
 }
