@@ -164,7 +164,5 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runt
 		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
 	}
 
-	logger.Info("instantiated runtime!!!")
-
 	return r, nil
 }
