@@ -10,22 +10,8 @@ const (
 	byteSize = 8
 )
 
-// BitVec represents rust's `bitvec::BitVec` in SCALE
-// It is encoded as a compact u32 representing the number of bits in the vector
-// followed by the actual bits, rounded up to the nearest byte
-type BitVec interface {
-	// Bits returns the bits in the BitVec
-	Bits() []bool
-	// Bytes returns the byte representation of the Bits
-	Bytes() []byte
-	// Size returns the number of bits in the BitVec
-	Size() uint
-}
-
-var _ BitVec = (*bitVec)(nil)
-
-// bitVec implements BitVec
-type bitVec struct {
+// BitVec is the implementation of the bit vector
+type BitVec struct {
 	size uint   `scale:"1"`
 	bits []bool `scale:"2"`
 }
@@ -37,24 +23,24 @@ func NewBitVec(bits []bool) BitVec {
 		size = uint(len(bits))
 	}
 
-	return &bitVec{
+	return BitVec{
 		size: size,
 		bits: bits,
 	}
 }
 
 // Bits returns the bits in the BitVec
-func (bv *bitVec) Bits() []bool {
+func (bv *BitVec) Bits() []bool {
 	return bv.bits
 }
 
 // Bytes returns the byte representation of the BitVec.Bits
-func (bv *bitVec) Bytes() []byte {
+func (bv *BitVec) Bytes() []byte {
 	return bitsToBytes(bv.bits)
 }
 
 // Size returns the number of bits in the BitVec
-func (bv *bitVec) Size() uint {
+func (bv *BitVec) Size() uint {
 	return bv.size
 }
 

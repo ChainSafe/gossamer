@@ -11,7 +11,7 @@ import (
 )
 
 func NewTestBitVec(size uint, bits []bool) BitVec {
-	return &bitVec{
+	return BitVec{
 		size: size,
 		bits: bits,
 	}
