@@ -1,4 +1,4 @@
-package wasmer
+package wasmergo
 
 import (
 	"github.com/stretchr/testify/assert"

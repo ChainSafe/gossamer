@@ -1,4 +1,4 @@
-package wasmer
+package wasmergo
 
 import (
 	"runtime"
