@@ -10,10 +10,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/wasmergo"
 )
 
-func createInstance(t *testing.T) (*wasmer.Instance, error) {
+func createInstance(t *testing.T) (*wasmergo.Instance, error) {
 	t.Helper()
 	// We are using the text representation of the module here. Taken from:
 	// https://github.com/wasmerio/wasmer-go/blob/23d786b6b81ad93e2b974d2f4510bea374f0f37c/examples/example_memory_test.go#L28
@@ -35,17 +35,17 @@ func createInstance(t *testing.T) (*wasmer.Instance, error) {
 		  (export "memory" (memory $mem)))
 	`)
 
-	engine := wasmer.NewEngine()
-	store := wasmer.NewStore(engine)
+	engine := wasmergo.NewEngine()
+	store := wasmergo.NewStore(engine)
 
 	// Compile module
-	module, err := wasmer.NewModule(store, wasmBytes)
+	module, err := wasmergo.NewModule(store, wasmBytes)
 	require.NoError(t, err)
 
-	importObject := wasmer.NewImportObject()
+	importObject := wasmergo.NewImportObject()
 
 	// Instantiate the Wasm module.
-	return wasmer.NewInstance(module, importObject)
+	return wasmergo.NewInstance(module, importObject)
 }
 
 func TestMemory_Length(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/wasmergo"
 )
 
 func safeCastInt32(value uint32) (int32, error) {
@@ -98,17 +98,17 @@ func toWasmMemoryOptional(context *runtime.Context, data []byte) (
 	return toWasmMemory(context, encoded)
 }
 func toWasmMemoryOptionalNil(context *runtime.Context) (
-	cPointerSize []wasmer.Value, err error) {
+	cPointerSize []wasmergo.Value, err error) {
 	pointerSize, err := toWasmMemoryOptional(context, nil)
 	if err != nil {
-		return []wasmer.Value{wasmer.NewI64(0)}, err
+		return []wasmergo.Value{wasmergo.NewI64(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI64(pointerSize)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(pointerSize)}, nil
 }
 
 func mustToWasmMemoryOptionalNil(context *runtime.Context) (
-	cPointerSize []wasmer.Value) {
+	cPointerSize []wasmergo.Value) {
 	cPointerSize, err := toWasmMemoryOptionalNil(context)
 	if err != nil {
 		panic(err)
@@ -151,16 +151,16 @@ func toWasmMemoryResult(context *runtime.Context, data []byte) (
 }
 
 func toWasmMemoryResultEmpty(context *runtime.Context) (
-	cPointerSize []wasmer.Value, err error) {
+	cPointerSize []wasmergo.Value, err error) {
 	pointerSize, err := toWasmMemoryResult(context, nil)
 	if err != nil {
-		return []wasmer.Value{wasmer.NewI64(0)}, err
+		return []wasmergo.Value{wasmergo.NewI64(0)}, err
 	}
-	return []wasmer.Value{wasmer.NewI64(pointerSize)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(pointerSize)}, nil
 }
 
 func mustToWasmMemoryResultEmpty(context *runtime.Context) (
-	cPointerSize []wasmer.Value) {
+	cPointerSize []wasmergo.Value) {
 	cPointerSize, err := toWasmMemoryResultEmpty(context)
 	if err != nil {
 		panic(err)
@@ -180,7 +180,7 @@ func toWasmMemoryOptionalUint32(context *runtime.Context, data *uint32) (
 }
 
 func mustToWasmMemoryNil(context *runtime.Context) (
-	cPointerSize []wasmer.Value) {
+	cPointerSize []wasmergo.Value) {
 	allocator := context.Allocator
 	ptr, err := allocator.Allocate(0)
 	if err != nil {
@@ -188,7 +188,7 @@ func mustToWasmMemoryNil(context *runtime.Context) (
 		panic(err)
 	}
 	pointerSize := toPointerSize(ptr, 0)
-	return []wasmer.Value{wasmer.NewI64(pointerSize)}
+	return []wasmergo.Value{wasmergo.NewI64(pointerSize)}
 }
 
 // toKillStorageResultEnum encodes the `allRemoved` flag and

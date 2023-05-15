@@ -19,7 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/klauspost/compress/zstd"
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/wasmergo"
 )
 
 // Name represents the name of the interpreter
@@ -39,7 +39,7 @@ var (
 
 // Instance represents a runtime go-wasmer instance
 type Instance struct {
-	vm       *wasmer.Instance
+	vm       *wasmergo.Instance
 	ctx      *runtime.Context
 	isClosed bool
 	codeHash common.Hash
@@ -96,18 +96,18 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 	}
 
 	// Create engine and store with default values
-	engine := wasmer.NewEngine()
-	store := wasmer.NewStore(engine)
+	engine := wasmergo.NewEngine()
+	store := wasmergo.NewStore(engine)
 
 	// Compile the module
-	module, err := wasmer.NewModule(store, code)
+	module, err := wasmergo.NewModule(store, code)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get memory descriptor from module, if it imports memory
 	moduleImports := module.Imports()
-	var memImport *wasmer.ImportType
+	var memImport *wasmergo.ImportType
 	for _, im := range moduleImports {
 		if im.Name() == "memory" {
 			memImport = im
@@ -115,7 +115,7 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 		}
 	}
 
-	var memoryType *wasmer.MemoryType
+	var memoryType *wasmergo.MemoryType
 	if memImport != nil {
 		memoryType = memImport.Type().IntoMemoryType()
 	}
@@ -130,19 +130,19 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 		}
 	}
 
-	var memory *wasmer.Memory
+	var memory *wasmergo.Memory
 	// create memory to import, if it's expecting imported memory
 	if !hasExportedMemory {
 		if memoryType == nil {
 			// values from newer kusama/polkadot runtimes
-			lim, err := wasmer.NewLimits(23, 4294967295)
+			lim, err := wasmergo.NewLimits(23, 4294967295)
 			if err != nil {
 				return nil, err
 			}
-			memoryType = wasmer.NewMemoryType(lim)
+			memoryType = wasmergo.NewMemoryType(lim)
 		}
 
-		memory = wasmer.NewMemory(store, memoryType)
+		memory = wasmergo.NewMemory(store, memoryType)
 	}
 
 	runtimeCtx := &runtime.Context{
@@ -160,7 +160,7 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating node runtime imports: %w", err)
 	}
-	wasmInstance, err := wasmer.NewInstance(module, imports)
+	wasmInstance, err := wasmergo.NewInstance(module, imports)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (in *Instance) Exec(function string, data []byte) (result []byte, err error
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 
-	wasmValueAsI64 := wasmer.NewI64(wasmValue)
+	wasmValueAsI64 := wasmergo.NewI64(wasmValue)
 	outputPtr, outputLength := splitPointerSize(wasmValueAsI64.I64())
 	memory = in.ctx.Memory.Data() // call Data() again to get larger slice
 

@@ -28,7 +28,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/wasmergo"
 )
 
 var testChildKey = []byte("childKey")
@@ -43,7 +43,7 @@ func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	res, err := runtimeFunc(0, 0)
 	require.NoError(t, err)
 
-	wasmRes := wasmer.NewI64(res)
+	wasmRes := wasmergo.NewI64(res)
 	outputPtr, outputLength := splitPointerSize(wasmRes.I64())
 	memory := inst.ctx.Memory.Data()
 	data := memory[outputPtr : outputPtr+outputLength]
@@ -744,7 +744,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	mem := inst.ctx.Memory.Data()
-	wasmRetI64 := wasmer.NewI64(ret)
+	wasmRetI64 := wasmergo.NewI64(ret)
 	retI64 := wasmRetI64.I64()
 	// this SCALE encoded, but it should just be a 32 byte buffer. may be due to way test runtime is written.
 	pubKeyBytes := mem[int32(retI64)+1 : int32(retI64)+1+32]

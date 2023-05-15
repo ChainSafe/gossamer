@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/wasmergo"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 // Memory is a thin wrapper around Wasmer memory to support
 // Gossamer runtime.Memory interface
 type Memory struct {
-	memory *wasmer.Memory
+	memory *wasmergo.Memory
 }
 
 func checkBounds(value uint64) (uint32, error) {
@@ -45,7 +45,7 @@ func (m Memory) Length() uint32 {
 
 // Grow grows the memory by the given number of pages
 func (m Memory) Grow(numPages uint32) error {
-	ok := m.memory.Grow(wasmer.Pages(numPages))
+	ok := m.memory.Grow(wasmergo.Pages(numPages))
 	if !ok {
 		return fmt.Errorf("%w: by %d pages", errCantGrowMemory, numPages)
 	}

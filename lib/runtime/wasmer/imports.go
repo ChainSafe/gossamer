@@ -21,7 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/ChainSafe/gossamer/pkg/wasmergo"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 )
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_logging_log_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	ctx := env.(*runtime.Context)
 
@@ -62,76 +62,76 @@ func ext_logging_log_version_1(env interface{}, args []wasmer.Value) ([]wasmer.V
 }
 
 //export ext_logging_max_level_version_1
-func ext_logging_max_level_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_logging_max_level_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
-	return []wasmer.Value{wasmer.NewI32(4)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(4)}, nil
 }
 
 //export ext_transaction_index_index_version_1
-func ext_transaction_index_index_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_transaction_index_index_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
 	return nil, nil
 }
 
 //export ext_transaction_index_renew_version_1
-func ext_transaction_index_renew_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_transaction_index_renew_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
 	return nil, nil
 }
 
 //export ext_sandbox_instance_teardown_version_1
-func ext_sandbox_instance_teardown_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_instance_teardown_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
 	return nil, nil
 }
 
 //export ext_sandbox_instantiate_version_1
-func ext_sandbox_instantiate_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_instantiate_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 //export ext_sandbox_invoke_version_1
-func ext_sandbox_invoke_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_invoke_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 //export ext_sandbox_memory_get_version_1
-func ext_sandbox_memory_get_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_memory_get_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 //export ext_sandbox_memory_new_version_1
-func ext_sandbox_memory_new_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_memory_new_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 //export ext_sandbox_memory_set_version_1
-func ext_sandbox_memory_set_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_memory_set_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 //export ext_sandbox_memory_teardown_version_1
-func ext_sandbox_memory_teardown_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_sandbox_memory_teardown_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Warn("unimplemented")
 	return nil, nil
 }
 
 //export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -147,7 +147,7 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmer.Value)
 	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warnf("cannot generate key: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	var kp KeyPair
@@ -160,39 +160,39 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasmer.Value)
 
 	if err != nil {
 		logger.Warnf("cannot generate key: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	err = ks.Insert(kp)
 	if err != nil {
 		logger.Warnf("failed to insert key: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	ret, err := toWasmMemorySized(runtimeCtx, kp.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	castedRet, err := safeCastInt32(ret)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
 	logger.Debug("generated ed25519 keypair with public key: " + kp.Public().Hex())
-	return []wasmer.Value{wasmer.NewI32(castedRet)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedRet)}, nil
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
-func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	runtimeCtx := env.(*runtime.Context)
 	memory := runtimeCtx.Memory.Data()
@@ -204,7 +204,7 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmer.Val
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
 		ret, _ := toWasmMemory(runtimeCtx, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
 	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
@@ -212,7 +212,7 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmer.Val
 			"error for id 0x%x: keystore type is %s and not the expected ed25519",
 			id, ks.Type())
 		ret, _ := toWasmMemory(runtimeCtx, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
 	keys := ks.PublicKeys()
@@ -226,21 +226,21 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasmer.Val
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ := toWasmMemory(runtimeCtx, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
 	ret, err := toWasmMemory(runtimeCtx, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ = toWasmMemory(runtimeCtx, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ret)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 }
 
 //export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -255,7 +255,7 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasmer.Value) ([]
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Errorf("failed to get public keys: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
@@ -270,7 +270,7 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasmer.Value) ([]
 		ret, err := toWasmMemoryOptionalNil(runtimeCtx)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
-			return []wasmer.Value{wasmer.NewI64(0)}, nil
+			return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 		}
 		return ret, nil
 	}
@@ -283,14 +283,14 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasmer.Value) ([]
 	ret, err := toWasmMemoryFixedSizeOptional(runtimeCtx, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ret)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 }
 
 //export ext_crypto_ed25519_verify_version_1
-func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -308,7 +308,7 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmer.Value) (
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Error("failed to create public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
 	if sigVerifier.IsStarted() {
@@ -319,20 +319,20 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasmer.Value) (
 			VerifyFunc: ed25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
 		logger.Error("failed to verify")
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
 	logger.Debug("verified ed25519 signature")
-	return []wasmer.Value{wasmer.NewI32(1)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_1
-func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	memory := instanceContext.Memory.Data()
@@ -352,7 +352,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmer
 		ret, err := toWasmMemoryResultEmpty(instanceContext)
 		if err != nil {
 			logger.Errorf("failed to allocate memory: %s", err)
-			return []wasmer.Value{wasmer.NewI64(0)}, nil
+			return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 		}
 		return ret, nil
 	}
@@ -364,20 +364,20 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasmer
 	ret, err := toWasmMemoryResult(instanceContext, pub[1:])
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ret)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_2
-func ext_crypto_secp256k1_ecdsa_recover_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_secp256k1_ecdsa_recover_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(env, args)
 }
 
 //export ext_crypto_ecdsa_verify_version_2
-func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -396,7 +396,7 @@ func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]
 	err := pub.Decode(pubKey)
 	if err != nil {
 		logger.Errorf("failed to decode public key: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	logger.Debugf("pub=%s, message=0x%x, signature=0x%x",
@@ -405,7 +405,7 @@ func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]
 	hash, err := common.Blake2bHash(message)
 	if err != nil {
 		logger.Errorf("failed to hash message: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	if sigVerifier.IsStarted() {
@@ -416,7 +416,7 @@ func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]
 			VerifyFunc: secp256k1.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
 
 	ok, err := pub.Verify(hash[:], signature)
@@ -426,16 +426,16 @@ func ext_crypto_ecdsa_verify_version_2(env interface{}, args []wasmer.Value) ([]
 			message += ": " + err.Error()
 		}
 		logger.Errorf(message)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	logger.Debug("validated signature")
-	return []wasmer.Value{wasmer.NewI32(1)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{},
-	args []wasmer.Value) ([]wasmer.Value, error) {
+	args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	memory := instanceContext.Memory.Data()
@@ -462,21 +462,21 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{},
 	ret, err := toWasmMemoryResult(instanceContext, cpub)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ret)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(env interface{},
-	args []wasmer.Value) ([]wasmer.Value, error) {
+	args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env, args)
 }
 
 //export ext_crypto_sr25519_generate_version_1
-func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -491,7 +491,7 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value)
 	err := scale.Unmarshal(seedBytes, &seed)
 	if err != nil {
 		logger.Warnf("cannot generate key: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	var kp KeyPair
@@ -509,33 +509,33 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasmer.Value)
 	ks, err := instanceContext.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	err = ks.Insert(kp)
 	if err != nil {
 		logger.Warnf("failed to insert key: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	castedRet, err := safeCastInt32(ret)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
 	logger.Debug("generated sr25519 keypair with public key: " + kp.Public().Hex())
-	return []wasmer.Value{wasmer.NewI32(castedRet)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedRet)}, nil
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
-func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -551,7 +551,7 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 	if err != nil {
 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
@@ -559,7 +559,7 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 			"keystore type for id 0x%x is %s and not expected sr25519",
 			id, ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
 	keys := ks.PublicKeys()
@@ -573,21 +573,21 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasmer.Val
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
 	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, _ = toWasmMemory(instanceContext, []byte{0})
-		return []wasmer.Value{wasmer.NewI64(ret)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ret)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 }
 
 //export ext_crypto_sr25519_sign_version_1
-func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	runtimeCtx := env.(*runtime.Context)
 	memory := runtimeCtx.Memory.Data()
@@ -602,40 +602,40 @@ func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasmer.Value) ([]
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		return []wasmer.Value{wasmer.NewI64(emptyRet)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(emptyRet)}, nil
 	}
 
 	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Errorf("failed to get public key: %s", err)
-		return []wasmer.Value{wasmer.NewI64(emptyRet)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(emptyRet)}, nil
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		return []wasmer.Value{wasmer.NewI64(emptyRet)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(emptyRet)}, nil
 	}
 
 	msgData := asMemorySlice(runtimeCtx, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Errorf("could not sign message: %s", err)
-		return []wasmer.Value{wasmer.NewI64(emptyRet)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(emptyRet)}, nil
 	}
 
 	ret, err = toWasmMemoryFixedSizeOptional(runtimeCtx, sig)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(emptyRet)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(emptyRet)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ret)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ret)}, nil
 }
 
 //export ext_crypto_sr25519_verify_version_1
-func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -652,7 +652,7 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil //nolint
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil //nolint
 	}
 
 	logger.Debugf(
@@ -667,7 +667,7 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) (
 			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
 
 	ok, err := pub.VerifyDeprecated(message, signature)
@@ -678,15 +678,15 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasmer.Value) (
 		}
 		logger.Debugf(message)
 		// this fails at block 3876, which seems to be expected, based on discussions
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
 
 	logger.Debug("verified sr25519 signature")
-	return []wasmer.Value{wasmer.NewI32(1)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 }
 
 //export ext_crypto_sr25519_verify_version_2
-func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -703,7 +703,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) (
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
-		return []wasmer.Value{wasmer.NewI32(0)}, nil //nolint
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil //nolint
 	}
 
 	logger.Debugf(
@@ -718,7 +718,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) (
 			VerifyFunc: sr25519.VerifySignature,
 		}
 		sigVerifier.Add(&signature)
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
 
 	ok, err := pub.Verify(message, signature)
@@ -728,15 +728,15 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasmer.Value) (
 			message += ": " + err.Error()
 		}
 		logger.Errorf(message)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	logger.Debug("validated signature")
-	return []wasmer.Value{wasmer.NewI32(1)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 }
 
 //export ext_crypto_start_batch_verify_version_1
-func ext_crypto_start_batch_verify_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_start_batch_verify_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	// TODO: fix and re-enable signature verification (#1405)
@@ -745,16 +745,16 @@ func ext_crypto_start_batch_verify_version_1(_ interface{}, _ []wasmer.Value) ([
 }
 
 //export ext_crypto_finish_batch_verify_version_1
-func ext_crypto_finish_batch_verify_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_crypto_finish_batch_verify_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
-	return []wasmer.Value{wasmer.NewI32(1)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 }
 
 //export ext_trie_blake2_256_root_version_1
-func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -773,7 +773,7 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) ([
 	var kvs []kv
 	if err := scale.Unmarshal(data, &kvs); err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	for _, kv := range kvs {
@@ -781,7 +781,7 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) ([
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				kv.Key, kv.Value, err)
-			return []wasmer.Value{wasmer.NewI32(0)}, nil
+			return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 		}
 	}
 
@@ -789,28 +789,28 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasmer.Value) ([
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	castedPtr, err := safeCastInt32(ptr)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return []wasmer.Value{wasmer.NewI32(castedPtr)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedPtr)}, nil
 }
 
 //export ext_trie_blake2_256_ordered_root_version_1
-func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -824,14 +824,14 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.V
 	err := scale.Unmarshal(data, &values)
 	if err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
-			return []wasmer.Value{wasmer.NewI32(0)}, nil
+			return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 		}
 		logger.Tracef(
 			"put key=0x%x and value=0x%x",
@@ -841,7 +841,7 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.V
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				key, value, err)
-			return []wasmer.Value{wasmer.NewI32(0)}, nil
+			return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 		}
 	}
 
@@ -849,34 +849,34 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasmer.V
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	castedPtr, err := safeCastInt32(ptr)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
 	logger.Debugf("root hash is %s", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return []wasmer.Value{wasmer.NewI32(castedPtr)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedPtr)}, nil
 }
 
 //export ext_trie_blake2_256_ordered_root_version_2
-func ext_trie_blake2_256_ordered_root_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_trie_blake2_256_ordered_root_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	// TODO: update to use state trie version 1 (#2418)
 	return ext_trie_blake2_256_ordered_root_version_1(env, args)
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_trie_blake2_256_verify_proof_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -890,7 +890,7 @@ func ext_trie_blake2_256_verify_proof_version_1(env interface{}, args []wasmer.V
 	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	key := asMemorySlice(instanceContext, keySpan)
@@ -902,14 +902,14 @@ func ext_trie_blake2_256_verify_proof_version_1(env interface{}, args []wasmer.V
 	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
 	if err != nil {
 		logger.Errorf("failed proof verification: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(1)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 }
 
 //export ext_misc_print_hex_version_1
-func ext_misc_print_hex_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_misc_print_hex_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	ctx := env.(*runtime.Context)
@@ -920,7 +920,7 @@ func ext_misc_print_hex_version_1(env interface{}, args []wasmer.Value) ([]wasme
 }
 
 //export ext_misc_print_num_version_1
-func ext_misc_print_num_version_1(_ interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_misc_print_num_version_1(_ interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	data := args[0].I64()
 	logger.Debugf("num: %d", data)
@@ -928,7 +928,7 @@ func ext_misc_print_num_version_1(_ interface{}, args []wasmer.Value) ([]wasmer.
 }
 
 //export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_misc_print_utf8_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	ctx := env.(*runtime.Context)
@@ -939,7 +939,7 @@ func ext_misc_print_utf8_version_1(env interface{}, args []wasmer.Value) ([]wasm
 }
 
 //export ext_misc_runtime_version_version_1
-func ext_misc_runtime_version_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_misc_runtime_version_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -962,20 +962,20 @@ func ext_misc_runtime_version_version_1(env interface{}, args []wasmer.Value) ([
 	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	out, err := toWasmMemoryOptional(instanceContext, encodedData)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(out)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(out)}, nil
 }
 
 //export ext_default_child_storage_read_version_1
-func ext_default_child_storage_read_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_read_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -992,7 +992,7 @@ func ext_default_child_storage_read_version_1(env interface{}, args []wasmer.Val
 	value, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child storage: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	valueBuf, valueLen := splitPointerSize(valueOut)
@@ -1005,14 +1005,14 @@ func ext_default_child_storage_read_version_1(env interface{}, args []wasmer.Val
 	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(sizeSpan)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(sizeSpan)}, nil
 }
 
 //export ext_default_child_storage_clear_version_1
-func ext_default_child_storage_clear_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_clear_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1031,7 +1031,7 @@ func ext_default_child_storage_clear_version_1(env interface{}, args []wasmer.Va
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
-func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1050,7 +1050,7 @@ func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wa
 }
 
 //export ext_default_child_storage_exists_version_1
-func ext_default_child_storage_exists_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_exists_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1064,16 +1064,16 @@ func ext_default_child_storage_exists_version_1(env interface{}, args []wasmer.V
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 	if child != nil {
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 //export ext_default_child_storage_get_version_1
-func ext_default_child_storage_get_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_get_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1087,20 +1087,20 @@ func ext_default_child_storage_get_version_1(env interface{}, args []wasmer.Valu
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	value, err := toWasmMemoryOptional(instanceContext, child)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(value)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(value)}, nil
 }
 
 //export ext_default_child_storage_next_key_version_1
-func ext_default_child_storage_next_key_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_next_key_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1120,20 +1120,20 @@ func ext_default_child_storage_next_key_version_1(env interface{}, args []wasmer
 	child, err := storage.GetChildNextKey(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child's next key: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	value, err := toWasmMemoryOptional(instanceContext, child)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(value)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(value)}, nil
 }
 
 //export ext_default_child_storage_root_version_1
-func ext_default_child_storage_root_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_root_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1144,26 +1144,26 @@ func ext_default_child_storage_root_version_1(env interface{}, args []wasmer.Val
 	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to retrieve child: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	root, err := toWasmMemoryOptional(instanceContext, childRoot[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(root)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(root)}, nil
 }
 
 //export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_set_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1189,7 +1189,7 @@ func ext_default_child_storage_set_version_1(env interface{}, args []wasmer.Valu
 }
 
 //export ext_default_child_storage_storage_kill_version_1
-func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1203,7 +1203,7 @@ func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wa
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_storage_kill_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1219,7 +1219,7 @@ func ext_default_child_storage_storage_kill_version_2(env interface{}, args []wa
 	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warnf("cannot generate limit: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 	}
 
 	_, all, err := storage.DeleteChildLimit(childStorageKey, limit)
@@ -1228,10 +1228,10 @@ func ext_default_child_storage_storage_kill_version_2(env interface{}, args []wa
 	}
 
 	if all {
-		return []wasmer.Value{wasmer.NewI32(1)}, nil
+		return []wasmergo.Value{wasmergo.NewI32(1)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(0)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(0)}, nil
 }
 
 type noneRemain uint32
@@ -1245,7 +1245,7 @@ func (someRemain) Index() uint       { return 1 }
 func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
 //export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 	storage := instanceContext.Storage
@@ -1264,7 +1264,7 @@ func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wa
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warnf("cannot get child storage: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
@@ -1279,26 +1279,26 @@ func ext_default_child_storage_storage_kill_version_3(env interface{}, args []wa
 	}
 	if err != nil {
 		logger.Warnf("cannot set varying data type: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	encoded, err := scale.Marshal(vdt)
 	if err != nil {
 		logger.Warnf("problem marshalling varying data type: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	out, err := toWasmMemoryOptional(instanceContext, encoded)
 	if err != nil {
 		logger.Warnf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(out)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(out)}, nil
 }
 
 //export ext_allocator_free_version_1
-func ext_allocator_free_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_allocator_free_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	runtimeCtx := env.(*runtime.Context)
 	addr, ok := args[0].Unwrap().(int32)
@@ -1315,7 +1315,7 @@ func ext_allocator_free_version_1(env interface{}, args []wasmer.Value) ([]wasme
 }
 
 //export ext_allocator_malloc_version_1
-func ext_allocator_malloc_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_allocator_malloc_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	size, ok := args[0].Unwrap().(int32)
 	if !ok {
 		logger.Criticalf("[ext_allocator_malloc_version_1]", "error", "addr cannot be converted to int32")
@@ -1334,14 +1334,14 @@ func ext_allocator_malloc_version_1(env interface{}, args []wasmer.Value) ([]was
 	castedRes, err := safeCastInt32(res)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedRes)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedRes)}, nil
 }
 
 //export ext_hashing_blake2_128_version_1
-func ext_hashing_blake2_128_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_blake2_128_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1350,7 +1350,7 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasmer.Value) ([]w
 	hash, err := common.Blake2b128(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	logger.Debugf(
@@ -1360,20 +1360,20 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasmer.Value) ([]w
 	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_blake2_256_version_1
-func ext_hashing_blake2_256_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_blake2_256_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1382,7 +1382,7 @@ func ext_hashing_blake2_256_version_1(env interface{}, args []wasmer.Value) ([]w
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1390,20 +1390,20 @@ func ext_hashing_blake2_256_version_1(env interface{}, args []wasmer.Value) ([]w
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_keccak_256_version_1
-func ext_hashing_keccak_256_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_keccak_256_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1412,7 +1412,7 @@ func ext_hashing_keccak_256_version_1(env interface{}, args []wasmer.Value) ([]w
 	hash, err := common.Keccak256(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1420,20 +1420,20 @@ func ext_hashing_keccak_256_version_1(env interface{}, args []wasmer.Value) ([]w
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_sha2_256_version_1
-func ext_hashing_sha2_256_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_sha2_256_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1445,20 +1445,20 @@ func ext_hashing_sha2_256_version_1(env interface{}, args []wasmer.Value) ([]was
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_twox_256_version_1
-func ext_hashing_twox_256_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_twox_256_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1467,7 +1467,7 @@ func ext_hashing_twox_256_version_1(env interface{}, args []wasmer.Value) ([]was
 	hash, err := common.Twox256(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1475,20 +1475,20 @@ func ext_hashing_twox_256_version_1(env interface{}, args []wasmer.Value) ([]was
 	out, err := toWasmMemorySized(instanceContext, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_twox_128_version_1
-func ext_hashing_twox_128_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_twox_128_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1497,7 +1497,7 @@ func ext_hashing_twox_128_version_1(env interface{}, args []wasmer.Value) ([]was
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	logger.Debugf(
@@ -1507,20 +1507,20 @@ func ext_hashing_twox_128_version_1(env interface{}, args []wasmer.Value) ([]was
 	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_hashing_twox_64_version_1
-func ext_hashing_twox_64_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_hashing_twox_64_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	dataSpan := args[0].I64()
@@ -1529,7 +1529,7 @@ func ext_hashing_twox_64_version_1(env interface{}, args []wasmer.Value) ([]wasm
 	hash, err := common.Twox64(data)
 	if err != nil {
 		logger.Errorf("failed hashing data: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	logger.Debugf(
@@ -1539,20 +1539,20 @@ func ext_hashing_twox_64_version_1(env interface{}, args []wasmer.Value) ([]wasm
 	out, err := toWasmMemorySized(instanceContext, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	castedOut, err := safeCastInt32(out)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedOut)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedOut)}, nil
 }
 
 //export ext_offchain_index_set_version_1
-func ext_offchain_index_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_index_set_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	keySpan := args[0].I64()
@@ -1571,7 +1571,7 @@ func ext_offchain_index_set_version_1(env interface{}, args []wasmer.Value) ([]w
 }
 
 //export ext_offchain_local_storage_clear_version_1
-func ext_offchain_local_storage_clear_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_local_storage_clear_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	kind := args[0].I32()
@@ -1598,18 +1598,18 @@ func ext_offchain_local_storage_clear_version_1(env interface{}, args []wasmer.V
 }
 
 //export ext_offchain_is_validator_version_1
-func ext_offchain_is_validator_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_is_validator_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 	if instanceContext.Validator {
-		return []wasmer.Value{wasmer.NewI32(int32(1))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(1))}, nil
 	}
-	return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+	return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 }
 
 //export ext_offchain_local_storage_compare_and_set_version_1
 func ext_offchain_local_storage_compare_and_set_version_1(env interface{},
-	args []wasmer.Value) ([]wasmer.Value, error) {
+	args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -1632,7 +1632,7 @@ func ext_offchain_local_storage_compare_and_set_version_1(env interface{},
 
 	if err != nil {
 		logger.Errorf("failed to get value from storage: %s", err)
-		return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 	}
 
 	oldVal := asMemorySlice(runtimeCtx, oldValue)
@@ -1643,15 +1643,15 @@ func ext_offchain_local_storage_compare_and_set_version_1(env interface{},
 		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 		if err != nil {
 			logger.Errorf("failed to set value in storage: %s", err)
-			return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+			return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 		}
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(1))}, nil
+	return []wasmergo.Value{wasmergo.NewI32(int32(1))}, nil
 }
 
 //export ext_offchain_local_storage_get_version_1
-func ext_offchain_local_storage_get_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_local_storage_get_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -1676,14 +1676,14 @@ func ext_offchain_local_storage_get_version_1(env interface{}, args []wasmer.Val
 	ptr, err := toWasmMemoryOptional(runtimeCtx, res)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ptr)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ptr)}, nil
 }
 
 //export ext_offchain_local_storage_set_version_1
-func ext_offchain_local_storage_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_local_storage_set_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	runtimeCtx := env.(*runtime.Context)
@@ -1711,31 +1711,31 @@ func ext_offchain_local_storage_set_version_1(env interface{}, args []wasmer.Val
 }
 
 //export ext_offchain_network_state_version_1
-func ext_offchain_network_state_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_network_state_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	runtimeCtx := env.(*runtime.Context)
 	if runtimeCtx.Network == nil {
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	nsEnc, err := scale.Marshal(runtimeCtx.Network.NetworkState())
 	if err != nil {
 		logger.Errorf("failed at encoding network state: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	// allocate memory for value and copy value to memory
 	ptr, err := toWasmMemorySized(runtimeCtx, nsEnc)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(int64(ptr))}, nil
+	return []wasmergo.Value{wasmergo.NewI64(int64(ptr))}, nil
 }
 
 //export ext_offchain_random_seed_version_1
-func ext_offchain_random_seed_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_random_seed_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 
@@ -1752,14 +1752,14 @@ func ext_offchain_random_seed_version_1(env interface{}, _ []wasmer.Value) ([]wa
 	castedPtr, err := safeCastInt32(ptr)
 	if err != nil {
 		logger.Errorf("failed to safely cast pointer: %s", err)
-		return []wasmer.Value{wasmer.NewI32(0)}, err
+		return []wasmergo.Value{wasmergo.NewI32(0)}, err
 	}
 
-	return []wasmer.Value{wasmer.NewI32(castedPtr)}, nil
+	return []wasmergo.Value{wasmergo.NewI32(castedPtr)}, nil
 }
 
 //export ext_offchain_submit_transaction_version_1
-func ext_offchain_submit_transaction_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_submit_transaction_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1786,15 +1786,15 @@ func ext_offchain_submit_transaction_version_1(env interface{}, args []wasmer.Va
 }
 
 //export ext_offchain_timestamp_version_1
-func ext_offchain_timestamp_version_1(_ interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_timestamp_version_1(_ interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	now := time.Now().Unix()
-	return []wasmer.Value{wasmer.NewI64(now)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(now)}, nil
 }
 
 //export ext_offchain_sleep_until_version_1
-func ext_offchain_sleep_until_version_1(_ interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_sleep_until_version_1(_ interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	deadline := args[0].I64()
 	dur := time.Until(time.UnixMilli(deadline))
@@ -1805,7 +1805,7 @@ func ext_offchain_sleep_until_version_1(_ interface{}, args []wasmer.Value) ([]w
 }
 
 //export ext_offchain_http_request_start_version_1
-func ext_offchain_http_request_start_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_http_request_start_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -1830,26 +1830,26 @@ func ext_offchain_http_request_start_version_1(env interface{}, args []wasmer.Va
 	// note: just check if an error occurs while setting the result data
 	if err != nil {
 		logger.Errorf("failed to set the result data: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	enc, err := scale.Marshal(result)
 	if err != nil {
 		logger.Errorf("failed to scale marshal the result: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	ptr, err := toWasmMemory(instanceContext, enc)
 	if err != nil {
 		logger.Errorf("failed to allocate result on memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ptr)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ptr)}, nil
 }
 
 //export ext_offchain_http_request_add_header_version_1
-func ext_offchain_http_request_add_header_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_offchain_http_request_add_header_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 	reqID := args[0].I32()
@@ -1873,26 +1873,26 @@ func ext_offchain_http_request_add_header_version_1(env interface{}, args []wasm
 	err = result.Set(resultMode, nil)
 	if err != nil {
 		logger.Errorf("failed to set the result data: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	enc, err := scale.Marshal(result)
 	if err != nil {
 		logger.Errorf("failed to scale marshal the result: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	ptr, err := toWasmMemory(instanceContext, enc)
 	if err != nil {
 		logger.Errorf("failed to allocate result on memory: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(ptr)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(ptr)}, nil
 }
 
 //export ext_storage_append_version_1
-func ext_storage_append_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_append_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	keySpan := args[0].I64()
@@ -1916,7 +1916,7 @@ func ext_storage_append_version_1(env interface{}, args []wasmer.Value) ([]wasme
 }
 
 //export ext_storage_changes_root_version_1
-func ext_storage_changes_root_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_changes_root_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	logger.Debug("returning None")
 
@@ -1926,14 +1926,14 @@ func ext_storage_changes_root_version_1(env interface{}, args []wasmer.Value) ([
 	rootSpan, err := toWasmMemoryOptionalNil(instanceContext)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(int64(0))}, nil
+		return []wasmergo.Value{wasmergo.NewI64(int64(0))}, nil
 	}
 
 	return rootSpan, nil
 }
 
 //export ext_storage_clear_version_1
-func ext_storage_clear_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_clear_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	keySpan := args[0].I64()
@@ -1948,7 +1948,7 @@ func ext_storage_clear_version_1(env interface{}, args []wasmer.Value) ([]wasmer
 }
 
 //export ext_storage_clear_prefix_version_1
-func ext_storage_clear_prefix_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_clear_prefix_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	prefixSpan := args[0].I64()
@@ -1963,7 +1963,7 @@ func ext_storage_clear_prefix_version_1(env interface{}, args []wasmer.Value) ([
 }
 
 //export ext_storage_clear_prefix_version_2
-func ext_storage_clear_prefix_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_clear_prefix_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -2007,11 +2007,11 @@ func ext_storage_clear_prefix_version_2(env interface{}, args []wasmer.Value) ([
 		return mustToWasmMemoryNil(instanceContext), nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(valueSpan)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(valueSpan)}, nil
 }
 
 //export ext_storage_exists_version_1
-func ext_storage_exists_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_exists_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 	instanceContext := env.(*runtime.Context)
 	keySpan := args[0].I64()
@@ -2022,14 +2022,14 @@ func ext_storage_exists_version_1(env interface{}, args []wasmer.Value) ([]wasme
 
 	value := storage.Get(key)
 	if value != nil {
-		return []wasmer.Value{wasmer.NewI32(int32(1))}, nil
+		return []wasmergo.Value{wasmergo.NewI32(int32(1))}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI32(int32(0))}, nil
+	return []wasmergo.Value{wasmergo.NewI32(int32(0))}, nil
 }
 
 //export ext_storage_get_version_1
-func ext_storage_get_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_get_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -2048,11 +2048,11 @@ func ext_storage_get_version_1(env interface{}, args []wasmer.Value) ([]wasmer.V
 		return mustToWasmMemoryOptionalNil(instanceContext), nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(valueSpan)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(valueSpan)}, nil
 }
 
 //export ext_storage_next_key_version_1
-func ext_storage_next_key_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_next_key_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -2069,14 +2069,14 @@ func ext_storage_next_key_version_1(env interface{}, args []wasmer.Value) ([]was
 	nextSpan, err := toWasmMemoryOptional(instanceContext, next)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(nextSpan)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(nextSpan)}, nil
 }
 
 //export ext_storage_read_version_1
-func ext_storage_read_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_read_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -2107,14 +2107,14 @@ func ext_storage_read_version_1(env interface{}, args []wasmer.Value) ([]wasmer.
 	sizeSpan, err := toWasmMemoryOptionalUint32(instanceContext, &size)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(sizeSpan)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(sizeSpan)}, nil
 }
 
 //export ext_storage_root_version_1
-func ext_storage_root_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_root_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -2123,7 +2123,7 @@ func ext_storage_root_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Val
 	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
 	logger.Debugf("root hash is: %s", root)
@@ -2131,14 +2131,14 @@ func ext_storage_root_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Val
 	rootSpan, err := toWasmMemory(instanceContext, root[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
-		return []wasmer.Value{wasmer.NewI64(0)}, nil
+		return []wasmergo.Value{wasmergo.NewI64(0)}, nil
 	}
 
-	return []wasmer.Value{wasmer.NewI64(rootSpan)}, nil
+	return []wasmergo.Value{wasmergo.NewI64(rootSpan)}, nil
 }
 
 //export ext_storage_root_version_2
-func ext_storage_root_version_2(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_root_version_2(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	// TODO: update to use state trie version 1 (#2418)
 	instanceContext := env.(*runtime.Context)
 	_ = args[0].I32() // version - unused
@@ -2146,7 +2146,7 @@ func ext_storage_root_version_2(env interface{}, args []wasmer.Value) ([]wasmer.
 }
 
 //export ext_storage_set_version_1
-func ext_storage_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_set_version_1(env interface{}, args []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Trace("executing...")
 
 	instanceContext := env.(*runtime.Context)
@@ -2169,7 +2169,7 @@ func ext_storage_set_version_1(env interface{}, args []wasmer.Value) ([]wasmer.V
 }
 
 //export ext_storage_start_transaction_version_1
-func ext_storage_start_transaction_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_start_transaction_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 	instanceContext.Storage.BeginStorageTransaction()
@@ -2177,7 +2177,7 @@ func ext_storage_start_transaction_version_1(env interface{}, _ []wasmer.Value) 
 }
 
 //export ext_storage_rollback_transaction_version_1
-func ext_storage_rollback_transaction_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_rollback_transaction_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 	instanceContext.Storage.RollbackStorageTransaction()
@@ -2185,7 +2185,7 @@ func ext_storage_rollback_transaction_version_1(env interface{}, _ []wasmer.Valu
 }
 
 //export ext_storage_commit_transaction_version_1
-func ext_storage_commit_transaction_version_1(env interface{}, _ []wasmer.Value) ([]wasmer.Value, error) {
+func ext_storage_commit_transaction_version_1(env interface{}, _ []wasmergo.Value) ([]wasmergo.Value, error) {
 	logger.Debug("executing...")
 	instanceContext := env.(*runtime.Context)
 	instanceContext.Storage.CommitStorageTransaction()
