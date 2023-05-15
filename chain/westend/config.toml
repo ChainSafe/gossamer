@@ -11,8 +11,8 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = ""
-digest = ""
+sync = "trace"
+digest = "trace"
 
 [init]
 genesis = "./chain/westend/genesis.json"
