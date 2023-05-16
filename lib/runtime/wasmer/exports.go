@@ -221,7 +221,12 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
+	err = in.ExecWithoutReturning(runtime.CoreExecuteBlock, bdEnc)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.

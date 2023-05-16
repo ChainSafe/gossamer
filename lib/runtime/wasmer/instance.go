@@ -18,8 +18,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/klauspost/compress/zstd"
 	"github.com/ChainSafe/gossamer/pkg/wasmergo"
+	"github.com/klauspost/compress/zstd"
 )
 
 // Name represents the name of the interpreter
@@ -172,7 +172,7 @@ func NewInstance(code []byte, cfg Config) (*Instance, error) {
 		}
 	}
 
-	runtimeCtx.Memory = Memory{memory}
+	runtimeCtx.Memory = &Memory{memory}
 
 	// set heap base for allocator, start allocating at heap base
 	heapBase, err := wasmInstance.Exports.Get("__heap_base")
@@ -245,6 +245,53 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 
 	return version, nil
+}
+
+// Exec calls the given function with the given data
+func (in *Instance) ExecWithoutReturning(function string, data []byte) (err error) {
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
+	if in.isClosed {
+		return ErrInstanceIsStopped
+	}
+
+	dataLength := uint32(len(data))
+	inputPtr, err := in.ctx.Allocator.Allocate(dataLength)
+	if err != nil {
+		return fmt.Errorf("allocating input memory: %w", err)
+	}
+
+	defer in.ctx.Allocator.Clear()
+
+	// Store the data into memory
+	memory := in.ctx.Memory.Data()
+	copy(memory[inputPtr:inputPtr+dataLength], data)
+
+	runtimeFunc, err := in.vm.Exports.GetFunction(function)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
+	}
+
+	castedInputPointer, err := safeCastInt32(inputPtr)
+	if err != nil {
+		panic(err)
+	}
+
+	castedDataLength, err := safeCastInt32(dataLength)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = runtimeFunc(castedInputPointer, castedDataLength)
+	if err != nil {
+		if errors.Is(err, errMemoryValueOutOfBounds) {
+			panic(fmt.Errorf("executing runtime function: %v", err))
+		}
+		return fmt.Errorf("running runtime function: %w", err)
+	}
+
+	return nil
 }
 
 // Exec calls the given function with the given data
