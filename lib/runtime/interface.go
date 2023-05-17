@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+// Instance for runtime methods
 type Instance interface {
 	Stop()
 	NodeStorage() NodeStorage
