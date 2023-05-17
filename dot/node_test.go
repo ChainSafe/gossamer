@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -25,16 +28,17 @@ import (
 )
 
 func TestInitNode(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config := westend_dev.DefaultConfig()
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 	tests := []struct {
 		name   string
-		config *Config
+		config *cfg.Config
 		err    error
 	}{
 		{
 			name:   "test config",
-			config: cfg,
+			config: config,
 		},
 	}
 	for _, tt := range tests {
@@ -42,7 +46,7 @@ func TestInitNode(t *testing.T) {
 			err := InitNode(tt.config)
 			assert.ErrorIs(t, err, tt.err)
 			// confirm InitNode has created database dir
-			registry := filepath.Join(tt.config.Global.BasePath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+			registry := filepath.Join(tt.config.BasePath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 			_, err = os.Stat(registry)
 			require.NoError(t, err)
 		})
@@ -125,14 +129,13 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 }
 
 func TestNodeInitialized(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
-
-	genFile := NewTestGenesisRawFile(t, cfg)
-
-	cfg.Init.Genesis = genFile
+	config := westend_dev.DefaultConfig()
+	genFile := NewTestGenesisRawFile(t, config)
+	config.ChainSpec = genFile
+	config.BasePath = t.TempDir()
 
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(cfg)
+	err := nodeInstance.initNode(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -147,7 +150,7 @@ func TestNodeInitialized(t *testing.T) {
 		},
 		{
 			name:     "working example",
-			basepath: cfg.Global.BasePath,
+			basepath: config.BasePath,
 			want:     true,
 		},
 	}
@@ -159,7 +162,7 @@ func TestNodeInitialized(t *testing.T) {
 	}
 }
 
-func initKeystore(t *testing.T, cfg *Config) (
+func initKeystore(t *testing.T, cfg *cfg.Config) (
 	globalKeyStore *keystore.GlobalKeystore, err error) {
 	ks := keystore.NewGlobalKeystore()
 
@@ -184,7 +187,7 @@ func initKeystore(t *testing.T, cfg *Config) (
 	require.NoError(t, err)
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Roles == common.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+	if cfg.Core.Role == common.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
 		return nil, ErrNoKeysProvided
 	}
 

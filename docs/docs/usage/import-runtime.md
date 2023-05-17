@@ -10,48 +10,46 @@ The main use-case of the Polkadot Host is to create a standalone chain that may 
 
 Once you have your runtime ready and compiled into a wasm binary, it is ready to be used with Gossamer.
 
-### 1. Create genesis spec file with custom runtime
+### 1. Create chain spec file with custom runtime
 
-You can use the `gossamer import-runtime` subcommand to create a genesis file containing your custom runtime. The rest of the file is based off the `gssmr` `genesis.json` file.
+You can use the `gossamer import-runtime` subcommand to create a chain-spec file containing your custom runtime. The rest of the file is based off the `gssmr` `chain-spec.json` file.
 
 ```
 make gossamer
-./bin/gossamer import-runtime <custom-runtime.wasm> > genesis-spec.json
+./bin/gossamer import-runtime <custom-runtime.wasm> > chain-spec.json
 ```
 
-This creates a genesis spec file `genesis-spec.json` with the contents of your given file as the `"system"` `"code"` field. 
+This creates a chain spec file `chain-spec.json` with the contents of your given file as the `"system"` `"code"` field. 
 
-By default, `genesis-spec.json` will contain the 9 built-in keys as authorities with some preset balance. You can edit the fields as you wish.
+By default, `chain-spec.json` will contain the 9 built-in keys as authorities with some preset balance. You can edit the fields as you wish.
 
 Note: the `import-runtime` subcommand does not validate that the runtime in the given file is valid. 
 
-### 2. Create raw genesis file from genesis spec
+### 2. Create raw chain-spec file from chain spec
 
 To create the raw genesis file used by the node, you can use the `gossamer build-spec` subcommand.
 
 ```
-./bin/gossamer build-spec --raw --genesis-spec genesis-spec.json > genesis.json
+./bin/gossamer build-spec --raw --chain chain-spec.json > chain-spec-raw.json
 or
-./bin/gossamer build-spec --raw --genesis-spec genesis-spec.json --output genesis.json
+./bin/gossamer build-spec --raw --chain chain-spec.json --output-path chain-spec-raw.json
 ```
 
-This creates a genesis file `genesis.json` that is usable by the node.
+This creates a chain-spec file `chain-spec.json` that is usable by the node.
 
-### 3. Initialise the node with the genesis file
+### 3. Initialise the node with the chain-spec file
 
-Next, you will need to write the state in `genesis.json` to the database by initialising the node.
+Next, you will need to write the state in `chain-spec.json` to the database by initialising the node.
 
 ```
-./bin/gossamer init --genesis genesis.json
+./bin/gossamer init --chain chain-spec.json
 ```
-
-The default basepath is `~/.gossamer/gssmr`. If you wish you change this,  you can specify the basepath with `--basepath <path>`.
 
 ### 4. Start the node
 
-The final step is to launch the node. This is the same as normal, providing a built-in authority key:
+The final step is to launch the node. This is the same as normal, providing a built-in authority key and the base-path:
 ```
-./bin/gossamer --key alice
+./bin/gossamer --key alice --base-path /tmp/gossamer
 ```
 
 You now have a chain running a custom runtime!

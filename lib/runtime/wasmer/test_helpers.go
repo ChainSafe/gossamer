@@ -52,7 +52,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 }
 
 func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level,
-	role common.Roles, targetRuntime string) Config {
+	role common.NetworkRole, targetRuntime string) Config {
 	t.Helper()
 
 	s := storage.NewTrieState(tt)

@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -84,14 +86,13 @@ func TestNewHeaderFromFile(t *testing.T) {
 func TestImportState_Integration(t *testing.T) {
 	basepath := os.TempDir()
 
-	cfg := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
+	config.BasePath = basepath
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
-
-	cfg.Global.BasePath = basepath
-	err := InitNode(cfg)
+	config.ChainSpec = genFile
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
@@ -101,11 +102,11 @@ func TestImportState_Integration(t *testing.T) {
 	err = ImportState(basepath, stateFP, headerFP, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
-	config := state.Config{
+	stateConfig := state.Config{
 		Path:     basepath,
 		LogLevel: log.Info,
 	}
-	srv := state.NewService(config)
+	srv := state.NewService(stateConfig)
 	srv.SetupBase()
 
 	lookupKey := []byte{98, 108, 111, 99, 107, 104, 100, 114, 88, 127, 109, 161, 191, 167, 26, 103, 95, 16, 223, 160,
@@ -120,13 +121,12 @@ func TestImportState(t *testing.T) {
 
 	basepath := t.TempDir()
 
-	cfg := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
+	config.BasePath = basepath
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
-
-	cfg.Global.BasePath = basepath
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(cfg)
+	err := nodeInstance.initNode(config)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
