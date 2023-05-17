@@ -17,6 +17,10 @@ type BitVec struct {
 }
 
 // NewBitVec returns a new BitVec with the given bits
+// This isn't a complete implementation of the bit vector
+// It is only used for ParachainHost runtime exports
+// TODO: Implement the full bit vector
+// https://github.com/ChainSafe/gossamer/issues/3248
 func NewBitVec(bits []bool) BitVec {
 	var size uint
 	if bits != nil {
