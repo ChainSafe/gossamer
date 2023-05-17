@@ -32,7 +32,6 @@ type Storage interface {
 	BeginStorageTransaction()
 	CommitStorageTransaction()
 	RollbackStorageTransaction()
-	LoadCode() []byte
 }
 
 // BasicNetwork interface for functions used by runtime network state function

@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
+
+	"github.com/klauspost/compress/zstd"
 )
 
-// test used for ensuring runtime exec calls can be made concurrently
+// test used for ensuring runtime exec calls can me made concurrently
 func TestConcurrentRuntimeCalls(t *testing.T) {
 	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
