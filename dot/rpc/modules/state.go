@@ -500,7 +500,6 @@ func (sm *StateModule) QueryStorage(
 
 // QueryStorageAt queries historical storage entries (by key) at the block hash given or
 // the best block if the given block hash is nil
-// TODO(ed): remove before merge into development after PR #3191 has been merged
 func (sm *StateModule) QueryStorageAt(
 	_ *http.Request, request *StateStorageQueryAtRequest, response *[]StorageChangeSetResponse) error {
 	atBlockHash := request.At
