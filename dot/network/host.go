@@ -136,13 +136,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse bootnodes: %w", err)
 	}
 
 	// format persistent peers
 	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse persistent peers: %w", err)
 	}
 
 	// We have tried to set maxInPeers and maxOutPeers such that number of peer
@@ -158,7 +158,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create connection manager: %w", err)
 	}
 
 	for _, pp := range pps {
@@ -170,12 +170,12 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}
 
 	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create peerstore: %w", err)
 	}
 
 	// set libp2p host options
