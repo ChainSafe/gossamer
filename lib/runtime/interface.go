@@ -12,7 +12,6 @@ import (
 )
 
 type Instance interface {
-	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
