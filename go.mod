@@ -12,7 +12,6 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
-	github.com/docker/docker v23.0.6+incompatible
 	github.com/ethereum/go-ethereum v1.11.6
 	github.com/fatih/color v1.15.0
 	github.com/go-playground/validator/v10 v10.13.0
