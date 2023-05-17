@@ -279,8 +279,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
 
-	logger.Info("instantiated runtime!!!")
-
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {
 		return fmt.Errorf("storing code substituted block hash: %w", err)
