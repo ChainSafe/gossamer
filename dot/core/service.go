@@ -64,7 +64,7 @@ type Config struct {
 	TransactionState TransactionState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          RuntimeInstance
+	Runtime          runtime.Instance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
@@ -278,8 +278,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
-
-	logger.Info("instantiated runtime!!!")
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {

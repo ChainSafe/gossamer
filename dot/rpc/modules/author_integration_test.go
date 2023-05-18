@@ -43,10 +43,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstance func(*testing.T, *storage.TrieState) Runtime
+type useRuntimeInstance func(*testing.T, *storage.TrieState) runtime.Instance
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
 	cfg := wasmer.Config{
@@ -63,7 +63,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
@@ -639,7 +639,7 @@ type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
-	runtime       Runtime
+	runtime       runtime.Instance
 	stateSrv      *state.Service
 	network       coreNetwork
 	storageState  coreStorageState

@@ -23,7 +23,7 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	utils.Logger.Patch(log.SetLevel(log.Info))
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)

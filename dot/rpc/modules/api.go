@@ -46,7 +46,7 @@ type BlockAPI interface {
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 // NetworkAPI interface for network state methods
@@ -54,7 +54,7 @@ type NetworkAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
-	NodeRoles() common.Roles
+	NodeRoles() common.NetworkRole
 	Stop() error
 	Start() error
 	StartingBlock() int64
