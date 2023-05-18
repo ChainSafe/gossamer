@@ -225,7 +225,7 @@ var (
 	uintTests = tests{
 		{
 			name: "uint(1)",
-			in:   int(1),
+			in:   1,
 			want: []byte{0x04},
 		},
 		{
@@ -1202,7 +1202,13 @@ func Test_encodeState_encodeBitVec(t *testing.T) {
 
 func Test_encodeState_encodeBitVecMaxLen(t *testing.T) {
 	t.Parallel()
-	bitvec := NewTestBitVec(maxLen+10, nil)
+
+	var bits []bool
+	for i := 0; i < maxLen+1; i++ {
+		bits = append(bits, true)
+	}
+
+	bitvec := NewBitVec(bits)
 	_, err := Marshal(bitvec)
 	require.Error(t, err, errBitVecTooLong)
 }

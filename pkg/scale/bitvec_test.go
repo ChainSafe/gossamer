@@ -10,13 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewTestBitVec(size uint, bits []bool) BitVec {
-	return BitVec{
-		size: size,
-		bits: bits,
-	}
-}
-
 func TestBitVec(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

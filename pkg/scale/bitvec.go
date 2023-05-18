@@ -12,8 +12,7 @@ const (
 
 // BitVec is the implementation of the bit vector
 type BitVec struct {
-	size uint   `scale:"1"`
-	bits []bool `scale:"2"`
+	bits []bool
 }
 
 // NewBitVec returns a new BitVec with the given bits
@@ -22,13 +21,7 @@ type BitVec struct {
 // TODO: Implement the full bit vector
 // https://github.com/ChainSafe/gossamer/issues/3248
 func NewBitVec(bits []bool) BitVec {
-	var size uint
-	if bits != nil {
-		size = uint(len(bits))
-	}
-
 	return BitVec{
-		size: size,
 		bits: bits,
 	}
 }
@@ -45,10 +38,13 @@ func (bv *BitVec) Bytes() []byte {
 
 // Size returns the number of bits in the BitVec
 func (bv *BitVec) Size() uint {
-	return bv.size
+	return uint(len(bv.bits))
 }
 
 // bitsToBytes converts a slice of bits to a slice of bytes
+// Uses lsb ordering
+// TODO: Implement msb ordering
+// https://github.com/ChainSafe/gossamer/issues/3248
 func bitsToBytes(bits []bool) []byte {
 	bitLength := len(bits)
 	numOfBytes := (bitLength + (byteSize - 1)) / byteSize

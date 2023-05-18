@@ -775,6 +775,10 @@ func (ds *decodeState) decodeBitVec(dstv reflect.Value) error {
 	}
 
 	bitvec := NewBitVec(bytesToBits(b, size))
+	if len(bitvec.bits) > int(size) {
+		return fmt.Errorf("bitvec length mismatch: expected %d, got %d", size, len(bitvec.bits))
+	}
+
 	dstv.Set(reflect.ValueOf(bitvec))
 	return nil
 }
