@@ -48,7 +48,7 @@ type AuthoritySet struct {
 	// Tree of pending standard changes across forks. Standard changes are
 	// enacted on finality and must be enacted (i.e. finalized) in-order across
 	// a given branch
-	pendingStandardChanges ForkTree
+	pendingStandardChanges ChangeTree
 	// Pending forced changes across different forks (at most one per fork).
 	// Forced changes are enacted on block depth (not finality), for this
 	// reason only one forced change should exist per fork. When trying to
