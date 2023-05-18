@@ -6,7 +6,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -43,34 +42,21 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 		delayKind:       delayKind,
 	}
 
-	ctrl := gomock.NewController(t)
-	mockForkTree1 := NewMockForkTree(ctrl)
-	mockForkTree1.EXPECT().Import(common.BytesToHash([]byte{1}), uint(1), pendingChange1, gomock.Any())
-
-	mockForkTree2 := NewMockForkTree(ctrl)
-	mockForkTree2.EXPECT().Import(common.BytesToHash([]byte{2}), uint(2), pendingChange2, gomock.Any())
-
-	authorities1 := AuthoritySet{
+	authorities := AuthoritySet{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: mockForkTree1,
+		pendingStandardChanges: ChangeTree{},
 		pendingForcedChanges:   []PendingChange{},
 		authoritySetChanges:    AuthoritySetChanges{},
 	}
 
-	authorities2 := AuthoritySet{
-		currentAuthorities:     currentAuthorities,
-		setId:                  0,
-		pendingStandardChanges: mockForkTree2,
-		pendingForcedChanges:   []PendingChange{},
-		authoritySetChanges:    AuthoritySetChanges{},
-	}
-
-	err = authorities1.addPendingChange(pendingChange1, staticIsDescendentOf(false))
+	err = authorities.addPendingChange(pendingChange1, staticIsDescendentOf(false))
 	require.NoError(t, err)
 
-	err = authorities2.addPendingChange(pendingChange2, staticIsDescendentOf(false))
+	err = authorities.addPendingChange(pendingChange2, staticIsDescendentOf(false))
 	require.NoError(t, err)
+
+	require.Equal(t, uint(2), authorities.pendingStandardChanges.count)
 
 	// TODO use ForkTree to assert test cases
 }

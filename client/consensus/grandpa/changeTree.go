@@ -13,8 +13,6 @@ import (
 	TODO give a summary of how this works in context of grandpa
 */
 
-// TODO I think would be a good idea to cache the number of roots and number of total changes since these values are used
-
 // Represents a node in the ChangeTree
 type pendingChangeNode struct {
 	change *PendingChange
@@ -62,7 +60,10 @@ func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change P
 // to be an acyclic directed graph where the change nodes are
 // placed by descendency order and number, you can ensure an
 // node ancestry using the `isDescendantOfFunc`
-type ChangeTree []*pendingChangeNode
+type ChangeTree struct {
+	tree  []*pendingChangeNode
+	count uint
+}
 
 // NewChangeTree create an empty ChangeTree
 func NewChangeTree() ChangeTree {
@@ -84,7 +85,7 @@ func NewChangeTree() ChangeTree {
 // return a wrong result.
 func (ct *ChangeTree) Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) error {
 	// I believe this is the equivalent of importChange, so in a nutshell this will call import node for each root
-	for _, root := range *ct {
+	for _, root := range ct.tree {
 		imported, err := root.importNode(hash, number, change, isDescendentOf)
 		if err != nil {
 			return err
@@ -96,6 +97,9 @@ func (ct *ChangeTree) Import(hash common.Hash, number uint, change PendingChange
 			return nil
 		}
 	}
+
+	// Should we return something else if not imported? For now increasing count here
+	ct.count++
 	return nil
 }
 
