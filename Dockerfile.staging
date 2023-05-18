@@ -19,6 +19,6 @@ RUN ["sh", "-c", "mv .github/workflows/staging/openmetrics.d/${chain}-conf.yaml 
 RUN go get ./...
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
-RUN ["sh", "-c", "gossamer init --chain=${chain} --base-path=${basepath}"]
-ENTRYPOINT ["sh", "-c", "service datadog-agent start && gossamer --chain=${chain} --base-path=${basepath} --prometheus-external --prometheus-port=9876 --pprof.enabled --pprof.listening-address=\":6060\""]
+RUN ["sh", "-c", "gossamer init --chain=${chain} --base-path=${basepath}/${chain}"]
+ENTRYPOINT ["sh", "-c", "service datadog-agent start && gossamer --chain=${chain} --base-path=${basepath}/${chain} --prometheus-external --prometheus-port=9876 --pprof.enabled --pprof.listening-address=\":6060\""]
 EXPOSE 7001 8546 8540 9876 6060
