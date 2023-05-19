@@ -6,7 +6,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -977,9 +976,6 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			continue
 		}
 		require.NoError(t, err)
-
-		fmt.Println(info.PartialFee.String())
-		fmt.Println(test.expect.PartialFee.String())
 
 		require.NoError(t, err)
 		require.NotNil(t, info)
