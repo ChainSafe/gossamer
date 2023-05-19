@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,6 +32,8 @@ import (
 var testKeyOwnershipProof types.OpaqueKeyOwnershipProof = types.OpaqueKeyOwnershipProof([]byte{64, 138, 252, 29, 127, 102, 189, 129, 207, 47, 157, 60, 17, 138, 194, 121, 139, 92, 176, 175, 224, 16, 185, 93, 175, 251, 224, 81, 209, 61, 0, 71}) //nolint:lll
 
 func Test_Instance_Version(t *testing.T) {
+	t.Parallel()
+
 	type instanceVersioner interface {
 		Version() (runtime.Version, error)
 	}
@@ -144,6 +147,8 @@ func Test_Instance_Version(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			instance := testCase.instanceBuilder(t)
 			version, err := instance.Version()
 			require.NoError(t, err)
@@ -227,6 +232,7 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
+
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
@@ -254,6 +260,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
+
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
@@ -275,10 +282,13 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 		{Key: authA, Weight: 1},
 		{Key: authB, Weight: 1},
 	}
+
 	require.Equal(t, expected, auths)
 }
 
 func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		targetRuntime string
@@ -295,7 +305,10 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt := trie.NewEmptyTrie()
+
 			randomnessValue, err := common.HexToHash("0x01")
 			require.NoError(t, err)
 			key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
@@ -325,6 +338,8 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 }
 
 func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		targetRuntime string
@@ -341,6 +356,8 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			tt := trie.NewEmptyTrie()
 			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
 			authorityID := types.AuthorityID{1}
@@ -412,6 +429,7 @@ func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T)
 		Randomness:         [32]byte{1},
 		SecondarySlots:     2,
 	}
+
 	require.Equal(t, expected, cfg)
 }
 
@@ -927,13 +945,15 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 		},
 		{
 			// incomplete extrinsic
-			ext:        "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
-			errMessage: "running runtime function: unreachable",
+			ext: "0x4ccde39a5684e7a56da23b22d4d9fbadb023baa19c56495432884d0640000000000000000000000000000000",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentApi_query_info` exported function.",
 		},
 		{
 			// incomplete extrinsic
-			extB:       nil,
-			errMessage: "running runtime function: unreachable",
+			extB: nil,
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentApi_query_info` exported function.",
 		},
 	}
 
@@ -956,6 +976,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 			continue
 		}
 		require.NoError(t, err)
+
 		require.NoError(t, err)
 		require.NotNil(t, info)
 		require.Equal(t, test.expect, info)
@@ -983,6 +1004,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
+	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1007,15 +1029,17 @@ func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
 			// polkadot.js/api returns error:  RPC-CORE: call(method: Text, data: Bytes, at?: BlockHash):
 			// Bytes:: -32000: Client error: Execution failed: Execution aborted due to trap: wasm trap: wasm
 			//`unreachable` instruction executed
-			callHex:    "0x040001084564",
-			errMessage: "running runtime function: unreachable",
+			callHex: "0x040001084564",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_info` exported function.",
 		},
 		{
 			// call without removing any bytes, polkadot.js/api v9.5.1: api.tx.system.remark("Ed test")
 			// polkadot.js/api returns error: Error: createType(Call):: findMetaCall: Unable to find Call with index
 			// [44, 4]/[44,4]
-			callHex:    "0x2c0400011c45642074657374",
-			errMessage: "running runtime function: unreachable",
+			callHex: "0x2c0400011c45642074657374",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_info` exported function.",
 		},
 	}
 
@@ -1040,6 +1064,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
+	t.Parallel()
 	ins := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	tests := []struct {
 		callHex    string
@@ -1070,15 +1095,17 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 			// when calling polkadot node (v0.9.29) with polkadot.js/api the node returns error:  RPC-CORE: call(
 			// method: Text, data: Bytes, at?: BlockHash): Bytes:: -32000: Client error: Execution failed:
 			// Execution aborted due to trap: wasm trap: wasm `unreachable` instruction executed
-			callHex:    "0x040001084564",
-			errMessage: "running runtime function: unreachable",
+			callHex: "0x040001084564",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_fee_details` exported function.",
 		},
 		{
 			// call without removing any bytes, polkadot.js/api v9.5.1: api.tx.system.remark("Ed test")
 			// when calling polkadot (v0.9.29) with polkadot.js/api the node returns error: Error: createType(
 			//Call):: findMetaCall: Unable to find Call with index [44, 4]/[44,4]
-			callHex:    "0x18040001084564",
-			errMessage: "running runtime function: unreachable",
+			callHex: "0x18040001084564",
+			errMessage: "running runtime function: " +
+				"Failed to call the `TransactionPaymentCallApi_query_call_fee_details` exported function.",
 		},
 	}
 
@@ -1100,6 +1127,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 }
 
 func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
+	t.Parallel()
 	instance := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
@@ -1112,6 +1140,7 @@ func TestInstance_GrandpaGenerateKeyOwnershipProof(t *testing.T) {
 }
 
 func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
+	t.Parallel()
 	identity := common.MustHexToBytes("0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")
 	identityPubKey, _ := ed25519.NewPublicKey(identity)
 	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
