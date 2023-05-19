@@ -44,9 +44,9 @@ make gossamer
 ./bin/gossamer import-state --chain <chain-name> --state state.json  --header header.json --first-slot <first-slot>
 ```
 
-If you don't want to use a specific chain, but instead a custom data directory, you can use `--basepath` instead of `--chain`.
+If you don't want to use a specific chain, but instead a custom data directory, you can use `--base-path` instead of `--chain`.
 
 If it is successful, you will see a `finished state import` log. Now, you can start the node as usual, and the node should begin from the imported state:
 ```
-./bin/gossamer --chain <chain-name>
+./bin/gossamer --chain <chain-name> --base-path ~/.gossamer/kusama
 ```

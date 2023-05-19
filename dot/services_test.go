@@ -6,6 +6,8 @@ package dot
 import (
 	"testing"
 
+	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -18,15 +20,16 @@ import (
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -53,15 +56,16 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
+	config := westend_dev.DefaultConfig()
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
+	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
 	type args struct {
