@@ -288,7 +288,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
 	cfg := &Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
+		Runtime: wasmer.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
 	}
 
 	s := NewTestService(t, cfg)
@@ -445,7 +445,9 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	rtExpected := rt.Version()
+	rtExpected, err := rt.Version()
+	require.NoError(t, err)
+
 	rtv, err := s.GetRuntimeVersion(nil)
 	require.NoError(t, err)
 	require.Equal(t, rtExpected, rtv)
@@ -505,7 +507,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	v := rt.Version()
+	v, err := rt.Version()
+	require.NoError(t, err)
+
 	currSpecVersion := v.SpecVersion     // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
@@ -539,7 +543,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	parentRt, err := s.blockState.GetRuntime(hash)
 	require.NoError(t, err)
 
-	v = parentRt.Version()
+	v, err = parentRt.Version()
+	require.NoError(t, err)
+
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	bhash1 := newBlock1.Header.Hash()
@@ -560,20 +566,23 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	rt, err = s.blockState.GetRuntime(bhash1)
 	require.NoError(t, err)
 
-	v = rt.Version()
+	v, err = rt.Version()
+	require.NoError(t, err)
 	require.Equal(t, v.SpecVersion, currSpecVersion)
 
 	rt, err = s.blockState.GetRuntime(rtUpdateBhash)
 	require.NoError(t, err)
 
-	v = rt.Version()
+	v, err = rt.Version()
+	require.NoError(t, err)
+
 	require.Equal(t, v.SpecVersion, updatedSpecVersion)
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
@@ -623,7 +632,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
@@ -648,7 +657,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		"expected different code hash after runtime update")
 }
 
-func buildTestBlockWithoutExtrinsics(t *testing.T, instance state.Runtime,
+func buildTestBlockWithoutExtrinsics(t *testing.T, instance runtime.Instance,
 	parentHeader *types.Header, slotNumber, timestamp uint64) *types.Block {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, slotNumber).ToPreRuntimeDigest()

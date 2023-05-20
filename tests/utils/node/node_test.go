@@ -18,7 +18,6 @@ func Test_Node_InitAndStartTest(t *testing.T) {
 	t.Cleanup(cancel)
 
 	tomlConfig := config.Default()
-	tomlConfig.Core.BABELead = true
 
 	n := New(t, tomlConfig)
 

@@ -12,13 +12,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
-// Config is the configuration used to create a
-// Wasmer runtime instance.
+// Config is the configuration used to create a Wasmer runtime instance.
 type Config struct {
 	Storage     Storage
 	Keystore    *keystore.GlobalKeystore
 	LogLvl      log.Level
-	Role        common.Roles
+	Role        common.NetworkRole
 	NodeStorage runtime.NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState

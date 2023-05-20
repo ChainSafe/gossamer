@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -82,11 +83,24 @@ type host struct {
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create multiaddress (without p2p identity)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
+	listenAddress := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port)
+	if cfg.ListenAddress != "" {
+		listenAddress = cfg.ListenAddress
+	}
+	addr, err := ma.NewMultiaddr(listenAddress)
 	if err != nil {
 		return nil, err
 	}
 
+	portString, err := addr.ValueForProtocol(ma.P_TCP)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := strconv.ParseUint(portString, 10, 64)
+	if err != nil {
+		return nil, err
+	}
 	var externalAddr ma.Multiaddr
 
 	switch {
@@ -96,13 +110,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			return nil, fmt.Errorf("invalid public ip: %s", cfg.PublicIP)
 		}
 		logger.Debugf("using config PublicIP: %s", ip)
-		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port))
 		if err != nil {
 			return nil, err
 		}
 	case strings.TrimSpace(cfg.PublicDNS) != "":
 		logger.Debugf("using config PublicDNS: %s", cfg.PublicDNS)
-		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/dns/%s/tcp/%d", cfg.PublicDNS, cfg.Port))
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/dns/%s/tcp/%d", cfg.PublicDNS, port))
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +126,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			logger.Errorf("failed to get public IP error: %v", err)
 		} else {
 			logger.Debugf("got public IP address %s", ip)
-			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port))
 			if err != nil {
 				return nil, err
 			}
@@ -122,13 +136,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse bootnodes: %w", err)
 	}
 
 	// format persistent peers
 	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse persistent peers: %w", err)
 	}
 
 	// We have tried to set maxInPeers and maxOutPeers such that number of peer
@@ -144,7 +158,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create connection manager: %w", err)
 	}
 
 	for _, pp := range pps {
@@ -156,12 +170,12 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}
 
 	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create peerstore: %w", err)
 	}
 
 	// set libp2p host options

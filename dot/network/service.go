@@ -87,6 +87,13 @@ var (
 		Name:      "outbound_total",
 		Help:      "total number of outbound streams",
 	})
+	processStartTimeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "substrate", // Note: this is using substrate namespace because that is what zombienet uses
+		//  to confirm nodes have started TODO: consider other ways to handle this, see issue #3205
+		Name: "process_start_time_seconds",
+		Help: "gossamer process start seconds unix timestamp, " +
+			"using substrate namespace so zombienet detects node start",
+	})
 )
 
 type (
@@ -178,7 +185,7 @@ func NewService(cfg *Config) (*Service, error) {
 	host, err := newHost(ctx, cfg)
 	if err != nil {
 		cancel()
-		return nil, err
+		return nil, fmt.Errorf("failed to create host: %w", err)
 	}
 
 	bufPool := &sync.Pool{
@@ -333,6 +340,7 @@ func (s *Service) Start() error {
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
 	if s.Metrics.Publish {
+		processStartTimeGauge.Set(float64(time.Now().Unix()))
 		go s.updateMetrics()
 	}
 
@@ -607,7 +615,7 @@ func (s *Service) Peers() []common.PeerInfo {
 		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
-			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			Role:       peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
 			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
@@ -627,7 +635,7 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 }
 
 // NodeRoles Returns the roles the node is running as.
-func (s *Service) NodeRoles() common.Roles {
+func (s *Service) NodeRoles() common.NetworkRole {
 	return s.cfg.Roles
 }
 

@@ -166,7 +166,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 	mockNetworkAPI3.EXPECT().NodeRoles().Return(common.AuthorityRole)
 
 	mockNetworkAPI4 := mocks.NewMockNetworkAPI(ctrl)
-	mockNetworkAPI4.EXPECT().NodeRoles().Return(common.Roles(21))
+	mockNetworkAPI4.EXPECT().NodeRoles().Return(common.NetworkRole(21))
 
 	type args struct {
 		r   *http.Request
@@ -209,7 +209,7 @@ func TestSystemModule_NodeRolesTest(t *testing.T) {
 			args: args{
 				req: &EmptyRequest{},
 			},
-			exp: []interface{}{"UnknownRole", []interface{}{common.Roles(21)}},
+			exp: []interface{}{"UnknownRole", []interface{}{common.NetworkRole(21)}},
 		},
 	}
 	for _, tt := range tests {

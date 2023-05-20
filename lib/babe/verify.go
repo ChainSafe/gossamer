@@ -4,6 +4,7 @@
 package babe
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var errEmptyKeyOwnershipProof = errors.New("key ownership proof is nil")
 
 // verifierInfo contains the information needed to verify blocks
 // it remains the same for an epoch
@@ -360,6 +363,8 @@ func (b *verifier) submitAndReportEquivocation(
 	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
+	} else if keyOwnershipProof == nil {
+		return errEmptyKeyOwnershipProof
 	}
 
 	equivocationProof := &types.BabeEquivocationProof{

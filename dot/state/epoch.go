@@ -63,7 +63,7 @@ type EpochState struct {
 
 	nextConfigDataLock sync.RWMutex
 	// nextConfigData follows the format map[epoch]map[block hash]next config data
-	nextConfigData nextEpochMap[types.NextConfigData]
+	nextConfigData nextEpochMap[types.NextConfigDataV1]
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
@@ -92,7 +92,7 @@ func NewEpochStateFromGenesis(db *chaindb.BadgerDB, blockState *BlockState,
 		db:             epochDB,
 		epochLength:    genesisConfig.EpochLength,
 		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
-		nextConfigData: make(nextEpochMap[types.NextConfigData]),
+		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
 	}
 
 	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
@@ -153,7 +153,7 @@ func NewEpochState(db *chaindb.BadgerDB, blockState *BlockState) (*EpochState, e
 		epochLength:    epochLength,
 		skipToEpoch:    skipToEpoch,
 		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
-		nextConfigData: make(nextEpochMap[types.NextConfigData]),
+		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
 	}, nil
 }
 
@@ -383,7 +383,7 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 	return info, nil
 }
 
-type nextEpochMap[T types.NextEpochData | types.NextConfigData] map[uint64]map[common.Hash]T
+type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
 
 func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
 	atEpoch, has := nem[epoch]
@@ -505,13 +505,13 @@ func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, next
 }
 
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
-func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigData) {
+func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigDataV1) {
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
 	_, has := s.nextConfigData[epoch]
 	if !has {
-		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigData)
+		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigDataV1)
 	}
 	s.nextConfigData[epoch][hash] = nextConfigData
 }
@@ -641,7 +641,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 // findFinalizedHeaderForEpoch given a specific epoch (the key) will go through the hashes looking
 // for a database persisted hash (belonging to the finalized chain)
 // which contains the right configuration or data to be persisted and safely used
-func findFinalizedHeaderForEpoch[T types.NextConfigData | types.NextEpochData](
+func findFinalizedHeaderForEpoch[T types.NextConfigDataV1 | types.NextEpochData](
 	nextEpochMap map[uint64]map[common.Hash]T, es *EpochState, epoch uint64) (next *T, err error) {
 	hashes, has := nextEpochMap[epoch]
 	if !has {

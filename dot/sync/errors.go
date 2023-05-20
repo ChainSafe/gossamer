@@ -34,4 +34,5 @@ var (
 	errFailedToGetParent            = errors.New("failed to get parent header")
 	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant        = errors.New("failed to find descendant block")
+	errBadBlock                     = errors.New("known bad block")
 )
