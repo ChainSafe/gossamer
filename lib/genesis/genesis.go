@@ -55,29 +55,23 @@ type Fields struct {
 
 // Runtime is the structure of the genesis runtime field.
 type Runtime struct {
-	System              *System              `json:"System,omitempty"`
-	Babe                *babe                `json:"babe,omitempty"`
-	Grandpa             *grandpa             `json:"grandpa,omitempty"`
-	Balances            *balances            `json:"Balances,omitempty"`
-	Sudo                *sudo                `json:"sudo,omitempty"`
-	Session             *session             `json:"session,omitempty"`
-	Staking             *staking             `json:"staking,omitempty"`
-	Instance1Collective *instance1Collective `json:"Instance1Collective,omitempty"`
-	Instance2Collective *instance2Collective `json:"Instance2Collective,omitempty"`
-	PhragmenElection    *phragmenElection    `json:"PhragmenElection,omitempty"`
-	Instance1Membership *instance1Membership `json:"Instance1Membership,omitempty"`
-	Contracts           *contracts           `json:"Contracts,omitempty"`
-	Society             *society             `json:"Society,omitempty"`
-	Indices             *indices             `json:"indices,omitempty"`
-	ImOnline            *imOnline            `json:"imOnline,omitempty"`
-	AuthorityDiscovery  *authorityDiscovery  `json:"authorityDiscovery,omitempty"`
-	Vesting             *vesting             `json:"vesting,omitempty"`
-	NominationPools     *nominationPools     `json:"nominationPools,omitempty"`
-	Configuration       *configuration       `json:"configuration,omitempty"`
-	Paras               *paras               `json:"paras,omitempty"`
-	Hrmp                *hrmp                `json:"hrmp,omitempty"`
-	Registrar           *registrar           `json:"registrar,omitempty"`
-	XcmPallet           *xcmPallet           `json:"xcmPallet,omitempty"`
+	System             *System             `json:"system,omitempty"`
+	Babe               *babe               `json:"babe,omitempty"`
+	Grandpa            *grandpa            `json:"grandpa,omitempty"` //
+	Balances           *balances           `json:"balances,omitempty"`
+	Sudo               *sudo               `json:"sudo,omitempty"`    //
+	Session            *session            `json:"session,omitempty"` //
+	Staking            *staking            `json:"staking,omitempty"` //
+	Indices            *indices            `json:"indices,omitempty"`
+	ImOnline           *imOnline           `json:"imOnline,omitempty"`           //
+	AuthorityDiscovery *authorityDiscovery `json:"authorityDiscovery,omitempty"` //
+	Vesting            *vesting            `json:"vesting,omitempty"`            //
+	NominationPools    *nominationPools    `json:"nominationPools,omitempty"`    //
+	Configuration      *configuration      `json:"configuration,omitempty"`      //
+	Paras              *paras              `json:"paras"`                        //
+	Hrmp               *hrmp               `json:"hrmp"`                         //
+	Registrar          *registrar          `json:"registrar,omitempty"`          //
+	XcmPallet          *xcmPallet          `json:"xcmPallet,omitempty"`          //
 }
 
 // System is the system structure inside the runtime field for the genesis.

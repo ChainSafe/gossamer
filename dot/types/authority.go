@@ -131,6 +131,7 @@ type AuthorityAsAddress struct {
 
 // UnmarshalJSON converts data to Go struct of type AuthorityAsAddress.
 func (a *AuthorityAsAddress) UnmarshalJSON(buf []byte) error {
+	//  It's encoded as an array [] instead of an object {}, which is why this need.
 	tmp := []interface{}{&a.Address, &a.Weight}
 	if err := json.Unmarshal(buf, &tmp); err != nil {
 		return err

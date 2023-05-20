@@ -23,14 +23,9 @@ import (
 type accountAddr [32]byte
 
 const (
-	societyConst             = "Society"
 	stakingConst             = "staking"
-	contractsConst           = "Contracts"
 	sessionConst             = "session"
-	instance1CollectiveConst = "Instance1Collective"
-	instance2CollectiveConst = "Instance2Collective"
 	instance1MembershipConst = "Instance1Membership"
-	phragmenElectionConst    = "PhragmenElection"
 	notForcing               = "NotForcing"
 	forceNew                 = "ForceNew"
 	forceNone                = "ForceNone"
@@ -141,21 +136,9 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 
 	var s interface{}
 	switch k {
-	case societyConst:
-		s = &society{}
 	case stakingConst:
 		s = &staking{}
-	case contractsConst:
-		c := &contracts{}
-		if err = json.Unmarshal(jsonBody, c); err != nil {
-			return false, err
-		}
 
-		err = generateContractKeyValue(c, k, res)
-		if err != nil {
-			return false, err
-		}
-		return true, nil
 	case sessionConst:
 		sc := &session{}
 		if err = json.Unmarshal(jsonBody, sc); err != nil {
@@ -167,14 +150,6 @@ func generatePalletKeyValue(k string, v interface{}, res map[string]string) (boo
 			return false, err
 		}
 		return true, nil
-	case instance1CollectiveConst:
-		s = &instance1Collective{}
-	case instance2CollectiveConst:
-		s = &instance2Collective{}
-	case instance1MembershipConst:
-		s = &instance1Membership{}
-	case phragmenElectionConst:
-		s = &phragmenElection{}
 	default:
 		return false, nil
 	}
@@ -218,7 +193,7 @@ func buildRawMap(m Runtime) (map[string]string, error) {
 			return nil, err
 		}
 
-		if reflect.DeepEqual([]string{"Balances", "Balances"}, kv.key) {
+		if reflect.DeepEqual([]string{"balances", "balances"}, kv.key) {
 			err = buildBalances(kv, res)
 			if err != nil {
 				return nil, err
@@ -246,7 +221,8 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 	mRefObjVal := reflect.Indirect(reflect.ValueOf(m))
 
 	for i := 0; i < mRefObjVal.NumField(); i++ {
-		k := mRefObjVal.Type().Field(i).Name
+		jsonTag := mRefObjVal.Type().Field(i).Tag.Get("json")
+		k := strings.Split(jsonTag, ",")[0]
 		kv.key = append(kv.key, k)
 		v := mRefObjVal.Field(i)
 
@@ -506,30 +482,6 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 	return encode, nil
 }
 
-func generateContractKeyValue(c *contracts, prefixKey string, res map[string]string) error {
-	var (
-		key string
-		err error
-	)
-
-	// First field of contract is the storage key
-	val := reflect.ValueOf(c)
-	if k := reflect.Indirect(val).Type().Field(0).Name; k == currentScheduleConst {
-		key, err = generateStorageKey(prefixKey, k)
-		if err != nil {
-			return err
-		}
-	}
-
-	encode, err := scale.Marshal(c)
-	if err != nil {
-		return err
-	}
-
-	res[key] = common.BytesToHex(encode)
-	return nil
-}
-
 func generateKeyValue(s interface{}, prefixKey string, res map[string]string) error {
 	val := reflect.ValueOf(s)
 	n := reflect.Indirect(val).NumField()
@@ -558,10 +510,10 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 
 func formatKey(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
-	case reflect.DeepEqual([]string{"System", "Code"}, kv.key):
+	case reflect.DeepEqual([]string{"system", "code"}, kv.key):
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
@@ -671,7 +623,7 @@ func generateAddressHash(accAddr, key string) ([]byte, error) {
 }
 func formatValue(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
@@ -681,9 +633,9 @@ func formatValue(kv *keyValue) (string, error) {
 			return fmt.Sprintf("0x01%x%v", lenEnc, kv.value), nil
 		}
 		return "", fmt.Errorf("error formatting value for grandpa authorities")
-	case reflect.DeepEqual([]string{"System", "Code"}, kv.key):
+	case reflect.DeepEqual([]string{"system", "code"}, kv.key):
 		return kv.value, nil
-	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
+	case reflect.DeepEqual([]string{"sudo", "key"}, kv.key):
 		return common.BytesToHex(crypto.PublicAddressToByteArray(common.Address(kv.value))), nil
 	default:
 		if kv.valueLen != nil {
