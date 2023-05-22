@@ -245,12 +245,6 @@ func TestService_Start(t *testing.T) {
 		allCalled.Done()
 	})
 
-	chainProcessor := NewMockChainProcessor(ctrl)
-	allCalled.Add(1)
-	chainProcessor.EXPECT().processReadyBlocks().DoAndReturn(func() {
-		allCalled.Done()
-	})
-
 	service := Service{
 		chainSync: chainSync,
 	}
@@ -266,9 +260,6 @@ func TestService_Stop(t *testing.T) {
 
 	chainSync := NewMockChainSync(ctrl)
 	chainSync.EXPECT().stop()
-	chainProcessor := NewMockChainProcessor(ctrl)
-	chainProcessor.EXPECT().stop()
-
 	service := &Service{
 		chainSync: chainSync,
 	}

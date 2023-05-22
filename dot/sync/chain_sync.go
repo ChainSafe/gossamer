@@ -217,16 +217,6 @@ func (cs *chainSync) syncState() chainSyncState {
 
 func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.Header) error {
 	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
-	// check if we already know of this block, if not,
-	// add to pendingBlocks set
-	has, err := cs.blockState.HasHeader(blockAnnounceHeaderHash)
-	if err != nil {
-		return err
-	}
-
-	if has {
-		return blocktree.ErrBlockExists
-	}
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not
@@ -238,6 +228,7 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 	if blockAnnounceHeader.Number <= bestBlockHeader.Number {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
+		// TODO: check what happens when get hash by number retuns nothing or ErrNotExists
 		ourHash, err := cs.blockState.GetHashByNumber(blockAnnounceHeader.Number)
 		if err != nil {
 			return fmt.Errorf("get block hash by number: %w", err)
@@ -284,8 +275,8 @@ func (cs *chainSync) setBlockAnnounce(who peer.ID, blockAnnounceHeader *types.He
 
 	hasPendingBlock := cs.pendingBlocks.hasBlock(blockAnnounceHeaderHash)
 	if hasPendingBlock {
-		return fmt.Errorf("block %s (#%d) already in the pending set",
-			blockAnnounceHeaderHash, blockAnnounceHeader.Number)
+		return fmt.Errorf("%w: block %s (#%d)",
+			errAlreadyInDisjointSet, blockAnnounceHeaderHash, blockAnnounceHeader.Number)
 	}
 
 	if err = cs.pendingBlocks.addHeader(blockAnnounceHeader); err != nil {
