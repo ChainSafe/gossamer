@@ -140,17 +140,18 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 		pending.canonHeight,
 	}
 
-	idx, err := SearchKey(key, authSet.pendingForcedChanges)
-	if err != nil {
-		return err
-	}
+	_ = SearchKey(key, authSet.pendingForcedChanges)
 
 	logger.Debugf(
 		"inserting potential forced set change at block number %d (delayed by %d blocks).",
 		pending.canonHeight, pending.delay,
 	)
 
-	authSet.pendingForcedChanges[idx] = pending
+	// TODO not sure if at index is way to go even though that is what substrate does
+	// For now will append
+	//authSet.pendingForcedChanges[idx] = pending
+
+	authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, pending)
 
 	logger.Debugf(
 		"there are now %d pending forced changes",
@@ -175,6 +176,21 @@ func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescende
 	}
 
 	// TODO substrate has a log here
+	return nil
+}
+
+// PendingChanges Inspect pending changes. Standard pending changes are iterated first,
+// and the changes in the tree are traversed in pre-order, afterwards all
+// forced changes are iterated.
+func (authSet *AuthoritySet) PendingChanges() []PendingChange {
+	// TODO do I need all standard changes or just the root ones? I think all
+	// This is preorder traversal, what does that mean in this context?
+
+	// get everything from standard change tree
+	authSet.pendingStandardChanges.GetPreOrder()
+
+	// then get everything from forced changes
+
 	return nil
 }
 

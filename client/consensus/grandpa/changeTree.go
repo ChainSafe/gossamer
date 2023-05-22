@@ -113,3 +113,39 @@ func (ct *ChangeTree) Import(hash common.Hash, number uint, change PendingChange
 func (ct *ChangeTree) Roots() []*pendingChangeNode {
 	return ct.tree
 }
+
+func (ct *ChangeTree) GetPreOrder() []PendingChange {
+	if len(ct.tree) == 0 {
+		return nil
+	}
+
+	var changes *[]PendingChange
+
+	// this is basically a preorder search with rotating roots
+	for i := 0; i < len(ct.tree); i++ {
+		getPreOrder(changes, ct.tree[i])
+	}
+
+	fmt.Println(changes)
+
+	return nil
+}
+
+func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
+	if changeNode == nil {
+		return
+	}
+
+	if changes != nil {
+		tempChanges := *changes
+		tempChanges = append(tempChanges, *changeNode.change)
+		changes = &tempChanges
+	} else {
+		change := []PendingChange{*changeNode.change}
+		changes = &change
+	}
+
+	for i := 0; i < len(changeNode.nodes); i++ {
+		getPreOrder(changes, changeNode.nodes[i])
+	}
+}

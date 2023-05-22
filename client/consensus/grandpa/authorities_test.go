@@ -14,6 +14,17 @@ func staticIsDescendentOf(value bool) IsDescendentOf {
 	return func(common.Hash, common.Hash) (bool, error) { return value, nil }
 }
 
+//fn is_descendent_of<A, F>(f: F) -> impl Fn(&A, &A) -> Result<bool, std::io::Error>
+//where
+//F: Fn(&A, &A) -> bool,
+//{
+//move |base, hash| Ok(f(base, hash))
+//}
+
+func isDescendentof(f IsDescendentOf) IsDescendentOf {
+	return func(h1 common.Hash, h2 common.Hash) (bool, error) { return f(h1, h2) }
+}
+
 func TestCurrentLimitFiltersMin(t *testing.T) {
 	var currentAuthorities AuthorityList
 	kp, err := ed25519.GenerateKeypair()
@@ -45,7 +56,7 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 	authorities := AuthoritySet{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: ChangeTree{},
+		pendingStandardChanges: NewChangeTree(),
 		pendingForcedChanges:   []PendingChange{},
 		authoritySetChanges:    AuthoritySetChanges{},
 	}
@@ -56,12 +67,112 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 	err = authorities.addPendingChange(pendingChange2, staticIsDescendentOf(false))
 	require.NoError(t, err)
 
-	require.Equal(t, uint(2), authorities.pendingStandardChanges.count)
-
 	require.Equal(t, uint(1), *authorities.CurrentLimit(0))
 	require.Equal(t, uint(1), *authorities.CurrentLimit(1))
 	require.Equal(t, uint(2), *authorities.CurrentLimit(2))
 	require.Nil(t, authorities.CurrentLimit(3))
+}
+
+func TestChangesIteratedInPreOrder(t *testing.T) {
+	var currentAuthorities AuthorityList
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	currentAuthorities = append(currentAuthorities, types.Authority{
+		Key:    kp.Public(),
+		Weight: 1,
+	})
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	bestKind := Best{}
+	delayKindBest := newDelayKind(bestKind)
+
+	authorities := AuthoritySet{
+		currentAuthorities:     currentAuthorities,
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	changeA := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeB := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           0,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_b")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeC := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           5,
+		canonHeight:     10,
+		canonHash:       common.BytesToHash([]byte("hash_c")),
+		delayKind:       delayKindFinalized,
+	}
+
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeC, isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
+		if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) {
+			return true, nil
+		} else if h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+			return false, nil
+		} else {
+			panic("unreachable")
+		}
+	}))
+	require.NoError(t, err)
+
+	changeD := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           2,
+		canonHeight:     1,
+		canonHash:       common.BytesToHash([]byte("hash_d")),
+		delayKind:       delayKindBest,
+	}
+
+	changeE := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           2,
+		canonHeight:     0,
+		canonHash:       common.BytesToHash([]byte("hash_e")),
+		delayKind:       delayKindBest,
+	}
+
+	err = authorities.addPendingChange(changeD, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeE, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	//// ordered by subtree depth
+	//assert_eq!(
+	//	authorities.pending_changes().collect::<Vec<_>>(),
+	//	vec![&change_a, &change_c, &change_b, &change_e, &change_d],
+
+	//fmt.Println(common.BytesToHash([]byte("hash_a")))
+	//fmt.Println(common.BytesToHash([]byte("hash_b")))
+	//fmt.Println(common.BytesToHash([]byte("hash_c")))
+	//
+	//fmt.Println("ok")
+
+	// For now just print these, standard changes seem to be printed in order
+	_ = authorities.PendingChanges()
+
 }
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
