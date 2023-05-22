@@ -177,7 +177,7 @@ unlock = "{{ .Account.Unlock }}"
 port = {{ .Network.Port }}
 
 # Comma separated node URLs for network discovery bootstrap
-bootnodes = "{{ StringsJoin .Network.Bootnodes ", " }}"
+bootnodes = "{{ StringsJoin .Network.Bootnodes "," }}"
 
 # Protocol ID to use
 protocol-id = "{{ .Network.ProtocolID }}"

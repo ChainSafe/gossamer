@@ -888,8 +888,6 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return err
 	}
 
-	logger.Info("instantiated runtime!!!")
-
 	bs.StoreRuntime(bHash, instance)
 
 	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
