@@ -169,7 +169,7 @@ func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescende
 		number, pending.delay,
 	)
 
-	err := authSet.pendingStandardChanges.Import(hash, number, pending, isDescendentOf)
+	_, err := authSet.pendingStandardChanges.Import(hash, number, pending, isDescendentOf)
 	if err != nil {
 		return err
 	}
@@ -184,8 +184,19 @@ func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescende
 //
 // Only standard changes are taken into account for the current
 // limit, since any existing forced change should preclude the voter from voting.
-func (authSet *AuthoritySet) CurrentLimit(_ uint) {
-	// TODO implement
+func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
+	roots := authSet.pendingStandardChanges.Roots()
+	for i := 0; i < len(roots); i++ {
+		effectiveNumber := roots[i].change.EffectiveNumber()
+		if effectiveNumber >= min {
+			if limit == nil {
+				limit = &effectiveNumber
+			} else if effectiveNumber < *limit {
+				*limit = effectiveNumber
+			}
+		}
+	}
+	return limit
 }
 
 // SharedAuthoritySet A shared authority set.

@@ -58,7 +58,10 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 
 	require.Equal(t, uint(2), authorities.pendingStandardChanges.count)
 
-	// TODO use ForkTree to assert test cases
+	require.Equal(t, uint(1), *authorities.CurrentLimit(0))
+	require.Equal(t, uint(1), *authorities.CurrentLimit(1))
+	require.Equal(t, uint(2), *authorities.CurrentLimit(2))
+	require.Nil(t, authorities.CurrentLimit(3))
 }
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {

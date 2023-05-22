@@ -20,6 +20,7 @@ type pendingChangeNode struct {
 }
 
 func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error) {
+
 	announcingHash := pcn.change.canonHash
 	if hash == announcingHash {
 		return false, fmt.Errorf("%w: %s", errors.New("duplicated hashes"), hash)
@@ -83,28 +84,32 @@ func NewChangeTree() ChangeTree {
 // then the `is_descendent_of` closure, when used after a warp-sync, may end up querying the
 // backend for a block (the one corresponding to the root) that is not present and thus will
 // return a wrong result.
-func (ct *ChangeTree) Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) error {
-	// I believe this is the equivalent of importChange, so in a nutshell this will call import node for each root
+func (ct *ChangeTree) Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error) {
 	for _, root := range ct.tree {
 		imported, err := root.importNode(hash, number, change, isDescendentOf)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		if imported {
 			logger.Debugf("changes on header %s (%d) imported successfully",
 				hash, number)
-			return nil
+			ct.count++
+			return false, nil
 		}
 	}
 
-	// Should we return something else if not imported? For now increasing count here
+	pendingChangeNode := &pendingChangeNode{
+		change: &change,
+	}
+
+	ct.tree = append(ct.tree, pendingChangeNode)
 	ct.count++
-	return nil
+	return true, nil
 }
 
 // Roots returns the roots of each fork in the ChangeTree
 // This is the equivalent of the slice in the outermost layer of the tree
-func (ct *ChangeTree) Roots() ChangeTree {
-	return *ct
+func (ct *ChangeTree) Roots() []*pendingChangeNode {
+	return ct.tree
 }
