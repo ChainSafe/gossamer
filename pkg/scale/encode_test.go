@@ -600,7 +600,7 @@ var (
 		{
 			name: "struct_{[]byte,_int32,_bool}",
 			in: struct {
-				Baz bool   `scale:"3,enum"`
+				Baz bool   `scale:"3"`
 				Bar int32  `scale:"2"`
 				Foo []byte `scale:"1"`
 			}{
