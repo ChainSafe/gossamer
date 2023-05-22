@@ -598,6 +598,15 @@ var (
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
+			name: "struct_{[]byte,_int32}_with_invalid_tag",
+			in: &struct {
+				Foo []byte `scale:"1,invalid"`
+			}{
+				Foo: []byte{0x01},
+			},
+			wantErr: true,
+		},
+		{
 			name: "struct_{[]byte,_int32,_bool}",
 			in: struct {
 				Baz bool   `scale:"3"`
@@ -1073,8 +1082,12 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
+
+			// we don't need this check for error cases
+			if !tt.wantErr {
+				if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+					t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
+				}
 			}
 		})
 	}
@@ -1182,8 +1195,12 @@ func Test_marshal_optionality(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
+
+			// if we expect an error, we do not need to check the result
+			if !tt.wantErr {
+				if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+					t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
+				}
 			}
 		})
 	}
@@ -1196,8 +1213,12 @@ func Test_marshal_optionality_nil_cases(t *testing.T) {
 		ptrTest := test{
 			name: t.name,
 			// in:      t.in,
-			wantErr: t.wantErr,
-			want:    t.want,
+
+			// these do not matter since we are testing nil cases
+			// and the want is being set to empty byte slice below
+			// marshal will not error out for nil cases since it never hits a type's marshal method
+			//wantErr: t.wantErr,
+			//want: t.want,
 		}
 		// create a new pointer to new zero value of t.in
 		temp := reflect.New(reflect.TypeOf(t.in))
