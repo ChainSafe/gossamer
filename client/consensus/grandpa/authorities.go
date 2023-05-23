@@ -19,11 +19,17 @@ type AuthorityList []types.Authority
 // This will be applied when the announcing block is at some depth within
 // the finalized or unfinalized chain.
 type PendingChange struct {
+	// The new authorities and weights to apply.
 	nextAuthorities AuthorityList
-	delay           uint
-	canonHeight     uint
-	canonHash       common.Hash
-	delayKind       DelayKind
+	// How deep in the chain the announcing block must be
+	// before the change is applied.
+	delay uint
+	// The announcing block's height.
+	canonHeight uint
+	// The announcing block's hash.
+	canonHash common.Hash
+	// The delay kind.
+	delayKind DelayKind
 }
 
 // EffectiveNumber Returns the effective number this change will be applied at.
@@ -140,18 +146,20 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 		pending.canonHeight,
 	}
 
-	_ = SearchKey(key, authSet.pendingForcedChanges)
+	// Search by effective key
+	idx := SearchKey(key, authSet.pendingForcedChanges)
 
 	logger.Debugf(
 		"inserting potential forced set change at block number %d (delayed by %d blocks).",
 		pending.canonHeight, pending.delay,
 	)
 
-	// TODO not sure if at index is way to go even though that is what substrate does
-	// For now will append
-	//authSet.pendingForcedChanges[idx] = pending
-
-	authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, pending)
+	// Insert change at index
+	p1 := authSet.pendingForcedChanges[:idx]
+	p2 := []PendingChange{pending}
+	p2 = append(p2, authSet.pendingForcedChanges[idx:]...)
+	p1 = append(p1, p2...)
+	authSet.pendingForcedChanges = p1
 
 	logger.Debugf(
 		"there are now %d pending forced changes",
@@ -187,11 +195,12 @@ func (authSet *AuthoritySet) PendingChanges() []PendingChange {
 	// This is preorder traversal, what does that mean in this context?
 
 	// get everything from standard change tree
-	authSet.pendingStandardChanges.GetPreOrder()
+	changes := authSet.pendingStandardChanges.GetPreOrder()
 
 	// then get everything from forced changes
+	changes = append(changes, authSet.pendingForcedChanges...)
 
-	return nil
+	return changes
 }
 
 // CurrentLimit Get the earliest limit-block number, if any. If there are pending changes across

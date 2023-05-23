@@ -119,16 +119,14 @@ func (ct *ChangeTree) GetPreOrder() []PendingChange {
 		return nil
 	}
 
-	var changes *[]PendingChange
+	changes := &[]PendingChange{}
 
 	// this is basically a preorder search with rotating roots
 	for i := 0; i < len(ct.tree); i++ {
 		getPreOrder(changes, ct.tree[i])
 	}
 
-	fmt.Println(changes)
-
-	return nil
+	return *changes
 }
 
 func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
@@ -139,7 +137,7 @@ func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
 	if changes != nil {
 		tempChanges := *changes
 		tempChanges = append(tempChanges, *changeNode.change)
-		changes = &tempChanges
+		*changes = tempChanges
 	} else {
 		change := []PendingChange{*changeNode.change}
 		changes = &change

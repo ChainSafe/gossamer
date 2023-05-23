@@ -170,8 +170,17 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	//
 	//fmt.Println("ok")
 
+	expectedChanges := []PendingChange{
+		changeA, changeC, changeB, changeE, changeD,
+	}
+
+	//expectedChanges := []PendingChange{
+	//	changeA, changeC, changeB,
+	//}
+
 	// For now just print these, standard changes seem to be printed in order
-	_ = authorities.PendingChanges()
+	pendingChanges := authorities.PendingChanges()
+	require.Equal(t, expectedChanges, pendingChanges)
 
 }
 

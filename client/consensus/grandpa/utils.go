@@ -11,7 +11,7 @@ func SearchKey(key Key, changes []PendingChange) int {
 			effectiveNumber:   change.EffectiveNumber(),
 			signalBlockNumber: change.canonHeight,
 		}
-		if key.Equals(changeKey) {
+		if key.Equals(changeKey) || key.effectiveNumber < changeKey.effectiveNumber {
 			return i
 		}
 	}
