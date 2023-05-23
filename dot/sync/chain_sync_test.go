@@ -6,9 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -440,4 +445,273 @@ func newChainSyncTest(t *testing.T, ctrl *gomock.Controller) *chainSync {
 	}
 
 	return newChainSync(cfg)
+}
+
+func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
+	bs BlockState, net Network, babeVerifier BabeVerifier,
+	storageState StorageState, blockImportHandler BlockImportHandler, telemetry Telemetry) *chainSync {
+	t.Helper()
+	mockedPeerID := []peer.ID{
+		peer.ID("some_peer_1"),
+		peer.ID("some_peer_2"),
+		peer.ID("some_peer_3"),
+	}
+
+	peerViewMap := map[peer.ID]*peerView{}
+	for _, p := range mockedPeerID {
+		peerViewMap[p] = &peerView{
+			who:    p,
+			hash:   common.Hash{1, 2, 3},
+			number: blocksAhead,
+		}
+	}
+
+	cfg := chainSyncConfig{
+		pendingBlocks:      newDisjointBlockSet(pendingBlocksLimit),
+		minPeers:           1,
+		maxPeers:           5,
+		slotDuration:       6 * time.Second,
+		bs:                 bs,
+		net:                net,
+		babeVerifier:       babeVerifier,
+		storageState:       storageState,
+		blockImportHandler: blockImportHandler,
+		telemetry:          telemetry,
+	}
+
+	chainSync := newChainSync(cfg)
+	chainSync.peerView = peerViewMap
+
+	return chainSync
+}
+
+func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, 0, types.NewDigest())
+	mockBlockState.EXPECT().BestBlockHeader().Return(mockedGenesisHeader, nil).Times(2)
+	mockBlockState.EXPECT().HasHeader(mockedGenesisHeader.Hash()).Return(true, nil)
+
+	mockNetwork := NewMockNetwork(ctrl)
+	startingBlock := variadic.MustNewUint32OrHash(1)
+	max := uint32(128)
+	workerPeerID := peer.ID("noot")
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockStorageState := NewMockStorageState(ctrl)
+	mockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockTelemetry := NewMockTelemetry(ctrl)
+
+	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 128)
+	// setup mocks for new synced blocks that doesn't exists in our local database
+	ensureBlockImportFlow(t, mockedGenesisHeader, blockResponse.BlockData, mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+
+	mockNetwork.EXPECT().DoBlockRequest(workerPeerID, &network.BlockRequestMessage{
+		RequestedData: bootstrapRequestData,
+		StartingBlock: *startingBlock,
+		Direction:     network.Ascending,
+		Max:           &max,
+	}).Return(blockResponse, nil)
+	mockNetwork.EXPECT().AllConnectedPeers().Return([]peer.ID{})
+
+	// setup a chain sync which holds in its peer view map
+	// 3 peers, each one announce block 129 as its best block number.
+	// We start this test with genesis block being our best block, so
+	// we're far behind by 128 blocks, we should execute a bootstrap
+	// sync request those blocks
+	const blocksAhead = 129
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
+		mockBlockState, mockNetwork, mockBabeVerifier,
+		mockStorageState, mockImportHandler, mockTelemetry)
+
+	target, err := cs.getTarget()
+	require.NoError(t, err)
+	require.Equal(t, uint(129), target)
+
+	// include a new worker in the worker pool set, this worker
+	// should be an available peer that will receive a block request
+	// the worker pool executes the workers management
+	cs.workerPool.fromBlockAnnounce(workerPeerID)
+
+	stopCh := make(chan struct{})
+	go cs.workerPool.listenForRequests(stopCh)
+
+	err = cs.executeBootstrapSync()
+	require.NoError(t, err)
+
+	close(stopCh)
+	<-cs.workerPool.doneCh
+}
+
+func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, 0, types.NewDigest())
+	mockBlockState.EXPECT().BestBlockHeader().Return(mockedGenesisHeader, nil)
+
+	mockNetwork := NewMockNetwork(ctrl)
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockStorageState := NewMockStorageState(ctrl)
+	mockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockTelemetry := NewMockTelemetry(ctrl)
+
+	// this test expects two workers responding each request with 128 blocks which means
+	// we should import 256 blocks in total
+	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 256)
+
+	// here we split the whole set in two parts each one will be the "response" for each peer
+	worker1Response := &network.BlockResponseMessage{
+		BlockData: blockResponse.BlockData[:128],
+	}
+	// the first peer will respond the from the block 1 to 128 so the ensureBlockImportFlow
+	// will setup the expectations starting from the genesis header until block 128
+	ensureBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+
+	worker2Response := &network.BlockResponseMessage{
+		BlockData: blockResponse.BlockData[128:],
+	}
+	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
+	// will setup the expectations starting from block 128, from previous worker, until block 256
+	parent := worker1Response.BlockData[127]
+	ensureBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+
+	// we use gomock.Any since I cannot guarantee which peer picks which request
+	// but the first call to DoBlockRequest will return the first set and the second
+	// call will return the second set
+	mockNetwork.EXPECT().DoBlockRequest(gomock.Any(), gomock.Any()).
+		Return(worker1Response, nil)
+	mockNetwork.EXPECT().DoBlockRequest(gomock.Any(), gomock.Any()).
+		Return(worker2Response, nil)
+
+	mockNetwork.EXPECT().AllConnectedPeers().Return([]peer.ID{})
+	// setup a chain sync which holds in its peer view map
+	// 3 peers, each one announce block 129 as its best block number.
+	// We start this test with genesis block being our best block, so
+	// we're far behind by 128 blocks, we should execute a bootstrap
+	// sync request those blocks
+	const blocksAhead = 257
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
+		mockBlockState, mockNetwork, mockBabeVerifier,
+		mockStorageState, mockImportHandler, mockTelemetry)
+
+	target, err := cs.getTarget()
+	require.NoError(t, err)
+	require.Equal(t, uint(blocksAhead), target)
+
+	// include a new worker in the worker pool set, this worker
+	// should be an available peer that will receive a block request
+	// the worker pool executes the workers management
+	cs.workerPool.fromBlockAnnounce(peer.ID("noot"))
+	cs.workerPool.fromBlockAnnounce(peer.ID("noot2"))
+
+	stopCh := make(chan struct{})
+	go cs.workerPool.listenForRequests(stopCh)
+
+	err = cs.executeBootstrapSync()
+	require.NoError(t, err)
+
+	close(stopCh)
+	<-cs.workerPool.doneCh
+}
+
+func createSuccesfullBlockResponse(t *testing.T, genesisHash common.Hash, startingAt, numBlocks int) *network.BlockResponseMessage {
+	response := new(network.BlockResponseMessage)
+	response.BlockData = make([]*types.BlockData, numBlocks)
+
+	emptyTrieState := storage.NewTrieState(nil)
+	tsRoot := emptyTrieState.MustRoot()
+
+	firstHeader := types.NewHeader(genesisHash, tsRoot, common.Hash{},
+		uint(startingAt), scale.VaryingDataTypeSlice{})
+	response.BlockData[0] = &types.BlockData{
+		Hash:          firstHeader.Hash(),
+		Header:        firstHeader,
+		Body:          types.NewBody([]types.Extrinsic{}),
+		Justification: nil,
+	}
+
+	parentHash := firstHeader.Hash()
+	for idx := 1; idx < numBlocks; idx++ {
+		blockNumber := idx + startingAt
+		header := types.NewHeader(parentHash, tsRoot, common.Hash{},
+			uint(blockNumber), scale.VaryingDataTypeSlice{})
+		response.BlockData[idx] = &types.BlockData{
+			Hash:          header.Hash(),
+			Header:        header,
+			Body:          types.NewBody([]types.Extrinsic{}),
+			Justification: nil,
+		}
+		parentHash = header.Hash()
+	}
+
+	return response
+}
+
+// ensureBlockImportFlow will setup the expectations for method calls that happens while chain sync imports a block
+func ensureBlockImportFlow(t *testing.T, parentHeader *types.Header, blocksReceived []*types.BlockData, mockBlockState *MockBlockState,
+	mockBabeVerifier *MockBabeVerifier, mockStorageState *MockStorageState,
+	mockImportHandler *MockBlockImportHandler, mockTelemetry *MockTelemetry) {
+	t.Helper()
+
+	mockBlockState.EXPECT().HasHeader(parentHeader.Hash()).Return(true, nil)
+
+	for idx, blockData := range blocksReceived {
+		mockBlockState.EXPECT().HasHeader(blockData.Header.Hash()).Return(false, nil)
+		mockBlockState.EXPECT().HasBlockBody(blockData.Header.Hash()).Return(false, nil)
+		mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
+
+		var previousHeader *types.Header
+		if idx == 0 {
+			previousHeader = parentHeader
+		} else {
+			previousHeader = blocksReceived[idx-1].Header
+		}
+
+		mockBlockState.EXPECT().GetHeader(blockData.Header.ParentHash).Return(previousHeader, nil)
+		mockStorageState.EXPECT().Lock()
+		mockStorageState.EXPECT().Unlock()
+
+		emptyTrieState := storage.NewTrieState(nil)
+		parentStateRoot := previousHeader.StateRoot
+		mockStorageState.EXPECT().TrieState(&parentStateRoot).
+			Return(emptyTrieState, nil)
+
+		ctrl := gomock.NewController(t)
+		mockRuntimeInstance := NewMockInstance(ctrl)
+		mockBlockState.EXPECT().GetRuntime(previousHeader.Hash()).
+			Return(mockRuntimeInstance, nil)
+
+		expectedBlock := &types.Block{
+			Header: *blockData.Header,
+			Body:   *blockData.Body,
+		}
+
+		mockRuntimeInstance.EXPECT().SetContextStorage(emptyTrieState)
+		mockRuntimeInstance.EXPECT().ExecuteBlock(expectedBlock).
+			Return(nil, nil)
+
+		mockImportHandler.EXPECT().HandleBlockImport(expectedBlock, emptyTrieState, false).
+			Return(nil)
+
+		blockHash := blockData.Header.Hash()
+		expectedTelemetryMessage := telemetry.NewBlockImport(
+			&blockHash,
+			blockData.Header.Number,
+			"NetworkInitialSync")
+		mockTelemetry.EXPECT().SendMessage(expectedTelemetryMessage)
+
+		mockBlockState.EXPECT().CompareAndSetBlockData(blockData).Return(nil)
+	}
 }

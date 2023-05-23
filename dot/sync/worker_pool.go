@@ -64,9 +64,12 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 
 func (s *syncWorkerPool) useConnectedPeers() {
 	connectedPeers := s.network.AllConnectedPeers()
+	if len(connectedPeers) < 1 {
+		return
+	}
+
 	s.l.Lock()
 	defer s.l.Unlock()
-
 	for _, connectedPeer := range connectedPeers {
 		s.newPeer(connectedPeer)
 	}
@@ -184,7 +187,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 		select {
 		case <-stopCh:
 			//wait for ongoing requests to be finished before returning
-			//s.wg.Wait()
+			s.wg.Wait()
 			return
 
 		case task := <-s.taskQueue:

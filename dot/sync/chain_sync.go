@@ -568,61 +568,54 @@ func (cs *chainSync) requestPendingBlocks() error {
 }
 
 func (cs *chainSync) executeBootstrapSync() error {
-	endBootstrapSync := false
-	for {
-		if endBootstrapSync {
-			return nil
-		}
+	cs.workerPool.useConnectedPeers()
 
-		cs.workerPool.useConnectedPeers()
-
-		bestBlockHeader, err := cs.blockState.BestBlockHeader()
-		if err != nil {
-			return fmt.Errorf("getting best block header while syncing: %w", err)
-		}
-		startRequestAt := bestBlockHeader.Number + 1
-
-		// we build the set of requests based on the amount of available peers
-		// in the worker pool, if we have more peers than `maxRequestAllowed`
-		// so we limit to `maxRequestAllowed` to avoid the error:
-		// cannot reserve outbound connection: resource limit exceeded
-		availableWorkers := cs.workerPool.totalWorkers()
-		if availableWorkers > maxRequestsAllowed {
-			availableWorkers = maxRequestsAllowed
-		}
-
-		// targetBlockNumber is the virtual target we will request, however
-		// we should bound it to the real target which is collected through
-		// block announces received from other peers
-		targetBlockNumber := startRequestAt + uint(availableWorkers)*128
-		realTarget, err := cs.getTarget()
-		if err != nil {
-			return fmt.Errorf("while getting target: %w", err)
-		}
-
-		if targetBlockNumber > realTarget {
-			// basically if our virtual target is beyond the real target
-			// that means we are few requests far from the tip, then we
-			// calculate the correct amount of missing requests and then
-			// change to tip sync which should take care of the rest
-			diff := targetBlockNumber - realTarget
-			numOfRequestsToDrop := (diff / 128) + 1
-			targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
-			endBootstrapSync = true
-		}
-
-		requests := ascedingBlockRequests(startRequestAt, targetBlockNumber, bootstrapRequestData)
-		expectedAmountOfBlocks := totalBlocksRequested(requests)
-
-		wg := sync.WaitGroup{}
-		resultsQueue := make(chan *syncTaskResult)
-
-		wg.Add(1)
-		go cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks, &wg)
-		cs.workerPool.submitRequests(requests, resultsQueue)
-
-		wg.Wait()
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		return fmt.Errorf("getting best block header while syncing: %w", err)
 	}
+	startRequestAt := bestBlockHeader.Number + 1
+
+	// we build the set of requests based on the amount of available peers
+	// in the worker pool, if we have more peers than `maxRequestAllowed`
+	// so we limit to `maxRequestAllowed` to avoid the error:
+	// cannot reserve outbound connection: resource limit exceeded
+	availableWorkers := cs.workerPool.totalWorkers()
+	if availableWorkers > maxRequestsAllowed {
+		availableWorkers = maxRequestsAllowed
+	}
+
+	// targetBlockNumber is the virtual target we will request, however
+	// we should bound it to the real target which is collected through
+	// block announces received from other peers
+	targetBlockNumber := startRequestAt + uint(availableWorkers)*128
+	realTarget, err := cs.getTarget()
+	if err != nil {
+		return fmt.Errorf("while getting target: %w", err)
+	}
+
+	if targetBlockNumber > realTarget {
+		// basically if our virtual target is beyond the real target
+		// that means we are few requests far from the tip, then we
+		// calculate the correct amount of missing requests and then
+		// change to tip sync which should take care of the rest
+		diff := targetBlockNumber - realTarget
+		numOfRequestsToDrop := (diff / 128) + 1
+		targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
+	}
+
+	requests := ascedingBlockRequests(startRequestAt, targetBlockNumber, bootstrapRequestData)
+	expectedAmountOfBlocks := totalBlocksRequested(requests)
+
+	wg := sync.WaitGroup{}
+	resultsQueue := make(chan *syncTaskResult)
+
+	wg.Add(1)
+	go cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks, &wg)
+	cs.workerPool.submitRequests(requests, resultsQueue)
+	wg.Wait()
+
+	return nil
 }
 
 func (cs *chainSync) maybeSwitchMode() error {
@@ -824,12 +817,12 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 			return err
 		}
 
-		bd.Header = block.header
-	}
+		if block.header == nil {
+			logger.Errorf("new ready block number (unknown) with hash %s", bd.Hash)
+			return nil
+		}
 
-	if bd.Header == nil {
-		logger.Errorf("new ready block number (unknown) with hash %s", bd.Hash)
-		return nil
+		bd.Header = block.header
 	}
 
 	err := cs.processBlockData(*bd)
@@ -847,8 +840,6 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (cs *chainSync) processBlockData(blockData types.BlockData) error { //nolint:revive
-	// logger.Debugf("processing block data with hash %s", blockData.Hash)
-
 	headerInState, err := cs.blockState.HasHeader(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has header: %w", err)
@@ -1022,8 +1013,6 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 		return err
 	}
 
-	//logger.Debugf("🔗 imported block number %d with hash %s", block.Header.Number, block.Header.Hash())
-
 	blockHash := block.Header.Hash()
 	cs.telemetry.SendMessage(telemetry.NewBlockImport(
 		&blockHash,
@@ -1048,55 +1037,45 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 
 	logger.Tracef("validating block response starting at block hash %s", resp.BlockData[0].Hash)
 
-	var (
-		prev, curr *types.Header
-		err        error
-	)
 	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
+	firstItem := resp.BlockData[0]
 
-	for i, bd := range resp.BlockData {
-		if err = cs.validateBlockData(req, bd, p); err != nil {
+	// check that we know the parent of the first block (or it's in the ready queue)
+	fmt.Printf("checking the header of: %s\n", firstItem.Header.ParentHash)
+	has, err := cs.blockState.HasHeader(firstItem.Header.ParentHash)
+	if err != nil {
+		return fmt.Errorf("while checking ancestry: %w", err)
+	}
+
+	if !has {
+		return errUnknownParent
+	}
+
+	previousBlockData := firstItem
+	for _, currBlockData := range resp.BlockData[1:] {
+		if err := cs.validateBlockData(req, currBlockData, p); err != nil {
 			return err
 		}
 
 		if headerRequested {
-			curr = bd.Header
-		} else {
+			previousHash := previousBlockData.Header.Hash()
+			if previousHash != currBlockData.Header.ParentHash ||
+				currBlockData.Header.Number != (previousBlockData.Header.Number+1) {
+				return errResponseIsNotChain
+			}
+		} else if currBlockData.Justification != nil {
 			// if this is a justification-only request, make sure we have the block for the justification
-			if err = cs.validateJustification(bd); err != nil {
+			has, _ := cs.blockState.HasHeader(currBlockData.Hash)
+			if !has {
 				cs.network.ReportPeer(peerset.ReputationChange{
 					Value:  peerset.BadJustificationValue,
 					Reason: peerset.BadJustificationReason,
 				}, p)
-				return err
+				return errUnknownBlockForJustification
 			}
-			continue
 		}
 
-		if curr == nil {
-			logger.Critical(">>>>>>>>>>>>>>>> CURR IS NIL!!")
-		}
-
-		// check that parent of first block in response is known (either in our db or in the ready queue)
-		if i == 0 {
-			prev = curr
-
-			// check that we know the parent of the first block (or it's in the ready queue)
-			has, _ := cs.blockState.HasHeader(curr.ParentHash)
-			if has {
-				continue
-			}
-
-			return errUnknownParent
-		}
-
-		// otherwise, check that this response forms a chain
-		// ie. curr's parent hash is hash of previous header, and curr's number is previous number + 1
-		if prev.Hash() != curr.ParentHash || curr.Number != prev.Number+1 {
-			return errResponseIsNotChain
-		}
-
-		prev = curr
+		previousBlockData = currBlockData
 	}
 
 	return nil
@@ -1125,25 +1104,6 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 
 	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
 		return fmt.Errorf("%w: hash=%s", errNilBodyInResponse, bd.Hash)
-	}
-
-	return nil
-}
-
-func (cs *chainSync) validateJustification(bd *types.BlockData) error {
-	if bd == nil {
-		return errNilBlockData
-	}
-
-	// this is ok, since the remote peer doesn't need to provide the info we request from them
-	// especially with justifications, it's common that they don't have them.
-	if bd.Justification == nil {
-		return nil
-	}
-
-	has, _ := cs.blockState.HasHeader(bd.Hash)
-	if !has {
-		return errUnknownBlockForJustification
 	}
 
 	return nil
