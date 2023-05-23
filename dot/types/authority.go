@@ -133,10 +133,8 @@ type AuthorityAsAddress struct {
 func (a *AuthorityAsAddress) UnmarshalJSON(buf []byte) error {
 	//  It's encoded as an array [] instead of an object {}, which is why this need.
 	tmp := []interface{}{&a.Address, &a.Weight}
-	if err := json.Unmarshal(buf, &tmp); err != nil {
-		return err
-	}
-	return nil
+	err := json.Unmarshal(buf, &tmp)
+	return err
 }
 
 func (a AuthorityAsAddress) MarshalJSON() ([]byte, error) {

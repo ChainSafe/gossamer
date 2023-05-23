@@ -23,15 +23,13 @@ import (
 type accountAddr [32]byte
 
 const (
-	stakingConst             = "staking"
-	sessionConst             = "session"
-	instance1MembershipConst = "Instance1Membership"
-	notForcing               = "NotForcing"
-	forceNew                 = "ForceNew"
-	forceNone                = "ForceNone"
-	forceAlways              = "ForceAlways"
-	currentScheduleConst     = "CurrentSchedule"
-	phantom                  = "Phantom"
+	stakingConst = "staking"
+	sessionConst = "session"
+	notForcing   = "NotForcing"
+	forceNew     = "ForceNew"
+	forceNone    = "ForceNone"
+	forceAlways  = "ForceAlways"
+	phantom      = "Phantom"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis file
@@ -396,7 +394,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 
 	idxField := reflect.Indirect(val).Field(idx)
 	switch t := idxField.Interface().(type) {
-	case int, int64, uint64, uint32, *scale.Uint128:
+	case int, int64, uint64, uint32, *uint32, *scale.Uint128:
 		encode, err = scale.Marshal(t)
 		if err != nil {
 			return nil, err
@@ -562,12 +560,20 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 				res[common.BytesToHex(append(prefix, suffix...))] = common.BytesToHex(validatorAccID)
 
 			case keyOwner:
+				keyOwnerAlias := map[string]string{
+					"Grandpa":            "gran",
+					"Babe":               "babe",
+					"ImOnline":           "imon",
+					"ParaValidator":      "para",
+					"ParaAssignment":     "asgn",
+					"AuthorityDiscovery": "audi",
+				}
+
 				var storagePrefixKey []byte
 				storagePrefixKey, err = common.Twox128Hash([]byte("KeyOwner"))
 				if err != nil {
 					return err
 				}
-
 				storagePrefixKey = append(moduleName, storagePrefixKey...)
 
 				refValOfT := reflect.ValueOf(t)
@@ -575,30 +581,14 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 					key := refValOfT.Type().Field(idxT).Name
 					v1 := refValOfT.Field(idxT).String()
 
-					var addressKey []byte
-					switch key {
-					case "Grandpa":
-						addressKey, err = generateAddressHash(v1, "gran")
-						if err != nil {
-							return err
-						}
-					case "Babe":
-						addressKey, err = generateAddressHash(v1, "babe")
-						if err != nil {
-							return err
-						}
-					case "ImOnline":
-						addressKey, err = generateAddressHash(v1, "imon")
-						if err != nil {
-							return err
-						}
-					case "AuthorityDiscovery":
-						addressKey, err = generateAddressHash(v1, "audi")
-						if err != nil {
-							return err
-						}
-					default:
+					k, ok := keyOwnerAlias[key]
+					if !ok {
 						return fmt.Errorf("invalid storage keys")
+					}
+
+					addressKey, err := generateAddressHash(v1, k)
+					if err != nil {
+						return err
 					}
 
 					res[common.BytesToHex(append(storagePrefixKey, addressKey...))] = common.BytesToHex(validatorAccID)
