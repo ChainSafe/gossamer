@@ -159,28 +159,71 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	err = authorities.addPendingChange(changeE, staticIsDescendentOf(false))
 	require.NoError(t, err)
 
-	//// ordered by subtree depth
-	//assert_eq!(
-	//	authorities.pending_changes().collect::<Vec<_>>(),
-	//	vec![&change_a, &change_c, &change_b, &change_e, &change_d],
-
-	//fmt.Println(common.BytesToHash([]byte("hash_a")))
-	//fmt.Println(common.BytesToHash([]byte("hash_b")))
-	//fmt.Println(common.BytesToHash([]byte("hash_c")))
-	//
-	//fmt.Println("ok")
-
 	expectedChanges := []PendingChange{
 		changeA, changeC, changeB, changeE, changeD,
 	}
-
-	//expectedChanges := []PendingChange{
-	//	changeA, changeC, changeB,
-	//}
-
-	// For now just print these, standard changes seem to be printed in order
 	pendingChanges := authorities.PendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
+}
+
+func TestApplyChange(t *testing.T) {
+	authorities := AuthoritySet{
+		currentAuthorities:     AuthorityList{},
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	var setA AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setA = append(setA, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	})
+
+	var setB AuthorityList
+	kpB, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setB = append(setB, types.Authority{
+		Key:    kpB.Public(),
+		Weight: 5,
+	})
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	changeA := PendingChange{
+		nextAuthorities: setA,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeB := PendingChange{
+		nextAuthorities: setB,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_b")),
+		delayKind:       delayKindFinalized,
+	}
+
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	expectedChanges := []PendingChange{
+		changeA, changeB,
+	}
+	pendingChanges := authorities.PendingChanges()
+	require.Equal(t, expectedChanges, pendingChanges)
+
+	// finalizing "hash_c" won't enact the change signaled at "hash_a" but it will prune out
+	// "hash_b"
 
 }
 

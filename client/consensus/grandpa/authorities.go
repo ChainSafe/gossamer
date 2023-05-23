@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -43,6 +44,21 @@ func (pc *PendingChange) EffectiveNumber() uint {
 type AuthoritySetChanges []struct {
 	setId       uint64
 	blockNumber uint
+}
+
+// Block where set changed
+type newSetBlockInfo struct {
+	newSetBlockNumber uint
+	newSetBlockHash   common.Hash
+}
+
+// Status of the set after changes were applied.
+type Status struct {
+	// Whether internal changes were made.
+	changed bool
+	// `Some` when underlying authority set has changed, containing the
+	// block where that set changed.
+	newSetBlock *newSetBlockInfo
 }
 
 // AuthoritySet A set of authorities.
@@ -83,6 +99,10 @@ func (authSet *AuthoritySet) InvalidAuthorityList(authorities AuthorityList) boo
 	}
 	return false
 }
+
+type predicate[T any] func(T) bool
+
+//type Predicate func(h1 common.Hash, h2 common.Hash) (bool, error)
 
 // IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
 type IsDescendentOf func(h1 common.Hash, h2 common.Hash) (bool, error)
@@ -222,6 +242,30 @@ func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
 		}
 	}
 	return limit
+}
+
+// ApplyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
+// method ensures that if there are multiple changes in the same branch,
+// finalizing this block won't finalize past multiple transitions (i.e.
+// transitions must be finalized in-order). The given function
+// `is_descendent_of` should return `true` if the second hash (target) is a
+// descendent of the first hash (base).
+//
+// When the set has changed, the return value will be `Ok(Some((H, N)))`
+// which is the canonical block where the set last changed (i.e. the given
+// hash and number).
+func (authSet *AuthoritySet) ApplyStandardChanges(
+	finalizedHash common.Hash,
+	finalizedNumber uint,
+	isDescendentOf IsDescendentOf,
+	initialSync bool,
+	telemetry *telemetry.Client) Status {
+	// TODO telemetry here is just a place holder, replace with real
+
+	status := Status{}
+	authSet.pendingStandardChanges.FinalizeWithDescendentIf()
+
+	return status
 }
 
 // SharedAuthoritySet A shared authority set.

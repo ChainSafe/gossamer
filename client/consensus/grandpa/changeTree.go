@@ -62,8 +62,9 @@ func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change P
 // placed by descendency order and number, you can ensure an
 // node ancestry using the `isDescendantOfFunc`
 type ChangeTree struct {
-	tree  []*pendingChangeNode
-	count uint
+	tree                []*pendingChangeNode
+	count               uint
+	bestFinalizedNumber *uint
 }
 
 // NewChangeTree create an empty ChangeTree
@@ -127,6 +128,49 @@ func (ct *ChangeTree) GetPreOrder() []PendingChange {
 	}
 
 	return *changes
+}
+
+// FinalizeWithDescendentIf Finalize a root in the tree by either finalizing the node itself or a
+// node's descendent that's not in the tree, guaranteeing that the node
+// being finalized isn't a descendent of (or equal to) any of the root's
+// children. The given `predicate` is checked on the prospective finalized
+// root and must pass for finalization to occur. The given function
+// `is_descendent_of` should return `true` if the second hash (target) is a
+// descendent of the first hash (base).
+func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) error {
+	if ct.bestFinalizedNumber != nil {
+		if number <= *ct.bestFinalizedNumber {
+			return fmt.Errorf("tried to import or finalize node that is an ancestor of a previously finalized node")
+		}
+	}
+
+	roots := ct.Roots()
+
+	// check if the given hash is equal or a descendent of any root, if we
+	// find a valid root that passes the predicate then we must ensure that
+	// we're not finalizing past any children node.
+	var position *uint
+	for i := 0; i < len(roots); i++ {
+		root := roots[i]
+		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
+		if err != nil {
+			return err
+		}
+		if predicate(root.change) && root.change.canonHash == *hash || isDesc {
+			for _, child := range root.nodes {
+				isDesc, err := isDescendentOf(child.change.canonHash, *hash)
+				if err != nil {
+					return err
+				}
+				if child.change.canonHeight <= number && child.change.canonHash == *hash || isDesc {
+					return fmt.Errorf("finalized descendent of Tree node without finalizing its ancestor(s) first")
+				}
+			}
+			uintI := uint(i)
+			position = &uintI
+			break
+		}
+	}
 }
 
 func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
