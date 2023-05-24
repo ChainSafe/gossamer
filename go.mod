@@ -196,4 +196,10 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
+<<<<<<< HEAD
 go 1.20
+=======
+replace github.com/tetratelabs/wazero => ../timwu20-wazero
+
+go 1.19
+>>>>>>> 3c2868e1 (remove wasmer specific interfaces, initial wazero impl)
