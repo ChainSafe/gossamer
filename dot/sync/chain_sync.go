@@ -678,11 +678,16 @@ func (cs *chainSync) getTarget() (uint, error) {
 // any error from a worker we should evaluate the error and re-insert the request
 // in the queue and wait for it to completes
 func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) {
-	defer wg.Done()
+	startTime := time.Now()
+	defer func() {
+		tookSeeconds := time.Since(startTime).Seconds()
+		bps := float64(totalBlocks) / tookSeeconds
+		logger.Debugf("⛓️ synced %d blocks, took: %.2f seconds, bps: %.2f blocks/second", totalBlocks, tookSeeconds, bps)
+		wg.Done()
+	}()
 
-	logger.Debugf("handling workers results, waiting for %d blocks", totalBlocks)
+	logger.Debugf("waiting for %d blocks", totalBlocks)
 	syncingChain := make([]*types.BlockData, totalBlocks)
-
 	// the total numbers of blocks is missing in the syncing chain
 	waitingBlocks := totalBlocks
 
@@ -711,8 +716,9 @@ loop:
 				logger.Errorf("task result: peer(%s) error: %s",
 					taskResult.who, taskResult.err)
 
-				// if we receive and empty message from the stream we don't need to shutdown the worker
-				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+				if errors.Is(taskResult.err, network.ErrFailedToReadEntireMessage) {
+					cs.workerPool.punishPeer(taskResult.who, false)
+				} else if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
 					cs.workerPool.punishPeer(taskResult.who, true)
 				}
 
