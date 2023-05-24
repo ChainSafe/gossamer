@@ -3,6 +3,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -217,6 +218,43 @@ func TestApplyChange(t *testing.T) {
 
 	// finalizing "hash_c" won't enact the change signaled at "hash_a" but it will prune out
 	// "hash_b"
+
+	status, err := authorities.ApplyStandardChanges(
+		common.BytesToHash([]byte("hash_c")),
+		11,
+		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
+			if h1 == common.BytesToHash([]byte("hash_c")) {
+				fmt.Println("wtf")
+				// Yeah we hit this, which make sense cuz our code but how do they not panic
+			}
+			if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) {
+				return true, nil
+			} else if h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+				return false, nil
+			} else {
+				// We hit this, why do they not??
+				panic("unreachable")
+			}
+		}),
+		false,
+		nil,
+	)
+
+	require.NoError(t, err)
+
+	require.True(t, status.changed)
+	// Ok this failing
+	require.Nil(t, status.newSetBlock)
+
+	// Okay this is also failing
+	//expectedChanges = []PendingChange{
+	//	changeA,
+	//}
+	//pendingChanges = authorities.PendingChanges()
+	//require.Equal(t, expectedChanges, pendingChanges)
+
+	// Okay this also fails
+	//require.True(t, len(authorities.authoritySetChanges) == 0)
 
 }
 

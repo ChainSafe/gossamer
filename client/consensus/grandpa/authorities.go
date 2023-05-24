@@ -269,11 +269,6 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	initialSync bool,
 	telemetry *telemetry.Client) (Status, error) {
 	// TODO telemetry here is just a place holder, replace with real
-	//predicate[T any] func(T) bool
-
-	//red := func(change PendingChange) predicate[PendingChange] {
-	//	return func(common.Hash, common.Hash) (bool, error) { return value, nil }
-	//}
 
 	status := Status{}
 	finalizeationResult, err := authSet.pendingStandardChanges.FinalizeWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, applyStandardChangesPredicate(finalizedNumber))
@@ -293,17 +288,18 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 		// we will keep all forced changes for any later blocks and that are a
 		// descendent of the finalized block (i.e. they are part of this branch).
 		for i := 0; i < len(pendingForcedChanges); i++ {
-			change := pendingForcedChanges[i]
-			isDesc, err := isDescendentOf(finalizedHash, change.canonHash)
+			forcedChange := pendingForcedChanges[i]
+			isDesc, err := isDescendentOf(finalizedHash, forcedChange.canonHash)
 			if err != nil {
 				return status, err
 			}
-			if change.EffectiveNumber() > finalizedNumber && isDesc {
-				authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, change)
+			if forcedChange.EffectiveNumber() > finalizedNumber && isDesc {
+				authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, forcedChange)
 			}
 		}
 
 		if finalizeationResult.value != nil {
+			fmt.Println("in finalizeationResult.value")
 			// TODO add grandpa log
 
 			// TODO add telemetry
