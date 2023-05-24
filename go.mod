@@ -197,3 +197,5 @@ require (
 )
 
 go 1.20
+
+replace github.com/tetratelabs/wazero => ../timwu20-wazero
