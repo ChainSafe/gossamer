@@ -172,17 +172,14 @@ func NewCoreStateVDT() (scale.VaryingDataType, error) {
 	return vdt, nil
 }
 
-// AvailabilityCores represents a slice of CoreState
-type AvailabilityCores scale.VaryingDataTypeSlice
-
 // NewAvailabilityCores returns a new AvailabilityCores
-func NewAvailabilityCores() (AvailabilityCores, error) {
+func NewAvailabilityCores() (scale.VaryingDataTypeSlice, error) {
 	vdt, err := NewCoreStateVDT()
 	if err != nil {
-		return AvailabilityCores{}, fmt.Errorf("create varying data type: %w", err)
+		return scale.VaryingDataTypeSlice{}, fmt.Errorf("create varying data type: %w", err)
 	}
 
-	return AvailabilityCores(scale.NewVaryingDataTypeSlice(vdt)), nil
+	return scale.NewVaryingDataTypeSlice(vdt), nil
 }
 
 // UpwardMessage A message from a parachain to its Relay Chain.
@@ -395,15 +392,12 @@ func NewCandidateEventVDT() (scale.VaryingDataType, error) {
 	return vdt, nil
 }
 
-// CandidateEvents is a vdt slice of CandidateEvent
-type CandidateEvents scale.VaryingDataTypeSlice
-
 // NewCandidateEvents returns a new CandidateEvents
-func NewCandidateEvents() (CandidateEvents, error) {
+func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
 	vdt, err := NewCandidateEventVDT()
 	if err != nil {
-		return CandidateEvents{}, fmt.Errorf("create varying data type: %w", err)
+		return scale.VaryingDataTypeSlice{}, fmt.Errorf("create varying data type: %w", err)
 	}
 
-	return CandidateEvents(scale.NewVaryingDataTypeSlice(vdt)), nil
+	return scale.NewVaryingDataTypeSlice(vdt), nil
 }

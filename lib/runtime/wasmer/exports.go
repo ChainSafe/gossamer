@@ -383,7 +383,7 @@ func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, 
 }
 
 // ParachainHostAvailabilityCores Returns the availability cores for the current state.
-func (in *Instance) ParachainHostAvailabilityCores() (*parachain.AvailabilityCores, error) {
+func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
 	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
@@ -462,17 +462,17 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var candidateReceipt parachain.CommittedCandidateReceipt
+	var candidateReceipt *parachain.CommittedCandidateReceipt
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	return &candidateReceipt, nil
+	return candidateReceipt, nil
 }
 
 // ParachainHostCandidateEvents Returns an array of candidate events that occurred within the latest state.
-func (in *Instance) ParachainHostCandidateEvents() (*parachain.CandidateEvents, error) {
+func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
 	ret, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)

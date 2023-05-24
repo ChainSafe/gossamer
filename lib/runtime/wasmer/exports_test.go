@@ -6,6 +6,8 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"math/big"
 	"os"
 	"testing"
@@ -1190,8 +1192,119 @@ func TestInstance_ParachainHostValidators(t *testing.T) {
 	require.Equal(t, expected, response)
 }
 
+// TODO: group_rotation_frequency is being overwritten by the runtime to 0
+// need to figure out why
+func TestInstance_ParachainHostValidatorGroups(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
+	response, err := rt.ParachainHostValidatorGroups()
+	require.NoError(t, err)
+
+	expected := &parachain.ValidatorGroups{
+		Validators: [][]types.ValidatorIndex{
+			{0, 1, 2, 3, 4, 5},
+			{6, 7, 8, 9, 10, 11},
+			{12, 13, 14, 15, 16},
+		},
+		GroupRotationInfo: parachain.GroupRotationInfo{
+			SessionStartBlock:      15946156,
+			GroupRotationFrequency: 10,
+			Now:                    15946391,
+		},
+	}
+
+	require.Equal(t, expected, response)
+}
+
+// TODO: group_rotation_frequency is being overwritten by the latest runtime to 0
+// the current runtime is blocked by https://github.com/ChainSafe/gossamer/issues/3268
+func TestInstance_ParachainHostAvailabilityCores(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, "/Users/k/chainsafe/gossamer/westend_runtime.compact.compressed.wasm", tt)
+
+	response, err := rt.ParachainHostAvailabilityCores()
+	require.NoError(t, err)
+
+	// TODO: assert response
+	fmt.Println(response)
+}
+
+func TestInstance_ParachainHostSessionIndexForChild(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
+	response, err := rt.ParachainHostSessionIndexForChild()
+	require.NoError(t, err)
+
+	expected := parachain.SessionIndex(27379)
+	require.Equal(t, expected, response)
+}
+
+// TODO: assert the response
+// currently it is nil
+func TestInstance_ParachainHostCandidatePendingAvailability(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, "/Users/k/chainsafe/gossamer/westend_runtime.compact.compressed.wasm", tt)
+
+	response, err := rt.ParachainHostCandidatePendingAvailability(parachain.ParaID(1000))
+	require.NoError(t, err)
+
+	fmt.Println(response)
+
+	//expected := []parachain.Availability{}
+	//require.Equal(t, expected, response)
+}
+
+// This test needs to be run with the latest westend runtime or we need to get the
+// data from an earlier block
+func TestInstance_ParachainHostCandidateEvents(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
+	response, err := rt.ParachainHostCandidateEvents()
+	require.NoError(t, err)
+
+	fmt.Println(response)
+}
+
+// TODO: assert the response
+// blocked by https://github.com/ChainSafe/gossamer/issues/3268 and
+// https://github.com/ChainSafe/gossamer/issues/3248
+func TestInstance_ParachainHostSessionInfo(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
+	response, err := rt.ParachainHostSessionInfo(parachain.SessionIndex(27379))
+	require.NoError(t, err)
+
+	// TODO: assert response
+	fmt.Println(response)
+}
+
+// TODO: implement this
+// unable to find the data onchain
+func TestInstance_ParachainHostDMQContents(t *testing.T) {}
+
+// TODO: implement this
+// unable to find the data onchain
+func TestInstance_ParachainHostInboundHrmpChannelsContents(t *testing.T) {}
+
 func getParachainHostTrie(t *testing.T) *trie.Trie {
-	// block hash: 0x03458e146407a2ad41a87b18298540cad7d48f931f4815ca1fbef281e5943ef5
+	// taken from https://polkadot.js.org/apps/#/chainstate
+	// at: 0x03458e146407a2ad41a87b18298540cad7d48f931f4815ca1fbef281e5943ef5
 	data := []struct {
 		name  string
 		key   string
@@ -1201,6 +1314,86 @@ func getParachainHostTrie(t *testing.T) *trie.Trie {
 			name:  "parasShared.activeValidatorKeys",
 			key:   "0xb341e3a63e58a188839b242d17f8c9f87a50c904b368210021127f9238883a6e",
 			value: "0x44a262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe7274c337d57035cd6b7718e92a0d8ea6ef710da8ab1215a057c40c4ef792155a68e61d138eebd2069f1a76b3570f9de6a4b196289b198e33e6f0b59cef8837c51194ef34321ca5d37a6e8953183406b76f8ebf6a4be5eefc3997d022ac6e0a050eac837e8ca589521a83e7d9a7b307d1c41a5d9b940422488236f99646d21f3841b61cb85f7cf7616f9ef8f95010a51a68a4eae8afcdff715cc6a8d43da4a32a12382f17dae6b13a8ce5a7cc805056d9b592d918c8593f077db28cb14cf08a760c0825ba7677597ec9453ab5dbaa9e68bf89dc36694cb6e74cbd5a9a74b167e547cee3f65d78a239d7d199b100295e7a2d852ae898a6b81fd867b3471f25be7237e2ac8f039eb02370a9577e49ffc6032e6b5bf5ff77783bdc676d1432d714fd53ce35fa64fe7a5a6fc456ed2830e64d5d1a5dba26e7a57ab458f8cedf1ec77016ae40e895f46c8bfb3df63c119047d7faf21c3fe3e7a91994a3f00da6fa80f848a0e038975cff34d01c62960828c23ec10a305fe9f5c3589c2ae40f51963e380a807fa54347a8957ff5ef6c28e2403c83947e5fad4aa805c914df0645a07aab5a4c8e878d7f558ce5086cc37ca0d5964bed54ddd6b15a6663a95fe42e36858936",
+		},
+		{
+			name:  "system.number", //block number
+			key:   "0x26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac",
+			value: "0x9652f300",
+		},
+		{
+			name:  "paraScheduler.validatorGroups",
+			key:   "0x94eadf0156a8ad5156507773d0471e4a16973e1142f5bd30d9464076794007db",
+			value: "0x0c1800000000010000000200000003000000040000000500000018060000000700000008000000090000000a0000000b000000140c0000000d0000000e0000000f00000010000000",
+		},
+		{
+			name:  "paraScheduler.sessionStartBlock",
+			key:   "0x94eadf0156a8ad5156507773d0471e4a9ce0310edffce7a01a96c2039f92dd10",
+			value: "0xac51f300",
+		},
+		{
+			name:  "configuration.activeConfig",
+			key:   "0x06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385",
+			value: "0x00005000005000000a00000000c8000000c800000a0000000a000000c80000006400000000000000000000000000500000c800000700e8764817020040010a0000000000000000c0220fca950300000000000000000000c0220fca9503000000000000000000e8030000009001000a0000000000000000900100008070000000000000000000000a000000050000000500000001000000010500000001c8000000060000005802000002000000280000000000000002000000010000000700c817a8040200400101020000000f000000",
+		},
+		{
+			name:  "paraScheduler.availabilityCores",
+			key:   "0x94eadf0156a8ad5156507773d0471e4ab8ebad86f546c7e0b135a4212aace339",
+			value: "0x0c010101010101",
+		},
+		{
+			name:  "paras.parachains",
+			key:   "0xcd710b30bd2eab0352ddcc26417aa1940b76934f4cc08dee01012d059e1b83ee",
+			value: "0x0ce8030000e9030000ea030000",
+		},
+		{
+			name:  "paraInclusion.pendingAvailability[paraId=1000]",
+			key:   "0x196e027349017067f9eb56e2c4d9ded5a2ee677da3917cc29ee3b29c9f94c865b6ff6f7d467b87a9e8030000",
+			value: "0x0000000058b29da15fc66c19ef0ad4e66e95c8e42718d2455001ec6876f4173489a705fbe8030000b5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e145081060831aa591a0575f87105ee7feed9a16f697fe2c82ce6759c12c145d429000c20251a2777204e645e33cc3c33bfe795163156f1a8efc379437c040ed8b7184e49dd520d856b61211a44f787be0fa889e056c53ed71c1cb57076c011a5f5a06763293d91329423a01e48b3367edfddbcc708f66fdbc083f646e6407d6d0a685403c3b68aa60144a3d436c639747333586d4f2ca7b434e2cf34880d510be840133df593a63398c0efa2e9cd097176df66954fe7c38634aa7fc8d55e4756210b9c6b084d94221f82a5674177741aa1d30667e25217b14629aa48bf7f9676d19a90c8211cafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b5145337440000004400f0019552f3009652f30002000000",
+		},
+		{
+			name:  "paraInclusion.pendingAvailabilityCommitments[paraId=1000]",
+			key:   "0x196e027349017067f9eb56e2c4d9ded50433e4ed72dccf0edcf58c3192f16e4bb6ff6f7d467b87a9e8030000",
+			value: "0x000000e902d91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e000000009552f300",
+		},
+		{
+			name:  "paraInclusion.pendingAvailability[paraId=1001]",
+			key:   "0x196e027349017067f9eb56e2c4d9ded5a2ee677da3917cc29ee3b29c9f94c865adc7217647a32b0be9030000",
+			value: "0x010000000571a387d344bef8a77d3a99895958644dee97345861f7747b1cb8186a14089ee9030000b5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e14508106083c2d011b32106cc9030d8d22770c632b611c613e4ed351c149ba59e7d61cd6d0055e865b40a8dcf60422987c985c6022231106e0a4556c0270ffcb99e656dd7be25c5eb2a93cbada931620b5bceebe187bf77aa6dde41a6cbb09f0cbbf291faa5a33ec5ebf7fa730c95c84650a68d432ed53fc77b6d8bff3ce50f19d48317c30aca695f1737408d7dd47052c3b3016128ed3d6ac5b3b46be0cc9537919b9f594fa704bc2e304492c6e835db7f2bfe17d5da9102834f5be31865468357055164895cd3b32bdb452067ab9b91421ace94cd58599e42f287eb47663289375824a5f02dbd44d6cb9847e46210a665f28147957290a6d3cf758aa31af9d3ba54c01e6744000000443f00009552f3009652f30000000000",
+		},
+		{
+			name:  "paraInclusion.pendingAvailability[paraId=1002]",
+			key:   "0x196e027349017067f9eb56e2c4d9ded5a2ee677da3917cc29ee3b29c9f94c865b2b032492225337bea030000",
+			value: "0x020000009b716202cd9fabb93b278a41d9344faecb1300241d255d1de0675a42ebff6b6eea030000b5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e14508106083004c606d630584c98d4165a9dfbf9f2a60890f303686b7e5fcb428773a88ad6f08db9fcb4c0e4c4883dee0f9281e1de995b0575ef784a9fda4d58c55cdcc326dc8c838bfbf21eaca646aa5eef8e34d5776310f51b2e1eb1d6b1d86f05739c208efde19b42cad56b4c1e50a381a480ea65aea7c0b0e9f254174bec6f36ebccb70a69233b495ea5a88376ca43e908bbf8b921398dc491d94d1f8ac6f4f4ca6f02d4d71b3b7a81d9a11d797928c060d8c992f908005c1f1460d3ad4fa284dae0b8d9a32fdfc8217ce1456dc87c592ae674614dfadbd1098a3a2889e9c2ada44dac40d6b0154b039a3c7dfead7371f3f1d406f3a7a52307e99588a5d1743cfc529964400000044c00f009552f3009652f30001000000",
+		},
+		{
+			name:  "parasShared.currentSessionIndex",
+			key:   "0xb341e3a63e58a188839b242d17f8c9f8b5cab3380174032968897a4c3ce57c0a",
+			value: "0xf36a0000",
+		},
+		{
+			name:  "system.events",
+			key:   "0x26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7",
+			value: "0x1400000000000000e249433d551702000000010000002c00e8030000b5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e145081060831aa591a0575f87105ee7feed9a16f697fe2c82ce6759c12c145d429000c20251a2777204e645e33cc3c33bfe795163156f1a8efc379437c040ed8b7184e49dd520d856b61211a44f787be0fa889e056c53ed71c1cb57076c011a5f5a06763293d91329423a01e48b3367edfddbcc708f66fdbc083f646e6407d6d0a685403c3b68aa60144a3d436c639747333586d4f2ca7b434e2cf34880d510be840133df593a63398c0efa2e9cd097176df66954fe7c38634aa7fc8d55e4756210b9c6b084d94221f82a5674177741aa1d30667e25217b14629aa48bf7f9676d19a90c8211cafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b514533734cd6976981877d40277ad627ec04b2fc4ba04f558d9e4b41d911a6f41610350e902d91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e00000000020000000000010000002c00e9030000b5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e14508106083c2d011b32106cc9030d8d22770c632b611c613e4ed351c149ba59e7d61cd6d0055e865b40a8dcf60422987c985c6022231106e0a4556c0270ffcb99e656dd7be25c5eb2a93cbada931620b5bceebe187bf77aa6dde41a6cbb09f0cbbf291faa5a33ec5ebf7fa730c95c84650a68d432ed53fc77b6d8bff3ce50f19d48317c30aca695f1737408d7dd47052c3b3016128ed3d6ac5b3b46be0cc9537919b9f594fa704bc2e304492c6e835db7f2bfe17d5da9102834f5be31865468357055164895cd3b32bdb452067ab9b91421ace94cd58599e42f287eb47663289375824a5f02dbd44d6cb9847e46210a665f28147957290a6d3cf758aa31af9d3ba54c01e67514f16481063738cae77af97e154a475018c89ac13ca21452572447ae3bea823e90259b97f6f68683641a4b1046440cedddbc2054805e95504e9813b7c352d68ce57ba9357001fb3b6742be5e417621c0fd5f742e9f1d142518605af00a244dc61ebd42d63e07666532e9e2ab468d56fccb902fa801513a4dddc19d9e4b1edaae85ef1d1758908066175726120f4635e080000000005617572610101ba71303b6313ffc193e07bd26aeed8754fd02e86d3fd314074dcb2393a2eae08d32f5ec38737493bbcb09abeb020eb7eadbef00102bd3802b0545d5bca7e6a8d01000000000000000000010000002c00ea030000b5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e14508106083004c606d630584c98d4165a9dfbf9f2a60890f303686b7e5fcb428773a88ad6f08db9fcb4c0e4c4883dee0f9281e1de995b0575ef784a9fda4d58c55cdcc326dc8c838bfbf21eaca646aa5eef8e34d5776310f51b2e1eb1d6b1d86f05739c208efde19b42cad56b4c1e50a381a480ea65aea7c0b0e9f254174bec6f36ebccb70a69233b495ea5a88376ca43e908bbf8b921398dc491d94d1f8ac6f4f4ca6f02d4d71b3b7a81d9a11d797928c060d8c992f908005c1f1460d3ad4fa284dae0b8d9a32fdfc8217ce1456dc87c592ae674614dfadbd1098a3a2889e9c2ada44dac40d6b0154b039a3c7dfead7371f3f1d406f3a7a52307e99588a5d1743cfc5299687f044d87495f20844ff334fe3ff1fb62568167d343d8f39dba5673d75452c06e9023c1bee939fc42a875b2921ecda1e413a5bad4b53bfa7aa314ba9aaf7f66d272cfe563500c93f096e27f359c7834c3b56180169d6055dc7d002bbee58e5b300004a6bf77091facd6381ad90cc2dc3ddab148eede30441cf6767ba2b3ce03b8401a52fdaa208066175726120f4635e080000000005617572610101960963f3ebff0b6b57bf99454febef94f04726a2c94abd401c5d3b568ec3cc384b10dd3dd7d96d456df0b8ed5cc6bacab809e163f85ec0b96529a9f3fa28f5870200000001000000000001000000000007559ff8970d26023b00020000",
+		},
+		{
+			name:  "system.eventCount",
+			key:   "0x26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850",
+			value: "0x05000000",
+		},
+		{
+			name:  "hrmp.hrmpIngressChannelsIndex[paraId=1000]",
+			key:   "0x6a0da05ca59913bc38a8630590f2627c1d3719f5b0b12c7105c073c507445948b6ff6f7d467b87a9e8030000",
+			value: "0x08d007000049080000",
+		},
+		{
+			name:  "hrmp.hrmpIngressChannelsIndex[paraId=1000]",
+			key:   "0x6a0da05ca59913bc38a8630590f2627c1d3719f5b0b12c7105c073c507445948b6ff6f7d467b87a9e8030000",
+			value: "0x08d007000049080000",
+		},
+		{
+			name:  "hrmp.hrmpIngressChannelsIndex[paraId=1000]",
+			key:   "0x6a0da05ca59913bc38a8630590f2627c1d3719f5b0b12c7105c073c507445948b6ff6f7d467b87a9e8030000",
+			value: "0x08d007000049080000",
 		},
 	}
 
