@@ -115,6 +115,7 @@ func (ct *ChangeTree) Roots() []*pendingChangeNode {
 	return ct.tree
 }
 
+// GetPreOrder does a preorder traversal of the ChangeTree to get all pending changes
 func (ct *ChangeTree) GetPreOrder() []PendingChange {
 	if len(ct.tree) == 0 {
 		return nil
@@ -128,6 +129,25 @@ func (ct *ChangeTree) GetPreOrder() []PendingChange {
 	}
 
 	return *changes
+}
+
+func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
+	if changeNode == nil {
+		return
+	}
+
+	if changes != nil {
+		tempChanges := *changes
+		tempChanges = append(tempChanges, *changeNode.change)
+		*changes = tempChanges
+	} else {
+		change := []PendingChange{*changeNode.change}
+		changes = &change
+	}
+
+	for i := 0; i < len(changeNode.nodes); i++ {
+		getPreOrder(changes, changeNode.nodes[i])
+	}
 }
 
 // FinalizeWithDescendentIf Finalize a root in the tree by either finalizing the node itself or a
@@ -171,23 +191,61 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 			break
 		}
 	}
+
+	// Get node data
+	// Removes an element from the vector and returns it.
+	//
+	// The removed element is replaced by the last element of the vector.
+	//
+	// This does not preserve ordering, but is *O*(1).
+	//
+	// Panics if `index` is out of bounds.
+	if position == nil {
+		panic("index not valid")
+	}
+	_ = ct.swapRemove(ct.Roots(), *position)
+	return nil
 }
 
-func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
-	if changeNode == nil {
-		return
+// Removes an element from the vector and returns it.
+//
+// The removed element is replaced by the last element of the vector.
+//
+// This does not preserve ordering, but is *O*(1).
+//
+// Panics if `index` is out of bounds.
+func (ct *ChangeTree) swapRemove(roots []*pendingChangeNode, index uint) pendingChangeNode {
+	if index >= uint(len(roots)) {
+		panic("swap_remove index out of bounds")
 	}
 
-	if changes != nil {
-		tempChanges := *changes
-		tempChanges = append(tempChanges, *changeNode.change)
-		*changes = tempChanges
+	val := pendingChangeNode{}
+	if roots[index] != nil {
+		val = *roots[index]
 	} else {
-		change := []PendingChange{*changeNode.change}
-		changes = &change
+		panic("nil pending change node")
 	}
 
-	for i := 0; i < len(changeNode.nodes); i++ {
-		getPreOrder(changes, changeNode.nodes[i])
+	lastElem := roots[len(roots)-1]
+	//*roots[index] = *lastElem
+
+	newRoots := roots[:len(roots)-1]
+	// THis should be the case where last elem was removed
+	if index == uint(len(newRoots)) {
+		ct.tree = newRoots
+		return val
 	}
+	newRoots[index] = lastElem
+	ct.tree = newRoots
+	//
+	//
+	//tempChanges := *changes
+	//tempChanges = append(tempChanges, *changeNode.change)
+	//*changes = tempChanges
+	//
+
+	//	ct.tree[index] = lastElem
+
+	//roots = roots[:len(roots)-1]
+	return val
 }

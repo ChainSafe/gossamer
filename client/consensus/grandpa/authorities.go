@@ -263,7 +263,7 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	// TODO telemetry here is just a place holder, replace with real
 
 	status := Status{}
-	authSet.pendingStandardChanges.FinalizeWithDescendentIf()
+	//authSet.pendingStandardChanges.FinalizeWithDescendentIf()
 
 	return status
 }
