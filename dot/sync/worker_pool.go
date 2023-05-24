@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package sync
 
 import (
@@ -191,6 +194,12 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 			return
 
 		case task := <-s.taskQueue:
+			// whenever a task arrives we try to find an available peer
+			// if the task is directed at some peer then we will wait for
+			// that peer to become available, same happens a normal task
+			// arrives and there is no available peer, then we should wait
+			// for someone to become free and then use it.
+
 			s.l.Lock()
 			for {
 				var peerID peer.ID
@@ -223,6 +232,7 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 		s.l.Lock()
 		s.workers[who] = &peerSyncWorker{status: available}
 		s.l.Unlock()
+
 		s.availableCond.Signal()
 		s.wg.Done()
 	}()
