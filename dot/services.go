@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	parachaininteraction "github.com/ChainSafe/gossamer/parachain-interaction"
 )
 
 // BlockProducer to produce blocks
@@ -428,6 +429,10 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeySt
 	}
 
 	return grandpa.NewService(gsCfg)
+}
+
+func (nodeBuilder) createParachainHostService(net *network.Service) *parachaininteraction.Service {
+	return parachaininteraction.NewService(net)
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
