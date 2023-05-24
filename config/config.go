@@ -85,6 +85,7 @@ type Config struct {
 	Account    *AccountConfig `mapstructure:"account"`
 	Core       *CoreConfig    `mapstructure:"core"`
 	Network    *NetworkConfig `mapstructure:"network"`
+	Sync       *SyncConfig    `mapstructure:"sync"`
 	State      *StateConfig   `mapstructure:"state"`
 	RPC        *RPCConfig     `mapstructure:"rpc"`
 	Pprof      *PprofConfig   `mapstructure:"pprof"`
@@ -110,6 +111,9 @@ func (cfg *Config) ValidateBasic() error {
 		return fmt.Errorf("core config: %w", err)
 	}
 	if err := cfg.Network.ValidateBasic(); err != nil {
+		return fmt.Errorf("network config: %w", err)
+	}
+	if err := cfg.Sync.ValidateBasic(); err != nil {
 		return fmt.Errorf("network config: %w", err)
 	}
 	if err := cfg.State.ValidateBasic(); err != nil {
@@ -180,6 +184,11 @@ type NetworkConfig struct {
 	PublicDNS         string        `mapstructure:"public-dns"`
 	NodeKey           string        `mapstructure:"node-key"`
 	ListenAddress     string        `mapstructure:"listen-addr"`
+}
+
+type SyncConfig struct {
+	MinPeers int `mapstructure:"min-peers"`
+	MaxPeers int `mapstructure:"max-peers"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -270,6 +279,10 @@ func (n *NetworkConfig) ValidateBasic() error {
 		return fmt.Errorf("discovery-interval cannot be empty")
 	}
 
+	return nil
+}
+
+func (s *SyncConfig) ValidateBasic() error {
 	return nil
 }
 
@@ -380,6 +393,10 @@ func DefaultConfig() *Config {
 			NodeKey:           "",
 			ListenAddress:     "",
 		},
+		Sync: &SyncConfig{
+			MinPeers: DefaultMinPeers,
+			MaxPeers: DefaultMaxPeers,
+		},
 		State: &StateConfig{
 			Rewind: 0,
 		},
@@ -461,6 +478,10 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			NodeKey:           "",
 			ListenAddress:     "",
 		},
+		Sync: &SyncConfig{
+			MinPeers: DefaultMinPeers,
+			MaxPeers: DefaultMaxPeers,
+		},
 		State: &StateConfig{
 			Rewind: 0,
 		},
@@ -541,6 +562,10 @@ func Copy(c *Config) Config {
 			PublicDNS:         c.Network.PublicDNS,
 			NodeKey:           c.Network.NodeKey,
 			ListenAddress:     c.Network.ListenAddress,
+		},
+		Sync: &SyncConfig{
+			MinPeers: c.Sync.MinPeers,
+			MaxPeers: c.Sync.MaxPeers,
 		},
 		State: &StateConfig{
 			Rewind: c.State.Rewind,

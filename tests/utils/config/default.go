@@ -53,6 +53,10 @@ func Default() cfg.Config {
 			MaxPeers:          3,
 			DiscoveryInterval: time.Second * 1,
 		},
+		Sync: &cfg.SyncConfig{
+			MinPeers: 1,
+			MaxPeers: 3,
+		},
 		RPC: &cfg.RPCConfig{
 			UnsafeRPC:         true,
 			UnsafeRPCExternal: true,

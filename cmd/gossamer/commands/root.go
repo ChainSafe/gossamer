@@ -424,6 +424,22 @@ func addNetworkFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --listen-addr flag: %s", err)
 	}
 
+	if err := addIntFlagBindViper(cmd,
+		"min-peers",
+		config.Sync.MinPeers,
+		"Minimum number of peers to connect to",
+		"sync.min-peers"); err != nil {
+		return fmt.Errorf("failed to add --min-peers flag: %s", err)
+	}
+
+	if err := addIntFlagBindViper(cmd,
+		"max-peers",
+		config.Sync.MaxPeers,
+		"Maximum number of peers to connect to",
+		"sync.max-peers"); err != nil {
+		return fmt.Errorf("failed to add --max-peers flag: %s", err)
+	}
+
 	return nil
 }
 
