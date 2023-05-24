@@ -14,13 +14,6 @@ func staticIsDescendentOf(value bool) IsDescendentOf {
 	return func(common.Hash, common.Hash) (bool, error) { return value, nil }
 }
 
-//fn is_descendent_of<A, F>(f: F) -> impl Fn(&A, &A) -> Result<bool, std::io::Error>
-//where
-//F: Fn(&A, &A) -> bool,
-//{
-//move |base, hash| Ok(f(base, hash))
-//}
-
 func isDescendentof(f IsDescendentOf) IsDescendentOf {
 	return func(h1 common.Hash, h2 common.Hash) (bool, error) { return f(h1, h2) }
 }

@@ -38,13 +38,15 @@ func (pc *PendingChange) EffectiveNumber() uint {
 	return pc.canonHeight + pc.delay
 }
 
-// AuthoritySetChanges Tracks historical authority set changes. We store the block numbers for the last block
-// of each authority set, once they have been finalized. These blocks are guaranteed to
-// have a justification unless they were triggered by a forced change.
-type AuthoritySetChanges []struct {
+type AuthorityChange struct {
 	setId       uint64
 	blockNumber uint
 }
+
+// AuthoritySetChanges Tracks historical authority set changes. We store the block numbers for the last block
+// of each authority set, once they have been finalized. These blocks are guaranteed to
+// have a justification unless they were triggered by a forced change.
+type AuthoritySetChanges []AuthorityChange
 
 // Block where set changed
 type newSetBlockInfo struct {
@@ -244,6 +246,12 @@ func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
 	return limit
 }
 
+func applyStandardChangesPredicate(finalizedNumber uint) predicate[*PendingChange] {
+	return func(change *PendingChange) bool {
+		return change.EffectiveNumber() <= finalizedNumber
+	}
+}
+
 // ApplyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
 // method ensures that if there are multiple changes in the same branch,
 // finalizing this block won't finalize past multiple transitions (i.e.
@@ -259,13 +267,66 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	finalizedNumber uint,
 	isDescendentOf IsDescendentOf,
 	initialSync bool,
-	telemetry *telemetry.Client) Status {
+	telemetry *telemetry.Client) (Status, error) {
 	// TODO telemetry here is just a place holder, replace with real
+	//predicate[T any] func(T) bool
+
+	//red := func(change PendingChange) predicate[PendingChange] {
+	//	return func(common.Hash, common.Hash) (bool, error) { return value, nil }
+	//}
 
 	status := Status{}
-	//authSet.pendingStandardChanges.FinalizeWithDescendentIf()
+	finalizeationResult, err := authSet.pendingStandardChanges.FinalizeWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, applyStandardChangesPredicate(finalizedNumber))
+	if err != nil {
+		return status, err
+	}
 
-	return status
+	// Go through cases
+	if finalizeationResult != nil {
+		// Changed Case
+		status.changed = true
+
+		// Flush pending forced changes to re add
+		pendingForcedChanges := authSet.pendingForcedChanges
+		authSet.pendingForcedChanges = []PendingChange{}
+
+		// we will keep all forced changes for any later blocks and that are a
+		// descendent of the finalized block (i.e. they are part of this branch).
+		for i := 0; i < len(pendingForcedChanges); i++ {
+			change := pendingForcedChanges[i]
+			isDesc, err := isDescendentOf(finalizedHash, change.canonHash)
+			if err != nil {
+				return status, err
+			}
+			if change.EffectiveNumber() > finalizedNumber && isDesc {
+				authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, change)
+			}
+		}
+
+		if finalizeationResult.value != nil {
+			// TODO add grandpa log
+
+			// TODO add telemetry
+
+			authoritySetChange := AuthorityChange{
+				setId:       authSet.setId,
+				blockNumber: finalizedNumber,
+			}
+			authSet.authoritySetChanges = append(authSet.authoritySetChanges, authoritySetChange)
+			authSet.currentAuthorities = finalizeationResult.value.nextAuthorities
+			authSet.setId++
+
+			status.newSetBlock = &newSetBlockInfo{
+				newSetBlockNumber: finalizedNumber,
+				newSetBlockHash:   finalizedHash,
+			}
+		}
+
+	} else {
+		// DO nothing if not changed
+	}
+
+	return status, nil
 }
 
 // SharedAuthoritySet A shared authority set.
