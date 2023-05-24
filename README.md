@@ -81,15 +81,22 @@ make install
 
 To install Gossamer
 
-**Note**: Apple Silicon users running aarch64 might run into issues 
-with our wasm interpreter since wasmer is still working on supporting this architecture.
-See their [README](https://github.com/wasmerio/wasmer-go) for me info on supported platforms.
-Currently, there are no known issues regarding this within the Gossamer repo, but if you run into one please open an issue
-on our GitHub.
+#### Troubleshooting for Apple Silicon users
 
-If you are an Apple Silicon user make sure the `GOARCH` env variable is 
-set to `arm64` by executing `go env`, if the variable contains another value you can change
-by executing `go env -w GOARCH=arm64`
+Apple Silicon users may encounter these errors:
+
+```sh
+undefined: cWasmerImportObjectT
+undefined: cWasmerImportFuncT
+undefined: cWasmerValueTag
+```
+
+If so, set the following
+[Golang environment variables](https://pkg.go.dev/cmd/go#hdr-Environment_variables):
+
+```sh
+GOARCH="amd64"
+```
 
 ## Use Gossamer
 
