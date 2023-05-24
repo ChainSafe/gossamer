@@ -16,7 +16,7 @@ import (
 // Represents a node in the ChangeTree
 type pendingChangeNode struct {
 	change *PendingChange
-	nodes  []*pendingChangeNode
+	nodes  []*pendingChangeNode // TODO change this to children
 }
 
 func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error) {
@@ -203,7 +203,11 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	if position == nil {
 		panic("index not valid")
 	}
-	_ = ct.swapRemove(ct.Roots(), *position)
+	node := ct.swapRemove(ct.Roots(), *position)
+	ct.tree = node.nodes
+	effectiveNum := node.change.EffectiveNumber()
+	ct.bestFinalizedNumber = &effectiveNum
+	_ = node.change
 	return nil
 }
 
@@ -227,25 +231,14 @@ func (ct *ChangeTree) swapRemove(roots []*pendingChangeNode, index uint) pending
 	}
 
 	lastElem := roots[len(roots)-1]
-	//*roots[index] = *lastElem
 
 	newRoots := roots[:len(roots)-1]
-	// THis should be the case where last elem was removed
+	// This should be the case where last elem was removed
 	if index == uint(len(newRoots)) {
 		ct.tree = newRoots
 		return val
 	}
 	newRoots[index] = lastElem
 	ct.tree = newRoots
-	//
-	//
-	//tempChanges := *changes
-	//tempChanges = append(tempChanges, *changeNode.change)
-	//*changes = tempChanges
-	//
-
-	//	ct.tree[index] = lastElem
-
-	//roots = roots[:len(roots)-1]
 	return val
 }
