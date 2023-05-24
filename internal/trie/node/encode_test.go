@@ -30,6 +30,15 @@ func Test_Node_Encode(t *testing.T) {
 		wrappedErr       error
 		errMessage       string
 	}{
+		"nil_node": {
+			node: nil,
+			writes: []writeCall{
+				{
+					written: []byte{emptyVariant.bits},
+				},
+			},
+			expectedEncoding: []byte{emptyVariant.bits},
+		},
 		"leaf_header_encoding_error": {
 			node: &Node{
 				PartialKey: make([]byte, 1),

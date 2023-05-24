@@ -15,14 +15,10 @@ import (
 var (
 	// ErrDecodeStorageValue is defined since no sentinel error is defined
 	// in the scale package.
-	// TODO remove once the following issue is done:
-	// https://github.com/ChainSafe/gossamer/issues/2631 .
 	ErrDecodeStorageValue = errors.New("cannot decode storage value")
 	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
 	// ErrDecodeChildHash is defined since no sentinel error is defined
 	// in the scale package.
-	// TODO remove once the following issue is done:
-	// https://github.com/ChainSafe/gossamer/issues/2631 .
 	ErrDecodeChildHash = errors.New("cannot decode child hash")
 )
 
@@ -39,21 +35,22 @@ func Decode(reader io.Reader) (n *Node, err error) {
 	}
 
 	switch variant {
-	case leafVariant.bits:
+	case emptyVariant:
+		return nil, nil //nolint:nilnil
+	case leafVariant:
 		n, err = decodeLeaf(reader, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
-	case branchVariant.bits, branchWithValueVariant.bits:
+	case branchVariant, branchWithValueVariant:
 		n, err = decodeBranch(reader, variant, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
 		}
 		return n, nil
 	default:
-		// this is a programming error, an unknown node variant
-		// should be caught by decodeHeader.
+		// this is a programming error, an unknown node variant should be caught by decodeHeader.
 		panic(fmt.Sprintf("not implemented for node variant %08b", variant))
 	}
 }
@@ -63,7 +60,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // reconstructing the child nodes from the encoding. This function instead stubs where the
 // children are known to be with an empty leaf. The children nodes hashes are then used to
 // find other storage values using the persistent database.
-func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
+func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 	node *Node, err error) {
 	node = &Node{
 		Children: make([]*Node, ChildrenCapacity),
@@ -82,7 +79,7 @@ func decodeBranch(reader io.Reader, variant byte, partialKeyLength uint16) (
 
 	sd := scale.NewDecoder(reader)
 
-	if variant == branchWithValueVariant.bits {
+	if variant == branchWithValueVariant {
 		err := sd.Decode(&node.StorageValue)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)

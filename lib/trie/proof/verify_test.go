@@ -156,7 +156,7 @@ func Test_buildTrie(t *testing.T) {
 			errWrapped: node.ErrVariantUnknown,
 			errMessage: "decoding root node: decoding header: " +
 				"decoding header byte: node variant is unknown: " +
-				"for header byte 00000001",
+				"for header byte 00000011",
 		},
 		"root_proof_encoding_smaller_than_32_bytes": {
 			encodedProofNodes: [][]byte{
@@ -262,9 +262,9 @@ func Test_buildTrie(t *testing.T) {
 			})),
 			errWrapped: node.ErrVariantUnknown,
 			errMessage: "loading proof: decoding child node for hash digest " +
-				"0xcfa21f0ec11a3658d77701b7b1f52fbcb783fe3df662977b6e860252b6c37e1e: " +
+				"0xa111753e9152fe5204e77af20c46f055cb90f56212249d6cbf265395e689a8ed: " +
 				"decoding header: decoding header byte: " +
-				"node variant is unknown: for header byte 00000001",
+				"node variant is unknown: for header byte 00000011",
 		},
 		"root_not_found": {
 			encodedProofNodes: [][]byte{
@@ -474,7 +474,7 @@ func Test_loadProof(t *testing.T) {
 			errWrapped: node.ErrVariantUnknown,
 			errMessage: "decoding child node for hash digest 0x02: " +
 				"decoding header: decoding header byte: node variant is unknown: " +
-				"for header byte 00000001",
+				"for header byte 00000011",
 		},
 		"grand_child": {
 			node: &node.Node{
@@ -520,7 +520,6 @@ func Test_loadProof(t *testing.T) {
 				}),
 			},
 		},
-
 		"grand_child_load_proof_error": {
 			node: &node.Node{
 				PartialKey:   []byte{1},
@@ -566,7 +565,7 @@ func Test_loadProof(t *testing.T) {
 			errMessage: "decoding child node for hash digest " +
 				"0x6888b9403129c11350c6054b46875292c0ffedcfd581e66b79bdf350b775ebf2: " +
 				"decoding header: decoding header byte: node variant is unknown: " +
-				"for header byte 00000001",
+				"for header byte 00000011",
 		},
 	}
 
