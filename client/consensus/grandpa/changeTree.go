@@ -150,6 +150,12 @@ func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
 	}
 }
 
+// FinalizationResult Result of finalizing a node (that could be a part of the tree or not).
+// When the struct is nil its the unchanged case, when its not its been changed and contains an optional value
+type FinalizationResult struct {
+	value *PendingChange
+}
+
 // FinalizeWithDescendentIf Finalize a root in the tree by either finalizing the node itself or a
 // node's descendent that's not in the tree, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
@@ -157,10 +163,13 @@ func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
 // root and must pass for finalization to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) error {
+//
+// TODO NOTE: I for now instead of a vdt I will just interpret the signature of Result<FinalizationResult<V>, Error<E>>
+// TODO cont: as a pointer to a struct
+func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*FinalizationResult, error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
-			return fmt.Errorf("tried to import or finalize node that is an ancestor of a previously finalized node")
+			return nil, fmt.Errorf("tried to import or finalize node that is an ancestor of a previously finalized node")
 		}
 	}
 
@@ -174,16 +183,16 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 		root := roots[i]
 		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if predicate(root.change) && root.change.canonHash == *hash || isDesc {
 			for _, child := range root.nodes {
 				isDesc, err := isDescendentOf(child.change.canonHash, *hash)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				if child.change.canonHeight <= number && child.change.canonHash == *hash || isDesc {
-					return fmt.Errorf("finalized descendent of Tree node without finalizing its ancestor(s) first")
+					return nil, fmt.Errorf("finalized descendent of Tree node without finalizing its ancestor(s) first")
 				}
 			}
 			uintI := uint(i)
@@ -192,23 +201,64 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 		}
 	}
 
-	// Get node data
-	// Removes an element from the vector and returns it.
-	//
-	// The removed element is replaced by the last element of the vector.
-	//
-	// This does not preserve ordering, but is *O*(1).
-	//
-	// Panics if `index` is out of bounds.
-	if position == nil {
-		panic("index not valid")
+	var nodeData *PendingChange
+	if position != nil {
+		node := ct.swapRemove(ct.Roots(), *position)
+		ct.tree = node.nodes
+		// TODO verify this is the correct number, pretty sure we store canon number but weird to use here
+		// I feel like (maybe effective height)
+		ct.bestFinalizedNumber = &node.change.canonHeight
+		nodeData = node.change
 	}
-	node := ct.swapRemove(ct.Roots(), *position)
-	ct.tree = node.nodes
-	effectiveNum := node.change.EffectiveNumber()
-	ct.bestFinalizedNumber = &effectiveNum
-	_ = node.change
-	return nil
+
+	// Retain only roots that are descendents of the finalized block (this
+	// happens if the node has been properly finalized) or that are
+	// ancestors (or equal) to the finalized block (in this case the node
+	// wasn't finalized earlier presumably because the predicate didn't
+	// pass).
+	changed := false
+	roots = ct.Roots()
+
+	// NOTE: import does use the canon hash and height
+
+	for i := 0; i < len(roots); i++ {
+		root := roots[i]
+		isDescA, err := isDescendentOf(*hash, root.change.canonHash)
+		if err != nil {
+			return nil, err
+		}
+
+		isDescB, err := isDescendentOf(root.change.canonHash, *hash)
+		if err != nil {
+			return nil, err
+		}
+
+		retain := root.change.canonHeight > number && isDescA ||
+			root.change.canonHeight == number && root.change.canonHash == *hash || isDescB
+
+		if retain {
+			// TODO make sure this is ok
+			ct.tree = append(ct.tree, root)
+		} else {
+			changed = true
+		}
+
+		ct.bestFinalizedNumber = &number
+
+	}
+
+	if nodeData != nil {
+		// Ok(FinalizationResult::Changed(Some(data))),
+		return &FinalizationResult{value: nodeData}, nil
+	} else {
+		if changed {
+			// Ok(FinalizationResult::Changed(None)),
+			return &FinalizationResult{}, nil
+		} else {
+			// (None, false) => Ok(FinalizationResult::Unchanged),
+			return nil, nil
+		}
+	}
 }
 
 // Removes an element from the vector and returns it.
