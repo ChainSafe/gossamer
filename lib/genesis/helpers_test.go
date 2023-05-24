@@ -162,7 +162,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 func TestFormatKey(t *testing.T) {
 	kv := &keyValue{
-		key: []string{"babe", "Authorities"},
+		key: []string{"Babe", "Authorities"},
 	}
 
 	out, err := formatKey(kv)
