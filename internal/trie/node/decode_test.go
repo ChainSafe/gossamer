@@ -50,9 +50,13 @@ func Test_Decode(t *testing.T) {
 			errMessage: "decoding header: reading header byte: EOF",
 		},
 		"unknown_node_variant": {
-			reader:     bytes.NewReader([]byte{0}),
+			reader:     bytes.NewReader([]byte{0b0000_1000}),
 			errWrapped: ErrVariantUnknown,
-			errMessage: "decoding header: decoding header byte: node variant is unknown: for header byte 00000000",
+			errMessage: "decoding header: decoding header byte: node variant is unknown: for header byte 00001000",
+		},
+		"empty_node": {
+			reader: bytes.NewReader([]byte{emptyVariant.bits}),
+			n:      nil,
 		},
 		"leaf_decoding_error": {
 			reader: bytes.NewReader([]byte{
@@ -64,15 +68,11 @@ func Test_Decode(t *testing.T) {
 				"reading from reader: EOF",
 		},
 		"leaf_success": {
-			reader: bytes.NewReader(
-				append(
-					[]byte{
-						leafVariant.bits | 1, // key length 1
-						9,                    // key data
-					},
-					scaleEncodeBytes(t, 1, 2, 3)...,
-				),
-			),
+			reader: bytes.NewReader(concatByteSlices([][]byte{
+				{leafVariant.bits | 1}, // partial key length 1
+				{9},                    // key data
+				scaleEncodeBytes(t, 1, 2, 3),
+			})),
 			n: &Node{
 				PartialKey:   []byte{9},
 				StorageValue: []byte{1, 2, 3},
@@ -88,13 +88,11 @@ func Test_Decode(t *testing.T) {
 				"reading from reader: EOF",
 		},
 		"branch_success": {
-			reader: bytes.NewReader(
-				[]byte{
-					branchVariant.bits | 1, // key length 1
-					9,                      // key data
-					0, 0,                   // no children bitmap
-				},
-			),
+			reader: bytes.NewReader(concatByteSlices([][]byte{
+				{branchVariant.bits | 1},   // partial key length 1
+				{9},                        // key data
+				{0b0000_0000, 0b0000_0000}, // no children bitmap
+			})),
 			n: &Node{
 				PartialKey: []byte{9},
 				Children:   make([]*Node, ChildrenCapacity),
@@ -130,7 +128,7 @@ func Test_decodeBranch(t *testing.T) {
 
 	testCases := map[string]struct {
 		reader           io.Reader
-		variant          byte
+		nodeVariant      variant
 		partialKeyLength uint16
 		branch           *Node
 		errWrapped       error
@@ -140,7 +138,7 @@ func Test_decodeBranch(t *testing.T) {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
 			}),
-			variant:          branchVariant.bits,
+			nodeVariant:      branchVariant,
 			partialKeyLength: 1,
 			errWrapped:       io.EOF,
 			errMessage:       "cannot decode key: reading from reader: EOF",
@@ -150,7 +148,7 @@ func Test_decodeBranch(t *testing.T) {
 				9, // key data
 				// missing children bitmap 2 bytes
 			}),
-			variant:          branchVariant.bits,
+			nodeVariant:      branchVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrReadChildrenBitmap,
 			errMessage:       "cannot read children bitmap: EOF",
@@ -161,7 +159,7 @@ func Test_decodeBranch(t *testing.T) {
 				0, 4, // children bitmap
 				// missing children scale encoded data
 			}),
-			variant:          branchVariant.bits,
+			nodeVariant:      branchVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeChildHash,
 			errMessage:       "cannot decode child hash: at index 10: reading byte: EOF",
@@ -174,7 +172,7 @@ func Test_decodeBranch(t *testing.T) {
 					scaleEncodedChildHash,
 				}),
 			),
-			variant:          branchVariant.bits,
+			nodeVariant:      branchVariant,
 			partialKeyLength: 1,
 			branch: &Node{
 				PartialKey: []byte{9},
@@ -196,7 +194,7 @@ func Test_decodeBranch(t *testing.T) {
 					// missing encoded branch storage value
 				}),
 			),
-			variant:          branchWithValueVariant.bits,
+			nodeVariant:      branchWithValueVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode storage value: reading byte: EOF",
@@ -208,7 +206,7 @@ func Test_decodeBranch(t *testing.T) {
 				scaleEncodeBytes(t, 7, 8, 9), // branch storage value
 				scaleEncodedChildHash,
 			})),
-			variant:          branchWithValueVariant.bits,
+			nodeVariant:      branchWithValueVariant,
 			partialKeyLength: 1,
 			branch: &Node{
 				PartialKey:   []byte{9},
@@ -230,7 +228,7 @@ func Test_decodeBranch(t *testing.T) {
 				scaleEncodeBytes(t, 1),     // branch storage value
 				{0},                        // garbage inlined node
 			})),
-			variant:          branchWithValueVariant.bits,
+			nodeVariant:      branchWithValueVariant,
 			partialKeyLength: 1,
 			errWrapped:       io.EOF,
 			errMessage: "decoding inlined child at index 0: " +
@@ -260,7 +258,7 @@ func Test_decodeBranch(t *testing.T) {
 					})),
 				})),
 			})),
-			variant:          branchVariant.bits,
+			nodeVariant:      branchVariant,
 			partialKeyLength: 1,
 			branch: &Node{
 				PartialKey:  []byte{1},
@@ -286,7 +284,7 @@ func Test_decodeBranch(t *testing.T) {
 			t.Parallel()
 
 			branch, err := decodeBranch(testCase.reader,
-				testCase.variant, testCase.partialKeyLength)
+				testCase.nodeVariant, testCase.partialKeyLength)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {
@@ -318,10 +316,10 @@ func Test_decodeLeaf(t *testing.T) {
 			errMessage:       "cannot decode key: reading from reader: EOF",
 		},
 		"value_decoding_error": {
-			reader: bytes.NewBuffer([]byte{
-				9,        // key data
-				255, 255, // bad storage value data
-			}),
+			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+				{9},        // key data
+				{255, 255}, // bad storage value data
+			})),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
@@ -350,12 +348,10 @@ func Test_decodeLeaf(t *testing.T) {
 			},
 		},
 		"success": {
-			reader: bytes.NewBuffer(
-				concatByteSlices([][]byte{
-					{9},                                // key data
-					scaleEncodeBytes(t, 1, 2, 3, 4, 5), // storage value data
-				}),
-			),
+			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+				{9},                                // key data
+				scaleEncodeBytes(t, 1, 2, 3, 4, 5), // storage value data
+			})),
 			variant:          leafVariant.bits,
 			partialKeyLength: 1,
 			leaf: &Node{

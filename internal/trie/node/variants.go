@@ -23,4 +23,28 @@ var (
 		bits: 0b1100_0000,
 		mask: 0b1100_0000,
 	}
+	leafContainingHashesVariant = variant{ // leaf containing hashes 001
+		bits: 0b0010_0000,
+		mask: 0b1110_0000,
+	}
+	branchContainingHashesVariant = variant{ // branch containing hashes 0001
+		bits: 0b0001_0000,
+		mask: 0b1111_0000,
+	}
+	emptyVariant = variant{ // empty 0000 0000
+		bits: 0b0000_0000,
+		mask: 0b1111_1111,
+	}
+	compactEncodingVariant = variant{ // compact encoding 0001 0000
+		bits: 0b0000_0001,
+		mask: 0b1111_1111,
+	}
 )
+
+// partialKeyLengthHeaderMask returns the partial key length
+// header bit mask corresponding to the variant header bit mask.
+// For example for the leaf variant with variant mask 1100_0000,
+// the partial key length header mask returned is 0011_1111.
+func (v variant) partialKeyLengthHeaderMask() byte {
+	return ^v.mask
+}

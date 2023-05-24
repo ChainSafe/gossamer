@@ -21,6 +21,11 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
+	if n == nil {
+		// only encode the empty variant byte header
+		return nil
+	}
+
 	keyLE := codec.NibblesToKeyLE(n.PartialKey)
 	_, err = buffer.Write(keyLE)
 	if err != nil {
