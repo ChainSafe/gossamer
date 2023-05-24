@@ -683,6 +683,9 @@ func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, s
 	logger.Debugf("handling workers results, waiting for %d blocks", totalBlocks)
 	syncingChain := make([]*types.BlockData, totalBlocks)
 
+	// the total numbers of blocks is missing in the syncing chain
+	waitingBlocks := totalBlocks
+
 loop:
 	for {
 		// in a case where we don't handle workers results we should check the pool
@@ -737,6 +740,10 @@ loop:
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			case errors.Is(err, errUnknownParent):
+			case errors.Is(err, errBadBlock):
+				logger.Warnf("peer %s sent a bad block: %s", who, err)
+				cs.workerPool.punishPeer(taskResult.who, true)
+				cs.workerPool.submitRequest(taskResult.request, workersResults)
 			case err != nil:
 				logger.Criticalf("response invalid: %s", err)
 				cs.workerPool.punishPeer(taskResult.who, false)
@@ -761,12 +768,10 @@ loop:
 
 			// we need to check if we've filled all positions
 			// otherwise we should wait for more responses
-			for _, element := range syncingChain {
-				if element == nil {
-					continue loop
-				}
+			waitingBlocks -= uint32(len(response.BlockData))
+			if waitingBlocks == 0 {
+				break loop
 			}
-			break loop
 		}
 	}
 
@@ -1040,8 +1045,6 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
 	firstItem := resp.BlockData[0]
 
-	// check that we know the parent of the first block (or it's in the ready queue)
-	fmt.Printf("checking the header of: %s\n", firstItem.Header.ParentHash)
 	has, err := cs.blockState.HasHeader(firstItem.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("while checking ancestry: %w", err)
