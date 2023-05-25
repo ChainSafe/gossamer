@@ -210,13 +210,10 @@ func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescende
 }
 
 // PendingChanges Inspect pending changes. Standard pending changes are iterated first,
-// and the changes in the tree are traversed in pre-order, afterwards all
+// and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
 func (authSet *AuthoritySet) PendingChanges() []PendingChange {
-	// TODO do I need all standard changes or just the root ones? I think all
-	// This is preorder traversal, what does that mean in this context?
-
-	// get everything from standard change tree
+	// get everything from standard change roots
 	changes := authSet.pendingStandardChanges.GetPreOrder()
 
 	// then get everything from forced changes
@@ -271,13 +268,12 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	// TODO telemetry here is just a place holder, replace with real
 
 	status := Status{}
-	finalizeationResult, err := authSet.pendingStandardChanges.FinalizeWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, applyStandardChangesPredicate(finalizedNumber))
+	finalizationResult, err := authSet.pendingStandardChanges.FinalizeWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, applyStandardChangesPredicate(finalizedNumber))
 	if err != nil {
 		return status, err
 	}
 
-	// Go through cases
-	if finalizeationResult != nil {
+	if finalizationResult != nil {
 		// Changed Case
 		status.changed = true
 
@@ -298,8 +294,7 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 			}
 		}
 
-		if finalizeationResult.value != nil {
-			fmt.Println("in finalizeationResult.value")
+		if finalizationResult.value != nil {
 			// TODO add grandpa log
 
 			// TODO add telemetry
@@ -309,7 +304,7 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 				blockNumber: finalizedNumber,
 			}
 			authSet.authoritySetChanges = append(authSet.authoritySetChanges, authoritySetChange)
-			authSet.currentAuthorities = finalizeationResult.value.nextAuthorities
+			authSet.currentAuthorities = finalizationResult.value.nextAuthorities
 			authSet.setId++
 
 			status.newSetBlock = &newSetBlockInfo{
@@ -319,7 +314,7 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 		}
 
 	} else {
-		// DO nothing if not changed
+		// Do nothing if not changed
 	}
 
 	return status, nil

@@ -7,14 +7,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// ForkTree A tree data structure that stores several nodes across multiple branches.
+// ForkTree A roots data structure that stores several children across multiple branches.
 //
-// Top-level branches are called roots. The tree has functionality for
-// finalizing nodes, which means that node is traversed, and all competing
-// branches are pruned. It also guarantees that nodes in the tree are finalized
+// Top-level branches are called roots. The roots has functionality for
+// finalizing children, which means that node is traversed, and all competing
+// branches are pruned. It also guarantees that children in the roots are finalized
 // in order. Each node is uniquely identified by its hash but can be ordered by
-// its number. In order to build the tree an external function must be provided
-// when interacting with the tree to establish a node's ancestry.
+// its number. In order to build the roots an external function must be provided
+// when interacting with the roots to establish a node's ancestry.
 // TODO implement this rather than mock out
 type ForkTree interface {
 	Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) error

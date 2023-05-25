@@ -57,7 +57,7 @@ func TestSwapRemove(t *testing.T) {
 			name: "2 elem slice deleting last element",
 			args: args{
 				ct: ChangeTree{
-					tree: changeNodes1,
+					roots: changeNodes1,
 				},
 				index: 1,
 			},
@@ -67,7 +67,7 @@ func TestSwapRemove(t *testing.T) {
 			name: "3 elem slice deleting first element",
 			args: args{
 				ct: ChangeTree{
-					tree: changeNodes2,
+					roots: changeNodes2,
 				},
 				index: 0,
 			},
