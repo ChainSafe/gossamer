@@ -217,7 +217,6 @@ func TestApplyChange(t *testing.T) {
 
 	// finalizing "hash_c" won't enact the change signaled at "hash_a" but it will prune out
 	// "hash_b"
-
 	status, err := authorities.ApplyStandardChanges(
 		common.BytesToHash([]byte("hash_c")),
 		11,
@@ -235,21 +234,47 @@ func TestApplyChange(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-
 	require.True(t, status.changed)
-	// Ok this failing
 	require.Nil(t, status.newSetBlock)
 
-	// Okay this is also failing
 	expectedChanges = []PendingChange{
 		changeA,
 	}
 	pendingChanges = authorities.PendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
-
-	// Okay this passes
 	require.True(t, len(authorities.authoritySetChanges) == 0)
 
+	status, err = authorities.ApplyStandardChanges(
+		common.BytesToHash([]byte("hash_d")),
+		15,
+		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
+			if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_d")) {
+				return true, nil
+			} else {
+				panic("unreachable")
+			}
+		}),
+		false,
+		nil,
+	)
+
+	expectedBlockInfo := &newSetBlockInfo{
+		newSetBlockNumber: 15,
+		newSetBlockHash:   common.BytesToHash([]byte("hash_d")),
+	}
+
+	require.True(t, status.changed)
+	require.Equal(t, status.newSetBlock, expectedBlockInfo)
+	require.Equal(t, authorities.currentAuthorities, setA)
+	require.Equal(t, authorities.setId, uint64(1))
+
+	pendingChanges = authorities.PendingChanges()
+	require.Equal(t, 0, len(pendingChanges))
+	expChange := AuthorityChange{
+		setId:       0,
+		blockNumber: 15,
+	}
+	require.Equal(t, authorities.authoritySetChanges, AuthoritySetChanges{expChange})
 }
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
