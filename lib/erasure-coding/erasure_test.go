@@ -35,21 +35,21 @@ func TestObtainChunks(t *testing.T) {
 		expectedValue [][]byte
 		expectedError error
 	}{
-		"happy path": {
+		"happy_path": {
 			args: args{
 				validatorsQty: 10,
 				data:          testData,
 			},
 			expectedValue: expectedData,
 		},
-		"nil data": {
+		"nil_data": {
 			args: args{
 				validatorsQty: 10,
 				data:          nil,
 			},
 			expectedError: reedsolomon.ErrShortData,
 		},
-		"not enough validators": {
+		"not_enough_validators": {
 			args: args{
 				validatorsQty: 1,
 				data:          testData,
@@ -80,14 +80,14 @@ func TestReconstruct(t *testing.T) {
 		expected      [][]byte
 		expectedError error
 	}{
-		"missing 2 chunks": {
+		"missing_2_chunks": {
 			args: args{
 				validatorsQty: 10,
 				chunks:        missing2Chunks,
 			},
 			expected: expectedData,
 		},
-		"missing 2 chunks, validator qty 3": {
+		"missing_2_chunks,_validator_qty_3": {
 			args: args{
 				validatorsQty: 3,
 				chunks:        missing2Chunks,
@@ -95,14 +95,14 @@ func TestReconstruct(t *testing.T) {
 			expectedError: reedsolomon.ErrTooFewShards,
 			expected:      expectedData,
 		},
-		"missing 3 chunks": {
+		"missing_3_chunks": {
 			args: args{
 				validatorsQty: 10,
 				chunks:        missing3Chunks,
 			},
 			expected: expectedData,
 		},
-		"missing 5 chunks": {
+		"missing_5_chunks": {
 			args: args{
 				validatorsQty: 10,
 				chunks:        missing5Chunks,
