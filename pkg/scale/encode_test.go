@@ -1212,13 +1212,6 @@ func Test_marshal_optionality_nil_cases(t *testing.T) {
 		t := allTests[i]
 		ptrTest := test{
 			name: t.name,
-			// in:      t.in,
-
-			// these do not matter since we are testing nil cases
-			// and the want is being set to empty byte slice below
-			// marshal will not error out for nil cases since it never hits a type's marshal method
-			//wantErr: t.wantErr,
-			//want: t.want,
 		}
 		// create a new pointer to new zero value of t.in
 		temp := reflect.New(reflect.TypeOf(t.in))
