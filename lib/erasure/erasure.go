@@ -5,6 +5,7 @@ package erasure
 
 import (
 	"errors"
+
 	"github.com/klauspost/reedsolomon"
 )
 

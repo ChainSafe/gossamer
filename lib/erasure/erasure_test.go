@@ -4,9 +4,10 @@
 package erasure
 
 import (
+	"testing"
+
 	"github.com/klauspost/reedsolomon"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var testData = []byte("this is a test of the erasure coding")
