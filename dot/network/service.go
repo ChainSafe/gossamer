@@ -594,6 +594,7 @@ func (s *Service) NetworkState() common.NetworkState {
 	}
 }
 
+// AllConnectedPeers returns all the connected to the node instance
 func (s *Service) AllConnectedPeers() []peer.ID {
 	return s.host.p2pHost.Network().Peers()
 }
