@@ -236,26 +236,48 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 
 	for i := 0; i < len(roots); i++ {
 		root := roots[i]
-		isDescA, err := isDescendentOf(*hash, root.change.canonHash)
-		if err != nil {
-			return nil, err
-		}
 
-		isDescB := false
-		if !isDescA {
-			isDescB, err = isDescendentOf(root.change.canonHash, *hash)
+		retain := false
+		if root.change.canonHeight > number {
+			isDescA, err := isDescendentOf(*hash, root.change.canonHash)
 			if err != nil {
 				return nil, err
 			}
+
+			if isDescA || (root.change.canonHeight == number && root.change.canonHash == *hash) {
+				retain = true
+			} else {
+				isDescB, err := isDescendentOf(root.change.canonHash, *hash)
+				if err != nil {
+					return nil, err
+				}
+
+				if isDescB {
+					retain = true
+				}
+			}
 		}
+
+		//isDescA, err := isDescendentOf(*hash, root.change.canonHash)
+		//if err != nil {
+		//	return nil, err
+		//}
+
+		//isDescB := false
+		//if !isDescA {
+		//	isDescB, err = isDescendentOf(root.change.canonHash, *hash)
+		//	if err != nil {
+		//		return nil, err
+		//	}
+		//}
 
 		//isDescB, err := isDescendentOf(root.change.canonHash, *hash)
 		//if err != nil {
 		//	return nil, err
 		//}
 
-		retain := root.change.canonHeight > number && isDescA ||
-			root.change.canonHeight == number && root.change.canonHash == *hash || isDescB
+		//retain := root.change.canonHeight > number && isDescA ||
+		//	root.change.canonHeight == number && root.change.canonHash == *hash || isDescB
 
 		if retain {
 			// TODO make sure this is ok

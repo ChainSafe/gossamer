@@ -3,7 +3,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -223,16 +222,11 @@ func TestApplyChange(t *testing.T) {
 		common.BytesToHash([]byte("hash_c")),
 		11,
 		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-			if h1 == common.BytesToHash([]byte("hash_c")) {
-				fmt.Println("wtf")
-				// Yeah we hit this, which make sense cuz our code but how do they not panic
-			}
 			if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) {
 				return true, nil
 			} else if h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
 				return false, nil
 			} else {
-				// We hit this, why do they not??
 				panic("unreachable")
 			}
 		}),
