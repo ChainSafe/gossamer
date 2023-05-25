@@ -20,4 +20,5 @@ var (
 	errBigIntIsNil                     = errors.New("big int is nil")
 	ErrVaryingDataTypeNotSet           = errors.New("varying data type not set")
 	ErrUnsupportedCustomPrimitive      = errors.New("unsupported type for custom primitive")
+	ErrInvalidScaleIndex               = errors.New("invalid scale index")
 )
