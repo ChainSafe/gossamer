@@ -8,6 +8,8 @@ import (
 // ErrNotEnoughValidators cannot encode something for zero or one validator
 var ErrNotEnoughValidators = errors.New("expected at least 2 validators")
 
+// ObtainChunks obtains erasure-coded chunks, divides data into number of validatorsQty chunks and
+// creates parity chunks for reconstruction
 func ObtainChunks(validatorsQty int, data []byte) ([][]byte, error) {
 	recoveryThres, err := recoveryThreshold(validatorsQty)
 	if err != nil {
@@ -29,6 +31,7 @@ func ObtainChunks(validatorsQty int, data []byte) ([][]byte, error) {
 	return shards, nil
 }
 
+// Reconstruct decodable data from a set of chunks
 func Reconstruct(validatorsQty int, chunks [][]byte) error {
 	recoveryThres, err := recoveryThreshold(validatorsQty)
 	if err != nil {
