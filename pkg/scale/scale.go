@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -19,7 +20,7 @@ var cache = &fieldScaleIndicesCache{
 // fieldScaleIndex is used to map field index to scale index
 type fieldScaleIndex struct {
 	fieldIndex int
-	scaleIndex *string
+	scaleIndex *int
 }
 type fieldScaleIndices []fieldScaleIndex
 
@@ -61,9 +62,14 @@ func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (
 			// ignore this field
 			continue
 		default:
+			scaleIndex, indexErr := strconv.Atoi(tag)
+			if indexErr != nil {
+				err = fmt.Errorf("%w: %v", ErrInvalidScaleIndex, indexErr)
+				return
+			}
 			indices = append(indices, fieldScaleIndex{
 				fieldIndex: i,
-				scaleIndex: &tag,
+				scaleIndex: &scaleIndex,
 			})
 		}
 	}
