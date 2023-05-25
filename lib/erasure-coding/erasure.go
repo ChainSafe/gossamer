@@ -1,8 +1,12 @@
 package erasure_coding
 
 import (
+	"errors"
 	"github.com/klauspost/reedsolomon"
 )
+
+// ErrNotEnoughValidators cannot encode something for zero or one validator
+var ErrNotEnoughValidators = errors.New("expected at least 2 validators")
 
 func ObtainChunks(validatorsQty int, data []byte) ([][]byte, error) {
 	recoveryThres, err := recoveryThreshold(validatorsQty)
@@ -25,7 +29,29 @@ func ObtainChunks(validatorsQty int, data []byte) ([][]byte, error) {
 	return shards, nil
 }
 
+func Reconstruct(validatorsQty int, chunks [][]byte) error {
+	recoveryThres, err := recoveryThreshold(validatorsQty)
+	if err != nil {
+		return err
+	}
+
+	enc, err := reedsolomon.New(validatorsQty, recoveryThres)
+	if err != nil {
+		return err
+	}
+	err = enc.Reconstruct(chunks)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func recoveryThreshold(validators int) (int, error) {
-	needed := (validators - 1) / 3 // TODO add checks for validator < 0
+	if validators <= 1 {
+		return 0, ErrNotEnoughValidators
+	}
+
+	needed := (validators - 1) / 3
+
 	return needed + 1, nil
 }
