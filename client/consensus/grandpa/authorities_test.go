@@ -241,14 +241,14 @@ func TestApplyChange(t *testing.T) {
 	require.Nil(t, status.newSetBlock)
 
 	// Okay this is also failing
-	//expectedChanges = []PendingChange{
-	//	changeA,
-	//}
-	//pendingChanges = authorities.PendingChanges()
-	//require.Equal(t, expectedChanges, pendingChanges)
+	expectedChanges = []PendingChange{
+		changeA,
+	}
+	pendingChanges = authorities.PendingChanges()
+	require.Equal(t, expectedChanges, pendingChanges)
 
-	// Okay this also fails
-	//require.True(t, len(authorities.authoritySetChanges) == 0)
+	// Okay this passes
+	require.True(t, len(authorities.authoritySetChanges) == 0)
 
 }
 

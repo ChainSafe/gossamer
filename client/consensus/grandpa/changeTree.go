@@ -186,10 +186,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 			return nil, err
 		}
 
-		// WOAAA adding parens here makes it panic below
 		if predicate(root.change) && (root.change.canonHash == *hash || isDesc) {
-			// Seems we are not supposed to enter here
-			fmt.Println("here")
 			for _, child := range root.nodes {
 				isDesc, err := isDescendentOf(child.change.canonHash, *hash)
 				if err != nil {
@@ -209,10 +206,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	if position != nil {
 		node := ct.swapRemove(ct.Roots(), *position)
 		ct.tree = node.nodes
-		// TODO verify this is the correct number, pretty sure we store canon number but weird to use here
-		// I feel like (maybe effective height)
 		ct.bestFinalizedNumber = &node.change.canonHeight
-		fmt.Println("node data is being set")
 		nodeData = node.change
 	}
 
@@ -224,16 +218,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	changed := false
 	roots = ct.Roots()
 
-	// NOTE: import does use the canon hash and height
-
-	// okay ist good we make here, but then panic hmmmm
-
-	fmt.Println(*hash == common.BytesToHash([]byte("hash_a")))
-	fmt.Println(*hash == common.BytesToHash([]byte("hash_b")))
-	fmt.Println(*hash == common.BytesToHash([]byte("hash_c")))
-
-	// hash is hash_c
-
+	ct.tree = []*pendingChangeNode{}
 	for i := 0; i < len(roots); i++ {
 		root := roots[i]
 
@@ -244,60 +229,35 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 				return nil, err
 			}
 
-			if isDescA || (root.change.canonHeight == number && root.change.canonHash == *hash) {
+			if isDescA {
 				retain = true
-			} else {
-				isDescB, err := isDescendentOf(root.change.canonHash, *hash)
-				if err != nil {
-					return nil, err
-				}
+			}
+		} else if root.change.canonHeight == number && root.change.canonHash == *hash {
+			retain = true
+		} else {
+			isDescB, err := isDescendentOf(root.change.canonHash, *hash)
+			if err != nil {
+				return nil, err
+			}
 
-				if isDescB {
-					retain = true
-				}
+			if isDescB {
+				retain = true
 			}
 		}
-
-		//isDescA, err := isDescendentOf(*hash, root.change.canonHash)
-		//if err != nil {
-		//	return nil, err
-		//}
-
-		//isDescB := false
-		//if !isDescA {
-		//	isDescB, err = isDescendentOf(root.change.canonHash, *hash)
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//}
-
-		//isDescB, err := isDescendentOf(root.change.canonHash, *hash)
-		//if err != nil {
-		//	return nil, err
-		//}
-
-		//retain := root.change.canonHeight > number && isDescA ||
-		//	root.change.canonHeight == number && root.change.canonHash == *hash || isDescB
-
 		if retain {
-			// TODO make sure this is ok
 			ct.tree = append(ct.tree, root)
 		} else {
 			changed = true
 		}
 
 		ct.bestFinalizedNumber = &number
-
 	}
 
-	// I think node data should be nil here
 	if nodeData != nil {
 		// Ok(FinalizationResult::Changed(Some(data))),
-		fmt.Println("node data is not nil")
 		return &FinalizationResult{value: nodeData}, nil
 	} else {
 		if changed {
-			// NEed to be hitting this case
 			// Ok(FinalizationResult::Changed(None)),
 			return &FinalizationResult{}, nil
 		} else {
