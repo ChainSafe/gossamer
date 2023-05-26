@@ -89,7 +89,7 @@ jobs:
       - name: Test State - Race
         run: make test-state-race
 
-      - uses: codecov/codecov-action@v3.1.3
+      - uses: codecov/codecov-action@v3.1.4
         with:
           if_ci_failed: success
           informational: true
