@@ -114,6 +114,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeBigInt(dstv)
 	case *Uint128:
 		err = ds.decodeUint128(dstv)
+	case BitVec:
+		err = ds.decodeBitVec(dstv)
 	case int, uint:
 		err = ds.decodeUint(dstv)
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
@@ -767,4 +769,32 @@ func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	}
 	dstv.Set(reflect.ValueOf(ui128))
 	return
+}
+
+// decodeBitVec accepts a byte array representing a SCALE encoded
+// BitVec and performs SCALE decoding of the BitVec
+func (ds *decodeState) decodeBitVec(dstv reflect.Value) error {
+	var size uint
+	if err := ds.decodeUint(reflect.ValueOf(&size).Elem()); err != nil {
+		return err
+	}
+
+	if size > maxLen {
+		return fmt.Errorf("%w: %d", errBitVecTooLong, size)
+	}
+
+	numBytes := (size + (byteSize - 1)) / byteSize
+	b := make([]byte, numBytes)
+	_, err := ds.Read(b)
+	if err != nil {
+		return err
+	}
+
+	bitvec := NewBitVec(bytesToBits(b, size))
+	if len(bitvec.bits) > int(size) {
+		return fmt.Errorf("bitvec length mismatch: expected %d, got %d", size, len(bitvec.bits))
+	}
+
+	dstv.Set(reflect.ValueOf(bitvec))
+	return nil
 }
