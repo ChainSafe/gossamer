@@ -7,7 +7,30 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
+// Notes:
+/*
+There are two types of peersets, validation and collation
+
+Network Message types her https://paritytech.github.io/polkadot/book/types/network.html#validation-v1
+
+Messages over Validation Protocol
+enum ValidationProtocolV1 {
+    ApprovalDistribution(ApprovalDistributionV1Message),
+    AvailabilityDistribution(AvailabilityDistributionV1Message),
+    AvailabilityRecovery(AvailabilityRecoveryV1Message),
+    BitfieldDistribution(BitfieldDistributionV1Message),
+    PoVDistribution(PoVDistributionV1Message),
+    StatementDistribution(StatementDistributionV1Message),
+}
+
+Messages over Collation Protocol
+enum CollationProtocolV1 {
+    CollatorProtocol(CollatorProtocolV1Message),
+}
+
+*/
 const MaxValidationMessageSize uint64 = 100 * 1024
+const MaxCollationMessageSize uint64 = 100 * 1024
 
 type Service struct {
 	Network Network
@@ -40,6 +63,27 @@ func NewService(net Network, genesisHash common.Hash) *Service {
 		handleValidationMessage,
 		nil,
 		MaxValidationMessageSize,
+	)
+
+	collationProtocolID := GeneratePeersetProtocolName(CollationProtocol, forkID, genesisHash, version)
+	// register collation protocol
+	// TODO: It seems like handshake is None, but be sure of it.
+	net.RegisterNotificationsProtocol(
+		protocol.ID(collationProtocolID),
+		msgType,
+		func() (network.Handshake, error) {
+			return nil, nil
+		},
+		func(_ []byte) (network.Handshake, error) {
+			return nil, nil
+		},
+		func(_ peer.ID, _ network.Handshake) error {
+			return nil
+		},
+		decodeCollationMessage,
+		handleCollationMessage,
+		nil,
+		MaxCollationMessageSize,
 	)
 	return &Service{
 		Network: net,
@@ -78,6 +122,16 @@ func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
 }
 
 func handleValidationMessage(peerID peer.ID, msg network.NotificationsMessage) (bool, error) {
+	// TODO: Add things
+	return false, nil
+}
+
+func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
+	// TODO: add things
+	return nil, nil
+}
+
+func handleCollationMessage(peerID peer.ID, msg network.NotificationsMessage) (bool, error) {
 	// TODO: Add things
 	return false, nil
 }

@@ -431,8 +431,8 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeySt
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createParachainHostService(net *network.Service) *parachaininteraction.Service {
-	return parachaininteraction.NewService(net)
+func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) *parachaininteraction.Service {
+	return parachaininteraction.NewService(net, genesisHash)
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {

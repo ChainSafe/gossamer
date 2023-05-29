@@ -17,9 +17,11 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/gossamer/internal/log"
 	babe "github.com/ChainSafe/gossamer/lib/babe"
+	common "github.com/ChainSafe/gossamer/lib/common"
 	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+	parachain_interaction "github.com/ChainSafe/gossamer/parachain-interaction"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -133,6 +135,20 @@ func (m *MocknodeBuilderIface) createNetworkService(cfg *Config, stateSrvc *stat
 func (mr *MocknodeBuilderIfaceMockRecorder) createNetworkService(cfg, stateSrvc, telemetryMailer interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createNetworkService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createNetworkService), cfg, stateSrvc, telemetryMailer)
+}
+
+// createParachainHostService mocks base method.
+func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, genesishHash common.Hash) *parachain_interaction.Service {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "createParachainHostService", net, genesishHash)
+	ret0, _ := ret[0].(*parachain_interaction.Service)
+	return ret0
+}
+
+// createParachainHostService indicates an expected call of createParachainHostService.
+func (mr *MocknodeBuilderIfaceMockRecorder) createParachainHostService(net, genesishHash interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createParachainHostService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createParachainHostService), net, genesishHash)
 }
 
 // createRPCService mocks base method.
