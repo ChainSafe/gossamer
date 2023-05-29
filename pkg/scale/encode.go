@@ -95,6 +95,8 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeBigInt(in)
 	case *Uint128:
 		err = es.encodeUint128(in)
+	case BitVec:
+		err = es.encodeBitVec(in)
 	case []byte:
 		err = es.encodeBytes(in)
 	case string:
@@ -428,5 +430,22 @@ func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 		return
 	}
 	err = binary.Write(es, binary.LittleEndian, padBytes(i.Bytes(), binary.LittleEndian))
+	return
+}
+
+// encodeBitVec encodes a BitVec
+func (es *encodeState) encodeBitVec(bitvec BitVec) (err error) {
+	if bitvec.Size() > maxLen {
+		err = fmt.Errorf("%w: %d", errBitVecTooLong, bitvec.Size())
+		return
+	}
+
+	err = es.encodeUint(bitvec.Size())
+	if err != nil {
+		return
+	}
+
+	data := bitvec.Bytes()
+	_, err = es.Write(data)
 	return
 }
