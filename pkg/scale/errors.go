@@ -13,6 +13,7 @@ var (
 	errUnsupportedOption               = errors.New("unsupported option")
 	ErrUnknownVaryingDataTypeValue     = errors.New("unable to find VaryingDataTypeValue with index")
 	errUint128IsNil                    = errors.New("uint128 in nil")
+	errBitVecTooLong                   = errors.New("bitvec too long")
 	ErrResultNotSet                    = errors.New("result not set")
 	ErrResultAlreadySet                = errors.New("result already has an assigned value")
 	ErrUnsupportedVaryingDataTypeValue = errors.New("unsupported VaryingDataTypeValue")
