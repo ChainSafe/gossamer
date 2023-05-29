@@ -198,8 +198,5 @@ require (
 )
 
 go 1.20
-<<<<<<< HEAD
 
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f
-=======
->>>>>>> 191e83d2 (cr feedback)
