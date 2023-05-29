@@ -35,15 +35,15 @@ func Test_fieldScaleIndicesCache_fieldScaleIndices(t *testing.T) {
 			wantIndices: fieldScaleIndices{
 				{
 					fieldIndex: 5,
-					scaleIndex: newStringPtr("1"),
+					scaleIndex: newIntPtr(1),
 				},
 				{
 					fieldIndex: 3,
-					scaleIndex: newStringPtr("2"),
+					scaleIndex: newIntPtr(2),
 				},
 				{
 					fieldIndex: 1,
-					scaleIndex: newStringPtr("3"),
+					scaleIndex: newIntPtr(3),
 				},
 				{
 					fieldIndex: 0,
