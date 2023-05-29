@@ -535,6 +535,9 @@ loop:
 		idleTimer := time.NewTimer(idleDuration)
 
 		select {
+		case <-cs.stopCh:
+			return
+
 		case <-idleTimer.C:
 			logger.Warnf("idle ticker triggered! checking pool")
 			cs.workerPool.useConnectedPeers()
@@ -553,10 +556,8 @@ loop:
 				logger.Errorf("task result: peer(%s) error: %s",
 					taskResult.who, taskResult.err)
 
-				if errors.Is(taskResult.err, network.ErrFailedToReadEntireMessage) {
-					cs.workerPool.punishPeer(taskResult.who, false)
-				} else if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					cs.workerPool.punishPeer(taskResult.who, true)
+				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+					cs.workerPool.punishPeer(taskResult.who)
 				}
 
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
@@ -576,20 +577,22 @@ loop:
 			switch {
 			case errors.Is(err, errResponseIsNotChain):
 				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.punishPeer(taskResult.who, false)
+				cs.workerPool.punishPeer(taskResult.who)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			case errors.Is(err, errEmptyBlockData):
+				cs.workerPool.punishPeer(taskResult.who)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			case errors.Is(err, errUnknownParent):
 			case errors.Is(err, errBadBlock):
 				logger.Warnf("peer %s sent a bad block: %s", who, err)
-				cs.workerPool.punishPeer(taskResult.who, true)
+				cs.workerPool.ignorePeerAsWorker(taskResult.who)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				continue
 			case err != nil:
 				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.punishPeer(taskResult.who, false)
+				cs.workerPool.punishPeer(taskResult.who)
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
 				continue
 			}
@@ -611,6 +614,7 @@ loop:
 
 			// we need to check if we've filled all positions
 			// otherwise we should wait for more responses
+			fmt.Printf("actual: %d, next state: %d\n", waitingBlocks, waitingBlocks-uint32(len(response.BlockData)))
 			waitingBlocks -= uint32(len(response.BlockData))
 			if waitingBlocks == 0 {
 				break loop

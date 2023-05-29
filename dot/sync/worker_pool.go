@@ -18,8 +18,8 @@ const (
 )
 
 const (
-	ignorePeerTimeout       = 2 * time.Minute
-	maxRequestsAllowed uint = 40
+	ignorePeerBaseTimeout      = time.Minute
+	maxRequestsAllowed    uint = 40
 )
 
 type syncTask struct {
@@ -85,15 +85,6 @@ func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
 }
 
 func (s *syncWorkerPool) newPeer(who peer.ID, isFromBlockAnnounce bool) {
-	_, exists := s.ignorePeers[who]
-	if exists {
-		if isFromBlockAnnounce {
-			delete(s.ignorePeers, who)
-		} else {
-			return
-		}
-	}
-
 	peerSync, has := s.workers[who]
 	if !has {
 		peerSync = &peerSyncWorker{status: available}
@@ -129,15 +120,9 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage,
 	}
 }
 
-func (s *syncWorkerPool) punishPeer(who peer.ID, ignore bool) {
+func (s *syncWorkerPool) punishPeer(who peer.ID) {
 	s.l.Lock()
 	defer s.l.Unlock()
-
-	if ignore {
-		s.ignorePeers[who] = struct{}{}
-		delete(s.workers, who)
-		return
-	}
 
 	_, has := s.workers[who]
 	if !has {
@@ -146,14 +131,30 @@ func (s *syncWorkerPool) punishPeer(who peer.ID, ignore bool) {
 
 	s.workers[who] = &peerSyncWorker{
 		status:       punished,
-		punishedTime: time.Now().Add(ignorePeerTimeout),
+		punishedTime: time.Now().Add(ignorePeerBaseTimeout),
 	}
 }
 
+func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
+	s.l.Lock()
+	defer s.l.Unlock()
+
+	delete(s.workers, who)
+	s.ignorePeers[who] = struct{}{}
+}
+
+// totalWorkers only returns available or busy workers
 func (s *syncWorkerPool) totalWorkers() (total uint) {
 	s.l.RLock()
 	defer s.l.RUnlock()
-	return uint(len(s.workers))
+
+	for _, worker := range s.workers {
+		if worker.status != punished {
+			total += 1
+		}
+	}
+
+	return total
 }
 
 // getAvailablePeer returns the very first peer available and changes

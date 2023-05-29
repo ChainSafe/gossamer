@@ -13,7 +13,7 @@ var (
 	// defaultID Default chain ID
 	defaultID = "westend2"
 	// defaultBasePath Default node base directory path
-	defaultBasePath = "~/.gossamer/westend"
+	defaultBasePath = "/Volumes/SDD01/gossamer/westend"
 	// defaultChainSpec is the default chain specification path
 	defaultChainSpec = "./chain/westend/genesis.json"
 )

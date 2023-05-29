@@ -28,7 +28,7 @@ var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
-	connectToPeersTimeout       = time.Minute * 5
+	connectToPeersTimeout       = time.Minute
 	findPeersTimeout            = time.Minute
 )
 
@@ -183,9 +183,9 @@ func (d *discovery) checkPeerCount() {
 		case <-d.ctx.Done():
 			return
 		case <-ticker.C:
-			if len(d.h.Network().Peers()) > d.minPeers {
-				continue
-			}
+			// if len(d.h.Network().Peers()) > d.minPeers {
+			// 	continue
+			// }
 
 			d.findPeers()
 		}
@@ -212,7 +212,7 @@ func (d *discovery) findPeers() {
 				continue
 			}
 
-			logger.Tracef("found new peer %s via DHT", peer.ID)
+			logger.Infof("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
 		}
