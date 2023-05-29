@@ -6,7 +6,6 @@ package wasmer
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/parachain"
 
 	"github.com/ChainSafe/gossamer/dot/types"

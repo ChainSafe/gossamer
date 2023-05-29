@@ -21,6 +21,12 @@ const (
 	WESTEND_RUNTIME_V0929_FP  = "westend_runtime-v929.compact.wasm"
 	WESTEND_RUNTIME_V0929_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9." +
 		"29/westend_runtime-v9290.compact.compressed.wasm?raw=true"
+
+	// v0.9.42 westend
+	WESTEND_RUNTIME_v0942     = "westend_runtime-v942"
+	WESTEND_RUNTIME_V0942_FP  = "westend_runtime-v942.compact.wasm"
+	WESTEND_RUNTIME_V0942_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9." +
+		"42/westend_runtime-v9420.compact.compressed.wasm?raw=true"
 )
 
 const (
