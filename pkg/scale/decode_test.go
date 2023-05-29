@@ -12,6 +12,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
@@ -252,6 +254,28 @@ func Test_decodeState_decodeMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_decodeState_decodeBitVec(t *testing.T) {
+	for _, tt := range bitVecTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
+func Test_decodeState_decodeBitVecMaxLen(t *testing.T) {
+	t.Parallel()
+	bitvec := NewBitVec(nil)
+	maxLen10 := []byte{38, 0, 0, 64, 0} // maxLen + 10
+	err := Unmarshal(maxLen10, &bitvec)
+	require.Error(t, err, errBitVecTooLong)
 }
 
 func Test_unmarshal_optionality(t *testing.T) {
