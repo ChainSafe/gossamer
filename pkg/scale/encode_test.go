@@ -225,7 +225,7 @@ var (
 	uintTests = tests{
 		{
 			name: "uint(1)",
-			in:   int(1),
+			in:   1,
 			want: []byte{0x04},
 		},
 		{
@@ -938,6 +938,29 @@ var (
 		},
 	}
 
+	bitVecTests = tests{
+		{
+			name: "BitVec{Size:__0,_Bits:__nil}",
+			in:   NewBitVec(nil),
+			want: []byte{0},
+		},
+		{
+			name: "BitVec{Size:_8}",
+			in:   NewBitVec([]bool{true, false, true, false, true, false, true, false}),
+			want: []byte{0x20, 0x55},
+		},
+		{
+			name: "BitVec{Size:_25}",
+			in: NewBitVec([]bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true,
+			}),
+			want: []byte{0x64, 0x55, 0x36, 0xaa, 0x1},
+		},
+	}
+
 	allTests = newTests(
 		fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
 		boolTests, structTests, sliceTests, arrayTests,
@@ -1170,6 +1193,37 @@ func Test_encodeState_encodeMap(t *testing.T) {
 			assert.Contains(t, tt.wantOneOf, buffer.Bytes())
 		})
 	}
+}
+
+func Test_encodeState_encodeBitVec(t *testing.T) {
+	for _, tt := range bitVecTests {
+		t.Run(tt.name, func(t *testing.T) {
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeBitVec() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeBitVec() = %v, want %v", buffer.Bytes(), tt.want)
+			}
+		})
+	}
+}
+
+func Test_encodeState_encodeBitVecMaxLen(t *testing.T) {
+	t.Parallel()
+
+	var bits []bool
+	for i := 0; i < maxLen+1; i++ {
+		bits = append(bits, true)
+	}
+
+	bitvec := NewBitVec(bits)
+	_, err := Marshal(bitvec)
+	require.Error(t, err, errBitVecTooLong)
 }
 
 func Test_marshal_optionality(t *testing.T) {
