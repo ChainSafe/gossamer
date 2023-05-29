@@ -4,9 +4,11 @@
 package sync
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -90,8 +92,73 @@ func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockA
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
 func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
-	header := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
-	return s.chainSync.setBlockAnnounce(from, header)
+	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
+	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
+
+	// if the peer reports a lower or equal best block number than us,
+	// check if they are on a fork or not
+	bestBlockHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return fmt.Errorf("best block header: %w", err)
+	}
+
+	if blockAnnounceHeader.Number <= bestBlockHeader.Number {
+		// check if our block hash for that number is the same, if so, do nothing
+		// as we already have that block
+		// TODO: check what happens when get hash by number retuns nothing or ErrNotExists
+		ourHash, err := s.blockState.GetHashByNumber(blockAnnounceHeader.Number)
+		if err != nil {
+			return fmt.Errorf("get block hash by number: %w", err)
+		}
+
+		if ourHash == blockAnnounceHeaderHash {
+			return nil
+		}
+
+		// check if their best block is on an invalid chain, if it is,
+		// potentially downscore them
+		// for now, we can remove them from the syncing peers set
+		fin, err := s.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			return fmt.Errorf("get highest finalised header: %w", err)
+		}
+
+		// their block hash doesn't match ours for that number (ie. they are on a different
+		// chain), and also the highest finalised block is higher than that number.
+		// thus the peer is on an invalid chain
+		if fin.Number >= blockAnnounceHeader.Number {
+			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
+			// perhaps we need another field in `peerState` to mark whether the state is valid or not
+			s.network.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.BadBlockAnnouncementValue,
+				Reason: peerset.BadBlockAnnouncementReason,
+			}, from)
+			return fmt.Errorf("%w: for peer %s and block number %d",
+				errPeerOnInvalidFork, from, blockAnnounceHeader.Number)
+		}
+
+		// peer is on a fork, check if we have processed the fork already or not
+		// ie. is their block written to our db?
+		has, err := s.blockState.HasHeader(blockAnnounceHeaderHash)
+		if err != nil {
+			return fmt.Errorf("while checking if header exists: %w", err)
+		}
+
+		// if so, do nothing, as we already have their fork
+		if has {
+			return nil
+		}
+	}
+
+	// we assume that if a peer sends us a block announce for a certain block,
+	// that is also has the chain up until and including that block.
+	// this may not be a valid assumption, but perhaps we can assume that
+	// it is likely they will receive this block and its ancestors before us.
+	announcedBlock := announcedBlock{
+		who:    from,
+		header: blockAnnounceHeader,
+	}
+	return s.chainSync.onImportBlock(announcedBlock)
 }
 
 // IsSynced exposes the synced state

@@ -7,7 +7,6 @@ package sync
 import (
 	reflect "reflect"
 
-	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -51,18 +50,18 @@ func (mr *MockChainSyncMockRecorder) getHighestBlock() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getHighestBlock", reflect.TypeOf((*MockChainSync)(nil).getHighestBlock))
 }
 
-// setBlockAnnounce mocks base method.
-func (m *MockChainSync) setBlockAnnounce(from peer.ID, header *types.Header) error {
+// onImportBlock mocks base method.
+func (m *MockChainSync) onImportBlock(arg0 announcedBlock) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "setBlockAnnounce", from, header)
+	ret := m.ctrl.Call(m, "onImportBlock", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// setBlockAnnounce indicates an expected call of setBlockAnnounce.
-func (mr *MockChainSyncMockRecorder) setBlockAnnounce(from, header interface{}) *gomock.Call {
+// onImportBlock indicates an expected call of onImportBlock.
+func (mr *MockChainSyncMockRecorder) onImportBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setBlockAnnounce", reflect.TypeOf((*MockChainSync)(nil).setBlockAnnounce), from, header)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onImportBlock", reflect.TypeOf((*MockChainSync)(nil).onImportBlock), arg0)
 }
 
 // setPeerHead mocks base method.
