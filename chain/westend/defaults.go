@@ -13,7 +13,7 @@ var (
 	// defaultID Default chain ID
 	defaultID = "westend2"
 	// defaultBasePath Default node base directory path
-	defaultBasePath = "/Volumes/SDD01/gossamer/westend"
+	defaultBasePath = "~/.gossamer/westend"
 	// defaultChainSpec is the default chain specification path
 	defaultChainSpec = "./chain/westend/genesis.json"
 )
@@ -31,6 +31,7 @@ func DefaultConfig() *cfg.Config {
 	config.Network.NoMDNS = false
 	config.Log.Digest = "trace"
 	config.Log.Sync = "trace"
+	config.Network.MaxPeers = 1024
 
 	return config
 }

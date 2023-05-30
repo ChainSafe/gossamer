@@ -198,8 +198,8 @@ func TestChainSync_setPeerHead(t *testing.T) {
 				workerPool := newSyncWorkerPool(networkMock)
 				workerPool.workers = map[peer.ID]*peerSyncWorker{
 					peer.ID("peer-test"): {
-						status:       punished,
-						punishedTime: time.Now().Add(3 * time.Hour),
+						status:         punished,
+						punishmentTime: time.Now().Add(3 * time.Hour),
 					},
 				}
 
@@ -219,8 +219,8 @@ func TestChainSync_setPeerHead(t *testing.T) {
 				workerPool := newSyncWorkerPool(networkMock)
 				workerPool.workers = map[peer.ID]*peerSyncWorker{
 					peer.ID("peer-test"): {
-						status:       punished,
-						punishedTime: time.Now().Add(-3 * time.Hour),
+						status:         punished,
+						punishmentTime: time.Now().Add(-3 * time.Hour),
 					},
 				}
 

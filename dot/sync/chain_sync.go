@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -199,6 +200,20 @@ func (cs *chainSync) sync() {
 			logger.Criticalf("getting target: %w", err)
 			return
 		}
+
+		finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			logger.Criticalf("getting finalised block header: %s", err)
+			return
+		}
+		logger.Infof(
+			"🚣 currently syncing, %d peers connected, "+
+				"%d available workers, "+
+				"target block number %d, "+
+				"finalised block number %d with hash %s",
+			len(cs.network.Peers()),
+			cs.workerPool.totalWorkers(),
+			syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
 
 		bestBlockNumber := bestBlockHeader.Number
 		isFarFromTarget := bestBlockNumber+maxResponseSize < syncTarget
@@ -517,19 +532,18 @@ func (cs *chainSync) getTarget() (uint, error) {
 func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) {
 	startTime := time.Now()
 	defer func() {
-		tookSeeconds := time.Since(startTime).Seconds()
-		bps := float64(totalBlocks) / tookSeeconds
-		logger.Debugf("⛓️ synced %d blocks, took: %.2f seconds, bps: %.2f blocks/second", totalBlocks, tookSeeconds, bps)
+		totalSyncAndImportSeconds := time.Since(startTime).Seconds()
+		bps := float64(totalBlocks) / totalSyncAndImportSeconds
+		logger.Debugf("⛓️ synced %d blocks, took: %.2f seconds, bps: %.2f blocks/second", totalBlocks, totalSyncAndImportSeconds, bps)
 		wg.Done()
 	}()
 
-	logger.Debugf("waiting for %d blocks", totalBlocks)
+	logger.Debugf("💤 waiting for %d blocks", totalBlocks)
 	syncingChain := make([]*types.BlockData, totalBlocks)
 	// the total numbers of blocks is missing in the syncing chain
 	waitingBlocks := totalBlocks
 
-loop:
-	for {
+	for waitingBlocks > 0 {
 		// in a case where we don't handle workers results we should check the pool
 		idleDuration := time.Minute
 		idleTimer := time.NewTimer(idleDuration)
@@ -557,7 +571,16 @@ loop:
 					taskResult.who, taskResult.err)
 
 				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					cs.workerPool.punishPeer(taskResult.who)
+					switch {
+					case strings.Contains(taskResult.err.Error(), "protocols not supported"):
+						cs.network.ReportPeer(peerset.ReputationChange{
+							Value:  peerset.BadProtocolValue,
+							Reason: peerset.BadProtocolReason,
+						}, taskResult.who)
+						cs.workerPool.ignorePeerAsWorker(taskResult.who)
+					default:
+						cs.workerPool.punishPeer(taskResult.who)
+					}
 				}
 
 				cs.workerPool.submitRequest(taskResult.request, workersResults)
@@ -607,6 +630,11 @@ loop:
 					lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
 			}
 
+			cs.network.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.GossipSuccessValue,
+				Reason: peerset.GossipSuccessReason,
+			}, taskResult.who)
+
 			for _, blockInResponse := range response.BlockData {
 				blockExactIndex := blockInResponse.Header.Number - startAtBlock
 				syncingChain[blockExactIndex] = blockInResponse
@@ -614,15 +642,12 @@ loop:
 
 			// we need to check if we've filled all positions
 			// otherwise we should wait for more responses
-			fmt.Printf("actual: %d, next state: %d\n", waitingBlocks, waitingBlocks-uint32(len(response.BlockData)))
 			waitingBlocks -= uint32(len(response.BlockData))
-			if waitingBlocks == 0 {
-				break loop
-			}
 		}
 	}
 
-	logger.Debugf("synced %d blocks, starting process", totalBlocks)
+	retreiveBlocksSeconds := time.Since(startTime).Seconds()
+	logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...", totalBlocks, retreiveBlocksSeconds)
 	if len(syncingChain) >= 2 {
 		// ensuring the parents are in the right place
 		parentElement := syncingChain[0]

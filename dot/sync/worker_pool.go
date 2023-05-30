@@ -18,8 +18,8 @@ const (
 )
 
 const (
-	ignorePeerBaseTimeout      = time.Minute
-	maxRequestsAllowed    uint = 40
+	punishmentBaseTimeout      = 5 * time.Minute
+	maxRequestsAllowed    uint = 60
 )
 
 type syncTask struct {
@@ -36,8 +36,9 @@ type syncTaskResult struct {
 }
 
 type peerSyncWorker struct {
-	status       byte
-	punishedTime time.Time
+	status         byte
+	timesPunished  int
+	punishmentTime time.Time
 }
 
 type syncWorkerPool struct {
@@ -85,6 +86,10 @@ func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
 }
 
 func (s *syncWorkerPool) newPeer(who peer.ID, isFromBlockAnnounce bool) {
+	if _, ok := s.ignorePeers[who]; ok {
+		return
+	}
+
 	peerSync, has := s.workers[who]
 	if !has {
 		peerSync = &peerSyncWorker{status: available}
@@ -94,7 +99,7 @@ func (s *syncWorkerPool) newPeer(who peer.ID, isFromBlockAnnounce bool) {
 	}
 
 	// check if the punishment is not valid
-	if peerSync.status == punished && peerSync.punishedTime.Before(time.Now()) {
+	if peerSync.status == punished && peerSync.punishmentTime.Before(time.Now()) {
 		s.workers[who] = &peerSyncWorker{status: available}
 	}
 }
@@ -124,14 +129,19 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) {
 	s.l.Lock()
 	defer s.l.Unlock()
 
-	_, has := s.workers[who]
+	worker, has := s.workers[who]
 	if !has {
 		return
 	}
 
+	timesPunished := worker.timesPunished + 1
+	punishmentTime := time.Duration(timesPunished) * punishmentBaseTimeout
+	logger.Debugf("⏱️ punishement time for peer %s: %.2fs", who, punishmentTime.Seconds())
+
 	s.workers[who] = &peerSyncWorker{
-		status:       punished,
-		punishedTime: time.Now().Add(ignorePeerBaseTimeout),
+		status:         punished,
+		timesPunished:  timesPunished,
+		punishmentTime: time.Now().Add(punishmentTime),
 	}
 }
 
@@ -167,7 +177,7 @@ func (s *syncWorkerPool) getAvailablePeer() peer.ID {
 			// if the punishedTime has passed then we mark it
 			// as available and notify it availability if needed
 			// otherwise we keep the peer in the punishment and don't notify
-			if peerSync.punishedTime.Before(time.Now()) {
+			if peerSync.punishmentTime.Before(time.Now()) {
 				return peerID
 			}
 		case available:
