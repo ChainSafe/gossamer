@@ -39,8 +39,7 @@ const (
 )
 
 var (
-	logger   = log.NewFromGlobal(log.AddContext("pkg", "network"))
-	maxReads = 256
+	logger = log.NewFromGlobal(log.AddContext("pkg", "network"))
 
 	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_node",
