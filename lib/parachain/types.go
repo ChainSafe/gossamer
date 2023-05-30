@@ -17,11 +17,11 @@ import (
 // GroupRotationInfo A helper data-type for tracking validator-group rotations.
 type GroupRotationInfo struct {
 	// SessionStartBlock is the block number at which the session started
-	SessionStartBlock uint32 `scale:"1"`
+	SessionStartBlock types.BlockNumber `scale:"1"`
 	// GroupRotationFrequency indicates how often groups rotate. 0 means never.
-	GroupRotationFrequency uint32 `scale:"2"`
+	GroupRotationFrequency types.BlockNumber `scale:"2"`
 	// Now indicates the current block number.
-	Now uint32 `scale:"3"`
+	Now types.BlockNumber `scale:"3"`
 }
 
 // ValidatorGroups represents the validator groups
