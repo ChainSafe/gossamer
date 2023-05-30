@@ -76,9 +76,9 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	sAPI := modules.NewMockAnyStorageAPI(ctrl)
 
 	TxStateAPI := NewMockTransactionStateAPI(ctrl)
-	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
-	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
-	TxStateAPI.EXPECT().AddToPool(gomock.Any()).Return(common.Hash{}).AnyTimes()
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).Times(0)
+	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).Times(1)
+	TxStateAPI.EXPECT().AddToPool(gomock.Any()).Return(common.Hash{}).Times(0)
 
 	cfg := &HTTPServerConfig{
 		Modules:             []string{"system", "chain"},

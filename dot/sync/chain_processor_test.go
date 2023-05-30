@@ -560,7 +560,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState, false)
 
 				mockTelemetry := NewMockTelemetry(ctrl)
-				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				mockTelemetry.EXPECT().SendMessage(gomock.Any()).Times(1)
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(
 					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"),
