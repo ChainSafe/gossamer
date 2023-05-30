@@ -17,5 +17,4 @@ var (
 	errInboundHanshakeExists         = errors.New("an inbound handshake already exists for given peer")
 	errInvalidRole                   = errors.New("invalid role")
 	ErrFailedToReadEntireMessage     = errors.New("failed to read entire message")
-	ErrUnexpectedLenght              = errors.New("unexpected length")
 )

@@ -217,20 +217,13 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64)
 	}
 
 	tot = 0
-	for {
+	for tot < int(length) {
 		n, err := stream.Read(buf[tot:])
 		if err != nil {
 			return n + tot, err
 		}
 
 		tot += n
-		if tot == int(length) {
-			break
-		}
-
-		if tot > int(length) {
-			return tot, fmt.Errorf("%w, expected %d bytes, read %d", ErrUnexpectedLenght, length, tot)
-		}
 	}
 
 	if tot != int(length) {
