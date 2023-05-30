@@ -104,7 +104,7 @@ type OccupiedCore struct {
 	// A bitfield with 1 bit for each validator in the set. `1` bits mean that the corresponding
 	// validators has attested to availability on-chain. A 2/3+ majority of `1` bits means that
 	// this will be available.
-	Availability []byte `scale:"5"`
+	Availability scale.BitVec `scale:"5"`
 	// The group assigned to distribute availability pieces of this candidate.
 	GroupResponsible GroupIndex `scale:"6"`
 	// The hash of the candidate occupying the core.
@@ -261,7 +261,7 @@ type SessionInfo struct {
 	// Validators in shuffled ordering - these are the validator groups as produced
 	// by the `Scheduler` module for the session and are typically referred to by
 	// `GroupIndex`.
-	ValidatorGroups []types.ValidatorIndex `scale:"7"`
+	ValidatorGroups [][]types.ValidatorIndex `scale:"7"`
 	// The number of availability cores used by the protocol during this session.
 	NCores uint32 `scale:"8"`
 	// The zeroth delay tranche width.

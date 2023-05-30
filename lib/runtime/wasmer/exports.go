@@ -389,6 +389,9 @@ func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlic
 	}
 
 	availabilityCores, err := parachain.NewAvailabilityCores()
+	if err != nil {
+		return nil, fmt.Errorf("new availability cores: %w", err)
+	}
 	err = scale.Unmarshal(ret, &availabilityCores)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
@@ -503,13 +506,13 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var sessionInfo parachain.SessionInfo
+	var sessionInfo *parachain.SessionInfo
 	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
-	return &sessionInfo, nil
+	return sessionInfo, nil
 }
 
 // ParachainHostDMQContents Returns all the pending inbound messages
