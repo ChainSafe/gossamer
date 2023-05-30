@@ -14,7 +14,8 @@ import (
 */
 
 var (
-	errDuplicateHashes = errors.New("duplicated hashes")
+	errDuplicateHashes     = errors.New("duplicated hashes")
+	errUnfinalizedAncestor = errors.New("finalized descendent of Tree node without finalizing its ancestor(s) first")
 )
 
 // Represents a node in the ChangeTree
@@ -192,7 +193,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 					return nil, err
 				}
 				if child.change.canonHeight <= number && (child.change.canonHash == *hash || isDesc) {
-					return nil, fmt.Errorf("finalized descendent of Tree node without finalizing its ancestor(s) first")
+					return nil, errUnfinalizedAncestor
 				}
 			}
 			uintI := uint(i)

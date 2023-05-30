@@ -277,6 +277,134 @@ func TestApplyChange(t *testing.T) {
 	require.Equal(t, authorities.authoritySetChanges, AuthoritySetChanges{expChange})
 }
 
+func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
+	authorities := AuthoritySet{
+		currentAuthorities:     AuthorityList{},
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	var setA AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setA = append(setA, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	})
+
+	var setC AuthorityList
+	kpC, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setC = append(setC, types.Authority{
+		Key:    kpC.Public(),
+		Weight: 5,
+	})
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	changeA := PendingChange{
+		nextAuthorities: setA,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeC := PendingChange{
+		nextAuthorities: setC,
+		delay:           10,
+		canonHeight:     30,
+		canonHash:       common.BytesToHash([]byte("hash_c")),
+		delayKind:       delayKindFinalized,
+	}
+
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeC, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
+		if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_b")) ||
+			h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) ||
+			h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_d")) ||
+			h1 == common.BytesToHash([]byte("hash_c")) && h2 == common.BytesToHash([]byte("hash_d")) ||
+			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+			return true, nil
+		} else if h1 == common.BytesToHash([]byte("hash_c")) && h2 == common.BytesToHash([]byte("hash_b")) {
+			return false, nil
+		} else {
+			panic("unreachable")
+		}
+	})
+
+	// trying to finalize past `change_c` without finalizing `change_a` first
+	_, err = authorities.ApplyStandardChanges(
+		common.BytesToHash([]byte("hash_d")),
+		40,
+		isDescOf,
+		false,
+		nil,
+	)
+
+	require.ErrorIs(t, err, errUnfinalizedAncestor)
+	require.Equal(t, AuthoritySetChanges{}, authorities.authoritySetChanges)
+
+	status, err := authorities.ApplyStandardChanges(
+		common.BytesToHash([]byte("hash_b")),
+		15,
+		isDescOf,
+		false,
+		nil,
+	)
+	require.True(t, status.changed)
+
+	expectedBlockInfo := &newSetBlockInfo{
+		newSetBlockNumber: 15,
+		newSetBlockHash:   common.BytesToHash([]byte("hash_b")),
+	}
+	expAuthSetChange := AuthoritySetChanges{AuthorityChange{
+		setId:       0,
+		blockNumber: 15,
+	}}
+	require.Equal(t, expectedBlockInfo, status.newSetBlock)
+	require.Equal(t, setA, authorities.currentAuthorities)
+	require.Equal(t, uint64(1), authorities.setId)
+	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
+
+	status, err = authorities.ApplyStandardChanges(
+		common.BytesToHash([]byte("hash_d")),
+		40,
+		isDescOf,
+		false,
+		nil,
+	)
+	require.True(t, status.changed)
+
+	expectedBlockInfo = &newSetBlockInfo{
+		newSetBlockNumber: 40,
+		newSetBlockHash:   common.BytesToHash([]byte("hash_d")),
+	}
+	expAuthSetChange = AuthoritySetChanges{
+		AuthorityChange{
+			setId:       0,
+			blockNumber: 15,
+		},
+		AuthorityChange{
+			setId:       1,
+			blockNumber: 40,
+		},
+	}
+
+	require.Equal(t, expectedBlockInfo, status.newSetBlock)
+	require.Equal(t, setC, authorities.currentAuthorities)
+	require.Equal(t, uint64(2), authorities.setId)
+	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
+}
+
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList
