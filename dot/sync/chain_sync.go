@@ -464,10 +464,6 @@ func (cs *chainSync) executeBootstrapSync() error {
 	// cannot reserve outbound connection: resource limit exceeded
 	availableWorkers := cs.workerPool.totalWorkers()
 
-	// if availableWorkers > maxRequestsAllowed {
-	// 	availableWorkers = maxRequestsAllowed
-	// }
-
 	// targetBlockNumber is the virtual target we will request, however
 	// we should bound it to the real target which is collected through
 	// block announces received from other peers
@@ -479,7 +475,7 @@ func (cs *chainSync) executeBootstrapSync() error {
 
 	if targetBlockNumber > realTarget {
 		// basically if our virtual target is beyond the real target
-		// that means we are few requests far from the tip, then we
+		// that means we are only a few requests away, then we
 		// calculate the correct amount of missing requests and then
 		// change to tip sync which should take care of the rest
 		diff := targetBlockNumber - realTarget
@@ -558,7 +554,6 @@ func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, s
 			cs.workerPool.useConnectedPeers()
 			continue
 
-		// TODO: implement a case to stop
 		case taskResult := <-workersResults:
 			if !idleTimer.Stop() {
 				<-idleTimer.C
