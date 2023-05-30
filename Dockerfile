@@ -23,6 +23,9 @@ WORKDIR /go/src/github.com/ChainSafe/gossamer
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Prepare libwasmer.so for COPY
+RUN cp /go/pkg/mod/github.com/wasmerio/go-ext-wasm@*/wasmer/libwasmer.so libwasmer.so
+
 # Copy gossamer sources
 COPY . .
 

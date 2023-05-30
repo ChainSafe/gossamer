@@ -230,7 +230,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"instance_creation_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockRuntimeInstance(ctrl)
+				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
@@ -252,12 +252,12 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			},
 			blockHash:  common.Hash{0x01},
 			errWrapped: wasmer.ErrWASMDecompress,
-			errMessage: "creating new runtime instance: " +
+			errMessage: "creating new runtime instance: setting up VM: " +
 				"wasm decompression failed: unexpected EOF",
 		},
 		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockRuntimeInstance(ctrl)
+				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
@@ -286,7 +286,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"success": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockRuntimeInstance(ctrl)
+				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
@@ -439,7 +439,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -464,7 +464,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -522,7 +522,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		}
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -569,7 +569,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		vt := transaction.NewValidTransaction(extrinsic, validity)
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(nil, errTestDummyError)
 		runtimeMock.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -634,7 +634,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		tx := transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true})
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(&transaction.Validity{Propagate: true}, nil)
 		runtimeMock.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -850,7 +850,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 
-		runtimeMockErr := NewMockRuntimeInstance(ctrl)
+		runtimeMockErr := NewMockInstance(ctrl)
 		runtimeMockErr.EXPECT().ValidateTransaction(externExt).Return(nil, errTestDummyError)
 		runtimeMockErr.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -889,7 +889,7 @@ func TestService_handleChainReorg(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		runtimeMockOk := NewMockRuntimeInstance(ctrl)
+		runtimeMockOk := NewMockInstance(ctrl)
 		runtimeMockOk.EXPECT().ValidateTransaction(externExt).Return(testValidity, nil)
 		runtimeMockOk.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -1054,7 +1054,7 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 	t.Run("ok case", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		runtimeMock.EXPECT().DecodeSessionKeys(testEncKeys).Return(testEncKeys, nil)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
@@ -1154,7 +1154,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMock, nil)
 		runtimeMock.EXPECT().SetContextStorage(ts)
@@ -1238,7 +1238,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
-		runtimeMockErr := NewMockRuntimeInstance(ctrl)
+		runtimeMockErr := NewMockInstance(ctrl)
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMockErr, nil).MaxTimes(2)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
@@ -1277,7 +1277,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMock, nil).MaxTimes(2)
@@ -1375,7 +1375,7 @@ func TestServiceGetMetadata(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
-		runtimeMockOk := NewMockRuntimeInstance(ctrl)
+		runtimeMockOk := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockOk, nil)

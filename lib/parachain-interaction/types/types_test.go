@@ -9,7 +9,7 @@ import (
 )
 
 func TestPersistedValidationData(t *testing.T) {
-	expected := []byte{12, 7, 8, 9, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0}
+	expected := []byte{12, 7, 8, 9, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0} //nolint:lll
 
 	pvd := PersistedValidationData{
 		ParentHead:             []byte{7, 8, 9},
