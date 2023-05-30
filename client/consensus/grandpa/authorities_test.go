@@ -405,6 +405,66 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
 }
 
+func TestEnactsStandardChangeWorks(t *testing.T) {
+	authorities := AuthoritySet{
+		currentAuthorities:     AuthorityList{},
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	var setA AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setA = append(setA, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	})
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	changeA := PendingChange{
+		nextAuthorities: setA,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeB := PendingChange{
+		nextAuthorities: setA,
+		delay:           10,
+		canonHeight:     20,
+		canonHash:       common.BytesToHash([]byte("hash_b")),
+		delayKind:       delayKindFinalized,
+	}
+
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
+		if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_d")) ||
+			h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_e")) ||
+			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_d")) ||
+			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_e")) {
+			return true, nil
+		} else if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) ||
+			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+			return false, nil
+		} else {
+			panic("unreachable")
+		}
+	})
+
+	// "hash_c" won't finalize the existing change since it isn't a descendent
+	_, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_c")), 15, isDescOf)
+}
+
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList

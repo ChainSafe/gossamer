@@ -16,6 +16,7 @@ import (
 var (
 	errDuplicateHashes     = errors.New("duplicated hashes")
 	errUnfinalizedAncestor = errors.New("finalized descendent of Tree node without finalizing its ancestor(s) first")
+	errRevert              = errors.New("tried to import or finalize node that is an ancestor of a previously finalized node")
 )
 
 // Represents a node in the ChangeTree
@@ -157,6 +158,31 @@ type FinalizationResult struct {
 	value *PendingChange
 }
 
+// FinalizeAnyWithDescendentIf Checks if any node in the tree is finalized by either finalizing the
+// node itself or a node's descendent that's not in the tree, guaranteeing
+// that the node being finalized isn't a descendent of (or equal to) any of
+// the node's children. Returns `Some(true)` if the node being finalized is
+// a root, `Some(false)` if the node being finalized is not a root, and
+// `None` if no node in the tree is finalized. The given `predicate` is
+// checked on the prospective finalized root and must pass for finalization
+// to occur. The given function `is_descendent_of` should return `true` if
+// the second hash (target) is a descendent of the first hash (base).
+func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*bool, error) {
+	if ct.bestFinalizedNumber != nil {
+		if number <= *ct.bestFinalizedNumber {
+			return nil, errRevert
+		}
+	}
+
+	// check if the given hash is equal or a descendent of any node in the
+	// tree, if we find a valid node that passes the predicate then we must
+	// ensure that we're not finalizing past any of its child nodes.
+
+	// TODO impl
+	implemented := false
+	return &implemented, nil
+}
+
 // FinalizeWithDescendentIf Finalize a root in the roots by either finalizing the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
@@ -170,7 +196,7 @@ type FinalizationResult struct {
 func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*FinalizationResult, error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
-			return nil, fmt.Errorf("tried to import or finalize node that is an ancestor of a previously finalized node")
+			return nil, errRevert
 		}
 	}
 

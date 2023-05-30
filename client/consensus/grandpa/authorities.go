@@ -249,6 +249,12 @@ func applyStandardChangesPredicate(finalizedNumber uint) predicate[*PendingChang
 	}
 }
 
+func enactStandardChangesPredicate(finalizedNumber uint) predicate[*PendingChange] {
+	return func(change *PendingChange) bool {
+		return change.EffectiveNumber() == finalizedNumber
+	}
+}
+
 // ApplyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
 // method ensures that if there are multiple changes in the same branch,
 // finalizing this block won't finalize past multiple transitions (i.e.
@@ -317,6 +323,21 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	}
 
 	return status, nil
+}
+
+// EnactsStandardChange Check whether the given finalized block number enacts any standard
+// authority set change (without triggering it), ensuring that if there are
+// multiple changes in the same branch, finalizing this block won't
+// finalize past multiple transitions (i.e. transitions must be finalized
+// in-order). Returns `Some(true)` if the block being finalized enacts a
+// change that can be immediately applied, `Some(false)` if the block being
+// finalized enacts a change but it cannot be applied yet since there are
+// other dependent changes, and `None` if no change is enacted. The given
+// function `is_descendent_of` should return `true` if the second hash
+// (target) is a descendent of the first hash (base).
+func (authSet *AuthoritySet) EnactsStandardChange(
+	finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf) (*bool, error) {
+	return authSet.pendingStandardChanges.FinalizeAnyWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, enactStandardChangesPredicate(finalizedNumber))
 }
 
 // SharedAuthoritySet A shared authority set.
