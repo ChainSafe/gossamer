@@ -140,12 +140,11 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	net := NewMockNetwork(ctrl)
-	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).Times(0)
 	net.EXPECT().IsSynced().Return(true).Times(2)
 	net.EXPECT().ReportPeer(
 		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
 		gomock.AssignableToTypeOf(peer.ID("")),
-	).Times(1)
+	)
 
 	cfg := &Config{
 		Keystore:         ks,

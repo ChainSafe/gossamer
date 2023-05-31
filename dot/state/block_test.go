@@ -775,7 +775,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
@@ -837,7 +837,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
@@ -872,7 +872,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
@@ -937,7 +937,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
@@ -1062,7 +1062,7 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	db := NewInMemoryDB(t)
 

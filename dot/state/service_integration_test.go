@@ -365,7 +365,7 @@ func TestService_Rewind(t *testing.T) {
 func TestService_Import(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := Config{
 		Path:      t.TempDir(),

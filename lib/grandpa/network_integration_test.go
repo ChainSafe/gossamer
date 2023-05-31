@@ -61,12 +61,6 @@ func TestHandleNetworkMessage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(0)
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		Times(0)
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	gs.messageHandler = h
