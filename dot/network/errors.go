@@ -16,4 +16,8 @@ var (
 	errInvalidStartingBlockType      = errors.New("invalid StartingBlock in messsage")
 	errInboundHanshakeExists         = errors.New("an inbound handshake already exists for given peer")
 	errInvalidRole                   = errors.New("invalid role")
+	ErrFailedToReadEntireMessage     = errors.New("failed to read entire message")
+	ErrNilStream                     = errors.New("nil stream")
+	ErrInvalidLEB128EncodedData      = errors.New("invalid LEB128 encoded data")
+	ErrGreaterThanMaxSize            = errors.New("greater than maximum size")
 )
