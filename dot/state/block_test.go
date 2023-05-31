@@ -1100,7 +1100,7 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
-	runtimeInstance := NewMockRuntime(nil)
+	runtimeInstance := NewMockInstance(nil)
 	blockState.StoreRuntime(genesisHash, runtimeInstance)
 
 	genesisRuntimeInstance, err := blockState.GetRuntime(genesisHash)

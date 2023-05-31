@@ -829,7 +829,7 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 
 // HandleRuntimeChanges handles the update in runtime.
 func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	parentRuntimeInstance Runtime, bHash common.Hash) error {
+	parentRuntimeInstance runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
@@ -860,7 +860,11 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		}
 
 		// only update runtime during code substitution if runtime SpecVersion is updated
-		previousVersion := parentRuntimeInstance.Version()
+		previousVersion, err := parentRuntimeInstance.Version()
+		if err != nil {
+			return err
+		}
+
 		if previousVersion.SpecVersion == newVersion.SpecVersion {
 			logger.Info("not upgrading runtime code during code substitution")
 			bs.StoreRuntime(bHash, parentRuntimeInstance)
@@ -896,13 +900,16 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
-	newVersion := parentRuntimeInstance.Version()
+	newVersion, err := parentRuntimeInstance.Version()
+	if err != nil {
+		return err
+	}
 	go bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }
 
 // GetRuntime gets the runtime instance pointer for the block hash given.
-func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err error) {
+func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
 	// we search primarily in the blocktree so we ensure the
 	// fork aware property while searching for a runtime, however
 	// if there is no runtimes in that fork than we look for the
@@ -923,7 +930,7 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err e
 	return runtimeInstance, err
 }
 
-func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instance Runtime, err error) {
+func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instance runtime.Instance, err error) {
 	allHashesInMapping := bs.bt.GetInMemoryRuntimesBlockHashes()
 	if len(allHashesInMapping) == 0 {
 		panic("no runtime instances available")
@@ -972,7 +979,7 @@ func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instan
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bs *BlockState) StoreRuntime(hash common.Hash, rt Runtime) {
+func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 

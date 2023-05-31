@@ -7,27 +7,28 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"golang.org/x/exp/maps"
 )
 
 type hashToRuntime struct {
 	mutex   sync.RWMutex
-	mapping map[Hash]Runtime
+	mapping map[Hash]runtime.Instance
 }
 
 func newHashToRuntime() *hashToRuntime {
 	return &hashToRuntime{
-		mapping: make(map[Hash]Runtime),
+		mapping: make(map[Hash]runtime.Instance),
 	}
 }
 
-func (h *hashToRuntime) get(hash Hash) (instance Runtime) {
+func (h *hashToRuntime) get(hash Hash) (instance runtime.Instance) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 	return h.mapping[hash]
 }
 
-func (h *hashToRuntime) set(hash Hash, instance Runtime) {
+func (h *hashToRuntime) set(hash Hash, instance runtime.Instance) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	h.mapping[hash] = instance
@@ -70,7 +71,7 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 	if len(h.mapping) == 1 {
 		uniqueAvailableInstance := maps.Values(h.mapping)[0]
 
-		h.mapping = make(map[Hash]Runtime)
+		h.mapping = make(map[Hash]runtime.Instance)
 		h.mapping[finalisedHash] = uniqueAvailableInstance
 		return
 	}
@@ -88,7 +89,7 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 		if inMemoryRuntime != nil {
 			// stop all the running instances created by forks keeping
 			// just the closest instance to the finalized block hash
-			stoppedRuntimes := make(map[Runtime]struct{})
+			stoppedRuntimes := make(map[runtime.Instance]struct{})
 			for _, runtimeToPrune := range h.mapping {
 				if inMemoryRuntime != runtimeToPrune {
 					_, stopped := stoppedRuntimes[runtimeToPrune]
@@ -99,7 +100,7 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 				}
 			}
 
-			h.mapping = make(map[Hash]Runtime)
+			h.mapping = make(map[Hash]runtime.Instance)
 			h.mapping[finalisedHash] = inMemoryRuntime
 			return
 		}

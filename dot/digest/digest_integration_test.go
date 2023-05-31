@@ -383,13 +383,16 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 func TestHandler_HandleNextConfigData(t *testing.T) {
 	var digest = types.NewBabeConsensusDigest()
-	nextConfigData := types.NextConfigData{
+	nextConfigData := types.NextConfigDataV1{
 		C1:             1,
 		C2:             8,
 		SecondarySlots: 1,
 	}
 
-	err := digest.Set(nextConfigData)
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.Set(nextConfigData)
+
+	err := digest.Set(versionedNextConfigData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
@@ -430,12 +433,20 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	digestValue, err := digest.Value()
 	require.NoError(t, err)
-	act, ok := digestValue.(types.NextConfigData)
+	nextVersionedConfigData, ok := digestValue.(types.VersionedNextConfigData)
+	if !ok {
+		t.Fatal()
+	}
+
+	decodedNextConfigData, err := nextVersionedConfigData.Value()
+	require.NoError(t, err)
+
+	decodedNextConfigDataV1, ok := decodedNextConfigData.(types.NextConfigDataV1)
 	if !ok {
 		t.Fatal()
 	}
 
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(targetEpoch, nil)
 	require.NoError(t, err)
-	require.Equal(t, act.ToConfigData(), stored)
+	require.Equal(t, decodedNextConfigDataV1.ToConfigData(), stored)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -526,13 +527,13 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bt *BlockTree) StoreRuntime(hash common.Hash, instance Runtime) {
+func (bt *BlockTree) StoreRuntime(hash common.Hash, instance runtime.Instance) {
 	bt.runtimes.set(hash, instance)
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash, if there is no instance for
 // the given block hash it will lookup an instance of an ancestor and returns it.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
 	// if the current node contains a runtime entry in the runtime mapping
 	// then we early return the instance, otherwise we will lookup for the
 	// closest parent with a runtime instance entry in the mapping
@@ -569,7 +570,7 @@ func (bt *BlockTree) GetInMemoryRuntimesBlockHashes() []common.Hash {
 
 // GetBlockRuntimeOrFail returns block runtime for corresponding block hash. if there is no instance
 // fot the given block hash it returns ErrRuntimeNotFound
-func (bt *BlockTree) GetBlockRuntimeOrFail(hash common.Hash) (instance Runtime, err error) {
+func (bt *BlockTree) GetBlockRuntimeOrFail(hash common.Hash) (instance runtime.Instance, err error) {
 	instance = bt.runtimes.get(hash)
 	if instance == nil {
 		return nil, fmt.Errorf("%w: instance not found for %s", ErrRuntimeNotFound, hash)

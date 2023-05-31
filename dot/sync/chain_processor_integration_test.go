@@ -16,13 +16,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
-func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
+func buildBlockWithSlotAndTimestamp(t *testing.T, instance runtime.Instance,
 	parent *types.Header, currentSlot, timestamp uint64) *types.Block {
 	t.Helper()
 
@@ -93,7 +94,9 @@ func buildBlockWithSlotAndTimestamp(t *testing.T, instance state.Runtime,
 	}
 }
 
-func buildAndAddBlocksToState(t *testing.T, runtime state.Runtime, blockState *state.BlockState, amount uint) {
+func buildAndAddBlocksToState(t *testing.T,
+	runtime runtime.Instance, blockState *state.BlockState, amount uint) {
+
 	t.Helper()
 
 	parent, err := blockState.BestBlockHeader()
