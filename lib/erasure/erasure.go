@@ -54,7 +54,7 @@ func Reconstruct(validatorsQty, originalDataLen int, chunks [][]byte) ([]byte, e
 	}
 	buf := new(bytes.Buffer)
 	err = enc.Join(buf, chunks, originalDataLen)
-	return buf.Bytes(), nil
+	return buf.Bytes(), err
 }
 
 // recoveryThreshold gives the max number of shards/chunks that we can afford to lose and still construct
