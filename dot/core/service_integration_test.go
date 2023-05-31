@@ -498,13 +498,19 @@ func TestService_GetMetadata(t *testing.T) {
 
 func TestService_HandleRuntimeChanges(t *testing.T) {
 	s := NewTestService(t, nil)
-	genesisBlockHash := s.blockState.BestBlockHash()
+	genesisHeader, err := s.blockState.BestBlockHeader()
+	require.NoError(t, err)
 
-	ts, err := s.storageState.TrieState(nil) // Pass genesis root
+	genesisBlockHash := genesisHeader.Hash()
+	genesisStateRoot := genesisHeader.StateRoot
+
+	ts, err := s.storageState.TrieState(&genesisStateRoot) // Pass genesis root
 	require.NoError(t, err)
 
 	firstBlockHash := createBlockUsingOldRuntime(t, genesisBlockHash, ts, s.blockState)
-	const updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
+	updateNodeRuntimeWasmPath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
+	require.NoError(t, err)
+
 	secondBlockHash := createBlockUsingNewRuntime(t, genesisBlockHash, updateNodeRuntimeWasmPath, ts, s.blockState)
 
 	// firstBlockHash runtime should not be updated
@@ -525,7 +531,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	secondBlockRuntime, err := s.blockState.GetRuntime(secondBlockHash)
 	require.NoError(t, err)
 
-	const updatedSpecVersion = uint32(262)
+	const updatedSpecVersion = uint32(9290)
 	secondBlockRuntimeVersion, err := secondBlockRuntime.Version()
 	require.NoError(t, err)
 
