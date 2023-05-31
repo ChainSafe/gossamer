@@ -84,7 +84,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 
 		"requesting_4_chunks_of_128_plus_3_blocks": {
 			startNumber:  0,
-			targetNumber: 512 + 3, // 128 * 4
+			targetNumber: (128 * 4) + 3,
 			expectedBlockRequestMessage: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,

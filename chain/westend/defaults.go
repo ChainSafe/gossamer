@@ -29,9 +29,6 @@ func DefaultConfig() *cfg.Config {
 	config.Core.GrandpaAuthority = false
 	config.Core.Role = 1
 	config.Network.NoMDNS = false
-	config.Log.Sync = "trace"
-	config.Log.Digest = "trace"
-	config.Network.MaxPeers = 256
 
 	return config
 }
