@@ -228,7 +228,7 @@ func (ms *memoryShim) Grow(deltaPages uint32) (previousPages uint32, ok bool) {
 	}
 	return 0, true
 }
-func (ms *memoryShim) ReadByte(offset uint32) (byte, bool) {
+func (ms *memoryShim) ReadByte(offset uint32) (byte, bool) { //nolint:govet
 	if offset >= ms.Memory.Length() {
 		return 0, false
 	}
@@ -240,7 +240,7 @@ func (ms *memoryShim) Read(offset, byteCount uint32) ([]byte, bool) {
 	}
 	return ms.Memory.Data()[offset : offset+byteCount], true
 }
-func (ms *memoryShim) WriteByte(offset uint32, v byte) bool {
+func (ms *memoryShim) WriteByte(offset uint32, v byte) bool { //nolint:govet
 	if offset >= ms.Memory.Length() {
 		return false
 	}

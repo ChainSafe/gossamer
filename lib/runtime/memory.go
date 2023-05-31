@@ -6,6 +6,7 @@ package runtime
 // PageSize is 65kb
 const PageSize = 65536
 
+// Memory is the interface for WASM memory
 type Memory interface {
 	// Size returns the size in bytes available. e.g. If the underlying memory
 	// has 1 page: 65536
@@ -27,7 +28,7 @@ type Memory interface {
 	Grow(deltaPages uint32) (previousPages uint32, ok bool)
 
 	// ReadByte reads a single byte from the underlying buffer at the offset or returns false if out of range.
-	ReadByte(offset uint32) (byte, bool)
+	ReadByte(offset uint32) (byte, bool) //nolint:govet
 
 	// Read reads byteCount bytes from the underlying buffer at the offset or
 	// returns false if out of range.
@@ -63,7 +64,7 @@ type Memory interface {
 	Read(offset, byteCount uint32) ([]byte, bool)
 
 	// WriteByte writes a single byte to the underlying buffer at the offset in or returns false if out of range.
-	WriteByte(offset uint32, v byte) bool
+	WriteByte(offset uint32, v byte) bool //nolint:govet
 
 	// Write writes the slice to the underlying buffer at the offset or returns false if out of range.
 	Write(offset uint32, v []byte) bool
