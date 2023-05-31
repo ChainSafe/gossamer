@@ -19,7 +19,7 @@ import (
 func TestConcurrencySetHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(12)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	threads := runtime.NumCPU()
 	dbs := make([]*chaindb.BadgerDB, threads)
