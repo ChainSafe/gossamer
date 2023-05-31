@@ -514,15 +514,21 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	firstBlockRuntime, err := s.blockState.GetRuntime(firstBlockHash)
 	require.NoError(t, err)
 
-	genesisRuntimeVersion := genesisRuntime.Version()
-	firstBlockRuntimeVersion := firstBlockRuntime.Version()
+	genesisRuntimeVersion, err := genesisRuntime.Version()
+	require.NoError(t, err)
+
+	firstBlockRuntimeVersion, err := firstBlockRuntime.Version()
+	require.NoError(t, err)
+
 	require.Equal(t, genesisRuntimeVersion, firstBlockRuntimeVersion)
 
 	secondBlockRuntime, err := s.blockState.GetRuntime(secondBlockHash)
 	require.NoError(t, err)
 
 	const updatedSpecVersion = uint32(262)
-	secondBlockRuntimeVersion := secondBlockRuntime.Version()
+	secondBlockRuntimeVersion, err := secondBlockRuntime.Version()
+	require.NoError(t, err)
+
 	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
 }
 
