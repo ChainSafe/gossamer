@@ -92,8 +92,7 @@ type chainSync struct {
 	blockState BlockState
 	network    Network
 
-	workerPool      *syncWorkerPool
-	blockAnnounceCh chan announcedBlock
+	workerPool *syncWorkerPool
 
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
@@ -157,7 +156,6 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		minPeers:           cfg.minPeers,
 		slotDuration:       cfg.slotDuration,
 		workerPool:         newSyncWorkerPool(cfg.net),
-		blockAnnounceCh:    make(chan announcedBlock, cfg.maxPeers),
 		badBlocks:          cfg.badBlocks,
 	}
 }
@@ -309,6 +307,7 @@ func (cs *chainSync) requestImportedBlock(announce announcedBlock) error {
 		}
 
 		// ignore the block if it has the same or lower number
+		// TODO: is it following the protocol to send a blockAnnounce with number < highestFinalized number?
 		if announcedNumber <= highestFinalizedHeader.Number {
 			return nil
 		}

@@ -186,7 +186,7 @@ func (s *syncWorkerPool) getAvailablePeer() peer.ID {
 		}
 	}
 
-	//could not found an available peer to dispatch
+	//could not find an available peer to dispatch
 	return peer.ID("")
 }
 
