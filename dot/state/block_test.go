@@ -38,8 +38,6 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
 
-	bs.StoreRuntime(header.Hash(), nil)
-
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
 	tr := trie.NewEmptyTrie()
@@ -1017,7 +1015,6 @@ func TestRange(t *testing.T) {
 			}
 
 			blockState := tt.newBlockState(t, ctrl, genesisHeader)
-			blockState.StoreRuntime(genesisHeader.Hash(), nil)
 
 			testBlockBody := *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 			hashesCreated := make([]common.Hash, 0, tt.blocksToCreate)

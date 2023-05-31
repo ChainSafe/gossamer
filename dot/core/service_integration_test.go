@@ -538,9 +538,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
 }
 
-func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, ts *rtstorage.TrieState,
-	bs BlockState) (blockHash common.Hash) {
-	parentRt, err := bs.GetRuntime(bestBlockHash)
+func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState *rtstorage.TrieState,
+	blockState BlockState) (blockHash common.Hash) {
+	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(0), [32]byte{}, [64]byte{})
@@ -558,25 +558,25 @@ func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, ts *rts
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
-	err = bs.AddBlock(newBlock)
+	err = blockState.AddBlock(newBlock)
 	require.NoError(t, err)
 
 	newBlockHash := newBlock.Header.Hash()
-	err = bs.HandleRuntimeChanges(ts, parentRt, newBlockHash)
+	err = blockState.HandleRuntimeChanges(trieState, parentRt, newBlockHash)
 	require.NoError(t, err)
 
 	return newBlockHash
 }
 
 func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRuntimePath string,
-	ts *rtstorage.TrieState, bs BlockState) (blockHash common.Hash) {
-	parentRt, err := bs.GetRuntime(bestBlockHash)
+	trieState *rtstorage.TrieState, blockState BlockState) (blockHash common.Hash) {
+	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	testRuntime, err := os.ReadFile(newRuntimePath)
 	require.NoError(t, err)
 
-	ts.Put(common.CodeKey, testRuntime)
+	trieState.Put(common.CodeKey, testRuntime)
 
 	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(1), [32]byte{}, [64]byte{})
 	digest := types.NewDigest()
@@ -594,11 +594,11 @@ func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRunt
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
-	err = bs.AddBlock(newBlockRTUpdate)
+	err = blockState.AddBlock(newBlockRTUpdate)
 	require.NoError(t, err)
 
 	newBlockRTUpdateHash := newBlockRTUpdate.Header.Hash()
-	err = bs.HandleRuntimeChanges(ts, parentRt, newBlockRTUpdateHash)
+	err = blockState.HandleRuntimeChanges(trieState, parentRt, newBlockRTUpdateHash)
 	require.NoError(t, err)
 
 	return newBlockRTUpdateHash

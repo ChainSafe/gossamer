@@ -522,8 +522,6 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
 	require.NoError(t, err)
 
-	stateService.Block.StoreRuntime(genesisHeader.Hash(), nil)
-
 	inMemoryDB, err := chaindb.NewBadgerDB(&chaindb.Config{
 		InMemory: true,
 		DataDir:  t.TempDir(),

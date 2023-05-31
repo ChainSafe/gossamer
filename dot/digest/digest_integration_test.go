@@ -48,8 +48,6 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	stateSrvc.Block.StoreRuntime(genesisHeader.Hash(), nil)
-
 	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 	return dh, stateSrvc

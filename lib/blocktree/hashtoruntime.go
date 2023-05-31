@@ -61,7 +61,8 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 	}()
 
 	if len(h.mapping) == 0 {
-		panic("no runtimes available in the mapping while prunning")
+		logger.Warnf("no runtimes in the mapping")
+		return
 	}
 
 	finalisedHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]

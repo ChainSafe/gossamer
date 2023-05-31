@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -19,6 +20,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+var logger = log.NewFromGlobal(log.AddContext("pkg", "blocktree"))
 var (
 	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_block",
