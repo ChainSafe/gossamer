@@ -912,7 +912,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
 	// we search primarily in the blocktree so we ensure the
 	// fork aware property while searching for a runtime, however
-	// if there is no runtimes in that fork than we look for the
+	// if there is no runtimes in that fork then we look for the
 	// closest ancestor with a runtime instance
 	runtimeInstance, err := bs.bt.GetBlockRuntime(blockHash)
 	if errors.Is(err, blocktree.ErrRuntimeNotFound) {
@@ -923,8 +923,7 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instan
 	// it is a finalized node already persisted in database, so we
 	// should check if it is in the mapping or create a instance for it
 	if errors.Is(err, blocktree.ErrNodeNotFound) {
-		// TODO: https://github.com/ChainSafe/gossamer/issues/3066
-		panic("TODO: while getting a runtime but node does not exists")
+		panic(err.Error() + " see https://github.com/ChainSafe/gossamer/issues/3066")
 	}
 
 	return runtimeInstance, err
