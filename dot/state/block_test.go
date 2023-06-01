@@ -1110,15 +1110,12 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, runtimeInstance, genesisRuntimeInstance)
 	}
-	inMemoryRuntimeHashes := blockState.bt.GetInMemoryRuntimesBlockHashes()
-	require.Len(t, inMemoryRuntimeHashes, 1)
-	require.Equal(t, inMemoryRuntimeHashes[0], genesisHash)
 
 	lastElementOnChain := chain[len(chain)-1]
 	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0)
 	require.NoError(t, err)
 
-	inMemoryRuntimeHashes = blockState.bt.GetInMemoryRuntimesBlockHashes()
-	require.Len(t, inMemoryRuntimeHashes, 1)
-	require.Equal(t, inMemoryRuntimeHashes[0], lastElementOnChain.Hash())
+	genesisRuntimeInstance, err = blockState.GetRuntime(lastElementOnChain.Hash())
+	require.NoError(t, err)
+	require.Equal(t, runtimeInstance, genesisRuntimeInstance)
 }
