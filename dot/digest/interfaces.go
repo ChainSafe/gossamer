@@ -23,7 +23,7 @@ type BlockState interface {
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData)
-	StoreBABENextConfigData(epoch uint64, hash common.Hash, nextEpochData types.NextConfigData)
+	StoreBABENextConfigData(epoch uint64, hash common.Hash, nextEpochData types.NextConfigDataV1)
 	FinalizeBABENextEpochData(finalizedHeader *types.Header) error
 	FinalizeBABENextConfigData(finalizedHeader *types.Header) error
 }

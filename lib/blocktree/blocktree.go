@@ -12,9 +12,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -357,15 +359,7 @@ func (bt *BlockTree) Leaves() []Hash {
 	defer bt.RUnlock()
 
 	lm := bt.leaves.toMap()
-	la := make([]common.Hash, len(lm))
-	i := 0
-
-	for k := range lm {
-		la[i] = k
-		i++
-	}
-
-	return la
+	return maps.Keys(lm)
 }
 
 // LowestCommonAncestor returns the lowest common ancestor block hash between two blocks in the tree.
@@ -511,12 +505,12 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
+func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
 	bt.runtimes.set(hash, in)
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
 	ins := bt.runtimes.get(hash)
 	if ins == nil {
 		return nil, fmt.Errorf("%w for hash %s", ErrFailedToGetRuntime, hash)

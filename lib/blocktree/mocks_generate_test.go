@@ -3,4 +3,4 @@
 
 package blocktree
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . Runtime
+//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance

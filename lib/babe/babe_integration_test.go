@@ -41,12 +41,11 @@ func TestService_ProducesBlocks(t *testing.T) {
 		Return(nil).MinTimes(2)
 	cfg := ServiceConfig{
 		Authority:          true,
-		Lead:               true,
 		BlockImportHandler: blockImportHandler,
 	}
 
 	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader, nil)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -90,8 +89,9 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
+	cfg := ServiceConfig{}
 	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
+	bs := createTestService(t, cfg, gen, genTrie, genHeader, nil)
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -99,8 +99,9 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
+	cfg := ServiceConfig{}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
 	err := babeService.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -127,16 +128,13 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Since this test and TestService_HandleSlotWithSameSlot are very similar, improve this one along with it in #3060
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
-	t.Skip()
 	cfg := ServiceConfig{
 		Authority: true,
-		Lead:      true,
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -150,13 +148,17 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
+	bestBlockHeader, err := babeService.blockState.GetHeader(bestBlockHash)
+	require.NoError(t, err)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Now())
+	timestamp := time.Unix(6, 0)
+	slot := getSlot(t, rt, timestamp)
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
+	block := createTestBlockWithSlot(t, babeService, bestBlockHeader, [][]byte{common.MustHexToBytes(ext)},
 		testEpochIndex, epochData, slot)
 
 	err = babeService.blockState.AddBlock(block)
@@ -197,91 +199,55 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.ErrorIs(t, err, errLaggingSlot)
 }
 
-// TODO Rewrite this test to utilise westend. Since its built for 2 nodes, doesnt work with existing setup #3060
 func TestService_HandleSlotWithSameSlot(t *testing.T) {
-	t.Skip()
-	alice := keyring.Alice().(*sr25519.Keypair)
-	bob := keyring.Bob().(*sr25519.Keypair)
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	const authorityIndex = 0
 
-	// Create babe service for alice
-	cfgAlice := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-		Keypair:   alice,
-		AuthData: []types.Authority{
-			{
-				Key:    alice.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-			{
-				Key:    bob.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-		},
-	}
+	bestBlockHash := babeService.blockState.BestBlockHash()
+	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
 
-	// Create babe service for bob
+	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	require.NoError(t, err)
+
+	slot := getSlot(t, runtime, time.Unix(6, 0))
+	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
+	require.NoError(t, err)
+
+	builder := NewBlockBuilder(
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		authorityIndex,
+		preRuntimeDigest,
+	)
+
+	block, err := builder.buildBlock(&genesisHeader, slot, runtime)
+	require.NoError(t, err)
+
+	// Create new non authority service
 	cfgBob := ServiceConfig{
-		Authority: true,
-		Lead:      true,
-		Keypair:   bob,
-		AuthData: []types.Authority{
-			{
-				Key:    alice.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-			{
-				Key:    bob.Public().(*sr25519.PublicKey),
-				Weight: 1,
-			},
-		},
+		Keypair: keyring.Bob().(*sr25519.Keypair),
 	}
-
 	genBob, genTrieBob, genHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob)
+	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, nil)
 
-	err := babeServiceBob.Start()
+	// Add block created by alice to bob
+	err = babeServiceBob.blockState.AddBlock(block)
 	require.NoError(t, err)
-	defer func() {
-		_ = babeServiceBob.Stop()
-	}()
-
-	// wait till bob creates a block
-	time.Sleep(babeServiceBob.constants.slotDuration)
-	require.NoError(t, err)
-
-	block, err := babeServiceBob.blockState.GetBlockByNumber(1)
-	require.NoError(t, err)
-
-	err = babeServiceBob.Stop()
-	require.NoError(t, err)
-
-	time.Sleep(babeServiceBob.constants.slotDuration)
-
-	genAlice, genTrieAlice, genHeaderAlice := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceAlice := createTestService(t, cfgAlice, genAlice, genTrieAlice, genHeaderAlice)
-
-	// Add block created by Bob to Alice
-	err = babeServiceAlice.blockState.AddBlock(block)
-	require.NoError(t, err)
-
-	time.Sleep(babeServiceBob.constants.slotDuration)
-
-	bestBlockHeader, err := babeServiceAlice.blockState.BestBlockHeader()
-	require.NoError(t, err)
-	require.Equal(t, block.Header.Hash(), bestBlockHeader.Hash())
 
 	// If the slot we are claiming is the same as the slot of the best block header, test that we can
 	// still claim the slot without error.
-	bestBlockSlotNum, err := babeServiceAlice.blockState.GetSlotForBlock(bestBlockHeader.Hash())
+	bestBlockSlotNum, err := babeServiceBob.blockState.GetSlotForBlock(block.Header.Hash())
 	require.NoError(t, err)
 
-	slot := Slot{
-		start:    time.Now(),
-		duration: time.Second,
+	slot = Slot{
+		start:    time.Unix(6, 0),
+		duration: babeServiceBob.constants.slotDuration * time.Millisecond,
 		number:   bestBlockSlotNum,
 	}
-	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+	preRuntimeDigest, err = types.NewBabePrimaryPreDigest(
 		0, slot.number,
 		[sr25519.VRFOutputLength]byte{},
 		[sr25519.VRFProofLength]byte{},
@@ -290,7 +256,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	// slot gets occupied even if it has been occupied by a block
 	// authored by someone else
-	err = babeServiceAlice.handleSlot(
+	err = babeServiceBob.handleSlot(
 		testEpochIndex,
 		slot,
 		0,

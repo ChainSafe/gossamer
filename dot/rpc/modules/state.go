@@ -23,7 +23,7 @@ type StateGetReadProofRequest struct {
 // StateCallRequest holds json fields
 type StateCallRequest struct {
 	Method string       `json:"method"`
-	Data   []byte       `json:"data"`
+	Params string       `json:"params"`
 	Block  *common.Hash `json:"block"`
 }
 
@@ -76,11 +76,17 @@ type StateStorageQueryRangeRequest struct {
 	EndBlock   common.Hash `json:"block"`
 }
 
+// StateStorageQueryAtRequest holds json fields
+type StateStorageQueryAtRequest struct {
+	Keys []string    `json:"keys" validate:"required"`
+	At   common.Hash `json:"at"`
+}
+
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
-// StateCallResponse holds json fields
-type StateCallResponse []byte
+// StateCallResponse holds the result of the call
+type StateCallResponse string
 
 // StateKeysResponse field to store the state keys
 type StateKeysResponse [][]byte
@@ -239,10 +245,31 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	return nil
 }
 
-// Call isn't implemented properly yet.
-func (sm *StateModule) Call(_ *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
-	_ = sm.networkAPI
-	_ = sm.storageAPI
+// Call makes a call to the runtime.
+func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCallResponse) error {
+	var blockHash common.Hash
+	if req.Block == nil {
+		blockHash = sm.blockAPI.BestBlockHash()
+	} else {
+		blockHash = *req.Block
+	}
+
+	rt, err := sm.blockAPI.GetRuntime(blockHash)
+	if err != nil {
+		return fmt.Errorf("get runtime: %w", err)
+	}
+
+	request, err := common.HexToBytes(req.Params)
+	if err != nil {
+		return fmt.Errorf("convert hex to bytes: %w", err)
+	}
+
+	response, err := rt.Exec(req.Method, request)
+	if err != nil {
+		return fmt.Errorf("runtime exec: %w", err)
+	}
+
+	*res = StateCallResponse(common.BytesToHex(response))
 	return nil
 }
 
@@ -467,10 +494,13 @@ func (sm *StateModule) QueryStorage(
 			var hexValue *string
 			if len(value) > 0 {
 				hexValue = stringPtr(common.BytesToHex(value))
+			} else if value != nil { // empty byte slice value
+				hexValue = stringPtr("0x")
 			}
 
 			differentValueEncountered := i == startBlockNumber ||
 				lastValue[j] == nil && hexValue != nil ||
+				lastValue[j] != nil && hexValue == nil ||
 				lastValue[j] != nil && *lastValue[j] != *hexValue
 			if differentValueEncountered {
 				changes = append(changes, [2]*string{stringPtr(key), hexValue})
@@ -486,6 +516,40 @@ func (sm *StateModule) QueryStorage(
 	}
 
 	*res = response
+	return nil
+}
+
+// QueryStorageAt queries historical storage entries (by key) at the block hash given or
+// the best block if the given block hash is nil
+func (sm *StateModule) QueryStorageAt(
+	_ *http.Request, request *StateStorageQueryAtRequest, response *[]StorageChangeSetResponse) error {
+	atBlockHash := request.At
+	if atBlockHash.IsEmpty() {
+		atBlockHash = sm.blockAPI.BestBlockHash()
+	}
+
+	changes := make([][2]*string, len(request.Keys))
+
+	for i, key := range request.Keys {
+		value, err := sm.storageAPI.GetStorageByBlockHash(&atBlockHash, common.MustHexToBytes(key))
+		if err != nil {
+			return fmt.Errorf("getting value by block hash: %w", err)
+		}
+		var hexValue *string
+		if len(value) > 0 {
+			hexValue = stringPtr(common.BytesToHex(value))
+		} else if value != nil { // empty byte slice value
+			hexValue = stringPtr("0x")
+		}
+
+		changes[i] = [2]*string{stringPtr(key), hexValue}
+	}
+
+	*response = []StorageChangeSetResponse{{
+		Block:   &atBlockHash,
+		Changes: changes,
+	}}
+
 	return nil
 }
 

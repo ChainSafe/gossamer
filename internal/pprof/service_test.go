@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,13 +18,13 @@ func Test_NewService(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
-	settings := Settings{}
 	logger := NewMockLogger(ctrl)
 
-	service := NewService(settings, logger)
+	pprofConfig := westenddev.DefaultConfig().Pprof
+	service := NewService(*pprofConfig, logger)
 
 	expectedSettings := Settings{
-		ListeningAddress: "localhost:6060",
+		ListeningAddress: pprofConfig.ListeningAddress,
 	}
 	assert.Equal(t, expectedSettings, service.settings)
 	assert.NotNil(t, service.server)

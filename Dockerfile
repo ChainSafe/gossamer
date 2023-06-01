@@ -42,10 +42,6 @@ FROM debian:${DEBIAN_VERSION}
 
 WORKDIR /gossamer
 
-# Install libwasmer.so
-ENV LD_LIBRARY_PATH=/lib:/usr/lib
-COPY --from=builder /go/src/github.com/ChainSafe/gossamer/libwasmer.so /lib/libwasmer.so
-
 EXPOSE 7001 8546 8540
 
 ENTRYPOINT [ "/gossamer/bin/gossamer" ]

@@ -55,6 +55,7 @@ type chainProcessorConfig struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
@@ -92,7 +93,7 @@ func (s *chainProcessor) processReadyBlocks() {
 
 		if err := s.processBlockData(*bd); err != nil {
 			// depending on the error, we might want to save this block for later
-			if !errors.Is(err, errFailedToGetParent) {
+			if !errors.Is(err, errFailedToGetParent) && !errors.Is(err, blocktree.ErrParentNotFound) {
 				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
 				continue
 			}

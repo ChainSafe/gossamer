@@ -761,7 +761,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 	const authorityIndex = uint32(1)
 	offenderPublicKey := verifier5.authorities[authorityIndex].ToRaw().Key
 	keyOwnershipProof := testKeyOwnershipProof
-	mockRuntime := mocks.NewMockRuntimeInstance(gomock.NewController(t))
+	mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
 	testHeader5.Hash()
 
 	equivocationProof := types.BabeEquivocationProof{
@@ -771,7 +771,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 		SecondHeader: *testHeader5,
 	}
 
-	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(1)
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil)
 	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
 
 	mockBlockState5.EXPECT().GetRuntime(existingHeader.Hash()).Return(mockRuntime, nil)
@@ -909,7 +909,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 
 	offenderPublicKey := verifier.authorities[authorityIndex].ToRaw().Key
 	keyOwnershipProof := testKeyOwnershipProof
-	mockRuntime := mocks.NewMockRuntimeInstance(ctrl)
+	mockRuntime := mocks.NewMockInstance(ctrl)
 
 	equivocationProof := types.BabeEquivocationProof{
 		Offender:     offenderPublicKey,
@@ -917,7 +917,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 		FirstHeader:  *firstHeader,
 		SecondHeader: *secondHeader,
 	}
-	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(1)
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil)
 	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
 
 	mockBlockState.EXPECT().BestBlockHash().Return(firstHash).Times(2)
@@ -1007,7 +1007,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	const authorityIndex = uint32(1)
 	offenderPublicKey := types.AuthorityID(verifierEquivocatoryPrimary.authorities[authorityIndex].ToRaw().Key)
 	keyOwnershipProof := testKeyOwnershipProof
-	mockRuntime := mocks.NewMockRuntimeInstance(gomock.NewController(t))
+	mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
 
 	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(3)
 	// equivocationProof changes inside verifyAuthorshipRight, so we can't keep the current value.
