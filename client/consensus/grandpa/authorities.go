@@ -104,8 +104,6 @@ func (authSet *AuthoritySet) InvalidAuthorityList(authorities AuthorityList) boo
 
 type predicate[T any] func(T) bool
 
-//type Predicate func(h1 common.Hash, h2 common.Hash) (bool, error)
-
 // IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
 type IsDescendentOf func(h1 common.Hash, h2 common.Hash) (bool, error)
 
@@ -177,11 +175,13 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 	)
 
 	// Insert change at index
-	p1 := authSet.pendingForcedChanges[:idx]
-	p2 := []PendingChange{pending}
-	p2 = append(p2, authSet.pendingForcedChanges[idx:]...)
-	p1 = append(p1, p2...)
-	authSet.pendingForcedChanges = p1
+	if len(authSet.pendingForcedChanges) <= idx {
+		authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, pending)
+	} else {
+		authSet.pendingForcedChanges = append(
+			authSet.pendingForcedChanges[:idx+1], authSet.pendingForcedChanges[idx:]...)
+		authSet.pendingForcedChanges[idx] = pending
+	}
 
 	logger.Debugf(
 		"there are now %d pending forced changes",
@@ -273,48 +273,47 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 		return status, err
 	}
 
-	if finalizationResult != nil {
-		// Changed Case
-		status.changed = true
+	if finalizationResult == nil {
+		return status, nil
+	}
 
-		// Flush pending forced changes to re add
-		pendingForcedChanges := authSet.pendingForcedChanges
-		authSet.pendingForcedChanges = []PendingChange{}
+	// Changed Case
+	status.changed = true
 
-		// we will keep all forced changes for any later blocks and that are a
-		// descendent of the finalized block (i.e. they are part of this branch).
-		for i := 0; i < len(pendingForcedChanges); i++ {
-			forcedChange := pendingForcedChanges[i]
-			isDesc, err := isDescendentOf(finalizedHash, forcedChange.canonHash)
-			if err != nil {
-				return status, err
-			}
-			if forcedChange.EffectiveNumber() > finalizedNumber && isDesc {
-				authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, forcedChange)
-			}
+	// Flush pending forced changes to re add
+	pendingForcedChanges := authSet.pendingForcedChanges
+	authSet.pendingForcedChanges = []PendingChange{}
+
+	// we will keep all forced changes for any later blocks and that are a
+	// descendent of the finalized block (i.e. they are part of this branch).
+	for i := 0; i < len(pendingForcedChanges); i++ {
+		forcedChange := pendingForcedChanges[i]
+		isDesc, err := isDescendentOf(finalizedHash, forcedChange.canonHash)
+		if err != nil {
+			return status, err
 		}
-
-		if finalizationResult.value != nil {
-			// TODO add grandpa log
-
-			// TODO add telemetry
-
-			authoritySetChange := AuthorityChange{
-				setId:       authSet.setId,
-				blockNumber: finalizedNumber,
-			}
-			authSet.authoritySetChanges = append(authSet.authoritySetChanges, authoritySetChange)
-			authSet.currentAuthorities = finalizationResult.value.nextAuthorities
-			authSet.setId++
-
-			status.newSetBlock = &newSetBlockInfo{
-				newSetBlockNumber: finalizedNumber,
-				newSetBlockHash:   finalizedHash,
-			}
+		if forcedChange.EffectiveNumber() > finalizedNumber && isDesc {
+			authSet.pendingForcedChanges = append(authSet.pendingForcedChanges, forcedChange)
 		}
+	}
 
-	} else {
-		// Do nothing if not changed
+	if finalizationResult.value != nil {
+		// TODO add grandpa log
+
+		// TODO add telemetry
+
+		authoritySetChange := AuthorityChange{
+			setId:       authSet.setId,
+			blockNumber: finalizedNumber,
+		}
+		authSet.authoritySetChanges = append(authSet.authoritySetChanges, authoritySetChange)
+		authSet.currentAuthorities = finalizationResult.value.nextAuthorities
+		authSet.setId++
+
+		status.newSetBlock = &newSetBlockInfo{
+			newSetBlockNumber: finalizedNumber,
+			newSetBlockHash:   finalizedHash,
+		}
 	}
 
 	return status, nil

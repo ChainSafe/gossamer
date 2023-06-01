@@ -13,6 +13,10 @@ import (
 	TODO give a summary of how this works in context of grandpa
 */
 
+var (
+	errDuplicateHashes = errors.New("duplicated hashes")
+)
+
 // Represents a node in the ChangeTree
 type pendingChangeNode struct {
 	change   *PendingChange
@@ -22,7 +26,7 @@ type pendingChangeNode struct {
 func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error) {
 	announcingHash := pcn.change.canonHash
 	if hash == announcingHash {
-		return false, fmt.Errorf("%w: %s", errors.New("duplicated hashes"), hash)
+		return false, fmt.Errorf("%w: %s", errDuplicateHashes, hash)
 	}
 
 	isDescendant, err := isDescendentOf(announcingHash, hash)
@@ -117,14 +121,14 @@ func (ct *ChangeTree) GetPreOrder() []PendingChange {
 		return nil
 	}
 
-	changes := &[]PendingChange{}
+	changes := make([]PendingChange, 0, len(ct.roots))
 
 	// this is basically a preorder search with rotating roots
 	for i := 0; i < len(ct.roots); i++ {
-		getPreOrder(changes, ct.roots[i])
+		getPreOrder(&changes, ct.roots[i])
 	}
 
-	return *changes
+	return changes
 }
 
 func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
@@ -175,8 +179,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	// find a valid root that passes the predicate then we must ensure that
 	// we're not finalizing past any children node.
 	var position *uint
-	for i := 0; i < len(roots); i++ {
-		root := roots[i]
+	for i, root := range roots {
 		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
 		if err != nil {
 			return nil, err
@@ -215,9 +218,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	roots = ct.Roots()
 
 	ct.roots = []*pendingChangeNode{}
-	for i := 0; i < len(roots); i++ {
-		root := roots[i]
-
+	for _, root := range roots {
 		retain := false
 		if root.change.canonHeight > number {
 			isDescA, err := isDescendentOf(*hash, root.change.canonHash)
