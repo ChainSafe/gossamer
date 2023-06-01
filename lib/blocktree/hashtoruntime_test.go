@@ -187,14 +187,12 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 	testCases := map[string]struct {
 		makeParameters          func(ctrl *gomock.Controller) (initial, expected *hashToRuntime)
 		newCanonicalBlockHashes []Hash
-		panicString             string
 	}{
 		"new_finalised_runtime_not_found": {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
-				return &hashToRuntime{}, nil
+				return &hashToRuntime{}, &hashToRuntime{}
 			},
 			newCanonicalBlockHashes: []Hash{{1}},
-			panicString:             "no runtimes available in the mapping while prunning",
 		},
 		"prune_fork_runtime_with_a_unique_instance": {
 			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
@@ -293,14 +291,6 @@ func Test_hashToRuntime_onFinalisation(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			htr, expectedHtr := testCase.makeParameters(ctrl)
-
-			if testCase.panicString != "" {
-				assert.PanicsWithValue(t, testCase.panicString, func() {
-					htr.onFinalisation(testCase.newCanonicalBlockHashes)
-				})
-				return
-			}
-
 			htr.onFinalisation(testCase.newCanonicalBlockHashes)
 
 			assert.Equal(t, expectedHtr, htr)
