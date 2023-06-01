@@ -32,14 +32,14 @@ func (h *hashToRuntime) set(hash Hash, instance runtime.Instance) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	h.mapping[hash] = instance
-	inMemoryRuntimesGauge.Set(float64(len(h.mapping)))
+	inMemoryRuntimesGauge.Inc()
 }
 
 func (h *hashToRuntime) delete(hash Hash) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	delete(h.mapping, hash)
-	inMemoryRuntimesGauge.Set(float64(len(h.mapping)))
+	inMemoryRuntimesGauge.Dec()
 }
 
 func (h *hashToRuntime) hashes() (hashes []common.Hash) {
@@ -67,8 +67,7 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 
 	finalisedHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]
 	// if there is only one runtime in the mapping then we should update
-	// its key so the `isDescendant` method at `closestAncestorWithInstance`
-	// don't need to lookup the entire chain in order to find the ancestry
+	// its key so we don't need to lookup the entire chain in order to find the ancestry
 	if len(h.mapping) == 1 {
 		uniqueAvailableInstance := maps.Values(h.mapping)[0]
 
@@ -79,9 +78,8 @@ func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 
 	// we procced from backwards since the last element in the newCanonicalBlockHashes
 	// is the finalized one, verifying if there is a runtime instance closest to the finalized
-	// hash. when we find it we clear all the map entries and keeping only the instance found
+	// hash. When we find it we clear all the map entries and keeping only the instance found
 	// with the finalised hash as the key
-
 	lastElementIdx := len(newCanonicalBlockHashes) - 1
 	for idx := lastElementIdx; idx >= 0; idx-- {
 		currentHash := newCanonicalBlockHashes[idx]

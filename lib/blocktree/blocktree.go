@@ -28,9 +28,9 @@ var (
 		Help:      "total number of blocktree leaves",
 	})
 	inMemoryRuntimesGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "gossamer_inmemory",
+		Namespace: "gossamer_blocktree",
 		Name:      "runtimes_total",
-		Help:      "total number of runtimes stored by in-memory blocktree",
+		Help:      "total number of runtimes stored in the in-memory blocktree",
 	})
 	errAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
 	ErrRuntimeNotFound          = errors.New("runtime not found")
@@ -44,7 +44,6 @@ type BlockTree struct {
 	root   *node
 	leaves *leafMap
 	sync.RWMutex
-
 	runtimes *hashToRuntime
 }
 
@@ -533,8 +532,8 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, instance runtime.Instance) {
 	bt.runtimes.set(hash, instance)
 }
 
-// GetBlockRuntime returns block runtime for corresponding block hash, if there is no instance for
-// the given block hash it will lookup an instance of an ancestor and returns it.
+// GetBlockRuntime returns the runtime corresponding to the given block hash. If there is no instance for
+// the given block hash it will lookup an instance of an ancestor and return it.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
 	// if the current node contains a runtime entry in the runtime mapping
 	// then we early return the instance, otherwise we will lookup for the
@@ -549,7 +548,7 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 
 	currentNode := bt.getNode(hash)
 	if currentNode == nil {
-		return nil, fmt.Errorf("%w: %s", ErrNodeNotFound, hash)
+		return nil, fmt.Errorf("%w: for block hash %s", ErrNodeNotFound, hash)
 	}
 
 	currentNode = currentNode.parent
@@ -563,20 +562,4 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 	}
 
 	return nil, nil
-}
-
-// GetInMemoryRuntimesBlockHashes returns all the runtimes mapping keys
-func (bt *BlockTree) GetInMemoryRuntimesBlockHashes() []common.Hash {
-	return bt.runtimes.hashes()
-}
-
-// GetBlockRuntimeOrFail returns block runtime for corresponding block hash. if there is no instance
-// fot the given block hash it returns ErrRuntimeNotFound
-func (bt *BlockTree) GetBlockRuntimeOrFail(hash common.Hash) (instance runtime.Instance, err error) {
-	instance = bt.runtimes.get(hash)
-	if instance == nil {
-		return nil, fmt.Errorf("%w: instance not found for %s", ErrRuntimeNotFound, hash)
-	}
-
-	return instance, nil
 }
