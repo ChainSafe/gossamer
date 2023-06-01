@@ -30,5 +30,8 @@ func DefaultConfig() *cfg.Config {
 	config.Core.Role = 1
 	config.Network.NoMDNS = false
 
+	config.Log.Digest = "trace"
+	config.Log.Sync = "trace"
+
 	return config
 }

@@ -457,11 +457,15 @@ func (cs *chainSync) executeBootstrapSync() error {
 	}
 	startRequestAt := bestBlockHeader.Number + 1
 
+	const maxRequestsAllowed = 50
 	// we build the set of requests based on the amount of available peers
 	// in the worker pool, if we have more peers than `maxRequestAllowed`
 	// so we limit to `maxRequestAllowed` to avoid the error:
 	// cannot reserve outbound connection: resource limit exceeded
 	availableWorkers := cs.workerPool.totalWorkers()
+	if availableWorkers > maxRequestsAllowed {
+		availableWorkers = maxRequestsAllowed
+	}
 
 	// targetBlockNumber is the virtual target we will request, however
 	// we should bound it to the real target which is collected through
