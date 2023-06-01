@@ -401,12 +401,12 @@ func Test_decodeHeaderByte(t *testing.T) {
 		},
 		"leaf_containing_hashes_header": {
 			header:                 0b0011_1001,
-			nodeVariant:            leafContainingHashesVariant,
+			nodeVariant:            leafWithHashedValueVariant,
 			partialKeyLengthHeader: 0b0001_1001,
 		},
 		"branch_containing_hashes_header": {
 			header:                 0b0001_1001,
-			nodeVariant:            branchContainingHashesVariant,
+			nodeVariant:            branchWithHashedValueVariant,
 			partialKeyLengthHeader: 0b0000_1001,
 		},
 		"compact_encoding_header": {

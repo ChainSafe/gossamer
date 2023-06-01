@@ -145,13 +145,13 @@ var ErrVariantUnknown = errors.New("node variant is unknown")
 // the decodeHeaderByte function below.
 // For 7 variants, the performance is improved by ~20%.
 var variantsOrderedByBitMask = [...]variant{
-	leafVariant,                   // mask 1100_0000
-	branchVariant,                 // mask 1100_0000
-	branchWithValueVariant,        // mask 1100_0000
-	leafContainingHashesVariant,   // mask 1110_0000
-	branchContainingHashesVariant, // mask 1111_0000
-	emptyVariant,                  // mask 1111_1111
-	compactEncodingVariant,        // mask 1111_1111
+	leafVariant,                  // mask 1100_0000
+	branchVariant,                // mask 1100_0000
+	branchWithValueVariant,       // mask 1100_0000
+	leafWithHashedValueVariant,   // mask 1110_0000
+	branchWithHashedValueVariant, // mask 1111_0000
+	emptyVariant,                 // mask 1111_1111
+	compactEncodingVariant,       // mask 1111_1111
 }
 
 func decodeHeaderByte(header byte) (nodeVariant variant,

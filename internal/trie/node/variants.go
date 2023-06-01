@@ -23,11 +23,11 @@ var (
 		bits: 0b1100_0000,
 		mask: 0b1100_0000,
 	}
-	leafContainingHashesVariant = variant{ // leaf containing hashes 001
+	leafWithHashedValueVariant = variant{ // leaf containing hashes 001
 		bits: 0b0010_0000,
 		mask: 0b1110_0000,
 	}
-	branchContainingHashesVariant = variant{ // branch containing hashes 0001
+	branchWithHashedValueVariant = variant{ // branch containing hashes 0001
 		bits: 0b0001_0000,
 		mask: 0b1111_0000,
 	}
