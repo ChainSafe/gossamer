@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -915,66 +914,18 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instan
 	// if there is no runtimes in that fork then we look for the
 	// closest ancestor with a runtime instance
 	runtimeInstance, err := bs.bt.GetBlockRuntime(blockHash)
-	if errors.Is(err, blocktree.ErrRuntimeNotFound) {
-		return bs.closestAncestorWithInstance(blockHash)
-	}
 
-	// in this case the node is not in the blocktree which mean
-	// it is a finalized node already persisted in database, so we
-	// should check if it is in the mapping or create a instance for it
-	if errors.Is(err, blocktree.ErrNodeNotFound) {
-		panic(err.Error() + " see https://github.com/ChainSafe/gossamer/issues/3066")
-	}
-
-	return runtimeInstance, err
-}
-
-func (bs *BlockState) closestAncestorWithInstance(blockHash common.Hash) (instance runtime.Instance, err error) {
-	allHashesInMapping := bs.bt.GetInMemoryRuntimesBlockHashes()
-	if len(allHashesInMapping) == 0 {
-		panic("no runtime instances available")
-	}
-
-	if len(allHashesInMapping) == 1 {
-		return bs.bt.GetBlockRuntime(allHashesInMapping[0])
-	}
-
-	allHeaders := make([]types.Header, len(allHashesInMapping))
-	for idx, hashInMapping := range allHashesInMapping {
-		header, err := bs.GetHeader(hashInMapping)
-		if err != nil {
-			return nil, fmt.Errorf("getting header: %w", err)
+	if err != nil {
+		// in this case the node is not in the blocktree which mean
+		// it is a finalized node already persisted in database
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
+			panic(err.Error() + " see https://github.com/ChainSafe/gossamer/issues/3066")
 		}
 
-		allHeaders[idx] = *header
+		return nil, fmt.Errorf("while getting runtime: %w", err)
 	}
 
-	if len(allHeaders) > 1 {
-		// sort the slice using the descending order
-		sort.Slice(allHeaders, func(i, j int) bool {
-			return allHeaders[i].Number > allHeaders[j].Number
-		})
-	}
-
-	for _, header := range allHeaders {
-		isDescendant, err := bs.IsDescendantOf(header.Hash(), blockHash)
-		if err != nil {
-			return nil, fmt.Errorf("checking ancestry: %w", err)
-		}
-
-		// since all the headers are sorted in descending block number order
-		// the first ancestor will have the highest number which means it is
-		// the closest ancestor with an instance
-		if isDescendant {
-			runtimeInstance, err := bs.bt.GetBlockRuntimeOrFail(header.Hash())
-			if err != nil {
-				return nil, fmt.Errorf("getting runtime: %w", err)
-			}
-			return runtimeInstance, nil
-		}
-	}
-
-	return nil, fmt.Errorf("closest ancestor runtime not found for %s", blockHash)
+	return runtimeInstance, nil
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.

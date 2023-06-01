@@ -318,7 +318,7 @@ func (bt *BlockTree) String() string {
 
 	// Format leaves
 	var leaves string
-	bt.leaves.smap.Range(func(hash, node interface{}) bool {
+	bt.leaves.smap.Range(func(hash, _ interface{}) bool {
 		leaves = leaves + fmt.Sprintf("%s\n", hash.(Hash))
 		return true
 	})
@@ -562,7 +562,7 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 		currentNode = currentNode.parent
 	}
 
-	return nil, ErrRuntimeNotFound
+	return nil, nil
 }
 
 // GetInMemoryRuntimesBlockHashes returns all the runtimes mapping keys
