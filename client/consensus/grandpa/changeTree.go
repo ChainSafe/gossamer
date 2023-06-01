@@ -72,8 +72,8 @@ type ChangeTree struct {
 }
 
 // NewChangeTree create an empty ChangeTree
-func NewChangeTree() ChangeTree {
-	return ChangeTree{}
+func NewChangeTree() *ChangeTree {
+	return &ChangeTree{}
 }
 
 // Import a new node into the roots.
@@ -391,4 +391,8 @@ func (ct *ChangeTree) swapRemove(roots []*pendingChangeNode, index uint) pending
 	newRoots[index] = lastElem
 	ct.roots = newRoots
 	return val
+}
+
+func (ct *ChangeTree) DrainFilter() {
+	// TODO implement
 }
