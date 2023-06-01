@@ -174,13 +174,42 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 		}
 	}
 
+	roots := ct.Roots()
+
 	// check if the given hash is equal or a descendent of any node in the
 	// tree, if we find a valid node that passes the predicate then we must
 	// ensure that we're not finalizing past any of its child nodes.
 
-	// TODO impl
-	implemented := false
-	return &implemented, nil
+	// They reverse but I dont think we need to
+	// I think its just roots but not 100%
+	for i := 0; i < len(roots); i++ {
+		root := roots[i]
+		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
+		if err != nil {
+			return nil, err
+		}
+		if predicate(root.change) && (root.change.canonHash == *hash || isDesc) {
+			children := root.children
+			for _, child := range children {
+				isChildDescOf, err := isDescendentOf(child.change.canonHash, *hash)
+				if err != nil {
+					return nil, err
+				}
+				if child.change.canonHeight <= number && child.change.canonHash == *hash || isChildDescOf {
+					return nil, errUnfinalizedAncestor
+				}
+			}
+
+			for _, val := range roots {
+				if val.change.canonHash == root.change.canonHash {
+					isEqual := true
+					return &isEqual, nil
+				}
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 // FinalizeWithDescendentIf Finalize a root in the roots by either finalizing the node itself or a
