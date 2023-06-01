@@ -59,7 +59,7 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	if mem.Size() <= ptrOffset {
 		_, ok := mem.Grow(((ptrOffset - mem.Size()) / PageSize) + 1)
 		if !ok {
-			panic("wtf?")
+			panic("exceeds max memory definition")
 		}
 	}
 
@@ -177,19 +177,20 @@ func (fbha *FreeingBumpHeapAllocator) bump(qty uint32) uint32 {
 
 func (fbha *FreeingBumpHeapAllocator) setHeap(ptr uint32, value uint8) {
 	if !fbha.heap.WriteByte(fbha.ptrOffset+ptr, value) {
-		panic("wtf?")
+		panic("write: out of range")
 	}
 }
 
 func (fbha *FreeingBumpHeapAllocator) setHeap4bytes(ptr uint32, value []byte) {
 	if !fbha.heap.Write(fbha.ptrOffset+ptr, value) {
-		panic("wtf")
+		panic("write: out of range")
 	}
 }
+
 func (fbha *FreeingBumpHeapAllocator) getHeap4bytes(ptr uint32) []byte {
 	bytes, ok := fbha.heap.Read(fbha.ptrOffset+ptr, 4)
 	if !ok {
-		panic("wtf?")
+		panic("read: out of range")
 	}
 	return bytes
 }
@@ -197,7 +198,7 @@ func (fbha *FreeingBumpHeapAllocator) getHeap4bytes(ptr uint32) []byte {
 func (fbha *FreeingBumpHeapAllocator) getHeapByte(ptr uint32) byte {
 	b, ok := fbha.heap.ReadByte(fbha.ptrOffset + ptr)
 	if !ok {
-		panic("wtf?")
+		panic("read: out of range")
 	}
 	return b
 }
