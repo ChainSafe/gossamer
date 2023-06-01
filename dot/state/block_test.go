@@ -1115,7 +1115,7 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0)
 	require.NoError(t, err)
 
-	genesisRuntimeInstance, err = blockState.GetRuntime(lastElementOnChain.Hash())
+	sameRuntimeOnDiffHash, err := blockState.GetRuntime(lastElementOnChain.Hash())
 	require.NoError(t, err)
-	require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+	require.Equal(t, runtimeInstance, sameRuntimeOnDiffHash)
 }
