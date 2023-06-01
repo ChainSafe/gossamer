@@ -152,6 +152,41 @@ func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
 	}
 }
 
+// GetPreOrderChangeNodes does a preorder traversal of the ChangeTree to get all pending changes
+func (ct *ChangeTree) GetPreOrderChangeNodes() []*pendingChangeNode {
+	if len(ct.roots) == 0 {
+		return nil
+	}
+
+	changes := &[]*pendingChangeNode{}
+
+	// this is basically a preorder search with rotating roots
+	for i := 0; i < len(ct.roots); i++ {
+		getPreOrderChangeNodes(changes, ct.roots[i])
+	}
+
+	return *changes
+}
+
+func getPreOrderChangeNodes(changes *[]*pendingChangeNode, changeNode *pendingChangeNode) {
+	if changeNode == nil {
+		return
+	}
+
+	if changes != nil {
+		tempChanges := *changes
+		tempChanges = append(tempChanges, changeNode)
+		*changes = tempChanges
+	} else {
+		change := []*pendingChangeNode{changeNode}
+		changes = &change
+	}
+
+	for i := 0; i < len(changeNode.children); i++ {
+		getPreOrderChangeNodes(changes, changeNode.children[i])
+	}
+}
+
 // FinalizationResult Result of finalizing a node (that could be a part of the roots or not).
 // When the struct is nil its the unchanged case, when its not its been changed and contains an optional value
 type FinalizationResult struct {
@@ -176,18 +211,21 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 
 	roots := ct.Roots()
 
+	nodes := ct.GetPreOrderChangeNodes()
+
 	// check if the given hash is equal or a descendent of any node in the
 	// tree, if we find a valid node that passes the predicate then we must
 	// ensure that we're not finalizing past any of its child nodes.
 
 	// They reverse but I dont think we need to
 	// I think its just roots but not 100%
-	for i := 0; i < len(roots); i++ {
-		root := roots[i]
+	for i := 0; i < len(nodes); i++ {
+		root := nodes[i]
 		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
 		if err != nil {
 			return nil, err
 		}
+
 		if predicate(root.change) && (root.change.canonHash == *hash || isDesc) {
 			children := root.children
 			for _, child := range children {
@@ -195,17 +233,20 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 				if err != nil {
 					return nil, err
 				}
-				if child.change.canonHeight <= number && child.change.canonHash == *hash || isChildDescOf {
+
+				if child.change.canonHeight <= number && (child.change.canonHash == *hash || isChildDescOf) {
 					return nil, errUnfinalizedAncestor
 				}
 			}
 
+			isEqual := false
 			for _, val := range roots {
 				if val.change.canonHash == root.change.canonHash {
-					isEqual := true
-					return &isEqual, nil
+					isEqual = true
+					break
 				}
 			}
+			return &isEqual, nil
 		}
 	}
 

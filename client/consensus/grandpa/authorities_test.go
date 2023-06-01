@@ -462,7 +462,26 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	})
 
 	// "hash_c" won't finalize the existing change since it isn't a descendent
-	_, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_c")), 15, isDescOf)
+	res, err := authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_c")), 15, isDescOf)
+	require.NoError(t, err)
+	require.Nil(t, res)
+
+	// "hash_d" at depth 14 won't work either
+	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_d")), 14, isDescOf)
+	require.NoError(t, err)
+	require.Nil(t, res)
+
+	// but it should work at depth 15 (change height + depth)
+	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_d")), 15, isDescOf)
+	require.NoError(t, err)
+	require.Equal(t, true, *res)
+
+	// finalizing "hash_e" at depth 20 will trigger change at "hash_b", but
+	// it can't be applied yet since "hash_a" must be applied first
+	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_e")), 30, isDescOf)
+	require.NoError(t, err)
+	require.Equal(t, false, *res)
+
 }
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
