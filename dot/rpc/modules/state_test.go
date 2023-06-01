@@ -45,7 +45,7 @@ func TestStateModuleGetPairs(t *testing.T) {
 	mockStorageAPI := mocks.NewMockStorageAPI(ctrl)
 	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPI.EXPECT().GetKeysWithPrefix(&hash, common.MustHexToBytes(str)).Return([][]byte{{1}, {1}}, nil)
-	mockStorageAPI.EXPECT().GetStorage(&hash, []byte{1}).Return([]byte{21}, nil).AnyTimes()
+	mockStorageAPI.EXPECT().GetStorage(&hash, []byte{1}).Return([]byte{21}, nil).Times(2)
 
 	mockStorageAPINil := mocks.NewMockStorageAPI(ctrl)
 	mockStorageAPINil.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)

@@ -189,8 +189,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	wsconn.BlockAPI = BlockAPI
 
 	TxStateAPI := NewMockTransactionStateAPI(ctrl)
-	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
-	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any())
 	wsconn.TxStateAPI = TxStateAPI
 
 	esl := ExtrinsicSubmitListener{
