@@ -17,8 +17,7 @@ func TestContractsRPC(t *testing.T) { //nolint:tparallel
 
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
-	tomlConfig.Core.BABELead = true
+	tomlConfig.ChainSpec = genesisPath
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)

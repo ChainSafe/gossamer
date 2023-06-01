@@ -27,9 +27,8 @@ import (
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Account.Key = "alice"
-	tomlConfig.Init.Genesis = genesisPath
-	tomlConfig.Core.BABELead = true
+	tomlConfig.Account.Key = config.AliceKey
+	tomlConfig.ChainSpec = genesisPath
 
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -99,8 +98,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 func TestAuthorRPC(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
-	tomlConfig.Core.BABELead = true
+	tomlConfig.ChainSpec = genesisPath
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)

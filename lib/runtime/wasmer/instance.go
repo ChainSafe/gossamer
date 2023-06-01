@@ -106,13 +106,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 
 	if cfg.testVersion != nil {
-		instance.ctx.Version = *cfg.testVersion
-	} else {
-		instance.ctx.Version, err = instance.version()
-		if err != nil {
-			instance.close()
-			return nil, fmt.Errorf("getting instance version: %w", err)
-		}
+		instance.ctx.Version = cfg.testVersion
 	}
 
 	wasmInstance.SetContextData(instance.ctx)
@@ -146,36 +140,6 @@ func (in *Instance) GetContext() *runtime.Context {
 	return in.ctx
 }
 
-// UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
-	wasmInstance, allocator, err := setupVM(code)
-	if err != nil {
-		return fmt.Errorf("setting up VM: %w", err)
-	}
-
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
-
-	in.close()
-
-	in.ctx.Allocator = allocator
-	wasmInstance.SetContextData(in.ctx)
-
-	in.vm = wasmInstance
-
-	// Find runtime instance version and cache it in its
-	// instance context.
-	version, err := in.version()
-	if err != nil {
-		in.close()
-		return fmt.Errorf("getting instance version: %w", err)
-	}
-	in.ctx.Version = version
-	wasmInstance.SetContextData(in.ctx)
-
-	return nil
-}
-
 // GetRuntimeVersion finds the runtime version by initiating a temporary
 // runtime instance using the WASM code provided, and querying it.
 func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
@@ -188,7 +152,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 	defer instance.Stop()
 
-	version, err = instance.version()
+	version, err = instance.Version()
 	if err != nil {
 		return version, fmt.Errorf("running runtime: %w", err)
 	}
