@@ -23,9 +23,10 @@ func main() {
 }
 
 var (
-	regexMapStringKeyWithSpaces = regexp.MustCompile(`\t".+ .+"?: \{`)
-	regexSliceStringWithSpaces  = regexp.MustCompile(`(name|test)( |\t)*: ".+ .+",`)
-	regexStringWithSpaces       = regexp.MustCompile(`".+( .+)+"`)
+	regexSubtestStringWithSpaces = regexp.MustCompile(`\tt\.Run\(".+ .+"?\)`)
+	regexMapStringKeyWithSpaces  = regexp.MustCompile(`\t".+ .+"?: \{`)
+	regexSliceStringWithSpaces   = regexp.MustCompile(`(name|test)( |\t)*: ".+ .+",`)
+	regexStringWithSpaces        = regexp.MustCompile(`".+( .+)+"`)
 )
 
 func walk(path string, entry fs.DirEntry, err error) error {
@@ -60,6 +61,8 @@ func walk(path string, entry fs.DirEntry, err error) error {
 		var toReplace string
 
 		switch {
+		case regexSubtestStringWithSpaces.MatchString(line):
+			toReplace = regexSubtestStringWithSpaces.FindString(line)
 		case regexMapStringKeyWithSpaces.MatchString(line):
 			toReplace = regexMapStringKeyWithSpaces.FindString(line)
 		case regexSliceStringWithSpaces.MatchString(line):
