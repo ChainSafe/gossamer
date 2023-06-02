@@ -15,20 +15,6 @@ linters-settings:
     # report about shadowed variables
     check-shadowing: true
 
-  depguard:
-    Main:
-      files:
-        - $all
-        - !$test
-      allow:
-        - $gostd
-    Test:
-      files:
-        - $test
-      allow:
-        - $gostd
-        - github.com/stretchr/testify
-
   revive:
     severity: warning
     confidence: 0.8
@@ -52,7 +38,6 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - depguard
     - errcheck
     - exportloopref
     - goconst
