@@ -212,6 +212,7 @@ func TestAddStringSliceFlagBindViper(t *testing.T) {
 
 func TestBindToViper(t *testing.T) {
 	t.Parallel()
+	viper.Reset()
 
 	config = westend.DefaultConfig()
 	setViperDefault(config)
