@@ -585,7 +585,7 @@ func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRunt
 	err = digest.Add(*preRuntimeDigest)
 	require.NoError(t, err)
 
-	newBlockRTUpdate := &types.Block{
+	newBlockRuntimeUpdate := &types.Block{
 		Header: types.Header{
 			ParentHash: bestBlockHash,
 			Number:     1,
@@ -594,10 +594,10 @@ func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRunt
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
-	err = blockState.AddBlock(newBlockRTUpdate)
+	err = blockState.AddBlock(newBlockRuntimeUpdate)
 	require.NoError(t, err)
 
-	newBlockRTUpdateHash := newBlockRTUpdate.Header.Hash()
+	newBlockRTUpdateHash := newBlockRuntimeUpdate.Header.Hash()
 	err = blockState.HandleRuntimeChanges(trieState, parentRt, newBlockRTUpdateHash)
 	require.NoError(t, err)
 
