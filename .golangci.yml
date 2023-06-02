@@ -63,7 +63,7 @@ linters:
     - unconvert
     - unparam
     - usestdlibvars
-    - varcheck
+    - unused
 
 issues:
   exclude-rules:
