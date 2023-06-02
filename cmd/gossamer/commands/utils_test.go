@@ -231,7 +231,7 @@ func TestBindToViper(t *testing.T) {
 		},
 		{
 			expected: config.BasePath,
-			result:   viper.Get("basepath"),
+			result:   viper.Get("base-path"),
 		},
 		{
 			expected: config.LogLevel,
@@ -247,7 +247,7 @@ func TestBindToViper(t *testing.T) {
 		},
 		{
 			expected: config.Network.NoMDNS,
-			result:   viper.Get("network.nomdns"),
+			result:   viper.Get("network.no-mdns"),
 		},
 		{
 			expected: config.RPC.Port,
