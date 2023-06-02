@@ -236,7 +236,6 @@ func TestAuthorModule_SubmitExtrinsic_bad_proof(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	net2test := NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
 
 	integrationTestController.network = net2test
 
