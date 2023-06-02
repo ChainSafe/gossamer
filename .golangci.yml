@@ -16,10 +16,18 @@ linters-settings:
     check-shadowing: true
 
   depguard:
-    list-type: blacklist
-    include-go-root: false
-    packages:
-      - github.com/davecgh/go-spew/spew
+    Main:
+      files:
+        - $all
+        - !$test
+      allow:
+        - $gostd
+    Test:
+      files:
+        - $test
+      allow:
+        - $gostd
+        - github.com/stretchr/testify
 
   lll:
     # max line length, lines longer will be reported. Default is 120.
