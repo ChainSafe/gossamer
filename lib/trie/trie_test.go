@@ -599,7 +599,7 @@ func entriesMatch(t *testing.T, expected, actual map[string][]byte) {
 func Test_Trie_Entries(t *testing.T) {
 	t.Parallel()
 
-	t.Run("simple root", func(t *testing.T) {
+	t.Run("simple_root", func(t *testing.T) {
 		t.Parallel()
 
 		root := &Node{
@@ -632,7 +632,7 @@ func Test_Trie_Entries(t *testing.T) {
 		entriesMatch(t, expectedEntries, entries)
 	})
 
-	t.Run("custom root", func(t *testing.T) {
+	t.Run("custom_root", func(t *testing.T) {
 		t.Parallel()
 
 		root := &Node{
@@ -689,7 +689,7 @@ func Test_Trie_Entries(t *testing.T) {
 		entriesMatch(t, expectedEntries, entries)
 	})
 
-	t.Run("end to end", func(t *testing.T) {
+	t.Run("end_to_end", func(t *testing.T) {
 		t.Parallel()
 
 		trie := Trie{
