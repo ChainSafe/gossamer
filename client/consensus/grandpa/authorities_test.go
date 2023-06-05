@@ -591,7 +591,46 @@ func TestForceChanges(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
+}
 
+func TestForceChangesWithNoDelay(t *testing.T) {
+	// NOTE: this is a regression test
+	authorities := AuthoritySet{
+		currentAuthorities:     AuthorityList{},
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	var setA AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setA = append(setA, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	})
+
+	finalizedKind := Best{0}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	// we create a forced change with no delay
+	changeA := PendingChange{
+		nextAuthorities: setA,
+		delay:           0,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalized,
+	}
+
+	// and import it
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	// it should be enacted at the same block that signaled it
+	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a")), 5, staticIsDescendentOf(false), false, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resForced)
 }
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
