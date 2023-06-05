@@ -633,6 +633,130 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	require.NotNil(t, resForced)
 }
 
+func TestForceChangesBlockedByStandardChanges(t *testing.T) {
+	authorities := AuthoritySet{
+		currentAuthorities:     AuthorityList{},
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	var setA AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setA = append(setA, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	})
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	// effective at #15
+	changeA := PendingChange{
+		nextAuthorities: setA,
+		delay:           5,
+		canonHeight:     10,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalized,
+	}
+
+	// effective #20
+	changeB := PendingChange{
+		nextAuthorities: setA,
+		delay:           0,
+		canonHeight:     20,
+		canonHash:       common.BytesToHash([]byte("hash_b")),
+		delayKind:       delayKindFinalized,
+	}
+
+	// effective at #35
+	changeC := PendingChange{
+		nextAuthorities: setA,
+		delay:           5,
+		canonHeight:     30,
+		canonHash:       common.BytesToHash([]byte("hash_c")),
+		delayKind:       delayKindFinalized,
+	}
+
+	// add some pending standard changes all on the same fork
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeC, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	finalizedKind2 := Best{31}
+	delayKindFinalized2 := newDelayKind(finalizedKind2)
+
+	// effective at #45
+	changeD := PendingChange{
+		nextAuthorities: setA,
+		delay:           5,
+		canonHeight:     40,
+		canonHash:       common.BytesToHash([]byte("hash_d")),
+		delayKind:       delayKindFinalized2,
+	}
+
+	err = authorities.addPendingChange(changeD, staticIsDescendentOf(true))
+	require.NoError(t, err)
+
+	// the forced change cannot be applied since the pending changes it depends on
+	// have not been applied yet.
+	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf(true), false, nil)
+	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
+	require.Equal(t, 0, len(authorities.authoritySetChanges))
+
+	// we apply the first pending standard change at #15
+	expChanges := AuthoritySetChanges{
+		AuthorityChange{
+			setId:       0,
+			blockNumber: 15,
+		},
+	}
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf(true), false, nil)
+	require.Equal(t, expChanges, authorities.authoritySetChanges)
+
+	// but the forced change still depends on the next standard change
+	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf(true), false, nil)
+	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
+	require.Equal(t, expChanges, authorities.authoritySetChanges)
+
+	// we apply the pending standard change at #20
+	expChanges = append(expChanges, AuthorityChange{
+		setId:       1,
+		blockNumber: 20,
+	})
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_b")), 20, staticIsDescendentOf(true), false, nil)
+	require.Equal(t, expChanges, authorities.authoritySetChanges)
+
+	// afterwards the forced change at #45 can already be applied since it signals
+	// that finality stalled at #31, and the next pending standard change is effective
+	// at #35. subsequent forced changes on the same branch must be kept
+	expChanges = append(expChanges, AuthorityChange{
+		setId:       2,
+		blockNumber: 31,
+	})
+	exp := AppliedChanges{
+		num: 31,
+		set: AuthoritySet{
+			currentAuthorities:     setA,
+			setId:                  3,
+			pendingStandardChanges: NewChangeTree(),
+			pendingForcedChanges:   nil,
+			authoritySetChanges:    expChanges,
+		},
+	}
+	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d")), 45, staticIsDescendentOf(true), false, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resForced)
+	require.Equal(t, exp, *resForced)
+}
+
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList
