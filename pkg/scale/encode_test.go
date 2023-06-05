@@ -82,7 +82,7 @@ func Test_MustMarshal(t *testing.T) {
 		assert.Equal(t, []byte{4, 1}, b)
 	})
 
-	t.Run("panics on error", func(t *testing.T) {
+	t.Run("panics_on_error", func(t *testing.T) {
 		t.Parallel()
 
 		const expected = "unsupported type: chan struct {}"

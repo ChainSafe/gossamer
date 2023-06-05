@@ -242,11 +242,11 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	}
 
 	mockTxStateAPI := mocks.NewMockTransactionStateAPI(ctrl)
-	mockTxStateAPI.EXPECT().Pending().Return(v).AnyTimes()
+	mockTxStateAPI.EXPECT().Pending().Return(v).Times(5)
 
 	mockCoreAPI := mocks.NewMockCoreAPI(ctrl)
 	mockCoreAPI.EXPECT().GetMetadata((*common.Hash)(nil)).
-		Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil).AnyTimes()
+		Return(common.MustHexToBytes(testdata.NewTestMetadata()), nil).Times(2)
 
 	mockCoreAPIErr := mocks.NewMockCoreAPI(ctrl)
 	mockCoreAPIErr.EXPECT().GetMetadata((*common.Hash)(nil)).

@@ -127,7 +127,7 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{})).Times(1)
+	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{}))
 	header := testGenesisHeader
 
 	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
@@ -656,7 +656,7 @@ func TestApplyForcedChanges(t *testing.T) {
 				ctrl := gomock.NewController(t)
 
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Eq(&telemetry.AfgApplyingForcedAuthoritySetChange{Block: "8"})).Times(1)
+				telemetryMock.EXPECT().SendMessage(gomock.Eq(&telemetry.AfgApplyingForcedAuthoritySetChange{Block: "8"}))
 
 				return telemetryMock
 			}(),
@@ -1379,7 +1379,7 @@ func TestApplyScheduledChange(t *testing.T) {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(
 					gomock.Eq(&telemetry.AfgApplyingScheduledAuthoritySetChange{Block: "6"}),
-				).Times(1)
+				)
 
 				return telemetryMock
 			}(),
