@@ -212,6 +212,7 @@ func TestAddStringSliceFlagBindViper(t *testing.T) {
 
 func TestBindToViper(t *testing.T) {
 	t.Parallel()
+	viper.Reset()
 
 	config = westend.DefaultConfig()
 	setViperDefault(config)
@@ -231,7 +232,7 @@ func TestBindToViper(t *testing.T) {
 		},
 		{
 			expected: config.BasePath,
-			result:   viper.Get("basepath"),
+			result:   viper.Get("base-path"),
 		},
 		{
 			expected: config.LogLevel,
@@ -247,7 +248,7 @@ func TestBindToViper(t *testing.T) {
 		},
 		{
 			expected: config.Network.NoMDNS,
-			result:   viper.Get("network.nomdns"),
+			result:   viper.Get("network.no-mdns"),
 		},
 		{
 			expected: config.RPC.Port,
@@ -260,6 +261,7 @@ func TestBindToViper(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.expected, tt.result)
