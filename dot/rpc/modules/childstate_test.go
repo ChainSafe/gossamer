@@ -58,11 +58,11 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 	mockBlockAPI := apimocks.NewMockBlockAPI(ctrl)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.EXPECT().BestBlockHash().Return(hash).AnyTimes()
+	mockBlockAPI.EXPECT().BestBlockHash().Return(hash).Times(2)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).AnyTimes()
+	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
 	mockStorageAPI.EXPECT().GetStorageChild(&sr, []byte(":child_storage_key")).
-		Return(tr, nil).AnyTimes()
+		Return(tr, nil).Times(2)
 
 	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, nil)
 	mockErrorStorageAPI1.EXPECT().GetStorageChild((*common.Hash)(nil), []byte(nil)).
@@ -171,9 +171,9 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).AnyTimes()
+	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
 	mockStorageAPI.EXPECT().GetStorageFromChild(&sr, []byte(":child_storage_key"), []byte(":child_first")).
-		Return([]byte(""), nil).AnyTimes()
+		Return([]byte(""), nil).Times(2)
 
 	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&hash).Return(nil, nil)
 	mockErrorStorageAPI1.EXPECT().GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
@@ -284,9 +284,9 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).AnyTimes()
+	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
 	mockStorageAPI.EXPECT().GetStorageFromChild(&sr, []byte(":child_storage_key"), []byte(":child_first")).
-		Return([]byte(""), nil).AnyTimes()
+		Return([]byte(""), nil).Times(2)
 
 	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&hash).Return(nil, nil)
 	mockErrorStorageAPI1.EXPECT().GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
@@ -397,9 +397,9 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
 	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).AnyTimes()
+	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
 	mockStorageAPI.EXPECT().GetStorageFromChild(&sr, []byte(":child_storage_key"), []byte(":child_first")).
-		Return([]byte("test"), nil).AnyTimes()
+		Return([]byte("test"), nil).Times(2)
 
 	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&hash).Return(nil, nil)
 	mockErrorStorageAPI1.EXPECT().GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
