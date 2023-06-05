@@ -11,6 +11,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var (
+	errDuplicateAuthoritySetChanges                  = errors.New("duplicate authority set change")
+	errMultiplePendingForcedAuthoritySetChanges      = errors.New("multiple pending forced authority set changes are not allowed")
+	errForcedAuthoritySetChangeDependencyUnsatisfied = errors.New("a pending forced authority set change could not be applied since it must be applied after the pending standard change")
+)
+
 // AuthorityList A list of Grandpa authorities with associated weights.
 // TODO migrate this type and associated functions to this package
 type AuthorityList []types.Authority
@@ -148,7 +154,8 @@ func (k *Key) Equals(key Key) bool {
 func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
 	for _, change := range authSet.pendingForcedChanges {
 		if change.canonHash == pending.canonHash {
-			return errors.New("duplicate authority set change")
+			return errDuplicateAuthoritySetChanges
+			//return errors.New("duplicate authority set change")
 		}
 
 		isDescendent, err := isDescendentOf(change.canonHash, pending.canonHash)
@@ -157,7 +164,7 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 		}
 
 		if isDescendent {
-			return errors.New("multiple pending forced authority set changes are not allowed")
+			return errMultiplePendingForcedAuthoritySetChanges
 		}
 	}
 
@@ -241,6 +248,92 @@ func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
 		}
 	}
 	return limit
+}
+
+type AppliedChanges struct {
+	num uint
+	set AuthoritySet
+}
+
+// ApplyForcedChanges Apply or prune any pending transitions based on a best-block trigger.
+//
+// Returns `Ok((median, new_set))` when a forced change has occurred. The
+// median represents the median last finalized block at the time the change
+// was signaled, and it should be used as the canon block when starting the
+// new grandpa voter. Only alters the internal state in this case.
+//
+// These transitions are always forced and do not lead to justifications
+// which light clients can follow.
+//
+// Forced changes can only be applied after all pending standard changes
+// that it depends on have been applied. If any pending standard change
+// exists that is an ancestor of a given forced changed and which effective
+// block number is lower than the last finalized block (as defined by the
+// forced change), then the forced change cannot be applied. An error will
+// be returned in that case which will prevent block import.
+func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
+	bestNumber uint,
+	isDescendentOf IsDescendentOf,
+	initialSync bool,
+	telemetry *telemetry.Client) (newSet *AppliedChanges, err error) {
+
+	for _, change := range authSet.pendingForcedChanges {
+		// double check this logic for what to iterate over, but try this for now
+		effectiveNumber := change.EffectiveNumber()
+		if effectiveNumber > bestNumber {
+			continue
+		} else if effectiveNumber == bestNumber {
+			// check if the given best block is in the same branch as
+			// the block that signaled the change.
+			isDesc, err := isDescendentOf(change.canonHash, bestHash)
+			if err != nil {
+				return nil, err
+			}
+			if change.canonHash == bestHash || isDesc {
+				// I think this cast is okay since we should probably panic if we hit this
+				medianLastFinalized := change.delayKind.value.(Best).medianLastFinalized
+
+				roots := authSet.pendingStandardChanges.Roots()
+				for _, standardChangeNode := range roots {
+					standardChange := standardChangeNode.change
+
+					isDescStandard, err := isDescendentOf(standardChange.canonHash, change.canonHash)
+					if err != nil {
+						return nil, err
+					}
+					if standardChange.EffectiveNumber() <= medianLastFinalized && isDescStandard {
+						// TODO log here
+						return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
+					}
+				}
+
+				// TODO grandpa log
+
+				// TODO telemetry
+
+				authorityChange := AuthorityChange{
+					setId:       authSet.setId,
+					blockNumber: medianLastFinalized,
+				}
+
+				authSetChanges := authSet.authoritySetChanges
+				authSetChanges = append(authSetChanges, authorityChange)
+				newSet = &AppliedChanges{
+					medianLastFinalized,
+					AuthoritySet{
+						currentAuthorities:     change.nextAuthorities,
+						setId:                  authSet.setId + 1,
+						pendingStandardChanges: NewChangeTree(), // new set, new changes
+						pendingForcedChanges:   nil,
+						authoritySetChanges:    authSetChanges,
+					},
+				}
+				return newSet, nil
+			}
+		}
+	}
+
+	return newSet, nil
 }
 
 func applyStandardChangesPredicate(finalizedNumber uint) predicate[*PendingChange] {

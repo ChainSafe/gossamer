@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/stretchr/testify/require"
+	"strings"
 	"testing"
 )
 
@@ -481,6 +482,115 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_e")), 30, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, false, *res)
+}
+
+func TestForceChanges(t *testing.T) {
+	authorities := AuthoritySet{
+		currentAuthorities:     AuthorityList{},
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	var setA AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setA = append(setA, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	})
+
+	var setB AuthorityList
+	kpB, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	setB = append(setB, types.Authority{
+		Key:    kpB.Public(),
+		Weight: 5,
+	})
+
+	finalizedKindA := Best{42}
+	delayKindFinalizedA := newDelayKind(finalizedKindA)
+
+	finalizedKindB := Best{0}
+	delayKindFinalizedB := newDelayKind(finalizedKindB)
+
+	changeA := PendingChange{
+		nextAuthorities: setA,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a")),
+		delayKind:       delayKindFinalizedA,
+	}
+
+	changeB := PendingChange{
+		nextAuthorities: setA,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_b")),
+		delayKind:       delayKindFinalizedB,
+	}
+
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	// no duplicates are allowed
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf(false))
+	require.ErrorIs(t, err, errDuplicateAuthoritySetChanges)
+
+	res, err := authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_c")), 1, staticIsDescendentOf(true))
+	require.NoError(t, err)
+	require.Nil(t, res)
+
+	changeC := PendingChange{
+		nextAuthorities: setA,
+		delay:           3,
+		canonHeight:     8,
+		canonHash:       common.BytesToHash([]byte("hash_a8")),
+		delayKind:       delayKindFinalizedB,
+	}
+
+	isDescOfA := isDescendentof(func(h1 common.Hash, _ common.Hash) (bool, error) {
+		return strings.HasPrefix(h1.String(), common.BytesToHash([]byte("hash_a")).String()), nil
+	})
+
+	err = authorities.addPendingChange(changeC, isDescOfA)
+	require.ErrorIs(t, err, errMultiplePendingForcedAuthoritySetChanges)
+
+	// let's try and apply the forced changes.
+	// too early and there's no forced changes to apply
+	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a10")), 10, staticIsDescendentOf(true), false, nil)
+	require.NoError(t, err)
+	require.Nil(t, resForced)
+
+	// too late
+	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a16")), 16, isDescOfA, false, nil)
+	require.NoError(t, err)
+	require.Nil(t, resForced)
+
+	// on time -- chooses the right change for this fork
+	exp := AppliedChanges{
+		num: 42,
+		set: AuthoritySet{
+			currentAuthorities:     setA,
+			setId:                  1,
+			pendingStandardChanges: NewChangeTree(),
+			pendingForcedChanges:   nil,
+			authoritySetChanges: AuthoritySetChanges{
+				AuthorityChange{
+					setId:       0,
+					blockNumber: 42,
+				},
+			},
+		},
+	}
+	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a15")), 15, isDescOfA, false, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resForced)
+	require.Equal(t, exp, *resForced)
 
 }
 
