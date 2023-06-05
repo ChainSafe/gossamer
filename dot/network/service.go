@@ -577,6 +577,16 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	return errors.New("message not supported by any notifications protocol")
 }
 
+func (s *Service) GetRequestResponseProtocol(protocolID protocol.ID, requestTimeout time.Duration, maxResponseSize uint64) *RequestResponseProtocol {
+	return &RequestResponseProtocol{
+		ctx:             s.ctx,
+		host:            s.host,
+		requestTimeout:  requestTimeout,
+		maxResponseSize: maxResponseSize,
+		protocolID:      protocolID,
+	}
+}
+
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
 	return common.Health{

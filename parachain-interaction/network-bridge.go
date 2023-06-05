@@ -2,6 +2,7 @@ package parachaininteraction
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -107,7 +108,10 @@ func GenerateReqProtocolName(protocol ReqProtocolName, forkID string, GenesisHas
 }
 
 func GeneratePeersetProtocolName(protocol PeerSetProtocolName, forkID string, GenesisHash common.Hash, version uint32) string {
-	prefix := fmt.Sprintf("/%s", GenesisHash.String())
+	genesisHash := GenesisHash.String()
+	genesisHash = strings.TrimPrefix(genesisHash, "0x")
+
+	prefix := fmt.Sprintf("/%s", genesisHash)
 
 	if forkID != "" {
 		prefix = fmt.Sprintf("%s/%s", prefix, forkID)

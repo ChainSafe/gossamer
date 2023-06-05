@@ -431,7 +431,7 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeySt
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) *parachaininteraction.Service {
+func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) (*parachaininteraction.Service, error) {
 	return parachaininteraction.NewService(net, genesisHash)
 }
 
