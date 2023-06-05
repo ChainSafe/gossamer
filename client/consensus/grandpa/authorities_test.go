@@ -757,6 +757,136 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	require.Equal(t, exp, *resForced)
 }
 
+func TestNextChangeWorks(t *testing.T) {
+	var currentAuthorities AuthorityList
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+	currentAuthorities = append(currentAuthorities, types.Authority{
+		Key:    kpA.Public(),
+		Weight: 1,
+	})
+
+	authorities := AuthoritySet{
+		currentAuthorities:     currentAuthorities,
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   []PendingChange{},
+		authoritySetChanges:    AuthoritySetChanges{},
+	}
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+
+	// We have three pending changes with 2 possible roots that are enacted
+	// immediately on finality (i.e. standard changes).
+	changeA0 := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           0,
+		canonHeight:     5,
+		canonHash:       common.BytesToHash([]byte("hash_a0")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeA1 := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           0,
+		canonHeight:     10,
+		canonHash:       common.BytesToHash([]byte("hash_a1")),
+		delayKind:       delayKindFinalized,
+	}
+
+	changeB := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           0,
+		canonHeight:     4,
+		canonHash:       common.BytesToHash([]byte("hash_b")),
+		delayKind:       delayKindFinalized,
+	}
+
+	// A0 (#5) <- A10 (#8) <- A1 (#10) <- best_a
+	// B (#4) <- best_b
+	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
+		if h1 == common.BytesToHash([]byte("hash_a0")) && h2 == common.BytesToHash([]byte("hash_a1")) ||
+			h1 == common.BytesToHash([]byte("hash_a0")) && h2 == common.BytesToHash([]byte("hash_b")) ||
+			h1 == common.BytesToHash([]byte("hash_a1")) && h2 == common.BytesToHash([]byte("best_a")) ||
+			h1 == common.BytesToHash([]byte("hash_a10")) && h2 == common.BytesToHash([]byte("best_a")) ||
+			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("best_b")) {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	})
+
+	// add the three pending changes
+	err = authorities.addPendingChange(changeB, isDescOf)
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeA0, isDescOf)
+	require.NoError(t, err)
+
+	err = authorities.addPendingChange(changeA1, isDescOf)
+	require.NoError(t, err)
+
+	// the earliest change at block `best_a` should be the change at A0 (#5)
+	expChange := &Change{
+		hash:   common.BytesToHash([]byte("hash_a0")),
+		number: 5,
+	}
+	change, err := authorities.nextChange(common.BytesToHash([]byte("hash_b")), isDescOf)
+	require.NoError(t, err)
+	require.Equal(t, expChange, change)
+
+	// the earliest change at block `best_b` should be the change at B (#4)
+	expChange = &Change{
+		hash:   common.BytesToHash([]byte("hash_b")),
+		number: 4,
+	}
+	change, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
+	require.NoError(t, err)
+	require.Equal(t, expChange, change)
+
+	// we apply the change at A0 which should prune it and the fork at B
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, false, nil)
+	require.NoError(t, err)
+
+	// the next change is now at A1 (#10)
+	expChange = &Change{
+		hash:   common.BytesToHash([]byte("hash_a1")),
+		number: 10,
+	}
+	change, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
+	require.NoError(t, err)
+	require.Equal(t, expChange, change)
+
+	// there's no longer any pending change at `best_b` fork
+	change, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
+	require.NoError(t, err)
+	require.Nil(t, change)
+
+	// we a forced change at A10 (#8)
+	finalizedKind2 := Best{0}
+	delayKindFinalized2 := newDelayKind(finalizedKind2)
+	changeA10 := PendingChange{
+		nextAuthorities: currentAuthorities,
+		delay:           0,
+		canonHeight:     8,
+		canonHash:       common.BytesToHash([]byte("hash_a10")),
+		delayKind:       delayKindFinalized2,
+	}
+
+	err = authorities.addPendingChange(changeA10, staticIsDescendentOf(false))
+	require.NoError(t, err)
+
+	// it should take precedence over the change at A1 (#10)
+	expChange = &Change{
+		hash:   common.BytesToHash([]byte("hash_a10")),
+		number: 8,
+	}
+	change, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
+	require.NoError(t, err)
+	require.Equal(t, expChange, change)
+}
+
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList

@@ -198,6 +198,64 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 	return nil
 }
 
+type Change struct {
+	hash   common.Hash
+	number uint
+}
+
+// Returns the block hash and height at which the next pending change in
+// the given chain (i.e. it includes `best_hash`) was signalled, `None` if
+// there are no pending changes for the given chain.
+//
+// This is useful since we know that when a change is signalled the
+// underlying runtime authority set management module (e.g. session module)
+// has updated its internal state (e.g. a new session started).
+func (authSet *AuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsDescendentOf) (*Change, error) {
+	var forced *Change
+	for _, change := range authSet.pendingForcedChanges {
+		isDesc, err := isDescendentOf(change.canonHash, bestHash)
+		if err != nil {
+			return nil, err
+		}
+		if isDesc {
+			forced = &Change{
+				hash:   change.canonHash,
+				number: change.canonHeight,
+			}
+			break
+		}
+	}
+
+	var standard *Change
+	for _, changeNode := range authSet.pendingStandardChanges.Roots() {
+		change := changeNode.change
+		isDesc, err := isDescendentOf(change.canonHash, bestHash)
+		if err != nil {
+			return nil, err
+		}
+		if isDesc {
+			standard = &Change{
+				hash:   change.canonHash,
+				number: change.canonHeight,
+			}
+			break
+		}
+	}
+
+	if standard != nil && forced != nil {
+		if forced.number < standard.number {
+			return forced, nil
+		} else {
+			return standard, nil
+		}
+	} else if forced != nil {
+		return forced, nil
+	} else if standard != nil {
+		return standard, nil
+	}
+	return nil, nil
+}
+
 func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
 	hash := pending.canonHash
 	number := pending.canonHeight
