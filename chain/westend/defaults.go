@@ -32,6 +32,10 @@ func DefaultConfig() *cfg.Config {
 
 	config.Log.Digest = "trace"
 	config.Log.Sync = "trace"
+	config.Pprof.Enabled = true
+	config.Pprof.ListeningAddress = "localhost:6060"
+	config.PrometheusExternal = true
+	config.PrometheusPort = 9876
 
 	return config
 }

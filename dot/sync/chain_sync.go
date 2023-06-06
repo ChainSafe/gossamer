@@ -225,7 +225,7 @@ func (cs *chainSync) sync() {
 				logger.Debugf("switched sync mode to %d", bootstrap)
 			}
 
-			cs.executeBootstrapSync()
+			cs.executeBootstrapSync(finalisedHeader)
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
 			swapped := cs.state.CompareAndSwap(bootstrap, tip)
@@ -235,7 +235,7 @@ func (cs *chainSync) sync() {
 				logger.Debugf("switched sync mode to %d", tip)
 			}
 
-			cs.requestPendingBlocks()
+			cs.requestPendingBlocks(finalisedHeader)
 		}
 	}
 }
@@ -317,7 +317,12 @@ func (cs *chainSync) requestImportedBlock(announce announcedBlock) error {
 
 	cs.requestChainBlocks(announce.header, bestBlockHeader, peerWhoAnnounced)
 
-	err = cs.requestPendingBlocks()
+	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return fmt.Errorf("while getting highest finalized header: %w", err)
+	}
+
+	err = cs.requestPendingBlocks(highestFinalizedHeader)
 	if err != nil {
 		return fmt.Errorf("while requesting pending blocks")
 	}
@@ -390,20 +395,15 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	return nil
 }
 
-func (cs *chainSync) requestPendingBlocks() error {
+func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) error {
 	logger.Infof("total of pending blocks: %d", cs.pendingBlocks.size())
 	if cs.pendingBlocks.size() == 0 {
 		return nil
 	}
 
-	highestFinalized, err := cs.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return fmt.Errorf("getting highest finalised header: %w", err)
-	}
-
 	pendingBlocks := cs.pendingBlocks.getBlocks()
 	for _, pendingBlock := range pendingBlocks {
-		if pendingBlock.number <= highestFinalized.Number {
+		if pendingBlock.number <= highestFinalizedHeader.Number {
 			cs.pendingBlocks.removeBlock(pendingBlock.hash)
 			continue
 		}
@@ -421,7 +421,7 @@ func (cs *chainSync) requestPendingBlocks() error {
 			continue
 		}
 
-		gapLength := pendingBlock.number - highestFinalized.Number
+		gapLength := pendingBlock.number - highestFinalizedHeader.Number
 		if gapLength > 128 {
 			logger.Criticalf("GAP LENGHT: %d, GREATER THAN 128 block", gapLength)
 			gapLength = 128
@@ -448,14 +448,10 @@ func (cs *chainSync) requestPendingBlocks() error {
 	return nil
 }
 
-func (cs *chainSync) executeBootstrapSync() error {
+func (cs *chainSync) executeBootstrapSync(highestFinalizedHeader *types.Header) error {
 	cs.workerPool.useConnectedPeers()
 
-	bestBlockHeader, err := cs.blockState.BestBlockHeader()
-	if err != nil {
-		return fmt.Errorf("getting best block header while syncing: %w", err)
-	}
-	startRequestAt := bestBlockHeader.Number + 1
+	startRequestAt := highestFinalizedHeader.Number + 1
 
 	const maxRequestsAllowed = 50
 	// we build the set of requests based on the amount of available peers
