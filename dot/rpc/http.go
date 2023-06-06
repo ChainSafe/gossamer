@@ -151,7 +151,13 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterValidateRequestFunc(rpcValidator(h.serverConfig, validate))
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
+		server := &http.Server{
+			Addr:              fmt.Sprintf(":%d", h.serverConfig.RPCPort),
+			ReadHeaderTimeout: 5 * time.Second,
+			Handler:           r,
+		}
+
+		err := server.ListenAndServe()
 		if err != nil {
 			h.logger.Errorf("http error: %s", err)
 		}
@@ -166,7 +172,13 @@ func (h *HTTPServer) Start() error {
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
+		wsServer := &http.Server{
+			Addr:              fmt.Sprintf(":%d", h.serverConfig.WSPort),
+			ReadHeaderTimeout: 5 * time.Second,
+			Handler:           ws,
+		}
+
+		err := wsServer.ListenAndServe()
 		if err != nil {
 			h.logger.Errorf("http error: %s", err)
 		}

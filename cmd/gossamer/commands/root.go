@@ -224,7 +224,7 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		config.BaseConfig.PrometheusPort,
 		"Listen address of the prometheus server",
 		"prometheus-port"); err != nil {
-		return fmt.Errorf("failed to add --metrics-address flag: %s", err)
+		return fmt.Errorf("failed to add --prometheus-port flag: %s", err)
 	}
 	if err := addUint32FlagBindViper(cmd,
 		"retain-blocks",

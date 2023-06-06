@@ -3,7 +3,6 @@
 
 package runtime
 
-//nolint:revive
 const (
 	// v0.9 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
