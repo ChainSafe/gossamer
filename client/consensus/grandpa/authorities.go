@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	errInvalidAuthoritySet                           = errors.New("invalid authority set, either empty or with an authority weight set to 0")
 	errDuplicateAuthoritySetChanges                  = errors.New("duplicate authority set change")
 	errMultiplePendingForcedAuthoritySetChanges      = errors.New("multiple pending forced authority set changes are not allowed")
 	errForcedAuthoritySetChangeDependencyUnsatisfied = errors.New("a pending forced authority set change could not be applied since it must be applied after the pending standard change")
@@ -108,6 +109,42 @@ func (authSet *AuthoritySet) InvalidAuthorityList(authorities AuthorityList) boo
 	return false
 }
 
+// Genesis Get a genesis set with given authorities.
+func Genesis(initial AuthorityList) (authSet *AuthoritySet) {
+	if authSet.InvalidAuthorityList(initial) {
+		return nil
+	}
+
+	authSet = &AuthoritySet{
+		currentAuthorities:     initial,
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   nil,
+		authoritySetChanges:    nil,
+	}
+	return
+}
+
+func NewAuthoritySet(authorities AuthorityList,
+	setId uint64,
+	pendingStandardChanges ForkTree,
+	pendingForcedChanges []PendingChange,
+	authoritySetChanges AuthoritySetChanges,
+) (authSet *AuthoritySet) {
+	if authSet.InvalidAuthorityList(authorities) {
+		return nil
+	}
+
+	authSet = &AuthoritySet{
+		currentAuthorities:     authorities,
+		setId:                  setId,
+		pendingStandardChanges: pendingStandardChanges,
+		pendingForcedChanges:   pendingForcedChanges,
+		authoritySetChanges:    authoritySetChanges,
+	}
+	return
+}
+
 type predicate[T any] func(T) bool
 
 // IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
@@ -121,7 +158,7 @@ type IsDescendentOf func(h1 common.Hash, h2 common.Hash) (bool, error)
 // descendent of the first hash (base).
 func (authSet *AuthoritySet) addPendingChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
 	if authSet.InvalidAuthorityList(pending.nextAuthorities) {
-		return errors.New("invalid authority set, either empty or with an authority weight set to 0")
+		return errInvalidAuthoritySet
 	}
 
 	switch pending.delayKind.value.(type) {

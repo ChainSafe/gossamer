@@ -887,6 +887,68 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Equal(t, expChange, change)
 }
 
+func TestMaintainsAuthorityListInvariants(t *testing.T) {
+	// empty authority lists are invalid
+	require.Nil(t, Genesis(AuthorityList{}))
+	require.Nil(t, NewAuthoritySet(AuthorityList{}, 0, NewChangeTree(), nil, nil))
+
+	kpA, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	kpB, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	invalidAuthoritiesWeight := AuthorityList{
+		{
+			Key:    kpA.Public(),
+			Weight: 5,
+		},
+		{
+			Key:    kpB.Public(),
+			Weight: 0,
+		},
+	}
+
+	// authority weight of zero is invalid
+	require.Nil(t, Genesis(invalidAuthoritiesWeight))
+	require.Nil(t, NewAuthoritySet(invalidAuthoritiesWeight, 0, NewChangeTree(), nil, nil))
+
+	authoritySet := Genesis(AuthorityList{types.Authority{
+		Key:    kpA.Public(),
+		Weight: 5,
+	}})
+
+	finalizedKind := Finalized{}
+	delayKindFinalized := newDelayKind(finalizedKind)
+	invalidChangeEmptyAuthorities := PendingChange{
+		nextAuthorities: nil,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.Hash{},
+		delayKind:       delayKindFinalized,
+	}
+
+	// pending change contains an empty authority set
+	err = authoritySet.addPendingChange(invalidChangeEmptyAuthorities, staticIsDescendentOf(false))
+	require.ErrorIs(t, err, errInvalidAuthoritySet)
+
+	delayKind := Best{0}
+	delayKindBest := newDelayKind(delayKind)
+
+	invalidChangeAuthoritiesWeight := PendingChange{
+		nextAuthorities: invalidAuthoritiesWeight,
+		delay:           10,
+		canonHeight:     5,
+		canonHash:       common.Hash{},
+		delayKind:       delayKindBest,
+	}
+
+	// pending change contains an authority set
+	// where one authority has weight of 0
+	err = authoritySet.addPendingChange(invalidChangeAuthoritiesWeight, staticIsDescendentOf(false))
+	require.ErrorIs(t, err, errInvalidAuthoritySet)
+}
+
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList
