@@ -54,16 +54,17 @@ func (h *hashToRuntime) hashes() (hashes []common.Hash) {
 // The last element is the finalised block hash.
 func (h *hashToRuntime) onFinalisation(newCanonicalBlockHashes []common.Hash) {
 	h.mutex.Lock()
-	defer func() {
-		totalInMemoryRuntimes := len(h.mapping)
-		inMemoryRuntimesGauge.Set(float64(totalInMemoryRuntimes))
-		h.mutex.Unlock()
-	}()
+	defer h.mutex.Unlock()
 
 	if len(h.mapping) == 0 {
 		logger.Warnf("no runtimes in the mapping")
 		return
 	}
+
+	defer func() {
+		totalInMemoryRuntimes := len(h.mapping)
+		inMemoryRuntimesGauge.Set(float64(totalInMemoryRuntimes))
+	}()
 
 	finalisedHash := newCanonicalBlockHashes[len(newCanonicalBlockHashes)-1]
 	// if there is only one runtime in the mapping then we should update
