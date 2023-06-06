@@ -18,15 +18,14 @@ var (
 	)
 )
 
-// splitPointerSize converts an int64 pointer size to an
-// uint32 pointer and an uint32 size.
-func splitPointerSize(pointerSize int64) (ptr, size uint32) {
+// splitPointerSize converts a 64bit pointer size to an
+// uint32 pointer and a uint32 size.
+func splitPointerSize(pointerSize uint64) (ptr, size uint32) {
 	return uint32(pointerSize), uint32(pointerSize >> 32)
 }
 
-// asMemorySlice converts a 64 bit pointer size to a Go byte slice.
-func asMemorySlice(m api.Module, pointerSize int64) (data []byte) {
-	// memory := context.Memory().Data()
+// read will read from 64 bit pointer size and return a byte slice
+func read(m api.Module, pointerSize uint64) (data []byte) {
 	ptr, size := splitPointerSize(pointerSize)
 	data, ok := m.Memory().Read(ptr, size)
 	if !ok {
@@ -35,9 +34,9 @@ func asMemorySlice(m api.Module, pointerSize int64) (data []byte) {
 	return data
 }
 
-// toWasmMemorySized copies a Go byte slice to wasm memory and returns the corresponding
+// write copies a Go byte slice to wasm memory and returns the corresponding
 // 32 bit pointer. Note the data must have a well known fixed length in the runtime.
-func toWasmMemorySized(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointer uint32, err error) {
+func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointer uint32, err error) {
 	size := uint32(len(data))
 	pointer, err = allocator.Allocate(size)
 	if err != nil {
@@ -52,14 +51,9 @@ func toWasmMemorySized(m api.Module, allocator *runtime.FreeingBumpHeapAllocator
 }
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData int64) {
-	logger.Trace("executing...")
-	// instanceContext := wasm.IntoInstanceContext(context)
-
-	// target := string(asMemorySlice(instanceContext, targetData))
-	// msg := string(asMemorySlice(instanceContext, msgData))
-	target := string(asMemorySlice(m, targetData))
-	msg := string(asMemorySlice(m, msgData))
+func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
+	target := string(read(m, targetData))
+	msg := string(read(m, msgData))
 
 	switch int(level) {
 	case 0:
@@ -78,19 +72,12 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 }
 
 //export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID int32, seedSpan int64) uint32 {
-	logger.Trace("executing...")
-
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// runtimeCtx := instanceContext.Data().(*runtime.Context)
-	// memory := instanceContext.Memory().Data()
-
-	// id := memory[keyTypeID : keyTypeID+4]
-	id, ok := m.Memory().Read(uint32(keyTypeID), 4)
+func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
+	id, ok := m.Memory().Read(keyTypeID, 4)
 	if !ok {
-		panic("wtf?")
+		panic("out of range read")
 	}
-	seedBytes := asMemorySlice(m, seedSpan)
+	seedBytes := read(m, seedSpan)
 
 	var seed *[]byte
 	err := scale.Unmarshal(seedBytes, &seed)
@@ -112,9 +99,9 @@ func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, ke
 		return 0
 	}
 
-	rtCtx := ctx.Value("context").(*runtime.Context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
-		panic("wtf?")
+		panic("nil runtime context")
 	}
 
 	ks, err := rtCtx.Keystore.GetKeystore(id)
@@ -129,7 +116,7 @@ func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, ke
 		return 0
 	}
 
-	ret, err := toWasmMemorySized(m, rtCtx.Allocator, kp.Public().Encode())
+	ret, err := write(m, rtCtx.Allocator, kp.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
 		return 0
@@ -139,28 +126,24 @@ func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, ke
 	return ret
 }
 
-func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr int32) {
-	// fmt.Println("in here!! ext_allocator_free_version_1")
-	allocator := ctx.Value("allocator").(*runtime.FreeingBumpHeapAllocator)
+func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
+	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Deallocate memory
-	err := allocator.Deallocate(uint32(addr))
+	err := allocator.Deallocate(addr)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, a int32) int32 {
-	// fmt.Println("in here!! ext_allocator_malloc_version_1")
-	size := a
-
-	allocator := ctx.Value("allocator").(*runtime.FreeingBumpHeapAllocator)
+func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, size uint32) uint32 {
+	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Allocate memory
-	res, err := allocator.Allocate(uint32(size))
+	res, err := allocator.Allocate(size)
 	if err != nil {
 		panic(err)
 	}
 
-	return int32(res)
+	return res
 }

@@ -2,7 +2,9 @@ package wazero_runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -17,12 +19,16 @@ import (
 // Name represents the name of the interpreter
 const Name = "wazero"
 
+type contextKey string
+
+const runtimeContextKey = contextKey("runtime.Context")
+
 // Instance backed by wazero.Runtime
 type Instance struct {
 	Runtime wazero.Runtime
 	Module  api.Module
-	// Allocator *runtime.FreeingBumpHeapAllocator
 	Context *runtime.Context
+	sync.Mutex
 }
 
 // Config is the configuration used to create a Wasmer runtime instance.
@@ -96,11 +102,11 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			return
 		}).
 		Export("ext_sandbox_memory_teardown_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64) int32 {
-			return 0
-		}).
-		Export("ext_crypto_ed25519_generate_version_1").
+		// NewFunctionBuilder().
+		// WithFunc(func(a int32, b int64) int32 {
+		// 	return 0
+		// }).
+		// Export("ext_crypto_ed25519_generate_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int32) int64 {
 			return 0
@@ -177,7 +183,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_crypto_finish_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int32 {
+		WithFunc(func(a int64) int32 {
 			return 0
 		}).
 		Export("ext_trie_blake2_256_root_version_1").
@@ -247,7 +253,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_default_child_storage_next_key_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) int64 {
+		WithFunc(func(a int64) int64 {
 			return 0
 		}).
 		Export("ext_default_child_storage_root_version_1").
@@ -363,8 +369,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_offchain_timestamp_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int64 {
-			return 0
+		WithFunc(func(int64) {
+			return
 		}).
 		Export("ext_offchain_sleep_until_version_1").
 		NewFunctionBuilder().
@@ -373,7 +379,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_offchain_http_request_start_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64, c int64) int64 {
+		WithFunc(func(a int32, _ int64, c int64) int64 {
 			return 0
 		}).
 		Export("ext_offchain_http_request_add_header_version_1").
@@ -467,12 +473,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	if global == nil {
 		panic("huh?")
 	}
-	fmt.Printf("%+v\n", global)
-	global.Get()
-
 	hb := api.DecodeU32(global.Get())
-	fmt.Println("heapbase", hb)
-
 	mem := mod.Memory()
 	if mem == nil {
 		panic("wtf?")
@@ -495,4 +496,45 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module: mod,
 	}, nil
+}
+
+var ErrExportFunctionNotFound = errors.New("export function not found")
+
+func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
+	i.Lock()
+	defer i.Unlock()
+
+	dataLength := uint32(len(data))
+	inputPtr, err := i.Context.Allocator.Allocate(dataLength)
+	if err != nil {
+		return nil, fmt.Errorf("allocating input memory: %w", err)
+	}
+
+	defer i.Context.Allocator.Clear()
+
+	// Store the data into memory
+	mem := i.Module.Memory()
+	ok := mem.Write(inputPtr, data)
+	if !ok {
+		panic("wtf?")
+	}
+
+	runtimeFunc := i.Module.ExportedFunction(function)
+	if runtimeFunc == nil {
+		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
+	}
+
+	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
+	values, err := runtimeFunc.Call(ctx, uint64(inputPtr), uint64(dataLength))
+	if err != nil {
+		return nil, fmt.Errorf("running runtime function: %w", err)
+	}
+	wasmValue := values[0]
+
+	outputPtr, outputLength := splitPointerSize(wasmValue)
+	result, ok = mem.Read(outputPtr, outputLength)
+	if !ok {
+		panic("wtf?")
+	}
+	return result, nil
 }
