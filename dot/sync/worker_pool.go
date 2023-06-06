@@ -100,7 +100,7 @@ func (s *syncWorkerPool) newPeer(who peer.ID, isFromBlockAnnounce bool) {
 
 	// check if the punishment is not valid
 	if peerSync.status == punished && peerSync.punishmentTime.Before(time.Now()) {
-		s.workers[who] = &peerSyncWorker{status: available}
+		s.workers[who] = &peerSyncWorker{status: available, timesPunished: peerSync.timesPunished}
 	}
 }
 
@@ -245,7 +245,11 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	defer func() {
 		s.l.Lock()
-		s.workers[who] = &peerSyncWorker{status: available}
+		peerSync, has := s.workers[who]
+		if has {
+			peerSync.status = available
+			s.workers[who] = peerSync
+		}
 		s.l.Unlock()
 
 		s.availableCond.Signal()

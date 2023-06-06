@@ -186,6 +186,8 @@ func (cs *chainSync) stop() {
 }
 
 func (cs *chainSync) sync() {
+	var useFinalisedHeader bool
+
 	for {
 		bestBlockHeader, err := cs.blockState.BestBlockHeader()
 		if err != nil {
@@ -225,7 +227,19 @@ func (cs *chainSync) sync() {
 				logger.Debugf("switched sync mode to %d", bootstrap)
 			}
 
-			cs.executeBootstrapSync(finalisedHeader)
+			checkPointHeader := bestBlockHeader
+			if useFinalisedHeader {
+				checkPointHeader = finalisedHeader
+			}
+			err := cs.executeBootstrapSync(checkPointHeader)
+
+			if err != nil {
+				logger.Errorf("while executing bootsrap sync: %s", err)
+				useFinalisedHeader = true
+				continue
+			}
+
+			useFinalisedHeader = false
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
 			swapped := cs.state.CompareAndSwap(bootstrap, tip)
@@ -448,12 +462,12 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 	return nil
 }
 
-func (cs *chainSync) executeBootstrapSync(highestFinalizedHeader *types.Header) error {
+func (cs *chainSync) executeBootstrapSync(checkPointHeader *types.Header) error {
 	cs.workerPool.useConnectedPeers()
 
-	startRequestAt := highestFinalizedHeader.Number + 1
+	startRequestAt := checkPointHeader.Number + 1
 
-	const maxRequestsAllowed = 50
+	const maxRequestsAllowed = 40
 	// we build the set of requests based on the amount of available peers
 	// in the worker pool, if we have more peers than `maxRequestAllowed`
 	// so we limit to `maxRequestAllowed` to avoid the error:
@@ -489,9 +503,13 @@ func (cs *chainSync) executeBootstrapSync(highestFinalizedHeader *types.Header) 
 	resultsQueue := make(chan *syncTaskResult)
 
 	wg.Add(1)
-	go cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks, &wg)
+	resultErrCh := cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks, &wg)
 	cs.workerPool.submitRequests(requests, resultsQueue)
 	wg.Wait()
+
+	if err := <-resultErrCh; err != nil {
+		return fmt.Errorf("while handling workers results: %w", err)
+	}
 
 	return nil
 }
@@ -525,144 +543,154 @@ func (cs *chainSync) getTarget() (uint, error) {
 // and every cicle we should endup with a complete chain, whenever we identify
 // any error from a worker we should evaluate the error and re-insert the request
 // in the queue and wait for it to completes
-func (cs *chainSync) handleWorkersResults(workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) {
-	startTime := time.Now()
-	defer func() {
-		totalSyncAndImportSeconds := time.Since(startTime).Seconds()
-		bps := float64(totalBlocks) / totalSyncAndImportSeconds
-		logger.Debugf("⛓️ synced %d blocks, took: %.2f seconds, bps: %.2f blocks/second", totalBlocks, totalSyncAndImportSeconds, bps)
-		wg.Done()
-	}()
+func (cs *chainSync) handleWorkersResults(
+	workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) chan error {
+	errCh := make(chan error)
 
-	logger.Debugf("💤 waiting for %d blocks", totalBlocks)
-	syncingChain := make([]*types.BlockData, totalBlocks)
-	// the total numbers of blocks is missing in the syncing chain
-	waitingBlocks := totalBlocks
+	go func() {
+		startTime := time.Now()
+		defer func() {
+			totalSyncAndImportSeconds := time.Since(startTime).Seconds()
+			bps := float64(totalBlocks) / totalSyncAndImportSeconds
+			logger.Debugf("⛓️ synced %d blocks, took: %.2f seconds, bps: %.2f blocks/second", totalBlocks, totalSyncAndImportSeconds, bps)
 
-	for waitingBlocks > 0 {
-		// in a case where we don't handle workers results we should check the pool
-		idleDuration := time.Minute
-		idleTimer := time.NewTimer(idleDuration)
+			close(errCh)
+			wg.Done()
+		}()
 
-		select {
-		case <-cs.stopCh:
-			return
+		logger.Debugf("💤 waiting for %d blocks", totalBlocks)
+		syncingChain := make([]*types.BlockData, totalBlocks)
+		// the total numbers of blocks is missing in the syncing chain
+		waitingBlocks := totalBlocks
 
-		case <-idleTimer.C:
-			logger.Warnf("idle ticker triggered! checking pool")
-			cs.workerPool.useConnectedPeers()
-			continue
+		for waitingBlocks > 0 {
+			// in a case where we don't handle workers results we should check the pool
+			idleDuration := time.Minute
+			idleTimer := time.NewTimer(idleDuration)
 
-		case taskResult := <-workersResults:
-			if !idleTimer.Stop() {
-				<-idleTimer.C
-			}
+			select {
+			case <-cs.stopCh:
+				return
 
-			logger.Debugf("task result: peer(%s), with error: %v, with response: %v",
-				taskResult.who, taskResult.err != nil, taskResult.response != nil)
+			case <-idleTimer.C:
+				logger.Warnf("idle ticker triggered! checking pool")
+				cs.workerPool.useConnectedPeers()
+				continue
 
-			if taskResult.err != nil {
-				logger.Errorf("task result: peer(%s) error: %s",
-					taskResult.who, taskResult.err)
-
-				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					switch {
-					case strings.Contains(taskResult.err.Error(), "protocols not supported"):
-						cs.network.ReportPeer(peerset.ReputationChange{
-							Value:  peerset.BadProtocolValue,
-							Reason: peerset.BadProtocolReason,
-						}, taskResult.who)
-						cs.workerPool.ignorePeerAsWorker(taskResult.who)
-					default:
-						cs.workerPool.punishPeer(taskResult.who)
-					}
+			case taskResult := <-workersResults:
+				if !idleTimer.Stop() {
+					<-idleTimer.C
 				}
 
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
-				continue
+				logger.Debugf("task result: peer(%s), with error: %v, with response: %v",
+					taskResult.who, taskResult.err != nil, taskResult.response != nil)
+
+				if taskResult.err != nil {
+					logger.Errorf("task result: peer(%s) error: %s",
+						taskResult.who, taskResult.err)
+
+					if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+						switch {
+						case strings.Contains(taskResult.err.Error(), "protocols not supported"):
+							cs.network.ReportPeer(peerset.ReputationChange{
+								Value:  peerset.BadProtocolValue,
+								Reason: peerset.BadProtocolReason,
+							}, taskResult.who)
+							cs.workerPool.ignorePeerAsWorker(taskResult.who)
+						default:
+							cs.workerPool.punishPeer(taskResult.who)
+						}
+					}
+
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue
+				}
+
+				who := taskResult.who
+				request := taskResult.request
+				response := taskResult.response
+
+				if request.Direction == network.Descending {
+					// reverse blocks before pre-validating and placing in ready queue
+					reverseBlockData(response.BlockData)
+				}
+
+				err := cs.validateResponse(request, response, who)
+				switch {
+				case errors.Is(err, errResponseIsNotChain):
+					logger.Criticalf("response invalid: %s", err)
+					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue
+				case errors.Is(err, errEmptyBlockData):
+					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue
+				case errors.Is(err, errUnknownParent):
+				case errors.Is(err, errBadBlock):
+					logger.Warnf("peer %s sent a bad block: %s", who, err)
+					cs.workerPool.ignorePeerAsWorker(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue
+				case err != nil:
+					logger.Criticalf("response invalid: %s", err)
+					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue
+				}
+
+				if len(response.BlockData) > 0 {
+					firstBlockInResponse := response.BlockData[0]
+					lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
+
+					logger.Tracef("processing %d blocks: %d (%s) to %d (%s)",
+						len(response.BlockData),
+						firstBlockInResponse.Header.Number, firstBlockInResponse.Hash,
+						lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
+				}
+
+				cs.network.ReportPeer(peerset.ReputationChange{
+					Value:  peerset.GossipSuccessValue,
+					Reason: peerset.GossipSuccessReason,
+				}, taskResult.who)
+
+				for _, blockInResponse := range response.BlockData {
+					blockExactIndex := blockInResponse.Header.Number - startAtBlock
+					syncingChain[blockExactIndex] = blockInResponse
+				}
+
+				// we need to check if we've filled all positions
+				// otherwise we should wait for more responses
+				waitingBlocks -= uint32(len(response.BlockData))
 			}
-
-			who := taskResult.who
-			request := taskResult.request
-			response := taskResult.response
-
-			if request.Direction == network.Descending {
-				// reverse blocks before pre-validating and placing in ready queue
-				reverseBlockData(response.BlockData)
-			}
-
-			err := cs.validateResponse(request, response, who)
-			switch {
-			case errors.Is(err, errResponseIsNotChain):
-				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
-				continue
-			case errors.Is(err, errEmptyBlockData):
-				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
-				continue
-			case errors.Is(err, errUnknownParent):
-			case errors.Is(err, errBadBlock):
-				logger.Warnf("peer %s sent a bad block: %s", who, err)
-				cs.workerPool.ignorePeerAsWorker(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
-				continue
-			case err != nil:
-				logger.Criticalf("response invalid: %s", err)
-				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
-				continue
-			}
-
-			if len(response.BlockData) > 0 {
-				firstBlockInResponse := response.BlockData[0]
-				lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
-
-				logger.Tracef("processing %d blocks: %d (%s) to %d (%s)",
-					len(response.BlockData),
-					firstBlockInResponse.Header.Number, firstBlockInResponse.Hash,
-					lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
-			}
-
-			cs.network.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.GossipSuccessValue,
-				Reason: peerset.GossipSuccessReason,
-			}, taskResult.who)
-
-			for _, blockInResponse := range response.BlockData {
-				blockExactIndex := blockInResponse.Header.Number - startAtBlock
-				syncingChain[blockExactIndex] = blockInResponse
-			}
-
-			// we need to check if we've filled all positions
-			// otherwise we should wait for more responses
-			waitingBlocks -= uint32(len(response.BlockData))
 		}
-	}
 
-	retreiveBlocksSeconds := time.Since(startTime).Seconds()
-	logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...", totalBlocks, retreiveBlocksSeconds)
-	if len(syncingChain) >= 2 {
-		// ensuring the parents are in the right place
-		parentElement := syncingChain[0]
-		for _, element := range syncingChain[1:] {
-			if parentElement.Header.Hash() != element.Header.ParentHash {
-				panic(fmt.Sprintf("expected %s be parent of %s",
-					parentElement.Header.Hash(), element.Header.ParentHash))
+		retreiveBlocksSeconds := time.Since(startTime).Seconds()
+		logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...", totalBlocks, retreiveBlocksSeconds)
+		if len(syncingChain) >= 2 {
+			// ensuring the parents are in the right place
+			parentElement := syncingChain[0]
+			for _, element := range syncingChain[1:] {
+				if parentElement.Header.Hash() != element.Header.ParentHash {
+					panic(fmt.Sprintf("expected %s be parent of %s",
+						parentElement.Header.Hash(), element.Header.ParentHash))
+				}
+				parentElement = element
 			}
-			parentElement = element
 		}
-	}
 
-	// response was validated! place into ready block queue
-	for _, bd := range syncingChain {
-		// block is ready to be processed!
-		if err := cs.handleReadyBlock(bd); err != nil {
-			logger.Criticalf("error while handling a ready block: %s", err)
-			return
+		// response was validated! place into ready block queue
+		for _, bd := range syncingChain {
+			// block is ready to be processed!
+			if err := cs.handleReadyBlock(bd); err != nil {
+				logger.Criticalf("error while handling a ready block: %s", err)
+				errCh <- err
+				return
+			}
 		}
-	}
+	}()
+
+	return errCh
 }
 
 func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
