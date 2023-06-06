@@ -14,7 +14,7 @@ import (
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
-type GrandpaMessage interface { //nolint:revive
+type GrandpaMessage interface {
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 }
 

@@ -53,7 +53,7 @@ and start a development network.
 [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) is required
 to acquire the Gossamer source code, and
 [Make](https://tilburgsciencehub.com/building-blocks/configure-your-computer/automation-and-workflows/make/)
-is used to build it. Building Gossamer requires version 1.19 or higher of
+is used to build it. Building Gossamer requires version 1.20 or higher of
 [Golang](https://go.dev/dl/).
 
 ### Installation

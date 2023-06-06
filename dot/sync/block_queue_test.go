@@ -63,7 +63,7 @@ func Test_blockQueue_push(t *testing.T) {
 func Test_blockQueue_pop(t *testing.T) {
 	t.Parallel()
 
-	t.Run("context canceled", func(t *testing.T) {
+	t.Run("context_canceled", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -77,7 +77,7 @@ func Test_blockQueue_pop(t *testing.T) {
 		assert.ErrorIs(t, err, context.Canceled)
 	})
 
-	t.Run("get block data after waiting", func(t *testing.T) {
+	t.Run("get_block_data_after_waiting", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := context.Background()
