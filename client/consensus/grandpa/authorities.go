@@ -480,8 +480,9 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 
 	// we will keep all forced changes for any later blocks and that are a
 	// descendent of the finalized block (i.e. they are part of this branch).
-	for i := 0; i < len(pendingForcedChanges); i++ {
-		forcedChange := pendingForcedChanges[i]
+	//for i := 0; i < len(pendingForcedChanges); i++ {
+	for _, forcedChange := range pendingForcedChanges {
+		//forcedChange := pendingForcedChanges[i]
 		isDesc, err := isDescendentOf(finalizedHash, forcedChange.canonHash)
 		if err != nil {
 			return status, err
