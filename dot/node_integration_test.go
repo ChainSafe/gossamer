@@ -14,7 +14,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	"github.com/ChainSafe/gossamer/chain/westend"
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -48,7 +49,7 @@ func TestNewNode(t *testing.T) {
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
 	basepath := t.TempDir()
-	initConfig := westend_dev.DefaultConfig()
+	initConfig := westend.DefaultConfig()
 	genFile := NewTestGenesisRawFile(t, initConfig)
 
 	initConfig.Name = "TestNode"
@@ -162,7 +163,7 @@ func TestNewNode(t *testing.T) {
 }
 
 func Test_nodeBuilder_loadRuntime(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 	type args struct {
 		config *cfg.Config
 		ns     *runtime.NodeStorage
@@ -204,7 +205,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 }
 
 func TestInitNode_Integration(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -221,7 +222,7 @@ func TestInitNode_Integration(t *testing.T) {
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genFile := newTestGenesisFile(t, config)
 
@@ -237,7 +238,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -255,7 +256,7 @@ func TestNodeInitializedIntegration(t *testing.T) {
 }
 
 func TestNewNodeIntegration(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -287,7 +288,7 @@ func TestNewNodeIntegration(t *testing.T) {
 }
 
 func TestNewNode_Authority(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -322,7 +323,7 @@ func TestNewNode_Authority(t *testing.T) {
 }
 
 func TestStartStopNode(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -360,7 +361,7 @@ func TestStartStopNode(t *testing.T) {
 }
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -409,7 +410,7 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 }
 
 func TestInitNode_LoadBalances(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -450,7 +451,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
-	config := westend_dev.DefaultConfig()
+	config := westenddev.DefaultConfig()
 	config.Name = globalName
 
 	config.Core.Role = common.FullNodeRole
