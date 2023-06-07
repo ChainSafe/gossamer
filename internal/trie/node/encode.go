@@ -46,10 +46,15 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	// even if it is empty. Do not encode if the branch is without value.
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
-		encoder := scale.NewEncoder(buffer)
-		err = encoder.Encode(n.StorageValue)
-		if err != nil {
-			return fmt.Errorf("scale encoding storage value: %w", err)
+		if n.HashedValue {
+			_, err = buffer.Write(n.StorageValue)
+			return fmt.Errorf("encoding hashed storage value: %w", err)
+		} else {
+			encoder := scale.NewEncoder(buffer)
+			err = encoder.Encode(n.StorageValue)
+			if err != nil {
+				return fmt.Errorf("scale encoding storage value: %w", err)
+			}
 		}
 	}
 
