@@ -55,6 +55,12 @@ var (
 		Name:      "is_synced",
 		Help:      "bool representing whether the node is synced to the head of the chain",
 	})
+
+	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_sync",
+		Name:      "block_size",
+		Help:      "represent the size of blocks synced",
+	})
 )
 
 // peerView tracks our peers's best reported blocks
@@ -467,7 +473,6 @@ func (cs *chainSync) executeBootstrapSync(checkPointHeader *types.Header) error 
 
 	startRequestAt := checkPointHeader.Number + 1
 
-	const maxRequestsAllowed = 40
 	// we build the set of requests based on the amount of available peers
 	// in the worker pool, if we have more peers than `maxRequestAllowed`
 	// so we limit to `maxRequestAllowed` to avoid the error:
@@ -854,9 +859,14 @@ func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData
 
 // handleHeader handles block bodies included in BlockResponses
 func (cs *chainSync) handleBody(body *types.Body) {
+	acc := 0
 	for _, ext := range *body {
+		acc += len(ext)
 		cs.transactionState.RemoveExtrinsic(ext)
 	}
+
+	blockSizeGauge.Set(float64(acc))
+	//logger.Infof("📦 roughly body size: %d, sum of extrinsics size: %d", len(*body), acc)
 }
 
 func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {

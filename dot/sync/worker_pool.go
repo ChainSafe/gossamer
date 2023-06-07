@@ -58,7 +58,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 		network:     net,
 		doneCh:      make(chan struct{}),
 		workers:     make(map[peer.ID]*peerSyncWorker),
-		taskQueue:   make(chan *syncTask),
+		taskQueue:   make(chan *syncTask, maxRequestsAllowed+1),
 		ignorePeers: make(map[peer.ID]struct{}),
 	}
 
@@ -100,7 +100,8 @@ func (s *syncWorkerPool) newPeer(who peer.ID, isFromBlockAnnounce bool) {
 
 	// check if the punishment is not valid
 	if peerSync.status == punished && peerSync.punishmentTime.Before(time.Now()) {
-		s.workers[who] = &peerSyncWorker{status: available, timesPunished: peerSync.timesPunished}
+		peerSync.status = available
+		s.workers[who] = peerSync
 	}
 }
 
@@ -228,7 +229,10 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 				}
 
 				if peerID != peer.ID("") {
-					s.workers[peerID] = &peerSyncWorker{status: busy}
+					peerSync := s.workers[peerID]
+					peerSync.status = busy
+					s.workers[peerID] = peerSync
+
 					s.l.Unlock()
 
 					s.wg.Add(1)
