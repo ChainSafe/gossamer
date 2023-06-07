@@ -96,6 +96,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
 		node.StorageValue = buffer
+		node.HashedValue = true
 	}
 
 	for i := 0; i < ChildrenCapacity; i++ {
@@ -146,6 +147,7 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 		//TODO: check that we read 32 bytes in the buffer
 		err = sd.Decode(&buffer)
 		node.StorageValue = buffer
+		node.HashedValue = true
 	} else {
 		err = sd.Decode(&node.StorageValue)
 	}

@@ -39,7 +39,8 @@ func concatByteSlices(slices [][]byte) (concatenated []byte) {
 func Test_Decode(t *testing.T) {
 	t.Parallel()
 
-	hashedValue, _ := common.Blake2bHash([]byte("test"))
+	hashedValue, err := common.Blake2bHash([]byte("test"))
+	assert.NoError(t, err)
 
 	testCases := map[string]struct {
 		reader     io.Reader
@@ -110,6 +111,7 @@ func Test_Decode(t *testing.T) {
 			n: &Node{
 				PartialKey:   []byte{9},
 				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
 			},
 		},
 		"branch_with_hashed_value_success": {
@@ -123,6 +125,7 @@ func Test_Decode(t *testing.T) {
 				PartialKey:   []byte{9},
 				Children:     make([]*Node, ChildrenCapacity),
 				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
 			},
 		},
 	}

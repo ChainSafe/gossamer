@@ -10,6 +10,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,6 +18,9 @@ import (
 
 func Test_encodeHeader(t *testing.T) {
 	t.Parallel()
+
+	hashedValue, err := common.Blake2bHash([]byte("test"))
+	assert.NoError(t, err)
 
 	testCases := map[string]struct {
 		node       *Node
@@ -39,6 +43,16 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{written: []byte{branchWithValueVariant.bits}},
+			},
+		},
+		"branch_with_hashed_value": {
+			node: &Node{
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+				Children:     make([]*Node, ChildrenCapacity),
+			},
+			writes: []writeCall{
+				{written: []byte{branchWithHashedValueVariant.bits}},
 			},
 		},
 		"branch_with_key_of_length_30": {
@@ -109,6 +123,15 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			errWrapped: errTest,
 			errMessage: "test error",
+		},
+		"leaf_with_hashed_value": {
+			node: &Node{
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+			},
+			writes: []writeCall{
+				{written: []byte{leafWithHashedValueVariant.bits}},
+			},
 		},
 		"leaf_with_no_key": {
 			node: &Node{StorageValue: []byte{1}},
