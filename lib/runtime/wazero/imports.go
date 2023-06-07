@@ -191,7 +191,123 @@ func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module,
 		}
 		return uint64(ret)
 	}
-	return uint64(ret)
+	return ret
+}
+
+//export ext_crypto_ed25519_sign_version_1
+func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTypeID, key uint32, msg uint64) uint64 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	id, ok := m.Memory().Read(keyTypeID, 4)
+	if !ok {
+		panic("out of range read")
+	}
+
+	pubKeyData, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("out of range read")
+	}
+
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Errorf("failed to get public keys: %s", err)
+		return 0
+	}
+
+	ks, err := rtCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("error for id 0x%x: %s", id, err)
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+
+	signingKey := ks.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+
+	sig, err := signingKey.Sign(read(m, msg))
+	if err != nil {
+		logger.Error("could not sign message")
+	}
+
+	var fixedSize [64]byte
+	copy(fixedSize[:], sig)
+
+	encoded, err := scale.Marshal(&fixedSize)
+	if err != nil {
+		logger.Error(fmt.Sprintf("scale encoding: %s", err))
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+
+	ret, err := write(m, rtCtx.Allocator, encoded)
+	if err != nil {
+		logger.Errorf("failed to allocate memory: %s", err)
+		return 0
+	}
+
+	return ret
+}
+
+func ext_crypto_ed25519_verify_version_1(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	memory := m.Memory()
+	sigVerifier := rtCtx.SigVerifier
+
+	// signature := memory[sig : sig+64]
+	signature, ok := memory.Read(sig, 64)
+	if !ok {
+		panic("read overflow")
+	}
+	message := read(m, msg)
+	pubKeyData, ok := memory.Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("failed to create public key")
+		return 0
+	}
+
+	if sigVerifier.IsStarted() {
+		signature := crypto.SignatureInfo{
+			PubKey:     pubKey.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: ed25519.VerifySignature,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
+		logger.Error("failed to verify")
+		return 0
+	}
+
+	logger.Debug("verified ed25519 signature")
+	return 1
 }
 
 func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
