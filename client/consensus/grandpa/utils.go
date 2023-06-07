@@ -15,9 +15,16 @@ func SearchKey(key Key, changes []PendingChange) int {
 			return i
 		}
 	}
-	//return 0, fmt.Errorf("key not found")
 
-	// DOnt return error, return idex where key could be inserted to retain sorted order
-	// TODO ask Tim or eclesio about this logic on where to insert, for now insert at end
+	return len(changes)
+}
+
+func SearchSetChanges(number uint, changes AuthoritySetChanges) int {
+	for i, change := range changes {
+		if change.blockNumber == number {
+			return i
+		}
+	}
+
 	return len(changes)
 }

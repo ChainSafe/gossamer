@@ -529,6 +529,57 @@ func (authSet *AuthoritySet) EnactsStandardChange(
 	return authSet.pendingStandardChanges.FinalizeAnyWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, enactStandardChangesPredicate(finalizedNumber))
 }
 
+func (authSetChanges *AuthoritySetChanges) Append(setId uint64, blockNumber uint) {
+	*authSetChanges = append(*authSetChanges, AuthorityChange{
+		setId:       setId,
+		blockNumber: blockNumber,
+	})
+}
+
+func (authSetChanges *AuthoritySetChanges) GetSetId(blockNumber uint) {
+	// TODO impl
+}
+
+func (authSetChanges *AuthoritySetChanges) Insert(blockNumber uint) {
+	var idx int
+	if authSetChanges == nil {
+		idx = 0
+	} else {
+		idx = SearchSetChanges(blockNumber, *authSetChanges)
+	}
+
+	set := *authSetChanges // so i can index into it
+
+	var setId uint64
+	if idx == 0 {
+		setId = 0
+	} else {
+		// maybe need safe cast
+		setId = set[idx].setId + 1
+	}
+
+	// TODO double check this in review
+	if !(idx == len(set) || set[idx].setId != setId) {
+		panic("inserting authority set change")
+	}
+
+	change := AuthorityChange{
+		setId:       setId,
+		blockNumber: blockNumber,
+	}
+
+	// Insert change at index
+	if len(set) <= idx {
+		set = append(set, change)
+	} else {
+		set = append(
+			set[:idx+1], set[idx:]...)
+		set[idx] = change
+	}
+	*authSetChanges = set
+
+}
+
 // SharedAuthoritySet A shared authority set.
 // TODO implement shared logic
 type SharedAuthoritySet struct {

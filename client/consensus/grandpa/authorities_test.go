@@ -1164,6 +1164,28 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 	require.Equal(t, common.BytesToHash([]byte("D")), authorities.pendingForcedChanges[0].canonHash)
 }
 
+func TestAuthoritySetChangesInsert(t *testing.T) {
+	// TODO impl
+	authoritySetChanges := AuthoritySetChanges{}
+	authoritySetChanges.Append(0, 41)
+	authoritySetChanges.Append(1, 81)
+	authoritySetChanges.Append(4, 121)
+
+	authoritySetChanges.Insert(101)
+}
+
+func TestAuthoritySetChangesForCompleteData(t *testing.T) {
+	// TODO impl
+}
+
+func TestAuthoritySetChangesForIncompleteData(t *testing.T) {
+	// TODO impl
+}
+
+func TestIterFromWorks(t *testing.T) {
+	// TODO impl
+}
+
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList
