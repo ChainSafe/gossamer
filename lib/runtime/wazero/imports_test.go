@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
@@ -226,6 +227,83 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	ret, err := inst.Exec("rtm_ext_crypto_ed25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
+
+func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	msgData := []byte("Hello world!")
+	blakeHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	sigData, err := kp.Private().Sign(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	expectedPubKey := kp.Public().Encode()
+
+	encSign, err := scale.Marshal(sigData)
+	require.NoError(t, err)
+	encMsg, err := scale.Marshal(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_version_1", append(encSign, encMsg...))
+	require.NoError(t, err)
+
+	var out []byte
+	err = scale.Unmarshal(ret, &out)
+	require.NoError(t, err)
+
+	result := scale.NewResult([64]byte{}, nil)
+
+	err = scale.Unmarshal(out, &result)
+	require.NoError(t, err)
+
+	rawPub, err := result.Unwrap()
+	require.NoError(t, err)
+	rawPubBytes := rawPub.([64]byte)
+	require.Equal(t, 64, len(rawPubBytes))
+
+	publicKey := new(secp256k1.PublicKey)
+
+	// Generates [33]byte compressed key from uncompressed [65]byte public key.
+	err = publicKey.UnmarshalPubkey(append([]byte{4}, rawPubBytes[:]...))
+	require.NoError(t, err)
+	require.Equal(t, expectedPubKey, publicKey.Encode())
+}
+
+func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	msgHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	sig, err := kp.Private().Sign(msgHash[:])
+	require.NoError(t, err)
+
+	encSig, err := scale.Marshal(sig)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
 	var read *[]byte

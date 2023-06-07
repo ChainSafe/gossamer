@@ -6,8 +6,10 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tetratelabs/wazero/api"
@@ -18,6 +20,10 @@ var (
 		log.AddContext("pkg", "runtime"),
 		log.AddContext("module", "wazero"),
 	)
+)
+
+const (
+	validateSignatureFail = "failed to validate signature"
 )
 
 // toPointerSize converts an uint32 pointer and uint32 size
@@ -309,6 +315,409 @@ func ext_crypto_ed25519_verify_version_1(ctx context.Context, m api.Module, sig 
 	logger.Debug("verified ed25519 signature")
 	return 1
 }
+
+//export ext_crypto_secp256k1_ecdsa_recover_version_1
+func ext_crypto_secp256k1_ecdsa_recover_version_1(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message, ok := m.Memory().Read(msg, 32)
+	if !ok {
+		panic("read overflow")
+	}
+	signature, ok := m.Memory().Read(sig, 65)
+	if !ok {
+		panic("read overflow")
+	}
+
+	pub, err := secp256k1.RecoverPublicKey(message, signature)
+	if err != nil {
+		logger.Errorf("failed to recover public key: %s", err)
+		// TODO: update to use scale.Result, 1 is error case
+		ret, err := write(m, rtCtx.Allocator, []byte{1})
+		if err != nil {
+			panic(err)
+		}
+		return ret
+	}
+
+	logger.Debugf(
+		"recovered public key of length %d: 0x%x",
+		len(pub), pub)
+
+	ret, err := write(m, rtCtx.Allocator, append([]byte{0}, pub[1:]...))
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+// //export ext_crypto_secp256k1_ecdsa_recover_version_2
+// func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+// 	logger.Trace("executing...")
+// 	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
+// }
+
+//export ext_crypto_ecdsa_verify_version_2
+func ext_crypto_ecdsa_verify_version_2(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	sigVerifier := rtCtx.SigVerifier
+
+	message := read(m, msg)
+	// signature := memory[sig : sig+64]
+	signature, ok := m.Memory().Read(sig, 64)
+	if !ok {
+		panic("read overflow")
+	}
+	// pubKey := memory[key : key+33]
+	pubKey, ok := m.Memory().Read(key, 33)
+	if !ok {
+		panic("read overflow")
+	}
+
+	pub := new(secp256k1.PublicKey)
+	err := pub.Decode(pubKey)
+	if err != nil {
+		logger.Errorf("failed to decode public key: %s", err)
+		return 0
+	}
+
+	logger.Debugf("pub=%s, message=0x%x, signature=0x%x",
+		pub.Hex(), fmt.Sprintf("0x%x", message), fmt.Sprintf("0x%x", signature))
+
+	hash, err := common.Blake2bHash(message)
+	if err != nil {
+		logger.Errorf("failed to hash message: %s", err)
+		return 0
+	}
+
+	if sigVerifier.IsStarted() {
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        hash[:],
+			VerifyFunc: secp256k1.VerifySignature,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
+
+	ok, err = pub.Verify(hash[:], signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Errorf(message)
+		return 0
+	}
+
+	logger.Debug("validated signature")
+	return 1
+}
+
+// //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
+// func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+// 	logger.Trace("executing...")
+// 	instanceContext := wasm.IntoInstanceContext(context)
+// 	memory := instanceContext.Memory().Data()
+
+// 	// msg must be the 32-byte hash of the message to be signed.
+// 	// sig must be a 65-byte compact ECDSA signature containing the
+// 	// recovery id as the last element
+// 	message := memory[msg : msg+32]
+// 	signature := memory[sig : sig+65]
+
+// 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
+// 	if err != nil {
+// 		logger.Errorf("failed to recover public key: %s", err)
+// 		return mustToWasmMemoryResultEmpty(instanceContext)
+// 	}
+
+// 	logger.Debugf(
+// 		"recovered public key of length %d: 0x%x",
+// 		len(cpub), cpub)
+
+// 	ret, err := toWasmMemoryResult(instanceContext, cpub)
+// 	if err != nil {
+// 		logger.Errorf("failed to allocate memory: %s", err)
+// 		return 0
+// 	}
+
+// 	return C.int64_t(ret)
+// }
+
+// //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
+// func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
+// 	logger.Trace("executing...")
+// 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context, sig, msg)
+// }
+
+// //export ext_crypto_sr25519_generate_version_1
+// func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
+// 	logger.Trace("executing...")
+
+// 	instanceContext := wasm.IntoInstanceContext(context)
+// 	runtimeCtx := instanceContext.Data().(*runtime.Context)
+// 	memory := instanceContext.Memory().Data()
+
+// 	id := memory[keyTypeID : keyTypeID+4]
+// 	seedBytes := asMemorySlice(instanceContext, seedSpan)
+
+// 	var seed *[]byte
+// 	err := scale.Unmarshal(seedBytes, &seed)
+// 	if err != nil {
+// 		logger.Warnf("cannot generate key: %s", err)
+// 		return 0
+// 	}
+
+// 	var kp *sr25519.Keypair
+// 	if seed != nil {
+// 		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
+// 	} else {
+// 		kp, err = sr25519.GenerateKeypair()
+// 	}
+
+// 	if err != nil {
+// 		logger.Tracef("cannot generate key: %s", err)
+// 		panic(err)
+// 	}
+
+// 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+// 	if err != nil {
+// 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
+// 		return 0
+// 	}
+
+// 	err = ks.Insert(kp)
+// 	if err != nil {
+// 		logger.Warnf("failed to insert key: %s", err)
+// 		return 0
+// 	}
+
+// 	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode())
+// 	if err != nil {
+// 		logger.Errorf("failed to allocate memory: %s", err)
+// 		return 0
+// 	}
+
+// 	logger.Debug("generated sr25519 keypair with public key: " + kp.Public().Hex())
+// 	return C.int32_t(ret)
+// }
+
+// //export ext_crypto_sr25519_public_keys_version_1
+// func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
+// 	logger.Debug("executing...")
+
+// 	instanceContext := wasm.IntoInstanceContext(context)
+// 	runtimeCtx := instanceContext.Data().(*runtime.Context)
+// 	memory := instanceContext.Memory().Data()
+
+// 	id := memory[keyTypeID : keyTypeID+4]
+
+// 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+// 	if err != nil {
+// 		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
+// 		ret, _ := toWasmMemory(instanceContext, []byte{0})
+// 		return C.int64_t(ret)
+// 	}
+
+// 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
+// 		logger.Warnf(
+// 			"keystore type for id 0x%x is %s and not expected sr25519",
+// 			id, ks.Type())
+// 		ret, _ := toWasmMemory(instanceContext, []byte{0})
+// 		return C.int64_t(ret)
+// 	}
+
+// 	keys := ks.PublicKeys()
+
+// 	var encodedKeys []byte
+// 	for _, key := range keys {
+// 		encodedKeys = append(encodedKeys, key.Encode()...)
+// 	}
+
+// 	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
+// 	if err != nil {
+// 		logger.Errorf("failed to allocate memory: %s", err)
+// 		ret, _ := toWasmMemory(instanceContext, []byte{0})
+// 		return C.int64_t(ret)
+// 	}
+
+// 	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
+// 	if err != nil {
+// 		logger.Errorf("failed to allocate memory: %s", err)
+// 		ret, _ = toWasmMemory(instanceContext, []byte{0})
+// 		return C.int64_t(ret)
+// 	}
+
+// 	return C.int64_t(ret)
+// }
+
+// //export ext_crypto_sr25519_sign_version_1
+// func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
+// 	logger.Debug("executing...")
+// 	instanceContext := wasm.IntoInstanceContext(context)
+// 	runtimeCtx := instanceContext.Data().(*runtime.Context)
+// 	memory := instanceContext.Memory().Data()
+
+// 	id := memory[keyTypeID : keyTypeID+4]
+
+// 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+// 	if err != nil {
+// 		logger.Warnf("error for id 0x%x: %s", id, err)
+// 		return mustToWasmMemoryOptionalNil(instanceContext)
+// 	}
+
+// 	var ret int64
+// 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
+// 	if err != nil {
+// 		logger.Errorf("failed to get public key: %s", err)
+// 		return mustToWasmMemoryOptionalNil(instanceContext)
+// 	}
+
+// 	signingKey := ks.GetKeypair(pubKey)
+// 	if signingKey == nil {
+// 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
+// 		return mustToWasmMemoryOptionalNil(instanceContext)
+// 	}
+
+// 	msgData := asMemorySlice(instanceContext, msg)
+// 	sig, err := signingKey.Sign(msgData)
+// 	if err != nil {
+// 		logger.Errorf("could not sign message: %s", err)
+// 		return mustToWasmMemoryOptionalNil(instanceContext)
+// 	}
+
+// 	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
+// 	if err != nil {
+// 		logger.Errorf("failed to allocate memory: %s", err)
+// 		return mustToWasmMemoryOptionalNil(instanceContext)
+// 	}
+
+// 	return C.int64_t(ret)
+// }
+
+// //export ext_crypto_sr25519_verify_version_1
+// func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t,
+// 	msg C.int64_t, key C.int32_t) C.int32_t {
+// 	logger.Debug("executing...")
+
+// 	instanceContext := wasm.IntoInstanceContext(context)
+// 	memory := instanceContext.Memory().Data()
+// 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+
+// 	message := asMemorySlice(instanceContext, msg)
+// 	signature := memory[sig : sig+64]
+
+// 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
+// 	if err != nil {
+// 		logger.Error("invalid sr25519 public key")
+// 		return 0
+// 	}
+
+// 	logger.Debugf(
+// 		"pub=%s message=0x%x signature=0x%x",
+// 		pub.Hex(), message, signature)
+
+// 	if sigVerifier.IsStarted() {
+// 		signature := crypto.SignatureInfo{
+// 			PubKey:     pub.Encode(),
+// 			Sign:       signature,
+// 			Msg:        message,
+// 			VerifyFunc: sr25519.VerifySignature,
+// 		}
+// 		sigVerifier.Add(&signature)
+// 		return 1
+// 	}
+
+// 	ok, err := pub.VerifyDeprecated(message, signature)
+// 	if err != nil || !ok {
+// 		message := validateSignatureFail
+// 		if err != nil {
+// 			message += ": " + err.Error()
+// 		}
+// 		logger.Debugf(message)
+// 		// this fails at block 3876, which seems to be expected, based on discussions
+// 		return 1
+// 	}
+
+// 	logger.Debug("verified sr25519 signature")
+// 	return 1
+// }
+
+// //export ext_crypto_sr25519_verify_version_2
+// func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
+// 	msg C.int64_t, key C.int32_t) C.int32_t {
+// 	logger.Trace("executing...")
+
+// 	instanceContext := wasm.IntoInstanceContext(context)
+// 	memory := instanceContext.Memory().Data()
+// 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+
+// 	message := asMemorySlice(instanceContext, msg)
+// 	signature := memory[sig : sig+64]
+
+// 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
+// 	if err != nil {
+// 		logger.Error("invalid sr25519 public key")
+// 		return 0
+// 	}
+
+// 	logger.Debugf(
+// 		"pub=%s; message=0x%x; signature=0x%x",
+// 		pub.Hex(), message, signature)
+
+// 	if sigVerifier.IsStarted() {
+// 		signature := crypto.SignatureInfo{
+// 			PubKey:     pub.Encode(),
+// 			Sign:       signature,
+// 			Msg:        message,
+// 			VerifyFunc: sr25519.VerifySignature,
+// 		}
+// 		sigVerifier.Add(&signature)
+// 		return 1
+// 	}
+
+// 	ok, err := pub.Verify(message, signature)
+// 	if err != nil || !ok {
+// 		message := validateSignatureFail
+// 		if err != nil {
+// 			message += ": " + err.Error()
+// 		}
+// 		logger.Errorf(message)
+// 		return 0
+// 	}
+
+// 	logger.Debug("validated signature")
+// 	return C.int32_t(1)
+// }
+
+// //export ext_crypto_start_batch_verify_version_1
+// func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
+// 	logger.Debug("executing...")
+
+// 	// TODO: fix and re-enable signature verification (#1405)
+// 	// beginBatchVerify(context)
+// }
+
+// //export ext_crypto_finish_batch_verify_version_1
+// func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
+// 	logger.Debug("executing...")
+
+// 	// TODO: fix and re-enable signature verification (#1405)
+// 	// return finishBatchVerify(context)
+// 	return 1
+// }
 
 func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
