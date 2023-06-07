@@ -163,3 +163,73 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 
 	require.Equal(t, pubKeys, ret)
 }
+
+func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.Context.Keystore.GetKeystore(idData)
+	ks.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_crypto_ed25519_sign_version_1", append(append(idData, encPubKey...), encMsg...))
+	require.NoError(t, err)
+
+	var out []byte
+	err = scale.Unmarshal(res, &out)
+	require.NoError(t, err)
+
+	var val *[64]byte
+	err = scale.Unmarshal(out, &val)
+	require.NoError(t, err)
+	require.NotNil(t, val)
+
+	value := make([]byte, 64)
+	copy(value[:], val[:])
+
+	ok, err := kp.Public().Verify(msgData, value)
+	require.NoError(t, err)
+	require.True(t, ok)
+}
+
+func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.Context.Keystore.GetKeystore(idData)
+	ks.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	sign, err := kp.Private().Sign(msgData)
+	require.NoError(t, err)
+	encSign, err := scale.Marshal(sign)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ed25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
