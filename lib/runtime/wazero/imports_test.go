@@ -1,9 +1,11 @@
 package wazero_runtime
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -121,4 +123,43 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	require.Equal(t, 1, ks.Size())
 	kp := ks.GetKeypair(pubKey)
 	require.NotNil(t, kp)
+}
+
+func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	idData := []byte(keystore.DumyName)
+	ks, _ := inst.Context.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	size := 5
+	pubKeys := make([][32]byte, size)
+	for i := range pubKeys {
+		kp, err := ed25519.GenerateKeypair()
+		require.NoError(t, err)
+
+		ks.Insert(kp)
+		copy(pubKeys[i][:], kp.Public().Encode())
+	}
+
+	sort.Slice(pubKeys, func(i int, j int) bool {
+		return bytes.Compare(pubKeys[i][:], pubKeys[j][:]) < 0
+	})
+
+	res, err := inst.Exec("rtm_ext_crypto_ed25519_public_keys_version_1", idData)
+	require.NoError(t, err)
+
+	var out []byte
+	err = scale.Unmarshal(res, &out)
+	require.NoError(t, err)
+
+	var ret [][32]byte
+	err = scale.Unmarshal(out, &ret)
+	require.NoError(t, err)
+
+	sort.Slice(ret, func(i int, j int) bool {
+		return bytes.Compare(ret[i][:], ret[j][:]) < 0
+	})
+
+	require.Equal(t, pubKeys, ret)
 }
