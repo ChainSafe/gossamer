@@ -8,6 +8,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,6 +38,8 @@ func concatByteSlices(slices [][]byte) (concatenated []byte) {
 
 func Test_Decode(t *testing.T) {
 	t.Parallel()
+
+	hashedValue, _ := common.Blake2bHash([]byte("test"))
 
 	testCases := map[string]struct {
 		reader     io.Reader
@@ -96,6 +99,30 @@ func Test_Decode(t *testing.T) {
 			n: &Node{
 				PartialKey: []byte{9},
 				Children:   make([]*Node, ChildrenCapacity),
+			},
+		},
+		"leaf_with_hashed_value_success": {
+			reader: bytes.NewReader(concatByteSlices([][]byte{
+				{leafWithHashedValueVariant.bits | 1}, // partial key length 1
+				{9},                                   // key data
+				scaleEncodeBytes(t, hashedValue.ToBytes()...),
+			})),
+			n: &Node{
+				PartialKey:   []byte{9},
+				StorageValue: hashedValue.ToBytes(),
+			},
+		},
+		"branch_with_hashed_value_success": {
+			reader: bytes.NewReader(concatByteSlices([][]byte{
+				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
+				{9},                                     // key data
+				{0b0000_0000, 0b0000_0000},              // no children bitmap
+				scaleEncodeBytes(t, hashedValue.ToBytes()...),
+			})),
+			n: &Node{
+				PartialKey:   []byte{9},
+				Children:     make([]*Node, ChildrenCapacity),
+				StorageValue: hashedValue.ToBytes(),
 			},
 		},
 	}
@@ -300,7 +327,7 @@ func Test_decodeLeaf(t *testing.T) {
 
 	testCases := map[string]struct {
 		reader           io.Reader
-		variant          byte
+		variant          variant
 		partialKeyLength uint16
 		leaf             *Node
 		errWrapped       error
@@ -310,7 +337,7 @@ func Test_decodeLeaf(t *testing.T) {
 			reader: bytes.NewBuffer([]byte{
 				// missing key data byte
 			}),
-			variant:          leafVariant.bits,
+			variant:          leafVariant,
 			partialKeyLength: 1,
 			errWrapped:       io.EOF,
 			errMessage:       "cannot decode key: reading from reader: EOF",
@@ -320,7 +347,7 @@ func Test_decodeLeaf(t *testing.T) {
 				{9},        // key data
 				{255, 255}, // bad storage value data
 			})),
-			variant:          leafVariant.bits,
+			variant:          leafVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode storage value: unknown prefix for compact uint: 255",
@@ -330,7 +357,7 @@ func Test_decodeLeaf(t *testing.T) {
 				9, // key data
 				// missing storage value data
 			}),
-			variant:          leafVariant.bits,
+			variant:          leafVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
 			errMessage:       "cannot decode storage value: reading byte: EOF",
@@ -340,7 +367,7 @@ func Test_decodeLeaf(t *testing.T) {
 				{9},                               // key data
 				scaleEncodeByteSlice(t, []byte{}), // results to []byte{0}
 			})),
-			variant:          leafVariant.bits,
+			variant:          leafVariant,
 			partialKeyLength: 1,
 			leaf: &Node{
 				PartialKey:   []byte{9},
@@ -352,7 +379,7 @@ func Test_decodeLeaf(t *testing.T) {
 				{9},                                // key data
 				scaleEncodeBytes(t, 1, 2, 3, 4, 5), // storage value data
 			})),
-			variant:          leafVariant.bits,
+			variant:          leafVariant,
 			partialKeyLength: 1,
 			leaf: &Node{
 				PartialKey:   []byte{9},
@@ -366,8 +393,7 @@ func Test_decodeLeaf(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			leaf, err := decodeLeaf(testCase.reader,
-				testCase.partialKeyLength)
+			leaf, err := decodeLeaf(testCase.reader, testCase.variant, testCase.partialKeyLength)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {

@@ -9,14 +9,17 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
 	// ErrDecodeStorageValue is defined since no sentinel error is defined
 	// in the scale package.
-	ErrDecodeStorageValue = errors.New("cannot decode storage value")
-	ErrReadChildrenBitmap = errors.New("cannot read children bitmap")
+	ErrDecodeStorageValue        = errors.New("cannot decode storage value")
+	ErrDecodeHashedStorageValue  = errors.New("cannot decode hashed storage value")
+	ErrDecodeHashedValueTooShort = errors.New("hashed storage value too short")
+	ErrReadChildrenBitmap        = errors.New("cannot read children bitmap")
 	// ErrDecodeChildHash is defined since no sentinel error is defined
 	// in the scale package.
 	ErrDecodeChildHash = errors.New("cannot decode child hash")
@@ -37,13 +40,13 @@ func Decode(reader io.Reader) (n *Node, err error) {
 	switch variant {
 	case emptyVariant:
 		return nil, nil //nolint:nilnil
-	case leafVariant:
-		n, err = decodeLeaf(reader, partialKeyLength)
+	case leafVariant, leafWithHashedValueVariant:
+		n, err = decodeLeaf(reader, variant, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
-	case branchVariant, branchWithValueVariant:
+	case branchVariant, branchWithValueVariant, branchWithHashedValueVariant:
 		n, err = decodeBranch(reader, variant, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
@@ -84,6 +87,14 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
+	} else if variant == branchWithHashedValueVariant {
+		buffer := make([]byte, common.HashLength)
+		err = sd.Decode(&buffer)
+		node.StorageValue = buffer
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+		}
+		node.StorageValue = buffer
 	}
 
 	for i := 0; i < ChildrenCapacity; i++ {
@@ -98,11 +109,10 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 				ErrDecodeChildHash, i, err)
 		}
 
-		const hashLength = 32
 		childNode := &Node{
 			MerkleValue: hash,
 		}
-		if len(hash) < hashLength {
+		if len(hash) < common.HashLength {
 			// Handle inlined nodes
 			reader = bytes.NewReader(hash)
 			childNode, err = Decode(reader)
@@ -120,7 +130,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 }
 
 // decodeLeaf reads from a reader and decodes to a leaf node.
-func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err error) {
+func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (node *Node, err error) {
 	node = &Node{}
 
 	node.PartialKey, err = decodeKey(reader, partialKeyLength)
@@ -129,7 +139,15 @@ func decodeLeaf(reader io.Reader, partialKeyLength uint16) (node *Node, err erro
 	}
 
 	sd := scale.NewDecoder(reader)
-	err = sd.Decode(&node.StorageValue)
+
+	if variant == leafWithHashedValueVariant {
+		buffer := make([]byte, common.HashLength)
+		err = sd.Decode(&buffer)
+		node.StorageValue = buffer
+	} else {
+		err = sd.Decode(&node.StorageValue)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
