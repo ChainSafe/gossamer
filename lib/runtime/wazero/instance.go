@@ -108,9 +108,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		// }).
 		// Export("ext_crypto_ed25519_generate_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_ed25519_public_keys_version_1).
 		Export("ext_crypto_ed25519_public_keys_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int32, b int32, c int64) int64 {

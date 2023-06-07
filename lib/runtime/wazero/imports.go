@@ -3,8 +3,10 @@ package wazero_runtime
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -17,6 +19,12 @@ var (
 		log.AddContext("module", "wazero"),
 	)
 )
+
+// toPointerSize converts an uint32 pointer and uint32 size
+// to an int64 pointer size.
+func newPointerSize(ptr, size uint32) (pointerSize uint64) {
+	return uint64(ptr) | (uint64(size) << 32)
+}
 
 // splitPointerSize converts a 64bit pointer size to an
 // uint32 pointer and a uint32 size.
@@ -36,9 +44,9 @@ func read(m api.Module, pointerSize uint64) (data []byte) {
 
 // write copies a Go byte slice to wasm memory and returns the corresponding
 // 32 bit pointer. Note the data must have a well known fixed length in the runtime.
-func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointer uint32, err error) {
+func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointerSize uint64, err error) {
 	size := uint32(len(data))
-	pointer, err = allocator.Allocate(size)
+	pointer, err := allocator.Allocate(size)
 	if err != nil {
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
@@ -47,7 +55,7 @@ func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byt
 	if !ok {
 		return 0, fmt.Errorf("out of range")
 	}
-	return pointer, nil
+	return newPointerSize(pointer, size), nil
 }
 
 //export ext_logging_log_version_1
@@ -123,7 +131,67 @@ func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, ke
 	}
 
 	logger.Debug("generated ed25519 keypair with public key: " + kp.Public().Hex())
-	return ret
+	return uint32(ret)
+}
+
+func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module, keyTypeID uint32) uint64 {
+	id, ok := m.Memory().Read(keyTypeID, 4)
+	if !ok {
+		panic("out of range read")
+	}
+
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	ks, err := rtCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warnf("error for id 0x%x: %s", id, err)
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+
+	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warnf(
+			"error for id 0x%x: keystore type is %s and not the expected ed25519",
+			id, ks.Type())
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+
+	keys := ks.PublicKeys()
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
+	}
+
+	prefix, err := scale.Marshal(big.NewInt(int64(len(keys))))
+	if err != nil {
+		logger.Errorf("failed to allocate memory: %s", err)
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+
+	ret, err := write(m, rtCtx.Allocator, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Errorf("failed to allocate memory: %s", err)
+		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		if err != nil {
+			panic(err)
+		}
+		return uint64(ret)
+	}
+	return uint64(ret)
 }
 
 func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
