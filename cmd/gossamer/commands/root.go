@@ -164,7 +164,12 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	cmd.Flags().String("logs", "", "log accepts values in module:logLevel format (comma separated)")
+	cmd.Flags().String("logs", "", `Set a logging filter.
+Syntax is a list of 'module:logLevel' (comma separated)
+e.g. --logs sync:debug,core:trace
+Log levels (least to most verbose) are error, warn, info, debug, and trace.
+By default, all modules log 'info'.
+The global log level can be set with --logs global:debug`)
 	viper.BindPFlag("logs", cmd.Flags().Lookup("logs"))
 
 	// Account Config
