@@ -211,9 +211,48 @@ func setupVM(code []byte) (instance wasm.Instance,
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
-	allocator = runtime.NewAllocator(instance.Memory, heapBase)
+	allocator = runtime.NewAllocator(&memoryShim{instance.Memory}, heapBase)
 
 	return instance, allocator, nil
+}
+
+type memoryShim struct {
+	*wasm.Memory
+}
+
+func (ms *memoryShim) Size() uint32 { return ms.Memory.Length() }
+func (ms *memoryShim) Grow(deltaPages uint32) (previousPages uint32, ok bool) {
+	err := ms.Memory.Grow(deltaPages)
+	if err != nil {
+		return 0, false
+	}
+	return 0, true
+}
+func (ms *memoryShim) ReadByte(offset uint32) (byte, bool) { //nolint:govet
+	if offset >= ms.Memory.Length() {
+		return 0, false
+	}
+	return ms.Memory.Data()[offset], true
+}
+func (ms *memoryShim) Read(offset, byteCount uint32) ([]byte, bool) {
+	if offset+byteCount >= ms.Memory.Length() {
+		return nil, false
+	}
+	return ms.Memory.Data()[offset : offset+byteCount], true
+}
+func (ms *memoryShim) WriteByte(offset uint32, v byte) bool { //nolint:govet
+	if offset >= ms.Memory.Length() {
+		return false
+	}
+	ms.Memory.Data()[offset] = v
+	return true
+}
+func (ms *memoryShim) Write(offset uint32, v []byte) bool {
+	if offset+uint32(len(v)) >= ms.Memory.Length() {
+		return false
+	}
+	copy(ms.Data()[offset:offset+uint32(len(v))], v)
+	return true
 }
 
 // SetContextStorage sets the runtime's storage.
