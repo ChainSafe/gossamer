@@ -112,9 +112,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_ed25519_verify_version_1).
 		Export("ext_crypto_ed25519_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_1).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int32, b int32) int64 {
@@ -122,9 +120,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64, c int32) int32 {
-			return 0
-		}).
+		WithFunc(ext_crypto_ecdsa_verify_version_2).
 		Export("ext_crypto_ecdsa_verify_version_2").
 		NewFunctionBuilder().
 		WithFunc(func(a int32, b int32) int64 {
@@ -517,6 +513,9 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	values, err := runtimeFunc.Call(ctx, uint64(inputPtr), uint64(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
+	}
+	if len(values) == 0 {
+		return nil, fmt.Errorf("no returned values from runtime function: %s", function)
 	}
 	wasmValue := values[0]
 

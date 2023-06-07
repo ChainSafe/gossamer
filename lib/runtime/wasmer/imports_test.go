@@ -6,6 +6,7 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"net/http"
 	"sort"
 	"testing"
@@ -909,6 +910,8 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 
 	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
 	require.NoError(t, err)
+
+	fmt.Println(ret)
 
 	var read *[]byte
 	err = scale.Unmarshal(ret, &read)
