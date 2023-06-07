@@ -545,7 +545,7 @@ func (cs *chainSync) getTarget() (uint, error) {
 // in the queue and wait for it to completes
 func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) chan error {
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 
 	go func() {
 		startTime := time.Now()
