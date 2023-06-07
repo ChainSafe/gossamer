@@ -13,7 +13,9 @@ type ValidatorIndex uint32
 // to check a particular parachain.
 type AssignmentCertKind scale.VaryingDataType
 
-type RelayVRFModulo struct{}
+type RelayVRFModulo struct {
+	sample uint32
+}
 
 func (rvm RelayVRFModulo) Index() uint {
 	return 0
@@ -26,8 +28,8 @@ func (rvd RelayVRFDelay) Index() uint {
 }
 
 type VrfSignature struct {
-	Output sr25519.VrfOutput
-	Proof  sr25519.VrfProof
+	Output [32]byte
+	Proof  [64]byte
 }
 
 // AssignmentCert a certification of assignment
