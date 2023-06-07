@@ -88,14 +88,11 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
 	} else if variant == branchWithHashedValueVariant {
-		buffer := make([]byte, common.HashLength)
-		//TODO: check that we read 32 bytes in the buffer
-		err = sd.Decode(&buffer)
-		node.StorageValue = buffer
+		hashedValue, err := decodeHashedValue(reader)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+			return nil, err
 		}
-		node.StorageValue = buffer
+		node.StorageValue = hashedValue
 		node.HashedValue = true
 	}
 
@@ -143,10 +140,11 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 	sd := scale.NewDecoder(reader)
 
 	if variant == leafWithHashedValueVariant {
-		buffer := make([]byte, common.HashLength)
-		//TODO: check that we read 32 bytes in the buffer
-		err = sd.Decode(&buffer)
-		node.StorageValue = buffer
+		hashedValue, err := decodeHashedValue(reader)
+		if err != nil {
+			return nil, err
+		}
+		node.StorageValue = hashedValue
 		node.HashedValue = true
 	} else {
 		err = sd.Decode(&node.StorageValue)
@@ -157,4 +155,17 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 	}
 
 	return node, nil
+}
+
+func decodeHashedValue(reader io.Reader) ([]byte, error) {
+	buffer := make([]byte, common.HashLength)
+	n, err := reader.Read(buffer)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+	}
+	if n < common.HashLength {
+		return nil, fmt.Errorf("%w: %s", ErrDecodeHashedValueTooShort, err)
+	}
+
+	return buffer, nil
 }

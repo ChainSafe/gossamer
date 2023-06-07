@@ -106,7 +106,7 @@ func Test_Decode(t *testing.T) {
 			reader: bytes.NewReader(concatByteSlices([][]byte{
 				{leafWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                   // key data
-				scaleEncodeBytes(t, hashedValue.ToBytes()...),
+				hashedValue.ToBytes(),
 			})),
 			n: &Node{
 				PartialKey:   []byte{9},
@@ -119,7 +119,7 @@ func Test_Decode(t *testing.T) {
 				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                     // key data
 				{0b0000_0000, 0b0000_0000},              // no children bitmap
-				scaleEncodeBytes(t, hashedValue.ToBytes()...),
+				hashedValue.ToBytes(),
 			})),
 			n: &Node{
 				PartialKey:   []byte{9},
