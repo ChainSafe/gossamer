@@ -89,6 +89,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 		}
 	} else if variant == branchWithHashedValueVariant {
 		buffer := make([]byte, common.HashLength)
+		//TODO: check that we read 32 bytes in the buffer
 		err = sd.Decode(&buffer)
 		node.StorageValue = buffer
 		if err != nil {
@@ -142,6 +143,7 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 
 	if variant == leafWithHashedValueVariant {
 		buffer := make([]byte, common.HashLength)
+		//TODO: check that we read 32 bytes in the buffer
 		err = sd.Decode(&buffer)
 		node.StorageValue = buffer
 	} else {
