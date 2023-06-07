@@ -1079,3 +1079,43 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, genesisHeader.Hash(), header.Hash())
 }
+
+func Test_GetRuntime_StoreRuntime(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	db := NewInMemoryDB(t)
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigest(),
+	}
+	genesisHash := genesisHeader.Hash()
+	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
+
+	runtimeInstance := NewMockInstance(nil)
+	blockState.StoreRuntime(genesisHash, runtimeInstance)
+
+	genesisRuntimeInstance, err := blockState.GetRuntime(genesisHash)
+	require.NoError(t, err)
+	require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+
+	chain, _ := AddBlocksToState(t, blockState, 5, false)
+	for _, hashInChain := range chain {
+		genesisRuntimeInstance, err := blockState.GetRuntime(hashInChain.Hash())
+		require.NoError(t, err)
+		require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+	}
+
+	lastElementOnChain := chain[len(chain)-1]
+	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0)
+	require.NoError(t, err)
+
+	sameRuntimeOnDiffHash, err := blockState.GetRuntime(lastElementOnChain.Hash())
+	require.NoError(t, err)
+	require.Equal(t, runtimeInstance, sameRuntimeOnDiffHash)
+}
