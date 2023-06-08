@@ -27,6 +27,7 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.5
 	github.com/klauspost/compress v1.17.8
+	github.com/klauspost/reedsolomon v1.11.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
