@@ -30,9 +30,8 @@ var (
 // Flag values for the root command which needs type conversion
 var (
 	// Base Config
-	logLevelGlobal string
-	pruning        string
-	telemetryURLs  string
+	pruning       string
+	telemetryURLs string
 
 	// Core Config
 	// role of the node. one of: full, light or authority
@@ -134,7 +133,7 @@ Usage:
 				}
 			}
 
-			if err := parseLogLevel(cmd); err != nil {
+			if err := parseLogLevel(); err != nil {
 				return fmt.Errorf("failed to configure log level: %s", err)
 			}
 
@@ -169,7 +168,7 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	addStringFlagBindViper(
+	if err := addStringFlagBindViper(
 		cmd, "logs", "",
 		`Set a logging filter.
 	Syntax is a list of 'module:logLevel' (comma separated)
@@ -178,7 +177,9 @@ func addRootFlags(cmd *cobra.Command) error {
 	By default, all modules log 'info'.
 	The global log level can be set with --logs global:debug`,
 		"logs",
-	)
+	); err != nil {
+		return fmt.Errorf("failed to add logs flag: %s", err)
+	}
 
 	// Account Config
 	if err := addAccountFlags(cmd); err != nil {
@@ -270,7 +271,7 @@ Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss:
 	return nil
 }
 
-func parseLogLevel(cmd *cobra.Command) error {
+func parseLogLevel() error {
 	// set default log level
 	moduleToLogLevel := map[string]string{
 		"global":  cfg.DefaultLogLevel,
@@ -312,12 +313,12 @@ func parseLogLevel(cmd *cobra.Command) error {
 
 	jsonData, err := json.Marshal(moduleToLogLevel)
 	if err != nil {
-		return fmt.Errorf("Error marshaling logs: %s", err)
+		return fmt.Errorf("Error marshalling logs: %s", err)
 	}
 
 	err = json.Unmarshal(jsonData, &config.Log)
 	if err != nil {
-		return fmt.Errorf("Error unmarshaling logs: %s", err)
+		return fmt.Errorf("Error unmarshalling logs: %s", err)
 	}
 
 	return nil
