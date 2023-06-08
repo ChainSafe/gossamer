@@ -21,10 +21,22 @@ func SearchKey(key Key, changes []PendingChange) int {
 
 func SearchSetChanges(number uint, changes AuthoritySetChanges) int {
 	for i, change := range changes {
-		if change.blockNumber == number {
+		if change.blockNumber == number || number < change.blockNumber {
 			return i
 		}
 	}
 
 	return len(changes)
+}
+
+func SearchSetChangesForIter(number uint, changes AuthoritySetChanges) (int, bool) {
+	for i, change := range changes {
+		if change.blockNumber == number {
+			return i, true
+		} else if number < change.blockNumber {
+			return i, false
+		}
+	}
+
+	return len(changes), false
 }

@@ -529,18 +529,42 @@ func (authSet *AuthoritySet) EnactsStandardChange(
 	return authSet.pendingStandardChanges.FinalizeAnyWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, enactStandardChangesPredicate(finalizedNumber))
 }
 
-func (authSetChanges *AuthoritySetChanges) Append(setId uint64, blockNumber uint) {
+func (authSetChanges *AuthoritySetChanges) append(setId uint64, blockNumber uint) {
 	*authSetChanges = append(*authSetChanges, AuthorityChange{
 		setId:       setId,
 		blockNumber: blockNumber,
 	})
 }
 
-func (authSetChanges *AuthoritySetChanges) GetSetId(blockNumber uint) {
-	// TODO impl
+// Three states that can be returned: Latest, Set (tuple), Unknown
+// For now I will have latest as bool, then have set be a pointer where nil case is unknown
+// Can use VDT but not sure if needed
+func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bool, set *AuthorityChange, err error) {
+	if authSetChanges == nil {
+		return false, nil, fmt.Errorf("getSetId: authSetChanges is nil")
+	}
+	authSet := *authSetChanges
+	last := authSet[len(authSet)-1]
+	if last.blockNumber < blockNumber {
+		return true, nil, nil // Latest case
+	}
+
+	idx := SearchSetChanges(blockNumber, authSet)
+	if idx < len(authSet) {
+		authChange := authSet[idx]
+
+		// if this is the first index but not the first set id then we are missing data.
+		if idx == 0 && authChange.setId != 0 {
+			return false, nil, nil // Unknown case
+		}
+
+		return false, &authChange, nil // Set case
+	}
+
+	return false, nil, nil // Unknown case
 }
 
-func (authSetChanges *AuthoritySetChanges) Insert(blockNumber uint) {
+func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 	var idx int
 	if authSetChanges == nil {
 		idx = 0
@@ -555,7 +579,7 @@ func (authSetChanges *AuthoritySetChanges) Insert(blockNumber uint) {
 		setId = 0
 	} else {
 		// maybe need safe cast
-		setId = set[idx].setId + 1
+		setId = set[idx-1].setId + 1
 	}
 
 	// TODO double check this in review
@@ -577,7 +601,33 @@ func (authSetChanges *AuthoritySetChanges) Insert(blockNumber uint) {
 		set[idx] = change
 	}
 	*authSetChanges = set
+}
 
+// Maybe this isnt needed, but the logic is used in warp sync proof
+func (authSetChanges *AuthoritySetChanges) iterFrom(blockNumber uint) (*AuthoritySetChanges, error) {
+	if authSetChanges == nil {
+		return nil, fmt.Errorf("getSetId: authSetChanges is nil")
+	}
+	authSet := *authSetChanges
+
+	idx, found := SearchSetChangesForIter(blockNumber, *authSetChanges)
+	if found {
+		// if there was a change at the given block number then we should start on the next
+		// index since we want to exclude the current block number
+		idx += 1
+	}
+
+	if idx < len(*authSetChanges) {
+		authChange := authSet[idx]
+
+		// if this is the first index but not the first set id then we are missing data.
+		if idx == 0 && authChange.setId != 0 {
+			return nil, nil
+		}
+	}
+
+	iterChanges := authSet[idx:]
+	return &iterChanges, nil
 }
 
 // SharedAuthoritySet A shared authority set.

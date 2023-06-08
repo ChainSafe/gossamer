@@ -1165,25 +1165,153 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 }
 
 func TestAuthoritySetChangesInsert(t *testing.T) {
-	// TODO impl
 	authoritySetChanges := AuthoritySetChanges{}
-	authoritySetChanges.Append(0, 41)
-	authoritySetChanges.Append(1, 81)
-	authoritySetChanges.Append(4, 121)
+	authoritySetChanges.append(0, 41)
+	authoritySetChanges.append(1, 81)
+	authoritySetChanges.append(4, 121)
 
-	authoritySetChanges.Insert(101)
+	authoritySetChanges.insert(101)
+
+	expChange := AuthorityChange{
+		setId:       2,
+		blockNumber: 101,
+	}
+	_, set, err := authoritySetChanges.getSetId(100)
+	require.NoError(t, err)
+	require.Equal(t, expChange, *set)
+
+	_, set, err = authoritySetChanges.getSetId(101)
+	require.NoError(t, err)
+	require.Equal(t, expChange, *set)
 }
 
 func TestAuthoritySetChangesForCompleteData(t *testing.T) {
-	// TODO impl
+	authoritySetChanges := AuthoritySetChanges{}
+	authoritySetChanges.append(0, 41)
+	authoritySetChanges.append(1, 81)
+	authoritySetChanges.append(2, 121)
+
+	expChange0 := AuthorityChange{
+		setId:       0,
+		blockNumber: 41,
+	}
+
+	expChange1 := AuthorityChange{
+		setId:       1,
+		blockNumber: 81,
+	}
+
+	_, set, err := authoritySetChanges.getSetId(20)
+	require.NoError(t, err)
+	require.Equal(t, expChange0, *set)
+
+	_, set, err = authoritySetChanges.getSetId(40)
+	require.NoError(t, err)
+	require.Equal(t, expChange0, *set)
+
+	_, set, err = authoritySetChanges.getSetId(41)
+	require.NoError(t, err)
+	require.Equal(t, expChange0, *set)
+
+	_, set, err = authoritySetChanges.getSetId(42)
+	require.NoError(t, err)
+	require.Equal(t, expChange1, *set)
+
+	latest, _, err := authoritySetChanges.getSetId(141)
+	require.NoError(t, err)
+	require.True(t, latest)
 }
 
 func TestAuthoritySetChangesForIncompleteData(t *testing.T) {
-	// TODO impl
+	authoritySetChanges := AuthoritySetChanges{}
+	authoritySetChanges.append(2, 41)
+	authoritySetChanges.append(3, 81)
+	authoritySetChanges.append(4, 121)
+
+	expChange := AuthorityChange{
+		setId:       3,
+		blockNumber: 81,
+	}
+
+	_, set, err := authoritySetChanges.getSetId(20)
+	require.NoError(t, err)
+	require.Nil(t, set)
+
+	_, set, err = authoritySetChanges.getSetId(40)
+	require.NoError(t, err)
+	require.Nil(t, set)
+
+	_, set, err = authoritySetChanges.getSetId(41)
+	require.NoError(t, err)
+	require.Nil(t, set)
+
+	_, set, err = authoritySetChanges.getSetId(42)
+	require.NoError(t, err)
+	require.Equal(t, expChange, *set)
+
+	latest, _, err := authoritySetChanges.getSetId(141)
+	require.NoError(t, err)
+	require.True(t, latest)
 }
 
 func TestIterFromWorks(t *testing.T) {
-	// TODO impl
+	authoritySetChanges := AuthoritySetChanges{}
+	authoritySetChanges.append(1, 41)
+	authoritySetChanges.append(2, 81)
+
+	// we are missing the data for the first set, therefore we should return `None`
+	iterSet, err := authoritySetChanges.iterFrom(40)
+	require.NoError(t, err)
+	require.Nil(t, iterSet)
+
+	// after adding the data for the first set the same query should work
+	authoritySetChanges = AuthoritySetChanges{}
+	authoritySetChanges.append(0, 21)
+	authoritySetChanges.append(1, 41)
+	authoritySetChanges.append(2, 81)
+	authoritySetChanges.append(3, 121)
+
+	expectedChanges := &AuthoritySetChanges{
+		AuthorityChange{
+			setId:       1,
+			blockNumber: 41,
+		},
+		AuthorityChange{
+			setId:       2,
+			blockNumber: 81,
+		},
+		AuthorityChange{
+			setId:       3,
+			blockNumber: 121,
+		},
+	}
+
+	iterSet, err = authoritySetChanges.iterFrom(40)
+	require.NoError(t, err)
+	require.Equal(t, expectedChanges, iterSet)
+
+	expectedChanges = &AuthoritySetChanges{
+		AuthorityChange{
+			setId:       2,
+			blockNumber: 81,
+		},
+		AuthorityChange{
+			setId:       3,
+			blockNumber: 121,
+		},
+	}
+
+	iterSet, err = authoritySetChanges.iterFrom(41)
+	require.NoError(t, err)
+	require.Equal(t, expectedChanges, iterSet)
+
+	iterSet, err = authoritySetChanges.iterFrom(121)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(*iterSet))
+
+	iterSet, err = authoritySetChanges.iterFrom(200)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(*iterSet))
 }
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
