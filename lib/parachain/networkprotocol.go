@@ -1,9 +1,18 @@
 package parachain
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+// A static context used for all relay-vrf-modulo VRFs.
+const RELAY_VRF_MODULO_CONTEXT = "A&V MOD"
+
+// / A static context used for all relay-vrf-modulo VRFs.
+const RELAY_VRF_DELAY_CONTEXT = "A&V DELAY"
 
 // ValidatorIndex index of the validator is used as a lightweight replacement of the 'ValidatorId' when appropriate.
 type ValidatorIndex uint32
@@ -12,70 +21,166 @@ type ValidatorIndex uint32
 // to check a particular parachain.
 type AssignmentCertKind scale.VaryingDataType
 
+// Set will set VaryingDataTypeValue using undurlying VaryingDataType
+func (ack *AssignmentCertKind) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*ack)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value te varying data type: %w", err)
+	}
+	// store ariginal ParentVDT with VaryingDataType that has been set
+	*ack = AssignmentCertKind(vdt)
+	return nil
+}
+
+// Value returns the value from the underlying VaryingDataType
+func (ack *AssignmentCertKind) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*ack)
+	return vdt.Value()
+}
+
+func NewAssignmentCertKindVDT() (scale.VaryingDataType, error) {
+	vdt, err := scale.NewVaryingDataType(RelayVRFModulo{}, RelayVRFDelay{})
+	if err != nil {
+		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
+	}
+	return vdt, nil
+}
+
+// RelayVRFModulo an assignment story based on the VRF that authorized the relay-chain block where the
+// candidate was included combined with a sample number.
+//
+// The context used to produce the bytes is RELAY_VRF_MODULO_CONTEXT
 type RelayVRFModulo struct {
+	// Sample the sample number used in this cert.
 	Sample uint32
 }
 
+// Index returns varying data type index
 func (rvm RelayVRFModulo) Index() uint {
 	return 0
 }
 
-type RelayVRFDelay struct{}
+// RelayVRFDelay an assignment story based on the VRF that authorized the relay-chain block where the
+// candidate was included combined with the index of a particular core.
+//
+// The context is RELAY_VRF_DELAY_CONTEXT
+type RelayVRFDelay struct {
+	CoreIndex CoreIndex
+}
 
+// CoreIndex the unique (during session) index of a core.
+type CoreIndex struct {
+	uint32
+}
+
+// Index returns varying data type index
 func (rvd RelayVRFDelay) Index() uint {
 	return 1
 }
 
+// VrfSignature VRF signature data
 type VrfSignature struct {
-	Output [32]byte
-	Proof  [64]byte
+	// Output VRF output
+	Output [sr25519.VRFOutputLength]byte `scale:"1"`
+	// Proof VRF proof
+	Proof [sr25519.VRFProofLength]byte `scale:"2"`
 }
 
 // AssignmentCert a certification of assignment
 type AssignmentCert struct {
-	Kind AssignmentCertKind
-	Vrf  VrfSignature
+	// Kind the criterion which is claimed to be met by this cert.
+	Kind AssignmentCertKind `scale:"1"`
+	// Vrf the VRF signature showing the criterion is met.
+	Vrf VrfSignature `scale:"2"`
 }
 
 // IndirectAssignmentCert an assignment criterion which refers to the candidate under which the assignment is
 // relevant by block hash.
 type IndirectAssignmentCert struct {
-	BlockHash common.Hash
-	Validator ValidatorIndex
-	Cert      AssignmentCert
+	// BlockHash a block hash where the canidate appears.
+	BlockHash common.Hash `scale:"1"`
+	// Validator the validator index.
+	Validator ValidatorIndex `scale:"2"`
+	// Cert the cert itself.
+	Cert AssignmentCert `scale:"3"`
 }
 
+// CandidateIndex the index of the candidate in the list of candidates fully included as-of the block.
 type CandidateIndex uint32
 
+// Assignment holds indirect assignment cert and candidate index
 type Assignment struct {
-	IndirectAssignmentCert IndirectAssignmentCert
-	CandidateIndex         CandidateIndex
+	IndirectAssignmentCert IndirectAssignmentCert `scale:"1"`
+	CandidateIndex         CandidateIndex         `scale:"2"`
 }
 
+// Assignments for candidates in recent, unfinalized blocks.
 type Assignments struct {
 	Assignments []Assignment
 }
 
+// Index returns varying data type index
 func (a Assignments) Index() uint {
 	return 0
 }
 
-type ValidatorSignature [64]byte
+// ValidatorSignature with which parachain validators sign blocks.
+type ValidatorSignature [sr25519.SignatureLength]byte
 
+// IndirectSignedApprovalVote A signed approval vote which references the candidate indirectly via the block.
+//
+// In practice, we have a look-up from block hash and candidate index to candidate hash,
+// so this can be transformed into a `SignedApprovalVote`.
 type IndirectSignedApprovalVote struct {
-	BlockHash      common.Hash
-	CandidateIndex CandidateIndex
-	ValidatorIndex ValidatorIndex
-	Signature      ValidatorSignature
+	// BlockHash a block hash where the candidate appears.
+	BlockHash common.Hash `scale:"1"`
+	// CandidateIndex the index of the candidate in the list of candidates fully included as-of the block.
+	CandidateIndex CandidateIndex `scale:"2"`
+	// ValidatorIndex the validator index.
+	ValidatorIndex ValidatorIndex `scale:"3"`
+	// Signature the signature of the validator.
+	Signature ValidatorSignature `scale:"4"`
 }
 
+// Approvals for candidates in some recent, unfinalized block.
 type Approvals struct {
 	Approvals []IndirectSignedApprovalVote
 }
 
+// Index returns varying data type index
 func (ms Approvals) Index() uint {
 	return 1
 }
 
 // ApprovalDistributionMessage network messages used by approval distribution subsystem.
 type ApprovalDistributionMessage scale.VaryingDataType
+
+// Set will set a VoryingDataTypeValue using the underlying VaryingDataType
+func (adm *ApprovalDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*adm)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*adm = ApprovalDistributionMessage(vdt)
+	return nil
+}
+
+// Value returns the value from the underlying VaryingDataType
+func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*adm)
+	return vdt.Value()
+}
+
+// NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
+func NewApprovalDistributionMessageVDT() (scale.VaryingDataType, error) {
+	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
+	if err != nil {
+		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
+	}
+	return vdt, nil
+}
