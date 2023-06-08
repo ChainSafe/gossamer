@@ -119,6 +119,10 @@ Usage:
 				}
 			}
 
+			if err := configureLogLevel(cmd); err != nil {
+				return fmt.Errorf("failed to configure log level: %s", err)
+			}
+
 			if cmd.Name() == "gossamer" {
 				if err := configureViper(config.BasePath); err != nil {
 					return fmt.Errorf("failed to configure viper: %s", err)
@@ -164,13 +168,16 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	cmd.Flags().String("logs", "", `Set a logging filter.
-Syntax is a list of 'module:logLevel' (comma separated)
-e.g. --logs sync:debug,core:trace
-Log levels (least to most verbose) are error, warn, info, debug, and trace.
-By default, all modules log 'info'.
-The global log level can be set with --logs global:debug`)
-	viper.BindPFlag("logs", cmd.Flags().Lookup("logs"))
+	addStringFlagBindViper(
+		cmd, "logs", "",
+		`Set a logging filter.
+	Syntax is a list of 'module:logLevel' (comma separated)
+	e.g. --logs sync:debug,core:trace
+	Log levels (least to most verbose) are error, warn, info, debug, and trace.
+	By default, all modules log 'info'.
+	The global log level can be set with --logs global:debug`,
+		"logs",
+	)
 
 	// Account Config
 	if err := addAccountFlags(cmd); err != nil {
@@ -263,25 +270,45 @@ Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss:
 }
 
 func configureLogLevel(cmd *cobra.Command) error {
+	// set default log level
+	moduleToLogLevel := map[string]string{
+		"log-level": config.LogLevel,
+		"core":      config.Log.Core,
+		"digest":    config.Log.Digest,
+		"sync":      config.Log.Sync,
+		"network":   config.Log.Network,
+		"rpc":       config.Log.RPC,
+		"state":     config.Log.State,
+		"runtime":   config.Log.Runtime,
+		"babe":      config.Log.Babe,
+		"grandpa":   config.Log.Grandpa,
+		"wasmer":    config.Log.Wasmer,
+	}
+
 	customLog := viper.GetString("logs")
-	if len(customLog) == 0 {
-		return nil
-	}
+	if len(customLog) > 0 {
+		logConfigurations := strings.Split(customLog, ",")
+		// moduleToLogLevel := make(map[string]string)
+		for _, config := range logConfigurations {
+			parts := strings.SplitN(config, ":", 2)
+			if len(parts) != 2 {
+				return fmt.Errorf("Invalid log configuration: %s", config)
+			}
 
-	logConfigurations := strings.Split(customLog, ",")
-	for _, config := range logConfigurations {
-		parts := strings.SplitN(config, ":", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("Invalid log configuration: %s", config)
-		}
+			module := strings.TrimSpace(parts[0])
+			logLevel := strings.TrimSpace(parts[1])
 
-		module := strings.TrimSpace(parts[0])
-		logLevel := strings.TrimSpace(parts[1])
-
-		if err := setLogLevel(module, logLevel); err != nil {
-			return err
+			moduleToLogLevel[module] = logLevel
 		}
 	}
+
+	globalLogLevel, ok := moduleToLogLevel["global"]
+	if ok {
+		moduleToLogLevel["log-level"] = globalLogLevel
+	}
+
+	viper.Set("log-level", moduleToLogLevel["log-level"])
+	viper.Set("log", moduleToLogLevel)
 	return nil
 }
 
@@ -643,10 +670,6 @@ func execRoot(cmd *cobra.Command) error {
 
 	if err := config.ValidateBasic(); err != nil {
 		return fmt.Errorf("failed to validate config: %s", err)
-	}
-
-	if err := configureLogLevel(cmd); err != nil {
-		return fmt.Errorf("failed to configure log level: %s", err)
 	}
 
 	// Write the config to the base path
