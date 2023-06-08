@@ -4,6 +4,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -119,10 +120,6 @@ Usage:
 				}
 			}
 
-			if err := configureLogLevel(cmd); err != nil {
-				return fmt.Errorf("failed to configure log level: %s", err)
-			}
-
 			if cmd.Name() == "gossamer" {
 				if err := configureViper(config.BasePath); err != nil {
 					return fmt.Errorf("failed to configure viper: %s", err)
@@ -135,6 +132,10 @@ Usage:
 				if err := config.ValidateBasic(); err != nil {
 					return fmt.Errorf("error in config file: %v", err)
 				}
+			}
+
+			if err := parseLogLevel(cmd); err != nil {
+				return fmt.Errorf("failed to configure log level: %s", err)
 			}
 
 			return nil
@@ -269,26 +270,27 @@ Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss:
 	return nil
 }
 
-func configureLogLevel(cmd *cobra.Command) error {
+func parseLogLevel(cmd *cobra.Command) error {
 	// set default log level
 	moduleToLogLevel := map[string]string{
-		"log-level": config.LogLevel,
-		"core":      config.Log.Core,
-		"digest":    config.Log.Digest,
-		"sync":      config.Log.Sync,
-		"network":   config.Log.Network,
-		"rpc":       config.Log.RPC,
-		"state":     config.Log.State,
-		"runtime":   config.Log.Runtime,
-		"babe":      config.Log.Babe,
-		"grandpa":   config.Log.Grandpa,
-		"wasmer":    config.Log.Wasmer,
+		"global":  cfg.DefaultLogLevel,
+		"core":    cfg.DefaultLogLevel,
+		"digest":  cfg.DefaultLogLevel,
+		"sync":    cfg.DefaultLogLevel,
+		"network": cfg.DefaultLogLevel,
+		"rpc":     cfg.DefaultLogLevel,
+		"state":   cfg.DefaultLogLevel,
+		"runtime": cfg.DefaultLogLevel,
+		"babe":    cfg.DefaultLogLevel,
+		"grandpa": cfg.DefaultLogLevel,
+		"wasmer":  cfg.DefaultLogLevel,
 	}
 
 	customLog := viper.GetString("logs")
+
 	if len(customLog) > 0 {
 		logConfigurations := strings.Split(customLog, ",")
-		// moduleToLogLevel := make(map[string]string)
+
 		for _, config := range logConfigurations {
 			parts := strings.SplitN(config, ":", 2)
 			if len(parts) != 2 {
@@ -298,47 +300,26 @@ func configureLogLevel(cmd *cobra.Command) error {
 			module := strings.TrimSpace(parts[0])
 			logLevel := strings.TrimSpace(parts[1])
 
+			if _, ok := moduleToLogLevel[module]; !ok {
+				return fmt.Errorf("Invalid module: %s", module)
+			}
+
 			moduleToLogLevel[module] = logLevel
 		}
 	}
 
-	globalLogLevel, ok := moduleToLogLevel["global"]
-	if ok {
-		moduleToLogLevel["log-level"] = globalLogLevel
+	config.LogLevel = moduleToLogLevel["global"]
+
+	jsonData, err := json.Marshal(moduleToLogLevel)
+	if err != nil {
+		return fmt.Errorf("Error marshaling logs: %s", err)
 	}
 
-	viper.Set("log-level", moduleToLogLevel["log-level"])
-	viper.Set("log", moduleToLogLevel)
-	return nil
-}
-
-func setLogLevel(module string, logLevel string) error {
-	switch module {
-	case "global":
-		config.BaseConfig.LogLevel = logLevel
-	case "core":
-		config.Log.Core = logLevel
-	case "digest":
-		config.Log.Digest = logLevel
-	case "sync":
-		config.Log.Sync = logLevel
-	case "network":
-		config.Log.Network = logLevel
-	case "rpc":
-		config.Log.RPC = logLevel
-	case "state":
-		config.Log.State = logLevel
-	case "runtime":
-		config.Log.Runtime = logLevel
-	case "babe":
-		config.Log.Babe = logLevel
-	case "grandpa":
-		config.Log.Grandpa = logLevel
-	case "wasmer":
-		config.Log.Wasmer = logLevel
-	default:
-		return fmt.Errorf("Invalid log module: %s", module)
+	err = json.Unmarshal(jsonData, &config.Log)
+	if err != nil {
+		return fmt.Errorf("Error unmarshaling logs: %s", err)
 	}
+
 	return nil
 }
 
