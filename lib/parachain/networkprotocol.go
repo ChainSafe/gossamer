@@ -1,7 +1,6 @@
 package parachain
 
 import (
-	sr25519 "github.com/ChainSafe/go-schnorrkel" // TODO(ed): should this use ChainSafe/gossamer/lib/crypto/sr25519 instead?
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -14,7 +13,7 @@ type ValidatorIndex uint32
 type AssignmentCertKind scale.VaryingDataType
 
 type RelayVRFModulo struct {
-	sample uint32
+	Sample uint32
 }
 
 func (rvm RelayVRFModulo) Index() uint {
@@ -61,7 +60,7 @@ func (a Assignments) Index() uint {
 	return 0
 }
 
-type ValidatorSignature sr25519.Signature
+type ValidatorSignature [64]byte
 
 type IndirectSignedApprovalVote struct {
 	BlockHash      common.Hash
