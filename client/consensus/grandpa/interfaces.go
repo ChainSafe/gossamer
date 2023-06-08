@@ -22,6 +22,6 @@ type ForkTree interface {
 	FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*FinalizationResult, error)
 	DrainFilter()
 
-	// GetPreOrder This one isnt is inlined in rust so not part of substrate interface, but I thought would be good to expose here
+	// GetPreOrder This one is just inlined in rust so not part of substrate interface, but I thought would be good to expose here
 	GetPreOrder() []PendingChange
 }

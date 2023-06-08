@@ -572,13 +572,12 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 		idx = SearchSetChanges(blockNumber, *authSetChanges)
 	}
 
-	set := *authSetChanges // so i can index into it
+	set := *authSetChanges
 
 	var setId uint64
 	if idx == 0 {
 		setId = 0
 	} else {
-		// maybe need safe cast
 		setId = set[idx-1].setId + 1
 	}
 
@@ -603,7 +602,7 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 	*authSetChanges = set
 }
 
-// Maybe this isnt needed, but the logic is used in warp sync proof
+// This logic is used in warp sync proof
 func (authSetChanges *AuthoritySetChanges) iterFrom(blockNumber uint) (*AuthoritySetChanges, error) {
 	if authSetChanges == nil {
 		return nil, fmt.Errorf("getSetId: authSetChanges is nil")
