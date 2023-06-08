@@ -17,7 +17,7 @@ import (
 )
 
 func Test_OffchainModule_LocalStorageGet(t *testing.T) {
-	t.Run("get local error", func(t *testing.T) {
+	t.Run("get_local_error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
@@ -38,7 +38,7 @@ func Test_OffchainModule_LocalStorageGet(t *testing.T) {
 		assert.ErrorIs(t, err, errTest)
 	})
 
-	t.Run("local kind", func(t *testing.T) {
+	t.Run("local_kind", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
@@ -60,7 +60,7 @@ func Test_OffchainModule_LocalStorageGet(t *testing.T) {
 		assert.Equal(t, response, expectedResponse)
 	})
 
-	t.Run("persistent kind", func(t *testing.T) {
+	t.Run("persistent_kind", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
@@ -104,7 +104,7 @@ func TestOffchainStorage_OtherKind(t *testing.T) {
 func Test_OffchainModule_LocalStorageSet(t *testing.T) {
 	const keyHex, valueHex = "0x11111111111111", "0x22222222222222"
 
-	t.Run("set local error", func(t *testing.T) {
+	t.Run("set_local_error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
@@ -126,7 +126,7 @@ func Test_OffchainModule_LocalStorageSet(t *testing.T) {
 		assert.ErrorIs(t, err, errTest)
 	})
 
-	t.Run("local kind", func(t *testing.T) {
+	t.Run("local_kind", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
@@ -148,7 +148,7 @@ func Test_OffchainModule_LocalStorageSet(t *testing.T) {
 		assert.Empty(t, response)
 	})
 
-	t.Run("persistent kind", func(t *testing.T) {
+	t.Run("persistent_kind", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)

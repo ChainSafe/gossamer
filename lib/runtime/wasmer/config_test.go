@@ -12,7 +12,7 @@ import (
 )
 
 func Test_Config_SetTestVersion(t *testing.T) {
-	t.Run("panics with nil *testing.T", func(t *testing.T) {
+	t.Run("panics_with_nil_*testing.T", func(t *testing.T) {
 		var c Config
 		assert.PanicsWithValue(t,
 			"*testing.T argument cannot be nil. Please don't use this function outside of Go tests.",
@@ -21,7 +21,7 @@ func Test_Config_SetTestVersion(t *testing.T) {
 			})
 	})
 
-	t.Run("set test version", func(t *testing.T) {
+	t.Run("set_test_version", func(t *testing.T) {
 		var c Config
 		testVersion := runtime.Version{
 			StateVersion: 1,

@@ -313,7 +313,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 }
 
 func TestStateModule_QueryStorage(t *testing.T) {
-	t.Run("When starting block is empty", func(t *testing.T) {
+	t.Run("When_starting_block_is_empty", func(t *testing.T) {
 		module := new(StateModule)
 		req := new(StateStorageQueryRangeRequest)
 
@@ -322,7 +322,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		require.Error(t, err, "the start block hash cannot be an empty value")
 	})
 
-	t.Run("When blockAPI returns error", func(t *testing.T) {
+	t.Run("When_blockAPI_returns_error", func(t *testing.T) {
 		mockError := errors.New("mock test error")
 		ctrl := gomock.NewController(t)
 		mockBlockAPI := NewMockBlockAPI(ctrl)
@@ -338,7 +338,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		assert.ErrorIs(t, err, mockError)
 	})
 
-	t.Run("When QueryStorage returns data", func(t *testing.T) {
+	t.Run("When_QueryStorage_returns_data", func(t *testing.T) {
 		expectedChanges := [][2]*string{
 			makeChange("0x90", stringToHex("value")),
 			makeChange("0x80", stringToHex("another value")),
