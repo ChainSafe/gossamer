@@ -15,7 +15,13 @@ import (
 // in order. Each node is uniquely identified by its hash but can be ordered by
 // its number. In order to build the roots an external function must be provided
 // when interacting with the roots to establish a node's ancestry.
-// TODO implement this rather than mock out
 type ForkTree interface {
-	Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) error
+	Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error)
+	Roots() []*pendingChangeNode
+	FinalizeAnyWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*bool, error)
+	FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*FinalizationResult, error)
+	DrainFilter()
+
+	// GetPreOrder This one is just inlined in rust so not part of substrate interface, but I thought would be good to expose here
+	GetPreOrder() []PendingChange
 }

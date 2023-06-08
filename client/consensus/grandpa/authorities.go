@@ -11,6 +11,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var (
+	errInvalidAuthoritySet                           = errors.New("invalid authority set, either empty or with an authority weight set to 0")
+	errDuplicateAuthoritySetChanges                  = errors.New("duplicate authority set change")
+	errMultiplePendingForcedAuthoritySetChanges      = errors.New("multiple pending forced authority set changes are not allowed")
+	errForcedAuthoritySetChangeDependencyUnsatisfied = errors.New("a pending forced authority set change could not be applied since it must be applied after the pending standard change")
+)
+
 // AuthorityList A list of Grandpa authorities with associated weights.
 // TODO migrate this type and associated functions to this package
 type AuthorityList []types.Authority
@@ -72,7 +79,7 @@ type AuthoritySet struct {
 	// Tree of pending standard changes across forks. Standard changes are
 	// enacted on finality and must be enacted (i.e. finalized) in-order across
 	// a given branch
-	pendingStandardChanges ChangeTree
+	pendingStandardChanges ForkTree
 	// Pending forced changes across different forks (at most one per fork).
 	// Forced changes are enacted on block depth (not finality), for this
 	// reason only one forced change should exist per fork. When trying to
@@ -102,6 +109,42 @@ func (authSet *AuthoritySet) InvalidAuthorityList(authorities AuthorityList) boo
 	return false
 }
 
+// Genesis Get a genesis set with given authorities.
+func Genesis(initial AuthorityList) (authSet *AuthoritySet) {
+	if authSet.InvalidAuthorityList(initial) {
+		return nil
+	}
+
+	authSet = &AuthoritySet{
+		currentAuthorities:     initial,
+		setId:                  0,
+		pendingStandardChanges: NewChangeTree(),
+		pendingForcedChanges:   nil,
+		authoritySetChanges:    nil,
+	}
+	return
+}
+
+func NewAuthoritySet(authorities AuthorityList,
+	setId uint64,
+	pendingStandardChanges ForkTree,
+	pendingForcedChanges []PendingChange,
+	authoritySetChanges AuthoritySetChanges,
+) (authSet *AuthoritySet) {
+	if authSet.InvalidAuthorityList(authorities) {
+		return nil
+	}
+
+	authSet = &AuthoritySet{
+		currentAuthorities:     authorities,
+		setId:                  setId,
+		pendingStandardChanges: pendingStandardChanges,
+		pendingForcedChanges:   pendingForcedChanges,
+		authoritySetChanges:    authoritySetChanges,
+	}
+	return
+}
+
 type predicate[T any] func(T) bool
 
 // IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
@@ -115,7 +158,7 @@ type IsDescendentOf func(h1 common.Hash, h2 common.Hash) (bool, error)
 // descendent of the first hash (base).
 func (authSet *AuthoritySet) addPendingChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
 	if authSet.InvalidAuthorityList(pending.nextAuthorities) {
-		return errors.New("invalid authority set, either empty or with an authority weight set to 0")
+		return errInvalidAuthoritySet
 	}
 
 	switch pending.delayKind.value.(type) {
@@ -148,7 +191,8 @@ func (k *Key) Equals(key Key) bool {
 func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
 	for _, change := range authSet.pendingForcedChanges {
 		if change.canonHash == pending.canonHash {
-			return errors.New("duplicate authority set change")
+			return errDuplicateAuthoritySetChanges
+			//return errors.New("duplicate authority set change")
 		}
 
 		isDescendent, err := isDescendentOf(change.canonHash, pending.canonHash)
@@ -157,7 +201,7 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 		}
 
 		if isDescendent {
-			return errors.New("multiple pending forced authority set changes are not allowed")
+			return errMultiplePendingForcedAuthoritySetChanges
 		}
 	}
 
@@ -189,6 +233,64 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 	)
 
 	return nil
+}
+
+type Change struct {
+	hash   common.Hash
+	number uint
+}
+
+// Returns the block hash and height at which the next pending change in
+// the given chain (i.e. it includes `best_hash`) was signalled, `None` if
+// there are no pending changes for the given chain.
+//
+// This is useful since we know that when a change is signalled the
+// underlying runtime authority set management module (e.g. session module)
+// has updated its internal state (e.g. a new session started).
+func (authSet *AuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsDescendentOf) (*Change, error) {
+	var forced *Change
+	for _, change := range authSet.pendingForcedChanges {
+		isDesc, err := isDescendentOf(change.canonHash, bestHash)
+		if err != nil {
+			return nil, err
+		}
+		if isDesc {
+			forced = &Change{
+				hash:   change.canonHash,
+				number: change.canonHeight,
+			}
+			break
+		}
+	}
+
+	var standard *Change
+	for _, changeNode := range authSet.pendingStandardChanges.Roots() {
+		change := changeNode.change
+		isDesc, err := isDescendentOf(change.canonHash, bestHash)
+		if err != nil {
+			return nil, err
+		}
+		if isDesc {
+			standard = &Change{
+				hash:   change.canonHash,
+				number: change.canonHeight,
+			}
+			break
+		}
+	}
+
+	if standard != nil && forced != nil {
+		if forced.number < standard.number {
+			return forced, nil
+		} else {
+			return standard, nil
+		}
+	} else if forced != nil {
+		return forced, nil
+	} else if standard != nil {
+		return standard, nil
+	}
+	return nil, nil
 }
 
 func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
@@ -243,9 +345,101 @@ func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
 	return limit
 }
 
+type AppliedChanges struct {
+	num uint
+	set AuthoritySet
+}
+
+// ApplyForcedChanges Apply or prune any pending transitions based on a best-block trigger.
+//
+// Returns `Ok((median, new_set))` when a forced change has occurred. The
+// median represents the median last finalized block at the time the change
+// was signaled, and it should be used as the canon block when starting the
+// new grandpa voter. Only alters the internal state in this case.
+//
+// These transitions are always forced and do not lead to justifications
+// which light clients can follow.
+//
+// Forced changes can only be applied after all pending standard changes
+// that it depends on have been applied. If any pending standard change
+// exists that is an ancestor of a given forced changed and which effective
+// block number is lower than the last finalized block (as defined by the
+// forced change), then the forced change cannot be applied. An error will
+// be returned in that case which will prevent block import.
+func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
+	bestNumber uint,
+	isDescendentOf IsDescendentOf,
+	initialSync bool,
+	telemetry *telemetry.Client) (newSet *AppliedChanges, err error) {
+
+	for _, change := range authSet.pendingForcedChanges {
+		// double check this logic for what to iterate over, but try this for now
+		effectiveNumber := change.EffectiveNumber()
+		if effectiveNumber > bestNumber {
+			continue
+		} else if effectiveNumber == bestNumber {
+			// check if the given best block is in the same branch as
+			// the block that signaled the change.
+			isDesc, err := isDescendentOf(change.canonHash, bestHash)
+			if err != nil {
+				return nil, err
+			}
+			if change.canonHash == bestHash || isDesc {
+				// I think this cast is okay since we should probably panic if we hit this
+				medianLastFinalized := change.delayKind.value.(Best).medianLastFinalized
+
+				roots := authSet.pendingStandardChanges.Roots()
+				for _, standardChangeNode := range roots {
+					standardChange := standardChangeNode.change
+
+					isDescStandard, err := isDescendentOf(standardChange.canonHash, change.canonHash)
+					if err != nil {
+						return nil, err
+					}
+					if standardChange.EffectiveNumber() <= medianLastFinalized && isDescStandard {
+						// TODO log here
+						return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
+					}
+				}
+
+				// TODO grandpa log
+
+				// TODO telemetry
+
+				authorityChange := AuthorityChange{
+					setId:       authSet.setId,
+					blockNumber: medianLastFinalized,
+				}
+
+				authSetChanges := authSet.authoritySetChanges
+				authSetChanges = append(authSetChanges, authorityChange)
+				newSet = &AppliedChanges{
+					medianLastFinalized,
+					AuthoritySet{
+						currentAuthorities:     change.nextAuthorities,
+						setId:                  authSet.setId + 1,
+						pendingStandardChanges: NewChangeTree(), // new set, new changes
+						pendingForcedChanges:   nil,
+						authoritySetChanges:    authSetChanges,
+					},
+				}
+				return newSet, nil
+			}
+		}
+	}
+
+	return newSet, nil
+}
+
 func applyStandardChangesPredicate(finalizedNumber uint) predicate[*PendingChange] {
 	return func(change *PendingChange) bool {
 		return change.EffectiveNumber() <= finalizedNumber
+	}
+}
+
+func enactStandardChangesPredicate(finalizedNumber uint) predicate[*PendingChange] {
+	return func(change *PendingChange) bool {
+		return change.EffectiveNumber() == finalizedNumber
 	}
 }
 
@@ -286,8 +480,9 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 
 	// we will keep all forced changes for any later blocks and that are a
 	// descendent of the finalized block (i.e. they are part of this branch).
-	for i := 0; i < len(pendingForcedChanges); i++ {
-		forcedChange := pendingForcedChanges[i]
+	//for i := 0; i < len(pendingForcedChanges); i++ {
+	for _, forcedChange := range pendingForcedChanges {
+		//forcedChange := pendingForcedChanges[i]
 		isDesc, err := isDescendentOf(finalizedHash, forcedChange.canonHash)
 		if err != nil {
 			return status, err
@@ -317,6 +512,121 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	}
 
 	return status, nil
+}
+
+// EnactsStandardChange Check whether the given finalized block number enacts any standard
+// authority set change (without triggering it), ensuring that if there are
+// multiple changes in the same branch, finalizing this block won't
+// finalize past multiple transitions (i.e. transitions must be finalized
+// in-order). Returns `Some(true)` if the block being finalized enacts a
+// change that can be immediately applied, `Some(false)` if the block being
+// finalized enacts a change but it cannot be applied yet since there are
+// other dependent changes, and `None` if no change is enacted. The given
+// function `is_descendent_of` should return `true` if the second hash
+// (target) is a descendent of the first hash (base).
+func (authSet *AuthoritySet) EnactsStandardChange(
+	finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf) (*bool, error) {
+	return authSet.pendingStandardChanges.FinalizeAnyWithDescendentIf(&finalizedHash, finalizedNumber, isDescendentOf, enactStandardChangesPredicate(finalizedNumber))
+}
+
+func (authSetChanges *AuthoritySetChanges) append(setId uint64, blockNumber uint) {
+	*authSetChanges = append(*authSetChanges, AuthorityChange{
+		setId:       setId,
+		blockNumber: blockNumber,
+	})
+}
+
+// Three states that can be returned: Latest, Set (tuple), Unknown
+// For now I will have latest as bool, then have set be a pointer where nil case is unknown
+// Can use VDT but not sure if needed
+func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bool, set *AuthorityChange, err error) {
+	if authSetChanges == nil {
+		return false, nil, fmt.Errorf("getSetId: authSetChanges is nil")
+	}
+	authSet := *authSetChanges
+	last := authSet[len(authSet)-1]
+	if last.blockNumber < blockNumber {
+		return true, nil, nil // Latest case
+	}
+
+	idx := SearchSetChanges(blockNumber, authSet)
+	if idx < len(authSet) {
+		authChange := authSet[idx]
+
+		// if this is the first index but not the first set id then we are missing data.
+		if idx == 0 && authChange.setId != 0 {
+			return false, nil, nil // Unknown case
+		}
+
+		return false, &authChange, nil // Set case
+	}
+
+	return false, nil, nil // Unknown case
+}
+
+func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
+	var idx int
+	if authSetChanges == nil {
+		idx = 0
+	} else {
+		idx = SearchSetChanges(blockNumber, *authSetChanges)
+	}
+
+	set := *authSetChanges
+
+	var setId uint64
+	if idx == 0 {
+		setId = 0
+	} else {
+		setId = set[idx-1].setId + 1
+	}
+
+	// TODO double check this in review
+	if !(idx == len(set) || set[idx].setId != setId) {
+		panic("inserting authority set change")
+	}
+
+	change := AuthorityChange{
+		setId:       setId,
+		blockNumber: blockNumber,
+	}
+
+	// Insert change at index
+	if len(set) <= idx {
+		set = append(set, change)
+	} else {
+		set = append(
+			set[:idx+1], set[idx:]...)
+		set[idx] = change
+	}
+	*authSetChanges = set
+}
+
+// This logic is used in warp sync proof
+func (authSetChanges *AuthoritySetChanges) iterFrom(blockNumber uint) (*AuthoritySetChanges, error) {
+	if authSetChanges == nil {
+		return nil, fmt.Errorf("getSetId: authSetChanges is nil")
+	}
+	authSet := *authSetChanges
+
+	idx, found := SearchSetChangesForIter(blockNumber, *authSetChanges)
+	if found {
+		// if there was a change at the given block number then we should start on the next
+		// index since we want to exclude the current block number
+		idx += 1
+	}
+
+	if idx < len(*authSetChanges) {
+		authChange := authSet[idx]
+
+		// if this is the first index but not the first set id then we are missing data.
+		if idx == 0 && authChange.setId != 0 {
+			return nil, nil
+		}
+	}
+
+	iterChanges := authSet[idx:]
+	return &iterChanges, nil
 }
 
 // SharedAuthoritySet A shared authority set.
