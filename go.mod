@@ -26,6 +26,7 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.16.7
+	github.com/klauspost/reedsolomon v1.11.8
 	github.com/libp2p/go-libp2p v0.27.7
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/minio/sha256-simd v1.0.1
@@ -43,7 +44,6 @@ require (
 	golang.org/x/crypto v0.11.0
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 	golang.org/x/term v0.10.0
-	golang.org/x/text v0.11.0
 	google.golang.org/protobuf v1.31.0
 )
 
@@ -188,6 +188,7 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
