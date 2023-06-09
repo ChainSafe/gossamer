@@ -98,12 +98,15 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 
 			stateSrvc := newStateService(t, ctrl)
 			mockBabeBuilder := NewMockServiceBuilder(ctrl)
-			mockBabeBuilder.EXPECT().NewServiceIFace(
-				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
-				DoAndReturn(
-					func(cfg *babe.ServiceConfig) (*babe.Service, error) {
-						return &babe.Service{}, nil
-					}).AnyTimes()
+			if tt.err == nil {
+				mockBabeBuilder.EXPECT().NewServiceIFace(
+					gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
+					DoAndReturn(
+						func(cfg *babe.ServiceConfig) (*babe.Service, error) {
+							return &babe.Service{}, nil
+						})
+			}
+
 			builder := nodeBuilder{}
 			var got *babe.Service
 			if tt.args.initStateService {

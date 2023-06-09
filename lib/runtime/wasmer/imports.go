@@ -234,7 +234,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	var kp KeyPair
+	var kp *ed25519.Keypair
 
 	if seed != nil {
 		kp, err = ed25519.NewKeypairFromMnenomic(string(*seed), "")
@@ -555,7 +555,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 		return 0
 	}
 
-	var kp KeyPair
+	var kp *sr25519.Keypair
 	if seed != nil {
 		kp, err = sr25519.NewKeypairFromMnenomic(string(*seed), "")
 	} else {
@@ -1665,7 +1665,7 @@ func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	seed := make([]byte, 32)
-	_, err := rand.Read(seed)
+	_, err := rand.Read(seed) //nolint:staticcheck
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
