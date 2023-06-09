@@ -168,7 +168,7 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	cmd.Flags().StringVar(&logLevel, "log", "",
+	cmd.Flags().StringVarP(&logLevel, "log", "l", "",
 		`Set a logging filter.
 	Syntax is a list of 'module=logLevel' (comma separated)
 	e.g. --log sync=debug,core=trace
