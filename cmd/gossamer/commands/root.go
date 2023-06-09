@@ -79,8 +79,6 @@ Usage:
 	gossamer --chain kusama --key charlie --port 7004
 	gossamer --chain polkadot --key dave --port 7005`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Printf("config.LogLevel => \n%+v\n\n", config.LogLevel)
-			fmt.Printf("config.Log => \n%+v\n\n", config.Log)
 			return execRoot(cmd)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
