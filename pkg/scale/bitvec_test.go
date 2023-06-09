@@ -99,8 +99,8 @@ func TestBitVecBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt := tt
+			t.Parallel()
 			require.Equal(t, tt.want, tt.in.Bytes())
 		})
 	}
@@ -141,8 +141,8 @@ func TestBitVecBytesToBits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt := tt
+			t.Parallel()
 			require.Equal(t, tt.want, bytesToBits(tt.in, uint(len(tt.in)*byteSize)))
 		})
 	}
@@ -182,8 +182,8 @@ func TestBitVecBitsToBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt := tt
+			t.Parallel()
 			require.Equal(t, tt.want, bitsToBytes(tt.in))
 		})
 	}
