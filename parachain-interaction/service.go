@@ -59,15 +59,9 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	err = net.RegisterNotificationsProtocol(
 		protocol.ID(collationProtocolID),
 		network.CollationMsgType,
-		func() (network.Handshake, error) {
-			return nil, nil
-		},
-		func(_ []byte) (network.Handshake, error) {
-			return nil, nil
-		},
-		func(_ peer.ID, _ network.Handshake) error {
-			return nil
-		},
+		getCollatorHandshake,
+		decodeCollatorHandshake,
+		validateCollatorHandshake,
 		decodeCollationMessage,
 		handleCollationMessage,
 		nil,

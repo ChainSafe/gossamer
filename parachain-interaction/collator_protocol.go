@@ -87,6 +87,7 @@ func (cp *CollationProtocolV1) Encode() ([]byte, error) {
 }
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
+	fmt.Printf("collation message %s\n", in)
 	collationMessage := CollationProtocolV1{}
 
 	err := scale.Unmarshal(in, &collationMessage)
@@ -105,4 +106,38 @@ func handleCollationMessage(peerID peer.ID, msg network.NotificationsMessage) (b
 
 func runCollatorProtocol() {
 
+}
+
+func getCollatorHandshake() (network.Handshake, error) {
+	return &collatorHandshake{}, nil
+}
+
+func decodeCollatorHandshake(_ []byte) (network.Handshake, error) {
+	return &collatorHandshake{}, nil
+}
+
+func validateCollatorHandshake(_ peer.ID, _ network.Handshake) error {
+	return nil
+}
+
+type collatorHandshake struct{}
+
+// String formats a collatorHandshake as a string
+func (*collatorHandshake) String() string {
+	return "collatorHandshake"
+}
+
+// Encode encodes a collatorHandshake message using SCALE
+func (*collatorHandshake) Encode() ([]byte, error) {
+	return []byte{}, nil
+}
+
+// Decode the message into a collatorHandshake
+func (*collatorHandshake) Decode(_ []byte) error {
+	return nil
+}
+
+// IsValid returns true
+func (*collatorHandshake) IsValid() bool {
+	return true
 }
