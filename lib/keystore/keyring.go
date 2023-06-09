@@ -4,7 +4,6 @@
 package keystore
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -45,8 +44,6 @@ func NewSr25519Keyring() (*Sr25519Keyring, error) {
 	kr := new(Sr25519Keyring)
 	v := reflect.ValueOf(kr).Elem()
 	kr.Keys = make([]*sr25519.Keypair, v.NumField()-1)
-	alicePrivKey := common.MustHexToBytes(sr25519PrivateKeys[0])
-	fmt.Printf("aliceKey %v\n", alicePrivKey)
 	for i := 0; i < v.NumField()-1; i++ {
 		who := v.Field(i)
 		h, err := common.HexToBytes(sr25519PrivateKeys[i])

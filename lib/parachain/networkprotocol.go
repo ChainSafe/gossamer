@@ -67,12 +67,8 @@ func (rvm RelayVRFModulo) Index() uint {
 //
 // The context is RELAY_VRF_DELAY_CONTEXT
 type RelayVRFDelay struct {
-	CoreIndex CoreIndex
-}
-
-// CoreIndex the unique (during session) index of a core.
-type CoreIndex struct {
-	uint32
+	// CoreIndex the unique (during session) index of a core.
+	CoreIndex uint32
 }
 
 // Index returns varying data type index
