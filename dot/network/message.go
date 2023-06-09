@@ -22,6 +22,8 @@ const (
 	blockAnnounceMsgType byte = 3
 	transactionMsgType   byte = 4
 	ConsensusMsgType     byte = 5
+	CollationMsgType     byte = 6
+	ValidationMsgType    byte = 7
 )
 
 // Message must be implemented by all network messages
