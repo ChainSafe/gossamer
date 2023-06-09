@@ -126,9 +126,9 @@ func (OccupiedCore) Index() uint {
 // ScheduledCore Information about a core which is currently occupied.
 type ScheduledCore struct {
 	// The ID of a para scheduled.
-	ParaID ParaID
+	ParaID ParaID `scale:"1"`
 	// The collator required to author the block, if any.
-	Collator *CollatorID
+	Collator *CollatorID `scale:"2"`
 }
 
 // Index returns the index
@@ -232,18 +232,6 @@ type CommittedCandidateReceipt struct {
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte
 
-// IndexedValidator A validator with its index.
-type IndexedValidator struct {
-	Index     []ValidatorIndex `scale:"-"`
-	Validator []ValidatorID    `scale:"2"`
-}
-
-// IndexedValidatorGroup A validator group with its group index.
-type IndexedValidatorGroup struct {
-	GroupIndex []GroupIndex     `scale:"1"`
-	Validators []ValidatorIndex `scale:"2"`
-}
-
 // AuthorityDiscoveryID An authority discovery identifier.
 type AuthorityDiscoveryID [sr25519.PublicKeyLength]byte
 
@@ -341,7 +329,7 @@ func (CandidateBacked) Index() uint {
 type CandidateIncluded struct {
 	CandidateReceipt CandidateReceipt `scale:"1"`
 	HeadData         HeadData         `scale:"2"`
-	CoreIndex        uint32           `scale:"3"`
+	CoreIndex        CoreIndex        `scale:"3"`
 	GroupIndex       GroupIndex       `scale:"4"`
 }
 

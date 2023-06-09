@@ -157,27 +157,9 @@ func TestSessionInfo(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &SessionInfo{
-		ActiveValidatorIndices: []ValidatorIndex{
-			7,
-			12,
-			14,
-			1,
-			4,
-			16,
-			3,
-			11,
-			9,
-			6,
-			13,
-			15,
-			5,
-			0,
-			8,
-			10,
-			2,
-		},
-		RandomSeed:    mustHexTo32BArray(t, "0x9a14667dcf973e46392904593e8caf2fb7a57904edbadf1547531657e7a56b5e"),
-		DisputePeriod: 6,
+		ActiveValidatorIndices: []ValidatorIndex{7, 12, 14, 1, 4, 16, 3, 11, 9, 6, 13, 15, 5, 0, 8, 10, 2},
+		RandomSeed:             mustHexTo32BArray(t, "0x9a14667dcf973e46392904593e8caf2fb7a57904edbadf1547531657e7a56b5e"),
+		DisputePeriod:          6,
 		Validators: []ValidatorID{
 			mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
 			mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
