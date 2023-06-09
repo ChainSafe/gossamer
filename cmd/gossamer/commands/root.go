@@ -18,7 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // Package level variables
@@ -30,6 +29,7 @@ var (
 // Flag values for the root command which needs type conversion
 var (
 	// Base Config
+	logLevel      string
 	pruning       string
 	telemetryURLs string
 
@@ -79,6 +79,8 @@ Usage:
 	gossamer --chain kusama --key charlie --port 7004
 	gossamer --chain polkadot --key dave --port 7005`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Printf("config.LogLevel => \n%+v\n\n", config.LogLevel)
+			fmt.Printf("config.Log => \n%+v\n\n", config.Log)
 			return execRoot(cmd)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -168,18 +170,13 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	if err := addStringFlagBindViper(
-		cmd, "logs", "",
+	cmd.Flags().StringVar(&logLevel, "log", "",
 		`Set a logging filter.
-	Syntax is a list of 'module:logLevel' (comma separated)
-	e.g. --logs sync:debug,core:trace
+	Syntax is a list of 'module=logLevel' (comma separated)
+	e.g. --log sync=debug,core=trace
 	Log levels (least to most verbose) are error, warn, info, debug, and trace.
 	By default, all modules log 'info'.
-	The global log level can be set with --logs global:debug`,
-		"logs",
-	); err != nil {
-		return fmt.Errorf("failed to add logs flag: %s", err)
-	}
+	The global log level can be set with --log global=debug`)
 
 	// Account Config
 	if err := addAccountFlags(cmd); err != nil {
@@ -287,13 +284,11 @@ func parseLogLevel() error {
 		"wasmer":  cfg.DefaultLogLevel,
 	}
 
-	customLog := viper.GetString("logs")
-
-	if len(customLog) > 0 {
-		logConfigurations := strings.Split(customLog, ",")
+	if len(logLevel) > 0 {
+		logConfigurations := strings.Split(logLevel, ",")
 
 		for _, config := range logConfigurations {
-			parts := strings.SplitN(config, ":", 2)
+			parts := strings.SplitN(config, "=", 2)
 			if len(parts) != 2 {
 				return fmt.Errorf("Invalid log configuration: %s", config)
 			}
