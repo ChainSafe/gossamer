@@ -523,12 +523,12 @@ func parseLogLevel() error {
 
 	jsonData, err := json.Marshal(moduleToLogLevel)
 	if err != nil {
-		return fmt.Errorf("Error marshalling logs: %s", err)
+		return fmt.Errorf("error marshalling logs: %s", err)
 	}
 
 	err = json.Unmarshal(jsonData, &config.Log)
 	if err != nil {
-		return fmt.Errorf("Error unmarshalling logs: %s", err)
+		return fmt.Errorf("error unmarshalling logs: %s", err)
 	}
 
 	return nil
