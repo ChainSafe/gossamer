@@ -4,10 +4,8 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/dot"
 
@@ -168,10 +166,11 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	cmd.Flags().StringVarP(&logLevel, "log", "l", "",
+	cmd.PersistentFlags().StringVarP(&logLevel, "log", "l", "",
 		`Set a logging filter.
 	Syntax is a list of 'module=logLevel' (comma separated)
 	e.g. --log sync=debug,core=trace
+	Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa, wasmer.
 	Log levels (least to most verbose) are error, warn, info, debug, and trace.
 	By default, all modules log 'info'.
 	The global log level can be set with --log global=debug`)
@@ -262,57 +261,6 @@ This flag can be passed multiple times as a means to specify multiple telemetry 
 Verbosity levels range from 0-9, with 0 denoting the least verbosity.
 Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss://baz/quz:1
 `)
-
-	return nil
-}
-
-func parseLogLevel() error {
-	// set default log level
-	moduleToLogLevel := map[string]string{
-		"global":  cfg.DefaultLogLevel,
-		"core":    cfg.DefaultLogLevel,
-		"digest":  cfg.DefaultLogLevel,
-		"sync":    cfg.DefaultLogLevel,
-		"network": cfg.DefaultLogLevel,
-		"rpc":     cfg.DefaultLogLevel,
-		"state":   cfg.DefaultLogLevel,
-		"runtime": cfg.DefaultLogLevel,
-		"babe":    cfg.DefaultLogLevel,
-		"grandpa": cfg.DefaultLogLevel,
-		"wasmer":  cfg.DefaultLogLevel,
-	}
-
-	if len(logLevel) > 0 {
-		logConfigurations := strings.Split(logLevel, ",")
-
-		for _, config := range logConfigurations {
-			parts := strings.SplitN(config, "=", 2)
-			if len(parts) != 2 {
-				return fmt.Errorf("Invalid log configuration: %s", config)
-			}
-
-			module := strings.TrimSpace(parts[0])
-			logLevel := strings.TrimSpace(parts[1])
-
-			if _, ok := moduleToLogLevel[module]; !ok {
-				return fmt.Errorf("Invalid module: %s", module)
-			}
-
-			moduleToLogLevel[module] = logLevel
-		}
-	}
-
-	config.LogLevel = moduleToLogLevel["global"]
-
-	jsonData, err := json.Marshal(moduleToLogLevel)
-	if err != nil {
-		return fmt.Errorf("Error marshalling logs: %s", err)
-	}
-
-	err = json.Unmarshal(jsonData, &config.Log)
-	if err != nil {
-		return fmt.Errorf("Error unmarshalling logs: %s", err)
-	}
 
 	return nil
 }
