@@ -5,13 +5,14 @@ package grandpa
 
 // SearchKey TODO for reviewer, this can be done by slices.BinarySearch however since it is a tuple being compared,
 // it's unclear to me what value to sort on
-func SearchKey(key Key, changes []PendingChange) int {
+func SearchKey(k key, changes []PendingChange) int {
 	for i, change := range changes {
-		changeKey := Key{
+		changeKey := key{
 			effectiveNumber:   change.EffectiveNumber(),
 			signalBlockNumber: change.canonHeight,
 		}
-		if key.Equals(changeKey) || key.effectiveNumber < changeKey.effectiveNumber {
+		if (k.effectiveNumber == k.effectiveNumber &&
+			k.signalBlockNumber == k.signalBlockNumber) || k.effectiveNumber < changeKey.effectiveNumber {
 			return i
 		}
 	}

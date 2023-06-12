@@ -198,11 +198,11 @@ type FinalizationResult struct {
 // that the node being finalized isn't a descendent of (or equal to) any of
 // the node's children. Returns `Some(true)` if the node being finalized is
 // a root, `Some(false)` if the node being finalized is not a root, and
-// `None` if no node in the tree is finalized. The given `predicate` is
+// `None` if no node in the tree is finalized. The given `Predicate` is
 // checked on the prospective finalized root and must pass for finalization
 // to occur. The given function `is_descendent_of` should return `true` if
 // the second hash (target) is a descendent of the first hash (base).
-func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*bool, error) {
+func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate Predicate[*PendingChange]) (*bool, error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
 			return nil, errRevert
@@ -214,7 +214,7 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 	nodes := ct.GetPreOrderChangeNodes()
 
 	// check if the given hash is equal or a descendent of any node in the
-	// tree, if we find a valid node that passes the predicate then we must
+	// tree, if we find a valid node that passes the Predicate then we must
 	// ensure that we're not finalizing past any of its child nodes.
 
 	// They reverse but I dont think we need to
@@ -256,14 +256,14 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 // FinalizeWithDescendentIf Finalize a root in the roots by either finalizing the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
-// children. The given `predicate` is checked on the prospective finalized
+// children. The given `Predicate` is checked on the prospective finalized
 // root and must pass for finalization to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 //
 // TODO NOTE: I for now instead of a vdt I will just interpret the signature of Result<FinalizationResult<V>, Error<E>>
 // TODO cont: as a pointer to a struct
-func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*FinalizationResult, error) {
+func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate Predicate[*PendingChange]) (*FinalizationResult, error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
 			return nil, errRevert
@@ -273,7 +273,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	roots := ct.Roots()
 
 	// check if the given hash is equal or a descendent of any root, if we
-	// find a valid root that passes the predicate then we must ensure that
+	// find a valid root that passes the Predicate then we must ensure that
 	// we're not finalizing past any children node.
 	var position *uint
 	for i, root := range roots {
@@ -309,7 +309,7 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	// Retain only roots that are descendents of the finalized block (this
 	// happens if the node has been properly finalized) or that are
 	// ancestors (or equal) to the finalized block (in this case the node
-	// wasn't finalized earlier presumably because the predicate didn't
+	// wasn't finalized earlier presumably because the Predicate didn't
 	// pass).
 	changed := false
 	roots = ct.Roots()

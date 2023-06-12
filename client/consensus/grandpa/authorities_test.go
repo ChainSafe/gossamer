@@ -271,7 +271,7 @@ func TestApplyChange(t *testing.T) {
 
 	pendingChanges = authorities.PendingChanges()
 	require.Equal(t, 0, len(pendingChanges))
-	expChange := AuthorityChange{
+	expChange := authorityChange{
 		setId:       0,
 		blockNumber: 15,
 	}
@@ -367,7 +367,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		newSetBlockNumber: 15,
 		newSetBlockHash:   common.BytesToHash([]byte("hash_b")),
 	}
-	expAuthSetChange := AuthoritySetChanges{AuthorityChange{
+	expAuthSetChange := AuthoritySetChanges{authorityChange{
 		setId:       0,
 		blockNumber: 15,
 	}}
@@ -390,11 +390,11 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		newSetBlockHash:   common.BytesToHash([]byte("hash_d")),
 	}
 	expAuthSetChange = AuthoritySetChanges{
-		AuthorityChange{
+		authorityChange{
 			setId:       0,
 			blockNumber: 15,
 		},
-		AuthorityChange{
+		authorityChange{
 			setId:       1,
 			blockNumber: 40,
 		},
@@ -572,15 +572,15 @@ func TestForceChanges(t *testing.T) {
 	require.Nil(t, resForced)
 
 	// on time -- chooses the right change for this fork
-	exp := AppliedChanges{
-		num: 42,
+	exp := appliedChanges{
+		median: 42,
 		set: AuthoritySet{
 			currentAuthorities:     setA,
 			setId:                  1,
 			pendingStandardChanges: NewChangeTree(),
 			pendingForcedChanges:   nil,
 			authoritySetChanges: AuthoritySetChanges{
-				AuthorityChange{
+				authorityChange{
 					setId:       0,
 					blockNumber: 42,
 				},
@@ -713,7 +713,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 	// we apply the first pending standard change at #15
 	expChanges := AuthoritySetChanges{
-		AuthorityChange{
+		authorityChange{
 			setId:       0,
 			blockNumber: 15,
 		},
@@ -727,7 +727,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// we apply the pending standard change at #20
-	expChanges = append(expChanges, AuthorityChange{
+	expChanges = append(expChanges, authorityChange{
 		setId:       1,
 		blockNumber: 20,
 	})
@@ -737,12 +737,12 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	// afterwards the forced change at #45 can already be applied since it signals
 	// that finality stalled at #31, and the next pending standard change is effective
 	// at #35. subsequent forced changes on the same branch must be kept
-	expChanges = append(expChanges, AuthorityChange{
+	expChanges = append(expChanges, authorityChange{
 		setId:       2,
 		blockNumber: 31,
 	})
-	exp := AppliedChanges{
-		num: 31,
+	exp := appliedChanges{
+		median: 31,
 		set: AuthoritySet{
 			currentAuthorities:     setA,
 			setId:                  3,
@@ -828,7 +828,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// the earliest change at block `best_a` should be the change at A0 (#5)
-	expChange := &Change{
+	expChange := &change{
 		hash:   common.BytesToHash([]byte("hash_a0")),
 		number: 5,
 	}
@@ -837,7 +837,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Equal(t, expChange, change)
 
 	// the earliest change at block `best_b` should be the change at B (#4)
-	expChange = &Change{
+	expChange = &change{
 		hash:   common.BytesToHash([]byte("hash_b")),
 		number: 4,
 	}
@@ -850,7 +850,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// the next change is now at A1 (#10)
-	expChange = &Change{
+	expChange = &change{
 		hash:   common.BytesToHash([]byte("hash_a1")),
 		number: 10,
 	}
@@ -878,7 +878,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// it should take precedence over the change at A1 (#10)
-	expChange = &Change{
+	expChange = &change{
 		hash:   common.BytesToHash([]byte("hash_a10")),
 		number: 8,
 	}
@@ -1172,7 +1172,7 @@ func TestAuthoritySetChangesInsert(t *testing.T) {
 
 	authoritySetChanges.insert(101)
 
-	expChange := AuthorityChange{
+	expChange := authorityChange{
 		setId:       2,
 		blockNumber: 101,
 	}
@@ -1191,12 +1191,12 @@ func TestAuthoritySetChangesForCompleteData(t *testing.T) {
 	authoritySetChanges.append(1, 81)
 	authoritySetChanges.append(2, 121)
 
-	expChange0 := AuthorityChange{
+	expChange0 := authorityChange{
 		setId:       0,
 		blockNumber: 41,
 	}
 
-	expChange1 := AuthorityChange{
+	expChange1 := authorityChange{
 		setId:       1,
 		blockNumber: 81,
 	}
@@ -1228,7 +1228,7 @@ func TestAuthoritySetChangesForIncompleteData(t *testing.T) {
 	authoritySetChanges.append(3, 81)
 	authoritySetChanges.append(4, 121)
 
-	expChange := AuthorityChange{
+	expChange := authorityChange{
 		setId:       3,
 		blockNumber: 81,
 	}
@@ -1272,15 +1272,15 @@ func TestIterFromWorks(t *testing.T) {
 	authoritySetChanges.append(3, 121)
 
 	expectedChanges := &AuthoritySetChanges{
-		AuthorityChange{
+		authorityChange{
 			setId:       1,
 			blockNumber: 41,
 		},
-		AuthorityChange{
+		authorityChange{
 			setId:       2,
 			blockNumber: 81,
 		},
-		AuthorityChange{
+		authorityChange{
 			setId:       3,
 			blockNumber: 121,
 		},
@@ -1291,11 +1291,11 @@ func TestIterFromWorks(t *testing.T) {
 	require.Equal(t, expectedChanges, iterSet)
 
 	expectedChanges = &AuthoritySetChanges{
-		AuthorityChange{
+		authorityChange{
 			setId:       2,
 			blockNumber: 81,
 		},
-		AuthorityChange{
+		authorityChange{
 			setId:       3,
 			blockNumber: 121,
 		},

@@ -18,8 +18,8 @@ import (
 type ForkTree interface {
 	Import(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error)
 	Roots() []*pendingChangeNode
-	FinalizeAnyWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*bool, error)
-	FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate predicate[*PendingChange]) (*FinalizationResult, error)
+	FinalizeAnyWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate Predicate[*PendingChange]) (*bool, error)
+	FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate Predicate[*PendingChange]) (*FinalizationResult, error)
 	DrainFilter()
 
 	// GetPreOrder This one is just inlined in rust so not part of substrate interface, but I thought would be good to expose here
