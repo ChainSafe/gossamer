@@ -176,7 +176,12 @@ func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescende
 		return err
 	}
 
-	// TODO substrate has a log here
+	logger.Debugf(
+		"There are now %d alternatives for the next pending standard change (roots), "+
+			"and a total of %d pending standard changes (across all forks)",
+		len(authSet.pendingStandardChanges.Roots()), authSet.pendingStandardChanges.GetPreOrder(),
+	)
+
 	return nil
 }
 
@@ -328,12 +333,16 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 						return nil, err
 					}
 					if standardChange.EffectiveNumber() <= medianLastFinalized && isDescStandard {
-						// TODO log here
+						logger.Infof(
+							"Not applying authority set change forced at block %d, due to pending standard change at block %d",
+							change.canonHeight, standardChange.EffectiveNumber()
+						)
 						return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
 					}
 				}
 
-				// TODO grandpa log
+				// apply this change: make the set canonical
+				logger.Infof("%v 👴 Applying authority set change forced at block %d", initialSync, change.canonHeight)
 
 				// TODO telemetry
 
@@ -410,10 +419,11 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	}
 
 	if finalizationResult.value != nil {
-		// TODO add grandpa log
+		logger.Infof("%v 👴 Applying authority set change forced at block %d", initialSync, *finalizationResult.value)
 
 		// TODO add telemetry
 
+		// Store the set_id together with the last block_number for the set
 		authoritySetChange := authorityChange{
 			setId:       authSet.setId,
 			blockNumber: finalizedNumber,
