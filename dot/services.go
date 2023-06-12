@@ -495,8 +495,8 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 	return sync.NewService(syncCfg)
 }
 
-func (nodeBuilder) createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error) {
-	return digest.NewHandler(lvl, st.Block, st.Epoch, st.Grandpa)
+func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {
+	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
 }
 
 func createPprofService(config cfg.PprofConfig) (service *pprof.Service) {

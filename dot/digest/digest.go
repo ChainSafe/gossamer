@@ -30,12 +30,10 @@ type Handler struct {
 	// block notification channels
 	imported  chan *types.Block
 	finalised chan *types.FinalisationInfo
-
-	logger Logger
 }
 
 // NewHandler returns a new Handler
-func NewHandler(lvl log.Level, blockState BlockState, epochState EpochState,
+func NewHandler(blockState BlockState, epochState EpochState,
 	grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 	finalised := blockState.GetFinalisedNotifierChannel()
