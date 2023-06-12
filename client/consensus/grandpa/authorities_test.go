@@ -832,18 +832,18 @@ func TestNextChangeWorks(t *testing.T) {
 		hash:   common.BytesToHash([]byte("hash_a0")),
 		number: 5,
 	}
-	change, err := authorities.nextChange(common.BytesToHash([]byte("hash_b")), isDescOf)
+	c, err := authorities.nextChange(common.BytesToHash([]byte("hash_b")), isDescOf)
 	require.NoError(t, err)
-	require.Equal(t, expChange, change)
+	require.Equal(t, expChange, c)
 
 	// the earliest change at block `best_b` should be the change at B (#4)
 	expChange = &change{
 		hash:   common.BytesToHash([]byte("hash_b")),
 		number: 4,
 	}
-	change, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
+	c, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
 	require.NoError(t, err)
-	require.Equal(t, expChange, change)
+	require.Equal(t, expChange, c)
 
 	// we apply the change at A0 which should prune it and the fork at B
 	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, false, nil)
@@ -854,14 +854,14 @@ func TestNextChangeWorks(t *testing.T) {
 		hash:   common.BytesToHash([]byte("hash_a1")),
 		number: 10,
 	}
-	change, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
+	c, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
 	require.NoError(t, err)
-	require.Equal(t, expChange, change)
+	require.Equal(t, expChange, c)
 
 	// there's no longer any pending change at `best_b` fork
-	change, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
+	c, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
 	require.NoError(t, err)
-	require.Nil(t, change)
+	require.Nil(t, c)
 
 	// we a forced change at A10 (#8)
 	finalizedKind2 := Best{0}
@@ -882,9 +882,9 @@ func TestNextChangeWorks(t *testing.T) {
 		hash:   common.BytesToHash([]byte("hash_a10")),
 		number: 8,
 	}
-	change, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
+	c, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
 	require.NoError(t, err)
-	require.Equal(t, expChange, change)
+	require.Equal(t, expChange, c)
 }
 
 func TestMaintainsAuthorityListInvariants(t *testing.T) {
