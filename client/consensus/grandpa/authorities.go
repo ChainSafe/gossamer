@@ -335,8 +335,7 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 					if standardChange.EffectiveNumber() <= medianLastFinalized && isDescStandard {
 						logger.Infof(
 							"Not applying authority set change forced at block %d, due to pending standard change at block %d",
-							change.canonHeight, standardChange.EffectiveNumber()
-						)
+							change.canonHeight, standardChange.EffectiveNumber())
 						return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
 					}
 				}
