@@ -201,11 +201,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return err
 	}
 
-	err = s.onBlockImport.Handle(&block.Header)
-	if err != nil {
-		return fmt.Errorf("while handling imported block digests: %w", err)
-	}
-
 	// store block in database
 	if err = s.blockState.AddBlock(block); err != nil {
 		if errors.Is(err, blocktree.ErrParentNotFound) && block.Header.Number != 0 {
@@ -215,6 +210,11 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		} else {
 			return err
 		}
+	}
+
+	err = s.onBlockImport.Handle(&block.Header)
+	if err != nil {
+		return fmt.Errorf("on block import handle: %w", err)
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
