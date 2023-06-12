@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestHandler(t *testing.T) (*Handler, *state.Service) {
+func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service) {
 	testDatadirPath := t.TempDir()
 
 	ctrl := gomock.NewController(t)
@@ -50,11 +50,13 @@ func newTestHandler(t *testing.T) (*Handler, *state.Service) {
 
 	dh, err := NewHandler(log.Critical, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
-	return dh, stateSrvc
+
+	blockImportHandler := NewBlockImportHandler(stateSrvc.Epoch, stateSrvc.Grandpa)
+	return dh, blockImportHandler, stateSrvc
 }
 
 func TestHandler_GrandpaScheduledChange(t *testing.T) {
-	handler, _ := newTestHandler(t)
+	handler, blockImportHandler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -88,7 +90,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	}
 
 	// include a GrandpaScheduledChange on a block of number 3
-	err = handler.handleConsensusDigest(d, headers[3])
+	err = blockImportHandler.handleConsensusDigest(d, headers[3])
 	require.NoError(t, err)
 
 	// finalize block of number 3
@@ -108,7 +110,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 }
 
 func TestHandler_GrandpaForcedChange(t *testing.T) {
-	handler, _ := newTestHandler(t)
+	handler, blockImportHandler, _ := newTestHandler(t)
 	handler.Start()
 	defer handler.Stop()
 
@@ -139,7 +141,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 
 	// tracking the GrandpaForcedChange under block 1
 	// and when block number 4 being imported then we should apply the change
-	err = handler.handleConsensusDigest(d, headers[1])
+	err = blockImportHandler.handleConsensusDigest(d, headers[1])
 	require.NoError(t, err)
 
 	// create new blocks and import them
@@ -233,7 +235,7 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 				Digest: digests,
 			}
 
-			handler, _ := newTestHandler(t)
+			handler, blockImportHandler, _ := newTestHandler(t)
 			ctrl := gomock.NewController(t)
 			grandpaState := NewMockGrandpaState(ctrl)
 
@@ -251,13 +253,13 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 			}
 
 			handler.grandpaState = grandpaState
-			handler.HandleDigests(header)
+			blockImportHandler.handleDigests(header)
 		})
 	}
 }
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
-	handler, _ := newTestHandler(t)
+	_, blockImportHandler, _ := newTestHandler(t)
 	header := &types.Header{
 		Number: 1,
 	}
@@ -276,7 +278,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.handleConsensusDigest(d, header)
+	err = blockImportHandler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 }
 
@@ -338,9 +340,9 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	header := createHeaderWithPreDigest(t, 10)
-	handler, stateSrv := newTestHandler(t)
+	handler, blockImportHandler, stateSrv := newTestHandler(t)
 
-	err = handler.handleConsensusDigest(d, header)
+	err = blockImportHandler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	const targetEpoch = 1
@@ -403,9 +405,9 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(t, 10)
 
-	handler, stateSrv := newTestHandler(t)
+	handler, blockImportHandler, stateSrv := newTestHandler(t)
 
-	err = handler.handleConsensusDigest(d, header)
+	err = blockImportHandler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	const targetEpoch = 1
