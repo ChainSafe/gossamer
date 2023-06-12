@@ -40,12 +40,12 @@ func (ack *AssignmentCertKind) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
-func NewAssignmentCertKindVDT() (scale.VaryingDataType, error) {
+func NewAssignmentCertKindVDT() AssignmentCertKind {
 	vdt, err := scale.NewVaryingDataType(NewRelayVRFModulo(), NewVRFDelay())
 	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
+		panic(err)
 	}
-	return vdt, nil
+	return AssignmentCertKind(vdt)
 }
 
 // RelayVRFModulo an assignment story based on the VRF that authorized the relay-chain block where the
@@ -120,9 +120,30 @@ type Assignment struct {
 	CandidateIndex         CandidateIndex         `scale:"2"`
 }
 
+func NewAssignment() Assignment {
+	assignment := Assignment{
+		IndirectAssignmentCert: IndirectAssignmentCert{
+			BlockHash: common.Hash{},
+			Validator: 0,
+			Cert: AssignmentCert{
+				Kind: AssignmentCertKind(NewAssignmentCertKindVDT()),
+				Vrf:  VrfSignature{},
+			},
+		},
+		CandidateIndex: 0,
+	}
+	return assignment
+}
+
 // Assignments for candidates in recent, unfinalized blocks.
 type Assignments struct {
 	Assignments []Assignment
+}
+
+func NewAssignments() Assignments {
+	assignemns := Assignments{}
+	assignemns.Assignments = append(assignemns.Assignments, NewAssignment())
+	return assignemns
 }
 
 // Index returns varying data type index
@@ -182,7 +203,7 @@ func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 
 // NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
 func NewApprovalDistributionMessageVDT() ApprovalDistributionMessage {
-	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
+	vdt, err := scale.NewVaryingDataType(NewAssignments(), Approvals{})
 	if err != nil {
 		panic(err)
 	}

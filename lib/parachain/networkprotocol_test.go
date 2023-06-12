@@ -75,6 +75,33 @@ func TestEncodeApprovalDistributionMessageAssignmentDelay(t *testing.T) {
 	require.Equal(t, expectedEncoding[139:], encodedMessage[139:])
 }
 
+func TestEncodeAssignmentCertKindModulo(t *testing.T) {
+	assignmentCertKind := NewAssignmentCertKindVDT()
+	assignmentCertKind.Set(RelayVRFModulo{Sample: 4})
+	encodedAssignmentCertKind, err := scale.Marshal(assignmentCertKind)
+	require.NoError(t, err)
+	fmt.Printf("enc: %v\n", encodedAssignmentCertKind)
+
+	assignmentCertTest := NewAssignmentCertKindVDT()
+	err = scale.Unmarshal(encodedAssignmentCertKind, &assignmentCertTest)
+	require.NoError(t, err)
+	fmt.Printf("dec: %#v\n", assignmentCertTest)
+
+}
+
+func TestEncodeAssignmentCertKindDelay(t *testing.T) {
+	assignmentCertKind := NewAssignmentCertKindVDT()
+	assignmentCertKind.Set(RelayVRFDelay{CoreIndex: 5})
+	encodedAssignmentCertKind, err := scale.Marshal(assignmentCertKind)
+	require.NoError(t, err)
+	fmt.Printf("enc: %v\n", encodedAssignmentCertKind)
+
+	assignmentCertTest := NewAssignmentCertKindVDT()
+	err = scale.Unmarshal(encodedAssignmentCertKind, &assignmentCertTest)
+	require.NoError(t, err)
+	fmt.Printf("dec: %#v\n", assignmentCertTest)
+}
+
 func TestEncodeApprovalDistributionMessageApprovals(t *testing.T) {
 	approvalDistributionMessage := NewApprovalDistributionMessageVDT()
 	hash := common.Hash{0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
@@ -142,8 +169,7 @@ func fakeAssignmentCertModulo(t *testing.T, blockHash common.Hash, validator Val
 	output, proof, err := keyring.KeyAlice.VrfSign(transcript)
 	require.NoError(t, err)
 
-	assignmentCertKind, err := NewAssignmentCertKindVDT()
-	require.NoError(t, err)
+	assignmentCertKind := NewAssignmentCertKindVDT()
 	assignmentCertKind.Set(RelayVRFModulo{Sample: 1})
 	return IndirectAssignmentCert{
 		BlockHash: blockHash,
@@ -169,8 +195,7 @@ func fakeAssignmentCertDelay(t *testing.T, blockHash common.Hash, validator Vali
 	output, proof, err := keyring.KeyAlice.VrfSign(transcript)
 	require.NoError(t, err)
 
-	assignmentCertKind, err := NewAssignmentCertKindVDT()
-	require.NoError(t, err)
+	assignmentCertKind := NewAssignmentCertKindVDT()
 	assignmentCertKind.Set(RelayVRFDelay{CoreIndex: 2})
 	return IndirectAssignmentCert{
 		BlockHash: blockHash,
