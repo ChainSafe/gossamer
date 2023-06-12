@@ -164,7 +164,7 @@ func decodeHashedValue(reader io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
 	if n < common.HashLength {
-		return nil, fmt.Errorf("%w: %s", ErrDecodeHashedValueTooShort, err)
+		return nil, fmt.Errorf("%w", ErrDecodeHashedValueTooShort)
 	}
 
 	return buffer, nil

@@ -114,6 +114,15 @@ func Test_Decode(t *testing.T) {
 				HashedValue:  true,
 			},
 		},
+		"leaf_with_hashed_value_fail_too_short": {
+			reader: bytes.NewReader(concatByteSlices([][]byte{
+				{leafWithHashedValueVariant.bits | 1}, // partial key length 1
+				{9},                                   // key data
+				{0b0000_0000},                         // less than 32bytes
+			})),
+			errWrapped: ErrDecodeHashedValueTooShort,
+			errMessage: "cannot decode leaf: hashed storage value too short",
+		},
 		"branch_with_hashed_value_success": {
 			reader: bytes.NewReader(concatByteSlices([][]byte{
 				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
@@ -127,6 +136,16 @@ func Test_Decode(t *testing.T) {
 				StorageValue: hashedValue.ToBytes(),
 				HashedValue:  true,
 			},
+		},
+		"branch_with_hashed_value_fail_too_short": {
+			reader: bytes.NewReader(concatByteSlices([][]byte{
+				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
+				{9},                                     // key data
+				{0b0000_0000, 0b0000_0000},              // no children bitmap
+				{0b0000_0000},
+			})),
+			errWrapped: ErrDecodeHashedValueTooShort,
+			errMessage: "cannot decode branch: hashed storage value too short",
 		},
 	}
 
