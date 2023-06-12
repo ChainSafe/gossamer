@@ -41,7 +41,7 @@ func (ack *AssignmentCertKind) Value() (scale.VaryingDataTypeValue, error) {
 }
 
 func NewAssignmentCertKindVDT() (scale.VaryingDataType, error) {
-	vdt, err := scale.NewVaryingDataType(RelayVRFModulo{}, RelayVRFDelay{})
+	vdt, err := scale.NewVaryingDataType(NewRelayVRFModulo(), NewVRFDelay())
 	if err != nil {
 		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
 	}
@@ -57,6 +57,10 @@ type RelayVRFModulo struct {
 	Sample uint32
 }
 
+func NewRelayVRFModulo() RelayVRFModulo {
+	return RelayVRFModulo{}
+}
+
 // Index returns varying data type index
 func (rvm RelayVRFModulo) Index() uint {
 	return 0
@@ -69,6 +73,10 @@ func (rvm RelayVRFModulo) Index() uint {
 type RelayVRFDelay struct {
 	// CoreIndex the unique (during session) index of a core.
 	CoreIndex uint32
+}
+
+func NewVRFDelay() RelayVRFDelay {
+	return RelayVRFDelay{}
 }
 
 // Index returns varying data type index
@@ -173,10 +181,10 @@ func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 }
 
 // NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
-func NewApprovalDistributionMessageVDT() (scale.VaryingDataType, error) {
+func NewApprovalDistributionMessageVDT() ApprovalDistributionMessage {
 	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
 	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
+		panic(err)
 	}
-	return vdt, nil
+	return ApprovalDistributionMessage(vdt)
 }
