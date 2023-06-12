@@ -19,51 +19,9 @@ var (
 	errRevert              = errors.New("tried to import or finalize node that is an ancestor of a previously finalized node")
 )
 
-// Represents a node in the ChangeTree
-type pendingChangeNode struct {
-	change   *PendingChange
-	children []*pendingChangeNode
-}
-
-func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error) {
-	announcingHash := pcn.change.canonHash
-	if hash == announcingHash {
-		return false, fmt.Errorf("%w: %s", errDuplicateHashes, hash)
-	}
-
-	isDescendant, err := isDescendentOf(announcingHash, hash)
-	if err != nil {
-		return false, fmt.Errorf("cannot check ancestry: %w", err)
-	}
-
-	if !isDescendant {
-		return false, nil
-	}
-
-	if number <= pcn.change.canonHeight {
-		return false, nil
-	}
-
-	for _, childrenNodes := range pcn.children {
-		imported, err := childrenNodes.importNode(hash, number, change, isDescendentOf)
-		if err != nil {
-			return false, err
-		}
-
-		if imported {
-			return true, nil
-		}
-	}
-	childrenNode := &pendingChangeNode{
-		change: &change,
-	}
-	pcn.children = append(pcn.children, childrenNode)
-	return true, nil
-}
-
 // ChangeTree keeps track of the changes per fork allowing
-// n forks in the same structure, this structure is intended
-// to be an acyclic directed graph where the change children are
+// n forks in the same structure. This structure is intended
+// to represent an acyclic directed graph where the change children are
 // placed by descendency order and number, you can ensure an
 // node ancestry using the `isDescendantOfFunc`
 type ChangeTree struct {
@@ -74,6 +32,18 @@ type ChangeTree struct {
 // NewChangeTree create an empty ChangeTree
 func NewChangeTree() *ChangeTree {
 	return &ChangeTree{}
+}
+
+// pendingChangeNode Represents a node in the ChangeTree
+type pendingChangeNode struct {
+	change   *PendingChange
+	children []*pendingChangeNode
+}
+
+// Roots returns the roots of each fork in the ChangeTree
+// This is the equivalent of the slice in the outermost layer of the roots
+func (ct *ChangeTree) Roots() []*pendingChangeNode {
+	return ct.roots
 }
 
 // Import a new node into the roots.
@@ -111,12 +81,6 @@ func (ct *ChangeTree) Import(hash common.Hash, number uint, change PendingChange
 	return true, nil
 }
 
-// Roots returns the roots of each fork in the ChangeTree
-// This is the equivalent of the slice in the outermost layer of the roots
-func (ct *ChangeTree) Roots() []*pendingChangeNode {
-	return ct.roots
-}
-
 // GetPreOrder does a preorder traversal of the ChangeTree to get all pending changes
 func (ct *ChangeTree) GetPreOrder() []PendingChange {
 	if len(ct.roots) == 0 {
@@ -125,31 +89,11 @@ func (ct *ChangeTree) GetPreOrder() []PendingChange {
 
 	changes := make([]PendingChange, 0, len(ct.roots))
 
-	// this is basically a preorder search with rotating roots
 	for i := 0; i < len(ct.roots); i++ {
 		getPreOrder(&changes, ct.roots[i])
 	}
 
 	return changes
-}
-
-func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
-	if changeNode == nil {
-		return
-	}
-
-	if changes != nil {
-		tempChanges := *changes
-		tempChanges = append(tempChanges, *changeNode.change)
-		*changes = tempChanges
-	} else {
-		change := []PendingChange{*changeNode.change}
-		changes = &change
-	}
-
-	for i := 0; i < len(changeNode.children); i++ {
-		getPreOrder(changes, changeNode.children[i])
-	}
 }
 
 // GetPreOrderChangeNodes does a preorder traversal of the ChangeTree to get all pending changes
@@ -160,7 +104,6 @@ func (ct *ChangeTree) GetPreOrderChangeNodes() []*pendingChangeNode {
 
 	changes := &[]*pendingChangeNode{}
 
-	// this is basically a preorder search with rotating roots
 	for i := 0; i < len(ct.roots); i++ {
 		getPreOrderChangeNodes(changes, ct.roots[i])
 	}
@@ -168,37 +111,12 @@ func (ct *ChangeTree) GetPreOrderChangeNodes() []*pendingChangeNode {
 	return *changes
 }
 
-func getPreOrderChangeNodes(changes *[]*pendingChangeNode, changeNode *pendingChangeNode) {
-	if changeNode == nil {
-		return
-	}
-
-	if changes != nil {
-		tempChanges := *changes
-		tempChanges = append(tempChanges, changeNode)
-		*changes = tempChanges
-	} else {
-		change := []*pendingChangeNode{changeNode}
-		changes = &change
-	}
-
-	for i := 0; i < len(changeNode.children); i++ {
-		getPreOrderChangeNodes(changes, changeNode.children[i])
-	}
-}
-
-// FinalizationResult Result of finalizing a node (that could be a part of the roots or not).
-// When the struct is nil its the unchanged case, when its not its been changed and contains an optional value
-type FinalizationResult struct {
-	value *PendingChange
-}
-
 // FinalizeAnyWithDescendentIf Checks if any node in the tree is finalized by either finalizing the
 // node itself or a node's descendent that's not in the tree, guaranteeing
 // that the node being finalized isn't a descendent of (or equal to) any of
-// the node's children. Returns `Some(true)` if the node being finalized is
-// a root, `Some(false)` if the node being finalized is not a root, and
-// `None` if no node in the tree is finalized. The given `Predicate` is
+// the node's children. Returns *true if the node being finalized is
+// a root, *false if the node being finalized is not a root, and
+// nil if no node in the tree is finalized. The given `Predicate` is
 // checked on the prospective finalized root and must pass for finalization
 // to occur. The given function `is_descendent_of` should return `true` if
 // the second hash (target) is a descendent of the first hash (base).
@@ -216,9 +134,6 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 	// check if the given hash is equal or a descendent of any node in the
 	// tree, if we find a valid node that passes the Predicate then we must
 	// ensure that we're not finalizing past any of its child nodes.
-
-	// They reverse but I dont think we need to
-	// I think its just roots but not 100%
 	for i := 0; i < len(nodes); i++ {
 		root := nodes[i]
 		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
@@ -253,6 +168,12 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 	return nil, nil
 }
 
+// FinalizationResult Result of finalizing a node (that could be a part of the roots or not).
+// When the struct is nil it's the unchanged case, when it's not its been changed and contains an optional value
+type FinalizationResult struct {
+	value *PendingChange
+}
+
 // FinalizeWithDescendentIf Finalize a root in the roots by either finalizing the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
@@ -260,9 +181,6 @@ func (ct *ChangeTree) FinalizeAnyWithDescendentIf(hash *common.Hash, number uint
 // root and must pass for finalization to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-//
-// TODO NOTE: I for now instead of a vdt I will just interpret the signature of Result<FinalizationResult<V>, Error<E>>
-// TODO cont: as a pointer to a struct
 func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, isDescendentOf IsDescendentOf, predicate Predicate[*PendingChange]) (*FinalizationResult, error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
@@ -348,16 +266,87 @@ func (ct *ChangeTree) FinalizeWithDescendentIf(hash *common.Hash, number uint, i
 	}
 
 	if nodeData != nil {
-		// Ok(FinalizationResult::Changed(Some(data))),
 		return &FinalizationResult{value: nodeData}, nil
 	} else {
 		if changed {
-			// Ok(FinalizationResult::Changed(None)),
 			return &FinalizationResult{}, nil
 		} else {
-			// (None, false) => Ok(FinalizationResult::Unchanged),
 			return nil, nil
 		}
+	}
+}
+
+func (pcn *pendingChangeNode) importNode(hash common.Hash, number uint, change PendingChange, isDescendentOf IsDescendentOf) (bool, error) {
+	announcingHash := pcn.change.canonHash
+	if hash == announcingHash {
+		return false, fmt.Errorf("%w: %s", errDuplicateHashes, hash)
+	}
+
+	isDescendant, err := isDescendentOf(announcingHash, hash)
+	if err != nil {
+		return false, fmt.Errorf("cannot check ancestry: %w", err)
+	}
+
+	if !isDescendant {
+		return false, nil
+	}
+
+	if number <= pcn.change.canonHeight {
+		return false, nil
+	}
+
+	for _, childrenNodes := range pcn.children {
+		imported, err := childrenNodes.importNode(hash, number, change, isDescendentOf)
+		if err != nil {
+			return false, err
+		}
+
+		if imported {
+			return true, nil
+		}
+	}
+	childrenNode := &pendingChangeNode{
+		change: &change,
+	}
+	pcn.children = append(pcn.children, childrenNode)
+	return true, nil
+}
+
+func getPreOrder(changes *[]PendingChange, changeNode *pendingChangeNode) {
+	if changeNode == nil {
+		return
+	}
+
+	if changes != nil {
+		tempChanges := *changes
+		tempChanges = append(tempChanges, *changeNode.change)
+		*changes = tempChanges
+	} else {
+		change := []PendingChange{*changeNode.change}
+		changes = &change
+	}
+
+	for i := 0; i < len(changeNode.children); i++ {
+		getPreOrder(changes, changeNode.children[i])
+	}
+}
+
+func getPreOrderChangeNodes(changes *[]*pendingChangeNode, changeNode *pendingChangeNode) {
+	if changeNode == nil {
+		return
+	}
+
+	if changes != nil {
+		tempChanges := *changes
+		tempChanges = append(tempChanges, changeNode)
+		*changes = tempChanges
+	} else {
+		change := []*pendingChangeNode{changeNode}
+		changes = &change
+	}
+
+	for i := 0; i < len(changeNode.children); i++ {
+		getPreOrderChangeNodes(changes, changeNode.children[i])
 	}
 }
 

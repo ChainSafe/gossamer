@@ -3,9 +3,8 @@
 
 package grandpa
 
-// SearchKey TODO for reviewer, this can be done by slices.BinarySearch however since it is a tuple being compared,
-// it's unclear to me what value to sort on
-func SearchKey(k key, changes []PendingChange) int {
+// searchKey TODO for reviewer is this ok or do we want a better search algorithm?
+func searchKey(k key, changes []PendingChange) int {
 	for i, change := range changes {
 		changeKey := key{
 			effectiveNumber:   change.EffectiveNumber(),
@@ -20,17 +19,9 @@ func SearchKey(k key, changes []PendingChange) int {
 	return len(changes)
 }
 
-func SearchSetChanges(number uint, changes AuthoritySetChanges) int {
-	for i, change := range changes {
-		if change.blockNumber == number || number < change.blockNumber {
-			return i
-		}
-	}
-
-	return len(changes)
-}
-
-func SearchSetChangesForIter(number uint, changes AuthoritySetChanges) (int, bool) {
+// returns an index representing either the found element or the index to insert the given element, and a bool
+// indicating if the given element was found
+func searchSetChanges(number uint, changes AuthoritySetChanges) (int, bool) {
 	for i, change := range changes {
 		if change.blockNumber == number {
 			return i, true

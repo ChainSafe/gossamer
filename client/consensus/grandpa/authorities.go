@@ -202,7 +202,7 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 	}
 
 	// Search by effective key
-	idx := SearchKey(key, authSet.pendingForcedChanges)
+	idx := searchKey(key, authSet.pendingForcedChanges)
 
 	logger.Debugf(
 		"inserting potential forced set change at block number %d (delayed by %d blocks).",
@@ -501,7 +501,7 @@ func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bo
 		return true, nil, nil // Latest case
 	}
 
-	idx := SearchSetChanges(blockNumber, authSet)
+	idx, _ := searchSetChanges(blockNumber, authSet)
 	if idx < len(authSet) {
 		authChange := authSet[idx]
 
@@ -521,7 +521,7 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 	if authSetChanges == nil {
 		idx = 0
 	} else {
-		idx = SearchSetChanges(blockNumber, *authSetChanges)
+		idx, _ = searchSetChanges(blockNumber, *authSetChanges)
 	}
 
 	set := *authSetChanges
@@ -560,7 +560,7 @@ func (authSetChanges *AuthoritySetChanges) iterFrom(blockNumber uint) (*Authorit
 	}
 	authSet := *authSetChanges
 
-	idx, found := SearchSetChangesForIter(blockNumber, *authSetChanges)
+	idx, found := searchSetChanges(blockNumber, *authSetChanges)
 	if found {
 		// if there was a change at the given block number then we should start on the next
 		// index since we want to exclude the current block number
