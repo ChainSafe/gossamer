@@ -24,7 +24,7 @@ var (
 type Status struct {
 	// Whether internal changes were made.
 	changed bool
-	// `Some` when underlying authority set has changed, containing the
+	// Not nil when underlying authority set has changed, containing the
 	// block where that set changed.
 	newSetBlock *newSetBlockInfo
 }
@@ -84,6 +84,7 @@ func Genesis(initial AuthorityList) (authSet *AuthoritySet) {
 	return
 }
 
+// NewAuthoritySet creates a new AuthoritySet
 func NewAuthoritySet(authorities AuthorityList,
 	setId uint64,
 	pendingStandardChanges ForkTree,
@@ -113,12 +114,8 @@ func (authSet *AuthoritySet) Current() (uint64, *AuthorityList) {
 func (authSet *AuthoritySet) revert() {}
 
 // Returns the block hash and height at which the next pending change in
-// the given chain (i.e. it includes `best_hash`) was signalled, `None` if
+// the given chain (i.e. it includes `best_hash`) was signalled, nil if
 // there are no pending changes for the given chain.
-//
-// This is useful since we know that when a change is signalled the
-// underlying runtime authority set management module (e.g. session module)
-// has updated its internal state (e.g. a new session started).
 func (authSet *AuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsDescendentOf) (*change, error) {
 	var forced *change
 	for _, c := range authSet.pendingForcedChanges {
@@ -259,7 +256,7 @@ func (authSet *AuthoritySet) PendingChanges() []PendingChange {
 	// get everything from standard change roots
 	changes := authSet.pendingStandardChanges.GetPreOrder()
 
-	// then get everything from forced changes
+	// append forced changes
 	changes = append(changes, authSet.pendingForcedChanges...)
 
 	return changes
@@ -288,7 +285,7 @@ func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
 
 // ApplyForcedChanges Apply or prune any pending transitions based on a best-block trigger.
 //
-// Returns `Ok((median, new_set))` when a forced change has occurred. The
+// Returns a pointer to the median and new_set when a forced change has occurred. The
 // median represents the median last finalized block at the time the change
 // was signaled, and it should be used as the canon block when starting the
 // new grandpa voter. Only alters the internal state in this case.
@@ -309,7 +306,6 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 	telemetry *telemetry.Client) (newSet *appliedChanges, err error) {
 
 	for _, change := range authSet.pendingForcedChanges {
-		// double check this logic for what to iterate over, but try this for now
 		effectiveNumber := change.EffectiveNumber()
 		if effectiveNumber > bestNumber {
 			continue
@@ -321,7 +317,6 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 				return nil, err
 			}
 			if change.canonHash == bestHash || isDesc {
-				// I think this cast is okay since we should probably panic if we hit this
 				medianLastFinalized := change.delayKind.value.(Best).medianLastFinalized
 
 				roots := authSet.pendingStandardChanges.Roots()
@@ -374,8 +369,8 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 //
-// When the set has changed, the return value will be `Ok(Some((H, N)))`
-// which is the canonical block where the set last changed (i.e. the given
+// When the set has changed, the return value will be a Status type where newSetBlockInfo
+// is the canonical block where the set last changed (i.e. the given
 // hash and number).
 func (authSet *AuthoritySet) ApplyStandardChanges(
 	finalizedHash common.Hash,
@@ -404,9 +399,7 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 
 	// we will keep all forced changes for any later blocks and that are a
 	// descendent of the finalized block (i.e. they are part of this branch).
-	//for i := 0; i < len(pendingForcedChanges); i++ {
 	for _, forcedChange := range pendingForcedChanges {
-		//forcedChange := pendingForcedChanges[i]
 		isDesc, err := isDescendentOf(finalizedHash, forcedChange.canonHash)
 		if err != nil {
 			return status, err
@@ -442,10 +435,10 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 // authority set change (without triggering it), ensuring that if there are
 // multiple changes in the same branch, finalizing this block won't
 // finalize past multiple transitions (i.e. transitions must be finalized
-// in-order). Returns `Some(true)` if the block being finalized enacts a
-// change that can be immediately applied, `Some(false)` if the block being
+// in-order). Returns *true if the block being finalized enacts a
+// change that can be immediately applied, *false if the block being
 // finalized enacts a change but it cannot be applied yet since there are
-// other dependent changes, and `None` if no change is enacted. The given
+// other dependent changes, and nil if no change is enacted. The given
 // function `is_descendent_of` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
 func (authSet *AuthoritySet) EnactsStandardChange(
@@ -485,6 +478,7 @@ func (pc *PendingChange) EffectiveNumber() uint {
 // have a justification unless they were triggered by a forced change.
 type AuthoritySetChanges []authorityChange
 
+// append an authorityChange to AuthoritySetChanges
 func (authSetChanges *AuthoritySetChanges) append(setId uint64, blockNumber uint) {
 	*authSetChanges = append(*authSetChanges, authorityChange{
 		setId:       setId,
@@ -493,8 +487,10 @@ func (authSetChanges *AuthoritySetChanges) append(setId uint64, blockNumber uint
 }
 
 // Three states that can be returned: Latest, Set (tuple), Unknown
-// For now I will have latest as bool, then have set be a pointer where nil case is unknown
-// Can use VDT but not sure if needed
+// Latest => bool
+// Set => &AuthorityChange
+// Unknown => nil
+// TODO for reviewers, this can be a VDT but I'm not sure its needed
 func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bool, set *authorityChange, err error) {
 	if authSetChanges == nil {
 		return false, nil, fmt.Errorf("getSetId: authSetChanges is nil")
@@ -537,7 +533,7 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 		setId = set[idx-1].setId + 1
 	}
 
-	// TODO double check this in review
+	// TODO reviewer double check this logic
 	if !(idx == len(set) || set[idx].setId != setId) {
 		panic("inserting authority set change")
 	}
@@ -551,8 +547,7 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 	if len(set) <= idx {
 		set = append(set, change)
 	} else {
-		set = append(
-			set[:idx+1], set[idx:]...)
+		set = append(set[:idx+1], set[idx:]...)
 		set[idx] = change
 	}
 	*authSetChanges = set
