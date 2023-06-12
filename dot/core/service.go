@@ -52,7 +52,8 @@ type Service struct {
 	codeSubstitutedState CodeSubstitutedState
 
 	// Keystore
-	keys *keystore.GlobalKeystore
+	keys          *keystore.GlobalKeystore
+	onBlockImport BlockImportDigestHandler
 }
 
 // Config holds the configuration for the core Service.
@@ -68,6 +69,7 @@ type Config struct {
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
+	OnBlockImport        BlockImportDigestHandler
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -89,6 +91,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
+		onBlockImport:        cfg.OnBlockImport,
 	}
 
 	return srv, nil
@@ -196,6 +199,11 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		logger.Warnf("failed to store state trie for imported block %s: %s",
 			block.Header.Hash(), err)
 		return err
+	}
+
+	err = s.onBlockImport.Handle(&block.Header)
+	if err != nil {
+		return fmt.Errorf("while handling imported block digests: %w", err)
 	}
 
 	// store block in database
