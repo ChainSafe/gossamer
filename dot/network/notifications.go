@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -126,6 +127,10 @@ func (s *Service) createNotificationsMessageHandler(
 	return func(stream network.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
+		}
+
+		if strings.Contains(string(info.protocolID), "collation") {
+			fmt.Println("some message on collation protocol")
 		}
 
 		var (

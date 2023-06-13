@@ -15,6 +15,8 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachains"))
 var maxReads = 256
 var maxResponseSize uint64 = 1024 * 1024 * 16 // 16mb
 
+var legacyCollatorProtocolID = protocol.ID("/polkadot/collation/1")
+
 // Notes:
 /*
 There are two types of peersets, validation and collation
@@ -71,6 +73,20 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		return nil, fmt.Errorf("registering collation protocol: %w", err)
 	}
 
+	err = net.RegisterNotificationsProtocol(
+		protocol.ID(legacyCollatorProtocolID),
+		network.CollationMsgType1,
+		getCollatorHandshake,
+		decodeCollatorHandshake,
+		validateCollatorHandshake,
+		decodeCollationMessage,
+		handleCollationMessage,
+		nil,
+		MaxCollationMessageSize,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("registering collation protocol: %w", err)
+	}
 	return &Service{
 		Network: net,
 	}, nil
