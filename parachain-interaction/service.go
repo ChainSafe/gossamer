@@ -5,25 +5,10 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
-
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachains"))
-var maxReads = 256
-var maxResponseSize uint64 = 1024 * 1024 * 16 // 16mb
-
-var (
-	legacyCollatorProtocolID   = protocol.ID("/polkadot/collation/1")
-	legacyValidationProtocolID = protocol.ID("/polkadot/validation/1")
-)
-
-// Notes:
-/*
-There are two types of peersets, validation and collation
-*/
 
 type Service struct {
 	Network Network
@@ -51,7 +36,7 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	if err != nil {
 		// try with legacy protocol id
 		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(legacyValidationProtocolID),
+			protocol.ID(LEGACY_VALIDATION_PROTOCOL_V1),
 			network.ValidationMsgType,
 			getValidationHandshake,
 			decodeValidationHandshake,
@@ -84,7 +69,7 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	if err != nil {
 		// try with legacy protocol id
 		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(legacyCollatorProtocolID),
+			protocol.ID(LEGACY_COLLATION_PROTOCOL_V1),
 			network.CollationMsgType,
 			getCollatorHandshake,
 			decodeCollatorHandshake,
