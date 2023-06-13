@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -127,10 +126,6 @@ func (s *Service) createNotificationsMessageHandler(
 	return func(stream network.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
-		}
-
-		if strings.Contains(string(info.protocolID), "collation") {
-			fmt.Println("some message on collation protocol")
 		}
 
 		var (
@@ -266,7 +261,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !support {
-		fmt.Printf("peer %s does not support protocol %s\n", peer, info.protocolID)
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
@@ -424,7 +418,6 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 
 		info.peersData.setMutex(peer)
 
-		fmt.Printf("sending message to peer %s using protocol %s\n", peer, info.protocolID)
 		go s.sendData(peer, hs, info, msg)
 	}
 }
