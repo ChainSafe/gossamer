@@ -623,7 +623,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		panic("read overflow")
 	}
 
-	var optionSig *[]byte
+	var optionSig *[64]byte
 
 	ks, err := rtCtx.Keystore.GetKeystore(id)
 	if err != nil {
@@ -671,7 +671,10 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		return ret
 	}
 
-	optionSig = &sig
+	var fixedSig [64]byte
+	copy(fixedSig[:], sig)
+	optionSig = &fixedSig
+
 	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
@@ -684,100 +687,112 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	return ret
 }
 
-// //export ext_crypto_sr25519_verify_version_1
-// func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t,
-// 	msg C.int64_t, key C.int32_t) C.int32_t {
-// 	logger.Debug("executing...")
+func ext_crypto_sr25519_verify_version_1(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-// 	instanceContext := wasm.IntoInstanceContext(context)
-// 	memory := instanceContext.Memory().Data()
-// 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := rtCtx.SigVerifier
 
-// 	message := asMemorySlice(instanceContext, msg)
-// 	signature := memory[sig : sig+64]
+	message := read(m, msg)
+	signature, ok := m.Memory().Read(sig, 64)
+	if !ok {
+		panic("read overflow")
+	}
 
-// 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
-// 	if err != nil {
-// 		logger.Error("invalid sr25519 public key")
-// 		return 0
-// 	}
+	pubKeyBytes, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+	pub, err := sr25519.NewPublicKey(pubKeyBytes)
+	if err != nil {
+		logger.Error("invalid sr25519 public key")
+		return 0
+	}
 
-// 	logger.Debugf(
-// 		"pub=%s message=0x%x signature=0x%x",
-// 		pub.Hex(), message, signature)
+	logger.Debugf(
+		"pub=%s message=0x%x signature=0x%x",
+		pub.Hex(), message, signature)
 
-// 	if sigVerifier.IsStarted() {
-// 		signature := crypto.SignatureInfo{
-// 			PubKey:     pub.Encode(),
-// 			Sign:       signature,
-// 			Msg:        message,
-// 			VerifyFunc: sr25519.VerifySignature,
-// 		}
-// 		sigVerifier.Add(&signature)
-// 		return 1
-// 	}
+	if sigVerifier.IsStarted() {
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: sr25519.VerifySignature,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
 
-// 	ok, err := pub.VerifyDeprecated(message, signature)
-// 	if err != nil || !ok {
-// 		message := validateSignatureFail
-// 		if err != nil {
-// 			message += ": " + err.Error()
-// 		}
-// 		logger.Debugf(message)
-// 		// this fails at block 3876, which seems to be expected, based on discussions
-// 		return 1
-// 	}
+	ok, err = pub.VerifyDeprecated(message, signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Debugf(message)
+		// this fails at block 3876, which seems to be expected, based on discussions
+		return 1
+	}
 
-// 	logger.Debug("verified sr25519 signature")
-// 	return 1
-// }
+	logger.Debug("verified sr25519 signature")
+	return 1
+}
 
-// //export ext_crypto_sr25519_verify_version_2
-// func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t,
-// 	msg C.int64_t, key C.int32_t) C.int32_t {
-// 	logger.Trace("executing...")
+func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-// 	instanceContext := wasm.IntoInstanceContext(context)
-// 	memory := instanceContext.Memory().Data()
-// 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := rtCtx.SigVerifier
 
-// 	message := asMemorySlice(instanceContext, msg)
-// 	signature := memory[sig : sig+64]
+	message := read(m, msg)
+	signature, ok := m.Memory().Read(sig, 64)
+	if !ok {
+		panic("read overflow")
+	}
 
-// 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
-// 	if err != nil {
-// 		logger.Error("invalid sr25519 public key")
-// 		return 0
-// 	}
+	pubKeyBytes, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+	pub, err := sr25519.NewPublicKey(pubKeyBytes)
+	if err != nil {
+		logger.Error("invalid sr25519 public key")
+		return 0
+	}
 
-// 	logger.Debugf(
-// 		"pub=%s; message=0x%x; signature=0x%x",
-// 		pub.Hex(), message, signature)
+	logger.Debugf(
+		"pub=%s; message=0x%x; signature=0x%x",
+		pub.Hex(), message, signature)
 
-// 	if sigVerifier.IsStarted() {
-// 		signature := crypto.SignatureInfo{
-// 			PubKey:     pub.Encode(),
-// 			Sign:       signature,
-// 			Msg:        message,
-// 			VerifyFunc: sr25519.VerifySignature,
-// 		}
-// 		sigVerifier.Add(&signature)
-// 		return 1
-// 	}
+	if sigVerifier.IsStarted() {
+		signature := crypto.SignatureInfo{
+			PubKey:     pub.Encode(),
+			Sign:       signature,
+			Msg:        message,
+			VerifyFunc: sr25519.VerifySignature,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
 
-// 	ok, err := pub.Verify(message, signature)
-// 	if err != nil || !ok {
-// 		message := validateSignatureFail
-// 		if err != nil {
-// 			message += ": " + err.Error()
-// 		}
-// 		logger.Errorf(message)
-// 		return 0
-// 	}
+	ok, err = pub.Verify(message, signature)
+	if err != nil || !ok {
+		message := validateSignatureFail
+		if err != nil {
+			message += ": " + err.Error()
+		}
+		logger.Errorf(message)
+		return 0
+	}
 
-// 	logger.Debug("validated signature")
-// 	return C.int32_t(1)
-// }
+	logger.Debug("validated signature")
+	return 1
+}
 
 // //export ext_crypto_start_batch_verify_version_1
 // func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
