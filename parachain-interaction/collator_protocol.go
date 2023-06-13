@@ -87,7 +87,6 @@ func (cp *CollationProtocolV1) Encode() ([]byte, error) {
 }
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	fmt.Printf("collation message %s\n", in)
 	collationMessage := CollationProtocolV1{}
 
 	err := scale.Unmarshal(in, &collationMessage)
@@ -102,10 +101,6 @@ func handleCollationMessage(peerID peer.ID, msg network.NotificationsMessage) (b
 	// TODO: Add things
 	fmt.Println("We got a collation message", msg)
 	return false, nil
-}
-
-func runCollatorProtocol() {
-
 }
 
 func getCollatorHandshake() (network.Handshake, error) {

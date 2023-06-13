@@ -24,7 +24,6 @@ const (
 	ConsensusMsgType     byte = 5
 	CollationMsgType     byte = 6
 	ValidationMsgType    byte = 7
-	CollationMsgType1    byte = 8
 )
 
 // Message must be implemented by all network messages

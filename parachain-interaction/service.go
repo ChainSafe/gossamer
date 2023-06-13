@@ -15,7 +15,10 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachains"))
 var maxReads = 256
 var maxResponseSize uint64 = 1024 * 1024 * 16 // 16mb
 
-var legacyCollatorProtocolID = protocol.ID("/polkadot/collation/1")
+var (
+	legacyCollatorProtocolID   = protocol.ID("/polkadot/collation/1")
+	legacyValidationProtocolID = protocol.ID("/polkadot/validation/1")
+)
 
 // Notes:
 /*
@@ -32,32 +35,41 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	var version uint32 = 1
 
 	validationProtocolID := GeneratePeersetProtocolName(ValidationProtocol, forkID, genesisHash, version)
+
 	// register validation protocol
-	// TODO: It seems like handshake is None, but be sure of it.
 	err := net.RegisterNotificationsProtocol(
 		protocol.ID(validationProtocolID),
 		network.ValidationMsgType,
-		func() (network.Handshake, error) {
-			return nil, nil
-		},
-		func(_ []byte) (network.Handshake, error) {
-			return nil, nil
-		},
-		func(_ peer.ID, _ network.Handshake) error {
-			return nil
-		},
+		getValidationHandshake,
+		decodeValidationHandshake,
+		validateValidationHandshake,
 		decodeValidationMessage,
 		handleValidationMessage,
 		nil,
 		MaxValidationMessageSize,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("registering validation protocol: %w", err)
+		// try with legacy protocol id
+		err1 := net.RegisterNotificationsProtocol(
+			protocol.ID(legacyValidationProtocolID),
+			network.ValidationMsgType,
+			getValidationHandshake,
+			decodeValidationHandshake,
+			validateValidationHandshake,
+			decodeValidationMessage,
+			handleValidationMessage,
+			nil,
+			MaxValidationMessageSize,
+		)
+
+		if err1 != nil {
+			return nil, fmt.Errorf("registering validation protocol, new: %w, legacy:%w", err, err1)
+		}
 	}
 
 	collationProtocolID := GeneratePeersetProtocolName(CollationProtocol, forkID, genesisHash, version)
+
 	// register collation protocol
-	// TODO: It seems like handshake is None, but be sure of it.
 	err = net.RegisterNotificationsProtocol(
 		protocol.ID(collationProtocolID),
 		network.CollationMsgType,
@@ -70,22 +82,22 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		MaxCollationMessageSize,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("registering collation protocol: %w", err)
-	}
+		// try with legacy protocol id
+		err1 := net.RegisterNotificationsProtocol(
+			protocol.ID(legacyCollatorProtocolID),
+			network.CollationMsgType,
+			getCollatorHandshake,
+			decodeCollatorHandshake,
+			validateCollatorHandshake,
+			decodeCollationMessage,
+			handleCollationMessage,
+			nil,
+			MaxCollationMessageSize,
+		)
 
-	err = net.RegisterNotificationsProtocol(
-		protocol.ID(legacyCollatorProtocolID),
-		network.CollationMsgType1,
-		getCollatorHandshake,
-		decodeCollatorHandshake,
-		validateCollatorHandshake,
-		decodeCollationMessage,
-		handleCollationMessage,
-		nil,
-		MaxCollationMessageSize,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("registering collation protocol: %w", err)
+		if err1 != nil {
+			return nil, fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
+		}
 	}
 
 	parachainService := &Service{
@@ -110,11 +122,15 @@ func (Service) Stop() error {
 // main loop of parachain service
 func (s Service) run() {
 
+	// NOTE: this is a temporary test, just to show that we can send messages to peers
+	//
 	time.Sleep(time.Second * 15)
-	// run collator protocol
-	// let's try sending a collation message to a peer and see what happens
+	// let's try sending a collation message  and validation message to a peer and see what happens
 	collationMessage := CollationProtocolV1{}
 	s.Network.GossipMessage(&collationMessage)
+
+	validationMessage := ValidationProtocolV1{}
+	s.Network.GossipMessage(&validationMessage)
 
 }
 
