@@ -87,9 +87,14 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("registering collation protocol: %w", err)
 	}
-	return &Service{
+
+	parachainService := &Service{
 		Network: net,
-	}, nil
+	}
+
+	go parachainService.run()
+
+	return parachainService, nil
 }
 
 // Start starts the Handler
@@ -103,9 +108,13 @@ func (Service) Stop() error {
 }
 
 // main loop of parachain service
-func run() {
+func (s Service) run() {
 
+	time.Sleep(time.Second * 15)
 	// run collator protocol
+	// let's try sending a collation message to a peer and see what happens
+	collationMessage := CollationProtocolV1{}
+	s.Network.GossipMessage(&collationMessage)
 
 }
 

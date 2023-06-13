@@ -266,6 +266,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !support {
+		fmt.Printf("peer %s does not support protocol %s\n", peer, info.protocolID)
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
@@ -273,6 +274,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		return
 	}
+
+	fmt.Printf("peer %s does support protocol %s\n", peer, info.protocolID)
 
 	stream, err := s.sendHandshake(peer, hs, info)
 	if err != nil {
@@ -421,6 +424,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 
 		info.peersData.setMutex(peer)
 
+		fmt.Printf("sending message to peer %s using protocol %s\n", peer, info.protocolID)
 		go s.sendData(peer, hs, info, msg)
 	}
 }
