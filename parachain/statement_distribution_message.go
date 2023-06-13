@@ -53,7 +53,7 @@ type UncheckedSignedFullStatement struct {
 	Payload        Statement          `scale:"1"`
 	ValidatorIndex ValidatorIndex     `scale:"2"`
 	Signature      ValidatorSignature `scale:"3"`
-	RealPayload    CompactStatement   `scale:"4"` // changes needed
+	// RealPayload    CompactStatement   `scale:"4"` // changes needed
 }
 
 type PhantomData struct{}

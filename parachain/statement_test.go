@@ -8,14 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStatement(t *testing.T) {
-	hash1 := common.Hash{}
+func getDummyHash(num byte) common.Hash {
+	hash := common.Hash{}
 	for i := 0; i < 32; i++ {
-		hash1[i] = 1
+		hash[i] = num
 	}
+	return hash
+}
 
+func TestStatement(t *testing.T) {
+	// TODO: fill the value
 	var dummyCollatorID CollatorID
 	var dummyCollatorSignature CollatorSignature
+	hash1 := getDummyHash(1)
 
 	secondedEnumValue := Seconded{
 		Descriptor: CandidateDescriptor{
@@ -51,7 +56,7 @@ func TestStatement(t *testing.T) {
 		},
 		{
 			name:          "Valid",
-			enumValue:     Valid{Value: hash1},
+			enumValue:     Valid{hash1},
 			encodingValue: []byte{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		},
 	}
