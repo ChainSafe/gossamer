@@ -104,6 +104,11 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
+	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportHandlerMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportHandlerMock
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
