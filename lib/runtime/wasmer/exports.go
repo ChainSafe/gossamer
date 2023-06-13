@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	parachaintypes "github.com/ChainSafe/gossamer/parachain-interaction/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -347,93 +346,6 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-func (in *Instance) RandomSeed()          {} //nolint:revive
-func (in *Instance) OffchainWorker()      {} //nolint:revive
-func (in *Instance) GenerateSessionKeys() {} //nolint:revive
-
-// ParachainHost_persisted_validation_data
-func (in *Instance) ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
-) (*parachaintypes.PersistedValidationData, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(parachaidID)
-	if err != nil {
-		return nil, fmt.Errorf("encoding equivocation proof: %w", err)
-	}
-	err = encoder.Encode(assumption)
-	if err != nil {
-		return nil, fmt.Errorf("encoding key ownership proof: %w", err)
-	}
-
-	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostPersistedValidationData, buffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	persistedValidationData := parachaintypes.PersistedValidationData{}
-	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
-	if err != nil {
-		return nil, fmt.Errorf("scale decoding: %w", err)
-	}
-
-	return &persistedValidationData, nil
-}
-
-// ParachainHost_validation_code
-func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
-) (*parachaintypes.ValidationCode, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(parachaidID)
-	if err != nil {
-		return nil, fmt.Errorf("encoding parachain id: %w", err)
-	}
-	err = encoder.Encode(assumption)
-	if err != nil {
-		return nil, fmt.Errorf("encoding occupied core assumption: %w", err)
-	}
-
-	encodedValidationCode, err := in.Exec(runtime.ParachainHostValidationCode, buffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	validationCode := parachaintypes.ValidationCode{}
-	err = scale.Unmarshal(encodedValidationCode, &validationCode)
-	if err != nil {
-		return nil, fmt.Errorf("scale decoding: %w", err)
-	}
-
-	return &validationCode, nil
-}
-
-// ParachainHostCheckValidationOutputs Checks the validation outputs of a candidate.
-// Returns true if the candidate is valid.
-func (in *Instance) ParachainHostCheckValidationOutputs(
-	parachainID uint32,
-	outputs parachaintypes.CandidateCommitments,
-) (bool, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(parachainID)
-	if err != nil {
-		return false, fmt.Errorf("encode parachainID: %w", err)
-	}
-	err = encoder.Encode(outputs)
-	if err != nil {
-		return false, fmt.Errorf("encode outputs: %w", err)
-	}
-
-	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostCheckValidationOutputs, buffer.Bytes())
-	if err != nil {
-		return false, fmt.Errorf("exec: %w", err)
-	}
-
-	var isValid bool
-	err = scale.Unmarshal(encodedPersistedValidationData, &isValid)
-	if err != nil {
-		return false, fmt.Errorf("unmarshal: %w", err)
-	}
-
-	return isValid, nil
-}
+func (in *Instance) RandomSeed()          {}
+func (in *Instance) OffchainWorker()      {}
+func (in *Instance) GenerateSessionKeys() {}

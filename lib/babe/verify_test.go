@@ -771,7 +771,7 @@ func Test_verifier_verifyBlockEquivocation(t *testing.T) {
 		SecondHeader: *testHeader5,
 	}
 
-	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(1)
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil)
 	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
 
 	mockBlockState5.EXPECT().GetRuntime(existingHeader.Hash()).Return(mockRuntime, nil)
@@ -917,7 +917,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 		FirstHeader:  *firstHeader,
 		SecondHeader: *secondHeader,
 	}
-	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(1)
+	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil)
 	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
 
 	mockBlockState.EXPECT().BestBlockHash().Return(firstHash).Times(2)

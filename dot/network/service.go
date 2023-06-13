@@ -39,8 +39,7 @@ const (
 )
 
 var (
-	logger   = log.NewFromGlobal(log.AddContext("pkg", "network"))
-	maxReads = 256
+	logger = log.NewFromGlobal(log.AddContext("pkg", "network"))
 
 	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_node",
@@ -185,7 +184,7 @@ func NewService(cfg *Config) (*Service, error) {
 	host, err := newHost(ctx, cfg)
 	if err != nil {
 		cancel()
-		return nil, err
+		return nil, fmt.Errorf("failed to create host: %w", err)
 	}
 
 	bufPool := &sync.Pool{
@@ -615,7 +614,7 @@ func (s *Service) Peers() []common.PeerInfo {
 		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
-			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			Role:       peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
 			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
@@ -635,7 +634,7 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 }
 
 // NodeRoles Returns the roles the node is running as.
-func (s *Service) NodeRoles() common.Roles {
+func (s *Service) NodeRoles() common.NetworkRole {
 	return s.cfg.Roles
 }
 

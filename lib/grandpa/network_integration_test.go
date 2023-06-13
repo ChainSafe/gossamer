@@ -18,7 +18,7 @@ import (
 
 func TestGrandpaHandshake_Encode(t *testing.T) {
 	hs := &GrandpaHandshake{
-		Roles: 4,
+		Role: 4,
 	}
 
 	enc, err := hs.Encode()
@@ -61,12 +61,6 @@ func TestHandleNetworkMessage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	telemetryMock.
-		EXPECT().
-		SendMessage(gomock.Any()).
-		AnyTimes()
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
 	gs.messageHandler = h

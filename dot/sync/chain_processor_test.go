@@ -224,7 +224,7 @@ func Test_chainProcessor_handleBlock(t *testing.T) {
 			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
-	t.Run("panics on different parent state root", func(t *testing.T) {
+	t.Run("panics_on_different_parent_state_root", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		bock := &types.Block{
@@ -258,7 +258,7 @@ func Test_chainProcessor_handleBody(t *testing.T) {
 	testExtrinsics := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 	testBody := types.NewBody(testExtrinsics)
 
-	t.Run("base case", func(t *testing.T) {
+	t.Run("base_case", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 
@@ -560,7 +560,7 @@ func Test_chainProcessor_processBlockData(t *testing.T) {
 				mockBlockImportHandler.EXPECT().HandleBlockImport(mockBlock, mockTrieState, false)
 
 				mockTelemetry := NewMockTelemetry(ctrl)
-				mockTelemetry.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				mockTelemetry.EXPECT().SendMessage(gomock.Any())
 				mockFinalityGadget := NewMockFinalityGadget(ctrl)
 				mockFinalityGadget.EXPECT().VerifyBlockJustification(
 					common.MustHexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a"),
