@@ -74,14 +74,13 @@ func Genesis(initial AuthorityList) (authSet *AuthoritySet) {
 		return nil
 	}
 
-	authSet = &AuthoritySet{
+	return &AuthoritySet{
 		currentAuthorities:     initial,
 		setId:                  0,
 		pendingStandardChanges: NewChangeTree(),
 		pendingForcedChanges:   nil,
 		authoritySetChanges:    nil,
 	}
-	return
 }
 
 // NewAuthoritySet creates a new AuthoritySet
@@ -95,14 +94,13 @@ func NewAuthoritySet(authorities AuthorityList,
 		return nil
 	}
 
-	authSet = &AuthoritySet{
+	return &AuthoritySet{
 		currentAuthorities:     authorities,
 		setId:                  setId,
 		pendingStandardChanges: pendingStandardChanges,
 		pendingForcedChanges:   pendingForcedChanges,
 		authoritySetChanges:    authoritySetChanges,
 	}
-	return
 }
 
 // Current Get the current set id and a reference to the current authority set.
@@ -110,8 +108,9 @@ func (authSet *AuthoritySet) Current() (uint64, *AuthorityList) {
 	return authSet.setId, &authSet.currentAuthorities
 }
 
-// TODO impl when needed
-func (authSet *AuthoritySet) revert() {}
+func (authSet *AuthoritySet) revert() {
+	panic("AuthoritySet.revert not implemented yet")
+}
 
 // Returns the block hash and height at which the next pending change in
 // the given chain (i.e. it includes `best_hash`) was signalled, nil if
@@ -123,13 +122,14 @@ func (authSet *AuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsD
 		if err != nil {
 			return nil, err
 		}
-		if isDesc {
-			forced = &change{
-				hash:   c.canonHash,
-				number: c.canonHeight,
-			}
-			break
+		if !isDesc {
+			continue
 		}
+		forced = &change{
+			hash:   c.canonHash,
+			number: c.canonHeight,
+		}
+		break
 	}
 
 	var standard *change
@@ -139,21 +139,21 @@ func (authSet *AuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsD
 		if err != nil {
 			return nil, err
 		}
-		if isDesc {
-			standard = &change{
-				hash:   c.canonHash,
-				number: c.canonHeight,
-			}
-			break
+		if !isDesc {
+			continue
 		}
+		standard = &change{
+			hash:   c.canonHash,
+			number: c.canonHeight,
+		}
+		break
 	}
 
 	if standard != nil && forced != nil {
 		if forced.number < standard.number {
 			return forced, nil
-		} else {
-			return standard, nil
 		}
+		return standard, nil
 	} else if forced != nil {
 		return forced, nil
 	} else if standard != nil {
