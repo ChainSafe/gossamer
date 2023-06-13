@@ -238,7 +238,7 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 				Digest: digests,
 			}
 
-			handler, blockImportHandler, _ := newTestHandler(t)
+			_, blockImportHandler, _ := newTestHandler(t)
 			ctrl := gomock.NewController(t)
 			grandpaState := NewMockGrandpaState(ctrl)
 
@@ -255,8 +255,9 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 				grandpaState.EXPECT().HandleGRANDPADigest(header, expected).Return(nil)
 			}
 
-			handler.grandpaState = grandpaState
-			blockImportHandler.handleDigests(header)
+			blockImportHandler.grandpaState = grandpaState
+			err := blockImportHandler.handleDigests(header)
+			require.NoError(t, err)
 		})
 	}
 }
