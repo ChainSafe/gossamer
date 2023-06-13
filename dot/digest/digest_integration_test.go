@@ -144,9 +144,13 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	require.NoError(t, err)
 
 	// create new blocks and import them
-	state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
+	headersInState, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
+	for _, header := range headersInState {
+		err := blockImportHandler.Handle(header)
+		require.NoError(t, err)
+	}
 
-	time.Sleep(time.Millisecond * 500)
+	//time.Sleep(time.Millisecond * 500)
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
