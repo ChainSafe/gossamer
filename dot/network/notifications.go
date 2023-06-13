@@ -269,8 +269,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	fmt.Printf("peer %s does support protocol %s\n", peer, info.protocolID)
-
 	stream, err := s.sendHandshake(peer, hs, info)
 	if err != nil {
 		logger.Debugf("failed to send handshake to peer %s on protocol %s: %s", peer, info.protocolID, err)
