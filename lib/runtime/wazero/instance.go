@@ -123,9 +123,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_ecdsa_verify_version_2).
 		Export("ext_crypto_ecdsa_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int32, b int32) int64 {
@@ -133,19 +131,13 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_crypto_sr25519_generate_version_1).
 		Export("ext_crypto_sr25519_generate_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_sr25519_public_keys_version_1).
 		Export("ext_crypto_sr25519_public_keys_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32, c int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_sr25519_sign_version_1).
 		Export("ext_crypto_sr25519_sign_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int32, b int64, c int32) int32 {
