@@ -148,9 +148,4 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
-	GetRequestResponseProtocol(protocolID protocol.ID, requestTimeout time.Duration, maxResponseSize uint64) *network.RequestResponseProtocol
 }
-
-var (
-	requestTimeout = time.Second * 20
-)
