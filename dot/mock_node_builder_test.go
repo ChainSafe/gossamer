@@ -138,11 +138,12 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createNetworkService(cfg, stateSrvc,
 }
 
 // createParachainHostService mocks base method.
-func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, genesishHash common.Hash) *parachain_interaction.Service {
+func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, genesishHash common.Hash) (*parachain_interaction.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createParachainHostService", net, genesishHash)
 	ret0, _ := ret[0].(*parachain_interaction.Service)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // createParachainHostService indicates an expected call of createParachainHostService.
