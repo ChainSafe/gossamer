@@ -21,6 +21,10 @@ type ValidatorIndex uint32
 // to check a particular parachain.
 type AssignmentCertKind scale.VaryingDataType
 
+func (ack AssignmentCertKind) New() AssignmentCertKind {
+	return NewAssignmentCertKindVDT()
+}
+
 // Set will set VaryingDataTypeValue using undurlying VaryingDataType
 func (ack *AssignmentCertKind) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
@@ -120,31 +124,31 @@ type Assignment struct {
 	CandidateIndex         CandidateIndex         `scale:"2"`
 }
 
-func NewAssignment() Assignment {
-	assignment := Assignment{
-		IndirectAssignmentCert: IndirectAssignmentCert{
-			BlockHash: common.Hash{},
-			Validator: 0,
-			Cert: AssignmentCert{
-				Kind: AssignmentCertKind(NewAssignmentCertKindVDT()),
-				Vrf:  VrfSignature{},
-			},
-		},
-		CandidateIndex: 0,
-	}
-	return assignment
-}
+//func NewAssignment() Assignment {
+//	assignment := Assignment{
+//		IndirectAssignmentCert: IndirectAssignmentCert{
+//			BlockHash: common.Hash{},
+//			Validator: 0,
+//			Cert: AssignmentCert{
+//				Kind: AssignmentCertKind(NewAssignmentCertKindVDT()),
+//				Vrf:  VrfSignature{},
+//			},
+//		},
+//		CandidateIndex: 0,
+//	}
+//	return assignment
+//}
 
 // Assignments for candidates in recent, unfinalized blocks.
 type Assignments struct {
 	Assignments []Assignment
 }
 
-func NewAssignments() Assignments {
-	assignemns := Assignments{}
-	assignemns.Assignments = append(assignemns.Assignments, NewAssignment())
-	return assignemns
-}
+//func NewAssignments() Assignments {
+//	assignemns := Assignments{}
+//	assignemns.Assignments = append(assignemns.Assignments, NewAssignment())
+//	return assignemns
+//}
 
 // Index returns varying data type index
 func (a Assignments) Index() uint {
@@ -201,9 +205,13 @@ func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 	return vdt.Value()
 }
 
+func (adm ApprovalDistributionMessage) New() ApprovalDistributionMessage {
+	return NewApprovalDistributionMessageVDT()
+}
+
 // NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
 func NewApprovalDistributionMessageVDT() ApprovalDistributionMessage {
-	vdt, err := scale.NewVaryingDataType(NewAssignments(), Approvals{})
+	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
 	if err != nil {
 		panic(err)
 	}
