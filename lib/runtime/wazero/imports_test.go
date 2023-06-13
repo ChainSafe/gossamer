@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -22,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,13 +86,40 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	return r
 }
 
+func decompressWasm(code []byte) ([]byte, error) {
+	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
+	if !bytes.HasPrefix(code, compressionFlag) {
+		return code, nil
+	}
+
+	decoder, err := zstd.NewReader(nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating zstd reader: %s", err)
+	}
+	bytes, err := decoder.DecodeAll(code[len(compressionFlag):], nil)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, err
+}
+
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
+	fmt.Println(fp)
+
 	// Reads the WebAssembly module as bytes.
 	// Retrieve WASM binary
 	bytes, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read wasm file: %s", err)
+	}
+
+	if strings.Contains(fp, "compact") {
+		var err error
+		bytes, err = decompressWasm(bytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return NewInstance(bytes, cfg)
@@ -317,7 +346,7 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
 	// TODO: fix this
-	// t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
+	t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	msgData := []byte("Hello world!")
@@ -468,4 +497,74 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
 	require.True(t, ok)
+}
+
+func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.Context.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	sign, err := kp.Private().Sign(msgData)
+	require.NoError(t, err)
+	encSign, err := scale.Marshal(sign)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_sr25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
+
+func Test_ext_crypto_sr25519_verify_version_2(t *testing.T) {
+	// TODO: add to test runtime since this is required for Westend
+	t.Skip("host API tester does not yet contain rtm_ext_crypto_sr25519_verify_version_2")
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.Context.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Marshal(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Marshal(msgData)
+	require.NoError(t, err)
+
+	sign, err := kp.Private().Sign(msgData)
+	require.NoError(t, err)
+	encSign, err := scale.Marshal(sign)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_sr25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
+
+func TestWestendInstance(t *testing.T) {
+	NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 }

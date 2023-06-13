@@ -140,14 +140,10 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_sr25519_sign_version_1).
 		Export("ext_crypto_sr25519_sign_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64, c int32) int32 {
-			return 0
-		}).
+		WithFunc(ext_crypto_sr25519_verify_version_1).
 		Export("ext_crypto_sr25519_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64, c int32) int32 {
-			return 0
-		}).
+		WithFunc(ext_crypto_sr25519_verify_version_2).
 		Export("ext_crypto_sr25519_verify_version_2").
 		NewFunctionBuilder().
 		WithFunc(func() {
