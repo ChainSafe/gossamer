@@ -55,7 +55,8 @@ func GenerateReqProtocolName(protocol ReqProtocolName, forkID string, GenesisHas
 	}
 }
 
-func GeneratePeersetProtocolName(protocol PeerSetProtocolName, forkID string, GenesisHash common.Hash, version uint32) string {
+func GeneratePeersetProtocolName(protocol PeerSetProtocolName, forkID string, GenesisHash common.Hash, version uint32,
+) string {
 	genesisHash := GenesisHash.String()
 	genesisHash = strings.TrimPrefix(genesisHash, "0x")
 
@@ -68,10 +69,10 @@ func GeneratePeersetProtocolName(protocol PeerSetProtocolName, forkID string, Ge
 	switch protocol {
 	case ValidationProtocol:
 		return fmt.Sprintf("%s/validation/%d", prefix, version)
-		// message over this protocol is BitfieldDistributionMessage, StatementDistributionMessage, ApprovalDistributionMessage
+		// message over this protocol is BitfieldDistributionMessage, StatementDistributionMessage,
+		// ApprovalDistributionMessage
 	case CollationProtocol:
 		return fmt.Sprintf("%s/collation/%d", prefix, version)
-
 		// message over this protocol is CollatorProtocolMessage
 	default:
 		panic("unknown protocol")
