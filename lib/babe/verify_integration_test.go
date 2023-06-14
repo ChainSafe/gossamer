@@ -530,11 +530,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	epochState, err := state.NewEpochStateFromGenesis(inMemoryDB, stateService.Block, epochBABEConfig)
 	require.NoError(t, err)
 
-	digestHandler, err := digest.NewHandler(stateService.Block, epochState, stateService.Grandpa)
-	require.NoError(t, err)
-
-	digestHandler.Start()
-
+	onBlockImportDigestHandler := digest.NewBlockImportHandler(epochState, stateService.Grandpa)
 	verificationManager := NewVerificationManager(stateService.Block, epochState)
 
 	/*
@@ -549,7 +545,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots: 1,
 	}
 	aliceBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyAlice,
-		stateService, aliceBlockNextEpoch, aliceBlockNextConfigData)
+		stateService, aliceBlockNextEpoch, aliceBlockNextConfigData, onBlockImportDigestHandler)
 
 	bobBlockNextEpoch := types.NextEpochData{
 		Authorities: authorities[6:],
@@ -560,7 +556,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots: 1,
 	}
 	bobBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyBob,
-		stateService, bobBlockNextEpoch, bobBlockNextConfigData)
+		stateService, bobBlockNextEpoch, bobBlockNextConfigData, onBlockImportDigestHandler)
 
 	// wait for digest handleBlockImport goroutine gets the imported
 	// block, process its digest and store the info at epoch state
@@ -671,7 +667,8 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 // blocks that contains different consensus messages digests
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
-	nextEpoch types.NextEpochData, nextConfig types.NextConfigDataV1) *types.Header {
+	nextEpoch types.NextEpochData, nextConfig types.NextConfigDataV1,
+	onImportBlockDigestHandler *digest.BlockImportHandler) *types.Header {
 	t.Helper()
 
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(0), 0))
@@ -725,6 +722,9 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 		Header: *headerWhoOwnsNextEpochDigest,
 		Body:   *types.NewBody([]types.Extrinsic{}),
 	})
+	require.NoError(t, err)
+
+	err = onImportBlockDigestHandler.Handle(headerWhoOwnsNextEpochDigest)
 	require.NoError(t, err)
 
 	return headerWhoOwnsNextEpochDigest

@@ -241,7 +241,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	// still claim the slot without error.
 	bestBlockSlotNum, err := babeServiceBob.blockState.GetSlotForBlock(block.Header.Hash())
 	require.NoError(t, err)
-
+	//0xb1db896a7f12db8162dc3e1cd4e36b337a7612755cb87af8004b963403794fb9
 	slot = Slot{
 		start:    time.Unix(6, 0),
 		duration: babeServiceBob.constants.slotDuration * time.Millisecond,
