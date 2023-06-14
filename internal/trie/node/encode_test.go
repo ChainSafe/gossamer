@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,12 +24,14 @@ var errTest = errors.New("test error")
 func Test_Node_Encode(t *testing.T) {
 	t.Parallel()
 
+	hashedValue, err := common.Blake2bHash([]byte("test"))
+	assert.NoError(t, err)
+
 	testCases := map[string]struct {
-		node             *Node
-		writes           []writeCall
-		expectedEncoding []byte
-		wrappedErr       error
-		errMessage       string
+		node       *Node
+		writes     []writeCall
+		wrappedErr error
+		errMessage string
 	}{
 		"nil_node": {
 			node: nil,
@@ -37,7 +40,6 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{emptyVariant.bits},
 				},
 			},
-			expectedEncoding: []byte{emptyVariant.bits},
 		},
 		"leaf_header_encoding_error": {
 			node: &Node{
@@ -102,7 +104,6 @@ func Test_Node_Encode(t *testing.T) {
 				{written: []byte{12}},
 				{written: []byte{4, 5, 6}},
 			},
-			expectedEncoding: []byte{1, 2, 3},
 		},
 		"leaf_with_empty_storage_value_success": {
 			node: &Node{
@@ -115,7 +116,35 @@ func Test_Node_Encode(t *testing.T) {
 				{written: []byte{0}},                    // node storage value encoded length
 				{written: []byte{}},                     // node storage value
 			},
-			expectedEncoding: []byte{1, 2, 3},
+		},
+		"leaf_with_hashed_value_success": {
+			node: &Node{
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+			},
+			writes: []writeCall{
+				{
+					written: []byte{leafWithHashedValueVariant.bits | 3},
+				},
+				{written: []byte{0x01, 0x23}},
+				{written: hashedValue.ToBytes()},
+			},
+		},
+		"leaf_with_hashed_value_fail_too_short": {
+			node: &Node{
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte("tooshort"),
+				HashedValue:  true,
+			},
+			writes: []writeCall{
+				{
+					written: []byte{leafWithHashedValueVariant.bits | 3},
+				},
+				{written: []byte{0x01, 0x23}},
+			},
+			wrappedErr: ErrEncodeHashedValueTooShort,
+			errMessage: "hashed storage value too short",
 		},
 		"branch_header_encoding_error": {
 			node: &Node{
@@ -287,6 +316,61 @@ func Test_Node_Encode(t *testing.T) {
 					written: []byte{16, 65, 11, 4, 1},
 				},
 			},
+		},
+		"branch_with_hashed_value_success": {
+			node: &Node{
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+				Children: []*Node{
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{branchWithHashedValueVariant.bits | 3}, // partial key length 3
+				},
+				{ // key LE
+					written: []byte{0x01, 0x23},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+				{
+					written: hashedValue.ToBytes(),
+				},
+				{ // first children
+					written: []byte{16, 65, 9, 4, 1},
+				},
+				{ // second children
+					written: []byte{16, 65, 11, 4, 1},
+				},
+			},
+		},
+		"branch_with_hashed_value_fail_too_short": {
+			node: &Node{
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: []byte("tooshort"),
+				HashedValue:  true,
+				Children: []*Node{
+					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
+					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
+				},
+			},
+			writes: []writeCall{
+				{ // header
+					written: []byte{branchWithHashedValueVariant.bits | 3}, // partial key length 3
+				},
+				{ // key LE
+					written: []byte{0x01, 0x23},
+				},
+				{ // children bitmap
+					written: []byte{136, 0},
+				},
+			},
+			wrappedErr: ErrEncodeHashedValueTooShort,
+			errMessage: "hashed storage value too short",
 		},
 	}
 

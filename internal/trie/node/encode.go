@@ -4,12 +4,15 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var ErrEncodeHashedValueTooShort = errors.New("hashed storage value too short")
 
 // Encode encodes the node to the buffer given.
 // The encoding format is documented in the README.md
@@ -47,8 +50,13 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
 		if n.HashedValue {
-			_, err = buffer.Write(n.StorageValue)
-			return fmt.Errorf("encoding hashed storage value: %w", err)
+			if len(n.StorageValue) != common.HashLength {
+				return ErrEncodeHashedValueTooShort
+			}
+			_, err := buffer.Write(n.StorageValue)
+			if err != nil {
+				return fmt.Errorf("encoding hashed storage value: %w", err)
+			}
 		} else {
 			encoder := scale.NewEncoder(buffer)
 			err = encoder.Encode(n.StorageValue)
