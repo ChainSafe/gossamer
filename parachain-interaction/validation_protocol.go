@@ -12,20 +12,7 @@ import (
 const MaxValidationMessageSize uint64 = 100 * 1024
 
 type ValidationProtocolV1 struct {
-	/*	TODO: Implement this
-		Network Message types here https://paritytech.github.io/polkadot/book/types/network.html#validation-v1
-
-		Messages over Validation Protocol
-
-			enum ValidationProtocolV1 {
-			    ApprovalDistribution(ApprovalDistributionV1Message),
-			    AvailabilityDistribution(AvailabilityDistributionV1Message),
-			    AvailabilityRecovery(AvailabilityRecoveryV1Message),
-			    BitfieldDistribution(BitfieldDistributionV1Message),
-			    PoVDistribution(PoVDistributionV1Message),
-			    StatementDistribution(StatementDistributionV1Message),
-			}
-	*/
+	//	TODO: Implement this struct https://github.com/ChainSafe/gossamer/issues/3318
 }
 
 // Type returns ValidationMsgType

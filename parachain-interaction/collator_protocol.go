@@ -12,28 +12,7 @@ import (
 const MaxCollationMessageSize uint64 = 100 * 1024
 
 type CollationProtocolV1 struct {
-	// TODO: Implement
-	/*
-			Messages over Collation Protocol
-			enum CollationProtocolV1 {
-			    CollatorProtocol(CollatorProtocolV1Message),
-			}
-
-		#![allow(unused)]
-		fn main() {
-		enum CollatorProtocolV1Message {
-		    /// Declare the intent to advertise collations under a collator ID and `Para`, attaching a
-		    /// signature of the `PeerId` of the node using the given collator ID key.
-		    Declare(CollatorId, ParaId, CollatorSignature),
-		    /// Advertise a collation to a validator. Can only be sent once the peer has
-		    /// declared that they are a collator with given ID.
-		    AdvertiseCollation(Hash),
-		    /// A collation sent to a validator was seconded.
-		    CollationSeconded(SignedFullStatement),
-		}
-		}
-	*/
-
+	// TODO: Implement this struct https://github.com/ChainSafe/gossamer/issues/3319
 }
 
 // Type returns CollationMsgType
