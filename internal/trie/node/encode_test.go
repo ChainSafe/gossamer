@@ -131,6 +131,27 @@ func Test_Node_Encode(t *testing.T) {
 				{written: hashedValue.ToBytes()},
 			},
 		},
+		"leaf_with_hashed_value_fail": {
+			node: &Node{
+				PartialKey:   []byte{1, 2, 3},
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+			},
+			writes: []writeCall{
+				{
+					written: []byte{leafWithHashedValueVariant.bits | 3},
+				},
+				{
+					written: []byte{0x01, 0x23},
+				},
+				{
+					written: hashedValue.ToBytes(),
+					err:     errTest,
+				},
+			},
+			wrappedErr: errTest,
+			errMessage: "encoding hashed storage value: test error",
+		},
 		"leaf_with_hashed_value_fail_too_short": {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
