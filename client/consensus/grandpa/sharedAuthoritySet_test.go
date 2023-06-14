@@ -110,12 +110,25 @@ func TestCondVar(t *testing.T) {
 // / to [`shared_data`](Self::shared_data) in the same thread will make your program dead lock.
 // / The same applies when you are using a single threaded executor.
 func TestSharedDataInner(t *testing.T) {
-	sharedData := SharedDataInner{
-		lock:   sync.Mutex{},
-		inner:  AuthoritySet{},
-		locked: false,
-	}
+	// NOTE mutexs in go cannot be copied, this is different I do believe from rust impl
+	sharedData := NewSharedData("hello world")
 
-	fmt.Println(sharedData)
+	sharedData.SharedDataLocked()
+
+	go func(sharedData *SharedData) {
+		fmt.Println("in here woot")
+		sharedData.SharedData()
+		fmt.Println("done")
+		sharedData.inner.inner += "1"
+	}(sharedData)
+
+	fmt.Println(sharedData.inner.inner)
+
+	time.Sleep(1 * time.Second)
+
+	sharedData.condVar.L.Unlock()
+	//sharedData.inner.locked = false
+	//sharedData.condVar.Signal()
+	require.Equal(t, "hello world", sharedData.inner.inner)
 
 }
