@@ -1,7 +1,6 @@
 package parachain
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -156,12 +155,22 @@ func TestDecodeApprovalDistributionMessageApprovals(t *testing.T) {
 		170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 2, 0, 0, 0, 3, 0, 0, 0, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
+	expectedApprovalDistributionMessage.Set(Approvals{
+		Approvals: []IndirectSignedApprovalVote{{
+			BlockHash:      hash,
+			CandidateIndex: CandidateIndex(2),
+			ValidatorIndex: ValidatorIndex(3),
+			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1},
+		}},
+	})
 
 	approvalDistributionMessage := NewApprovalDistributionMessageVDT()
 	err := scale.Unmarshal(encoding, &approvalDistributionMessage)
 	require.NoError(t, err)
-	fmt.Printf("dec %#v\n", approvalDistributionMessage)
-
+	require.Equal(t, expectedApprovalDistributionMessage, approvalDistributionMessage)
 }
 
 func fakeAssignmentCert(blockHash common.Hash, validator ValidatorIndex, useDelay bool) IndirectAssignmentCert {

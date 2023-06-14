@@ -8,12 +8,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// A static context used for all relay-vrf-modulo VRFs.
-const RELAY_VRF_MODULO_CONTEXT = "A&V MOD"
-
-// / A static context used for all relay-vrf-modulo VRFs.
-const RELAY_VRF_DELAY_CONTEXT = "A&V DELAY"
-
 // ValidatorIndex index of the validator is used as a lightweight replacement of the 'ValidatorId' when appropriate.
 type ValidatorIndex uint32
 
@@ -27,13 +21,11 @@ func (ack AssignmentCertKind) New() AssignmentCertKind {
 
 // Set will set VaryingDataTypeValue using undurlying VaryingDataType
 func (ack *AssignmentCertKind) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*ack)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value te varying data type: %w", err)
 	}
-	// store ariginal ParentVDT with VaryingDataType that has been set
 	*ack = AssignmentCertKind(vdt)
 	return nil
 }
@@ -44,6 +36,7 @@ func (ack *AssignmentCertKind) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
+// NewAssignmentCertKindVDT constructor for AssignmentCertKind
 func NewAssignmentCertKindVDT() AssignmentCertKind {
 	vdt, err := scale.NewVaryingDataType(NewRelayVRFModulo(), NewVRFDelay())
 	if err != nil {
@@ -54,13 +47,12 @@ func NewAssignmentCertKindVDT() AssignmentCertKind {
 
 // RelayVRFModulo an assignment story based on the VRF that authorized the relay-chain block where the
 // candidate was included combined with a sample number.
-//
-// The context used to produce the bytes is RELAY_VRF_MODULO_CONTEXT
 type RelayVRFModulo struct {
 	// Sample the sample number used in this cert.
 	Sample uint32
 }
 
+// NewRelayVRFModulo constructor for RelayVRFModulo
 func NewRelayVRFModulo() RelayVRFModulo {
 	return RelayVRFModulo{}
 }
@@ -72,13 +64,12 @@ func (rvm RelayVRFModulo) Index() uint {
 
 // RelayVRFDelay an assignment story based on the VRF that authorized the relay-chain block where the
 // candidate was included combined with the index of a particular core.
-//
-// The context is RELAY_VRF_DELAY_CONTEXT
 type RelayVRFDelay struct {
 	// CoreIndex the unique (during session) index of a core.
 	CoreIndex uint32
 }
 
+// NewVRFDelay constructor for RelayVRFDelay
 func NewVRFDelay() RelayVRFDelay {
 	return RelayVRFDelay{}
 }
@@ -124,31 +115,10 @@ type Assignment struct {
 	CandidateIndex         CandidateIndex         `scale:"2"`
 }
 
-//func NewAssignment() Assignment {
-//	assignment := Assignment{
-//		IndirectAssignmentCert: IndirectAssignmentCert{
-//			BlockHash: common.Hash{},
-//			Validator: 0,
-//			Cert: AssignmentCert{
-//				Kind: AssignmentCertKind(NewAssignmentCertKindVDT()),
-//				Vrf:  VrfSignature{},
-//			},
-//		},
-//		CandidateIndex: 0,
-//	}
-//	return assignment
-//}
-
 // Assignments for candidates in recent, unfinalized blocks.
 type Assignments struct {
 	Assignments []Assignment
 }
-
-//func NewAssignments() Assignments {
-//	assignemns := Assignments{}
-//	assignemns.Assignments = append(assignemns.Assignments, NewAssignment())
-//	return assignemns
-//}
 
 // Index returns varying data type index
 func (a Assignments) Index() uint {
@@ -188,13 +158,11 @@ type ApprovalDistributionMessage scale.VaryingDataType
 
 // Set will set a VoryingDataTypeValue using the underlying VaryingDataType
 func (adm *ApprovalDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*adm)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	// store original ParentVDT with VaryingDataType that has been set
 	*adm = ApprovalDistributionMessage(vdt)
 	return nil
 }
@@ -205,6 +173,7 @@ func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 	return vdt.Value()
 }
 
+// New returns new ApprovalDistributionMessage VDT
 func (adm ApprovalDistributionMessage) New() ApprovalDistributionMessage {
 	return NewApprovalDistributionMessageVDT()
 }
