@@ -151,7 +151,6 @@ func (va *CoreState) Set(val scale.VaryingDataTypeValue) (err error) {
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	// store original ParentVDT with VaryingDataType that has been set
 	*va = CoreState(vdt)
 	return nil
 }
