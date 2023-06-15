@@ -30,7 +30,7 @@ func (h *BlockImportHandler) Handle(importedBlockHeader *types.Header) error {
 
 	err = h.grandpaState.ApplyForcedChanges(importedBlockHeader)
 	if err != nil {
-		return fmt.Errorf("while apply forced changes: %s", err)
+		return fmt.Errorf("while apply forced changes: %w", err)
 	}
 
 	return nil
@@ -51,7 +51,7 @@ func (h *BlockImportHandler) handleDigests(header *types.Header) error {
 		digest := consensusDigests[i]
 		err := h.handleConsensusDigest(&digest, header)
 		if err != nil {
-			logger.Errorf("cannot handle consensus digest: %w", err)
+			return err
 		}
 	}
 
@@ -67,7 +67,11 @@ func (h *BlockImportHandler) handleConsensusDigest(d *types.ConsensusDigest, hea
 			return err
 		}
 
-		return h.grandpaState.HandleGRANDPADigest(header, data)
+		err = h.grandpaState.HandleGRANDPADigest(header, data)
+		if err != nil {
+			return fmt.Errorf("while handling grandpa digest: %w", err)
+		}
+		return nil
 	case types.BabeEngineID:
 		data := types.NewBabeConsensusDigest()
 		err := scale.Unmarshal(d.Data, &data)
@@ -75,7 +79,11 @@ func (h *BlockImportHandler) handleConsensusDigest(d *types.ConsensusDigest, hea
 			return err
 		}
 
-		return h.epochState.HandleBABEDigest(header, data)
+		err = h.epochState.HandleBABEDigest(header, data)
+		if err != nil {
+			return fmt.Errorf("while handling babe digest: %w", err)
+		}
+		return nil
 	default:
 		return fmt.Errorf("%w: 0x%x", ErrUnknownConsensusEngineID, d.ConsensusEngineID.ToBytes())
 	}
