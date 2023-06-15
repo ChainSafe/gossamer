@@ -11,9 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// TODO: resolve these
-// https://github.com/ChainSafe/gossamer/pull/3241#discussion_r1187883189
-// https://github.com/ChainSafe/gossamer/pull/3297#discussion_r1214740051
+// NOTE: https://github.com/ChainSafe/gossamer/pull/3297#discussion_r1214740051
 
 // ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorId` when appropriate
 type ValidatorIndex uint32
