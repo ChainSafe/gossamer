@@ -117,6 +117,10 @@ Usage:
 				}
 			}
 
+			if err := parseLogLevel(); err != nil {
+				return fmt.Errorf("failed to configure log level: %s", err)
+			}
+
 			if cmd.Name() == "gossamer" {
 				if err := configureViper(config.BasePath); err != nil {
 					return fmt.Errorf("failed to configure viper: %s", err)
@@ -129,10 +133,6 @@ Usage:
 				if err := config.ValidateBasic(); err != nil {
 					return fmt.Errorf("error in config file: %v", err)
 				}
-			}
-
-			if err := parseLogLevel(); err != nil {
-				return fmt.Errorf("failed to configure log level: %s", err)
 			}
 
 			return nil

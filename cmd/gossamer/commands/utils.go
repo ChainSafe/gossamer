@@ -499,9 +499,8 @@ func parseLogLevel() error {
 		"wasmer":  cfg.DefaultLogLevel,
 	}
 
-	if len(logLevel) > 0 {
+	if logLevel != "" {
 		logConfigurations := strings.Split(logLevel, ",")
-
 		for _, config := range logConfigurations {
 			parts := strings.SplitN(config, "=", 2)
 			if len(parts) != 2 {
@@ -514,22 +513,24 @@ func parseLogLevel() error {
 			if _, ok := moduleToLogLevel[module]; !ok {
 				return fmt.Errorf("Invalid module: %s", module)
 			}
-
 			moduleToLogLevel[module] = logLevel
 		}
 	}
 
+	// set global log level
 	config.LogLevel = moduleToLogLevel["global"]
+	viper.Set("log-level", config.LogLevel)
 
+	// set config.Log
 	jsonData, err := json.Marshal(moduleToLogLevel)
 	if err != nil {
 		return fmt.Errorf("error marshalling logs: %s", err)
 	}
-
 	err = json.Unmarshal(jsonData, &config.Log)
 	if err != nil {
 		return fmt.Errorf("error unmarshalling logs: %s", err)
 	}
+	viper.Set("log", config.Log)
 
 	return nil
 }
