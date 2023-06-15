@@ -93,7 +93,7 @@ type CandidateDescriptor struct {
 type OccupiedCore struct {
 	// NOTE: this has no ParaId as it can be deduced from the candidate descriptor.
 	// If this core is freed by availability, this is the assignment that is next up on this
-	// core, if any. None if there is nothing queued for this core.
+	// core, if any. nil if there is nothing queued for this core.
 	NextUpOnAvailable *ScheduledCore `scale:"1"`
 	// The relay-chain block number this began occupying the core at.
 	OccupiedSince BlockNumber `scale:"2"`
