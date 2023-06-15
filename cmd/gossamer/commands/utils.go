@@ -504,14 +504,14 @@ func parseLogLevel() error {
 		for _, config := range logConfigurations {
 			parts := strings.SplitN(config, "=", 2)
 			if len(parts) != 2 {
-				return fmt.Errorf("Invalid log configuration: %s", config)
+				return fmt.Errorf("invalid log configuration: %s", config)
 			}
 
 			module := strings.TrimSpace(parts[0])
 			logLevel := strings.TrimSpace(parts[1])
 
 			if _, ok := moduleToLogLevel[module]; !ok {
-				return fmt.Errorf("Invalid module: %s", module)
+				return fmt.Errorf("invalid module: %s", module)
 			}
 			moduleToLogLevel[module] = logLevel
 		}

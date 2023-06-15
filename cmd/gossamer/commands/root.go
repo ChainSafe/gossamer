@@ -26,8 +26,9 @@ var (
 
 // Flag values for the root command which needs type conversion
 var (
+	logLevel string
+
 	// Base Config
-	logLevel      string
 	pruning       string
 	telemetryURLs string
 
@@ -118,7 +119,7 @@ Usage:
 			}
 
 			if err := parseLogLevel(); err != nil {
-				return fmt.Errorf("failed to configure log level: %s", err)
+				return fmt.Errorf("failed to parse log level: %s", err)
 			}
 
 			if cmd.Name() == "gossamer" {
