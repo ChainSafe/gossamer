@@ -100,7 +100,7 @@ type OccupiedCore struct {
 	// The relay-chain block this will time-out at, if any.
 	TimeoutAt BlockNumber `scale:"3"`
 	// If this core is freed by being timed-out, this is the assignment that is next up on this
-	// core. None if there is nothing queued for this core or there is no possibility of timing
+	// core. nil if there is nothing queued for this core or there is no possibility of timing
 	// out.
 	NextUpOnTimeOut *ScheduledCore `scale:"4"`
 	// A bitfield with 1 bit for each validator in the set. `1` bits mean that the corresponding
