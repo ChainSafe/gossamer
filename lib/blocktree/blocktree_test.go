@@ -681,7 +681,11 @@ func Test_BlockTree_Prune(t *testing.T) {
 
 		// expect that node number 3 to be prunned with its runtime
 		pruned := blockTree.Prune(common.Hash{2})
-		assert.Equal(t, []common.Hash{{3}}, pruned)
+		expectedPrunned := map[common.Hash][]common.Hash{
+			{1}: {{3}},
+		}
+		assert.Equal(t, expectedPrunned, pruned)
+
 		expectedHashToRuntime := &hashToRuntime{
 			mapping: map[common.Hash]runtime.Instance{
 				{2}: rootRuntime,
@@ -790,7 +794,12 @@ func Test_BlockTree_Prune(t *testing.T) {
 		blockTree.runtimes.set(common.Hash{7}, forkedRuntime)
 
 		pruned := blockTree.Prune(common.Hash{4})
-		assert.Equal(t, []common.Hash{{5}, {6}, {7}}, pruned)
+		expectedPruned := map[common.Hash][]common.Hash{
+			{2}: {{5}, {6}},
+			{5}: {{7}},
+		}
+
+		assert.Equal(t, expectedPruned, pruned)
 
 		expectedHashToRuntime := &hashToRuntime{
 			mapping: map[common.Hash]runtime.Instance{
