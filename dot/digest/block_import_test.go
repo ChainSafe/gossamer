@@ -159,7 +159,7 @@ func TestBlockImportHandle(t *testing.T) {
 					createNextEpoch, createNextConfigData, createScheduledChange)
 			},
 		},
-		"handle_babe_and_grandpa_digests_succesfully": {
+		"handle_babe_and_grandpa_digests_successfully": {
 			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) GrandpaState {
 
@@ -242,7 +242,7 @@ func TestBlockImportHandle(t *testing.T) {
 					createNextEpoch, createNextConfigData, createScheduledChange)
 			},
 		},
-		"handle_unkown_consensus_id_should_be_succesfull": {
+		"handle_unknown_consensus_id_should_be_succesfull": {
 			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) GrandpaState {
 
@@ -422,7 +422,7 @@ func TestBlockImportHandle(t *testing.T) {
 			importedHeader, consensusDigests := tt.createBlockHeader(t)
 
 			ctrl := gomock.NewController(t)
-			// idexes 0 and 1 belongs to the BABE digests next epoch data and next config data respectivelly
+			// idexes 0 and 1 belongs to the BABE digests next epoch data and next config data respectively
 			// the indexes after that are for GRANDPA scheduled change and forced change
 			epochStateMock := tt.setupEpochState(t, ctrl, importedHeader, consensusDigests[:2])
 			grandpaStateMock := tt.setupGrandpaState(t, ctrl, importedHeader, consensusDigests[2:])
