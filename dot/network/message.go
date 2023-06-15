@@ -36,7 +36,6 @@ type NotificationsMessage interface {
 	Hash() (common.Hash, error)
 }
 
-//nolint:revive
 const (
 	RequestedDataHeader        = byte(1)
 	RequestedDataBody          = byte(2)

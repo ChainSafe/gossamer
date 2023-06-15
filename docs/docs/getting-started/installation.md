@@ -8,7 +8,7 @@ permalink: /getting-started/installation
 
 ## Prerequisites
 
-Install [Go](https://go.dev/doc/install) version [`>=1.19`](https://go.dev/dl/#go1.19)
+Install [Go](https://go.dev/doc/install) version [`>=1.20`](https://go.dev/dl/#go1.20)
 
 ## Installation
 

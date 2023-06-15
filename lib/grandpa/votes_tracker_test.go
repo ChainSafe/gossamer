@@ -85,7 +85,7 @@ func Test_newVotesTracker(t *testing.T) {
 func Test_votesTracker_cleanup(t *testing.T) {
 	t.Parallel()
 
-	t.Run("in same block", func(t *testing.T) {
+	t.Run("in_same_block", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -117,7 +117,7 @@ func Test_votesTracker_cleanup(t *testing.T) {
 		})
 	})
 
-	t.Run("remove entire block", func(t *testing.T) {
+	t.Run("remove_entire_block", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -157,7 +157,7 @@ func Test_votesTracker_cleanup(t *testing.T) {
 func Test_votesTracker_overriding(t *testing.T) {
 	t.Parallel()
 
-	t.Run("override oldest", func(t *testing.T) {
+	t.Run("override_oldest", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -188,7 +188,7 @@ func Test_votesTracker_overriding(t *testing.T) {
 		})
 	})
 
-	t.Run("override newest", func(t *testing.T) {
+	t.Run("override_newest", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -223,7 +223,7 @@ func Test_votesTracker_overriding(t *testing.T) {
 func Test_votesTracker_delete(t *testing.T) {
 	t.Parallel()
 
-	t.Run("non existing block hash", func(t *testing.T) {
+	t.Run("non_existing_block_hash", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -248,7 +248,7 @@ func Test_votesTracker_delete(t *testing.T) {
 		})
 	})
 
-	t.Run("existing block hash", func(t *testing.T) {
+	t.Run("existing_block_hash", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2

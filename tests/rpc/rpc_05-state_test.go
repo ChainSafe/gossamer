@@ -88,7 +88,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("valid block hash state_getPairs", func(t *testing.T) {
+	t.Run("valid_block_hash_state_getPairs", func(t *testing.T) {
 		t.Parallel()
 
 		params := fmt.Sprintf(`["0x", "%s"]`, blockHash)
@@ -99,7 +99,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("valid block hash state_getMetadata", func(t *testing.T) {
+	t.Run("valid_block_hash_state_getMetadata", func(t *testing.T) {
 		t.Parallel()
 
 		params := fmt.Sprintf(`["%s"]`, blockHash)
@@ -110,7 +110,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("valid block hash state_getRuntimeVersion", func(t *testing.T) {
+	t.Run("valid_block_hash_state_getRuntimeVersion", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateRuntimeVersionResponse
@@ -120,7 +120,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional params hash state_getPairs", func(t *testing.T) {
+	t.Run("optional_params_hash_state_getPairs", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StatePairResponse
@@ -130,7 +130,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param hash state_getMetadata", func(t *testing.T) {
+	t.Run("optional_param_hash_state_getMetadata", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateMetadataResponse
@@ -140,7 +140,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param value as null state_getRuntimeVersion", func(t *testing.T) {
+	t.Run("optional_param_value_as_null_state_getRuntimeVersion", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateRuntimeVersionResponse
@@ -150,7 +150,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param value as null state_getMetadata", func(t *testing.T) {
+	t.Run("optional_param_value_as_null_state_getMetadata", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateMetadataResponse
@@ -160,7 +160,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param value as null state_getPairs", func(t *testing.T) {
+	t.Run("optional_param_value_as_null_state_getPairs", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StatePairResponse

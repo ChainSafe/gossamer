@@ -565,6 +565,6 @@ func (in *Instance) ParachainHostInboundHrmpChannelsContents(
 	return inboundHrmpMessages, nil
 }
 
-func (in *Instance) RandomSeed()          {} //nolint:revive
-func (in *Instance) OffchainWorker()      {} //nolint:revive
-func (in *Instance) GenerateSessionKeys() {} //nolint:revive
+func (in *Instance) RandomSeed()          {}
+func (in *Instance) OffchainWorker()      {}
+func (in *Instance) GenerateSessionKeys() {}
