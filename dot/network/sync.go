@@ -14,19 +14,19 @@ import (
 )
 
 var (
-	blockRequestTimeout = time.Second * 20
+	BlockRequestTimeout = time.Second * 20
 )
 
 // DoBlockRequest sends a request to the given peer.
 // If a response is received within a certain time period, it is returned,
 // otherwise an error is returned.
 func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
-	fullSyncID := s.host.protocolID + syncID
+	fullSyncID := s.host.protocolID + SyncID
 
 	s.host.p2pHost.ConnManager().Protect(to, "")
 	defer s.host.p2pHost.ConnManager().Unprotect(to, "")
 
-	ctx, cancel := context.WithTimeout(s.ctx, blockRequestTimeout)
+	ctx, cancel := context.WithTimeout(s.ctx, BlockRequestTimeout)
 	defer cancel()
 
 	stream, err := s.host.p2pHost.NewStream(ctx, to, fullSyncID)
@@ -60,7 +60,7 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 
 	buf := s.blockResponseBuf
 
-	n, err := readStream(stream, &buf, maxBlockResponseSize)
+	n, err := readStream(stream, &buf, MaxBlockResponseSize)
 	if err != nil {
 		return nil, fmt.Errorf("read stream error: %w", err)
 	}
@@ -88,7 +88,7 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage, maxBlockResponseSize)
+	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage, MaxBlockResponseSize)
 }
 
 func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {

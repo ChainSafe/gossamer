@@ -695,17 +695,15 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
 	who := peers[idx.Int64()]
-	resp, err := cs.network.DoBlockRequest(who, req)
+
+	blockReqRes := cs.network.GetRequestResponseProtocol(network.SyncID, network.BlockRequestTimeout,
+		network.MaxBlockResponseSize)
+	resp := new(network.BlockResponseMessage)
+
+	err := blockReqRes.DoRequest(who, req, resp)
 	if err != nil {
 		return &workerError{
 			err: err,
-			who: who,
-		}
-	}
-
-	if resp == nil {
-		return &workerError{
-			err: errNilResponse,
 			who: who,
 		}
 	}

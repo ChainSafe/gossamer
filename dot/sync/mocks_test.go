@@ -6,6 +6,7 @@ package sync
 
 import (
 	reflect "reflect"
+	time "time"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
@@ -622,6 +623,20 @@ func (m *MockNetwork) DoBlockRequest(arg0 peer.ID, arg1 *network.BlockRequestMes
 func (mr *MockNetworkMockRecorder) DoBlockRequest(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoBlockRequest", reflect.TypeOf((*MockNetwork)(nil).DoBlockRequest), arg0, arg1)
+}
+
+// GetRequestResponseProtocol mocks base method.
+func (m *MockNetwork) GetRequestResponseProtocol(arg0 string, arg1 time.Duration, arg2 uint64) *network.RequestResponseProtocol {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRequestResponseProtocol", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*network.RequestResponseProtocol)
+	return ret0
+}
+
+// GetRequestResponseProtocol indicates an expected call of GetRequestResponseProtocol.
+func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), arg0, arg1, arg2)
 }
 
 // Peers mocks base method.
