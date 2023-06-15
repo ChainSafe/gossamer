@@ -146,7 +146,6 @@ type CoreState scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (va *CoreState) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*va)
 	err = vdt.Set(val)
 	if err != nil {
