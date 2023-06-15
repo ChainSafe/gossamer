@@ -515,56 +515,6 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex
 	return sessionInfo, nil
 }
 
-// ParachainHostDMQContents Returns all the pending inbound messages
-// in the downward message queue for a given parachain.
-func (in *Instance) ParachainHostDMQContents(parachainID parachain.ParaID) ([]parachain.DownwardMessage, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(parachainID)
-	if err != nil {
-		return nil, fmt.Errorf("encode parachainID: %w", err)
-	}
-
-	encodedDownwardMessages, err := in.Exec(runtime.ParachainHostDMQContents, buffer.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("exec: %w", err)
-	}
-
-	var downwardMessages []parachain.DownwardMessage
-	err = scale.Unmarshal(encodedDownwardMessages, &downwardMessages)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal: %w", err)
-	}
-
-	return downwardMessages, nil
-}
-
-// ParachainHostInboundHrmpChannelsContents Returns the contents of all channels addressed to the given recipient.
-// Channels that have no messages in them are also included.
-func (in *Instance) ParachainHostInboundHrmpChannelsContents(
-	recipient parachain.ParaID,
-) ([]parachain.InboundHrmpMessage, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(recipient)
-	if err != nil {
-		return nil, fmt.Errorf("encode recipient: %w", err)
-	}
-
-	encodedInboundHrmpMessages, err := in.Exec(runtime.ParachainHostInboundHrmpChannelsContents, buffer.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("exec: %w", err)
-	}
-
-	var inboundHrmpMessages []parachain.InboundHrmpMessage
-	err = scale.Unmarshal(encodedInboundHrmpMessages, &inboundHrmpMessages)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal: %w", err)
-	}
-
-	return inboundHrmpMessages, nil
-}
-
 func (in *Instance) RandomSeed()          {}
 func (in *Instance) OffchainWorker()      {}
 func (in *Instance) GenerateSessionKeys() {}

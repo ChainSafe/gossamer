@@ -132,8 +132,7 @@ func (ScheduledCore) Index() uint {
 }
 
 // Free Core information about a core which is currently free.
-type Free struct {
-}
+type Free struct{}
 
 // Index returns the index
 func (Free) Index() uint {
@@ -202,7 +201,7 @@ type CandidateCommitments struct {
 	// Horizontal messages sent by the parachain.
 	HorizontalMessages []OutboundHrmpMessage `scale:"2"`
 	// New validation code.
-	NewValidationCode ValidationCode `scale:"3"`
+	NewValidationCode *ValidationCode `scale:"3"`
 	// The head-data produced as a result of execution.
 	HeadData headData `scale:"4"`
 	// The number of messages processed from the DMQ.

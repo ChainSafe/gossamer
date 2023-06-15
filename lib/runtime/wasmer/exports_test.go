@@ -1228,7 +1228,7 @@ func TestInstance_ParachainHostValidatorGroups(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &parachain.ValidatorGroups{
-		Validators: [][]types.ValidatorIndex{
+		Validators: [][]parachain.ValidatorIndex{
 			{0, 1, 2, 3, 4, 5},
 			{6, 7, 8, 9, 10, 11},
 			{12, 13, 14, 15, 16},
@@ -1336,7 +1336,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &parachain.SessionInfo{
-		ActiveValidatorIndices: []types.ValidatorIndex{
+		ActiveValidatorIndices: []parachain.ValidatorIndex{
 			7,
 			12,
 			14,
@@ -1357,7 +1357,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 		},
 		RandomSeed:    mustHexTo32BArray(t, "0x9a14667dcf973e46392904593e8caf2fb7a57904edbadf1547531657e7a56b5e"),
 		DisputePeriod: 6,
-		Validators: []types.ValidatorID{
+		Validators: []parachain.ValidatorID{
 			mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
 			mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
 			mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
@@ -1414,7 +1414,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 			mustHexTo32BArray(t, "0xae7a30d143fd125490434ca7325025a2338d0b8bb28dcd9373dfd83756191022"),
 			mustHexTo32BArray(t, "0xeeba7c46f5fa1ea21e736d9ebd7a171fb2afe0a4f828a222ea0605a4ad0e6067"),
 		},
-		ValidatorGroups: [][]types.ValidatorIndex{
+		ValidatorGroups: [][]parachain.ValidatorIndex{
 			{
 				0, 1, 2, 3, 4, 5,
 			},
@@ -1434,14 +1434,6 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	}
 	require.Equal(t, expected, response)
 }
-
-// TODO: implement this
-// unable to find the data onchain
-func TestInstance_ParachainHostDMQContents(t *testing.T) {}
-
-// TODO: implement this
-// unable to find the data onchain
-func TestInstance_ParachainHostInboundHrmpChannelsContents(t *testing.T) {}
 
 func getParachainHostTrie(t *testing.T) *trie.Trie {
 	// taken from https://polkadot.js.org/apps/#/chainstate (westend)

@@ -82,8 +82,4 @@ const (
 	ParachainHostCandidateEvents = "ParachainHost_candidate_events"
 	// ParachainHostSessionInfo is the runtime API call ParachainHost_session_info
 	ParachainHostSessionInfo = "ParachainHost_session_info"
-	// ParachainHostDMQContents is the runtime API call ParachainHost_dmq_contents
-	ParachainHostDMQContents = "ParachainHost_dmq_contents"
-	//ParachainHostInboundHrmpChannelsContents is the runtime API call ParachainHost_inbound_hrmp_channels_contents
-	ParachainHostInboundHrmpChannelsContents = "ParachainHost_inbound_hrmp_channels_contents"
 )
