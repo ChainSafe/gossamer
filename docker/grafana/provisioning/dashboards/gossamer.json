@@ -163,65 +163,6 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 3,
-        "x": 6,
-        "y": 1
-      },
-      "id": 38,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.0.4",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus_id"
-          },
-          "expr": "process_resident_memory_bytes{instance=~\".*gossamer.*\"}",
-          "refId": "A"
-        }
-      ],
-      "title": "Memory usage",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus_id"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -315,15 +256,130 @@
             "uid": "prometheus_id"
           },
           "editorMode": "code",
+          "expr": "go_memstats_heap_idle_bytes{instance=~\".*gossamer.*\"}",
+          "hide": false,
+          "legendFormat": "Heap Idle Bytes",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_id"
+          },
+          "editorMode": "code",
+          "expr": "go_memstats_heap_released_bytes{instance=~\".*gossamer.*\"}",
+          "hide": false,
+          "legendFormat": "Heap Idle Bytes",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_id"
+          },
+          "editorMode": "code",
           "expr": "go_memstats_stack_inuse_bytes{instance=~\".*gossamer.*\"}",
           "hide": false,
           "legendFormat": "Stack",
           "range": true,
-          "refId": "C"
+          "refId": "E"
         }
       ],
       "title": "Memory usage",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "uid": "prometheus_id",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "axisCenteredZero": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 40,
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      },
+      "pluginVersion": "9.0.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus_id"
+          },
+          "refId": "A",
+          "editorMode": "builder",
+          "expr": "gossamer_inmemory_runtimes_total{instance=~\".*gossamer.*\"}",
+          "legendFormat": "Runtimes",
+          "range": true
+        }
+      ],
+      "title": "In Memory Runtimes",
+      "type": "timeseries",
+      "description": ""
     },
     {
       "gridPos": {

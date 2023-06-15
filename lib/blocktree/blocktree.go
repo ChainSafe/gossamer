@@ -10,21 +10,30 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/exp/maps"
 )
 
+var logger = log.NewFromGlobal(log.AddContext("pkg", "blocktree"))
 var (
 	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_block",
 		Name:      "leaves_total",
 		Help:      "total number of blocktree leaves",
 	})
+	inMemoryRuntimesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_blocktree",
+		Name:      "runtimes_total",
+		Help:      "total number of runtimes stored in the in-memory blocktree",
+	})
 	errAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
+	ErrRuntimeNotFound          = errors.New("runtime not found")
 )
 
 // Hash common.Hash
@@ -262,6 +271,25 @@ func (bt *BlockTree) Prune(finalised Hash) (forkOriginToChain map[Hash][]Hash) {
 		return nil
 	}
 
+	// Cleanup in-memory runtimes from the canonical chain.
+	// The runtime used in the newly finalised block is kept
+	// instantiated in memory, and all other runtimes are
+	// stopped and removed from memory. Note these are still
+	// accessible through the storage as WASM blob.
+	previousFinalisedBlock := bt.root
+	newCanonicalChainBlocksCount := finalisedNode.number - previousFinalisedBlock.number
+	if previousFinalisedBlock.number == 0 { // include the genesis block
+		newCanonicalChainBlocksCount++
+	}
+	canonicalChainBlock := finalisedNode
+	newCanonicalChainBlockHashes := make([]common.Hash, newCanonicalChainBlocksCount)
+	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- {
+		newCanonicalChainBlockHashes[i] = canonicalChainBlock.hash
+		canonicalChainBlock = canonicalChainBlock.parent
+	}
+
+	bt.runtimes.onFinalisation(newCanonicalChainBlockHashes)
+
 	forkOriginToChain = make(map[Hash][]Hash)
 	lastForkBlockHashToForkOrigin := make(map[Hash]Hash)
 	bt.root.prune(finalisedNode, forkOriginToChain, lastForkBlockHashToForkOrigin)
@@ -273,12 +301,6 @@ func (bt *BlockTree) Prune(finalised Hash) (forkOriginToChain map[Hash][]Hash) {
 	bt.leaves = newEmptyLeafMap()
 	for _, leaf := range leaves {
 		bt.leaves.store(leaf.hash, leaf)
-	}
-
-	for _, chain := range forkOriginToChain {
-		for _, blockHash := range chain {
-			bt.runtimes.delete(blockHash)
-		}
 	}
 
 	leavesGauge.Set(float64(len(bt.leaves.nodes())))
@@ -300,7 +322,7 @@ func (bt *BlockTree) String() string {
 
 	// Format leaves
 	var leaves string
-	bt.leaves.smap.Range(func(hash, node interface{}) bool {
+	bt.leaves.smap.Range(func(hash, _ interface{}) bool {
 		leaves = leaves + fmt.Sprintf("%s\n", hash.(Hash))
 		return true
 	})
@@ -511,15 +533,38 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
-	bt.runtimes.set(hash, in)
+func (bt *BlockTree) StoreRuntime(hash common.Hash, instance runtime.Instance) {
+	bt.runtimes.set(hash, instance)
 }
 
-// GetBlockRuntime returns block runtime for corresponding block hash.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
-	ins := bt.runtimes.get(hash)
-	if ins == nil {
-		return nil, fmt.Errorf("%w for hash %s", ErrFailedToGetRuntime, hash)
+// GetBlockRuntime returns the runtime corresponding to the given block hash. If there is no instance for
+// the given block hash it will lookup an instance of an ancestor and return it.
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
+	// if the current node contains a runtime entry in the runtime mapping
+	// then we early return the instance, otherwise we will lookup for the
+	// closest parent with a runtime instance entry in the mapping
+	runtimeInstance := bt.runtimes.get(hash)
+	if runtimeInstance != nil {
+		return runtimeInstance, nil
 	}
-	return ins, nil
+
+	bt.RLock()
+	defer bt.RUnlock()
+
+	currentNode := bt.getNode(hash)
+	if currentNode == nil {
+		return nil, fmt.Errorf("%w: for block hash %s", ErrNodeNotFound, hash)
+	}
+
+	currentNode = currentNode.parent
+	for currentNode != nil {
+		runtimeInstance := bt.runtimes.get(currentNode.hash)
+		if runtimeInstance != nil {
+			return runtimeInstance, nil
+		}
+
+		currentNode = currentNode.parent
+	}
+
+	return nil, nil
 }

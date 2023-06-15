@@ -20,7 +20,7 @@ import (
 func TestTransactionState_Pending(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(5)
 
 	ts := NewTransactionState(telemetryMock)
 
@@ -87,7 +87,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	// number of "ready" status updates
 	var readyCount int
 
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano()) //nolint:staticcheck
 
 	// In practice, one won't see ready and future in this order. This is merely
 	// meant to check that notifier channels work as expected.

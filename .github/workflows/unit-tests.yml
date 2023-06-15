@@ -27,9 +27,9 @@ jobs:
         with:
           all_but_latest: true
 
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version: 1.19
+          go-version: "1.20"
           stable: true
           check-latest: true
 
@@ -89,7 +89,7 @@ jobs:
       - name: Test State - Race
         run: make test-state-race
 
-      - uses: codecov/codecov-action@v3.1.1
+      - uses: codecov/codecov-action@v3.1.4
         with:
           if_ci_failed: success
           informational: true

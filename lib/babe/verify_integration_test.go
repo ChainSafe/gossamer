@@ -25,49 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
-	testDatadirPath := t.TempDir()
-
-	ctrl := gomock.NewController(t)
-	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
-
-	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-	}
-
-	dbSrv := state.NewService(config)
-	dbSrv.UseMemDB()
-
-	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
-	require.NoError(t, err)
-
-	err = dbSrv.Start()
-	require.NoError(t, err)
-
-	if genCfg == nil {
-		genCfg = &types.BabeConfiguration{
-			SlotDuration:       2000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		}
-	}
-
-	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, genCfg)
-	require.NoError(t, err)
-
-	logger.Patch(log.SetLevel(defaultTestLogLvl))
-
-	return NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
-}
-
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
@@ -372,32 +329,34 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
-	serviceConfig := ServiceConfig{
-		Authority: true,
-	}
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+
+	// Create service with no authorities
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 1,
+		GenesisAuthorities: nil,
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
+	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
+	verificationManager := NewVerificationManager(babeServiceBob.blockState, babeServiceBob.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	cfg, err := runtime.BabeConfiguration()
-	require.NoError(t, err)
-
-	cfg.C1 = 1
-	cfg.C2 = 1
-	cfg.GenesisAuthorities = []types.AuthorityRaw{}
-
-	vm := newTestVerificationManager(t, cfg)
-
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	slot := getSlot(t, runtime, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeServiceBob, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 
-	err = vm.VerifyBlock(&block.Header)
+	err = verificationManager.VerifyBlock(&block.Header)
 	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
@@ -474,37 +433,17 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO this test failing is related too issue #3136
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
-	t.Skip()
-	kp, err := sr25519.GenerateKeypair()
-	require.NoError(t, err)
-
-	cfg := ServiceConfig{
-		Keypair: kp,
-	}
-
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	verificationManager := NewVerificationManager(babeService.blockState, babeService.epochState)
+
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
-
-	epochData.threshold = maxThreshold
-	epochData.authorities = []types.Authority{
-		{
-			Key: kp.Public().(*sr25519.PublicKey),
-		},
-	}
-
-	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
-	})
 
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
@@ -522,13 +461,13 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(&block.Header)
+	err = verificationManager.VerifyBlock(&block.Header)
 	require.NoError(t, err)
 
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(&block2.Header)
+	err = verificationManager.VerifyBlock(&block2.Header)
 	require.ErrorIs(t, err, ErrProducerEquivocated)
 	require.EqualError(t, err, fmt.Sprintf("%s for block header %s", ErrProducerEquivocated, block2.Header.Hash()))
 }
@@ -605,7 +544,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	aliceBlockNextEpoch := types.NextEpochData{
 		Authorities: authorities[3:],
 	}
-	aliceBlockNextConfigData := types.NextConfigData{
+	aliceBlockNextConfigData := types.NextConfigDataV1{
 		C1:             9,
 		C2:             10,
 		SecondarySlots: 1,
@@ -616,7 +555,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	bobBlockNextEpoch := types.NextEpochData{
 		Authorities: authorities[6:],
 	}
-	bobBlockNextConfigData := types.NextConfigData{
+	bobBlockNextConfigData := types.NextConfigDataV1{
 		C1:             3,
 		C2:             8,
 		SecondarySlots: 1,
@@ -733,7 +672,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 // blocks that contains different consensus messages digests
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
-	nextEpoch types.NextEpochData, nextConfig types.NextConfigData) *types.Header {
+	nextEpoch types.NextEpochData, nextConfig types.NextConfigDataV1) *types.Header {
 	t.Helper()
 
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(0), 0))
@@ -752,7 +691,11 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 	require.NoError(t, babeConsensusDigestNextEpoch.Set(nextEpoch))
 
 	babeConsensusDigestNextConfigData := types.NewBabeConsensusDigest()
-	require.NoError(t, babeConsensusDigestNextConfigData.Set(nextConfig))
+
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.Set(nextConfig)
+
+	require.NoError(t, babeConsensusDigestNextConfigData.Set(versionedNextConfigData))
 
 	nextEpochData, err := scale.Marshal(babeConsensusDigestNextEpoch)
 	require.NoError(t, err)

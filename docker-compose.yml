@@ -21,12 +21,12 @@ services:
             # Remove with: docker volume rm gossamer
             - gossamer:/data/gossamer
         command:
-            - --basepath=/data/gossamer
+            - --base-path=/data/gossamer
             - --chain=kusama
             - --log=info
-            - --publish-metrics
-            - --metrics-address=:9876
-            - --pprofserver
+            - --prometheus-external
+            - --prometheus-port=9876
+            - --pprof.enabled
         ports:
             - 6060:6060/tcp # Pprof server
             - 7001:7001/tcp # Network port
@@ -41,6 +41,8 @@ services:
             - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
             # The following line can be uncommented to persist metrics data.
             # - gossamer-prometheus:/prometheus
+        ports:
+            - 9090:9090/tcp # HTTP Web interface at http://localhost:9090/
         expose:
             - 9090/tcp # Prometheus metrics for Grafana
 

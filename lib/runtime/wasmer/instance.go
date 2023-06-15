@@ -106,13 +106,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 
 	if cfg.testVersion != nil {
-		instance.ctx.Version = *cfg.testVersion
-	} else {
-		instance.ctx.Version, err = instance.version()
-		if err != nil {
-			instance.close()
-			return nil, fmt.Errorf("getting instance version: %w", err)
-		}
+		instance.ctx.Version = cfg.testVersion
 	}
 
 	wasmInstance.SetContextData(instance.ctx)
@@ -146,36 +140,6 @@ func (in *Instance) GetContext() *runtime.Context {
 	return in.ctx
 }
 
-// UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) (err error) {
-	wasmInstance, allocator, err := setupVM(code)
-	if err != nil {
-		return fmt.Errorf("setting up VM: %w", err)
-	}
-
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
-
-	in.close()
-
-	in.ctx.Allocator = allocator
-	wasmInstance.SetContextData(in.ctx)
-
-	in.vm = wasmInstance
-
-	// Find runtime instance version and cache it in its
-	// instance context.
-	version, err := in.version()
-	if err != nil {
-		in.close()
-		return fmt.Errorf("getting instance version: %w", err)
-	}
-	in.ctx.Version = version
-	wasmInstance.SetContextData(in.ctx)
-
-	return nil
-}
-
 // GetRuntimeVersion finds the runtime version by initiating a temporary
 // runtime instance using the WASM code provided, and querying it.
 func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
@@ -188,7 +152,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	}
 	defer instance.Stop()
 
-	version, err = instance.version()
+	version, err = instance.Version()
 	if err != nil {
 		return version, fmt.Errorf("running runtime: %w", err)
 	}
@@ -247,9 +211,48 @@ func setupVM(code []byte) (instance wasm.Instance,
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does (#1268)
 	heapBase := runtime.DefaultHeapBase
 
-	allocator = runtime.NewAllocator(instance.Memory, heapBase)
+	allocator = runtime.NewAllocator(&memoryShim{instance.Memory}, heapBase)
 
 	return instance, allocator, nil
+}
+
+type memoryShim struct {
+	*wasm.Memory
+}
+
+func (ms *memoryShim) Size() uint32 { return ms.Memory.Length() }
+func (ms *memoryShim) Grow(deltaPages uint32) (previousPages uint32, ok bool) {
+	err := ms.Memory.Grow(deltaPages)
+	if err != nil {
+		return 0, false
+	}
+	return 0, true
+}
+func (ms *memoryShim) ReadByte(offset uint32) (byte, bool) { //nolint:govet
+	if offset >= ms.Memory.Length() {
+		return 0, false
+	}
+	return ms.Memory.Data()[offset], true
+}
+func (ms *memoryShim) Read(offset, byteCount uint32) ([]byte, bool) {
+	if offset+byteCount >= ms.Memory.Length() {
+		return nil, false
+	}
+	return ms.Memory.Data()[offset : offset+byteCount], true
+}
+func (ms *memoryShim) WriteByte(offset uint32, v byte) bool { //nolint:govet
+	if offset >= ms.Memory.Length() {
+		return false
+	}
+	ms.Memory.Data()[offset] = v
+	return true
+}
+func (ms *memoryShim) Write(offset uint32, v []byte) bool {
+	if offset+uint32(len(v)) >= ms.Memory.Length() {
+		return false
+	}
+	copy(ms.Data()[offset:offset+uint32(len(v))], v)
+	return true
 }
 
 // SetContextStorage sets the runtime's storage.

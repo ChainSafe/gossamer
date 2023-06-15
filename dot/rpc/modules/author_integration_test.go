@@ -43,10 +43,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstance func(*testing.T, *storage.TrieState) Runtime
+type useRuntimeInstance func(*testing.T, *storage.TrieState) runtime.Instance
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
 	cfg := wasmer.Config{
@@ -63,8 +63,8 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
-	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0910)
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
@@ -103,7 +103,8 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 
 	metaCall, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
@@ -235,7 +236,6 @@ func TestAuthorModule_SubmitExtrinsic_bad_proof(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	net2test := NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
 
 	integrationTestController.network = net2test
 
@@ -570,9 +570,9 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}
 }
 
-func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_WithVersion_V0929(t *testing.T) {
 	t.Parallel()
-	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
+	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0929)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
@@ -602,7 +602,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority: 4295664014726,
+			Priority: 36074,
 			Provides: [][]byte{
 				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
@@ -638,7 +638,7 @@ type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
-	runtime       Runtime
+	runtime       runtime.Instance
 	stateSrv      *state.Service
 	network       coreNetwork
 	storageState  coreStorageState
