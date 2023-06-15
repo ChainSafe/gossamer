@@ -19,6 +19,7 @@ import (
 
 type MessageType byte
 
+// Message types for notifications protocol messages. Used internally to map message to protocol.
 const (
 	blockAnnounceMsgType MessageType = iota + 3
 	transactionMsgType
