@@ -9,9 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// BlockNumber represents a block number
-type BlockNumber uint32
-
 // Block defines a state block
 type Block struct {
 	Header Header
