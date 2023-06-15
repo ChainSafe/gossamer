@@ -28,9 +28,11 @@ func (h *BlockImportHandler) Handle(importedBlockHeader *types.Header) error {
 		return fmt.Errorf("while handling digests: %w", err)
 	}
 
+	// TODO: move to core handleBlock
+	// https://github.com/ChainSafe/gossamer/issues/3330
 	err = h.grandpaState.ApplyForcedChanges(importedBlockHeader)
 	if err != nil {
-		return fmt.Errorf("while apply forced changes: %w", err)
+		return fmt.Errorf("while apply forced changes: %s", err)
 	}
 
 	return nil
