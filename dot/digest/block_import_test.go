@@ -439,7 +439,8 @@ func TestBlockImportHandle(t *testing.T) {
 
 type withDigest func() types.ConsensusDigest
 
-func createBlockWithDigests(t *testing.T, genesisHeader *types.Header, digestsToApply ...withDigest) (header *types.Header, consensusDigests []types.ConsensusDigest) {
+func createBlockWithDigests(t *testing.T, genesisHeader *types.Header, digestsToApply ...withDigest) (
+	header *types.Header, consensusDigests []types.ConsensusDigest) {
 	t.Helper()
 
 	digest := types.NewDigest()
