@@ -82,7 +82,7 @@ type Network interface {
 	// ReportPeer reports peer based on the peer behaviour.
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 
-	AllConnectedPeers() []peer.ID
+	AllConnectedPeersID() []peer.ID
 }
 
 // Telemetry is the telemetry client to send telemetry messages.

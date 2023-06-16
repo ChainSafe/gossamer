@@ -67,7 +67,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 }
 
 func (s *syncWorkerPool) useConnectedPeers() {
-	connectedPeers := s.network.AllConnectedPeers()
+	connectedPeers := s.network.AllConnectedPeersID()
 	if len(connectedPeers) < 1 {
 		return
 	}
