@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 )
 
 var blockRequestTimeout = time.Second * 20
-var ErrReceivedEmptyMessage = errors.New("received empty message")
 
 // DoBlockRequest sends a request to the given peer.
 // If a response is received within a certain time period, it is returned,
