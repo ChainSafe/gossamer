@@ -350,13 +350,13 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 // ParachainHostValidators Returns the validator set at the current state.
 // The specified validators are responsible for backing parachains for the current state.
 func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
-	ret, err := in.Exec(runtime.ParachainHostValidators, []byte{})
+	encodedValidators, err := in.Exec(runtime.ParachainHostValidators, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var validatorIDs []parachain.ValidatorID
-	err = scale.Unmarshal(ret, &validatorIDs)
+	err = scale.Unmarshal(encodedValidators, &validatorIDs)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
@@ -367,13 +367,13 @@ func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
 // ParachainHostValidatorGroups Returns the validator groups used during the current session.
 // The validators in the groups are referred to by the validator set Id.
 func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
-	ret, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
+	encodedValidatorGroups, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	var validatorGroups parachain.ValidatorGroups
-	err = scale.Unmarshal(ret, &validatorGroups)
+	err = scale.Unmarshal(encodedValidatorGroups, &validatorGroups)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
@@ -383,7 +383,7 @@ func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, 
 
 // ParachainHostAvailabilityCores Returns the availability cores for the current state.
 func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
-	ret, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
+	encodedAvailabilityCores, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
@@ -392,7 +392,7 @@ func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlic
 	if err != nil {
 		return nil, fmt.Errorf("new availability cores: %w", err)
 	}
-	err = scale.Unmarshal(ret, &availabilityCores)
+	err = scale.Unmarshal(encodedAvailabilityCores, &availabilityCores)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
@@ -433,13 +433,13 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 
 // ParachainHostSessionIndexForChild Returns the session index that is expected at the child of a block.
 func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
-	ret, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
+	encodedSessionIndex, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
 	if err != nil {
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
 	var sessionIndex parachain.SessionIndex
-	err = scale.Unmarshal(ret, &sessionIndex)
+	err = scale.Unmarshal(encodedSessionIndex, &sessionIndex)
 	if err != nil {
 		return 0, fmt.Errorf("unmarshal: %w", err)
 	}
@@ -475,7 +475,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 
 // ParachainHostCandidateEvents Returns an array of candidate events that occurred within the latest state.
 func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
-	ret, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
+	encodedCandidateEvents, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
@@ -484,7 +484,7 @@ func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice,
 	if err != nil {
 		return nil, fmt.Errorf("create new candidate events: %w", err)
 	}
-	err = scale.Unmarshal(ret, &candidateEvents)
+	err = scale.Unmarshal(encodedCandidateEvents, &candidateEvents)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
