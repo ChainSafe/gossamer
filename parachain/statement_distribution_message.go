@@ -43,31 +43,49 @@ func (s SignedFullStatement) Index() uint {
 	return 0
 }
 
+// Seconded statement with large payload (e.g. containing a runtime upgrade).
+//
+// We only gossip the hash in that case, actual payloads can be fetched from sending node
+// via request/response.
 type SecondedStatementWithLargePayload StatementMetadata
 
 func (l SecondedStatementWithLargePayload) Index() uint {
 	return 1
 }
 
+// Variant of `SignedFullStatement` where the signature has not yet been verified.
 type UncheckedSignedFullStatement struct {
-	Payload        Statement          `scale:"1"`
-	ValidatorIndex ValidatorIndex     `scale:"2"`
-	Signature      ValidatorSignature `scale:"3"`
-	// RealPayload    CompactStatement   `scale:"4"` // changes needed
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload Statement `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
 }
 
-type PhantomData struct{}
-
+// Index of the validator.
 type ValidatorIndex struct {
 	Value uint32
 }
 
+// Data that makes a statement unique.
 type StatementMetadata struct {
-	RelayParent   common.Hash        `scale:"1"`
-	CandidateHash CandidateHash      `scale:"2"`
-	SignedBy      ValidatorIndex     `scale:"3"`
-	Signature     ValidatorSignature `scale:"4"`
+	// Relay parent this statement is relevant under.
+	RelayParent common.Hash `scale:"1"`
+
+	// Hash of the candidate that got validated.
+	CandidateHash CandidateHash `scale:"2"`
+
+	// Validator that attested the validity.
+	SignedBy ValidatorIndex `scale:"3"`
+
+	// Signature of seconding validator.
+	Signature ValidatorSignature `scale:"4"`
 }
 
+// Signature with which parachain validators sign blocks.
 type ValidatorSignature Signature
 type Signature [64]byte

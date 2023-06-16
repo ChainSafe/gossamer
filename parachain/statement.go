@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// A statement, where the candidate receipt is included in the `Seconded` variant.
 type Statement scale.VaryingDataType
 
 func NewStatement() Statement {
@@ -33,23 +34,30 @@ func (s *Statement) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
+// A statement that a validator seconds a candidate.
 type Seconded CommittedCandidateReceipt
 
 func (s Seconded) Index() uint {
 	return 1
 }
 
+// A statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
 func (v Valid) Index() uint {
 	return 2
 }
 
+// A candidate-receipt with commitments directly included.
 type CommittedCandidateReceipt struct {
-	Descriptor  CandidateDescriptor  `scale:"1"`
+	// The descriptor of the candidate.
+	Descriptor CandidateDescriptor `scale:"1"`
+
+	// The commitments of the candidate receipt.
 	Commitments CandidateCommitments `scale:"2"`
 }
 
+// This type makes it easy to enforce that a hash is a candidate hash on the type level.
 type CandidateHash struct {
 	Value common.Hash `scale:"1"`
 }
