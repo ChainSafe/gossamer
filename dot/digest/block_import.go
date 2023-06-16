@@ -32,7 +32,7 @@ func (h *BlockImportHandler) Handle(importedBlockHeader *types.Header) error {
 	// https://github.com/ChainSafe/gossamer/issues/3330
 	err = h.grandpaState.ApplyForcedChanges(importedBlockHeader)
 	if err != nil {
-		return fmt.Errorf("while apply forced changes: %s", err)
+		return fmt.Errorf("while applying forced changes: %w", err)
 	}
 
 	return nil

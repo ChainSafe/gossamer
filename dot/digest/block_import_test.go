@@ -330,7 +330,7 @@ func TestBlockImportHandle(t *testing.T) {
 		},
 		"on_block_import_failed_to_apply_forced_changes": {
 			wantErr:   mockedError,
-			errString: "while apply forced changes: mock error",
+			errString: "while applying forced changes: mock error",
 			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) GrandpaState {
 
