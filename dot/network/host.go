@@ -26,7 +26,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
-	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -179,15 +178,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, fmt.Errorf("failed to create peerstore: %w", err)
 	}
 
-	limiter := rcmgr.NewFixedLimiter(rcmgr.DefaultLimits.AutoScale())
-	rcmanager, err := rcmgr.NewResourceManager(limiter)
-	if err != nil {
-		return nil, fmt.Errorf("while creating the resource manager: %w", err)
-	}
-
 	// set libp2p host options
 	opts := []libp2p.Option{
-		libp2p.ResourceManager(rcmanager),
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(cfg.privateKey),
