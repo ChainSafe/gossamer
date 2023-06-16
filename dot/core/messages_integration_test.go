@@ -104,6 +104,11 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
+	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportHandlerMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportHandlerMock
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
@@ -172,6 +177,10 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	currentSlot := currentTimestamp / babeConfig.SlotDuration
 
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlot, currentTimestamp)
+	onBlockImportDigestHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportDigestHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportDigestHandlerMock
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
