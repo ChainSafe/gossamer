@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
-	common "github.com/ChainSafe/gossamer/lib/common"
+	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -78,26 +78,16 @@ func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochForBlock", reflect.TypeOf((*MockEpochState)(nil).GetEpochForBlock), arg0)
 }
 
-// StoreBABENextConfigData mocks base method.
-func (m *MockEpochState) StoreBABENextConfigData(arg0 uint64, arg1 common.Hash, arg2 types.NextConfigDataV1) {
+// HandleBABEDigest mocks base method.
+func (m *MockEpochState) HandleBABEDigest(arg0 *types.Header, arg1 scale.VaryingDataType) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "StoreBABENextConfigData", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "HandleBABEDigest", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// StoreBABENextConfigData indicates an expected call of StoreBABENextConfigData.
-func (mr *MockEpochStateMockRecorder) StoreBABENextConfigData(arg0, arg1, arg2 interface{}) *gomock.Call {
+// HandleBABEDigest indicates an expected call of HandleBABEDigest.
+func (mr *MockEpochStateMockRecorder) HandleBABEDigest(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreBABENextConfigData", reflect.TypeOf((*MockEpochState)(nil).StoreBABENextConfigData), arg0, arg1, arg2)
-}
-
-// StoreBABENextEpochData mocks base method.
-func (m *MockEpochState) StoreBABENextEpochData(arg0 uint64, arg1 common.Hash, arg2 types.NextEpochData) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "StoreBABENextEpochData", arg0, arg1, arg2)
-}
-
-// StoreBABENextEpochData indicates an expected call of StoreBABENextEpochData.
-func (mr *MockEpochStateMockRecorder) StoreBABENextEpochData(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreBABENextEpochData", reflect.TypeOf((*MockEpochState)(nil).StoreBABENextEpochData), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBABEDigest", reflect.TypeOf((*MockEpochState)(nil).HandleBABEDigest), arg0, arg1)
 }
