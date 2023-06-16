@@ -192,15 +192,7 @@ func (cs *chainSync) stop() {
 }
 
 func (cs *chainSync) sync() {
-	var useFinalisedHeader bool
-
 	for {
-		bestBlockHeader, err := cs.blockState.BestBlockHeader()
-		if err != nil {
-			logger.Criticalf("getting best block header: %s", err)
-			return
-		}
-
 		syncTarget, err := cs.getTarget()
 		if err != nil {
 			logger.Criticalf("getting target: %w", err)
@@ -212,6 +204,7 @@ func (cs *chainSync) sync() {
 			logger.Criticalf("getting finalised block header: %s", err)
 			return
 		}
+
 		logger.Infof(
 			"🚣 currently syncing, %d peers connected, "+
 				"%d available workers, "+
@@ -221,11 +214,17 @@ func (cs *chainSync) sync() {
 			cs.workerPool.totalWorkers(),
 			syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
 
+		bestBlockHeader, err := cs.blockState.BestBlockHeader()
+		if err != nil {
+			logger.Criticalf("getting best block header: %s", err)
+			return
+		}
+
 		bestBlockNumber := bestBlockHeader.Number
 		isFarFromTarget := bestBlockNumber+maxResponseSize < syncTarget
 
 		if isFarFromTarget {
-			// we are at least 128 blocks behind the head, switch to bootstrap
+			// we are more than 128 blocks behind the head, switch to bootstrap
 			swapped := cs.state.CompareAndSwap(tip, bootstrap)
 			isSyncedGauge.Set(0)
 
@@ -233,19 +232,11 @@ func (cs *chainSync) sync() {
 				logger.Debugf("switched sync mode to %d", bootstrap)
 			}
 
-			checkPointHeader := bestBlockHeader
-			if useFinalisedHeader {
-				checkPointHeader = finalisedHeader
-			}
-			err := cs.executeBootstrapSync(checkPointHeader)
-
+			err := cs.executeBootstrapSync(bestBlockHeader)
 			if err != nil {
 				logger.Errorf("while executing bootsrap sync: %s", err)
-				useFinalisedHeader = true
-				continue
 			}
 
-			useFinalisedHeader = false
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
 			swapped := cs.state.CompareAndSwap(bootstrap, tip)
@@ -468,10 +459,10 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 	return nil
 }
 
-func (cs *chainSync) executeBootstrapSync(checkPointHeader *types.Header) error {
+func (cs *chainSync) executeBootstrapSync(bestBlockHeader *types.Header) error {
 	cs.workerPool.useConnectedPeers()
 
-	startRequestAt := checkPointHeader.Number + 1
+	startRequestAt := bestBlockHeader.Number + 1
 
 	// we build the set of requests based on the amount of available peers
 	// in the worker pool, if we have more peers than `maxRequestAllowed`

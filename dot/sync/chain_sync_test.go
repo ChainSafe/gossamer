@@ -374,7 +374,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.executeBootstrapSync()
+	err = cs.executeBootstrapSync(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -453,7 +453,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.executeBootstrapSync()
+	err = cs.executeBootstrapSync(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -559,7 +559,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.executeBootstrapSync()
+	err = cs.executeBootstrapSync(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)

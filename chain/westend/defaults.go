@@ -13,7 +13,7 @@ var (
 	// defaultID Default chain ID
 	defaultID = "westend2"
 	// defaultBasePath Default node base directory path
-	defaultBasePath = "/Volumes/SDD01/gossamer/westend"
+	defaultBasePath = "~/.gossamer/westend"
 	// defaultChainSpec is the default chain specification path
 	defaultChainSpec = "./chain/westend/genesis.json"
 )
@@ -29,15 +29,14 @@ func DefaultConfig() *cfg.Config {
 	config.Core.GrandpaAuthority = false
 	config.Core.Role = 1
 	config.Network.NoMDNS = false
-
 	config.Network.MaxPeers = 128
-
-	config.Log.Digest = "trace"
-	config.Log.Sync = "trace"
-	config.Pprof.Enabled = true
-	config.Pprof.ListeningAddress = "localhost:6060"
 	config.PrometheusExternal = true
 	config.PrometheusPort = 9876
 
+	config.Log.Sync = "trace"
+	config.Log.Digest = "trace"
+
+	config.Pprof.Enabled = true
+	config.Pprof.ListeningAddress = "0.0.0.0:6060"
 	return config
 }
