@@ -11,8 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var hash = common.Hash{0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
-	0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA}
+var hash = common.MustHexToHash("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 func TestEncodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 	approvalDistributionMessage := NewApprovalDistributionMessageVDT()
@@ -36,10 +35,10 @@ func TestEncodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 		58, 59, 60, 61, 62, 63, 64, 4, 0, 0, 0}
 
 	approvalDistributionMessage.Set(Assignments{
-		Assignments: []Assignment{{
+		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(1), false),
 			CandidateIndex:         4,
-		}},
+		},
 	})
 
 	encodedMessage, err := scale.Marshal(approvalDistributionMessage)
@@ -63,10 +62,10 @@ func TestEncodeApprovalDistributionMessageAssignmentDelay(t *testing.T) {
 		59, 60, 61, 62, 63, 64, 2, 0, 0, 0}
 
 	approvalDistributionMessage.Set(Assignments{
-		Assignments: []Assignment{{
+		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(2), true),
 			CandidateIndex:         2,
-		}},
+		},
 	})
 
 	encodedMessage, err := scale.Marshal(approvalDistributionMessage)
@@ -112,14 +111,14 @@ func TestEncodeApprovalDistributionMessageApprovals(t *testing.T) {
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
 	approvalDistributionMessage.Set(Approvals{
-		Approvals: []IndirectSignedApprovalVote{{
+		IndirectSignedApprovalVote{
 			BlockHash:      hash,
 			CandidateIndex: CandidateIndex(2),
 			ValidatorIndex: ValidatorIndex(3),
 			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1},
-		}},
+		},
 	})
 
 	encodedMessage, err := scale.Marshal(approvalDistributionMessage)
@@ -140,10 +139,10 @@ func TestDecodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
 	expectedApprovalDistributionMessage.Set(Assignments{
-		Assignments: []Assignment{{
+		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(2), false),
 			CandidateIndex:         4,
-		}},
+		},
 	})
 
 	approvalValue, err := approvalDistributionMessage.Value()
@@ -160,14 +159,14 @@ func TestDecodeApprovalDistributionMessageApprovals(t *testing.T) {
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
 	expectedApprovalDistributionMessage.Set(Approvals{
-		Approvals: []IndirectSignedApprovalVote{{
+		IndirectSignedApprovalVote{
 			BlockHash:      hash,
 			CandidateIndex: CandidateIndex(2),
 			ValidatorIndex: ValidatorIndex(3),
 			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1},
-		}},
+		},
 	})
 
 	approvalDistributionMessage := NewApprovalDistributionMessageVDT()
