@@ -66,11 +66,6 @@ type UncheckedSignedFullStatement struct {
 	Signature ValidatorSignature `scale:"3"`
 }
 
-// Index of the validator.
-type ValidatorIndex struct {
-	Value uint32
-}
-
 // Data that makes a statement unique.
 type StatementMetadata struct {
 	// Relay parent this statement is relevant under.
