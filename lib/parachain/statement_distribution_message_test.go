@@ -12,7 +12,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	t.Parallel()
 
 	var collatorSignature CollatorSignature
-	tempSignature := common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") // nolint:lll
+	tempSignature := common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature ValidatorSignature
@@ -89,14 +89,25 @@ func TestStatementDistributionMessage(t *testing.T) {
 		//     let hash1 = Hash::repeat_byte(5);
 		//     let candidate_hash = CandidateHash(hash1);
 		//     let statement_valid = Statement::Valid(candidate_hash);
-		//     let val_sign = ValidatorSignature::from(sr25519::Signature([198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134]));
-		//     let unchecked_signed_full_statement_valid = UncheckedSignedFullStatement::new(statement_valid, ValidatorIndex(5), val_sign.clone());
-		//     let sdm_statement_valid = StatementDistributionMessage::Statement(hash1, unchecked_signed_full_statement_valid);
+		//     let val_sign = ValidatorSignature::from(
+		//  sr25519::Signature([198, 124, 185, 59, 240, 163, 111, 206, 227,
+		//  210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190,
+		//  216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31,
+		//  81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134])); //nolint:lll
+		//     let unchecked_signed_full_statement_valid = UncheckedSignedFullStatement::new(
+		// statement_valid, ValidatorIndex(5), val_sign.clone());
+		//     let sdm_statement_valid = StatementDistributionMessage::Statement(
+		// hash1, unchecked_signed_full_statement_valid);
 		//     println!("encode SignedFullStatement with valid statement => {:?}\n\n", sdm_statement_valid.encode());
 
-		//     let collator_result = sr25519::Public::from_string("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147");
+		//     let collator_result = sr25519::Public::from_string(
+		// "0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147");
 		//     let collator = collator_result.unwrap();
-		//     let collsign = CollatorSignature::from(sr25519::Signature([198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134]));
+		//     let collsign = CollatorSignature::from(sr25519::Signature(
+		// [198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232,
+		//  166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173,
+		//  206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200,
+		//  190, 116, 184, 148, 207, 27, 134])); //nolint:lll
 		//     let candidate_descriptor = CandidateDescriptor{
 		//         para_id: 1.into(),
 		//         relay_parent: hash1,
@@ -121,8 +132,10 @@ func TestStatementDistributionMessage(t *testing.T) {
 		//         commitments : commitments_new
 		//     };
 		//     let statement_second = Statement::Seconded(committed_candidate_receipt);
-		//     let unchecked_signed_full_statement_second = UncheckedSignedFullStatement::new(statement_second, ValidatorIndex(5), val_sign.clone());
-		//     let sdm_statement_second = StatementDistributionMessage::Statement(hash1, unchecked_signed_full_statement_second);
+		//     let unchecked_signed_full_statement_second = UncheckedSignedFullStatement::new(
+		// statement_second, ValidatorIndex(5), val_sign.clone());
+		//     let sdm_statement_second = StatementDistributionMessage::Statement(
+		// hash1, unchecked_signed_full_statement_second);
 		//     println!("encode SignedFullStatement with Seconded statement => {:?}\n\n", sdm_statement_second.encode());
 
 		//     let sdm_large_statement = StatementDistributionMessage::LargeStatement(StatementMetadata{
@@ -137,17 +150,17 @@ func TestStatementDistributionMessage(t *testing.T) {
 		{
 			name:          "SignedFullStatement with valid statement",
 			enumValue:     signedFullStatementWithValid,
-			encodingValue: common.MustHexToBytes("0x00050505050505050505050505050505050505050505050505050505050505050502050505050505050505050505050505050505050505050505050505050505050505000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), // nolint:lll
+			encodingValue: common.MustHexToBytes("0x00050505050505050505050505050505050505050505050505050505050505050502050505050505050505050505050505050505050505050505050505050505050505000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
 		},
 		{
 			name:          "SignedFullStatement with Seconded statement",
 			enumValue:     signedFullStatementWithSeconded,
-			encodingValue: common.MustHexToBytes("0x0005050505050505050505050505050505050505050505050505050505050505050101000000050505050505050505050505050505050505050505050505050505050505050548215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b8605050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505040c01020300010c0102030c010203050000000000000005000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), // nolint:lll
+			encodingValue: common.MustHexToBytes("0x0005050505050505050505050505050505050505050505050505050505050505050101000000050505050505050505050505050505050505050505050505050505050505050548215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b8605050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505040c01020300010c0102030c010203050000000000000005000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
 		},
 		{
 			name:          "SecondedStatementWithLargePayload",
 			enumValue:     secondedStatementWithLargePayload,
-			encodingValue: common.MustHexToBytes("0x010505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), // nolint:lll
+			encodingValue: common.MustHexToBytes("0x010505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
 		},
 	}
 
