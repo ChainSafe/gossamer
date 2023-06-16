@@ -82,7 +82,7 @@ func (rvd RelayVRFDelay) Index() uint {
 	return 1
 }
 
-// VrfSignature VRF signature data
+// VrfSignature represents VRF signature, which itself consists of a VRF pre-output and DLEQ proof
 type VrfSignature struct {
 	// Output VRF output
 	Output [sr25519.VRFOutputLength]byte `scale:"1"`
@@ -90,7 +90,7 @@ type VrfSignature struct {
 	Proof [sr25519.VRFProofLength]byte `scale:"2"`
 }
 
-// AssignmentCert a certification of assignment
+// AssignmentCert is a certification of assignment
 type AssignmentCert struct {
 	// Kind the criterion which is claimed to be met by this cert.
 	Kind AssignmentCertKind `scale:"1"`
@@ -98,7 +98,7 @@ type AssignmentCert struct {
 	Vrf VrfSignature `scale:"2"`
 }
 
-// IndirectAssignmentCert an assignment criterion which refers to the candidate under which the assignment is
+// IndirectAssignmentCert is an assignment criterion which refers to the candidate under which the assignment is
 // relevant by block hash.
 type IndirectAssignmentCert struct {
 	// BlockHash a block hash where the canidate appears.
@@ -109,7 +109,7 @@ type IndirectAssignmentCert struct {
 	Cert AssignmentCert `scale:"3"`
 }
 
-// CandidateIndex the index of the candidate in the list of candidates fully included as-of the block.
+// CandidateIndex represents the index of the candidate in the list of candidates fully included as-of the block.
 type CandidateIndex uint32
 
 // Assignment holds indirect assignment cert and candidate index
@@ -119,9 +119,7 @@ type Assignment struct {
 }
 
 // Assignments for candidates in recent, unfinalized blocks.
-type Assignments struct {
-	Assignments []Assignment
-}
+type Assignments []Assignment
 
 // Index returns varying data type index
 func (a Assignments) Index() uint {
@@ -131,10 +129,7 @@ func (a Assignments) Index() uint {
 // ValidatorSignature with which parachain validators sign blocks.
 type ValidatorSignature [sr25519.SignatureLength]byte
 
-// IndirectSignedApprovalVote A signed approval vote which references the candidate indirectly via the block.
-//
-// In practice, we have a look-up from block hash and candidate index to candidate hash,
-// so this can be transformed into a `SignedApprovalVote`.
+// IndirectSignedApprovalVote represents a signed approval vote which references the candidate indirectly via the block.
 type IndirectSignedApprovalVote struct {
 	// BlockHash a block hash where the candidate appears.
 	BlockHash common.Hash `scale:"1"`
@@ -147,12 +142,10 @@ type IndirectSignedApprovalVote struct {
 }
 
 // Approvals for candidates in some recent, unfinalized block.
-type Approvals struct {
-	Approvals []IndirectSignedApprovalVote
-}
+type Approvals []IndirectSignedApprovalVote
 
 // Index returns varying data type index
-func (ms Approvals) Index() uint {
+func (ap Approvals) Index() uint {
 	return 1
 }
 
