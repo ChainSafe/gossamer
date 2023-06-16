@@ -337,7 +337,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 		Direction:     network.Ascending,
 		Max:           &max,
 	}).Return(totalBlockResponse, nil)
-	mockedNetwork.EXPECT().AllConnectedPeers().Return([]peer.ID{})
+	mockedNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 
 	mockedBlockState := NewMockBlockState(ctrl)
 	mockedBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -429,7 +429,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	mockNetwork.EXPECT().DoBlockRequest(gomock.Any(), gomock.Any()).
 		Return(worker2Response, nil)
 
-	mockNetwork.EXPECT().AllConnectedPeers().Return([]peer.ID{})
+	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -535,7 +535,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 			return worker2Response, nil
 		}).Times(3)
 
-	mockNetwork.EXPECT().AllConnectedPeers().Return([]peer.ID{})
+	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
