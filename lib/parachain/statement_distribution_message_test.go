@@ -93,7 +93,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		//  sr25519::Signature([198, 124, 185, 59, 240, 163, 111, 206, 227,
 		//  210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190,
 		//  216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31,
-		//  81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134])); //nolint:lll
+		//  81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134]));
 		//     let unchecked_signed_full_statement_valid = UncheckedSignedFullStatement::new(
 		// statement_valid, ValidatorIndex(5), val_sign.clone());
 		//     let sdm_statement_valid = StatementDistributionMessage::Statement(
@@ -107,7 +107,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		// [198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232,
 		//  166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173,
 		//  206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200,
-		//  190, 116, 184, 148, 207, 27, 134])); //nolint:lll
+		//  190, 116, 184, 148, 207, 27, 134]));
 		//     let candidate_descriptor = CandidateDescriptor{
 		//         para_id: 1.into(),
 		//         relay_parent: hash1,
