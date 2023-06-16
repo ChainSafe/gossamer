@@ -344,6 +344,22 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 
 func (ds *decodeState) decodeCustomVaryingDataType(dstv reflect.Value) (err error) {
 	initialType := dstv.Type()
+
+	methodVal := dstv.MethodByName("New")
+	if methodVal.IsValid() && !methodVal.IsZero() {
+		if methodVal.Type().Out(0).String() != dstv.Type().String() {
+			return fmt.Errorf("%s.New() returns %s instead of %s", dstv.Type(), methodVal.Type().Out(0), dstv.Type())
+		}
+
+		values := methodVal.Call(nil)
+		if len(values) > 1 {
+			return fmt.Errorf("%s.New() returns too many values", dstv.Type())
+		} else if len(values) == 0 {
+			return fmt.Errorf("%s.New() does not return a value", dstv.Type())
+		}
+		dstv.Set(values[0])
+	}
+
 	converted := dstv.Convert(reflect.TypeOf(VaryingDataType{}))
 	tempVal := reflect.New(converted.Type())
 	tempVal.Elem().Set(converted)

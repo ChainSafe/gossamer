@@ -116,7 +116,7 @@ type Service struct {
 	bufPool       *sync.Pool
 	streamManager *streamManager
 
-	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
+	notificationsProtocols map[MessageType]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
 
 	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
@@ -214,7 +214,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
-		notificationsProtocols: make(map[byte]*notificationsProtocol),
+		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
@@ -387,7 +387,7 @@ func (s *Service) getTotalStreams(inbound bool) (count int64) {
 	return count
 }
 
-func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
+func (s *Service) getNumStreams(protocolID MessageType, inbound bool) (count int64) {
 	np, has := s.notificationsProtocols[protocolID]
 	if !has {
 		return 0
@@ -494,7 +494,7 @@ mainloop:
 // messageID is a user-defined message ID for the message passed over this protocol.
 func (s *Service) RegisterNotificationsProtocol(
 	protocolID protocol.ID,
-	messageID byte,
+	messageID MessageType,
 	handshakeGetter HandshakeGetter,
 	handshakeDecoder HandshakeDecoder,
 	handshakeValidator HandshakeValidator,
