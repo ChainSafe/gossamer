@@ -160,19 +160,13 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_trie_blake2_256_verify_proof_version_1).
 		Export("ext_trie_blake2_256_verify_proof_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) {
-			return
-		}).
+		WithFunc(ext_misc_print_hex_version_1).
 		Export("ext_misc_print_hex_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) {
-			return
-		}).
+		WithFunc(ext_misc_print_num_version_1).
 		Export("ext_misc_print_num_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) {
-			return
-		}).
+		WithFunc(ext_misc_print_utf8_version_1).
 		Export("ext_misc_print_utf8_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int64) int64 {
