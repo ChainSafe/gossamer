@@ -115,9 +115,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_1).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_2).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_2").
 		NewFunctionBuilder().
 		WithFunc(ext_crypto_ecdsa_verify_version_2).
@@ -126,9 +124,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2").
 		NewFunctionBuilder().
 		WithFunc(ext_crypto_sr25519_generate_version_1).
@@ -146,34 +142,22 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_sr25519_verify_version_2).
 		Export("ext_crypto_sr25519_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(func() {
-			return
-		}).
+		WithFunc(ext_crypto_start_batch_verify_version_1).
 		Export("ext_crypto_start_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int32 {
-			return 0
-		}).
+		WithFunc(ext_crypto_finish_batch_verify_version_1).
 		Export("ext_crypto_finish_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_trie_blake2_256_root_version_1).
 		Export("ext_trie_blake2_256_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_trie_blake2_256_ordered_root_version_1).
 		Export("ext_trie_blake2_256_ordered_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int32) int32 {
-			return 0
-		}).
+		WithFunc(ext_trie_blake2_256_ordered_root_version_2).
 		Export("ext_trie_blake2_256_ordered_root_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64, c int64, d int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_trie_blake2_256_verify_proof_version_1).
 		Export("ext_trie_blake2_256_verify_proof_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int64) {
