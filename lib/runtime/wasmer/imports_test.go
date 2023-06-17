@@ -911,8 +911,6 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(encSig, encMsg...), encPubKey...))
 	require.NoError(t, err)
 
-	fmt.Println(ret)
-
 	var read *[]byte
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
@@ -1175,6 +1173,8 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	err = scale.Unmarshal(out, &val)
 	require.NoError(t, err)
 	require.NotNil(t, val)
+
+	fmt.Println("val", val)
 
 	value := make([]byte, 64)
 	copy(value[:], val[:])
