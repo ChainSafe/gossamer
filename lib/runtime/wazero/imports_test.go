@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
@@ -21,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/klauspost/compress/zstd"
@@ -563,6 +565,145 @@ func Test_ext_crypto_sr25519_verify_version_2(t *testing.T) {
 	err = scale.Unmarshal(ret, &read)
 	require.NoError(t, err)
 	require.NotNil(t, read)
+}
+
+func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testinput := []string{"noot", "was", "here", "??"}
+	encInput, err := scale.Marshal(testinput)
+	require.NoError(t, err)
+	encInput[0] = encInput[0] >> 1
+
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_root_version_1", encInput)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(res, &hash)
+	require.NoError(t, err)
+
+	tt := trie.NewEmptyTrie()
+	tt.Put([]byte("noot"), []byte("was"))
+	tt.Put([]byte("here"), []byte("??"))
+
+	expected := tt.MustHash()
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testvalues := []string{"static", "even-keeled", "Future-proofed"}
+	encValues, err := scale.Marshal(testvalues)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_ordered_root_version_1", encValues)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(res, &hash)
+	require.NoError(t, err)
+
+	expected := common.MustHexToHash("0xd847b86d0219a384d11458e829e9f4f4cce7e3cc2e6dcd0e8a6ad6f12c64a737")
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
+	tmp := t.TempDir()
+
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	otherTrie := trie.NewEmptyTrie()
+	otherTrie.Put([]byte("simple"), []byte("cat"))
+
+	otherHash, err := otherTrie.Hash()
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte("do"), []byte("verb"))
+	tr.Put([]byte("domain"), []byte("website"))
+	tr.Put([]byte("other"), []byte("random"))
+	tr.Put([]byte("otherwise"), []byte("randomstuff"))
+	tr.Put([]byte("cat"), []byte("another animal"))
+
+	err = tr.WriteDirty(memdb)
+	require.NoError(t, err)
+
+	hash, err := tr.Hash()
+	require.NoError(t, err)
+
+	keys := [][]byte{
+		[]byte("do"),
+		[]byte("domain"),
+		[]byte("other"),
+		[]byte("otherwise"),
+		[]byte("cat"),
+	}
+
+	root := hash.ToBytes()
+	otherRoot := otherHash.ToBytes()
+
+	allProofs, err := proof.Generate(root, keys, memdb)
+	require.NoError(t, err)
+
+	testcases := map[string]struct {
+		root, key, value []byte
+		proof            [][]byte
+		expect           bool
+	}{
+		"Proof_should_be_true": {
+			root: root, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: true},
+		"Root_empty,_proof_should_be_false": {
+			root: []byte{}, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
+		"Other_root,_proof_should_be_false": {
+			root: otherRoot, key: []byte("do"), proof: allProofs, value: []byte("verb"), expect: false},
+		"Value_empty,_proof_should_be_true": {
+			root: root, key: []byte("do"), proof: allProofs, value: nil, expect: true},
+		"Unknow_key,_proof_should_be_false": {
+			root: root, key: []byte("unknow"), proof: allProofs, value: nil, expect: false},
+		"Key_and_value_unknow,_proof_should_be_false": {
+			root: root, key: []byte("unknow"), proof: allProofs, value: []byte("unknow"), expect: false},
+		"Empty_proof,_should_be_false": {
+			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
+	}
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			hashEnc, err := scale.Marshal(testcase.root)
+			require.NoError(t, err)
+
+			args := hashEnc
+
+			encProof, err := scale.Marshal(testcase.proof)
+			require.NoError(t, err)
+			args = append(args, encProof...)
+
+			keyEnc, err := scale.Marshal(testcase.key)
+			require.NoError(t, err)
+			args = append(args, keyEnc...)
+
+			valueEnc, err := scale.Marshal(testcase.value)
+			require.NoError(t, err)
+			args = append(args, valueEnc...)
+
+			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_1", args)
+			require.NoError(t, err)
+
+			var got bool
+			err = scale.Unmarshal(res, &got)
+			require.NoError(t, err)
+			require.Equal(t, testcase.expect, got)
+		})
+	}
 }
 
 func TestWestendInstance(t *testing.T) {

@@ -12,6 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tetratelabs/wazero/api"
 )
@@ -317,7 +319,6 @@ func ext_crypto_ed25519_verify_version_1(ctx context.Context, m api.Module, sig 
 	return 1
 }
 
-//export ext_crypto_secp256k1_ecdsa_recover_version_1
 func ext_crypto_secp256k1_ecdsa_recover_version_1(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
@@ -371,11 +372,9 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(ctx context.Context, m api.Mod
 	return ret
 }
 
-// //export ext_crypto_secp256k1_ecdsa_recover_version_2
-// func ext_crypto_secp256k1_ecdsa_recover_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
-// 	logger.Trace("executing...")
-// 	return ext_crypto_secp256k1_ecdsa_recover_version_1(context, sig, msg)
-// }
+func ext_crypto_secp256k1_ecdsa_recover_version_2(ctx context.Context, m api.Module, sig uint32, msg uint32) uint64 {
+	return ext_crypto_secp256k1_ecdsa_recover_version_1(ctx, m, sig, msg)
+}
 
 func ext_crypto_ecdsa_verify_version_2(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
@@ -487,11 +486,9 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx context.Context
 	return ret
 }
 
-// //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_2
-// func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
-// 	logger.Trace("executing...")
-// 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context, sig, msg)
-// }
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
+	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx, m, sig, msg)
+}
 
 //export ext_crypto_sr25519_generate_version_1
 func ext_crypto_sr25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
@@ -794,22 +791,155 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 	return 1
 }
 
-// //export ext_crypto_start_batch_verify_version_1
-// func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
-// 	logger.Debug("executing...")
+func ext_crypto_start_batch_verify_version_1(ctx context.Context, m api.Module) {
+	// TODO: fix and re-enable signature verification (#1405)
+	// beginBatchVerify(context)
+}
 
-// 	// TODO: fix and re-enable signature verification (#1405)
-// 	// beginBatchVerify(context)
-// }
+func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module) uint32 {
+	// TODO: fix and re-enable signature verification (#1405)
+	// return finishBatchVerify(context)
+	return 1
+}
 
-// //export ext_crypto_finish_batch_verify_version_1
-// func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
-// 	logger.Debug("executing...")
+//export ext_trie_blake2_256_root_version_1
+func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-// 	// TODO: fix and re-enable signature verification (#1405)
-// 	// return finishBatchVerify(context)
-// 	return 1
-// }
+	data := read(m, dataSpan)
+
+	t := trie.NewEmptyTrie()
+
+	type kv struct {
+		Key, Value []byte
+	}
+
+	// this function is expecting an array of (key, value) tuples
+	var kvs []kv
+	if err := scale.Unmarshal(data, &kvs); err != nil {
+		logger.Errorf("failed scale decoding data: %s", err)
+		return 0
+	}
+
+	for _, kv := range kvs {
+		err := t.Put(kv.Key, kv.Value)
+		if err != nil {
+			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
+				kv.Key, kv.Value, err)
+			return 0
+		}
+	}
+
+	// allocate memory for value and copy value to memory
+	ptr, err := rtCtx.Allocator.Allocate(32)
+	if err != nil {
+		logger.Errorf("failed allocating: %s", err)
+		return 0
+	}
+
+	hash, err := t.Hash()
+	if err != nil {
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
+		return 0
+	}
+
+	logger.Debugf("root hash is %s", hash)
+	m.Memory().Write(ptr, hash[:])
+	return ptr
+}
+
+func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	data := read(m, dataSpan)
+
+	t := trie.NewEmptyTrie()
+	var values [][]byte
+	err := scale.Unmarshal(data, &values)
+	if err != nil {
+		logger.Errorf("failed scale decoding data: %s", err)
+		return 0
+	}
+
+	for i, value := range values {
+		key, err := scale.Marshal(big.NewInt(int64(i)))
+		if err != nil {
+			logger.Errorf("failed scale encoding value index %d: %s", i, err)
+			return 0
+		}
+		logger.Tracef(
+			"put key=0x%x and value=0x%x",
+			key, value)
+
+		err = t.Put(key, value)
+		if err != nil {
+			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
+				key, value, err)
+			return 0
+		}
+	}
+
+	// allocate memory for value and copy value to memory
+	ptr, err := rtCtx.Allocator.Allocate(32)
+	if err != nil {
+		logger.Errorf("failed allocating: %s", err)
+		return 0
+	}
+
+	hash, err := t.Hash()
+	if err != nil {
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
+		return 0
+	}
+
+	logger.Debugf("root hash is %s", hash)
+	m.Memory().Write(ptr, hash[:])
+	return ptr
+}
+
+//export ext_trie_blake2_256_ordered_root_version_2
+func ext_trie_blake2_256_ordered_root_version_2(ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
+	// TODO: update to use state trie version 1 (#2418)
+	return ext_trie_blake2_256_ordered_root_version_1(ctx, m, dataSpan)
+}
+
+//export ext_trie_blake2_256_verify_proof_version_1
+func ext_trie_blake2_256_verify_proof_version_1(ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	toDecProofs := read(m, proofSpan)
+	var encodedProofNodes [][]byte
+	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
+	if err != nil {
+		logger.Errorf("failed scale decoding proof data: %s", err)
+		return uint32(0)
+	}
+
+	key := read(m, keySpan)
+	value := read(m, valueSpan)
+
+	trieRoot, ok := m.Memory().Read(rootSpan, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
+	if err != nil {
+		logger.Errorf("failed proof verification: %s", err)
+		return 0
+	}
+
+	return 1
+}
 
 func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
