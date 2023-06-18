@@ -2,6 +2,7 @@ package wazero_runtime
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -1009,50 +1010,68 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	return ret
 }
 
-/*
-//export ext_default_child_storage_read_version_1
-func ext_default_child_storage_read_version_1(ctx context.Context, m api.Module,
-	childStorageKey, key, valueOut uint64, offset uint32) uint64 {
-	logger.Debug("executing...")
+func ext_default_child_storage_read_version_1(ctx context.Context, m api.Module, childStorageKey, key, valueOut uint64, offset uint32) uint64 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-	memory := instanceContext.Memory().Data()
-
-	keyToChild := asMemorySlice(instanceContext, childStorageKey)
-	keyBytes := asMemorySlice(instanceContext, key)
-	value, err := storage.GetChildStorage(keyToChild, keyBytes)
+	keyToChild := read(m, childStorageKey)
+	keyBytes := read(m, key)
+	value, err := rtCtx.Storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child storage: %s", err)
 		return 0
 	}
 
-	valueBuf, valueLen := splitPointerSize(int64(valueOut))
-	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
+	valueBuf, _ := splitPointerSize(valueOut)
+	ok := m.Memory().Write(valueBuf, value[offset:])
+	if !ok {
+		panic("write overflow")
+	}
 
 	size := uint32(len(value[offset:]))
 	sizeBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(sizeBuf, size)
 
-	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
+	// this is expected to be Option(Vec<u8>)
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&sizeBuf))
 	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		panic(err)
 	}
-
-	return uint64(sizeSpan)
+	return ret
 }
 
-//export ext_default_child_storage_clear_version_1
+func ext_default_child_storage_set_version_1(ctx context.Context, m api.Module, childStorageKeySpan, keySpan, valueSpan uint64) {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
+
+	childStorageKey := read(m, childStorageKeySpan)
+	key := read(m, keySpan)
+	value := read(m, valueSpan)
+
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
+	err := storage.SetChildStorage(childStorageKey, key, cp)
+	if err != nil {
+		logger.Errorf("failed to set value in child storage: %s", err)
+		panic(err)
+	}
+}
+
 func ext_default_child_storage_clear_version_1(ctx context.Context, m api.Module, childStorageKey, keySpan uint64) {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
-
-	keyToChild := asMemorySlice(instanceContext, childStorageKey)
-	key := asMemorySlice(instanceContext, keySpan)
+	keyToChild := read(m, childStorageKey)
+	key := read(m, keySpan)
 
 	err := storage.ClearChildStorage(keyToChild, key)
 	if err != nil {
@@ -1060,16 +1079,15 @@ func ext_default_child_storage_clear_version_1(ctx context.Context, m api.Module
 	}
 }
 
-//export ext_default_child_storage_clear_prefix_version_1
 func ext_default_child_storage_clear_prefix_version_1(ctx context.Context, m api.Module, childStorageKey, prefixSpan uint64) {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
-
-	keyToChild := asMemorySlice(instanceContext, childStorageKey)
-	prefix := asMemorySlice(instanceContext, prefixSpan)
+	keyToChild := read(m, childStorageKey)
+	prefix := read(m, prefixSpan)
 
 	err := storage.ClearPrefixInChild(keyToChild, prefix)
 	if err != nil {
@@ -1077,16 +1095,15 @@ func ext_default_child_storage_clear_prefix_version_1(ctx context.Context, m api
 	}
 }
 
-//export ext_default_child_storage_exists_version_1
-func ext_default_child_storage_exists_version_1(ctx context.Context, m api.Module,
-	childStorageKey, key uint64) uint32 {
-	logger.Debug("executing...")
+func ext_default_child_storage_exists_version_1(ctx context.Context, m api.Module, childStorageKey, key uint64) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-
-	keyToChild := asMemorySlice(instanceContext, childStorageKey)
-	keyBytes := asMemorySlice(instanceContext, key)
+	keyToChild := read(m, childStorageKey)
+	keyBytes := read(m, key)
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
@@ -1098,63 +1115,57 @@ func ext_default_child_storage_exists_version_1(ctx context.Context, m api.Modul
 	return 0
 }
 
-//export ext_default_child_storage_get_version_1
 func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, childStorageKey, key uint64) uint64 {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-
-	keyToChild := asMemorySlice(instanceContext, childStorageKey)
-	keyBytes := asMemorySlice(instanceContext, key)
+	keyToChild := read(m, childStorageKey)
+	keyBytes := read(m, key)
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
 		return 0
 	}
 
-	value, err := toWasmMemoryOptional(instanceContext, child)
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&child))
 	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		panic(err)
 	}
-
-	return uint64(value)
+	return ret
 }
 
-//export ext_default_child_storage_next_key_version_1
 func ext_default_child_storage_next_key_version_1(ctx context.Context, m api.Module, childStorageKey, key uint64) uint64 {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-
-	keyToChild := asMemorySlice(instanceContext, childStorageKey)
-	keyBytes := asMemorySlice(instanceContext, key)
+	keyToChild := read(m, childStorageKey)
+	keyBytes := read(m, key)
 	child, err := storage.GetChildNextKey(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child's next key: %s", err)
 		return 0
 	}
 
-	value, err := toWasmMemoryOptional(instanceContext, child)
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&child))
 	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		panic(err)
 	}
-
-	return uint64(value)
+	return ret
 }
 
-//export ext_default_child_storage_root_version_1
-func ext_default_child_storage_root_version_1(ctx context.Context, m api.Module,
-	childStorageKey uint64) (ptrSize uint64) {
-	logger.Debug("executing...")
-
-	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-
-	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
+func ext_default_child_storage_root_version_1(ctx context.Context, m api.Module, childStorageKey uint64) (ptrSize uint64) {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
+	child, err := storage.GetChild(read(m, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to retrieve child: %s", err)
 		return 0
@@ -1165,63 +1176,38 @@ func ext_default_child_storage_root_version_1(ctx context.Context, m api.Module,
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
 	}
+	childRootSlice := childRoot[:]
 
-	root, err := toWasmMemoryOptional(instanceContext, childRoot[:])
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&childRootSlice))
 	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		return 0
+		panic(err)
 	}
-
-	return uint64(root)
+	return ret
 }
 
-//export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(ctx context.Context, m api.Module,
-	childStorageKeySpan, keySpan, valueSpan uint64) {
-	logger.Debug("executing...")
-
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
-
-	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-	key := asMemorySlice(instanceContext, keySpan)
-	value := asMemorySlice(instanceContext, valueSpan)
-
-	cp := make([]byte, len(value))
-	copy(cp, value)
-
-	err := storage.SetChildStorage(childStorageKey, key, cp)
-	if err != nil {
-		logger.Errorf("failed to set value in child storage: %s", err)
-		return
-	}
-}
-
-//export ext_default_child_storage_storage_kill_version_1
 func ext_default_child_storage_storage_kill_version_1(ctx context.Context, m api.Module, childStorageKeySpan uint64) {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
-
-	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	childStorageKey := read(m, childStorageKeySpan)
 	err := storage.DeleteChild(childStorageKey)
-	panicOnError(err)
+	if err != nil {
+		panic(err)
+	}
 }
 
-//export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(ctx context.Context, m api.Module,
-	childStorageKeySpan, lim uint64) (allDeleted uint32) {
-	logger.Debug("executing...")
+func ext_default_child_storage_storage_kill_version_2(ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (allDeleted uint32) {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
+	childStorageKey := read(m, childStorageKeySpan)
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
-	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-
-	limitBytes := asMemorySlice(instanceContext, lim)
+	limitBytes := read(m, lim)
 
 	var limit *[]byte
 	err := scale.Unmarshal(limitBytes, &limit)
@@ -1252,27 +1238,37 @@ type someRemain uint32
 func (someRemain) Index() uint       { return 1 }
 func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
-//export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(ctx context.Context, m api.Module,
-	childStorageKeySpan, lim uint64) (pointerSize uint64) {
-	logger.Debug("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	storage := ctx.Storage
-	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+func ext_default_child_storage_storage_kill_version_3(ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (pointerSize uint64) {
+	fmt.Println("heyooo")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
+	childStorageKey := read(m, childStorageKeySpan)
 
-	limitBytes := asMemorySlice(instanceContext, lim)
+	var option *[]byte
 
+	limitBytes := read(m, lim)
 	var limit *[]byte
 	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
 		logger.Warnf("cannot generate limit: %s", err)
+		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	deleted, all, err := storage.DeleteChildLimit(childStorageKey, limit)
 	if err != nil {
 		logger.Warnf("cannot get child storage: %s", err)
-		return uint64(0)
+		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
@@ -1287,60 +1283,36 @@ func ext_default_child_storage_storage_kill_version_3(ctx context.Context, m api
 	}
 	if err != nil {
 		logger.Warnf("cannot set varying data type: %s", err)
-		return uint64(0)
+		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	encoded, err := scale.Marshal(vdt)
 	if err != nil {
 		logger.Warnf("problem marshalling varying data type: %s", err)
-		return uint64(0)
+		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
-	out, err := toWasmMemoryOptional(instanceContext, encoded)
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&encoded))
 	if err != nil {
-		logger.Warnf("failed to allocate: %s", err)
-		return 0
-	}
-
-	return uint64(out)
-}
-
-//export ext_allocator_free_version_1
-func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-
-	// Deallocate memory
-	err := runtimeCtx.Allocator.Deallocate(uint32(addr))
-	if err != nil {
-		logger.Errorf("failed to free memory: %s", err)
-	}
-}
-
-//export ext_allocator_malloc_version_1
-func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, size uint32) uint32 {
-	logger.Tracef("executing with size %d...", int64(size))
-
-	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-
-	// Allocate memory
-	res, err := ctx.Allocator.Allocate(uint32(size))
-	if err != nil {
-		logger.Criticalf("failed to allocate memory: %s", err)
 		panic(err)
 	}
-
-	return uint32(res)
+	return ret
 }
 
-//export ext_hashing_blake2_128_version_1
+/*
 func ext_hashing_blake2_128_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 
 	hash, err := common.Blake2b128(data)
 	if err != nil {
@@ -1361,12 +1333,12 @@ func ext_hashing_blake2_128_version_1(ctx context.Context, m api.Module, dataSpa
 	return uint32(out)
 }
 
-//export ext_hashing_blake2_256_version_1
+
 func ext_hashing_blake2_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
@@ -1385,12 +1357,12 @@ func ext_hashing_blake2_256_version_1(ctx context.Context, m api.Module, dataSpa
 	return uint32(out)
 }
 
-//export ext_hashing_keccak_256_version_1
+
 func ext_hashing_keccak_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 
 	hash, err := common.Keccak256(data)
 	if err != nil {
@@ -1409,12 +1381,12 @@ func ext_hashing_keccak_256_version_1(ctx context.Context, m api.Module, dataSpa
 	return uint32(out)
 }
 
-//export ext_hashing_sha2_256_version_1
+
 func ext_hashing_sha2_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 	hash := common.Sha256(data)
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
@@ -1428,12 +1400,12 @@ func ext_hashing_sha2_256_version_1(ctx context.Context, m api.Module, dataSpan 
 	return uint32(out)
 }
 
-//export ext_hashing_twox_256_version_1
+
 func ext_hashing_twox_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 
 	hash, err := common.Twox256(data)
 	if err != nil {
@@ -1452,11 +1424,11 @@ func ext_hashing_twox_256_version_1(ctx context.Context, m api.Module, dataSpan 
 	return uint32(out)
 }
 
-//export ext_hashing_twox_128_version_1
+
 func ext_hashing_twox_128_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
@@ -1477,12 +1449,12 @@ func ext_hashing_twox_128_version_1(ctx context.Context, m api.Module, dataSpan 
 	return uint32(out)
 }
 
-//export ext_hashing_twox_64_version_1
+
 func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	data := asMemorySlice(instanceContext, dataSpan)
+	data := read(m, dataSpan)
 
 	hash, err := common.Twox64(data)
 	if err != nil {
@@ -1503,14 +1475,14 @@ func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan u
 	return uint32(out)
 }
 
-//export ext_offchain_index_set_version_1
+
 func ext_offchain_index_set_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	storageKey := asMemorySlice(instanceContext, keySpan)
-	newValue := asMemorySlice(instanceContext, valueSpan)
+	storageKey := read(m, keySpan)
+	newValue := read(m, valueSpan)
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
@@ -1520,13 +1492,13 @@ func ext_offchain_index_set_version_1(ctx context.Context, m api.Module, keySpan
 	}
 }
 
-//export ext_offchain_local_storage_clear_version_1
+
 func ext_offchain_local_storage_clear_version_1(ctx context.Context, m api.Module, kind uint32, key uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	storageKey := asMemorySlice(instanceContext, key)
+	storageKey := read(m, key)
 
 	memory := instanceContext.Memory().Data()
 	kindInt := binary.LittleEndian.Uint32(memory[kind : kind+4])
@@ -1545,7 +1517,7 @@ func ext_offchain_local_storage_clear_version_1(ctx context.Context, m api.Modul
 	}
 }
 
-//export ext_offchain_is_validator_version_1
+
 func ext_offchain_is_validator_version_1(ctx context.Context, m api.Module) uint32 {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1557,7 +1529,7 @@ func ext_offchain_is_validator_version_1(ctx context.Context, m api.Module) uint
 	return 0
 }
 
-//export ext_offchain_local_storage_compare_and_set_version_1
+
 func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m api.Module,
 	kind uint32, key, oldValue, newValue uint64) (newValueSet uint32) {
 	logger.Debug("executing...")
@@ -1565,7 +1537,7 @@ func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	storageKey := asMemorySlice(instanceContext, key)
+	storageKey := read(m, key)
 
 	var storedValue []byte
 	var err error
@@ -1582,8 +1554,8 @@ func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m
 		return 0
 	}
 
-	oldVal := asMemorySlice(instanceContext, oldValue)
-	newVal := asMemorySlice(instanceContext, newValue)
+	oldVal := read(m, oldValue)
+	newVal := read(m, newValue)
 	if reflect.DeepEqual(storedValue, oldVal) {
 		cp := make([]byte, len(newVal))
 		copy(cp, newVal)
@@ -1597,13 +1569,13 @@ func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m
 	return 1
 }
 
-//export ext_offchain_local_storage_get_version_1
+
 func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module, kind uint32, key uint64) uint64 {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	storageKey := asMemorySlice(instanceContext, key)
+	storageKey := read(m, key)
 
 	var res []byte
 	var err error
@@ -1627,14 +1599,14 @@ func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module,
 	return uint64(ptr)
 }
 
-//export ext_offchain_local_storage_set_version_1
+
 func ext_offchain_local_storage_set_version_1(ctx context.Context, m api.Module, kind uint32, key, value uint64) {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	storageKey := asMemorySlice(instanceContext, key)
-	newValue := asMemorySlice(instanceContext, value)
+	storageKey := read(m, key)
+	newValue := read(m, value)
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
@@ -1651,7 +1623,7 @@ func ext_offchain_local_storage_set_version_1(ctx context.Context, m api.Module,
 	}
 }
 
-//export ext_offchain_network_state_version_1
+
 func ext_offchain_network_state_version_1(ctx context.Context, m api.Module) uint64 {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1676,7 +1648,7 @@ func ext_offchain_network_state_version_1(ctx context.Context, m api.Module) uin
 	return uint64(ptr)
 }
 
-//export ext_offchain_random_seed_version_1
+
 func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint32 {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -1693,12 +1665,12 @@ func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint3
 	return uint32(ptr)
 }
 
-//export ext_offchain_submit_transaction_version_1
+
 func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	extBytes := asMemorySlice(instanceContext, data)
+	extBytes := read(m, data)
 
 	var extrinsic []byte
 	err := scale.Unmarshal(extBytes, &extrinsic)
@@ -1720,7 +1692,7 @@ func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module
 	return ptr
 }
 
-//export ext_offchain_timestamp_version_1
+
 func ext_offchain_timestamp_version_1(_ unsafe.Pointer) uint64 {
 	logger.Trace("executing...")
 
@@ -1728,7 +1700,7 @@ func ext_offchain_timestamp_version_1(_ unsafe.Pointer) uint64 {
 	return uint64(now)
 }
 
-//export ext_offchain_sleep_until_version_1
+
 func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline uint64) {
 	logger.Trace("executing...")
 
@@ -1738,7 +1710,7 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline uint64) {
 	}
 }
 
-//export ext_offchain_http_request_start_version_1
+
 func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module,
 	methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) {
 	logger.Debug("executing...")
@@ -1746,8 +1718,8 @@ func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	httpMethod := asMemorySlice(instanceContext, methodSpan)
-	uri := asMemorySlice(instanceContext, uriSpan)
+	httpMethod := read(m, methodSpan)
+	uri := read(m, uriSpan)
 
 	result := scale.NewResult(int16(0), nil)
 
@@ -1781,14 +1753,14 @@ func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module
 	return uint64(ptr)
 }
 
-//export ext_offchain_http_request_add_header_version_1
+
 func ext_offchain_http_request_add_header_version_1(ctx context.Context, m api.Module,
 	reqID uint32, nameSpan, valueSpan uint64) (pointerSize uint64) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	name := asMemorySlice(instanceContext, nameSpan)
-	value := asMemorySlice(instanceContext, valueSpan)
+	name := read(m, nameSpan)
+	value := read(m, valueSpan)
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
@@ -1823,15 +1795,15 @@ func ext_offchain_http_request_add_header_version_1(ctx context.Context, m api.M
 	return uint64(ptr)
 }
 
-//export ext_storage_append_version_1
+
 func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
-	key := asMemorySlice(instanceContext, keySpan)
-	valueAppend := asMemorySlice(instanceContext, valueSpan)
+	key := read(m, keySpan)
+	valueAppend := read(m, valueSpan)
 	logger.Debugf(
 		"will append value 0x%x to values at key 0x%x",
 		valueAppend, key)
@@ -1845,7 +1817,7 @@ func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, va
 	}
 }
 
-//export ext_storage_changes_root_version_1
+
 func ext_storage_changes_root_version_1(ctx context.Context, m api.Module, parentHashSpan uint64) uint64 {
 	logger.Trace("executing...")
 	logger.Debug("returning None")
@@ -1861,35 +1833,35 @@ func ext_storage_changes_root_version_1(ctx context.Context, m api.Module, paren
 	return rootSpan
 }
 
-//export ext_storage_clear_version_1
+
 func ext_storage_clear_version_1(ctx context.Context, m api.Module, keySpan uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
-	key := asMemorySlice(instanceContext, keySpan)
+	key := read(m, keySpan)
 
 	logger.Debugf("key: 0x%x", key)
 	err := storage.Delete(key)
 	panicOnError(err)
 }
 
-//export ext_storage_clear_prefix_version_1
+
 func ext_storage_clear_prefix_version_1(ctx context.Context, m api.Module, prefixSpan uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
-	prefix := asMemorySlice(instanceContext, prefixSpan)
+	prefix := read(m, prefixSpan)
 	logger.Debugf("prefix: 0x%x", prefix)
 
 	err := storage.ClearPrefix(prefix)
 	panicOnError(err)
 }
 
-//export ext_storage_clear_prefix_version_2
+
 func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefixSpan, lim uint64) uint64 {
 	logger.Trace("executing...")
 
@@ -1897,10 +1869,10 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
-	prefix := asMemorySlice(instanceContext, prefixSpan)
+	prefix := read(m, prefixSpan)
 	logger.Debugf("prefix: 0x%x", prefix)
 
-	limitBytes := asMemorySlice(instanceContext, lim)
+	limitBytes := read(m, lim)
 
 	var limit []byte
 	err := scale.Unmarshal(limitBytes, &limit)
@@ -1936,13 +1908,13 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 	return uint64(valueSpan)
 }
 
-//export ext_storage_exists_version_1
+
 func ext_storage_exists_version_1(ctx context.Context, m api.Module, keySpan uint64) uint32 {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	key := asMemorySlice(instanceContext, keySpan)
+	key := read(m, keySpan)
 	logger.Debugf("key: 0x%x", key)
 
 	value := storage.Get(key)
@@ -1953,14 +1925,14 @@ func ext_storage_exists_version_1(ctx context.Context, m api.Module, keySpan uin
 	return 0
 }
 
-//export ext_storage_get_version_1
+
 func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64) uint64 {
 	logger.Trace("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	key := asMemorySlice(instanceContext, keySpan)
+	key := read(m, keySpan)
 	logger.Debugf("key: 0x%x", key)
 
 	value := storage.Get(key)
@@ -1975,14 +1947,14 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 	return uint64(valueSpan)
 }
 
-//export ext_storage_next_key_version_1
+
 func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan uint64) uint64 {
 	logger.Trace("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	key := asMemorySlice(instanceContext, keySpan)
+	key := read(m, keySpan)
 
 	next := storage.NextKey(key)
 	logger.Debugf(
@@ -1998,7 +1970,7 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 	return uint64(nextSpan)
 }
 
-//export ext_storage_read_version_1
+
 func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valueOut uint64, offset uint32) uint64 {
 	logger.Trace("executing...")
 
@@ -2006,7 +1978,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 	storage := instanceContext.Data().(*runtime.Context).Storage
 	memory := instanceContext.Memory().Data()
 
-	key := asMemorySlice(instanceContext, keySpan)
+	key := read(m, keySpan)
 	value := storage.Get(key)
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
@@ -2032,7 +2004,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 	return uint64(sizeSpan)
 }
 
-//export ext_storage_root_version_1
+
 func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	logger.Trace("executing...")
 
@@ -2056,13 +2028,13 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	return uint64(rootSpan)
 }
 
-//export ext_storage_root_version_2
+
 func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 {
 	// TODO: update to use state trie version 1 (#2418)
 	return ext_storage_root_version_1(context)
 }
 
-//export ext_storage_set_version_1
+
 func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
 	logger.Trace("executing...")
 
@@ -2070,8 +2042,8 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
-	key := asMemorySlice(instanceContext, keySpan)
-	value := asMemorySlice(instanceContext, valueSpan)
+	key := read(m, keySpan)
+	value := read(m, valueSpan)
 
 	cp := make([]byte, len(value))
 	copy(cp, value)
@@ -2083,21 +2055,21 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	panicOnError(err)
 }
 
-//export ext_storage_start_transaction_version_1
+
 func ext_storage_start_transaction_version_1(ctx context.Context, m api.Module) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	instanceContext.Data().(*runtime.Context).Storage.BeginStorageTransaction()
 }
 
-//export ext_storage_rollback_transaction_version_1
+
 func ext_storage_rollback_transaction_version_1(ctx context.Context, m api.Module) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	instanceContext.Data().(*runtime.Context).Storage.RollbackStorageTransaction()
 }
 
-//export ext_storage_commit_transaction_version_1
+
 func ext_storage_commit_transaction_version_1(ctx context.Context, m api.Module) {
 	logger.Debug("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
