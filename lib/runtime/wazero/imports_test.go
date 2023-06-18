@@ -3,6 +3,7 @@ package wazero_runtime
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"sort"
@@ -759,6 +760,436 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 
 	require.Equal(t, "parity-westend", string(version.ImplName))
 	require.Equal(t, "westend", string(version.SpecName))
+}
+
+var (
+	testChildKey = []byte("childKey")
+	testKey      = []byte("key")
+	testValue    = []byte("value")
+)
+
+func Test_ext_default_child_storage_read_version_1(t *testing.T) {
+
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	testOffset := uint32(2)
+	testBufferSize := uint32(100)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	encBufferSize, err := scale.Marshal(testBufferSize)
+	require.NoError(t, err)
+
+	encOffset, err := scale.Marshal(testOffset)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec(
+		"rtm_ext_default_child_storage_read_version_1",
+		append(append(encChildKey, encKey...),
+			append(encOffset, encBufferSize...)...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+
+	val := *read
+	require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
+}
+
+func Test_ext_default_child_storage_set_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	// Check if value is not set
+	val, err := inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	encVal, err := scale.Marshal(testValue)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
+	require.NoError(t, err)
+
+	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Equal(t, testValue, val)
+}
+
+func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	val, err := inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Equal(t, testValue, val)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+}
+
+func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	prefix := []byte("key")
+
+	testKeyValuePair := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("keyOne"), []byte("value1")},
+		{[]byte("keyTwo"), []byte("value2")},
+		{[]byte("keyThree"), []byte("value3")},
+	}
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	for _, kv := range testKeyValuePair {
+		err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		require.NoError(t, err)
+	}
+
+	// Confirm if value is set
+	keys, err := inst.Context.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(keys))
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encPrefix, err := scale.Marshal(prefix)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
+	require.NoError(t, err)
+
+	keys, err = inst.Context.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(keys))
+}
+
+func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_exists_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
+
+func Test_ext_default_child_storage_get_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+}
+
+func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testKeyValuePair := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("apple"), []byte("value1")},
+		{[]byte("key"), []byte("value2")},
+	}
+
+	key := testKeyValuePair[0].key
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	for _, kv := range testKeyValuePair {
+		err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		require.NoError(t, err)
+	}
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(key)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+	require.Equal(t, testKeyValuePair[1].key, *read)
+}
+
+func Test_ext_default_child_storage_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	child, err := inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+
+	rootHash, err := child.Hash()
+	require.NoError(t, err)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_root_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	// Convert decoded interface to common Hash
+	actualValue := common.BytesToHash(hash)
+	require.Equal(t, rootHash, actualValue)
+}
+
+func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
+	require.NoError(t, err)
+
+	child, _ = inst.Context.Storage.GetChild(testChildKey)
+	require.Nil(t, child)
+}
+
+func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	testLimit := uint32(2)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLimit, err := scale.Marshal(&testLimitBytes)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
+	require.NoError(t, err)
+	require.Equal(t, []byte{1, 0, 0, 0}, res)
+
+	child, err = inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.Empty(t, child.Entries())
+}
+
+func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	testLimit := uint32(1)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLimit, err := scale.Marshal(&testLimitBytes)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0, 0, 0}, res)
+
+	child, err = inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(child.Entries()))
+}
+
+func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.Context.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	var val *[]byte
+	optLimit, err := scale.Marshal(val)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLimit...))
+	require.NoError(t, err)
+	require.Equal(t, []byte{1, 0, 0, 0}, res)
+
+	child, err = inst.Context.Storage.GetChild(testChildKey)
+	require.Error(t, err)
+	require.Nil(t, child)
+}
+
+func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	tr := trie.NewEmptyTrie()
+	tr.Put([]byte(`key2`), []byte(`value2`))
+	tr.Put([]byte(`key1`), []byte(`value1`))
+	tr.Put([]byte(`key3`), []byte(`value3`))
+	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	require.NoError(t, err)
+
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
+	optLimit2 := &testLimitBytes
+
+	testCases := []struct {
+		key      []byte
+		limit    *[]byte
+		expected []byte
+		errMsg   string
+	}{
+		{
+			key:      []byte(`fakekey`),
+			limit:    optLimit2,
+			expected: nil, // supposed to return None
+		},
+		{key: testChildKey, limit: optLimit2, expected: []byte{1, 2, 0, 0, 0}},
+		{key: testChildKey, limit: nil, expected: []byte{0, 1, 0, 0, 0}},
+	}
+
+	for _, test := range testCases {
+		encChildKey, err := scale.Marshal(test.key)
+		require.NoError(t, err)
+		encOptLimit, err := scale.Marshal(test.limit)
+		require.NoError(t, err)
+		res, err := inst.Exec("rtm_ext_default_child_storage_storage_kill_version_3", append(encChildKey, encOptLimit...))
+		if test.errMsg != "" {
+			require.Error(t, err)
+			require.EqualError(t, err, test.errMsg)
+			continue
+		}
+		require.NoError(t, err)
+
+		var read *[]byte
+		err = scale.Unmarshal(res, &read)
+		require.NoError(t, err)
+		if test.expected == nil {
+			require.Nil(t, read)
+		} else {
+			require.Equal(t, test.expected, *read)
+		}
+	}
 }
 
 func TestWestendInstance(t *testing.T) {
