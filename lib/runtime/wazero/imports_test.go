@@ -706,6 +706,61 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	}
 }
 
+func Test_ext_misc_runtime_version_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	fp, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
+	require.NoError(t, err)
+
+	// Reads the WebAssembly module as bytes.
+	// Retrieve WASM binary
+	bytes, err := ioutil.ReadFile(fp)
+	if err != nil {
+		t.Errorf("Failed to read wasm file: %s", err)
+	}
+
+	if strings.Contains(fp, "compact") {
+		var err error
+		bytes, err = decompressWasm(bytes)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+
+	data := bytes
+
+	dataLength := uint32(len(data))
+	inputPtr, err := inst.Context.Allocator.Allocate(dataLength)
+	if err != nil {
+		t.Errorf("allocating input memory: %v", err)
+	}
+
+	defer inst.Context.Allocator.Clear()
+
+	// Store the data into memory
+	mem := inst.Module.Memory()
+	ok := mem.Write(inputPtr, data)
+	if !ok {
+		panic("wtf?")
+	}
+
+	dataSpan := newPointerSize(inputPtr, dataLength)
+	ctx := context.WithValue(context.Background(), runtimeContextKey, inst.Context)
+	versionPtr := ext_misc_runtime_version_version_1(ctx, inst.Module, dataSpan)
+
+	var option *[]byte
+	versionData := read(inst.Module, versionPtr)
+	err = scale.Unmarshal(versionData, &option)
+	require.NoError(t, err)
+	require.NotNil(t, option)
+
+	version, err := runtime.DecodeVersion(*option)
+	require.NoError(t, err)
+
+	require.Equal(t, "parity-westend", string(version.ImplName))
+	require.Equal(t, "westend", string(version.SpecName))
+}
+
 func TestWestendInstance(t *testing.T) {
 	NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 }
