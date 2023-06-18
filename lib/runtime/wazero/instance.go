@@ -172,59 +172,37 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_misc_runtime_version_version_1).
 		Export("ext_misc_runtime_version_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64, c int64, d int32) int64 {
-			return 0
-		}).
-		Export("ext_default_child_storage_read_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) {
-			return
-		}).
-		Export("ext_default_child_storage_clear_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) {
-			return
-		}).
-		Export("ext_default_child_storage_clear_prefix_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) int32 {
-			return 0
-		}).
-		Export("ext_default_child_storage_exists_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) int64 {
-			return 0
-		}).
-		Export("ext_default_child_storage_get_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) int64 {
-			return 0
-		}).
-		Export("ext_default_child_storage_next_key_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64) int64 {
-			return 0
-		}).
-		Export("ext_default_child_storage_root_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64, c int64) {
-			return
-		}).
+		WithFunc(ext_default_child_storage_set_version_1).
 		Export("ext_default_child_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) {
-			return
-		}).
+		WithFunc(ext_default_child_storage_read_version_1).
+		Export("ext_default_child_storage_read_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_clear_version_1).
+		Export("ext_default_child_storage_clear_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_clear_prefix_version_1).
+		Export("ext_default_child_storage_clear_prefix_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_exists_version_1).
+		Export("ext_default_child_storage_exists_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_get_version_1).
+		Export("ext_default_child_storage_get_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_next_key_version_1).
+		Export("ext_default_child_storage_next_key_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_root_version_1).
+		Export("ext_default_child_storage_root_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_storage_kill_version_1).
 		Export("ext_default_child_storage_storage_kill_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_default_child_storage_storage_kill_version_2).
 		Export("ext_default_child_storage_storage_kill_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_default_child_storage_storage_kill_version_3).
 		Export("ext_default_child_storage_storage_kill_version_3").
 		NewFunctionBuilder().
 		WithFunc(ext_allocator_free_version_1).
