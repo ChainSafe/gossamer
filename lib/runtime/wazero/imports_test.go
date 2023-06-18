@@ -1192,6 +1192,121 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 	}
 }
 
+func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_blake2_128_version_1", enc)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected, err := common.Blake2b128(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_blake2_256_version_1", enc)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected, err := common.Blake2bHash(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_keccak_256_version_1", enc)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected, err := common.Keccak256(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_hashing_twox_128_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_twox_128_version_1", enc)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected, err := common.Twox128Hash(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_hashing_twox_64_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_twox_64_version_1", enc)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected, err := common.Twox64(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_sha2_256_version_1", enc)
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected := common.Sha256(data)
+	require.Equal(t, expected[:], hash)
+}
+
 func TestWestendInstance(t *testing.T) {
 	NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 }

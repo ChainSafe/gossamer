@@ -979,7 +979,6 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	var option *[]byte
 	version, err := GetRuntimeVersion(code)
 	if err != nil {
-		fmt.Println("huha?")
 		logger.Errorf("failed to get runtime version: %s", err)
 		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
 		if err != nil {
@@ -1239,7 +1238,6 @@ func (someRemain) Index() uint       { return 1 }
 func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
 func ext_default_child_storage_storage_kill_version_3(ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (pointerSize uint64) {
-	fmt.Println("heyooo")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1307,10 +1305,11 @@ func ext_default_child_storage_storage_kill_version_3(ctx context.Context, m api
 	return ret
 }
 
-/*
 func ext_hashing_blake2_128_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	data := read(m, dataSpan)
 
@@ -1324,19 +1323,20 @@ func ext_hashing_blake2_128_version_1(ctx context.Context, m api.Module, dataSpa
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash)
+	out, err := write(m, rtCtx.Allocator, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
 func ext_hashing_blake2_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	data := read(m, dataSpan)
 
@@ -1348,19 +1348,20 @@ func ext_hashing_blake2_256_version_1(ctx context.Context, m api.Module, dataSpa
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
 func ext_hashing_keccak_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	data := read(m, dataSpan)
 
@@ -1372,38 +1373,40 @@ func ext_hashing_keccak_256_version_1(ctx context.Context, m api.Module, dataSpa
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
 func ext_hashing_sha2_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	data := read(m, dataSpan)
 	hash := common.Sha256(data)
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
 func ext_hashing_twox_256_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	data := read(m, dataSpan)
 
@@ -1415,19 +1418,21 @@ func ext_hashing_twox_256_version_1(ctx context.Context, m api.Module, dataSpan 
 
 	logger.Debugf("data 0x%x has hash %s", data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
 func ext_hashing_twox_128_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
 	data := read(m, dataSpan)
 
 	hash, err := common.Twox128Hash(data)
@@ -1440,19 +1445,20 @@ func ext_hashing_twox_128_version_1(ctx context.Context, m api.Module, dataSpan 
 		"data 0x%x hash hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash)
+	out, err := write(m, rtCtx.Allocator, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
 func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	data := read(m, dataSpan)
 
@@ -1466,16 +1472,16 @@ func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan u
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := toWasmMemorySized(instanceContext, hash)
+	out, err := write(m, rtCtx.Allocator, hash[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
 	}
-
-	return uint32(out)
+	ptr, _ := splitPointerSize(out)
+	return ptr
 }
 
-
+/*
 func ext_offchain_index_set_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)

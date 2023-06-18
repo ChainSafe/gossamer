@@ -211,39 +211,25 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_allocator_malloc_version_1).
 		Export("ext_allocator_malloc_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_blake2_128_version_1).
 		Export("ext_hashing_blake2_128_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_blake2_256_version_1).
 		Export("ext_hashing_blake2_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_keccak_256_version_1).
 		Export("ext_hashing_keccak_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_sha2_256_version_1).
 		Export("ext_hashing_sha2_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_twox_256_version_1).
 		Export("ext_hashing_twox_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_twox_128_version_1).
 		Export("ext_hashing_twox_128_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_hashing_twox_64_version_1).
 		Export("ext_hashing_twox_64_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int64, b int64) {
