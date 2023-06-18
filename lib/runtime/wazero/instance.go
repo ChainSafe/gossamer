@@ -169,9 +169,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_misc_print_utf8_version_1).
 		Export("ext_misc_print_utf8_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_misc_runtime_version_version_1).
 		Export("ext_misc_runtime_version_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int64, b int64, c int64, d int32) int64 {
@@ -491,4 +489,38 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 		panic("wtf?")
 	}
 	return result, nil
+}
+
+// Version returns the instance version.
+// This is cheap to call since the instance version is cached.
+// Note the instance version is set at creation and on code update.
+func (in *Instance) Version() (runtime.Version, error) {
+	if in.Context.Version != nil {
+		return *in.Context.Version, nil
+	}
+
+	err := in.version()
+	if err != nil {
+		return runtime.Version{}, err
+	}
+
+	return *in.Context.Version, nil
+}
+
+// version calls runtime function Core_Version and returns the
+// decoded version structure.
+func (in *Instance) version() error {
+	res, err := in.Exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return err
+	}
+
+	version, err := runtime.DecodeVersion(res)
+	if err != nil {
+		return fmt.Errorf("decoding version: %w", err)
+	}
+
+	in.Context.Version = &version
+
+	return nil
 }

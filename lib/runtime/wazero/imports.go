@@ -67,7 +67,6 @@ func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byt
 	return newPointerSize(pointer, size), nil
 }
 
-//export ext_logging_log_version_1
 func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
@@ -88,7 +87,6 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	}
 }
 
-//export ext_crypto_ed25519_generate_version_1
 func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	id, ok := m.Memory().Read(keyTypeID, 4)
 	if !ok {
@@ -203,7 +201,6 @@ func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module,
 	return ret
 }
 
-//export ext_crypto_ed25519_sign_version_1
 func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTypeID, key uint32, msg uint64) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
@@ -490,7 +487,6 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(ctx context.Context
 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx, m, sig, msg)
 }
 
-//export ext_crypto_sr25519_generate_version_1
 func ext_crypto_sr25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
@@ -802,7 +798,6 @@ func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module)
 	return 1
 }
 
-//export ext_trie_blake2_256_root_version_1
 func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
@@ -953,18 +948,43 @@ func ext_misc_print_utf8_version_1(ctx context.Context, m api.Module, dataSpan u
 	logger.Debug("utf8: " + string(data))
 }
 
-/*
-//export ext_misc_runtime_version_version_1
+// GetRuntimeVersion finds the runtime version by initiating a temporary
+// runtime instance using the WASM code provided, and querying it.
+func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
+	config := Config{
+		LogLvl: log.DoNotChange,
+	}
+	instance, err := NewInstance(code, config)
+	if err != nil {
+		return version, fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer instance.Runtime.Close(context.Background())
+
+	version, err = instance.Version()
+	if err != nil {
+		return version, fmt.Errorf("running runtime: %w", err)
+	}
+
+	return version, nil
+}
+
 func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint64 {
-	logger.Trace("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	code := read(m, dataSpan)
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	code := asMemorySlice(instanceContext, dataSpan)
-
+	var option *[]byte
 	version, err := GetRuntimeVersion(code)
 	if err != nil {
+		fmt.Println("huha?")
 		logger.Errorf("failed to get runtime version: %s", err)
-		return mustToWasmMemoryOptionalNil(instanceContext)
+		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	// Note the encoding contains all the latest Core_version fields as defined in
@@ -980,15 +1000,16 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 		return 0
 	}
 
-	out, err := toWasmMemoryOptional(instanceContext, encodedData)
-	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		return 0
-	}
+	option = &encodedData
 
-	return uint64(out)
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }
 
+/*
 //export ext_default_child_storage_read_version_1
 func ext_default_child_storage_read_version_1(ctx context.Context, m api.Module,
 	childStorageKey, key, valueOut uint64, offset uint32) uint64 {
