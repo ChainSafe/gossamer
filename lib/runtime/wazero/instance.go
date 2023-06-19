@@ -232,69 +232,43 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_hashing_twox_64_version_1).
 		Export("ext_hashing_twox_64_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, b int64) {
-			return
-		}).
+		WithFunc(ext_offchain_index_set_version_1).
 		Export("ext_offchain_index_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64) {
-			return
-		}).
+		WithFunc(ext_offchain_local_storage_clear_version_1).
 		Export("ext_offchain_local_storage_clear_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int32 {
-			return 0
-		}).
+		WithFunc(ext_offchain_is_validator_version_1).
 		Export("ext_offchain_is_validator_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(_ int32, _ int64, _ int64, _ int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_offchain_local_storage_compare_and_set_version_1).
 		Export("ext_offchain_local_storage_compare_and_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(_ int32, _ int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_offchain_local_storage_get_version_1).
 		Export("ext_offchain_local_storage_get_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(_ int32, _ int64, _ int64) {
-			return
-		}).
+		WithFunc(ext_offchain_local_storage_set_version_1).
 		Export("ext_offchain_local_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int64 {
-			return 0
-		}).
+		WithFunc(ext_offchain_network_state_version_1).
 		Export("ext_offchain_network_state_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int32 {
-			return 0
-		}).
+		WithFunc(ext_offchain_random_seed_version_1).
 		Export("ext_offchain_random_seed_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_offchain_submit_transaction_version_1).
 		Export("ext_offchain_submit_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int64 {
-			return 0
-		}).
+		WithFunc(ext_offchain_timestamp_version_1).
 		Export("ext_offchain_timestamp_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(int64) {
-			return
-		}).
+		WithFunc(ext_offchain_sleep_until_version_1).
 		Export("ext_offchain_sleep_until_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64, c int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_offchain_http_request_start_version_1).
 		Export("ext_offchain_http_request_start_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32, _ int64, c int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_offchain_http_request_add_header_version_1).
 		Export("ext_offchain_http_request_add_header_version_1").
 		NewFunctionBuilder().
 		WithFunc(func(a int64, _ int64) {
