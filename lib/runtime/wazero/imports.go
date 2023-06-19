@@ -2,9 +2,12 @@ package wazero_runtime
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"reflect"
+	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -1481,41 +1485,44 @@ func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan u
 	return ptr
 }
 
-/*
 func ext_offchain_index_set_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	storageKey := read(m, keySpan)
 	newValue := read(m, valueSpan)
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
-	err := runtimeCtx.NodeStorage.BaseDB.Put(storageKey, cp)
+	err := rtCtx.NodeStorage.BaseDB.Put(storageKey, cp)
 	if err != nil {
 		logger.Errorf("failed to set value in raw storage: %s", err)
 	}
 }
 
-
 func ext_offchain_local_storage_clear_version_1(ctx context.Context, m api.Module, kind uint32, key uint64) {
-	logger.Trace("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	storageKey := read(m, key)
 
-	memory := instanceContext.Memory().Data()
-	kindInt := binary.LittleEndian.Uint32(memory[kind : kind+4])
+	kindBytes, ok := m.Memory().Read(kind, 4)
+	if !ok {
+		panic("read overflow")
+	}
+	kindInt := binary.LittleEndian.Uint32(kindBytes)
 
 	var err error
 
 	switch runtime.NodeStorageType(kindInt) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Del(storageKey)
+		err = rtCtx.NodeStorage.PersistentStorage.Del(storageKey)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Del(storageKey)
+		err = rtCtx.NodeStorage.LocalStorage.Del(storageKey)
 	}
 
 	if err != nil {
@@ -1523,25 +1530,23 @@ func ext_offchain_local_storage_clear_version_1(ctx context.Context, m api.Modul
 	}
 }
 
-
 func ext_offchain_is_validator_version_1(ctx context.Context, m api.Module) uint32 {
-	logger.Debug("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	if runtimeCtx.Validator {
+	if rtCtx.Validator {
 		return 1
 	}
 	return 0
 }
 
-
-func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m api.Module,
-	kind uint32, key, oldValue, newValue uint64) (newValueSet uint32) {
-	logger.Debug("executing...")
-
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m api.Module, kind uint32, key, oldValue, newValue uint64) (newValueSet uint32) {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	storageKey := read(m, key)
 
@@ -1550,9 +1555,9 @@ func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m
 
 	switch runtime.NodeStorageType(kind) {
 	case runtime.NodeStorageTypePersistent:
-		storedValue, err = runtimeCtx.NodeStorage.PersistentStorage.Get(storageKey)
+		storedValue, err = rtCtx.NodeStorage.PersistentStorage.Get(storageKey)
 	case runtime.NodeStorageTypeLocal:
-		storedValue, err = runtimeCtx.NodeStorage.LocalStorage.Get(storageKey)
+		storedValue, err = rtCtx.NodeStorage.LocalStorage.Get(storageKey)
 	}
 
 	if err != nil {
@@ -1565,7 +1570,7 @@ func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m
 	if reflect.DeepEqual(storedValue, oldVal) {
 		cp := make([]byte, len(newVal))
 		copy(cp, newVal)
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
+		err = rtCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 		if err != nil {
 			logger.Errorf("failed to set value in storage: %s", err)
 			return 0
@@ -1575,12 +1580,12 @@ func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m
 	return 1
 }
 
-
 func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module, kind uint32, key uint64) uint64 {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	storageKey := read(m, key)
 
 	var res []byte
@@ -1588,29 +1593,28 @@ func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module,
 
 	switch runtime.NodeStorageType(kind) {
 	case runtime.NodeStorageTypePersistent:
-		res, err = runtimeCtx.NodeStorage.PersistentStorage.Get(storageKey)
+		res, err = rtCtx.NodeStorage.PersistentStorage.Get(storageKey)
 	case runtime.NodeStorageTypeLocal:
-		res, err = runtimeCtx.NodeStorage.LocalStorage.Get(storageKey)
+		res, err = rtCtx.NodeStorage.LocalStorage.Get(storageKey)
 	}
 
 	if err != nil {
 		logger.Errorf("failed to get value from storage: %s", err)
 	}
-	// allocate memory for value and copy value to memory
-	ptr, err := toWasmMemoryOptional(instanceContext, res)
+
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&res))
 	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		panic(err)
 	}
-	return uint64(ptr)
+	return ret
 }
 
-
 func ext_offchain_local_storage_set_version_1(ctx context.Context, m api.Module, kind uint32, key, value uint64) {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	storageKey := read(m, key)
 	newValue := read(m, value)
 	cp := make([]byte, len(newValue))
@@ -1619,9 +1623,9 @@ func ext_offchain_local_storage_set_version_1(ctx context.Context, m api.Module,
 	var err error
 	switch runtime.NodeStorageType(kind) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
+		err = rtCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
+		err = rtCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 	}
 
 	if err != nil {
@@ -1629,85 +1633,93 @@ func ext_offchain_local_storage_set_version_1(ctx context.Context, m api.Module,
 	}
 }
 
-
 func ext_offchain_network_state_version_1(ctx context.Context, m api.Module) uint64 {
-	logger.Debug("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	if runtimeCtx.Network == nil {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	if rtCtx.Network == nil {
 		return 0
 	}
 
-	nsEnc, err := scale.Marshal(runtimeCtx.Network.NetworkState())
+	// expected to return Result<OpaqueNetworkState, ()
+
+	nsEnc, err := scale.Marshal(rtCtx.Network.NetworkState())
 	if err != nil {
 		logger.Errorf("failed at encoding network state: %s", err)
 		return 0
 	}
 
-	// allocate memory for value and copy value to memory
-	ptr, err := toWasmMemorySized(instanceContext, nsEnc)
+	ret, err := write(m, rtCtx.Allocator, nsEnc)
 	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		panic(err)
 	}
-
-	return uint64(ptr)
+	return ret
 }
 
-
 func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint32 {
-	logger.Debug("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	seed := make([]byte, 32)
 	_, err := rand.Read(seed) //nolint:staticcheck
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
-	ptr, err := toWasmMemorySized(instanceContext, seed)
+
+	ret, err := write(m, rtCtx.Allocator, seed)
 	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
+		panic(err)
 	}
-	return uint32(ptr)
+	ptr, _ := splitPointerSize(ret)
+	return ptr
 }
 
-
 func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 {
-	logger.Debug("executing...")
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
-	instanceContext := wasm.IntoInstanceContext(context)
 	extBytes := read(m, data)
 
 	var extrinsic []byte
 	err := scale.Unmarshal(extBytes, &extrinsic)
 	if err != nil {
 		logger.Errorf("failed to decode extrinsic data: %s", err)
+		// Error case
+		ret, err := write(m, rtCtx.Allocator, []byte{1})
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	// validate the transaction
 	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
 	vtx := transaction.NewValidTransaction(extrinsic, txv)
 
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	runtimeCtx.Transaction.AddToPool(vtx)
+	rtCtx.Transaction.AddToPool(vtx)
 
-	ptr, err := toWasmMemoryOptionalNil(instanceContext)
+	// OK case
+	ret, err := write(m, rtCtx.Allocator, []byte{0})
 	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
+		panic(err)
 	}
-	return ptr
+	return ret
 }
 
-
-func ext_offchain_timestamp_version_1(_ unsafe.Pointer) uint64 {
+func ext_offchain_timestamp_version_1(ctx context.Context, m api.Module) uint64 {
 	logger.Trace("executing...")
 
 	now := time.Now().Unix()
 	return uint64(now)
 }
 
-
-func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline uint64) {
+func ext_offchain_sleep_until_version_1(ctx context.Context, m api.Module, deadline uint64) {
 	logger.Trace("executing...")
 
 	dur := time.Until(time.UnixMilli(int64(deadline)))
@@ -1716,20 +1728,18 @@ func ext_offchain_sleep_until_version_1(_ unsafe.Pointer, deadline uint64) {
 	}
 }
 
-
-func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module,
-	methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) {
-	logger.Debug("executing...")
-
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
+func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	httpMethod := read(m, methodSpan)
 	uri := read(m, uriSpan)
 
 	result := scale.NewResult(int16(0), nil)
 
-	reqID, err := runtimeCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
+	reqID, err := rtCtx.OffchainHTTPSet.StartRequest(string(httpMethod), string(uri))
 	if err != nil {
 		// StartRequest error already was logged
 		logger.Errorf("failed to start request: %s", err)
@@ -1750,26 +1760,25 @@ func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module
 		return uint64(0)
 	}
 
-	ptr, err := toWasmMemory(instanceContext, enc)
+	ptr, err := write(m, rtCtx.Allocator, enc)
 	if err != nil {
 		logger.Errorf("failed to allocate result on memory: %s", err)
 		return uint64(0)
 	}
 
-	return uint64(ptr)
+	return ptr
 }
 
-
-func ext_offchain_http_request_add_header_version_1(ctx context.Context, m api.Module,
-	reqID uint32, nameSpan, valueSpan uint64) (pointerSize uint64) {
-	logger.Debug("executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+func ext_offchain_http_request_add_header_version_1(ctx context.Context, m api.Module, reqID uint32, nameSpan, valueSpan uint64) (pointerSize uint64) {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
 
 	name := read(m, nameSpan)
 	value := read(m, valueSpan)
 
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	offchainReq := runtimeCtx.OffchainHTTPSet.Get(int16(reqID))
+	offchainReq := rtCtx.OffchainHTTPSet.Get(int16(reqID))
 
 	result := scale.NewResult(nil, nil)
 	resultMode := scale.OK
@@ -1792,16 +1801,16 @@ func ext_offchain_http_request_add_header_version_1(ctx context.Context, m api.M
 		return uint64(0)
 	}
 
-	ptr, err := toWasmMemory(instanceContext, enc)
+	ptr, err := write(m, rtCtx.Allocator, enc)
 	if err != nil {
 		logger.Errorf("failed to allocate result on memory: %s", err)
 		return uint64(0)
 	}
 
-	return uint64(ptr)
+	return ptr
 }
 
-
+/*
 func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
 	logger.Trace("executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
