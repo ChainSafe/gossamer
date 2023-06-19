@@ -59,7 +59,7 @@ func TestStatement(t *testing.T) {
 		{
 			name:          "Seconded",
 			enumValue:     secondedEnumValue,
-			encodingValue: common.MustHexToBytes(expectedHex["statementSeconded"]),
+			encodingValue: common.MustHexToBytes(expectedSDMHex["statementSeconded"]),
 			// expected Hex stored in statement_distribution_message.yaml
 		},
 		{

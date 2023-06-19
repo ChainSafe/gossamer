@@ -12,12 +12,12 @@ import (
 )
 
 //go:embed testdata/statement_distribution_message.yaml
-var expectedHexRaw string
+var expectedSDMHexRaw string
 
-var expectedHex map[string]string
+var expectedSDMHex map[string]string
 
 func init() {
-	err := yaml.Unmarshal([]byte(expectedHexRaw), &expectedHex)
+	err := yaml.Unmarshal([]byte(expectedSDMHexRaw), &expectedSDMHex)
 	if err != nil {
 		fmt.Printf("Error unmarshaling test data: %s\n", err)
 		return
@@ -166,17 +166,17 @@ func TestStatementDistributionMessage(t *testing.T) {
 		{
 			name:          "SignedFullStatement with valid statement",
 			enumValue:     signedFullStatementWithValid,
-			encodingValue: common.MustHexToBytes(expectedHex["sfsValid"]),
+			encodingValue: common.MustHexToBytes(expectedSDMHex["sfsValid"]),
 		},
 		{
 			name:          "SignedFullStatement with Seconded statement",
 			enumValue:     signedFullStatementWithSeconded,
-			encodingValue: common.MustHexToBytes(expectedHex["sfsSeconded"]),
+			encodingValue: common.MustHexToBytes(expectedSDMHex["sfsSeconded"]),
 		},
 		{
 			name:          "Seconded Statement With LargePayload",
 			enumValue:     secondedStatementWithLargePayload,
-			encodingValue: common.MustHexToBytes(expectedHex["statementWithLargePayload"]),
+			encodingValue: common.MustHexToBytes(expectedSDMHex["statementWithLargePayload"]),
 		},
 	}
 
