@@ -10,7 +10,7 @@ import (
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
 type StatementDistributionMessage scale.VaryingDataType
 
-// NewStatement returns a new Statement VaryingDataType
+// NewStatementDistributionMessage returns a new StatementDistributionMessage VaryingDataType
 func NewStatementDistributionMessage() StatementDistributionMessage {
 	vdt := scale.MustNewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
 	return StatementDistributionMessage(vdt)
