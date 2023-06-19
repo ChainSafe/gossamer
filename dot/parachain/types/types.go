@@ -244,6 +244,10 @@ type CandidateCommitments struct {
 // SessionIndex is a session index.
 type SessionIndex uint32
 
+func (si SessionIndex) Bytes() []byte {
+	return common.UintToBytes(uint(si))
+}
+
 // CommittedCandidateReceipt A candidate-receipt with commitments directly included.
 type CommittedCandidateReceipt struct {
 	// The candidate descriptor.
@@ -321,6 +325,25 @@ type CandidateReceipt struct {
 	Descriptor CandidateDescriptor `scale:"1"`
 	// The candidate event.
 	CommitmentsHash common.Hash `scale:"2"`
+}
+
+// Encode returns the SCALE encoding of the receipt.
+func (cr CandidateReceipt) Encode() ([]byte, error) {
+	enc, err := scale.Marshal(cr)
+	if err != nil {
+		return nil, fmt.Errorf("encode candidate receipt: %w", err)
+	}
+
+	return enc, nil
+}
+
+// Hash computes the blake2-256 hash of the receipt.
+func (cr CandidateReceipt) Hash() (common.Hash, error) {
+	enc, err := cr.Encode()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.Blake2bHash(enc)
 }
 
 // HeadData Parachain head data included in the chain.
