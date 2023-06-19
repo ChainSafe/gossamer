@@ -7,9 +7,10 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// A statement, where the candidate receipt is included in the `Seconded` variant.
+// Statement is a result of candidate validation. It could be either `Valid` or `Seconded`.
 type Statement scale.VaryingDataType
 
+// NewStatement returns a new Statement VaryingDataType
 func NewStatement() Statement {
 	vdt := scale.MustNewVaryingDataType(Seconded{}, Valid{})
 	return Statement(vdt)
@@ -33,21 +34,23 @@ func (s *Statement) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
-// A statement that a validator seconds a candidate.
+// Seconded represents a statement that a validator seconds a candidate.
 type Seconded CommittedCandidateReceipt
 
+// Index returns the VaryingDataType Index
 func (s Seconded) Index() uint {
 	return 1
 }
 
-// A statement that a validator has deemed a candidate valid.
+// Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
+// Index returns the VaryingDataType Index
 func (v Valid) Index() uint {
 	return 2
 }
 
-// This type makes it easy to enforce that a hash is a candidate hash on the type level.
+// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
 type CandidateHash struct {
 	Value common.Hash `scale:"1"`
 }
