@@ -5,18 +5,21 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Network messages used by the collator protocol subsystem
+// CollatorProtocolMessage represents Network messages used by the collator protocol subsystem
 type CollatorProtocolMessage scale.VaryingDataType
 
+// Index returns the VaryingDataType Index
 func (c CollatorProtocolMessage) Index() uint {
 	return 0
 }
 
+// NewCollatorProtocolMessage returns a new CollatorProtocolMessage VaryingDataType
 func NewCollatorProtocolMessage() CollatorProtocolMessage {
 	vdt := scale.MustNewVaryingDataType(Declare{}, AdvertiseCollation{}, CollationSeconded{})
 	return CollatorProtocolMessage(vdt)
 }
 
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (c *CollatorProtocolMessage) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*c)
 	err = vdt.Set(val)
@@ -27,6 +30,7 @@ func (c *CollatorProtocolMessage) Set(val scale.VaryingDataTypeValue) (err error
 	return
 }
 
+// Value returns the value from the underlying VaryingDataType
 func (c *CollatorProtocolMessage) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*c)
 	return vdt.Value()
@@ -40,24 +44,27 @@ type Declare struct {
 	CollatorSignature CollatorSignature `scale:"3"`
 }
 
+// Index returns the VaryingDataType Index
 func (d Declare) Index() uint {
 	return 0
 }
 
-// Advertise a collation to a validator. Can only be sent once the peer has
-// declared that they are a collator with given ID.
+// AdvertiseCollation used to Advertise a collation to a validator. 
+// Can only be sent once the peer has declared that they are a collator with given ID.
 type AdvertiseCollation common.Hash
 
+// Index returns the VaryingDataType Index
 func (a AdvertiseCollation) Index() uint {
 	return 1
 }
 
-// A collation sent to a validator was seconded.
+// CollationSeconded represents a collation sent to a validator was seconded.
 type CollationSeconded struct {
 	Hash                         common.Hash                  `scale:"1"`
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
+// Index returns the VaryingDataType Index
 func (c CollationSeconded) Index() uint {
 	return 4
 }
