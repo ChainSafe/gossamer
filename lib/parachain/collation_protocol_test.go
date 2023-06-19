@@ -1,12 +1,28 @@
 package parachain
 
 import (
+	_ "embed"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
+
+//go:embed testdata/collation_protocol.yaml
+var expectedCollationProtocolHexRaw string
+
+var expectedCollationProtocolHex map[string]string
+
+func init() {
+	err := yaml.Unmarshal([]byte(expectedCollationProtocolHexRaw), &expectedCollationProtocolHex)
+	if err != nil {
+		fmt.Println("Error unmarshaling test data:", err)
+		return
+	}
+}
 
 func TestCollationProtocol(t *testing.T) {
 	t.Parallel()
@@ -62,7 +78,7 @@ func TestCollationProtocol(t *testing.T) {
 				ParaId:            uint32(5),
 				CollatorSignature: collatorSignature,
 			},
-			encodingValue: common.MustHexToBytes("0x000048215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b14705000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
+			encodingValue: common.MustHexToBytes(expectedCollationProtocolHex["declare"]),
 		},
 		{
 			name:          "AdvertiseCollation",
@@ -79,7 +95,7 @@ func TestCollationProtocol(t *testing.T) {
 					Signature:      validatorSignature,
 				},
 			},
-			encodingValue: common.MustHexToBytes("0x000405050505050505050505050505050505050505050505050505050505050505050101000000050505050505050505050505050505050505050505050505050505050505050548215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b8605050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505040c01020300010c0102030c010203050000000000000005000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
+			encodingValue: common.MustHexToBytes(expectedCollationProtocolHex["collationSeconded"]),
 		},
 	}
 

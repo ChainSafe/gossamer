@@ -49,8 +49,8 @@ func (d Declare) Index() uint {
 	return 0
 }
 
-// AdvertiseCollation used to Advertise a collation to a validator. 
-// Can only be sent once the peer has declared that they are a collator with given ID.
+// AdvertiseCollation used to Advertise a collation to a validator
+// Can only be sent once the peer has declared that they are a collator with given ID
 type AdvertiseCollation common.Hash
 
 // Index returns the VaryingDataType Index
