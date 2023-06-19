@@ -1496,6 +1496,442 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 	}
 }
 
+func Test_ext_storage_clear_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	inst.Context.Storage.Put(testkey, []byte{1})
+
+	enc, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_clear_version_1", enc)
+	require.NoError(t, err)
+
+	val := inst.Context.Storage.Get(testkey)
+	require.Nil(t, val)
+}
+
+func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("static")
+	inst.Context.Storage.Put(testkey, []byte("Inverse"))
+
+	testkey2 := []byte("even-keeled")
+	inst.Context.Storage.Put(testkey2, []byte("Future-proofed"))
+
+	enc, err := scale.Marshal(testkey[:3])
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
+	require.NoError(t, err)
+
+	val := inst.Context.Storage.Get(testkey)
+	require.Nil(t, val)
+
+	val = inst.Context.Storage.Get(testkey2)
+	require.NotNil(t, val)
+}
+
+func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	inst.Context.Storage.Put(testkey, []byte{1})
+
+	testkey2 := []byte("spaghet")
+	inst.Context.Storage.Put(testkey2, []byte{2})
+
+	enc, err := scale.Marshal(testkey[:3])
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
+	require.NoError(t, err)
+
+	val := inst.Context.Storage.Get(testkey)
+	require.Nil(t, val)
+
+	val = inst.Context.Storage.Get(testkey2)
+	require.NotNil(t, val)
+}
+
+func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	inst.Context.Storage.Put(testkey, []byte{1})
+
+	testkey2 := []byte("noot1")
+	inst.Context.Storage.Put(testkey2, []byte{1})
+
+	testkey3 := []byte("noot2")
+	inst.Context.Storage.Put(testkey3, []byte{1})
+
+	testkey4 := []byte("noot3")
+	inst.Context.Storage.Put(testkey4, []byte{1})
+
+	testkey5 := []byte("spaghet")
+	testValue5 := []byte{2}
+	inst.Context.Storage.Put(testkey5, testValue5)
+
+	enc, err := scale.Marshal(testkey[:3])
+	require.NoError(t, err)
+
+	testLimit := uint32(2)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLimit, err := scale.Marshal(&testLimitBytes)
+	require.NoError(t, err)
+
+	// clearing prefix for "noo" prefix with limit 2
+	encValue, err := inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
+	require.NoError(t, err)
+
+	var decVal []byte
+	scale.Unmarshal(encValue, &decVal)
+
+	var numDeleted uint32
+	// numDeleted represents no. of actual keys deleted
+	scale.Unmarshal(decVal[1:], &numDeleted)
+	require.Equal(t, uint32(2), numDeleted)
+
+	var expectedAllDeleted byte
+	// expectedAllDeleted value 0 represents all keys deleted, 1 represents keys are pending with prefix in trie
+	expectedAllDeleted = 1
+	require.Equal(t, expectedAllDeleted, decVal[0])
+
+	val := inst.Context.Storage.Get(testkey)
+	require.NotNil(t, val)
+
+	val = inst.Context.Storage.Get(testkey5)
+	require.NotNil(t, val)
+	require.Equal(t, testValue5, val)
+
+	// clearing prefix again for "noo" prefix with limit 2
+	encValue, err = inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
+	require.NoError(t, err)
+
+	scale.Unmarshal(encValue, &decVal)
+	scale.Unmarshal(decVal[1:], &numDeleted)
+	require.Equal(t, uint32(2), numDeleted)
+
+	expectedAllDeleted = 0
+	require.Equal(t, expectedAllDeleted, decVal[0])
+
+	val = inst.Context.Storage.Get(testkey)
+	require.Nil(t, val)
+
+	val = inst.Context.Storage.Get(testkey5)
+	require.NotNil(t, val)
+	require.Equal(t, testValue5, val)
+}
+
+func Test_ext_storage_get_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte{1, 2}
+	inst.Context.Storage.Put(testkey, testvalue)
+
+	enc, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_get_version_1", enc)
+	require.NoError(t, err)
+
+	var value *[]byte
+	err = scale.Unmarshal(ret, &value)
+	require.NoError(t, err)
+	require.NotNil(t, value)
+	require.Equal(t, testvalue, *value)
+}
+
+func Test_ext_storage_exists_version_1(t *testing.T) {
+	testCases := map[string]struct {
+		key    []byte
+		value  []byte // leave to nil to not insert pair
+		result byte
+	}{
+		"value_does_not_exist": {
+			key:    []byte{1},
+			result: 0,
+		},
+		"empty_value_exists": {
+			key:    []byte{1},
+			value:  []byte{},
+			result: 1,
+		},
+		"value_exist": {
+			key:    []byte{1},
+			value:  []byte{2},
+			result: 1,
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+			if testCase.value != nil {
+				instance.Context.Storage.Put(testCase.key, testCase.value)
+			}
+
+			encodedKey, err := scale.Marshal(testCase.key)
+			require.NoError(t, err)
+
+			encodedResult, err := instance.Exec("rtm_ext_storage_exists_version_1", encodedKey)
+			require.NoError(t, err)
+
+			var result byte
+			err = scale.Unmarshal(encodedResult, &result)
+			require.NoError(t, err)
+
+			require.Equal(t, testCase.result, result)
+		})
+	}
+}
+
+func Test_ext_storage_next_key_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	inst.Context.Storage.Put(testkey, []byte{1})
+
+	nextkey := []byte("oot")
+	inst.Context.Storage.Put(nextkey, []byte{1})
+
+	enc, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_next_key_version_1", enc)
+	require.NoError(t, err)
+
+	var next *[]byte
+	err = scale.Unmarshal(ret, &next)
+	require.NoError(t, err)
+	require.NotNil(t, next)
+	require.Equal(t, nextkey, *next)
+}
+
+func Test_ext_storage_read_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("washere")
+	inst.Context.Storage.Put(testkey, testvalue)
+
+	testoffset := uint32(2)
+	testBufferSize := uint32(100)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+	encOffset, err := scale.Marshal(testoffset)
+	require.NoError(t, err)
+	encBufferSize, err := scale.Marshal(testBufferSize)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+	val := *read
+	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
+}
+
+func Test_ext_storage_read_version_1_again(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("_was_here_")
+	inst.Context.Storage.Put(testkey, testvalue)
+
+	testoffset := uint32(8)
+	testBufferSize := uint32(5)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+	encOffset, err := scale.Marshal(testoffset)
+	require.NoError(t, err)
+	encBufferSize, err := scale.Marshal(testBufferSize)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+
+	val := *read
+	require.Equal(t, len(testvalue)-int(testoffset), len(val))
+	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
+}
+
+func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("washere")
+	inst.Context.Storage.Put(testkey, testvalue)
+
+	testoffset := uint32(len(testvalue))
+	testBufferSize := uint32(8)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+	encOffset, err := scale.Marshal(testoffset)
+	require.NoError(t, err)
+	encBufferSize, err := scale.Marshal(testBufferSize)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
+	require.NoError(t, err)
+
+	var read *[]byte
+	err = scale.Unmarshal(ret, &read)
+	require.NoError(t, err)
+	require.NotNil(t, read)
+	val := *read
+	require.Equal(t, []byte{}, val)
+}
+
+func Test_ext_storage_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	ret, err := inst.Exec("rtm_ext_storage_root_version_1", []byte{})
+	require.NoError(t, err)
+
+	var hash []byte
+	err = scale.Unmarshal(ret, &hash)
+	require.NoError(t, err)
+
+	expected := trie.EmptyHash
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_storage_set_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("washere")
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+	encValue, err := scale.Marshal(testvalue)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
+	require.NoError(t, err)
+
+	val := inst.Context.Storage.Get(testkey)
+	require.Equal(t, testvalue, val)
+}
+
+func Test_ext_storage_append_version_1(t *testing.T) {
+	t.Parallel()
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("was")
+	testvalueAppend := []byte("here")
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+	encVal, err := scale.Marshal(testvalue)
+	require.NoError(t, err)
+	doubleEncVal, err := scale.Marshal(encVal)
+	require.NoError(t, err)
+
+	encArr, err := scale.Marshal([][]byte{testvalue})
+	require.NoError(t, err)
+
+	// place SCALE encoded value in storage
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
+	require.NoError(t, err)
+
+	val := inst.Context.Storage.Get(testkey)
+	require.Equal(t, encArr, val)
+
+	encValueAppend, err := scale.Marshal(testvalueAppend)
+	require.NoError(t, err)
+	doubleEncValueAppend, err := scale.Marshal(encValueAppend)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
+	require.NoError(t, err)
+
+	ret := inst.Context.Storage.Get(testkey)
+	require.NotNil(t, ret)
+
+	var res [][]byte
+	err = scale.Unmarshal(ret, &res)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(res))
+	require.Equal(t, testvalue, res[0])
+	require.Equal(t, testvalueAppend, res[1])
+
+	expected, err := scale.Marshal([][]byte{testvalue, testvalueAppend})
+	require.NoError(t, err)
+	require.Equal(t, expected, ret)
+}
+
+func Test_ext_storage_append_version_1_again(t *testing.T) {
+	t.Parallel()
+	DefaultTestLogLvl = 5
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("abc")
+	testvalueAppend := []byte("def")
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+	encVal, err := scale.Marshal(testvalue)
+	require.NoError(t, err)
+	doubleEncVal, err := scale.Marshal(encVal)
+	require.NoError(t, err)
+
+	encArr, err := scale.Marshal([][]byte{testvalue})
+	require.NoError(t, err)
+
+	// place SCALE encoded value in storage
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
+	require.NoError(t, err)
+
+	val := inst.Context.Storage.Get(testkey)
+	require.Equal(t, encArr, val)
+
+	encValueAppend, err := scale.Marshal(testvalueAppend)
+	require.NoError(t, err)
+	doubleEncValueAppend, err := scale.Marshal(encValueAppend)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
+	require.NoError(t, err)
+
+	ret := inst.Context.Storage.Get(testkey)
+	require.NotNil(t, ret)
+
+	var res [][]byte
+	err = scale.Unmarshal(ret, &res)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(res))
+	require.Equal(t, testvalue, res[0])
+	require.Equal(t, testvalueAppend, res[1])
+
+	expected, err := scale.Marshal([][]byte{testvalue, testvalueAppend})
+	require.NoError(t, err)
+	require.Equal(t, expected, ret)
+}
+
 func TestWestendInstance(t *testing.T) {
 	NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 }
