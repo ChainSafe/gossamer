@@ -271,79 +271,49 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_offchain_http_request_add_header_version_1).
 		Export("ext_offchain_http_request_add_header_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64) {
-			return
-		}).
+		WithFunc(ext_storage_append_version_1).
 		Export("ext_storage_append_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64) {
-			return
-		}).
+		WithFunc(ext_storage_changes_root_version_1).
 		Export("ext_storage_changes_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) {
-			return
-		}).
+		WithFunc(ext_storage_clear_version_1).
 		Export("ext_storage_clear_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) {
-			return
-		}).
+		WithFunc(ext_storage_clear_prefix_version_1).
 		Export("ext_storage_clear_prefix_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_storage_clear_prefix_version_2).
 		Export("ext_storage_clear_prefix_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int32 {
-			return 0
-		}).
+		WithFunc(ext_storage_exists_version_1).
 		Export("ext_storage_exists_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_storage_get_version_1).
 		Export("ext_storage_get_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64) int64 {
-			return 0
-		}).
+		WithFunc(ext_storage_next_key_version_1).
 		Export("ext_storage_next_key_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64, _ int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_storage_read_version_1).
 		Export("ext_storage_read_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() int64 {
-			return 0
-		}).
+		WithFunc(ext_storage_root_version_1).
 		Export("ext_storage_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(func(a int32) int64 {
-			return 0
-		}).
+		WithFunc(ext_storage_root_version_2).
 		Export("ext_storage_root_version_2").
 		NewFunctionBuilder().
-		WithFunc(func(a int64, _ int64) {
-			return
-		}).
+		WithFunc(ext_storage_set_version_1).
 		Export("ext_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() {
-			return
-		}).
+		WithFunc(ext_storage_start_transaction_version_1).
 		Export("ext_storage_start_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() {
-			return
-		}).
+		WithFunc(ext_storage_rollback_transaction_version_1).
 		Export("ext_storage_rollback_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(func() {
-			return
-		}).
+		WithFunc(ext_storage_commit_transaction_version_1).
 		Export("ext_storage_commit_transaction_version_1").
 		Instantiate(ctx)
 
