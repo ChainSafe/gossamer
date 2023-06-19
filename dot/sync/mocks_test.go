@@ -610,21 +610,6 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 	return m.recorder
 }
 
-// DoBlockRequest mocks base method.
-func (m *MockNetwork) DoBlockRequest(arg0 peer.ID, arg1 *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoBlockRequest", arg0, arg1)
-	ret0, _ := ret[0].(*network.BlockResponseMessage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DoBlockRequest indicates an expected call of DoBlockRequest.
-func (mr *MockNetworkMockRecorder) DoBlockRequest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoBlockRequest", reflect.TypeOf((*MockNetwork)(nil).DoBlockRequest), arg0, arg1)
-}
-
 // GetRequestResponseProtocol mocks base method.
 func (m *MockNetwork) GetRequestResponseProtocol(arg0 string, arg1 time.Duration, arg2 uint64) *network.RequestResponseProtocol {
 	m.ctrl.T.Helper()

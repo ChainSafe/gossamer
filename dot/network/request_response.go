@@ -6,6 +6,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -20,6 +21,8 @@ type RequestResponseProtocol struct {
 	requestTimeout  time.Duration
 	maxResponseSize uint64
 	protocolID      protocol.ID
+	responseBufMu   sync.Mutex
+	responseBuf     []byte
 }
 
 func (rrp *RequestResponseProtocol) DoRequest(to peer.ID, req Message, res ResponseMessage) error {
@@ -49,7 +52,14 @@ func (rrp *RequestResponseProtocol) DoRequest(to peer.ID, req Message, res Respo
 }
 
 func (rrp *RequestResponseProtocol) ReceiveResponse(stream libp2pnetwork.Stream, msg ResponseMessage) error {
-	buf := make([]byte, rrp.maxResponseSize)
+	// allocating a new (large) buffer every time slows down receiving response by a dramatic amount,
+	// as malloc is one of the most CPU intensive tasks.
+	// thus we should allocate buffers at startup and re-use them instead of allocating new ones each time.
+	rrp.responseBufMu.Lock()
+	defer rrp.responseBufMu.Unlock()
+
+	buf := rrp.responseBuf
+
 	n, err := readStream(stream, &buf, rrp.maxResponseSize)
 	if err != nil {
 		return fmt.Errorf("read stream error: %w", err)
