@@ -82,7 +82,7 @@ func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
 
 func (*testNetwork) RegisterNotificationsProtocol(
 	_ protocol.ID,
-	_ byte,
+	_ network.MessageType,
 	_ network.HandshakeGetter,
 	_ network.HandshakeDecoder,
 	_ network.HandshakeValidator,
