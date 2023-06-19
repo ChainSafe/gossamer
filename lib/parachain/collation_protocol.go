@@ -24,4 +24,3 @@ func (c *CollationProtocol) Value() (val scale.VaryingDataTypeValue, err error) 
 	vdt := scale.VaryingDataType(*c)
 	return vdt.Value()
 }
-
