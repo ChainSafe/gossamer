@@ -6,9 +6,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -1305,6 +1307,193 @@ func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
 
 	expected := common.Sha256(data)
 	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_offchain_timestamp_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	ret, err := inst.Exec("rtm_ext_offchain_timestamp_version_1", []byte{})
+	require.NoError(t, err)
+
+	var timestamp int64
+	err = scale.Unmarshal(ret, &timestamp)
+	require.NoError(t, err)
+
+	expected := time.Now().Unix()
+	require.GreaterOrEqual(t, expected, timestamp)
+}
+
+func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	input := time.Now().UnixMilli()
+	enc, err := scale.Marshal(input)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	require.NoError(t, err)
+}
+
+func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.Context.NodeStorage.PersistentStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(1)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.Context.NodeStorage.PersistentStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
+func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("key1")
+	err := inst.Context.NodeStorage.LocalStorage.Put(testkey, []byte{1})
+	require.NoError(t, err)
+
+	kind := int32(2)
+	encKind, err := scale.Marshal(kind)
+	require.NoError(t, err)
+
+	encKey, err := scale.Marshal(testkey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_local_storage_clear_version_1", append(encKind, encKey...))
+	require.NoError(t, err)
+
+	val, err := inst.Context.NodeStorage.LocalStorage.Get(testkey)
+	require.EqualError(t, err, "Key not found")
+	require.Nil(t, val)
+}
+
+func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	encMethod, err := scale.Marshal([]byte("GET"))
+	require.NoError(t, err)
+
+	encURI, err := scale.Marshal([]byte("https://chainsafe.io"))
+	require.NoError(t, err)
+
+	var optMeta *[]byte
+	encMeta, err := scale.Marshal(optMeta)
+	require.NoError(t, err)
+
+	params := append([]byte{}, encMethod...)
+	params = append(params, encURI...)
+	params = append(params, encMeta...)
+
+	resReqID := scale.NewResult(int16(0), nil)
+
+	// start request number 0
+	ret, err := inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
+
+	requestNumber, err := resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(1), requestNumber)
+
+	// start request number 1
+	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	resReqID = scale.NewResult(int16(0), nil)
+
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
+
+	requestNumber, err = resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(2), requestNumber)
+
+	// start request number 2
+	resReqID = scale.NewResult(int16(0), nil)
+	ret, err = inst.Exec("rtm_ext_offchain_http_request_start_version_1", params)
+	require.NoError(t, err)
+
+	err = scale.Unmarshal(ret, &resReqID)
+	require.NoError(t, err)
+
+	requestNumber, err = resReqID.Unwrap()
+	require.NoError(t, err)
+	require.Equal(t, int16(3), requestNumber)
+}
+
+func Test_ext_offchain_http_request_add_header(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	cases := map[string]struct {
+		key, value  string
+		expectedErr bool
+	}{
+		"should_add_headers_without_problems": {
+			key:         "SOME_HEADER_KEY",
+			value:       "SOME_HEADER_VALUE",
+			expectedErr: false,
+		},
+
+		"should_return_a_result_error": {
+			key:         "",
+			value:       "",
+			expectedErr: true,
+		},
+	}
+
+	for tname, tcase := range cases {
+		tcase := tcase
+		t.Run(tname, func(t *testing.T) {
+			reqID, err := inst.Context.OffchainHTTPSet.StartRequest(http.MethodGet, "http://uri.example")
+			require.NoError(t, err)
+
+			encID, err := scale.Marshal(uint32(reqID))
+			require.NoError(t, err)
+
+			encHeaderKey, err := scale.Marshal(tcase.key)
+			require.NoError(t, err)
+
+			encHeaderValue, err := scale.Marshal(tcase.value)
+			require.NoError(t, err)
+
+			params := append([]byte{}, encID...)
+			params = append(params, encHeaderKey...)
+			params = append(params, encHeaderValue...)
+
+			ret, err := inst.Exec("rtm_ext_offchain_http_request_add_header_version_1", params)
+			require.NoError(t, err)
+
+			gotResult := scale.NewResult(nil, nil)
+			err = scale.Unmarshal(ret, &gotResult)
+			require.NoError(t, err)
+
+			ok, err := gotResult.Unwrap()
+			if tcase.expectedErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			offchainReq := inst.Context.OffchainHTTPSet.Get(reqID)
+			gotValue := offchainReq.Request.Header.Get(tcase.key)
+			require.Equal(t, tcase.value, gotValue)
+
+			require.Nil(t, ok)
+		})
+	}
 }
 
 func TestWestendInstance(t *testing.T) {
