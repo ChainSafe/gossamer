@@ -7,9 +7,10 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Network messages used by the statement distribution subsystem.
+// StatementDistributionMessage represents network messages used by the statement distribution subsystem
 type StatementDistributionMessage scale.VaryingDataType
 
+// NewStatementDistributionMessage returns a new StatementDistributionMessage VaryingDataType
 func NewStatementDistributionMessage() StatementDistributionMessage {
 	vdt := scale.MustNewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
 	return StatementDistributionMessage(vdt)
@@ -33,12 +34,13 @@ func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, er
 	return vdt.Value()
 }
 
-// A signed full statement under a given relay-parent.
+// SignedFullStatement represents a signed full statement under a given relay-parent.
 type SignedFullStatement struct {
 	Hash                         common.Hash                  `scale:"1"`
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
+// Index returns the VaryingDataType Index
 func (s SignedFullStatement) Index() uint {
 	return 0
 }
@@ -49,11 +51,12 @@ func (s SignedFullStatement) Index() uint {
 // via request/response.
 type SecondedStatementWithLargePayload StatementMetadata
 
+// Index returns the VaryingDataType Index
 func (l SecondedStatementWithLargePayload) Index() uint {
 	return 1
 }
 
-// Variant of `SignedFullStatement` where the signature has not yet been verified.
+// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
@@ -66,7 +69,7 @@ type UncheckedSignedFullStatement struct {
 	Signature ValidatorSignature `scale:"3"`
 }
 
-// Data that makes a statement unique.
+// StatementMetadata represents the data that makes a statement unique.
 type StatementMetadata struct {
 	// Relay parent this statement is relevant under.
 	RelayParent common.Hash `scale:"1"`
@@ -81,6 +84,8 @@ type StatementMetadata struct {
 	Signature ValidatorSignature `scale:"4"`
 }
 
-// Signature with which parachain validators sign blocks.
+// ValidatorSignature represents the signature with which parachain validators sign blocks.
 type ValidatorSignature Signature
+
+// Signature represents a cryptographic signature.
 type Signature [64]byte

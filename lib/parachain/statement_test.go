@@ -27,19 +27,19 @@ func TestStatement(t *testing.T) {
 	tempSignature := common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 	copy(collatorSignature[:], tempSignature)
 
-	hash1 := getDummyHash(5)
+	hash5 := getDummyHash(5)
 
 	secondedEnumValue := Seconded{
 		Descriptor: CandidateDescriptor{
 			ParaID:                      uint32(1),
-			RelayParent:                 hash1,
+			RelayParent:                 hash5,
 			Collator:                    collatorID,
-			PersistedValidationDataHash: hash1,
-			PovHash:                     hash1,
-			ErasureRoot:                 hash1,
+			PersistedValidationDataHash: hash5,
+			PovHash:                     hash5,
+			ErasureRoot:                 hash5,
 			Signature:                   collatorSignature,
-			ParaHead:                    hash1,
-			ValidationCodeHash:          ValidationCodeHash(hash1),
+			ParaHead:                    hash5,
+			ValidationCodeHash:          ValidationCodeHash(hash5),
 		},
 		Commitments: CandidateCommitments{
 			UpwardMessages:            []UpwardMessage{{1, 2, 3}},
@@ -63,7 +63,7 @@ func TestStatement(t *testing.T) {
 		},
 		{
 			name:          "Valid",
-			enumValue:     Valid{hash1},
+			enumValue:     Valid{hash5},
 			encodingValue: []byte{2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}, //nolint:lll
 		},
 	}

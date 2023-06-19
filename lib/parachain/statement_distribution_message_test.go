@@ -22,23 +22,23 @@ func TestStatementDistributionMessage(t *testing.T) {
 	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
 	copy(collatorID[:], tempCollatID)
 
-	hash1 := getDummyHash(5)
+	hash5 := getDummyHash(5)
 
 	statementWithValid := NewStatement()
-	err := statementWithValid.Set(Valid{hash1})
+	err := statementWithValid.Set(Valid{hash5})
 	require.NoError(t, err)
 
 	secondedEnumValue := Seconded{
 		Descriptor: CandidateDescriptor{
 			ParaID:                      uint32(1),
-			RelayParent:                 hash1,
+			RelayParent:                 hash5,
 			Collator:                    collatorID,
-			PersistedValidationDataHash: hash1,
-			PovHash:                     hash1,
-			ErasureRoot:                 hash1,
+			PersistedValidationDataHash: hash5,
+			PovHash:                     hash5,
+			ErasureRoot:                 hash5,
 			Signature:                   collatorSignature,
-			ParaHead:                    hash1,
-			ValidationCodeHash:          ValidationCodeHash(hash1),
+			ParaHead:                    hash5,
+			ValidationCodeHash:          ValidationCodeHash(hash5),
 		},
 		Commitments: CandidateCommitments{
 			UpwardMessages:            []UpwardMessage{{1, 2, 3}},
@@ -55,7 +55,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	signedFullStatementWithValid := SignedFullStatement{
-		Hash: hash1,
+		Hash: hash5,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
 			Payload:        statementWithValid,
 			ValidatorIndex: ValidatorIndex(5),
@@ -64,7 +64,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	}
 
 	signedFullStatementWithSeconded := SignedFullStatement{
-		Hash: hash1,
+		Hash: hash5,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
 			Payload:        statementWithSeconded,
 			ValidatorIndex: ValidatorIndex(5),
@@ -73,8 +73,8 @@ func TestStatementDistributionMessage(t *testing.T) {
 	}
 
 	secondedStatementWithLargePayload := SecondedStatementWithLargePayload{
-		RelayParent:   hash1,
-		CandidateHash: CandidateHash{hash1},
+		RelayParent:   hash5,
+		CandidateHash: CandidateHash{hash5},
 		SignedBy:      ValidatorIndex(5),
 		Signature:     validatorSignature,
 	}
