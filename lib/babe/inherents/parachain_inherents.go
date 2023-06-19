@@ -74,13 +74,18 @@ func newValidityAttestation() validityAttestation { //skipcq
 	return validityAttestation(vdt)
 }
 
-// disputeStatement is a statement about a candidate, to be used within the dispute
+// DisputeStatement is a statement about a candidate, to be used within the dispute
 // resolution process. Statements are either in favour of the candidate's validity
 // or against it.
-type disputeStatement scale.VaryingDataType
+type DisputeStatement scale.VaryingDataType
+
+// New will enable scale to create new instance when needed
+func (d DisputeStatement) New() DisputeStatement {
+	return NewDisputeStatement()
+}
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (d *disputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
+func (d *DisputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*d)
 	err = vdt.Set(val)
@@ -88,30 +93,30 @@ func (d *disputeStatement) Set(val scale.VaryingDataTypeValue) (err error) {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*d = disputeStatement(vdt)
+	*d = DisputeStatement(vdt)
 	return nil
 }
 
 // Value will return value from underying VaryingDataType
-func (d *disputeStatement) Value() (scale.VaryingDataTypeValue, error) {
+func (d *DisputeStatement) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*d)
 	return vdt.Value()
 }
 
-// validDisputeStatementKind is a kind of statements of validity on a candidate.
-type validDisputeStatementKind scale.VaryingDataType //skipcq
+// ValidDisputeStatementKind is a kind of statements of validity on a candidate.
+type ValidDisputeStatementKind scale.VaryingDataType //skipcq
 
 // Index returns VDT index
-func (validDisputeStatementKind) Index() uint { //skipcq
+func (ValidDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
-func (validDisputeStatementKind) String() string { //skipcq
+func (ValidDisputeStatementKind) String() string { //skipcq
 	return "valid dispute statement kind"
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (v *validDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq
+func (v *ValidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*v)
 	err = vdt.Set(val)
@@ -119,25 +124,25 @@ func (v *validDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err err
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*v = validDisputeStatementKind(vdt)
+	*v = ValidDisputeStatementKind(vdt)
 	return nil
 }
 
 // Value will return value from underying VaryingDataType
-func (v *validDisputeStatementKind) Value() (scale.VaryingDataTypeValue, error) { //skipcq
+func (v *ValidDisputeStatementKind) Value() (scale.VaryingDataTypeValue, error) { //skipcq
 	vdt := scale.VaryingDataType(*v)
 	return vdt.Value()
 }
 
 // ExplicitValidDisputeStatementKind is an explicit statement issued as part of a dispute.
-type explicitValidDisputeStatementKind struct{} //skipcq
+type ExplicitValidDisputeStatementKind struct{} //skipcq
 
 // Index returns VDT index
-func (explicitValidDisputeStatementKind) Index() uint { //skipcq
+func (ExplicitValidDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
-func (explicitValidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+func (ExplicitValidDisputeStatementKind) String() string { //skipcq:SCC-U1000
 	return "explicit valid dispute statement kind"
 }
 
@@ -165,30 +170,30 @@ func (b backingValid) String() string { //skipcq:SCC-U1000
 	return fmt.Sprintf("backingValid(%s)", common.Hash(b))
 }
 
-// approvalChecking is an approval vote from the approval checking phase.
-type approvalChecking struct{} //skipcq
+// ApprovalChecking is an approval vote from the approval checking phase.
+type ApprovalChecking struct{} //skipcq
 
 // Index returns VDT index
-func (approvalChecking) Index() uint { //skipcq
+func (ApprovalChecking) Index() uint { //skipcq
 	return 3
 }
 
-func (approvalChecking) String() string { return "approval checking" }
+func (ApprovalChecking) String() string { return "approval checking" }
 
-// invalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
-type invalidDisputeStatementKind scale.VaryingDataType //skipcq
+// InvalidDisputeStatementKind is a kind of statements of invalidity on a candidate.
+type InvalidDisputeStatementKind scale.VaryingDataType //skipcq
 
 // Index returns VDT index
-func (invalidDisputeStatementKind) Index() uint { //skipcq
+func (InvalidDisputeStatementKind) Index() uint { //skipcq
 	return 1
 }
 
-func (invalidDisputeStatementKind) String() string { //skipcq
+func (InvalidDisputeStatementKind) String() string { //skipcq
 	return "invalid dispute statement kind"
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (in *invalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq
+func (in *InvalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*in)
 	err = vdt.Set(val)
@@ -196,48 +201,69 @@ func (in *invalidDisputeStatementKind) Set(val scale.VaryingDataTypeValue) (err 
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*in = invalidDisputeStatementKind(vdt)
+	*in = InvalidDisputeStatementKind(vdt)
 	return nil
 }
 
 // Value will return value from underying VaryingDataType
-func (in *invalidDisputeStatementKind) Value() (scale.VaryingDataTypeValue, error) { //skipcq
+func (in *InvalidDisputeStatementKind) Value() (scale.VaryingDataTypeValue, error) { //skipcq
 	vdt := scale.VaryingDataType(*in)
 	return vdt.Value()
 }
 
-// explicitInvalidDisputeStatementKind is an explicit statement issued as part of a dispute.
-type explicitInvalidDisputeStatementKind struct{} //skipcq
+// ExplicitInvalidDisputeStatementKind is an explicit statement issued as part of a dispute.
+type ExplicitInvalidDisputeStatementKind struct{} //skipcq
 
 // Index returns VDT index
-func (explicitInvalidDisputeStatementKind) Index() uint { //skipcq
+func (ExplicitInvalidDisputeStatementKind) Index() uint { //skipcq
 	return 0
 }
 
-func (explicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
+func (ExplicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
 	return "explicit invalid dispute statement kind"
 }
 
-// newDisputeStatement create a new DisputeStatement varying data type.
-func newDisputeStatement() disputeStatement { //skipcq
-	idsKind, err := scale.NewVaryingDataType(explicitInvalidDisputeStatementKind{})
+// NewValidDisputeStatementKind create a new DisputeStatementKind varying data type.
+func NewValidDisputeStatementKind() scale.VaryingDataType {
+	vdsKind, err := scale.NewVaryingDataType(
+		ExplicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, ApprovalChecking{})
+	if err != nil {
+		panic(err)
+	}
+
+	return vdsKind
+}
+
+// NewInvalidDisputeStatementKind create a new DisputeStatementKind varying data type.
+func NewInvalidDisputeStatementKind() scale.VaryingDataType {
+	idsKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
+	if err != nil {
+		panic(err)
+	}
+
+	return idsKind
+}
+
+// NewDisputeStatement create a new DisputeStatement varying data type.
+func NewDisputeStatement() DisputeStatement { //skipcq
+	idsKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
 	}
 
 	vdsKind, err := scale.NewVaryingDataType(
-		explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
+		ExplicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, ApprovalChecking{})
 	if err != nil {
 		panic(err)
 	}
 
 	vdt, err := scale.NewVaryingDataType(
-		validDisputeStatementKind(vdsKind), invalidDisputeStatementKind(idsKind))
+		ValidDisputeStatementKind(vdsKind), InvalidDisputeStatementKind(idsKind))
 	if err != nil {
 		panic(err)
 	}
 
-	return disputeStatement(vdt)
+	return DisputeStatement(vdt)
 }
 
 // collatorID is the collator's relay-chain account ID
@@ -358,7 +384,7 @@ func (v validatorSignature) String() string { return signature(v).String() }
 type statement struct {
 	ValidatorIndex     validatorIndex
 	ValidatorSignature validatorSignature
-	DisputeStatement   disputeStatement
+	DisputeStatement   DisputeStatement
 }
 
 // disputeStatementSet is a set of statements about a specific candidate.
