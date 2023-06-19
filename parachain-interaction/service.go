@@ -127,7 +127,7 @@ type Network interface {
 	GossipMessage(msg network.NotificationsMessage)
 	SendMessage(to peer.ID, msg network.NotificationsMessage) error
 	RegisterNotificationsProtocol(sub protocol.ID,
-		messageID byte,
+		messageID network.MessageType,
 		handshakeGetter network.HandshakeGetter,
 		handshakeDecoder network.HandshakeDecoder,
 		handshakeValidator network.HandshakeValidator,

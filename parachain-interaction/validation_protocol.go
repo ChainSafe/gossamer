@@ -19,7 +19,7 @@ type ValidationProtocolV1 struct {
 }
 
 // Type returns ValidationMsgType
-func (*ValidationProtocolV1) Type() byte {
+func (*ValidationProtocolV1) Type() network.MessageType {
 	return network.ValidationMsgType
 }
 

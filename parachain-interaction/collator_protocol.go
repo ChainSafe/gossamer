@@ -19,7 +19,7 @@ type CollationProtocolV1 struct {
 }
 
 // Type returns CollationMsgType
-func (*CollationProtocolV1) Type() byte {
+func (*CollationProtocolV1) Type() network.MessageType {
 	return network.CollationMsgType
 }
 
