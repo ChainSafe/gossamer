@@ -154,11 +154,10 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 	// that is also has the chain up until and including that block.
 	// this may not be a valid assumption, but perhaps we can assume that
 	// it is likely they will receive this block and its ancestors before us.
-	announcedBlock := announcedBlock{
+	return s.chainSync.onImportBlock(announcedBlock{
 		who:    from,
 		header: blockAnnounceHeader,
-	}
-	return s.chainSync.onImportBlock(announcedBlock)
+	})
 }
 
 // IsSynced exposes the synced state
