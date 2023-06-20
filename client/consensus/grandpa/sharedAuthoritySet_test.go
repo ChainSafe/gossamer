@@ -131,6 +131,8 @@ func TestSharedDataInner(t *testing.T) {
 	sharedData.inner.locked = false
 	sharedData.condVar.L.Unlock()
 
+	time.Sleep(1 * time.Second)
+
 	require.Equal(t, "hello world1", sharedData.inner.inner)
 
 }

@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -49,7 +48,6 @@ func NewSharedData(msg string) *SharedData {
 func (s *SharedData) SharedData() {
 	s.condVar.L.Lock()
 
-	fmt.Println("in shared data")
 	for s.inner.locked {
 		s.condVar.Wait()
 	}
@@ -57,8 +55,6 @@ func (s *SharedData) SharedData() {
 	if s.inner.locked {
 		panic("wtf")
 	}
-
-	fmt.Println("lock acquired")
 }
 
 // SharedDataLocked Acquire access to the shared data.
@@ -80,6 +76,4 @@ func (s *SharedData) SharedDataLocked() {
 		panic("wtf")
 	}
 	s.inner.locked = true
-
-	fmt.Println("lock acquired")
 }
