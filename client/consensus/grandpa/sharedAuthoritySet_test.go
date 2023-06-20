@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
@@ -12,8 +11,8 @@ import (
 )
 
 type testMutexStruct struct {
-	lock sync.Mutex
-	num  int
+	sync.Mutex
+	num int
 }
 
 type testCondVar struct {
@@ -23,15 +22,19 @@ type testCondVar struct {
 
 func TestMutex(t *testing.T) {
 	testStruct := testMutexStruct{}
-	testStruct.lock.Lock()
+	testStruct.Lock()
 
 	go func(testStruct *testMutexStruct) {
+		testStruct.Lock()
 		testStruct.num++
+		testStruct.Unlock()
 	}(&testStruct)
+
+	time.Sleep(1 * time.Second)
 
 	require.Equal(t, 0, testStruct.num)
 
-	testStruct.lock.Unlock()
+	testStruct.Unlock()
 
 	time.Sleep(1 * time.Second)
 
@@ -116,19 +119,18 @@ func TestSharedDataInner(t *testing.T) {
 	sharedData.SharedDataLocked()
 
 	go func(sharedData *SharedData) {
-		fmt.Println("in here woot")
 		sharedData.SharedData()
-		fmt.Println("done")
 		sharedData.inner.inner += "1"
+		sharedData.condVar.L.Unlock()
 	}(sharedData)
-
-	fmt.Println(sharedData.inner.inner)
 
 	time.Sleep(1 * time.Second)
 
-	sharedData.condVar.L.Unlock()
-	//sharedData.inner.locked = false
-	//sharedData.condVar.Signal()
 	require.Equal(t, "hello world", sharedData.inner.inner)
+
+	sharedData.inner.locked = false
+	sharedData.condVar.L.Unlock()
+
+	require.Equal(t, "hello world1", sharedData.inner.inner)
 
 }

@@ -49,6 +49,7 @@ func NewSharedData(msg string) *SharedData {
 func (s *SharedData) SharedData() {
 	s.condVar.L.Lock()
 
+	fmt.Println("in shared data")
 	for s.inner.locked {
 		s.condVar.Wait()
 	}
