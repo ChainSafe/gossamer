@@ -41,18 +41,18 @@ type SignedFullStatement struct {
 }
 
 // Index returns the VaryingDataType Index
-func (s SignedFullStatement) Index() uint {
+func (SignedFullStatement) Index() uint {
 	return 0
 }
 
-// Seconded statement with large payload (e.g. containing a runtime upgrade).
+// SecondedStatementWithLargePayload represents Seconded statement with large payload (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
 type SecondedStatementWithLargePayload StatementMetadata
 
 // Index returns the VaryingDataType Index
-func (l SecondedStatementWithLargePayload) Index() uint {
+func (SecondedStatementWithLargePayload) Index() uint {
 	return 1
 }
 

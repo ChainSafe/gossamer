@@ -9,7 +9,7 @@ import (
 type CollatorProtocolMessage scale.VaryingDataType
 
 // Index returns the VaryingDataType Index
-func (c CollatorProtocolMessage) Index() uint {
+func (CollatorProtocolMessage) Index() uint {
 	return 0
 }
 
@@ -45,7 +45,7 @@ type Declare struct {
 }
 
 // Index returns the VaryingDataType Index
-func (d Declare) Index() uint {
+func (Declare) Index() uint {
 	return 0
 }
 
@@ -54,7 +54,7 @@ func (d Declare) Index() uint {
 type AdvertiseCollation common.Hash
 
 // Index returns the VaryingDataType Index
-func (a AdvertiseCollation) Index() uint {
+func (AdvertiseCollation) Index() uint {
 	return 1
 }
 
@@ -65,6 +65,6 @@ type CollationSeconded struct {
 }
 
 // Index returns the VaryingDataType Index
-func (c CollationSeconded) Index() uint {
+func (CollationSeconded) Index() uint {
 	return 4
 }

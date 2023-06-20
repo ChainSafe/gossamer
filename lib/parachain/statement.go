@@ -38,7 +38,7 @@ func (s *Statement) Value() (scale.VaryingDataTypeValue, error) {
 type Seconded CommittedCandidateReceipt
 
 // Index returns the VaryingDataType Index
-func (s Seconded) Index() uint {
+func (Seconded) Index() uint {
 	return 1
 }
 
@@ -46,7 +46,7 @@ func (s Seconded) Index() uint {
 type Valid CandidateHash
 
 // Index returns the VaryingDataType Index
-func (v Valid) Index() uint {
+func (Valid) Index() uint {
 	return 2
 }
 
