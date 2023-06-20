@@ -29,7 +29,7 @@ func TestValidateBlockData(t *testing.T) {
 	cs.network = mockNetwork
 
 	req := &network.BlockRequestMessage{
-		RequestedData: bootstrapRequestData,
+		RequestedData: network.BootstrapRequestData,
 	}
 
 	err := cs.validateBlockData(req, nil, "")
@@ -58,7 +58,7 @@ func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
 	cs.blockState = bs
 
 	req := &network.BlockRequestMessage{
-		RequestedData: bootstrapRequestData,
+		RequestedData: network.BootstrapRequestData,
 	}
 
 	header := &types.Header{

@@ -332,7 +332,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	max := uint32(128)
 
 	mockedNetwork.EXPECT().DoBlockRequest(workerPeerID, &network.BlockRequestMessage{
-		RequestedData: bootstrapRequestData,
+		RequestedData: network.BootstrapRequestData,
 		StartingBlock: *startingBlock,
 		Direction:     network.Ascending,
 		Max:           &max,
