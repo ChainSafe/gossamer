@@ -1311,29 +1311,16 @@ func TestInstance_ParachainHostCandidatePendingAvailability(t *testing.T) {
 	response, err := rt.ParachainHostCandidatePendingAvailability(parachain.ParaID(1000))
 	require.NoError(t, err)
 
-	expected := &parachain.CommittedCandidateReceipt{
-		Descriptor: parachain.CandidateDescriptor{
-			ParaID:                      1000,
-			RelayParent:                 mustHexTo32BArray(t, "0xb5504a29f00279e92b26d78f1961fea0a0736cfe73c9095c30d3e14508106083"),                                                                 //nolint:all
-			Collator:                    mustHexTo32BArray(t, "0x1aa591a0575f87105ee7feed9a16f697fe2c82ce6759c12c145d429000c20251"),                                                                 //nolint:all
-			PersistedValidationDataHash: mustHexTo32BArray(t, "0xa2777204e645e33cc3c33bfe795163156f1a8efc379437c040ed8b7184e49dd5"),                                                                 //nolint:all
-			PovHash:                     mustHexTo32BArray(t, "0x20d856b61211a44f787be0fa889e056c53ed71c1cb57076c011a5f5a06763293"),                                                                 //nolint:all
-			ErasureRoot:                 mustHexTo32BArray(t, "0xd91329423a01e48b3367edfddbcc708f66fdbc083f646e6407d6d0a685403c3b"),                                                                 //nolint:all
-			Signature:                   mustHexTo64BArray(t, "0x68aa60144a3d436c639747333586d4f2ca7b434e2cf34880d510be840133df593a63398c0efa2e9cd097176df66954fe7c38634aa7fc8d55e4756210b9c6b084"), //nolint:all
-			ParaHead:                    mustHexTo32BArray(t, "0xd94221f82a5674177741aa1d30667e25217b14629aa48bf7f9676d19a90c8211"),                                                                 //nolint:all
-			ValidationCodeHash:          mustHexTo32BArray(t, "0xcafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b5145337"),                                                                 //nolint:all
-		},
-		Commitments: parachain.CandidateCommitments{
-			UpwardMessages:            nil,
-			HorizontalMessages:        nil,
-			NewValidationCode:         nil,
-			HeadData:                  common.MustHexToBytes("0xd91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e"), //nolint:all
-			ProcessedDownwardMessages: 0,
-			HrmpWatermark:             15946389,
-		},
+	expectedHash := parachainTestData.Expected["candidatePendingAvailability"]
+	if expectedHash == "" {
+		t.Fatal("could not get expected hash from test data")
 	}
 
-	require.Equal(t, expected, response)
+	b, err := scale.Marshal(*response)
+	require.NoError(t, err)
+
+	resultHex := common.BytesToHex(b)
+	require.Equal(t, expectedHash, resultHex)
 }
 
 func TestInstance_ParachainHostCandidateEvents(t *testing.T) {
