@@ -75,17 +75,17 @@ func (s *syncWorkerPool) useConnectedPeers() {
 	s.l.Lock()
 	defer s.l.Unlock()
 	for _, connectedPeer := range connectedPeers {
-		s.newPeer(connectedPeer, false)
+		s.newPeer(connectedPeer)
 	}
 }
 
 func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
 	s.l.Lock()
 	defer s.l.Unlock()
-	s.newPeer(who, true)
+	s.newPeer(who)
 }
 
-func (s *syncWorkerPool) newPeer(who peer.ID, isFromBlockAnnounce bool) {
+func (s *syncWorkerPool) newPeer(who peer.ID) {
 	if _, ok := s.ignorePeers[who]; ok {
 		return
 	}
