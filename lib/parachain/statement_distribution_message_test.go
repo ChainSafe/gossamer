@@ -1,18 +1,34 @@
 package parachain
 
 import (
+	_ "embed"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
+
+//go:embed testdata/statement_distribution_message.yaml
+var testSDMHexRaw string
+
+var testSDMHex map[string]string
+
+func init() {
+	err := yaml.Unmarshal([]byte(testSDMHexRaw), &testSDMHex)
+	if err != nil {
+		fmt.Printf("Error unmarshaling test data: %s\n", err)
+		return
+	}
+}
 
 func TestStatementDistributionMessage(t *testing.T) {
 	t.Parallel()
 
 	var collatorSignature CollatorSignature
-	tempSignature := common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
+	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature ValidatorSignature
@@ -150,17 +166,17 @@ func TestStatementDistributionMessage(t *testing.T) {
 		{
 			name:          "SignedFullStatement with valid statement",
 			enumValue:     signedFullStatementWithValid,
-			encodingValue: common.MustHexToBytes("0x00050505050505050505050505050505050505050505050505050505050505050502050505050505050505050505050505050505050505050505050505050505050505000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
+			encodingValue: common.MustHexToBytes(testSDMHex["sfsValid"]),
 		},
 		{
 			name:          "SignedFullStatement with Seconded statement",
 			enumValue:     signedFullStatementWithSeconded,
-			encodingValue: common.MustHexToBytes("0x0005050505050505050505050505050505050505050505050505050505050505050101000000050505050505050505050505050505050505050505050505050505050505050548215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b8605050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505040c01020300010c0102030c010203050000000000000005000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
+			encodingValue: common.MustHexToBytes(testSDMHex["sfsSeconded"]),
 		},
 		{
-			name:          "SecondedStatementWithLargePayload",
+			name:          "Seconded Statement With LargePayload",
 			enumValue:     secondedStatementWithLargePayload,
-			encodingValue: common.MustHexToBytes("0x010505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505000000c67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86"), //nolint:lll
+			encodingValue: common.MustHexToBytes(testSDMHex["statementWithLargePayload"]),
 		},
 	}
 
