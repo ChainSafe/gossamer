@@ -217,7 +217,7 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 	}
 }
 
-func TestSyncWorkerPool__listenForRequests_submitRequest(t *testing.T) {
+func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -231,7 +231,19 @@ func TestSyncWorkerPool__listenForRequests_submitRequest(t *testing.T) {
 	availablePeer := peer.ID("available-peer")
 	workerPool.newPeer(availablePeer)
 
-	blockRequest, mockedBlockResponse := singleBlockRequestAndResponse()
+	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
+	blockRequest := singleBlockRequest(blockHash, bootstrapRequestData)
+	mockedBlockResponse := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash: blockHash,
+				Header: &types.Header{
+					ParentHash: common.
+						MustHexToHash("0x5895897f12e1a670609929433ac7a69dcae90e0cc2d9c32c0dce0e2a5e5e614e"),
+				},
+			},
+		},
+	}
 
 	// introduce a timeout of 5s then we can test the
 	// peer status change to busy
@@ -262,14 +274,30 @@ func TestSyncWorkerPool__listenForRequests_submitRequest(t *testing.T) {
 	require.Equal(t, syncTaskResult.response, mockedBlockResponse)
 }
 
-// singleBlockRequestAndResponse creates a statical block request and response for a single block
-func singleBlockRequestAndResponse() (*network.BlockRequestMessage, *network.BlockResponseMessage) {
-	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	blockRequest := singleBlockRequest(blockHash, bootstrapRequestData)
-	mockedBlockResponse := &network.BlockResponseMessage{
+func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	networkMock := NewMockNetwork(ctrl)
+	workerPool := newSyncWorkerPool(networkMock)
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	go workerPool.listenForRequests(stopCh)
+
+	availablePeer := peer.ID("available-peer")
+	workerPool.newPeer(availablePeer)
+
+	firstRequestBlockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
+	firstBlockRequest := singleBlockRequest(firstRequestBlockHash, bootstrapRequestData)
+
+	secondRequestBlockHash := common.MustHexToHash("0x897646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
+	secondBlockRequest := singleBlockRequest(firstRequestBlockHash, bootstrapRequestData)
+
+	firstMockedBlockResponse := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
-				Hash: blockHash,
+				Hash: firstRequestBlockHash,
 				Header: &types.Header{
 					ParentHash: common.
 						MustHexToHash("0x5895897f12e1a670609929433ac7a69dcae90e0cc2d9c32c0dce0e2a5e5e614e"),
@@ -278,5 +306,54 @@ func singleBlockRequestAndResponse() (*network.BlockRequestMessage, *network.Blo
 		},
 	}
 
-	return blockRequest, mockedBlockResponse
+	secondMockedBlockResponse := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash: secondRequestBlockHash,
+				Header: &types.Header{
+					ParentHash: common.
+						MustHexToHash("0x8965897f12e1a670609929433ac7a69dcae90e0cc2d9c32c0dce0e2a5e5e614e"),
+				},
+			},
+		},
+	}
+
+	// introduce a timeout of 5s then we can test the
+	// then we can simulate a busy peer
+	networkMock.EXPECT().
+		DoBlockRequest(availablePeer, firstBlockRequest).
+		DoAndReturn(func(any, any) (any, any) {
+			time.Sleep(5 * time.Second)
+			return firstMockedBlockResponse, nil
+		})
+
+	networkMock.EXPECT().
+		DoBlockRequest(availablePeer, secondBlockRequest).
+		DoAndReturn(func(any, any) (any, any) {
+			return secondMockedBlockResponse, nil
+		})
+
+	resultCh := make(chan *syncTaskResult)
+
+	workerPool.submitRequests(
+		[]*network.BlockRequestMessage{firstBlockRequest, secondBlockRequest}, resultCh)
+
+	// ensure the task is in the pool and was already
+	// assigned to the peer
+	time.Sleep(time.Second)
+	require.Zero(t, workerPool.totalWorkers())
+
+	syncTaskResult := <-resultCh
+	require.NoError(t, syncTaskResult.err)
+	require.Equal(t, syncTaskResult.who, availablePeer)
+	require.Equal(t, syncTaskResult.request, firstBlockRequest)
+	require.Equal(t, syncTaskResult.response, firstMockedBlockResponse)
+
+	syncTaskResult = <-resultCh
+	require.NoError(t, syncTaskResult.err)
+	require.Equal(t, syncTaskResult.who, availablePeer)
+	require.Equal(t, syncTaskResult.request, secondBlockRequest)
+	require.Equal(t, syncTaskResult.response, secondMockedBlockResponse)
+
+	require.Equal(t, uint(1), workerPool.totalWorkers())
 }
