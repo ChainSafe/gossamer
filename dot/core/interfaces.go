@@ -19,6 +19,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+type BlockImportDigestHandler interface {
+	Handle(*types.Header) error
+}
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
