@@ -66,6 +66,8 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return swp
 }
 
+// useConnectedPeers will retrieve all connected peers
+// through the network layer and use them as sources of blocks
 func (s *syncWorkerPool) useConnectedPeers() {
 	connectedPeers := s.network.AllConnectedPeersID()
 	if len(connectedPeers) < 1 {
@@ -85,6 +87,8 @@ func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
 	s.newPeer(who)
 }
 
+// newPeer a new peer will be included in the worker
+// pool if it is not a peer to ignore or is not punished
 func (s *syncWorkerPool) newPeer(who peer.ID) {
 	if _, ok := s.ignorePeers[who]; ok {
 		return
@@ -105,6 +109,9 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 	}
 }
 
+// submitBoundedRequest given a request the worker pool will driven it
+// to the given peer.ID, used for tip sync when we receive a block announce
+// from a peer and we want to use the exact same peer to request blocks
 func (s *syncWorkerPool) submitBoundedRequest(request *network.BlockRequestMessage, who peer.ID, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
 		boundTo:  &who,
@@ -113,6 +120,8 @@ func (s *syncWorkerPool) submitBoundedRequest(request *network.BlockRequestMessa
 	}
 }
 
+// submitRequest given a request the worker pool will get the very first available worker
+// to perform the request, the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
 		request:  request,
@@ -120,12 +129,17 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, res
 	}
 }
 
+// submitRequests takes an set of requests and will submit to the pool through submitRequest
+// the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
 	for _, request := range requests {
 		s.submitRequest(request, resultCh)
 	}
 }
 
+// punishPeer given a peer.ID we check increase its times punished
+// and apply the punishment time using the base timeout of 5m, so
+// each time a peer is punished its timeout will increase by 5m
 func (s *syncWorkerPool) punishPeer(who peer.ID) {
 	s.l.Lock()
 	defer s.l.Unlock()
