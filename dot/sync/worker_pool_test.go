@@ -4,6 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
@@ -212,4 +215,68 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 			require.Equal(t, workerPool.workers, tt.expectedPool)
 		})
 	}
+}
+
+func TestSyncWorkerPool__listenForRequests_submitRequest(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	networkMock := NewMockNetwork(ctrl)
+	workerPool := newSyncWorkerPool(networkMock)
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	go workerPool.listenForRequests(stopCh)
+
+	availablePeer := peer.ID("available-peer")
+	workerPool.newPeer(availablePeer)
+
+	blockRequest, mockedBlockResponse := singleBlockRequestAndResponse()
+
+	// introduce a timeout of 5s then we can test the
+	// peer status change to busy
+	networkMock.EXPECT().
+		DoBlockRequest(availablePeer, blockRequest).
+		DoAndReturn(func(any, any) (any, any) {
+			time.Sleep(5 * time.Second)
+			return mockedBlockResponse, nil
+		})
+
+	resultCh := make(chan *syncTaskResult)
+	workerPool.submitRequest(blockRequest, resultCh)
+
+	// ensure the task is in the pool and was already
+	// assigned to the peer
+	time.Sleep(time.Second)
+
+	totalWorkers := workerPool.totalWorkers()
+	require.Zero(t, totalWorkers)
+
+	peerSync := workerPool.getPeerByID(availablePeer)
+	require.Equal(t, peerSync.status, busy)
+
+	syncTaskResult := <-resultCh
+	require.NoError(t, syncTaskResult.err)
+	require.Equal(t, syncTaskResult.who, availablePeer)
+	require.Equal(t, syncTaskResult.request, blockRequest)
+	require.Equal(t, syncTaskResult.response, mockedBlockResponse)
+}
+
+// singleBlockRequestAndResponse creates a statical block request and response for a single block
+func singleBlockRequestAndResponse() (*network.BlockRequestMessage, *network.BlockResponseMessage) {
+	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
+	blockRequest := singleBlockRequest(blockHash, bootstrapRequestData)
+	mockedBlockResponse := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash: blockHash,
+				Header: &types.Header{
+					ParentHash: common.
+						MustHexToHash("0x5895897f12e1a670609929433ac7a69dcae90e0cc2d9c32c0dce0e2a5e5e614e"),
+				},
+			},
+		},
+	}
+
+	return blockRequest, mockedBlockResponse
 }
