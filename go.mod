@@ -16,9 +16,9 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/fatih/color v1.15.0
+	github.com/gammazero/deque v0.2.1
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/golang/mock v1.6.0
-	github.com/google/btree v1.0.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0

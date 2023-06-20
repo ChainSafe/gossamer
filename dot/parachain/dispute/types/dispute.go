@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -42,4 +44,24 @@ func DisputeComparator(a, b any) bool {
 	}
 
 	return d1.Comparator.SessionIndex < d2.Comparator.SessionIndex
+}
+
+type SendDispute struct {
+	DisputeMessage UncheckedDisputeMessage
+}
+
+func (SendDispute) Index() uint {
+	return 0
+}
+
+// DisputeDistributionMessage is the message sent to the collator to distribute the dispute
+type DisputeDistributionMessage scale.VaryingDataType
+
+// NewDisputeDistributionMessage returns a new dispute distribution message
+func NewDisputeDistributionMessage() (DisputeDistributionMessage, error) {
+	vdt, err := scale.NewVaryingDataType(SendDispute{})
+	if err != nil {
+		return DisputeDistributionMessage{}, fmt.Errorf("failed to create new varying data type: %w", err)
+	}
+	return DisputeDistributionMessage(vdt), nil
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -52,14 +51,9 @@ func (Seconded) Index() uint {
 }
 
 // Valid represents a statement that a validator has deemed a candidate valid.
-type Valid CandidateHash
+type Valid parachaintypes.CandidateHash
 
 // Index returns the index of varying data type
 func (Valid) Index() uint {
 	return 2
-}
-
-// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
-type CandidateHash struct {
-	Value common.Hash `scale:"1"`
 }

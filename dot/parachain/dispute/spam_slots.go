@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/emirpasic/gods/sets/treeset"
 	"golang.org/x/exp/maps"
@@ -196,7 +195,7 @@ func NewSpamSlotsFromState(unconfirmedDisputes map[unconfirmedKey]*treeset.Set, 
 			slots[key]++
 			if slots[key] > maxSpamVotes {
 				// TODO: improve this after we have a logger for dispute coordinator
-				log.Errorf("Spam count for validator %d in session %d is greater than max spam votes %d",
+				logger.Errorf("Spam count for validator %d in session %d is greater than max spam votes %d",
 					validator, k.session, maxSpamVotes)
 			}
 		}

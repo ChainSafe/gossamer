@@ -95,7 +95,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	secondedStatementWithLargePayload := SecondedStatementWithLargePayload{
 		RelayParent:   hash5,
-		CandidateHash: CandidateHash{hash5},
+		CandidateHash: parachaintypes.CandidateHash{hash5},
 		SignedBy:      parachaintypes.ValidatorIndex(5),
 		Signature:     validatorSignature,
 	}
