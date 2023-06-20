@@ -25,14 +25,14 @@ func NewBlockImportHandler(epochState EpochState, grandpaState GrandpaState) *Bl
 func (h *BlockImportHandler) Handle(importedBlockHeader *types.Header) error {
 	err := h.handleDigests(importedBlockHeader)
 	if err != nil {
-		return fmt.Errorf("while handling digests: %w", err)
+		return fmt.Errorf("handling digests: %w", err)
 	}
 
 	// TODO: move to core handleBlock
 	// https://github.com/ChainSafe/gossamer/issues/3330
 	err = h.grandpaState.ApplyForcedChanges(importedBlockHeader)
 	if err != nil {
-		return fmt.Errorf("while applying forced changes: %w", err)
+		return fmt.Errorf("applying forced changes: %w", err)
 	}
 
 	return nil
@@ -53,7 +53,7 @@ func (h *BlockImportHandler) handleDigests(header *types.Header) error {
 		digest := consensusDigests[i]
 		err := h.handleConsensusDigest(&digest, header)
 		if err != nil {
-			return err
+			return fmt.Errorf("consensus digests: %w", err)
 		}
 	}
 
@@ -66,29 +66,29 @@ func (h *BlockImportHandler) handleConsensusDigest(d *types.ConsensusDigest, hea
 		data := types.NewGrandpaConsensusDigest()
 		err := scale.Unmarshal(d.Data, &data)
 		if err != nil {
-			return err
+			return fmt.Errorf("unmarshaling grandpa consensus digest: %w", err)
 		}
 
 		err = h.grandpaState.HandleGRANDPADigest(header, data)
 		if err != nil {
-			return fmt.Errorf("while handling grandpa digest: %w", err)
+			return fmt.Errorf("handling grandpa digest: %w", err)
 		}
-		return nil
 	case types.BabeEngineID:
 		data := types.NewBabeConsensusDigest()
 		err := scale.Unmarshal(d.Data, &data)
 		if err != nil {
-			return err
+			return fmt.Errorf("unmarshaling babe consensus digest: %w", err)
 		}
 
 		err = h.epochState.HandleBABEDigest(header, data)
 		if err != nil {
-			return fmt.Errorf("while handling babe digest: %w", err)
+			return fmt.Errorf("handling babe digest: %w", err)
 		}
-		return nil
 	default:
 		return fmt.Errorf("%w: 0x%x", ErrUnknownConsensusEngineID, d.ConsensusEngineID.ToBytes())
 	}
+
+	return nil
 }
 
 // toConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.

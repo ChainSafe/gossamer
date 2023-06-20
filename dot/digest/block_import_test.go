@@ -16,6 +16,32 @@ import (
 )
 
 func TestBlockImportHandle(t *testing.T) {
+	keyring, _ := keystore.NewSr25519Keyring()
+
+	keyPairs := []*sr25519.Keypair{
+		keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
+	}
+
+	authorities := make([]types.AuthorityRaw, len(keyPairs))
+	for i, keyPair := range keyPairs {
+		authorities[i] = types.AuthorityRaw{
+			Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
+		}
+	}
+
+	genericNextEpochDigest := createBABEConsensusDigest(t, types.NextEpochData{
+		Authorities: authorities[:],
+		Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
+	})
+
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.Set(types.NextConfigDataV1{
+		C1:             9,
+		C2:             10,
+		SecondarySlots: 1,
+	})
+	genericNextConfigDataDigest := createBABEConsensusDigest(t, versionedNextConfigData)
+
 	mockedError := errors.New("mock error")
 	cases := map[string]struct {
 		createBlockHeader func(*testing.T) (*types.Header, []types.ConsensusDigest)
@@ -25,8 +51,9 @@ func TestBlockImportHandle(t *testing.T) {
 		errString         string
 	}{
 		"handle_babe_digest_fails": {
-			wantErr:   mockedError,
-			errString: "while handling digests: while handling babe digest: mock error",
+			wantErr: mockedError,
+			errString: "handling digests: consensus digests: " +
+				"handling babe digest: mock error",
 			setupGrandpaState: func(*testing.T, *gomock.Controller, *types.Header,
 				[]types.ConsensusDigest) GrandpaState {
 				return nil
@@ -46,41 +73,19 @@ func TestBlockImportHandle(t *testing.T) {
 			},
 			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
 				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				keyring, _ := keystore.NewSr25519Keyring()
 
-				keyPairs := []*sr25519.Keypair{
-					keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
+				consensusDigests := []types.ConsensusDigest{
+					genericNextEpochDigest, genericNextConfigDataDigest,
 				}
-
-				authorities := make([]types.AuthorityRaw, len(keyPairs))
-				for i, keyPair := range keyPairs {
-					authorities[i] = types.AuthorityRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-				}
-
-				createNextEpoch := func() types.ConsensusDigest {
-					return createBABEConsensusDigest(t, types.NextEpochData{
-						Authorities: authorities[:],
-						Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
-					})
-				}
-
-				createNextConfigData := func() types.ConsensusDigest {
-					return createBABEConsensusDigest(t, types.NextConfigDataV1{
-						C1:             9,
-						C2:             10,
-						SecondarySlots: 1,
-					})
-				}
-
 				return createBlockWithDigests(t, &genesisHeader,
-					createNextEpoch, createNextConfigData)
+						genericNextEpochDigest, genericNextConfigDataDigest),
+					consensusDigests
 			},
 		},
 		"handle_grandpa_digest_fails": {
-			wantErr:   mockedError,
-			errString: "while handling digests: while handling grandpa digest: mock error",
+			wantErr: mockedError,
+			errString: "handling digests: consensus digests: " +
+				"handling grandpa digest: mock error",
 			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) GrandpaState {
 
@@ -112,51 +117,28 @@ func TestBlockImportHandle(t *testing.T) {
 			},
 			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
 				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				keyring, _ := keystore.NewSr25519Keyring()
-
-				keyPairs := []*sr25519.Keypair{
-					keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
-				}
-
 				grandpaAuths := make([]types.GrandpaAuthoritiesRaw, len(keyPairs))
-				authorities := make([]types.AuthorityRaw, len(keyPairs))
 				for i, keyPair := range keyPairs {
-					authorities[i] = types.AuthorityRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-
 					grandpaAuths[i] = types.GrandpaAuthoritiesRaw{
 						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
 					}
 				}
 
-				createNextEpoch := func() types.ConsensusDigest {
-					return createBABEConsensusDigest(t, types.NextEpochData{
-						Authorities: authorities[:],
-						Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
-					})
+				createScheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
+					Auths: grandpaAuths[:1],
+					Delay: 2,
+				})
+
+				consensusDigests := []types.ConsensusDigest{
+					genericNextEpochDigest,
+					genericNextConfigDataDigest,
+					createScheduledChange,
 				}
-
-				createNextConfigData := func() types.ConsensusDigest {
-					versionedNextConfigData := types.NewVersionedNextConfigData()
-					versionedNextConfigData.Set(types.NextConfigDataV1{
-						C1:             9,
-						C2:             10,
-						SecondarySlots: 1,
-					})
-
-					return createBABEConsensusDigest(t, versionedNextConfigData)
-				}
-
-				createScheduledChange := func() types.ConsensusDigest {
-					return createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
-						Auths: grandpaAuths[:1],
-						Delay: 2,
-					})
-				}
-
 				return createBlockWithDigests(t, &genesisHeader,
-					createNextEpoch, createNextConfigData, createScheduledChange)
+						genericNextEpochDigest,
+						genericNextConfigDataDigest,
+						createScheduledChange),
+					consensusDigests
 			},
 		},
 		"handle_babe_and_grandpa_digests_successfully": {
@@ -195,51 +177,24 @@ func TestBlockImportHandle(t *testing.T) {
 			},
 			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
 				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				keyring, _ := keystore.NewSr25519Keyring()
-
-				keyPairs := []*sr25519.Keypair{
-					keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
-				}
-
 				grandpaAuths := make([]types.GrandpaAuthoritiesRaw, len(keyPairs))
-				authorities := make([]types.AuthorityRaw, len(keyPairs))
 				for i, keyPair := range keyPairs {
-					authorities[i] = types.AuthorityRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-
 					grandpaAuths[i] = types.GrandpaAuthoritiesRaw{
 						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
 					}
 				}
 
-				createNextEpoch := func() types.ConsensusDigest {
-					return createBABEConsensusDigest(t, types.NextEpochData{
-						Authorities: authorities[:],
-						Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
-					})
+				createScheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
+					Auths: grandpaAuths[:1],
+					Delay: 2,
+				})
+
+				consensusDigests := []types.ConsensusDigest{
+					genericNextEpochDigest, genericNextConfigDataDigest, createScheduledChange,
 				}
-
-				createNextConfigData := func() types.ConsensusDigest {
-					versionedNextConfigData := types.NewVersionedNextConfigData()
-					versionedNextConfigData.Set(types.NextConfigDataV1{
-						C1:             9,
-						C2:             10,
-						SecondarySlots: 1,
-					})
-
-					return createBABEConsensusDigest(t, versionedNextConfigData)
-				}
-
-				createScheduledChange := func() types.ConsensusDigest {
-					return createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
-						Auths: grandpaAuths[:1],
-						Delay: 2,
-					})
-				}
-
 				return createBlockWithDigests(t, &genesisHeader,
-					createNextEpoch, createNextConfigData, createScheduledChange)
+						genericNextEpochDigest, genericNextConfigDataDigest, createScheduledChange),
+					consensusDigests
 			},
 		},
 		"handle_unknown_consensus_id_should_be_succesfull": {
@@ -278,59 +233,42 @@ func TestBlockImportHandle(t *testing.T) {
 			},
 			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
 				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				keyring, _ := keystore.NewSr25519Keyring()
-
-				keyPairs := []*sr25519.Keypair{
-					keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
-				}
-
 				grandpaAuths := make([]types.GrandpaAuthoritiesRaw, len(keyPairs))
-				authorities := make([]types.AuthorityRaw, len(keyPairs))
 				for i, keyPair := range keyPairs {
-					authorities[i] = types.AuthorityRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-
 					grandpaAuths[i] = types.GrandpaAuthoritiesRaw{
 						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
 					}
 				}
 
-				createNextEpoch := func() types.ConsensusDigest {
-					return createBABEConsensusDigest(t, types.NextEpochData{
-						Authorities: authorities[:],
-						Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
-					})
-				}
+				versionedNextConfigData := types.NewVersionedNextConfigData()
+				versionedNextConfigData.Set(types.NextConfigDataV1{
+					C1:             9,
+					C2:             10,
+					SecondarySlots: 1,
+				})
 
+				wrongEngineNextConfigData := createBABEConsensusDigest(t, versionedNextConfigData)
 				// change the nextConfigData consensus engine id
-				createNextConfigData := func() types.ConsensusDigest {
-					versionedNextConfigData := types.NewVersionedNextConfigData()
-					versionedNextConfigData.Set(types.NextConfigDataV1{
-						C1:             9,
-						C2:             10,
-						SecondarySlots: 1,
-					})
+				wrongEngineNextConfigData.ConsensusEngineID = [4]byte{0, 0, 0, 0}
 
-					consensusDigest := createBABEConsensusDigest(t, versionedNextConfigData)
-					consensusDigest.ConsensusEngineID = [4]byte{0, 0, 0, 0}
-					return consensusDigest
+				createScheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
+					Auths: grandpaAuths[:1],
+					Delay: 2,
+				})
+
+				consensusDigests := []types.ConsensusDigest{
+					genericNextConfigDataDigest, wrongEngineNextConfigData, createScheduledChange,
 				}
-
-				createScheduledChange := func() types.ConsensusDigest {
-					return createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
-						Auths: grandpaAuths[:1],
-						Delay: 2,
-					})
-				}
-
 				return createBlockWithDigests(t, &genesisHeader,
-					createNextEpoch, createNextConfigData, createScheduledChange)
+						genericNextConfigDataDigest,
+						wrongEngineNextConfigData,
+						createScheduledChange),
+					consensusDigests
 			},
 		},
 		"on_block_import_failed_to_apply_forced_changes": {
 			wantErr:   mockedError,
-			errString: "while applying forced changes: mock error",
+			errString: "applying forced changes: mock error",
 			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) GrandpaState {
 
@@ -366,51 +304,24 @@ func TestBlockImportHandle(t *testing.T) {
 			},
 			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
 				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				keyring, _ := keystore.NewSr25519Keyring()
-
-				keyPairs := []*sr25519.Keypair{
-					keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
-				}
-
 				grandpaAuths := make([]types.GrandpaAuthoritiesRaw, len(keyPairs))
-				authorities := make([]types.AuthorityRaw, len(keyPairs))
 				for i, keyPair := range keyPairs {
-					authorities[i] = types.AuthorityRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-
 					grandpaAuths[i] = types.GrandpaAuthoritiesRaw{
 						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
 					}
 				}
 
-				createNextEpoch := func() types.ConsensusDigest {
-					return createBABEConsensusDigest(t, types.NextEpochData{
-						Authorities: authorities[:],
-						Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
-					})
+				createScheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
+					Auths: grandpaAuths[:1],
+					Delay: 2,
+				})
+
+				consensusDigests := []types.ConsensusDigest{
+					genericNextEpochDigest, genericNextConfigDataDigest, createScheduledChange,
 				}
-
-				createNextConfigData := func() types.ConsensusDigest {
-					versionedNextConfigData := types.NewVersionedNextConfigData()
-					versionedNextConfigData.Set(types.NextConfigDataV1{
-						C1:             9,
-						C2:             10,
-						SecondarySlots: 1,
-					})
-
-					return createBABEConsensusDigest(t, versionedNextConfigData)
-				}
-
-				createScheduledChange := func() types.ConsensusDigest {
-					return createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
-						Auths: grandpaAuths[:1],
-						Delay: 2,
-					})
-				}
-
 				return createBlockWithDigests(t, &genesisHeader,
-					createNextEpoch, createNextConfigData, createScheduledChange)
+						genericNextEpochDigest, genericNextConfigDataDigest, createScheduledChange),
+					consensusDigests
 			},
 		},
 	}
@@ -435,32 +346,6 @@ func TestBlockImportHandle(t *testing.T) {
 			}
 		})
 	}
-}
-
-type withDigest func() types.ConsensusDigest
-
-func createBlockWithDigests(t *testing.T, genesisHeader *types.Header, digestsToApply ...withDigest) (
-	header *types.Header, consensusDigests []types.ConsensusDigest) {
-	t.Helper()
-
-	digest := types.NewDigest()
-	consensusDigests = make([]types.ConsensusDigest, len(digestsToApply))
-	digestAddArgs := make([]scale.VaryingDataTypeValue, len(digestsToApply))
-
-	for idx, createDigestFn := range digestsToApply {
-		consensusDigest := createDigestFn()
-		consensusDigests[idx] = consensusDigest
-		digestAddArgs[idx] = consensusDigest
-	}
-
-	err := digest.Add(digestAddArgs...)
-	require.NoError(t, err)
-
-	return &types.Header{
-		ParentHash: genesisHeader.Hash(),
-		Number:     1,
-		Digest:     digest,
-	}, consensusDigests
 }
 
 func createBABEConsensusDigest(t *testing.T, digestData scale.VaryingDataTypeValue) types.ConsensusDigest {
@@ -490,5 +375,26 @@ func createGRANDPAConsensusDigest(t *testing.T, digestData scale.VaryingDataType
 	return types.ConsensusDigest{
 		ConsensusEngineID: types.GrandpaEngineID,
 		Data:              marshaledData,
+	}
+}
+
+func createBlockWithDigests(t *testing.T, genesisHeader *types.Header, digestsToApply ...types.ConsensusDigest) (
+	header *types.Header) {
+	t.Helper()
+
+	digest := types.NewDigest()
+	digestAddArgs := make([]scale.VaryingDataTypeValue, len(digestsToApply))
+
+	for idx, consensusDigest := range digestsToApply {
+		digestAddArgs[idx] = consensusDigest
+	}
+
+	err := digest.Add(digestAddArgs...)
+	require.NoError(t, err)
+
+	return &types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     1,
+		Digest:     digest,
 	}
 }
