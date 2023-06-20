@@ -20,8 +20,8 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
+	parachain "github.com/ChainSafe/gossamer/lib/parachain"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	parachain_interaction "github.com/ChainSafe/gossamer/parachain-interaction"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -138,10 +138,10 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createNetworkService(config, stateSr
 }
 
 // createParachainHostService mocks base method.
-func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, genesishHash common.Hash) (*parachain_interaction.Service, error) {
+func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, genesishHash common.Hash) (*parachain.Service, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "createParachainHostService", net, genesishHash)
-	ret0, _ := ret[0].(*parachain_interaction.Service)
+	ret0, _ := ret[0].(*parachain.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
