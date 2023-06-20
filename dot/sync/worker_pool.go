@@ -43,7 +43,7 @@ type peerSyncWorker struct {
 
 type syncWorkerPool struct {
 	wg            sync.WaitGroup
-	l             sync.RWMutex
+	mtx           sync.RWMutex
 	doneCh        chan struct{}
 	availableCond *sync.Cond
 
@@ -62,7 +62,7 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 		ignorePeers: make(map[peer.ID]struct{}),
 	}
 
-	swp.availableCond = sync.NewCond(&swp.l)
+	swp.availableCond = sync.NewCond(&swp.mtx)
 	return swp
 }
 
@@ -74,16 +74,16 @@ func (s *syncWorkerPool) useConnectedPeers() {
 		return
 	}
 
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	for _, connectedPeer := range connectedPeers {
 		s.newPeer(connectedPeer)
 	}
 }
 
 func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	s.newPeer(who)
 }
 
@@ -141,8 +141,8 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage,
 // and apply the punishment time using the base timeout of 5m, so
 // each time a peer is punished its timeout will increase by 5m
 func (s *syncWorkerPool) punishPeer(who peer.ID) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	worker, has := s.workers[who]
 	if !has {
@@ -161,8 +161,8 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) {
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	delete(s.workers, who)
 	s.ignorePeers[who] = struct{}{}
@@ -170,11 +170,11 @@ func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 
 // totalWorkers only returns available or busy workers
 func (s *syncWorkerPool) totalWorkers() (total uint) {
-	s.l.RLock()
-	defer s.l.RUnlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
 	for _, worker := range s.workers {
-		if worker.status != punished {
+		if worker.status == available {
 			total += 1
 		}
 	}
@@ -182,16 +182,14 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 	return total
 }
 
-// getAvailablePeer returns the very first peer available and changes
-// its status from available to busy, if there is no peer avaible then
-// the caller should wait for availablePeerCh
+// getAvailablePeer returns the very first peer available, if there
+// is no peer avaible then the caller should wait for availablePeerCh
 func (s *syncWorkerPool) getAvailablePeer() peer.ID {
 	for peerID, peerSync := range s.workers {
 		switch peerSync.status {
 		case punished:
-			// if the punishedTime has passed then we mark it
-			// as available and notify it availability if needed
-			// otherwise we keep the peer in the punishment and don't notify
+			// if the punishedTime has passed then we can
+			// use it as an available peer
 			if peerSync.punishmentTime.Before(time.Now()) {
 				return peerID
 			}
@@ -230,7 +228,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 			// arrives and there is no available peer, then we should wait
 			// for someone to become free and then use it.
 
-			s.l.Lock()
+			s.mtx.Lock()
 			for {
 				var peerID peer.ID
 				if task.boundTo != nil {
@@ -247,7 +245,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 					peerSync.status = busy
 					s.workers[peerID] = peerSync
 
-					s.l.Unlock()
+					s.mtx.Unlock()
 
 					s.wg.Add(1)
 					go s.executeRequest(peerID, task)
@@ -262,13 +260,13 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 
 func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	defer func() {
-		s.l.Lock()
+		s.mtx.Lock()
 		peerSync, has := s.workers[who]
 		if has {
 			peerSync.status = available
 			s.workers[who] = peerSync
 		}
-		s.l.Unlock()
+		s.mtx.Unlock()
 
 		s.availableCond.Signal()
 		s.wg.Done()
