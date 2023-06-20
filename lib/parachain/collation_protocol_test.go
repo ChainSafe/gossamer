@@ -12,12 +12,12 @@ import (
 )
 
 //go:embed testdata/collation_protocol.yaml
-var expectedCollationProtocolHexRaw string
+var testCollationProtocolHexRaw string
 
-var expectedCollationProtocolHex map[string]string
+var testCollationProtocolHex map[string]string
 
 func init() {
-	err := yaml.Unmarshal([]byte(expectedCollationProtocolHexRaw), &expectedCollationProtocolHex)
+	err := yaml.Unmarshal([]byte(testCollationProtocolHexRaw), &testCollationProtocolHex)
 	if err != nil {
 		fmt.Println("Error unmarshaling test data:", err)
 		return
@@ -32,7 +32,7 @@ func TestCollationProtocol(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature CollatorSignature
-	tempSignature := common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
+	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature ValidatorSignature
@@ -69,7 +69,7 @@ func TestCollationProtocol(t *testing.T) {
 	testCases := []struct {
 		name          string
 		enumValue     scale.VaryingDataTypeValue
-		encodingValue []byte // encoding of CollationProtocol value
+		encodingValue []byte
 	}{
 		{
 			name: "Declare",
@@ -78,7 +78,7 @@ func TestCollationProtocol(t *testing.T) {
 				ParaId:            uint32(5),
 				CollatorSignature: collatorSignature,
 			},
-			encodingValue: common.MustHexToBytes(expectedCollationProtocolHex["declare"]),
+			encodingValue: common.MustHexToBytes(testCollationProtocolHex["declare"]),
 		},
 		{
 			name:          "AdvertiseCollation",
@@ -95,7 +95,7 @@ func TestCollationProtocol(t *testing.T) {
 					Signature:      validatorSignature,
 				},
 			},
-			encodingValue: common.MustHexToBytes(expectedCollationProtocolHex["collationSeconded"]),
+			encodingValue: common.MustHexToBytes(testCollationProtocolHex["collationSeconded"]),
 		},
 	}
 
