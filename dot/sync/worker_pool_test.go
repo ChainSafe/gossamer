@@ -135,5 +135,81 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 			require.Equal(t, workerPool.workers, tt.expectedPool)
 		})
 	}
+}
 
+func TestSyncWorkerPool_newPeer(t *testing.T) {
+	t.Parallel()
+	stablePunishmentTime := time.Now().Add(time.Minute * 2)
+
+	cases := map[string]struct {
+		peerID          peer.ID
+		setupWorkerPool func(t *testing.T) *syncWorkerPool
+		expectedPool    map[peer.ID]*peerSyncWorker
+	}{
+		"very_fist_entry": {
+			peerID: peer.ID("peer-1"),
+			setupWorkerPool: func(*testing.T) *syncWorkerPool {
+				return newSyncWorkerPool(nil)
+			},
+			expectedPool: map[peer.ID]*peerSyncWorker{
+				peer.ID("peer-1"): {status: available},
+			},
+		},
+		"peer_to_ignore": {
+			peerID: peer.ID("to-ignore"),
+			setupWorkerPool: func(*testing.T) *syncWorkerPool {
+				workerPool := newSyncWorkerPool(nil)
+				workerPool.ignorePeers[peer.ID("to-ignore")] = struct{}{}
+				return workerPool
+			},
+			expectedPool: map[peer.ID]*peerSyncWorker{},
+		},
+		"peer_punishment_not_valid_anymore": {
+			peerID: peer.ID("free-again"),
+			setupWorkerPool: func(*testing.T) *syncWorkerPool {
+				workerPool := newSyncWorkerPool(nil)
+				workerPool.workers[peer.ID("free-again")] = &peerSyncWorker{
+					status:         punished,
+					punishmentTime: time.Unix(1000, 0), //arbitrary unix value
+				}
+				return workerPool
+			},
+			expectedPool: map[peer.ID]*peerSyncWorker{
+				peer.ID("free-again"): {
+					status:         available,
+					punishmentTime: time.Unix(1000, 0),
+				},
+			},
+		},
+		"peer_punishment_still_valid": {
+			peerID: peer.ID("peer_punished"),
+			setupWorkerPool: func(*testing.T) *syncWorkerPool {
+
+				workerPool := newSyncWorkerPool(nil)
+				workerPool.workers[peer.ID("peer_punished")] = &peerSyncWorker{
+					status:         punished,
+					punishmentTime: stablePunishmentTime,
+				}
+				return workerPool
+			},
+			expectedPool: map[peer.ID]*peerSyncWorker{
+				peer.ID("peer_punished"): {
+					status:         punished,
+					punishmentTime: stablePunishmentTime,
+				},
+			},
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
+			workerPool := tt.setupWorkerPool(t)
+			workerPool.newPeer(tt.peerID)
+
+			require.Equal(t, workerPool.workers, tt.expectedPool)
+		})
+	}
 }
