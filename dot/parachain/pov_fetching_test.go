@@ -4,6 +4,7 @@
 package parachain
 
 import (
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,7 +14,7 @@ import (
 
 func TestEncodePoVFetchingRequest(t *testing.T) {
 	poVFetchingRequest := PoVFetchingRequest{
-		CandidateHash: CandidateHash{
+		CandidateHash: parachaintypes.CandidateHash{
 			common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 		},
 	}

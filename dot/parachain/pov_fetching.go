@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -12,7 +13,7 @@ import (
 // PoVFetchingRequest represents a request to fetch the advertised collation at the relay-parent.
 type PoVFetchingRequest struct {
 	// Hash of the candidate for which we want to retrieve a Proof-of-Validity (PoV).
-	CandidateHash CandidateHash
+	CandidateHash parachaintypes.CandidateHash
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingRequest

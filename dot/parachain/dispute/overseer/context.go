@@ -9,5 +9,6 @@ type Sender interface {
 }
 
 type Context struct {
-	Sender Sender
+	Sender   Sender
+	Receiver chan any
 }

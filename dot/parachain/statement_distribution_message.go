@@ -85,7 +85,7 @@ type StatementMetadata struct {
 	RelayParent common.Hash `scale:"1"`
 
 	// Hash of the candidate that got validated.
-	CandidateHash CandidateHash `scale:"2"`
+	CandidateHash parachaintypes.CandidateHash `scale:"2"`
 
 	// Validator that attested the validity.
 	SignedBy parachaintypes.ValidatorIndex `scale:"3"`
@@ -96,6 +96,10 @@ type StatementMetadata struct {
 
 // ValidatorSignature represents the signature with which parachain validators sign blocks.
 type ValidatorSignature Signature
+
+func (vs ValidatorSignature) Verify(payload []byte, validatorID parachaintypes.ValidatorID) error {
+	panic("ValidatorSignature.Verify not implemented")
+}
 
 // Signature represents a cryptographic signature.
 type Signature [64]byte

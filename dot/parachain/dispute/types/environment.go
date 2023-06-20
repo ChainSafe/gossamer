@@ -1,6 +1,11 @@
 package types
 
-import parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+import (
+	"fmt"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
 type CandidateEnvironment struct {
 	SessionIndex      parachainTypes.SessionIndex
@@ -9,12 +14,20 @@ type CandidateEnvironment struct {
 }
 
 func NewCandidateEnvironment(sessionIndex parachainTypes.SessionIndex,
-	session parachainTypes.SessionInfo,
-	controlledIndices map[parachainTypes.ValidatorIndex]struct{},
-) CandidateEnvironment {
-	return CandidateEnvironment{
-		SessionIndex:      sessionIndex,
-		Session:           session,
-		ControlledIndices: controlledIndices,
+	relayParent common.Hash,
+	runtime parachain.RuntimeInstance,
+) (*CandidateEnvironment, error) {
+	// TODO: get session info from relay parent
+	sessionInfo, err := runtime.ParachainHostSessionInfo(relayParent, sessionIndex)
+	if err != nil {
+		return nil, fmt.Errorf("get session info: %w", err)
 	}
+
+	// TODO: get controlled indices
+
+	return &CandidateEnvironment{
+		SessionIndex:      sessionIndex,
+		Session:           *sessionInfo,
+		ControlledIndices: nil,
+	}, nil
 }
