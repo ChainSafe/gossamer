@@ -34,7 +34,11 @@ func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (er
 	return nil
 }
 
+<<<<<<< HEAD
 // Value returns the value from the underlying varying data type
+=======
+// Value returns the value from the underlying VaryingDataType
+>>>>>>> e8ecc682 (feat(parachain): Add StatementDistributionMessage varingDataType (#3316))
 func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*sdm)
 	return vdt.Value()
