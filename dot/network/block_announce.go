@@ -32,7 +32,7 @@ type BlockAnnounceMessage struct {
 }
 
 // Type returns blockAnnounceMsgType
-func (*BlockAnnounceMessage) Type() byte {
+func (*BlockAnnounceMessage) Type() MessageType {
 	return blockAnnounceMsgType
 }
 
