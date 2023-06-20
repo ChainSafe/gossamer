@@ -105,7 +105,7 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 	if blockAnnounceHeader.Number <= bestBlockHeader.Number {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		// TODO: check what happens when get hash by number retuns nothing or ErrNotExists
+		// TODO: check what happens when get hash by number returns nothing or ErrNotExists
 		ourHash, err := s.blockState.GetHashByNumber(blockAnnounceHeader.Number)
 		if err != nil {
 			return fmt.Errorf("get block hash by number: %w", err)

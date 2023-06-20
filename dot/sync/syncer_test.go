@@ -276,17 +276,6 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 	}
 }
 
-func newMockChainSync(ctrl *gomock.Controller) ChainSync {
-	mock := NewMockChainSync(ctrl)
-	mock.EXPECT().setPeerHead(peer.ID("1"), common.Hash{}, uint(0)).Return(nil).AnyTimes()
-	mock.EXPECT().syncState().Return(bootstrap).AnyTimes()
-	mock.EXPECT().start().AnyTimes()
-	mock.EXPECT().stop().AnyTimes()
-	mock.EXPECT().getHighestBlock().Return(uint(2), nil).AnyTimes()
-
-	return mock
-}
-
 func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	t.Parallel()
 

@@ -235,7 +235,6 @@ func (cs *chainSync) sync() {
 			if err != nil {
 				logger.Errorf("while executing bootsrap sync: %s", err)
 			}
-
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
 			swapped := cs.state.CompareAndSwap(bootstrap, tip)
@@ -245,7 +244,10 @@ func (cs *chainSync) sync() {
 				logger.Debugf("switched sync mode to %d", tip)
 			}
 
-			cs.requestPendingBlocks(finalisedHeader)
+			err := cs.requestPendingBlocks(finalisedHeader)
+			if err != nil {
+				logger.Errorf("while requesting pending blocks: %w", err)
+			}
 		}
 	}
 }
@@ -344,6 +346,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	gapLength := uint32(announcedHeader.Number - bestBlockHeader.Number)
 	startAtBlock := announcedHeader.Number
 	totalBlocks := uint32(1)
+
 	var request *network.BlockRequestMessage
 	if gapLength > 1 {
 		request = network.NewDescendingBlockRequest(announcedHeader.Hash(), gapLength, network.BootstrapRequestData)
@@ -353,7 +356,6 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 		logger.Debugf("received a block announce from %s, requesting %d blocks, descending request from %s (#%d)",
 			peerWhoAnnounced, gapLength, announcedHeader.Hash(), announcedHeader.Number)
 	} else {
-		gapLength = 1
 		request = network.NewSingleBlockRequestMessage(announcedHeader.Hash(), network.BootstrapRequestData)
 		logger.Debugf("received a block announce from %s, requesting a single block %s (#%d)",
 			peerWhoAnnounced, announcedHeader.Hash(), announcedHeader.Number)
@@ -433,7 +435,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 
 		gapLength := pendingBlock.number - highestFinalizedHeader.Number
 		if gapLength > 128 {
-			logger.Criticalf("GAP LENGHT: %d, GREATER THAN 128 block", gapLength)
+			logger.Criticalf("gap of %d blocks, max expected: 128 block", gapLength)
 			gapLength = 128
 		}
 
@@ -475,7 +477,7 @@ func (cs *chainSync) executeBootstrapSync(bestBlockHeader *types.Header) error {
 	// targetBlockNumber is the virtual target we will request, however
 	// we should bound it to the real target which is collected through
 	// block announces received from other peers
-	targetBlockNumber := startRequestAt + uint(availableWorkers)*128
+	targetBlockNumber := startRequestAt + availableWorkers*128
 	realTarget, err := cs.getTarget()
 	if err != nil {
 		return fmt.Errorf("while getting target: %w", err)
@@ -554,7 +556,9 @@ func (cs *chainSync) handleWorkersResults(
 		defer func() {
 			totalSyncAndImportSeconds := time.Since(startTime).Seconds()
 			bps := float64(totalBlocks) / totalSyncAndImportSeconds
-			logger.Debugf("⛓️ synced %d blocks, took: %.2f seconds, bps: %.2f blocks/second", totalBlocks, totalSyncAndImportSeconds, bps)
+			logger.Debugf("⛓️ synced %d blocks, "+
+				"took: %.2f seconds, bps: %.2f blocks/second",
+				totalBlocks, totalSyncAndImportSeconds, bps)
 
 			close(errCh)
 			wg.Done()
@@ -741,7 +745,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (cs *chainSync) processBlockData(blockData types.BlockData) error { //nolint:revive
+func (cs *chainSync) processBlockData(blockData types.BlockData) error {
 	headerInState, err := cs.blockState.HasHeader(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has header: %w", err)
@@ -788,7 +792,7 @@ func (cs *chainSync) processBlockData(blockData types.BlockData) error { //nolin
 	return nil
 }
 
-func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.BlockData, //nolint:revive
+func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
 	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -832,7 +836,7 @@ func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.Bloc
 	return nil
 }
 
-func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData, //nolint:revive
+func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
 	err = cs.babeVerifier.VerifyBlock(blockData.Header)
 	if err != nil {

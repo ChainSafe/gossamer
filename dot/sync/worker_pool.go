@@ -112,7 +112,8 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 // submitBoundedRequest given a request the worker pool will driven it
 // to the given peer.ID, used for tip sync when we receive a block announce
 // from a peer and we want to use the exact same peer to request blocks
-func (s *syncWorkerPool) submitBoundedRequest(request *network.BlockRequestMessage, who peer.ID, resultCh chan<- *syncTaskResult) {
+func (s *syncWorkerPool) submitBoundedRequest(request *network.BlockRequestMessage,
+	who peer.ID, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
 		boundTo:  &who,
 		request:  request,

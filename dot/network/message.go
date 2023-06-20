@@ -407,8 +407,8 @@ func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte
 	// otherwise we should increase the numRequests by one, take this
 	// example, we want to sync from 0 to 259, the diff is 259
 	// then the num of requests is 2 (uint(259)/uint(128)) however two requests will
-	// retrieve only 256 blocks (each request can retrive a max of 128 blocks), so we should
-	// create one more request to retrive those missing blocks, 3 in this example.
+	// retrieve only 256 blocks (each request can retrieve a max of 128 blocks), so we should
+	// create one more request to retrieve those missing blocks, 3 in this example.
 	missingBlocks := diff % MaxBlockResponseSize
 	if missingBlocks != 0 {
 		numRequests++

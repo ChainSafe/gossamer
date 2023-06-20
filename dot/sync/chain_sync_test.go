@@ -573,7 +573,8 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	require.False(t, ok)
 }
 
-func createSuccesfullBlockResponse(t *testing.T, genesisHash common.Hash, startingAt, numBlocks int) *network.BlockResponseMessage {
+func createSuccesfullBlockResponse(_ *testing.T, genesisHash common.Hash,
+	startingAt, numBlocks int) *network.BlockResponseMessage {
 	response := new(network.BlockResponseMessage)
 	response.BlockData = make([]*types.BlockData, numBlocks)
 
@@ -606,8 +607,10 @@ func createSuccesfullBlockResponse(t *testing.T, genesisHash common.Hash, starti
 	return response
 }
 
-// ensureSuccessfulBlockImportFlow will setup the expectations for method calls that happens while chain sync imports a block
-func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header, blocksReceived []*types.BlockData, mockBlockState *MockBlockState,
+// ensureSuccessfulBlockImportFlow will setup the expectations for method calls
+// that happens while chain sync imports a block
+func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
+	blocksReceived []*types.BlockData, mockBlockState *MockBlockState,
 	mockBabeVerifier *MockBabeVerifier, mockStorageState *MockStorageState,
 	mockImportHandler *MockBlockImportHandler, mockTelemetry *MockTelemetry) {
 	t.Helper()
