@@ -378,7 +378,7 @@ func TestCandidateReceipt_Hash(t *testing.T) {
 	candidateHash, err := receipt.Hash()
 	require.NoError(t, err)
 
-	require.Equal(t, testData["expectedCandidateReceipt"], common.BytesToHex(candidateHash[:]))
+	require.Equal(t, testData["expectedCandidateReceipt"], common.BytesToHex(candidateHash.Value[:]))
 }
 
 func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [32]byte) {
