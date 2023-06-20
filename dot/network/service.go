@@ -139,9 +139,7 @@ type Service struct {
 	telemetryInterval time.Duration
 	closeCh           chan struct{}
 
-	blockResponseBuf   []byte
-	blockResponseBufMu sync.Mutex
-	telemetry          Telemetry
+	telemetry Telemetry
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -220,7 +218,6 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
-		blockResponseBuf:       make([]byte, MaxBlockResponseSize),
 		telemetry:              cfg.Telemetry,
 		Metrics:                cfg.Metrics,
 	}
@@ -577,10 +574,10 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 }
 
 func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-	maxResponseSize uint64) *RequestResponseProtocol {
+	maxResponseSize uint64) RequestResponseProtocol {
 
 	protocolID := s.host.protocolID + protocol.ID(subprotocol)
-	return &RequestResponseProtocol{
+	return &requestResponseProtocol{
 		ctx:             s.ctx,
 		host:            s.host,
 		requestTimeout:  requestTimeout,

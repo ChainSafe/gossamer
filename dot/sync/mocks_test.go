@@ -611,10 +611,10 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 }
 
 // GetRequestResponseProtocol mocks base method.
-func (m *MockNetwork) GetRequestResponseProtocol(arg0 string, arg1 time.Duration, arg2 uint64) *network.RequestResponseProtocol {
+func (m *MockNetwork) GetRequestResponseProtocol(arg0 string, arg1 time.Duration, arg2 uint64) network.RequestResponseProtocol {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequestResponseProtocol", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*network.RequestResponseProtocol)
+	ret0, _ := ret[0].(network.RequestResponseProtocol)
 	return ret0
 }
 
