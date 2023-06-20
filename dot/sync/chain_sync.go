@@ -48,9 +48,8 @@ func (s chainSyncState) String() string {
 }
 
 var (
-	bootstrapRequestData = network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification
-	pendingBlocksLimit   = maxResponseSize * 32
-	isSyncedGauge        = promauto.NewGauge(prometheus.GaugeOpts{
+	pendingBlocksLimit = network.MaxBlockResponseSize * 32
+	isSyncedGauge      = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_syncer",
 		Name:      "is_synced",
 		Help:      "bool representing whether the node is synced to the head of the chain",
@@ -221,7 +220,7 @@ func (cs *chainSync) sync() {
 		}
 
 		bestBlockNumber := bestBlockHeader.Number
-		isFarFromTarget := bestBlockNumber+maxResponseSize < syncTarget
+		isFarFromTarget := bestBlockNumber+network.MaxBlockResponseSize < syncTarget
 
 		if isFarFromTarget {
 			// we are more than 128 blocks behind the head, switch to bootstrap
@@ -347,7 +346,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	totalBlocks := uint32(1)
 	var request *network.BlockRequestMessage
 	if gapLength > 1 {
-		request = descendingBlockRequest(announcedHeader.Hash(), gapLength, bootstrapRequestData)
+		request = network.NewDescendingBlockRequest(announcedHeader.Hash(), gapLength, network.BootstrapRequestData)
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 
@@ -355,7 +354,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 			peerWhoAnnounced, gapLength, announcedHeader.Hash(), announcedHeader.Number)
 	} else {
 		gapLength = 1
-		request = singleBlockRequest(announcedHeader.Hash(), bootstrapRequestData)
+		request = network.NewSingleBlockRequestMessage(announcedHeader.Hash(), network.BootstrapRequestData)
 		logger.Debugf("received a block announce from %s, requesting a single block %s (#%d)",
 			peerWhoAnnounced, announcedHeader.Hash(), announcedHeader.Number)
 	}
@@ -385,11 +384,11 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	var request *network.BlockRequestMessage
 
 	if parentExists {
-		request = singleBlockRequest(announcedHash, bootstrapRequestData)
+		request = network.NewSingleBlockRequestMessage(announcedHash, network.BootstrapRequestData)
 	} else {
 		gapLength = uint32(announcedHeader.Number - highestFinalizedHeader.Number)
 		startAtBlock = highestFinalizedHeader.Number + 1
-		request = descendingBlockRequest(announcedHash, gapLength, bootstrapRequestData)
+		request = network.NewDescendingBlockRequest(announcedHash, gapLength, network.BootstrapRequestData)
 	}
 
 	logger.Debugf("received a block announce from %s, requesting %d blocks, starting %s (#%d)",
@@ -438,8 +437,8 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 			gapLength = 128
 		}
 
-		descendingGapRequest := descendingBlockRequest(pendingBlock.hash,
-			uint32(gapLength), bootstrapRequestData)
+		descendingGapRequest := network.NewDescendingBlockRequest(pendingBlock.hash,
+			uint32(gapLength), network.BootstrapRequestData)
 		startAtBlock := pendingBlock.number - uint(*descendingGapRequest.Max) + 1
 
 		// the `requests` in the tip sync are not related necessarily
@@ -492,8 +491,15 @@ func (cs *chainSync) executeBootstrapSync(bestBlockHeader *types.Header) error {
 		targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
 	}
 
-	requests := ascedingBlockRequests(startRequestAt, targetBlockNumber, bootstrapRequestData)
-	expectedAmountOfBlocks := totalBlocksRequested(requests)
+	requests := network.NewAscedingBlockRequests(startRequestAt, targetBlockNumber,
+		network.BootstrapRequestData)
+
+	var expectedAmountOfBlocks uint32
+	for _, request := range requests {
+		if request.Max != nil {
+			expectedAmountOfBlocks += *request.Max
+		}
+	}
 
 	wg := sync.WaitGroup{}
 	resultsQueue := make(chan *syncTaskResult)

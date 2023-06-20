@@ -17,6 +17,9 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// maxResponseSize is maximum number of block data a BlockResponse message can contain
+const MaxBlockResponseSize = 128
+
 type MessageType byte
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
@@ -44,6 +47,9 @@ const (
 	RequestedDataReceipt       = byte(4)
 	RequestedDataMessageQueue  = byte(8)
 	RequestedDataJustification = byte(16)
+	BootstrapRequestData       = RequestedDataHeader +
+		RequestedDataBody +
+		RequestedDataJustification
 )
 
 var _ Message = &BlockRequestMessage{}
@@ -353,4 +359,80 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
 	}
 	return common.Blake2bHash(encMsg)
+}
+
+// NewSingleBlockRequestMessage returns a request to retrieve a single block
+func NewSingleBlockRequestMessage(blockHash common.Hash, requestedData byte) *BlockRequestMessage {
+	one := uint32(1)
+	return &BlockRequestMessage{
+		RequestedData: requestedData,
+		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
+		Direction:     Descending,
+		Max:           &one,
+	}
+}
+
+// NewDescendingBlockRequest returns a descending block request message
+func NewDescendingBlockRequest(blockHash common.Hash, amount uint32, requestedData byte) *BlockRequestMessage {
+	return &BlockRequestMessage{
+		RequestedData: requestedData,
+		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
+		Direction:     Descending,
+		Max:           &amount,
+	}
+}
+
+func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte) []*BlockRequestMessage {
+	if startNumber > targetNumber {
+		return []*BlockRequestMessage{}
+	}
+
+	diff := targetNumber - startNumber
+
+	// start and end block are the same, just request 1 block
+	if diff == 0 {
+		one := uint32(1)
+		return []*BlockRequestMessage{
+			{
+				RequestedData: requestedData,
+				StartingBlock: *variadic.MustNewUint32OrHash(uint32(startNumber)),
+				Direction:     Ascending,
+				Max:           &one,
+			},
+		}
+	}
+
+	numRequests := diff / MaxBlockResponseSize
+	// we should check if the diff is in the maxResponseSize bounds
+	// otherwise we should increase the numRequests by one, take this
+	// example, we want to sync from 0 to 259, the diff is 259
+	// then the num of requests is 2 (uint(259)/uint(128)) however two requests will
+	// retrieve only 256 blocks (each request can retrive a max of 128 blocks), so we should
+	// create one more request to retrive those missing blocks, 3 in this example.
+	missingBlocks := diff % MaxBlockResponseSize
+	if missingBlocks != 0 {
+		numRequests++
+	}
+
+	reqs := make([]*BlockRequestMessage, numRequests)
+	for i := uint(0); i < numRequests; i++ {
+		max := uint32(MaxBlockResponseSize)
+
+		lastIteration := numRequests - 1
+		if i == lastIteration && missingBlocks != 0 {
+			max = uint32(missingBlocks)
+		}
+
+		start := variadic.MustNewUint32OrHash(startNumber)
+
+		reqs[i] = &BlockRequestMessage{
+			RequestedData: requestedData,
+			StartingBlock: *start,
+			Direction:     Ascending,
+			Max:           &max,
+		}
+		startNumber += uint(max)
+	}
+
+	return reqs
 }

@@ -273,12 +273,12 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	}()
 	request := task.request
 
-	logger.Debugf("[EXECUTING] worker %s: block request: %s", who, request)
+	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
 	response, err := s.network.DoBlockRequest(who, request)
 	if err != nil {
-		logger.Debugf("[FINISHED] worker %s: err: %s", who, err)
+		logger.Debugf("[FINISHED] worker %s, err: %s", who, err)
 	} else if response != nil {
-		logger.Debugf("[FINISHED] worker %s: block data amount: %d", who, len(response.BlockData))
+		logger.Debugf("[FINISHED] worker %s, block data amount: %d", who, len(response.BlockData))
 	}
 
 	task.resultCh <- &syncTaskResult{

@@ -11,9 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// maxResponseSize is maximum number of block data a BlockResponse message can contain
-const maxResponseSize = 128
-
 // CreateBlockResponse creates a block response message from a block request message
 func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	switch req.Direction {
@@ -28,13 +25,13 @@ func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*networ
 
 func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var (
-		max         uint = maxResponseSize
+		max         uint = network.MaxBlockResponseSize
 		startHash   *common.Hash
 		startNumber uint
 	)
 
 	// determine maximum response size
-	if req.Max != nil && *req.Max < maxResponseSize {
+	if req.Max != nil && *req.Max < network.MaxBlockResponseSize {
 		max = uint(*req.Max)
 	}
 
@@ -105,11 +102,11 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	var (
 		startHash   *common.Hash
 		startNumber uint
-		max         uint = maxResponseSize
+		max         uint = network.MaxBlockResponseSize
 	)
 
 	// determine maximum response size
-	if req.Max != nil && *req.Max < maxResponseSize {
+	if req.Max != nil && *req.Max < network.MaxBlockResponseSize {
 		max = uint(*req.Max)
 	}
 

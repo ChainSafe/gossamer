@@ -232,7 +232,7 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	workerPool.newPeer(availablePeer)
 
 	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	blockRequest := singleBlockRequest(blockHash, bootstrapRequestData)
+	blockRequest := network.NewSingleBlockRequestMessage(blockHash, network.BootstrapRequestData)
 	mockedBlockResponse := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
@@ -289,10 +289,10 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 	workerPool.newPeer(availablePeer)
 
 	firstRequestBlockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	firstBlockRequest := singleBlockRequest(firstRequestBlockHash, bootstrapRequestData)
+	firstBlockRequest := network.NewSingleBlockRequestMessage(firstRequestBlockHash, network.BootstrapRequestData)
 
 	secondRequestBlockHash := common.MustHexToHash("0x897646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	secondBlockRequest := singleBlockRequest(firstRequestBlockHash, bootstrapRequestData)
+	secondBlockRequest := network.NewSingleBlockRequestMessage(firstRequestBlockHash, network.BootstrapRequestData)
 
 	firstMockedBlockResponse := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
