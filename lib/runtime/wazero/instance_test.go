@@ -193,8 +193,6 @@ func Test_Instance_Version(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			instance := testCase.instanceBuilder(t)
 			version, err := instance.Version()
 			require.NoError(t, err)
@@ -349,8 +347,6 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt := trie.NewEmptyTrie()
 
 			randomnessValue, err := common.HexToHash("0x01")
@@ -398,8 +394,6 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt := trie.NewEmptyTrie()
 			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
 			authorityID := types.AuthorityID{1}
