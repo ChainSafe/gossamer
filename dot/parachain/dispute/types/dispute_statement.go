@@ -64,7 +64,7 @@ func NewCompactStatement() CompactStatementVDT {
 // ExplicitDisputeStatement An explicit statement on a candidate issued as part of a dispute.
 type ExplicitDisputeStatement struct {
 	Valid         bool
-	CandidateHash parachain.CandidateHash
+	CandidateHash parachainTypes.CandidateHash
 	Session       parachainTypes.SessionIndex
 }
 
