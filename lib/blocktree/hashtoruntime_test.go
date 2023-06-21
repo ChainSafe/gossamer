@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,6 +63,27 @@ func Test_hashToRuntime_get(t *testing.T) {
 			assert.Equal(t, testCase.instance, instance)
 		})
 	}
+}
+
+func Test_hashToRuntime_hashes(t *testing.T) {
+	t.Parallel()
+
+	htr := &hashToRuntime{
+		mapping: map[Hash]runtime.Instance{
+			{4, 5, 6}: NewMockInstance(nil),
+			{7, 8, 9}: NewMockInstance(nil),
+			{1, 2, 3}: NewMockInstance(nil),
+		},
+	}
+
+	expectedHashes := []common.Hash{
+		{7, 8, 9},
+		{4, 5, 6},
+		{1, 2, 3},
+	}
+
+	hashes := htr.hashes()
+	assert.ElementsMatch(t, expectedHashes, hashes)
 }
 
 func Test_hashToRuntime_set(t *testing.T) {
@@ -155,6 +177,123 @@ func Test_hashToRuntime_delete(t *testing.T) {
 			htr.delete(testCase.hash)
 
 			assert.Equal(t, testCase.expectedHtr, htr)
+		})
+	}
+}
+
+func Test_hashToRuntime_onFinalisation(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		makeParameters          func(ctrl *gomock.Controller) (initial, expected *hashToRuntime)
+		newCanonicalBlockHashes []Hash
+	}{
+		"new_finalised_runtime_not_found": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				return &hashToRuntime{}, &hashToRuntime{}
+			},
+			newCanonicalBlockHashes: []Hash{{1}},
+		},
+		"prune_fork_runtime_with_a_unique_instance": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				finalisedRuntime := NewMockInstance(ctrl)
+				initial = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						{1}: finalisedRuntime,
+					},
+				}
+
+				// keep the instance but update the key
+				expected = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						{2}: finalisedRuntime,
+					},
+				}
+				return initial, expected
+			},
+			newCanonicalBlockHashes: []Hash{{2}},
+		},
+		"prune_fork_runtimes_only": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				finalisedRuntime := NewMockInstance(ctrl)
+				prunedForkRuntime := NewMockInstance(ctrl)
+				prunedForkRuntime.EXPECT().Stop()
+				initial = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						{1}: finalisedRuntime,
+						{3}: prunedForkRuntime,
+					},
+				}
+				expected = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						{1}: finalisedRuntime,
+					},
+				}
+				return initial, expected
+			},
+			newCanonicalBlockHashes: []Hash{{1}},
+		},
+		"new_canonical_block_hash_not_found": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				newFinalisedRuntime := NewMockInstance(ctrl)
+				initial = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						// missing {1}
+						{2}: newFinalisedRuntime,
+					},
+				}
+				expected = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						{2}: newFinalisedRuntime,
+					},
+				}
+				return initial, expected
+			},
+			newCanonicalBlockHashes: []Hash{{1}, {2}},
+		},
+		"prune_fork_and_canonical_runtimes": {
+			makeParameters: func(ctrl *gomock.Controller) (initial, expected *hashToRuntime) {
+				finalisedRuntime := NewMockInstance(ctrl)
+				unfinalisedRuntime := NewMockInstance(ctrl)
+				newFinalisedRuntime := NewMockInstance(ctrl)
+				prunedForkRuntime := NewMockInstance(ctrl)
+
+				finalisedRuntime.EXPECT().Stop()
+				unfinalisedRuntime.EXPECT().Stop()
+				prunedForkRuntime.EXPECT().Stop()
+
+				initial = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						// Previously finalised chain
+						{0}: finalisedRuntime,
+						// Newly finalised chain
+						{3}: unfinalisedRuntime,
+						{5}: newFinalisedRuntime,
+						// Runtimes from forks
+						{100}: prunedForkRuntime,
+					},
+				}
+				expected = &hashToRuntime{
+					mapping: map[Hash]runtime.Instance{
+						{6}: newFinalisedRuntime,
+					},
+				}
+				return initial, expected
+			},
+			newCanonicalBlockHashes: []Hash{{2}, {3}, {4}, {5}, {6}},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			htr, expectedHtr := testCase.makeParameters(ctrl)
+			htr.onFinalisation(testCase.newCanonicalBlockHashes)
+
+			assert.Equal(t, expectedHtr, htr)
 		})
 	}
 }

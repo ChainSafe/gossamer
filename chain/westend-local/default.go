@@ -29,6 +29,11 @@ func DefaultConfig() *cfg.Config {
 	config.Name = defaultName
 	config.ID = defaultID
 	config.ChainSpec = defaultChainSpec
+	config.Network.NoMDNS = false
+	config.RPC.RPCExternal = true
+	config.RPC.UnsafeRPC = true
+	config.RPC.WSExternal = true
+	config.RPC.UnsafeWSExternal = true
 
 	return config
 }

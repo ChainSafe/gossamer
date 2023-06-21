@@ -31,17 +31,6 @@ var (
 	pruning        string
 	telemetryURLs  string
 
-	// Log Config
-	logLevelCore    string
-	logLevelDigest  string
-	logLevelSync    string
-	logLevelNetwork string
-	logLevelRPC     string
-	logLevelState   string
-	logLevelRuntime string
-	logLevelBABE    string
-	logLevelGRANDPA string
-
 	// Core Config
 	// role of the node. one of: full, light or authority
 	role string
@@ -173,7 +162,9 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	addLogFlags(cmd)
+	if err := addLogFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add log flags: %s", err)
+	}
 
 	// Account Config
 	if err := addAccountFlags(cmd); err != nil {
@@ -233,7 +224,7 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		config.BaseConfig.PrometheusPort,
 		"Listen address of the prometheus server",
 		"prometheus-port"); err != nil {
-		return fmt.Errorf("failed to add --metrics-address flag: %s", err)
+		return fmt.Errorf("failed to add --prometheus-port flag: %s", err)
 	}
 	if err := addUint32FlagBindViper(cmd,
 		"retain-blocks",
@@ -270,16 +261,80 @@ Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss:
 }
 
 // addLogFlags adds the log flags to the command
-func addLogFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&logLevelCore, "lcore", config.Log.Core, "Core module log level")
-	cmd.Flags().StringVar(&logLevelDigest, "ldigest", config.Log.Digest, "Digest module log level")
-	cmd.Flags().StringVar(&logLevelSync, "lsync", config.Log.Sync, "Sync module log level")
-	cmd.Flags().StringVar(&logLevelNetwork, "lnetwork", config.Log.Network, "Network module log level")
-	cmd.Flags().StringVar(&logLevelRPC, "lrpc", config.Log.RPC, "RPC module log level")
-	cmd.Flags().StringVar(&logLevelState, "lstate", config.Log.State, "State module log level")
-	cmd.Flags().StringVar(&logLevelRuntime, "lruntime", config.Log.Runtime, "Runtime module log level")
-	cmd.Flags().StringVar(&logLevelBABE, "lbabe", config.Log.Babe, "BABE module log level")
-	cmd.Flags().StringVar(&logLevelGRANDPA, "lgrandpa", config.Log.Grandpa, "GRANDPA module log level")
+func addLogFlags(cmd *cobra.Command) error {
+	if err := addStringFlagBindViper(cmd,
+		"lcore",
+		config.Log.Core,
+		"Core module log level",
+		"log.core"); err != nil {
+		return fmt.Errorf("failed to add --lcore flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"ldigest",
+		config.Log.Digest,
+		"Digest module log level",
+		"log.digest"); err != nil {
+		return fmt.Errorf("failed to add --ldigest flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lsync",
+		config.Log.Sync,
+		"Sync module log level",
+		"log.sync"); err != nil {
+		return fmt.Errorf("failed to add --lsync flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lnetwork",
+		config.Log.Network,
+		"Network module log level",
+		"log.network"); err != nil {
+		return fmt.Errorf("failed to add --lnetwork flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lrpc",
+		config.Log.RPC,
+		"RPC module log level",
+		"log.rpc"); err != nil {
+		return fmt.Errorf("failed to add --lrpc flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lstate",
+		config.Log.State,
+		"State module log level",
+		"log.state"); err != nil {
+		return fmt.Errorf("failed to add --lstate flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lruntime",
+		config.Log.Runtime,
+		"Runtime module log level",
+		"log.runtime"); err != nil {
+		return fmt.Errorf("failed to add --lruntime flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lbabe",
+		config.Log.Babe,
+		"BABE module log level",
+		"log.babe"); err != nil {
+		return fmt.Errorf("failed to add --lbabe flag: %s", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"lgrandpa",
+		config.Log.Grandpa,
+		"GRANDPA module log level",
+		"log.grandpa"); err != nil {
+		return fmt.Errorf("failed to add --lgrandpa flag: %s", err)
+	}
+
+	return nil
 }
 
 // addAccountFlags adds account flags and binds to viper

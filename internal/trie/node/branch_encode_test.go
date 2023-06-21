@@ -150,7 +150,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 		})
 	}
 
-	t.Run("opportunist parallel branch encoding", func(t *testing.T) {
+	t.Run("opportunist_parallel_branch_encoding", func(t *testing.T) {
 		t.Parallel()
 
 		children := make([]*Node, ChildrenCapacity)

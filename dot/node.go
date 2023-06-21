@@ -59,7 +59,7 @@ type nodeBuilderIface interface {
 	loadRuntime(config *cfg.Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 		net *network.Service) error
 	createBlockVerifier(st *state.Service) *babe.VerificationManager
-	createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error)
+	createDigestHandler(st *state.Service) (*digest.Handler, error)
 	createCoreService(config *cfg.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
 		dh *digest.Handler) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
@@ -346,11 +346,7 @@ func newNode(config *cfg.Config,
 
 	ver := builder.createBlockVerifier(stateSrvc)
 
-	digestLogLevel, err := log.ParseLevel(config.Log.Digest)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse digest log level: %w", err)
-	}
-	dh, err := builder.createDigestHandler(digestLogLevel, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	if err != nil {
 		return nil, err
 	}

@@ -383,6 +383,53 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 	return info, nil
 }
 
+func (s *EpochState) HandleBABEDigest(header *types.Header, digest scale.VaryingDataType) error {
+	headerHash := header.Hash()
+
+	digestValue, err := digest.Value()
+	if err != nil {
+		return fmt.Errorf("getting digest value: %w", err)
+	}
+	switch val := digestValue.(type) {
+	case types.NextEpochData:
+		currEpoch, err := s.GetEpochForBlock(header)
+		if err != nil {
+			return fmt.Errorf("getting epoch for block %d (%s): %w",
+				header.Number, headerHash, err)
+		}
+
+		nextEpoch := currEpoch + 1
+		s.storeBABENextEpochData(nextEpoch, headerHash, val)
+		logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
+		return nil
+
+	case types.BABEOnDisabled:
+		return nil
+
+	case types.VersionedNextConfigData:
+		nextConfigDataVersion, err := val.Value()
+		if err != nil {
+			return fmt.Errorf("getting digest value: %w", err)
+		}
+
+		switch nextConfigData := nextConfigDataVersion.(type) {
+		case types.NextConfigDataV1:
+			currEpoch, err := s.GetEpochForBlock(header)
+			if err != nil {
+				return fmt.Errorf("getting epoch for block %d (%s): %w", header.Number, headerHash, err)
+			}
+			nextEpoch := currEpoch + 1
+			s.storeBABENextConfigData(nextEpoch, headerHash, nextConfigData)
+			logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
+			return nil
+		default:
+			return fmt.Errorf("next config data version not supported: %T", nextConfigDataVersion)
+		}
+	}
+
+	return errors.New("invalid consensus digest data")
+}
+
 type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
 
 func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
@@ -493,7 +540,7 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 }
 
 // StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
-func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
+func (s *EpochState) storeBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
 	s.nextEpochDataLock.Lock()
 	defer s.nextEpochDataLock.Unlock()
 
@@ -505,7 +552,7 @@ func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, next
 }
 
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
-func (s *EpochState) StoreBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigDataV1) {
+func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigDataV1) {
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
