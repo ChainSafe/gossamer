@@ -98,7 +98,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
 		// create trie from genesis
-		trie, err := wasmer.NewTrieFromGenesis(*gen)
+		trie, err := runtime.NewTrieFromGenesis(*gen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}

@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,40 +90,13 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	return r
 }
 
-func decompressWasm(code []byte) ([]byte, error) {
-	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
-	if !bytes.HasPrefix(code, compressionFlag) {
-		return code, nil
-	}
-
-	decoder, err := zstd.NewReader(nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating zstd reader: %s", err)
-	}
-	bytes, err := decoder.DecodeAll(code[len(compressionFlag):], nil)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, err
-}
-
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
-	fmt.Println(fp)
-
 	// Reads the WebAssembly module as bytes.
 	// Retrieve WASM binary
 	bytes, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read wasm file: %s", err)
-	}
-
-	if strings.Contains(fp, "compact") {
-		var err error
-		bytes, err = decompressWasm(bytes)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return NewInstance(bytes, cfg)
