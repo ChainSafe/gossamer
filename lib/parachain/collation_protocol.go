@@ -11,7 +11,7 @@ func NewCollationProtocol() CollationProtocol {
 	return CollationProtocol(vdt)
 }
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+// Set will set a value using the underlying  varying data type
 func (c *CollationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*c)
 	err = vdt.Set(val)
@@ -22,7 +22,7 @@ func (c *CollationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
 	return
 }
 
-// Value returns the value from the underlying VaryingDataType
+// Value returns the value from the underlying varying data type
 func (c *CollationProtocol) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*c)
 	return vdt.Value()
