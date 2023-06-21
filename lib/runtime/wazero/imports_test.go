@@ -707,7 +707,7 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 	mem := inst.Module.Memory()
 	ok := mem.Write(inputPtr, data)
 	if !ok {
-		panic("wtf?")
+		panic("write overlow")
 	}
 
 	dataSpan := newPointerSize(inputPtr, dataLength)
