@@ -6,6 +6,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -122,7 +123,23 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			errWrapped:          errTest,
 			errMessage:          "while adding pending block header: test error",
 		},
-		//"announced_block_while_in_bootstrap_mode": {},
+		"announced_block_while_in_bootstrap_mode": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				pendingBlocks := NewMockDisjointBlockSet(ctrl)
+				pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
+				pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
+
+				state := atomic.Value{}
+				state.Store(bootstrap)
+
+				return &chainSync{
+					pendingBlocks: pendingBlocks,
+					state:         state,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block2AnnounceHeader,
+		},
 		//"announced_block_while_in_tip_mode":       {},
 	}
 
@@ -133,12 +150,10 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			chainSync := tt.chainSyncBuilder(ctrl)
-
-			announced := announcedBlock{
+			err := chainSync.onImportBlock(announcedBlock{
 				who:    tt.peerID,
 				header: tt.blockAnnounceHeader,
-			}
-			err := chainSync.onImportBlock(announced)
+			})
 
 			assert.ErrorIs(t, err, tt.errWrapped)
 			if tt.errWrapped != nil {

@@ -392,7 +392,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		request = network.NewDescendingBlockRequest(announcedHash, gapLength, network.BootstrapRequestData)
 	}
 
-	logger.Debugf("received a block announce from %s, requesting %d blocks, starting %s (#%d)",
+	logger.Debugf("requesting %d fork blocks, starting at %s (#%d)",
 		peerWhoAnnounced, gapLength, announcedHash, announcedHeader.Number)
 
 	resultsQueue := make(chan *syncTaskResult)
