@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/klauspost/compress/zstd"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 )
@@ -50,8 +51,27 @@ type Config struct {
 	CodeHash    common.Hash
 }
 
+func decompressWasm(code []byte) ([]byte, error) {
+	compressionFlag := []byte{82, 188, 83, 118, 70, 219, 142, 5}
+	if !bytes.HasPrefix(code, compressionFlag) {
+		return code, nil
+	}
+
+	decoder, err := zstd.NewReader(nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating zstd reader: %s", err)
+	}
+	bytes, err := decoder.DecodeAll(code[len(compressionFlag):], nil)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, err
+}
+
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
+
 	ctx := context.Background()
 	rt := wazero.NewRuntime(ctx)
 
@@ -328,19 +348,27 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		panic(err)
 	}
 
+	code, err = decompressWasm(code)
+	if err != nil {
+		return nil, err
+	}
+
 	mod, err := rt.Instantiate(ctx, code)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	global := mod.ExportedGlobal("__heap_base")
 	if global == nil {
-		panic("huh?")
+		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
 	}
+
 	hb := api.DecodeU32(global.Get())
+	// hb = runtime.DefaultHeapBase
+
 	mem := mod.Memory()
 	if mem == nil {
-		panic("wtf?")
+		return nil, fmt.Errorf("wazero error: nil memory for module")
 	}
 
 	allocator := runtime.NewAllocator(mem, hb)
@@ -378,6 +406,9 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 
 	// Store the data into memory
 	mem := i.Module.Memory()
+	if mem == nil {
+		panic("nil memory")
+	}
 	ok := mem.Write(inputPtr, data)
 	if !ok {
 		panic("wtf?")
@@ -389,7 +420,8 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
-	values, err := runtimeFunc.Call(ctx, uint64(inputPtr), uint64(dataLength))
+
+	values, err := runtimeFunc.Call(ctx, api.EncodeI32(int32(inputPtr)), api.EncodeI32(int32(dataLength)))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
@@ -737,9 +769,15 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-func (in *Instance) RandomSeed()          {}
-func (in *Instance) OffchainWorker()      {}
-func (in *Instance) GenerateSessionKeys() {}
+func (in *Instance) RandomSeed() {
+	panic("unimplemented")
+}
+func (in *Instance) OffchainWorker() {
+	panic("unimplemented")
+}
+func (in *Instance) GenerateSessionKeys() {
+	panic("unimplemented")
+}
 
 // GetCodeHash returns the code of the instance
 func (in *Instance) GetCodeHash() common.Hash {
