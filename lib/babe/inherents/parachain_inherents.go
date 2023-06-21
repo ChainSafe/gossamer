@@ -146,28 +146,28 @@ func (ExplicitValidDisputeStatementKind) String() string { //skipcq:SCC-U1000
 	return "explicit valid dispute statement kind"
 }
 
-// backingSeconded is a seconded statement on a candidate from the backing phase.
-type backingSeconded common.Hash //skipcq
+// BackingSeconded is a seconded statement on a candidate from the backing phase.
+type BackingSeconded common.Hash //skipcq
 
 // Index returns VDT index
-func (backingSeconded) Index() uint { //skipcq
+func (BackingSeconded) Index() uint { //skipcq
 	return 1
 }
 
-func (b backingSeconded) String() string { //skipcq:SCC-U1000
-	return fmt.Sprintf("backingSeconded(%s)", common.Hash(b))
+func (b BackingSeconded) String() string { //skipcq:SCC-U1000
+	return fmt.Sprintf("BackingSeconded(%s)", common.Hash(b))
 }
 
-// backingValid is a valid statement on a candidate from the backing phase.
-type backingValid common.Hash //skipcq
+// BackingValid is a valid statement on a candidate from the backing phase.
+type BackingValid common.Hash //skipcq
 
 // Index returns VDT index
-func (backingValid) Index() uint { //skipcq
+func (BackingValid) Index() uint { //skipcq
 	return 2
 }
 
-func (b backingValid) String() string { //skipcq:SCC-U1000
-	return fmt.Sprintf("backingValid(%s)", common.Hash(b))
+func (b BackingValid) String() string { //skipcq:SCC-U1000
+	return fmt.Sprintf("BackingValid(%s)", common.Hash(b))
 }
 
 // ApprovalChecking is an approval vote from the approval checking phase.
@@ -226,7 +226,7 @@ func (ExplicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
 // NewValidDisputeStatementKind create a new DisputeStatementKind varying data type.
 func NewValidDisputeStatementKind() scale.VaryingDataType {
 	vdsKind, err := scale.NewVaryingDataType(
-		ExplicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, ApprovalChecking{})
+		ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
 	if err != nil {
 		panic(err)
 	}
@@ -252,7 +252,7 @@ func NewDisputeStatement() DisputeStatement { //skipcq
 	}
 
 	vdsKind, err := scale.NewVaryingDataType(
-		ExplicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, ApprovalChecking{})
+		ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
 	if err != nil {
 		panic(err)
 	}
