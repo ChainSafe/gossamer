@@ -547,28 +547,30 @@ func (cs *chainSync) getTarget() (uint, error) {
 // and every cicle we should endup with a complete chain, whenever we identify
 // any error from a worker we should evaluate the error and re-insert the request
 // in the queue and wait for it to completes
+// TODO: handle only justification requests
 func (cs *chainSync) handleWorkersResults(
-	workersResults chan *syncTaskResult, startAtBlock uint, totalBlocks uint32, wg *sync.WaitGroup) chan error {
+	workersResults chan *syncTaskResult, startAtBlock uint, expectedSyncedBlocks uint32, wg *sync.WaitGroup) chan error {
 	errCh := make(chan error, 1)
 
 	go func() {
 		startTime := time.Now()
 		defer func() {
 			totalSyncAndImportSeconds := time.Since(startTime).Seconds()
-			bps := float64(totalBlocks) / totalSyncAndImportSeconds
+			bps := float64(expectedSyncedBlocks) / totalSyncAndImportSeconds
 			logger.Debugf("⛓️ synced %d blocks, "+
 				"took: %.2f seconds, bps: %.2f blocks/second",
-				totalBlocks, totalSyncAndImportSeconds, bps)
+				expectedSyncedBlocks, totalSyncAndImportSeconds, bps)
 
 			close(errCh)
 			wg.Done()
 		}()
 
-		logger.Debugf("💤 waiting for %d blocks", totalBlocks)
-		syncingChain := make([]*types.BlockData, totalBlocks)
+		logger.Debugf("💤 waiting for %d blocks", expectedSyncedBlocks)
+		syncingChain := make([]*types.BlockData, expectedSyncedBlocks)
 		// the total numbers of blocks is missing in the syncing chain
-		waitingBlocks := totalBlocks
+		waitingBlocks := expectedSyncedBlocks
 
+	taskResultLoop:
 		for waitingBlocks > 0 {
 			// in a case where we don't handle workers results we should check the pool
 			idleDuration := time.Minute
@@ -621,41 +623,56 @@ func (cs *chainSync) handleWorkersResults(
 					reverseBlockData(response.BlockData)
 				}
 
-				err := cs.validateResponse(request, response, who)
-				switch {
-				case errors.Is(err, errResponseIsNotChain):
-					logger.Criticalf("response invalid: %s", err)
-					cs.workerPool.punishPeer(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
-					continue
-				case errors.Is(err, errEmptyBlockData):
-					cs.workerPool.punishPeer(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
-					continue
-				case errors.Is(err, errUnknownParent):
-				case errors.Is(err, errBadBlock):
-					logger.Warnf("peer %s sent a bad block: %s", who, err)
-					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
-					continue
-				case err != nil:
-					logger.Criticalf("response invalid: %s", err)
-					cs.workerPool.punishPeer(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
-					continue
-				}
-
 				if len(response.BlockData) > 0 {
 					firstBlockInResponse := response.BlockData[0]
 					lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
 
-					logger.Tracef("processing %d blocks: %d (%s) to %d (%s)",
+					logger.Tracef("processing %d blocks: %s (#%d) to %s (#%d)",
 						len(response.BlockData),
-						firstBlockInResponse.Header.Number, firstBlockInResponse.Hash,
-						lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
+						firstBlockInResponse.Hash.Short(), firstBlockInResponse.Header.Number,
+						lastBlockInResponse.Hash.Short(), lastBlockInResponse.Header.Number)
+				}
+
+				isChain := isResponseAChain(response.BlockData)
+				if !isChain {
+					logger.Criticalf("response from %s is not a chain", who)
+					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue taskResultLoop
 				}
 
 				for _, blockInResponse := range response.BlockData {
+					err := validateResponseFields(request.RequestedData, blockInResponse)
+					if err != nil {
+						logger.Criticalf("validating fields: %s", err)
+						// TODO: check the reputation change for nil body in response
+						// and nil justification in response
+						if errors.Is(err, errNilHeaderInResponse) {
+							cs.network.ReportPeer(peerset.ReputationChange{
+								Value:  peerset.IncompleteHeaderValue,
+								Reason: peerset.IncompleteHeaderReason,
+							}, who)
+						}
+
+						cs.workerPool.punishPeer(taskResult.who)
+						cs.workerPool.submitRequest(taskResult.request, workersResults)
+						continue taskResultLoop
+					}
+
+					if slices.Contains(cs.badBlocks, blockInResponse.Hash.String()) {
+						logger.Criticalf("%s sent a known bad block: %s (#%d)",
+							who, blockInResponse.Hash.String(), blockInResponse.Number())
+
+						cs.network.ReportPeer(peerset.ReputationChange{
+							Value:  peerset.BadBlockAnnouncementValue,
+							Reason: peerset.BadBlockAnnouncementReason,
+						}, who)
+
+						cs.workerPool.ignorePeerAsWorker(taskResult.who)
+						cs.workerPool.submitRequest(taskResult.request, workersResults)
+						continue taskResultLoop
+					}
+
 					blockExactIndex := blockInResponse.Header.Number - startAtBlock
 					syncingChain[blockExactIndex] = blockInResponse
 				}
@@ -666,10 +683,8 @@ func (cs *chainSync) handleWorkersResults(
 			}
 		}
 
-		retreiveBlocksSeconds := time.Since(startTime).Seconds()
-		logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...", totalBlocks, retreiveBlocksSeconds)
 		if len(syncingChain) >= 2 {
-			// ensuring the parents are in the right place
+			// ensure the acquired block set forms an actual chain
 			parentElement := syncingChain[0]
 			for _, element := range syncingChain[1:] {
 				if parentElement.Header.Hash() != element.Header.ParentHash {
@@ -679,6 +694,9 @@ func (cs *chainSync) handleWorkersResults(
 				parentElement = element
 			}
 		}
+
+		retreiveBlocksSeconds := time.Since(startTime).Seconds()
+		logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...", expectedSyncedBlocks, retreiveBlocksSeconds)
 
 		// response was validated! place into ready block queue
 		for _, bd := range syncingChain {
@@ -927,89 +945,46 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 	return nil
 }
 
-// validateResponse performs pre-validation of a block response before placing it into either the
-// pendingBlocks or readyBlocks set.
-// It checks the following:
-//   - the response is not empty
-//   - the response contains all the expected fields
-//   - the block is not contained in the bad block list
-//   - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
-	resp *network.BlockResponseMessage, p peer.ID) error {
-	if resp == nil || len(resp.BlockData) == 0 {
-		return errEmptyBlockData
+// validateResponseFields checks that the expected fields are in the block data
+func validateResponseFields(requestedData byte, bd *types.BlockData) error {
+	if bd == nil {
+		return errNilBlockData
 	}
 
-	logger.Tracef("validating block response starting at block hash %s", resp.BlockData[0].Hash)
-
-	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
-	firstItem := resp.BlockData[0]
-
-	has, err := cs.blockState.HasHeader(firstItem.Header.ParentHash)
-	if err != nil {
-		return fmt.Errorf("while checking ancestry: %w", err)
+	if (requestedData&network.RequestedDataHeader) == network.RequestedDataHeader && bd.Header == nil {
+		return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
 	}
 
-	if !has {
-		return fmt.Errorf("%w: %s", errUnknownParent, firstItem.Header.ParentHash)
+	if (requestedData&network.RequestedDataBody) == network.RequestedDataBody && bd.Body == nil {
+		return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
 	}
 
-	previousBlockData := firstItem
-	for _, currBlockData := range resp.BlockData[1:] {
-		if err := cs.validateBlockData(req, currBlockData, p); err != nil {
-			return err
-		}
-
-		if headerRequested {
-			previousHash := previousBlockData.Header.Hash()
-			if previousHash != currBlockData.Header.ParentHash ||
-				currBlockData.Header.Number != (previousBlockData.Header.Number+1) {
-				return errResponseIsNotChain
-			}
-		} else if currBlockData.Justification != nil {
-			// if this is a justification-only request, make sure we have the block for the justification
-			has, _ := cs.blockState.HasHeader(currBlockData.Hash)
-			if !has {
-				cs.network.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.BadJustificationValue,
-					Reason: peerset.BadJustificationReason,
-				}, p)
-				return errUnknownBlockForJustification
-			}
-		}
-
-		previousBlockData = currBlockData
+	// if we requested strictly justification
+	if (requestedData|network.RequestedDataJustification) == network.RequestedDataJustification &&
+		bd.Justification == nil {
+		return fmt.Errorf("%w: %s", errNilJustificationInResponse, bd.Hash)
 	}
 
 	return nil
 }
 
-// validateBlockData checks that the expected fields are in the block data
-func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData, p peer.ID) error {
-	if bd == nil {
-		return errNilBlockData
+func isResponseAChain(responseBlockData []*types.BlockData) bool {
+	if len(responseBlockData) < 2 {
+		return true
 	}
 
-	requestedData := req.RequestedData
-	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
-		cs.network.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.IncompleteHeaderValue,
-			Reason: peerset.IncompleteHeaderReason,
-		}, p)
-		return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
+	previousBlockData := responseBlockData[0]
+	for _, currBlockData := range responseBlockData[1:] {
+		previousHash := previousBlockData.Header.Hash()
+		isParent := previousHash == currBlockData.Header.ParentHash
+		if !isParent {
+			return false
+		}
+
+		previousBlockData = currBlockData
 	}
 
-	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
-		// TODO: report peer
-		return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
-	}
-
-	if slices.Contains(cs.badBlocks, bd.Hash.String()) {
-		logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash.String())
-		return fmt.Errorf("%w: %s", errBadBlock, bd.Hash.String())
-	}
-
-	return nil
+	return true
 }
 
 func (cs *chainSync) getHighestBlock() (highestBlock uint, err error) {
