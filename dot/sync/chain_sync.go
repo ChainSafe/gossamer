@@ -282,8 +282,7 @@ func (cs *chainSync) onImportBlock(announced announcedBlock) error {
 	}
 
 	syncState := cs.state.Load().(chainSyncState)
-	switch syncState {
-	case tip:
+	if syncState == tip {
 		return cs.requestImportedBlock(announced)
 	}
 
@@ -867,7 +866,6 @@ func (cs *chainSync) handleBody(body *types.Body) {
 	}
 
 	blockSizeGauge.Set(float64(acc))
-	//logger.Infof("📦 roughly body size: %d, sum of extrinsics size: %d", len(*body), acc)
 }
 
 func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {

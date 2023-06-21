@@ -87,8 +87,9 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 					})
 				workerPool := newSyncWorkerPool(networkMock)
 				workerPool.workers[peer.ID("available-3")] = &peerSyncWorker{
-					status:         punished,
-					punishmentTime: time.Unix(1000, 0), //arbitrary unix value
+					status: punished,
+					//arbitrary unix value
+					punishmentTime: time.Unix(1000, 0),
 				}
 				return workerPool
 			},
@@ -175,8 +176,9 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 			setupWorkerPool: func(*testing.T) *syncWorkerPool {
 				workerPool := newSyncWorkerPool(nil)
 				workerPool.workers[peer.ID("free-again")] = &peerSyncWorker{
-					status:         punished,
-					punishmentTime: time.Unix(1000, 0), //arbitrary unix value
+					status: punished,
+					//arbitrary unix value
+					punishmentTime: time.Unix(1000, 0),
 				}
 				return workerPool
 			},

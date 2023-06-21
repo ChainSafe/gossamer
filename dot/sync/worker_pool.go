@@ -200,7 +200,6 @@ func (s *syncWorkerPool) getAvailablePeer() peer.ID {
 		}
 	}
 
-	//could not find an available peer to dispatch
 	return peer.ID("")
 }
 
@@ -218,7 +217,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			//wait for ongoing requests to be finished before returning
+			// wait for ongoing requests to be finished before returning
 			s.wg.Wait()
 			return
 
