@@ -124,9 +124,6 @@ func (a Assignments) Index() uint {
 	return 0
 }
 
-// ValidatorSignature with which parachain validators sign blocks.
-//type ValidatorSignature [sr25519.SignatureLength]byte
-
 // IndirectSignedApprovalVote represents a signed approval vote which references the candidate indirectly via the block.
 type IndirectSignedApprovalVote struct {
 	// BlockHash a block hash where the candidate appears.
