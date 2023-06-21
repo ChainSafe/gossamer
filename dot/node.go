@@ -33,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
@@ -149,7 +148,7 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 	}
 
 	// create trie from genesis
-	t, err := wasmer.NewTrieFromGenesis(*gen)
+	t, err := runtime.NewTrieFromGenesis(*gen)
 	if err != nil {
 		return fmt.Errorf("failed to create trie from genesis: %w", err)
 	}

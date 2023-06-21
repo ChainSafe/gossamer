@@ -1713,15 +1713,11 @@ func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module
 }
 
 func ext_offchain_timestamp_version_1(ctx context.Context, m api.Module) uint64 {
-	logger.Trace("executing...")
-
 	now := time.Now().Unix()
 	return uint64(now)
 }
 
 func ext_offchain_sleep_until_version_1(ctx context.Context, m api.Module, deadline uint64) {
-	logger.Trace("executing...")
-
 	dur := time.Until(time.UnixMilli(int64(deadline)))
 	if dur > 0 {
 		time.Sleep(dur)
@@ -2038,7 +2034,12 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 	value := storage.Get(key)
 	logger.Debugf("value: 0x%x", value)
 
-	valueSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(&value))
+	var option *[]byte
+	if value != nil {
+		option = &value
+	}
+
+	valueSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		panic(err)
@@ -2060,7 +2061,12 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 		"key: 0x%x; next key 0x%x",
 		key, next)
 
-	nextSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(&next))
+	var option *[]byte
+	if len(next) > 0 {
+		option = &next
+	}
+
+	nextSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		panic(err)
