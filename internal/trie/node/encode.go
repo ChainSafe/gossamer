@@ -51,7 +51,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	if n.StorageValue != nil {
 		if n.HashedValue {
 			if len(n.StorageValue) != common.HashLength {
-				return ErrEncodeHashedValueTooShort
+				return fmt.Errorf("%w: expected %d, got: %d", ErrEncodeHashedValueTooShort, common.HashLength, len(n.StorageValue))
 			}
 			_, err := buffer.Write(n.StorageValue)
 			if err != nil {

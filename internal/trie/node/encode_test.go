@@ -165,7 +165,7 @@ func Test_Node_Encode(t *testing.T) {
 				{written: []byte{0x01, 0x23}},
 			},
 			wrappedErr: ErrEncodeHashedValueTooShort,
-			errMessage: "hashed storage value too short",
+			errMessage: "hashed storage value too short: expected 32, got: 8",
 		},
 		"branch_header_encoding_error": {
 			node: &Node{
@@ -391,7 +391,7 @@ func Test_Node_Encode(t *testing.T) {
 				},
 			},
 			wrappedErr: ErrEncodeHashedValueTooShort,
-			errMessage: "hashed storage value too short",
+			errMessage: "hashed storage value too short: expected 32, got: 8",
 		},
 	}
 

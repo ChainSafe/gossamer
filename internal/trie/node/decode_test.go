@@ -121,7 +121,7 @@ func Test_Decode(t *testing.T) {
 				{0b0000_0000},                         // less than 32bytes
 			})),
 			errWrapped: ErrDecodeHashedValueTooShort,
-			errMessage: "cannot decode leaf: hashed storage value too short",
+			errMessage: "cannot decode leaf: hashed storage value too short: expected 32, got: 1",
 		},
 		"branch_with_hashed_value_success": {
 			reader: bytes.NewReader(concatByteSlices([][]byte{
@@ -145,7 +145,7 @@ func Test_Decode(t *testing.T) {
 				{0b0000_0000},
 			})),
 			errWrapped: ErrDecodeHashedValueTooShort,
-			errMessage: "cannot decode branch: hashed storage value too short",
+			errMessage: "cannot decode branch: hashed storage value too short: expected 32, got: 1",
 		},
 	}
 

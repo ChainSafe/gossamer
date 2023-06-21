@@ -146,10 +146,10 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 		}
 		node.StorageValue = hashedValue
 		node.HashedValue = true
-	} else {
-		err = sd.Decode(&node.StorageValue)
+		return node, nil
 	}
 
+	err = sd.Decode(&node.StorageValue)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
@@ -164,7 +164,7 @@ func decodeHashedValue(reader io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
 	if n < common.HashLength {
-		return nil, ErrDecodeHashedValueTooShort
+		return nil, fmt.Errorf("%w: expected %d, got: %d", ErrDecodeHashedValueTooShort, common.HashLength, n)
 	}
 
 	return buffer, nil
