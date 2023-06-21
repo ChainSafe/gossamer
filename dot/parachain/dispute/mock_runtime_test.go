@@ -9,7 +9,10 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+<<<<<<<< HEAD:dot/parachain/dispute/mock_runtime_test.go
 	scale "github.com/ChainSafe/gossamer/pkg/scale"
+========
+>>>>>>>> e496f25e2 (add tests):dot/parachain/runtime_mock.go
 	gomock "github.com/golang/mock/gomock"
 )
 
