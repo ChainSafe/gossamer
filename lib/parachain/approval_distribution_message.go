@@ -11,13 +11,11 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// ValidatorIndex index of the validator is used as a lightweight replacement of the 'ValidatorId' when appropriate.
-type ValidatorIndex uint32
-
 // AssignmentCertKind different kinds of input or criteria that can prove a validator's assignment
 // to check a particular parachain.
 type AssignmentCertKind scale.VaryingDataType
 
+// New will enable scale to create new instance when needed
 func (ack AssignmentCertKind) New() AssignmentCertKind {
 	return NewAssignmentCertKindVDT()
 }
