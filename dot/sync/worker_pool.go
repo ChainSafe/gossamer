@@ -251,9 +251,9 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 					s.wg.Add(1)
 					go s.executeRequest(peerID, task)
 					break
-				} else {
-					s.availableCond.Wait()
 				}
+
+				s.availableCond.Wait()
 			}
 		}
 	}
