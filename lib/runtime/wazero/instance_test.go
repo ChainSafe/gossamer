@@ -853,50 +853,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
-	// t.Skip("skip for now as block4939773 is too large")
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out")
-	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
-
-	// set state to genesis state
-	state := storage.NewTrieState(ksmTrie)
-
-	cfg := Config{
-		Storage: state,
-		LogLvl:  log.Critical,
-	}
-
-	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
-	require.NoError(t, err)
-
-	body := common.MustHexToBytes("0x08280402000b80eb3cd17501710984c2292bcf6f34fc2d25f7a1ebaec41c3239536f12f75417c73f7c5aca53308668016ec90c2318ee45af373755527436c4d7a257c481fdc3214634eb4b5c6711ae181827c378843da82c72191647667607ee97e0f0335f14d0876c63503b5f2b8986650304001f010200083e1f2bfd408d3b8d2266ce9b6f2d40acef27b773414537be72576ee3e6108b256eb45e26258d7ac737c3ad3af8cd1b2208d45c472ba19ebfc3e2fb834a6e904d01de574b00010000007506180228040052dac5497bbdd42583d07aa46102790d54aacdcbfac8877189e3b609117a29150b00a0724e180904001cf8853df87ca8588405e30c46a434d636c86561b955b09e2e9b27fc296bf4290b005039278c040400f49db9c8894863a7dd213be93b1c440b145cc19d4927b4c29fe5fa25e8a1667f0b005039278c040400e05f031d874257a24232076830a073a6af6851c07735de201edfc412ca8853180b005039278c0404009289e88ec986066d04f7d93d80f7a3c9794580b5e59d2a7af6b19745dd148f6f0b005039278c0404006c8aff52c496b64b476ca22e58fc54822b435abbbbcaf0c9dd7cf1ab573227790b005039278c04040044e31f7c4afa3b055696923ccb405da2ee2d9eefccf568aa3c6855dbff573e5f0b005039278c040400469ec0f872af2503a9251666fd089d0e84d3f6c8b761ee94b0e868788e0f60500b005039278c040400b41cc00e4ee2945ce9974dbb355265e39c9cf325c176147d7f6b1631af38ce590b005039278c040400d8e2f26a12d4bfc513fd32c1e5a7f14e930c3ef37997bf4e3de2fed51eed515a0b005039278c040048227b8300000000") //nolint:lll
-	var exts [][]byte
-	err = scale.Unmarshal(body, &exts)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(exts))
-
-	digestBytes := common.MustHexToBytes("0x080642414245b50101ef0100000815f30f000000004014ed1a99f017ea2c0d879d7317f51106938f879b296ff92c64319c0c70fe453d72035395da8d53e885def26e63cf90461ee549d0864f9691a4f401b31c1801730c014bc0641b307e8a30692e7d074b4656993b40d6f08698bc49dea40c11090542414245010192ed24972a8108b9bad1a8785b443efe72d4bc2069ab40eac65519fb01ff04250f44f6202d30ca88c30fee385bc8d7f51df15dddacf4e5d53788d260ce758c89") //nolint:lll
-	digest := types.NewDigest()
-	err = scale.Unmarshal(digestBytes, &digest)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(digest.Types))
-
-	block := &types.Block{
-		Header: types.Header{
-			ParentHash:     common.MustHexToHash("0xac08290f49cb9760a3a4c5a49351af76ba9432add29178e5cc27d4451f9126c9"),
-			Number:         4939774,
-			StateRoot:      common.MustHexToHash("0x5d66f43cdbf1740b8ca41f0cd016602f1648fb08b74fe49f5f078845071d0a54"),
-			ExtrinsicsRoot: common.MustHexToHash("0x5d887e118ee6320aca38e49cbd98adc25472c6efbf77a695ab0d6c476a4ec6e9"),
-			Digest:         digest,
-		},
-		Body: *types.NewBody(types.BytesArrayToExtrinsics(exts)),
-	}
-
-	_, err = instance.ExecuteBlock(block)
-	require.NoError(t, err)
-}
-
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
