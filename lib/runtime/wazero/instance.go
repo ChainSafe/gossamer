@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
@@ -1114,7 +1115,169 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-func (*Instance) RandomSeed() {
+// ParachainHostValidators returns the validator set at the current state.
+// The specified validators are responsible for backing parachains for the current state.
+func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
+	encodedValidators, err := in.Exec(runtime.ParachainHostValidators, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var validatorIDs []parachain.ValidatorID
+	err = scale.Unmarshal(encodedValidators, &validatorIDs)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return validatorIDs, nil
+}
+
+// ParachainHostValidatorGroups returns the validator groups used during the current session.
+// The validators in the groups are referred to by the validator set Id.
+func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
+	encodedValidatorGroups, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var validatorGroups parachain.ValidatorGroups
+	err = scale.Unmarshal(encodedValidatorGroups, &validatorGroups)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return &validatorGroups, nil
+}
+
+// ParachainHostAvailabilityCores returns the availability cores for the current state.
+func (in *Instance) ParachainHostAvailabilityCores() ([]parachain.CoreState, error) {
+	encodedAvailabilityCores, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	availabilityCores := parachain.NewAvailabilityCores()
+	err = scale.Unmarshal(encodedAvailabilityCores, &availabilityCores)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return availabilityCores, nil
+}
+
+// ParachainHostCheckValidationOutputs checks the validation outputs of a candidate.
+// Returns true if the candidate is valid.
+func (in *Instance) ParachainHostCheckValidationOutputs(
+	parachainID parachain.ParaID,
+	outputs parachain.CandidateCommitments,
+) (bool, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachainID)
+	if err != nil {
+		return false, fmt.Errorf("encode parachainID: %w", err)
+	}
+	err = encoder.Encode(outputs)
+	if err != nil {
+		return false, fmt.Errorf("encode outputs: %w", err)
+	}
+
+	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostCheckValidationOutputs, buffer.Bytes())
+	if err != nil {
+		return false, fmt.Errorf("exec: %w", err)
+	}
+
+	var isValid bool
+	err = scale.Unmarshal(encodedPersistedValidationData, &isValid)
+	if err != nil {
+		return false, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return isValid, nil
+}
+
+// ParachainHostSessionIndexForChild returns the session index that is expected at the child of a block.
+func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
+	encodedSessionIndex, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
+	if err != nil {
+		return 0, fmt.Errorf("exec: %w", err)
+	}
+
+	var sessionIndex parachain.SessionIndex
+	err = scale.Unmarshal(encodedSessionIndex, &sessionIndex)
+	if err != nil {
+		return 0, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return sessionIndex, nil
+}
+
+// ParachainHostCandidatePendingAvailability returns the receipt of a candidate pending availability
+// for any parachain assigned to an occupied availability core.
+func (in *Instance) ParachainHostCandidatePendingAvailability(
+	parachainID parachain.ParaID,
+) (*parachain.CommittedCandidateReceipt, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachainID)
+	if err != nil {
+		return nil, fmt.Errorf("encode parachainID: %w", err)
+	}
+
+	encodedCandidateReceipt, err := in.Exec(runtime.ParachainHostCandidatePendingAvailability, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var candidateReceipt *parachain.CommittedCandidateReceipt
+	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return candidateReceipt, nil
+}
+
+// ParachainHostCandidateEvents returns an array of candidate events that occurred within the latest state.
+func (in *Instance) ParachainHostCandidateEvents() ([]parachain.CandidateEvent, error) {
+	encodedCandidateEvents, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	candidateEvents := parachain.NewCandidateEvents()
+	err = scale.Unmarshal(encodedCandidateEvents, &candidateEvents)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return candidateEvents, nil
+}
+
+// ParachainHostSessionInfo returns the session info of the given session, if available.
+func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(sessionIndex)
+	if err != nil {
+		return nil, fmt.Errorf("encode sessionIndex: %w", err)
+	}
+
+	encodedSessionInfo, err := in.Exec(runtime.ParachainHostSessionInfo, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var sessionInfo *parachain.SessionInfo
+	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return sessionInfo, nil
+}
+
+func (in *Instance) RandomSeed() {
 	panic("unimplemented")
 }
 func (*Instance) OffchainWorker() {

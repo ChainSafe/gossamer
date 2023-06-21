@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -48,4 +49,17 @@ type Instance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
+	ParachainHostValidators() ([]parachain.ValidatorID, error)
+	ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error)
+	ParachainHostAvailabilityCores() ([]parachain.CoreState, error)
+	ParachainHostCheckValidationOutputs(
+		parachainID parachain.ParaID,
+		outputs parachain.CandidateCommitments,
+	) (bool, error)
+	ParachainHostSessionIndexForChild() (parachain.SessionIndex, error)
+	ParachainHostCandidatePendingAvailability(
+		parachainID parachain.ParaID,
+	) (*parachain.CommittedCandidateReceipt, error)
+	ParachainHostCandidateEvents() ([]parachain.CandidateEvent, error)
+	ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error)
 }
