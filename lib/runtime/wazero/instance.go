@@ -414,7 +414,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 	ok := mem.Write(inputPtr, data)
 	if !ok {
-		panic("wtf?")
+		panic("write overflow")
 	}
 
 	runtimeFunc := i.Module.ExportedFunction(function)
@@ -436,7 +436,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	outputPtr, outputLength := splitPointerSize(wasmValue)
 	result, ok = mem.Read(outputPtr, outputLength)
 	if !ok {
-		panic("wtf?")
+		panic("write overflow")
 	}
 	return result, nil
 }

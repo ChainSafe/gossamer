@@ -54,7 +54,7 @@ func read(m api.Module, pointerSize uint64) (data []byte) {
 	ptr, size := splitPointerSize(pointerSize)
 	data, ok := m.Memory().Read(ptr, size)
 	if !ok {
-		panic("wtf?")
+		panic("write overflow")
 	}
 	return data
 }
