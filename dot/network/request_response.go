@@ -15,11 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-type RequestResponseProtocol interface {
-	DoRequest(to peer.ID, req Message, res ResponseMessage) error
-}
-
-type requestResponseProtocol struct {
+type RequestResponseProtocol struct {
 	ctx             context.Context
 	host            *host
 	requestTimeout  time.Duration
@@ -29,7 +25,7 @@ type requestResponseProtocol struct {
 	responseBuf     []byte
 }
 
-func (rrp *requestResponseProtocol) DoRequest(to peer.ID, req Message, res ResponseMessage) error {
+func (rrp *RequestResponseProtocol) Do(to peer.ID, req Message, res ResponseMessage) error {
 	rrp.host.p2pHost.ConnManager().Protect(to, "")
 	defer rrp.host.p2pHost.ConnManager().Unprotect(to, "")
 
@@ -52,10 +48,10 @@ func (rrp *requestResponseProtocol) DoRequest(to peer.ID, req Message, res Respo
 		return err
 	}
 
-	return rrp.ReceiveResponse(stream, res)
+	return rrp.receiveResponse(stream, res)
 }
 
-func (rrp *requestResponseProtocol) ReceiveResponse(stream libp2pnetwork.Stream, msg ResponseMessage) error {
+func (rrp *RequestResponseProtocol) receiveResponse(stream libp2pnetwork.Stream, msg ResponseMessage) error {
 	// allocating a new (large) buffer every time slows down receiving response by a dramatic amount,
 	// as malloc is one of the most CPU intensive tasks.
 	// thus we should allocate buffers at startup and re-use them instead of allocating new ones each time.

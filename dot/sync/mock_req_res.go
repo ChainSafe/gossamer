@@ -35,16 +35,16 @@ func (m *MockRequestResponseProtocol) EXPECT() *MockRequestResponseProtocolMockR
 	return m.recorder
 }
 
-// DoRequest mocks base method.
-func (m *MockRequestResponseProtocol) DoRequest(arg0 peer.ID, arg1 network.Message, arg2 network.ResponseMessage) error {
+// Do mocks base method.
+func (m *MockRequestResponseProtocol) Do(arg0 peer.ID, arg1 network.Message, arg2 network.ResponseMessage) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoRequest", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Do", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DoRequest indicates an expected call of DoRequest.
-func (mr *MockRequestResponseProtocolMockRecorder) DoRequest(arg0, arg1, arg2 interface{}) *gomock.Call {
+// Do indicates an expected call of Do.
+func (mr *MockRequestResponseProtocolMockRecorder) Do(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoRequest", reflect.TypeOf((*MockRequestResponseProtocol)(nil).DoRequest), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Do", reflect.TypeOf((*MockRequestResponseProtocol)(nil).Do), arg0, arg1, arg2)
 }

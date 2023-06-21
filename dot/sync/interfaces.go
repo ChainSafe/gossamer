@@ -80,7 +80,7 @@ type Network interface {
 
 	// GetRequestResponseProtocol returns the request/response protocol with the given ID.
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-		maxResponseSize uint64) network.RequestResponseProtocol
+		maxResponseSize uint64) *network.RequestResponseProtocol
 }
 
 // Telemetry is the telemetry client to send telemetry messages.

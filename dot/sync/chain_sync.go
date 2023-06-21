@@ -700,7 +700,7 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 		network.MaxBlockResponseSize)
 	resp := new(network.BlockResponseMessage)
 
-	err := blockReqRes.DoRequest(who, req, resp)
+	err := blockReqRes.Do(who, req, resp)
 	if err != nil {
 		return &workerError{
 			err: err,

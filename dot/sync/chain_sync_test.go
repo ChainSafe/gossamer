@@ -400,7 +400,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	max := uint32(128)
 
 	mockReqRes := NewMockRequestResponseProtocol(ctrl)
-	mockReqRes.EXPECT().DoRequest(peer.ID("noot"), &network.BlockRequestMessage{
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     0,
@@ -938,7 +938,7 @@ func TestChainSync_doSync(t *testing.T) {
 	max1 := uint32(1)
 
 	mockReqRes := NewMockRequestResponseProtocol(ctrl)
-	mockReqRes.EXPECT().DoRequest(peer.ID("noot"), &network.BlockRequestMessage{
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     0,
@@ -967,7 +967,7 @@ func TestChainSync_doSync(t *testing.T) {
 
 	mockNetwork = NewMockNetwork(ctrl)
 	mockReqRes = NewMockRequestResponseProtocol(ctrl)
-	mockReqRes.EXPECT().DoRequest(peer.ID("noot"), &network.BlockRequestMessage{
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     0,
@@ -1017,7 +1017,7 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork = NewMockNetwork(ctrl)
 
 	mockReqRes = NewMockRequestResponseProtocol(ctrl)
-	mockReqRes.EXPECT().DoRequest(peer.ID("noot"), &network.BlockRequestMessage{
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     1,
