@@ -497,9 +497,7 @@ func TestCreateCoreService(t *testing.T) {
 	networkSrvc := &network.Service{}
 
 	builder := nodeBuilder{}
-	digestLevel, err := log.ParseLevel(config.Log.Digest)
-	require.NoError(t, err)
-	dh, err := builder.createDigestHandler(digestLevel, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
@@ -545,9 +543,7 @@ func TestCreateSyncService(t *testing.T) {
 
 	ver := builder.createBlockVerifier(stateSrvc)
 
-	digestLevel, err := log.ParseLevel(config.Log.Digest)
-	require.NoError(t, err)
-	dh, err := builder.createDigestHandler(digestLevel, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{}, dh)
@@ -604,9 +600,7 @@ func TestCreateRPCService(t *testing.T) {
 	err = builder.loadRuntime(config, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	digestLevel, err := log.ParseLevel(config.Log.Digest)
-	require.NoError(t, err)
-	dh, err := builder.createDigestHandler(digestLevel, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
@@ -657,9 +651,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	err = builder.loadRuntime(config, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	digestLevel, err := log.ParseLevel(config.Log.Digest)
-	require.NoError(t, err)
-	dh, err := builder.createDigestHandler(digestLevel, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{}, dh)
@@ -770,9 +762,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	err = builder.loadRuntime(config, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	digestLevel, err := log.ParseLevel(config.Log.Digest)
-	require.NoError(t, err)
-	dh, err := builder.createDigestHandler(digestLevel, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
@@ -858,8 +848,6 @@ func Test_createDigestHandler(t *testing.T) {
 	err = startStateService(*config.State, stateSrvc)
 	require.NoError(t, err)
 
-	digestLevel, err := log.ParseLevel(config.Log.Digest)
-	require.NoError(t, err)
-	_, err = builder.createDigestHandler(digestLevel, stateSrvc)
+	_, err = builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 }

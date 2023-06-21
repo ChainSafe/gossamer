@@ -16,7 +16,6 @@ import (
 	sync "github.com/ChainSafe/gossamer/dot/sync"
 	system "github.com/ChainSafe/gossamer/dot/system"
 	types "github.com/ChainSafe/gossamer/dot/types"
-	log "github.com/ChainSafe/gossamer/internal/log"
 	babe "github.com/ChainSafe/gossamer/lib/babe"
 	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
@@ -92,18 +91,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createCoreService(config, ks, st, ne
 }
 
 // createDigestHandler mocks base method.
-func (m *MocknodeBuilderIface) createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error) {
+func (m *MocknodeBuilderIface) createDigestHandler(st *state.Service) (*digest.Handler, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createDigestHandler", lvl, st)
+	ret := m.ctrl.Call(m, "createDigestHandler", st)
 	ret0, _ := ret[0].(*digest.Handler)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createDigestHandler indicates an expected call of createDigestHandler.
-func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(lvl, st interface{}) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(st interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createDigestHandler", reflect.TypeOf((*MocknodeBuilderIface)(nil).createDigestHandler), lvl, st)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createDigestHandler", reflect.TypeOf((*MocknodeBuilderIface)(nil).createDigestHandler), st)
 }
 
 // createGRANDPAService mocks base method.
