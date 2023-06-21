@@ -75,7 +75,7 @@ func TestCollationProtocol(t *testing.T) {
 			name: "Declare",
 			enumValue: Declare{
 				CollatorId:        collatorID,
-				ParaId:            uint32(5),
+				ParaID:            uint32(5),
 				CollatorSignature: collatorSignature,
 			},
 			encodingValue: common.MustHexToBytes(testCollationProtocolHex["declare"]),
