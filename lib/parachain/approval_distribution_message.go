@@ -174,7 +174,7 @@ func (adm ApprovalDistributionMessage) New() ApprovalDistributionMessage {
 	return NewApprovalDistributionMessageVDT()
 }
 
-// NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
+// NewApprovalDistributionMessageVDT returns a new ApprovalDistributionMessage VaryingDataType
 func NewApprovalDistributionMessageVDT() ApprovalDistributionMessage {
 	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
 	if err != nil {
