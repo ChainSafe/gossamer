@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package wazero_runtime
 
 import (
@@ -92,7 +95,8 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	}
 }
 
-func ext_crypto_ed25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
+func ext_crypto_ed25519_generate_version_1(
+	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	id, ok := m.Memory().Read(keyTypeID, 4)
 	if !ok {
 		panic("out of range read")
@@ -164,7 +168,7 @@ func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module,
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
 
 	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
@@ -175,7 +179,7 @@ func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module,
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
 
 	keys := ks.PublicKeys()
@@ -191,19 +195,19 @@ func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module,
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
 
-	ret, err := write(m, rtCtx.Allocator, append(prefix, encodedKeys...))
+	keysPtr, err := write(m, rtCtx.Allocator, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, err := write(m, rtCtx.Allocator, []byte{0})
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
-	return ret
+	return keysPtr
 }
 
 func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTypeID, key uint32, msg uint64) uint64 {
@@ -235,7 +239,7 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
@@ -245,7 +249,7 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
 
 	sig, err := signingKey.Sign(read(m, msg))
@@ -263,7 +267,7 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		if err != nil {
 			panic(err)
 		}
-		return uint64(ret)
+		return ret
 	}
 
 	ret, err := write(m, rtCtx.Allocator, encoded)
@@ -437,7 +441,8 @@ func ext_crypto_ecdsa_verify_version_2(ctx context.Context, m api.Module, sig ui
 	return 1
 }
 
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+	ctx context.Context, m api.Module, sig, msg uint32) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -488,11 +493,13 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx context.Context
 	return ret
 }
 
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
+	ctx context.Context, m api.Module, sig, msg uint32) uint64 {
 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx, m, sig, msg)
 }
 
-func ext_crypto_sr25519_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
+func ext_crypto_sr25519_generate_version_1(
+	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -597,7 +604,7 @@ func ext_crypto_sr25519_public_keys_version_1(ctx context.Context, m api.Module,
 		return ret
 	}
 
-	ret, err := write(m, rtCtx.Allocator, append(prefix, encodedKeys...))
+	keysPtr, err := write(m, rtCtx.Allocator, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, err := write(m, rtCtx.Allocator, []byte{0})
@@ -607,7 +614,7 @@ func ext_crypto_sr25519_public_keys_version_1(ctx context.Context, m api.Module,
 		return ret
 	}
 
-	return ret
+	return keysPtr
 }
 
 func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTypeID, key uint32, msg uint64) uint64 {
@@ -673,7 +680,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	copy(fixedSig[:], sig)
 	optionSig = &fixedSig
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
+	keysPtr, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
@@ -682,7 +689,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		}
 		return ret
 	}
-	return ret
+	return keysPtr
 }
 
 func ext_crypto_sr25519_verify_version_1(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
@@ -903,12 +910,14 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 	return ptr
 }
 
-func ext_trie_blake2_256_ordered_root_version_2(ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
+func ext_trie_blake2_256_ordered_root_version_2(
+	ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
 	// TODO: update to use state trie version 1 (#2418)
 	return ext_trie_blake2_256_ordered_root_version_1(ctx, m, dataSpan)
 }
 
-func ext_trie_blake2_256_verify_proof_version_1(ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64) uint32 {
+func ext_trie_blake2_256_verify_proof_version_1(
+	ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -963,7 +972,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	if err != nil {
 		return version, fmt.Errorf("creating runtime instance: %w", err)
 	}
-	defer instance.Runtime.Close(context.Background())
+	defer instance.Stop()
 
 	version, err = instance.Version()
 	if err != nil {
@@ -1013,7 +1022,8 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	return ret
 }
 
-func ext_default_child_storage_read_version_1(ctx context.Context, m api.Module, childStorageKey, key, valueOut uint64, offset uint32) uint64 {
+func ext_default_child_storage_read_version_1(
+	ctx context.Context, m api.Module, childStorageKey, key, valueOut uint64, offset uint32) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1045,7 +1055,8 @@ func ext_default_child_storage_read_version_1(ctx context.Context, m api.Module,
 	return ret
 }
 
-func ext_default_child_storage_set_version_1(ctx context.Context, m api.Module, childStorageKeySpan, keySpan, valueSpan uint64) {
+func ext_default_child_storage_set_version_1(
+	ctx context.Context, m api.Module, childStorageKeySpan, keySpan, valueSpan uint64) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1082,7 +1093,8 @@ func ext_default_child_storage_clear_version_1(ctx context.Context, m api.Module
 	}
 }
 
-func ext_default_child_storage_clear_prefix_version_1(ctx context.Context, m api.Module, childStorageKey, prefixSpan uint64) {
+func ext_default_child_storage_clear_prefix_version_1(
+	ctx context.Context, m api.Module, childStorageKey, prefixSpan uint64) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1140,7 +1152,8 @@ func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, 
 	return ret
 }
 
-func ext_default_child_storage_next_key_version_1(ctx context.Context, m api.Module, childStorageKey, key uint64) uint64 {
+func ext_default_child_storage_next_key_version_1(
+	ctx context.Context, m api.Module, childStorageKey, key uint64) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1162,7 +1175,8 @@ func ext_default_child_storage_next_key_version_1(ctx context.Context, m api.Mod
 	return ret
 }
 
-func ext_default_child_storage_root_version_1(ctx context.Context, m api.Module, childStorageKey uint64) (ptrSize uint64) {
+func ext_default_child_storage_root_version_1(
+	ctx context.Context, m api.Module, childStorageKey uint64) (ptrSize uint64) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1202,7 +1216,8 @@ func ext_default_child_storage_storage_kill_version_1(ctx context.Context, m api
 	}
 }
 
-func ext_default_child_storage_storage_kill_version_2(ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (allDeleted uint32) {
+func ext_default_child_storage_storage_kill_version_2(
+	ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (allDeleted uint32) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1241,7 +1256,8 @@ type someRemain uint32
 func (someRemain) Index() uint       { return 1 }
 func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
-func ext_default_child_storage_storage_kill_version_3(ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (pointerSize uint64) {
+func ext_default_child_storage_storage_kill_version_3(
+	ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (pointerSize uint64) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1542,7 +1558,8 @@ func ext_offchain_is_validator_version_1(ctx context.Context, m api.Module) uint
 	return 0
 }
 
-func ext_offchain_local_storage_compare_and_set_version_1(ctx context.Context, m api.Module, kind uint32, key, oldValue, newValue uint64) (newValueSet uint32) {
+func ext_offchain_local_storage_compare_and_set_version_1(
+	ctx context.Context, m api.Module, kind uint32, key, oldValue, newValue uint64) (newValueSet uint32) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1665,7 +1682,7 @@ func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint3
 	}
 
 	seed := make([]byte, 32)
-	_, err := rand.Read(seed) //nolint:staticcheck
+	_, err := rand.Read(seed)
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
@@ -1724,7 +1741,8 @@ func ext_offchain_sleep_until_version_1(ctx context.Context, m api.Module, deadl
 	}
 }
 
-func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) {
+func ext_offchain_http_request_start_version_1(
+	ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1765,7 +1783,8 @@ func ext_offchain_http_request_start_version_1(ctx context.Context, m api.Module
 	return ptr
 }
 
-func ext_offchain_http_request_add_header_version_1(ctx context.Context, m api.Module, reqID uint32, nameSpan, valueSpan uint64) (pointerSize uint64) {
+func ext_offchain_http_request_add_header_version_1(
+	ctx context.Context, m api.Module, reqID uint32, nameSpan, valueSpan uint64) (pointerSize uint64) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
