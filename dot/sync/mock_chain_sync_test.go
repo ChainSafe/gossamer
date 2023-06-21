@@ -50,18 +50,18 @@ func (mr *MockChainSyncMockRecorder) getHighestBlock() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getHighestBlock", reflect.TypeOf((*MockChainSync)(nil).getHighestBlock))
 }
 
-// onImportBlock mocks base method.
-func (m *MockChainSync) onImportBlock(arg0 announcedBlock) error {
+// onBlockAnnounce mocks base method.
+func (m *MockChainSync) onBlockAnnounce(arg0 announcedBlock) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "onImportBlock", arg0)
+	ret := m.ctrl.Call(m, "onBlockAnnounce", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// onImportBlock indicates an expected call of onImportBlock.
-func (mr *MockChainSyncMockRecorder) onImportBlock(arg0 interface{}) *gomock.Call {
+// onBlockAnnounce indicates an expected call of onBlockAnnounce.
+func (mr *MockChainSyncMockRecorder) onBlockAnnounce(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onImportBlock", reflect.TypeOf((*MockChainSync)(nil).onImportBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounce", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounce), arg0)
 }
 
 // setPeerHead mocks base method.

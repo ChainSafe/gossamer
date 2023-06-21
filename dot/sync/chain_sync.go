@@ -83,7 +83,7 @@ type ChainSync interface {
 	// getHighestBlock returns the highest block or an error
 	getHighestBlock() (highestBlock uint, err error)
 
-	onImportBlock(announcedBlock) error
+	onBlockAnnounce(announcedBlock) error
 }
 
 type announcedBlock struct {
@@ -270,7 +270,7 @@ func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber u
 	}
 }
 
-func (cs *chainSync) onImportBlock(announced announcedBlock) error {
+func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
 		return fmt.Errorf("%w: block %s (#%d)",
 			errAlreadyInDisjointSet, announced.header.Hash(), announced.header.Number)
@@ -282,14 +282,14 @@ func (cs *chainSync) onImportBlock(announced announcedBlock) error {
 	}
 
 	syncState := cs.state.Load().(chainSyncState)
-	if syncState == tip {
-		return cs.requestImportedBlock(announced)
+	if syncState != tip {
+		return nil
 	}
 
-	return nil
+	return cs.requestAnnouncedBlock(announced)
 }
 
-func (cs *chainSync) requestImportedBlock(announce announcedBlock) error {
+func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 	peerWhoAnnounced := announce.who
 	announcedHash := announce.header.Hash()
 	announcedNumber := announce.header.Number
@@ -407,8 +407,9 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 }
 
 func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) error {
-	logger.Infof("total of pending blocks: %d", cs.pendingBlocks.size())
-	if cs.pendingBlocks.size() == 0 {
+	pendingBlocksTotal := cs.pendingBlocks.size()
+	logger.Infof("total of pending blocks: %d", pendingBlocksTotal)
+	if pendingBlocksTotal < 1 {
 		return nil
 	}
 
@@ -653,11 +654,6 @@ func (cs *chainSync) handleWorkersResults(
 						firstBlockInResponse.Header.Number, firstBlockInResponse.Hash,
 						lastBlockInResponse.Header.Number, lastBlockInResponse.Hash)
 				}
-
-				cs.network.ReportPeer(peerset.ReputationChange{
-					Value:  peerset.GossipSuccessValue,
-					Reason: peerset.GossipSuccessReason,
-				}, taskResult.who)
 
 				for _, blockInResponse := range response.BlockData {
 					blockExactIndex := blockInResponse.Header.Number - startAtBlock

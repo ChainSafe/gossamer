@@ -84,10 +84,14 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 	const somePeer = peer.ID("abc")
 
 	errTest := errors.New("test error")
-	block2AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
+	emptyTrieState := storage.NewTrieState(nil)
+	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
+		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(), emptyTrieState.MustRoot(),
 		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
 
 	testCases := map[string]struct {
+		listenForRequests   bool
 		chainSyncBuilder    func(ctrl *gomock.Controller) *chainSync
 		peerID              peer.ID
 		blockAnnounceHeader *types.Header
@@ -140,7 +144,79 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			peerID:              somePeer,
 			blockAnnounceHeader: block2AnnounceHeader,
 		},
-		//"announced_block_while_in_tip_mode":       {},
+		"announced_block_while_in_tip_mode": {
+			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+				pendingBlocksMock := NewMockDisjointBlockSet(ctrl)
+				pendingBlocksMock.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
+				pendingBlocksMock.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
+				pendingBlocksMock.EXPECT().removeBlock(block2AnnounceHeader.Hash())
+				pendingBlocksMock.EXPECT().size().Return(int(0))
+
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().
+					HasHeader(block2AnnounceHeader.Hash()).
+					Return(false, nil)
+
+				blockStateMock.EXPECT().
+					BestBlockHeader().
+					Return(block1AnnounceHeader, nil)
+
+				blockStateMock.EXPECT().
+					GetHighestFinalisedHeader().
+					Return(block2AnnounceHeader, nil)
+
+				expectedRequest := network.NewSingleBlockRequestMessage(block2AnnounceHeader.Hash(),
+					network.BootstrapRequestData)
+
+				fakeBlockBody := types.Body([]types.Extrinsic{})
+				mockedBlockResponse := &network.BlockResponseMessage{
+					BlockData: []*types.BlockData{
+						{
+							Hash:   block2AnnounceHeader.Hash(),
+							Header: block2AnnounceHeader,
+							Body:   &fakeBlockBody,
+						},
+					},
+				}
+
+				networkMock := NewMockNetwork(ctrl)
+				networkMock.EXPECT().
+					DoBlockRequest(somePeer, expectedRequest).
+					Return(mockedBlockResponse, nil)
+
+				babeVerifierMock := NewMockBabeVerifier(ctrl)
+				storageStateMock := NewMockStorageState(ctrl)
+				importHandlerMock := NewMockBlockImportHandler(ctrl)
+				telemetryMock := NewMockTelemetry(ctrl)
+
+				const announceBlock = true
+				ensureSuccessfulBlockImportFlow(t, block1AnnounceHeader, mockedBlockResponse.BlockData,
+					blockStateMock, babeVerifierMock, storageStateMock, importHandlerMock, telemetryMock,
+					announceBlock)
+
+				workerPool := newSyncWorkerPool(networkMock)
+				// include the peer who announced the block in the pool
+				workerPool.newPeer(somePeer)
+
+				state := atomic.Value{}
+				state.Store(tip)
+
+				return &chainSync{
+					pendingBlocks:      pendingBlocksMock,
+					state:              state,
+					workerPool:         workerPool,
+					network:            networkMock,
+					blockState:         blockStateMock,
+					babeVerifier:       babeVerifierMock,
+					telemetry:          telemetryMock,
+					storageState:       storageStateMock,
+					blockImportHandler: importHandlerMock,
+				}
+			},
+			listenForRequests:   true,
+			peerID:              somePeer,
+			blockAnnounceHeader: block2AnnounceHeader,
+		},
 	}
 
 	for name, tt := range testCases {
@@ -150,7 +226,13 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			chainSync := tt.chainSyncBuilder(ctrl)
-			err := chainSync.onImportBlock(announcedBlock{
+			if tt.listenForRequests {
+				stopCh := make(chan struct{})
+				defer close(stopCh)
+				go chainSync.workerPool.listenForRequests(stopCh)
+			}
+
+			err := chainSync.onBlockAnnounce(announcedBlock{
 				who:    tt.peerID,
 				header: tt.blockAnnounceHeader,
 			})
@@ -363,10 +445,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	mockStorageState := NewMockStorageState(ctrl)
 	mockImportHandler := NewMockBlockImportHandler(ctrl)
 	mockTelemetry := NewMockTelemetry(ctrl)
-
+	const announceBlock = false
 	// setup mocks for new synced blocks that doesn't exists in our local database
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, totalBlockResponse.BlockData, mockedBlockState,
-		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block X as its best block number.
@@ -422,10 +504,11 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	worker1Response := &network.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
+	const announceBlock = false
 	// the first peer will respond the from the block 1 to 128 so the ensureBlockImportFlow
 	// will setup the expectations starting from the genesis header until block 128
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
-		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	worker2Response := &network.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
@@ -434,7 +517,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	// will setup the expectations starting from block 128, from previous worker, until block 256
 	parent := worker1Response.BlockData[127]
 	ensureSuccessfulBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
-		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
@@ -496,15 +579,17 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	// this test expects two workers responding each request with 128 blocks which means
 	// we should import 256 blocks in total
 	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 256)
+	const announceBlock = false
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
 	worker1Response := &network.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
+
 	// the first peer will respond the from the block 1 to 128 so the ensureBlockImportFlow
 	// will setup the expectations starting from the genesis header until block 128
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
-		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	worker2Response := &network.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
@@ -513,7 +598,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	// will setup the expectations starting from block 128, from previous worker, until block 256
 	parent := worker1Response.BlockData[127]
 	ensureSuccessfulBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
-		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry)
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
@@ -627,7 +712,7 @@ func createSuccesfullBlockResponse(_ *testing.T, genesisHash common.Hash,
 func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 	blocksReceived []*types.BlockData, mockBlockState *MockBlockState,
 	mockBabeVerifier *MockBabeVerifier, mockStorageState *MockStorageState,
-	mockImportHandler *MockBlockImportHandler, mockTelemetry *MockTelemetry) {
+	mockImportHandler *MockBlockImportHandler, mockTelemetry *MockTelemetry, announceBlock bool) {
 	t.Helper()
 
 	mockBlockState.EXPECT().HasHeader(parentHeader.Hash()).Return(true, nil)
@@ -667,7 +752,7 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 		mockRuntimeInstance.EXPECT().ExecuteBlock(expectedBlock).
 			Return(nil, nil)
 
-		mockImportHandler.EXPECT().HandleBlockImport(expectedBlock, emptyTrieState, false).
+		mockImportHandler.EXPECT().HandleBlockImport(expectedBlock, emptyTrieState, announceBlock).
 			Return(nil)
 
 		blockHash := blockData.Header.Hash()

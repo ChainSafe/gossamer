@@ -239,7 +239,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 					header: block2AnnounceHeader,
 				}
 
-				chainSyncMock.EXPECT().onImportBlock(expectedAnnouncedBlock).Return(nil)
+				chainSyncMock.EXPECT().onBlockAnnounce(expectedAnnouncedBlock).Return(nil)
 
 				return &Service{
 					blockState: blockState,
