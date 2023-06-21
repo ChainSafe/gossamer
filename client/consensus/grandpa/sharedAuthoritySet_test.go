@@ -10,9 +10,9 @@ import (
 )
 
 func TestSharedDataGenericReadWrite(t *testing.T) {
-	sharedData := NewSharedDataGeneric("hello world")
+	sharedData := NewSharedData("hello world")
 
-	go func(sharedData *SharedDataGeneric[string]) {
+	go func(sharedData *SharedData[string]) {
 		sharedData.Write("goodbye")
 	}(sharedData)
 
@@ -28,11 +28,11 @@ func TestSharedDataGenericReadWrite(t *testing.T) {
 }
 
 func TestSharedDataGenericAcquireRelease(t *testing.T) {
-	sharedData := NewSharedDataGeneric("hello world")
+	sharedData := NewSharedData("hello world")
 
 	sharedData.Acquire()
 
-	go func(sharedData *SharedDataGeneric[string]) {
+	go func(sharedData *SharedData[string]) {
 		sharedData.Acquire()
 		sharedData.inner = "goodbye"
 		sharedData.Release()
@@ -51,42 +51,32 @@ func TestSharedDataGenericAcquireRelease(t *testing.T) {
 	require.Equal(t, "goodbye", data)
 }
 
-// # use sc_consensus::shared_data::SharedData;
-//
-// let shared_data = SharedData::new(String::from("hello world"));
-//
-// let lock = shared_data.shared_data_locked();
-//
-// let shared_data2 = shared_data.clone();
-//
-//	let join_handle1 = std::thread::spawn(move || {
-//	    // This will need to wait for the outer lock to be released before it can access the data.
-//	    shared_data2.shared_data().push_str("1");
-//	});
-//
-// assert_eq!(*lock, "hello world");
-//
-// // Let us release the mutex, but we still keep it locked.
-// // Now we could call `await` for example.
-// let mut lock = lock.release_mutex();
-//
-// let shared_data2 = shared_data.clone();
-//
-//	let join_handle2 = std::thread::spawn(move || {
-//	    shared_data2.shared_data().push_str("2");
-//	});
-//
-// // We still have the lock and can upgrade it to access the data.
-// assert_eq!(*lock.upgrade(), "hello world");
-// lock.upgrade().push_str("3");
-//
-// drop(lock);
-// join_handle1.join().unwrap();
-// join_handle2.join().unwrap();
-//
-// let data = shared_data.shared_data();
-// // As we don't know the order of the threads, we need to check for both combinations
-// assert!(*data == "hello world321" || *data == "hello world312");
 func TestSharedDataGeneric(t *testing.T) {
-	sharedData := NewSharedDataGeneric("hello world")
+	sharedData := NewSharedData("hello world")
+	sharedData.Acquire()
+
+	go func(sharedData *SharedData[string]) {
+		// This will need to wait for the lock to be released before it can access the data.
+		sharedData.Acquire()
+		sharedData.inner += "1"
+		sharedData.Release()
+	}(sharedData)
+
+	require.Equal(t, "hello world", sharedData.inner)
+
+	sharedData.inner += "3"
+
+	require.Equal(t, "hello world3", sharedData.inner)
+
+	sharedData.Release()
+
+	time.Sleep(1 * time.Second)
+
+	sharedData.Acquire()
+	sharedData.inner += "2"
+	sharedData.Release()
+
+	data := sharedData.Read()
+	require.True(t, data == "hello world312")
+
 }

@@ -18,7 +18,10 @@ var (
 	errForkTree                                      = errors.New("invalid operation in the pending hashNumber tree")
 )
 
-////// TODO Shared Authority Set //////
+// SharedAuthoritySet A shared authority set
+type SharedAuthoritySet struct {
+	inner SharedData[AuthoritySet]
+}
 
 // DelayedKinds Kinds of delays for pending changes.
 type DelayedKinds[N constraints.Unsigned] interface {

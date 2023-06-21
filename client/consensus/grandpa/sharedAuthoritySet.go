@@ -7,21 +7,21 @@ import (
 	"sync"
 )
 
-////// GENERIC SHARED DATA //////
-
-type SharedDataGeneric[T any] struct {
+// SharedData Generic shared data structure
+type SharedData[T any] struct {
 	sync.Mutex
 	inner T
 }
 
-func NewSharedDataGeneric[T any](msg T) *SharedDataGeneric[T] {
-	return &SharedDataGeneric[T]{
+// NewSharedData Creates new SharedData
+func NewSharedData[T any](msg T) *SharedData[T] {
+	return &SharedData[T]{
 		inner: msg,
 	}
 }
 
 // Read Thread safe read of inner data
-func (sd *SharedDataGeneric[T]) Read() T {
+func (sd *SharedData[T]) Read() T {
 	sd.Lock()
 	defer sd.Unlock()
 	inner := sd.inner
@@ -29,7 +29,7 @@ func (sd *SharedDataGeneric[T]) Read() T {
 }
 
 // Write Thread safe write of inner data
-func (sd *SharedDataGeneric[T]) Write(data T) {
+func (sd *SharedData[T]) Write(data T) {
 	sd.Lock()
 	defer sd.Unlock()
 	sd.inner = data
@@ -37,12 +37,12 @@ func (sd *SharedDataGeneric[T]) Write(data T) {
 
 // Acquire lock on shared data
 // Note: This MUST be released in order to allow other threads access to the data
-func (sd *SharedDataGeneric[T]) Acquire() {
+func (sd *SharedData[T]) Acquire() {
 	sd.Lock()
 }
 
 // Release lock on shared data
 // Note: This MUST be preceded by an acquire of the lock, else will result in runtime error
-func (sd *SharedDataGeneric[T]) Release() {
+func (sd *SharedData[T]) Release() {
 	sd.Unlock()
 }
