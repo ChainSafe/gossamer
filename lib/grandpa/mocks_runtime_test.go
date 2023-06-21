@@ -16,6 +16,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
+	parachain "github.com/ChainSafe/gossamer/lib/parachain"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "go.uber.org/mock/gomock"
@@ -341,6 +342,126 @@ func (m *MockInstance) OffchainWorker() {
 func (mr *MockInstanceMockRecorder) OffchainWorker() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OffchainWorker", reflect.TypeOf((*MockInstance)(nil).OffchainWorker))
+}
+
+// ParachainHostAvailabilityCores mocks base method.
+func (m *MockInstance) ParachainHostAvailabilityCores() ([]parachain.CoreState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostAvailabilityCores")
+	ret0, _ := ret[0].([]parachain.CoreState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostAvailabilityCores indicates an expected call of ParachainHostAvailabilityCores.
+func (mr *MockInstanceMockRecorder) ParachainHostAvailabilityCores() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostAvailabilityCores", reflect.TypeOf((*MockInstance)(nil).ParachainHostAvailabilityCores))
+}
+
+// ParachainHostCandidateEvents mocks base method.
+func (m *MockInstance) ParachainHostCandidateEvents() ([]parachain.CandidateEvent, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCandidateEvents")
+	ret0, _ := ret[0].([]parachain.CandidateEvent)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCandidateEvents indicates an expected call of ParachainHostCandidateEvents.
+func (mr *MockInstanceMockRecorder) ParachainHostCandidateEvents() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidateEvents", reflect.TypeOf((*MockInstance)(nil).ParachainHostCandidateEvents))
+}
+
+// ParachainHostCandidatePendingAvailability mocks base method.
+func (m *MockInstance) ParachainHostCandidatePendingAvailability(arg0 parachain.ParaID) (*parachain.CommittedCandidateReceipt, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCandidatePendingAvailability", arg0)
+	ret0, _ := ret[0].(*parachain.CommittedCandidateReceipt)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCandidatePendingAvailability indicates an expected call of ParachainHostCandidatePendingAvailability.
+func (mr *MockInstanceMockRecorder) ParachainHostCandidatePendingAvailability(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidatePendingAvailability", reflect.TypeOf((*MockInstance)(nil).ParachainHostCandidatePendingAvailability), arg0)
+}
+
+// ParachainHostCheckValidationOutputs mocks base method.
+func (m *MockInstance) ParachainHostCheckValidationOutputs(arg0 parachain.ParaID, arg1 parachain.CandidateCommitments) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCheckValidationOutputs", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCheckValidationOutputs indicates an expected call of ParachainHostCheckValidationOutputs.
+func (mr *MockInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCheckValidationOutputs", reflect.TypeOf((*MockInstance)(nil).ParachainHostCheckValidationOutputs), arg0, arg1)
+}
+
+// ParachainHostSessionIndexForChild mocks base method.
+func (m *MockInstance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostSessionIndexForChild")
+	ret0, _ := ret[0].(parachain.SessionIndex)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostSessionIndexForChild indicates an expected call of ParachainHostSessionIndexForChild.
+func (mr *MockInstanceMockRecorder) ParachainHostSessionIndexForChild() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionIndexForChild", reflect.TypeOf((*MockInstance)(nil).ParachainHostSessionIndexForChild))
+}
+
+// ParachainHostSessionInfo mocks base method.
+func (m *MockInstance) ParachainHostSessionInfo(arg0 parachain.SessionIndex) (*parachain.SessionInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostSessionInfo", arg0)
+	ret0, _ := ret[0].(*parachain.SessionInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostSessionInfo indicates an expected call of ParachainHostSessionInfo.
+func (mr *MockInstanceMockRecorder) ParachainHostSessionInfo(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionInfo", reflect.TypeOf((*MockInstance)(nil).ParachainHostSessionInfo), arg0)
+}
+
+// ParachainHostValidatorGroups mocks base method.
+func (m *MockInstance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostValidatorGroups")
+	ret0, _ := ret[0].(*parachain.ValidatorGroups)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostValidatorGroups indicates an expected call of ParachainHostValidatorGroups.
+func (mr *MockInstanceMockRecorder) ParachainHostValidatorGroups() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidatorGroups", reflect.TypeOf((*MockInstance)(nil).ParachainHostValidatorGroups))
+}
+
+// ParachainHostValidators mocks base method.
+func (m *MockInstance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostValidators")
+	ret0, _ := ret[0].([]parachain.ValidatorID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostValidators indicates an expected call of ParachainHostValidators.
+func (mr *MockInstanceMockRecorder) ParachainHostValidators() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidators", reflect.TypeOf((*MockInstance)(nil).ParachainHostValidators))
 }
 
 // PaymentQueryInfo mocks base method.
