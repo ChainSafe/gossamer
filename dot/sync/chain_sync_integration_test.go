@@ -6,13 +6,11 @@
 package sync
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
@@ -48,41 +46,4 @@ func TestValidateBlockData(t *testing.T) {
 		Body:   &types.Body{},
 	}, "")
 	require.NoError(t, err)
-}
-
-func TestChainSync_validateResponse_firstBlock_Integration(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	cs := newTestChainSync(ctrl)
-	bs := NewMockBlockState(ctrl)
-	bs.EXPECT().HasHeader(gomock.AssignableToTypeOf(common.Hash{})).Return(false, nil)
-	cs.blockState = bs
-
-	req := &network.BlockRequestMessage{
-		RequestedData: network.BootstrapRequestData,
-	}
-
-	header := &types.Header{
-		Number: 2,
-	}
-
-	resp := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Hash: header.Hash(),
-				Header: &types.Header{
-					Number: 2,
-				},
-				Body:          &types.Body{},
-				Justification: &[]byte{0},
-			},
-		},
-	}
-
-	err := cs.validateResponse(req, resp, "")
-	require.True(t, errors.Is(err, errUnknownParent))
-	require.True(t, cs.pendingBlocks.(*disjointBlockSet).hasBlock(header.Hash()))
-	bd := cs.pendingBlocks.getBlock(header.Hash())
-	require.NotNil(t, bd.header)
-	require.NotNil(t, bd.body)
-	require.NotNil(t, bd.justification)
 }

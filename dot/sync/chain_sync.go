@@ -951,7 +951,7 @@ func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 	}
 
 	if !has {
-		return errUnknownParent
+		return fmt.Errorf("%w: %s", errUnknownParent, firstItem.Header.ParentHash)
 	}
 
 	previousBlockData := firstItem
@@ -991,22 +991,22 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	requestedData := req.RequestedData
-
-	if slices.Contains(cs.badBlocks, bd.Hash.String()) {
-		logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash)
-		return errBadBlock
-	}
-
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
 		cs.network.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.IncompleteHeaderValue,
 			Reason: peerset.IncompleteHeaderReason,
 		}, p)
-		return errNilHeaderInResponse
+		return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
 	}
 
 	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
-		return fmt.Errorf("%w: hash=%s", errNilBodyInResponse, bd.Hash)
+		// TODO: report peer
+		return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
+	}
+
+	if slices.Contains(cs.badBlocks, bd.Hash.String()) {
+		logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash.String())
+		return fmt.Errorf("%w: %s", errBadBlock, bd.Hash.String())
 	}
 
 	return nil

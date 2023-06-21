@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -763,5 +764,178 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 		mockTelemetry.EXPECT().SendMessage(expectedTelemetryMessage)
 
 		mockBlockState.EXPECT().CompareAndSetBlockData(blockData).Return(nil)
+	}
+}
+
+func TestChainSync_validateResponse(t *testing.T) {
+	t.Parallel()
+
+	block1Header := &types.Header{
+		ParentHash: common.MustHexToHash("0x00597cb4bb4cc13bf119f6613aec7642d4c06a2e453de53d34aea6f3f1eeb504"),
+		Number:     2,
+	}
+
+	block2Header := &types.Header{
+		ParentHash: block1Header.Hash(),
+		Number:     3,
+	}
+
+	cases := map[string]struct {
+		wantErr        error
+		errString      string
+		setupChainSync func(t *testing.T) *chainSync
+		blockRequest   *network.BlockRequestMessage
+		blockResponse  *network.BlockResponseMessage
+	}{
+		"first_item_unkown_parent": {
+			wantErr: errUnknownParent,
+			errString: "parent of first block in block response is unknown: " +
+				block1Header.ParentHash.String(),
+			blockRequest: &network.BlockRequestMessage{
+				RequestedData: network.BootstrapRequestData,
+			},
+			blockResponse: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Hash:          block1Header.Hash(),
+						Header:        block1Header,
+						Body:          &types.Body{},
+						Justification: &[]byte{0},
+					},
+				},
+			},
+			setupChainSync: func(t *testing.T) *chainSync {
+				ctrl := gomock.NewController(t)
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().HasHeader(block1Header.ParentHash).Return(false, nil)
+
+				return &chainSync{
+					blockState: blockStateMock,
+				}
+			},
+		},
+		"bad_block": {
+			wantErr: errBadBlock,
+			errString: "known bad block: " +
+				block2Header.Hash().String(),
+			blockRequest: &network.BlockRequestMessage{
+				RequestedData: network.BootstrapRequestData,
+			},
+			blockResponse: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Hash:          block1Header.Hash(),
+						Header:        block1Header,
+						Body:          &types.Body{},
+						Justification: &[]byte{0},
+					},
+					{
+						Hash:          block2Header.Hash(),
+						Header:        block2Header,
+						Body:          &types.Body{},
+						Justification: &[]byte{0},
+					},
+				},
+			},
+			setupChainSync: func(t *testing.T) *chainSync {
+				ctrl := gomock.NewController(t)
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().HasHeader(block1Header.ParentHash).Return(true, nil)
+
+				return &chainSync{
+					blockState: blockStateMock,
+					badBlocks:  []string{block2Header.Hash().String()},
+				}
+			},
+		},
+		"requested_bootstrap_data_but_got_nil_header": {
+			wantErr: errNilHeaderInResponse,
+			errString: "expected header, received none: " +
+				block2Header.Hash().String(),
+			blockRequest: &network.BlockRequestMessage{
+				RequestedData: network.BootstrapRequestData,
+			},
+			blockResponse: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Hash:          block1Header.Hash(),
+						Header:        block1Header,
+						Body:          &types.Body{},
+						Justification: &[]byte{0},
+					},
+					{
+						Hash:          block2Header.Hash(),
+						Header:        nil,
+						Body:          &types.Body{},
+						Justification: &[]byte{0},
+					},
+				},
+			},
+			setupChainSync: func(t *testing.T) *chainSync {
+				ctrl := gomock.NewController(t)
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().HasHeader(block1Header.ParentHash).Return(true, nil)
+
+				networkMock := NewMockNetwork(ctrl)
+				networkMock.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.IncompleteHeaderValue,
+					Reason: peerset.IncompleteHeaderReason,
+				}, peer.ID("peer"))
+
+				return &chainSync{
+					blockState: blockStateMock,
+					badBlocks:  []string{block2Header.Hash().String()},
+					network:    networkMock,
+				}
+			},
+		},
+		"requested_bootstrap_data_but_got_nil_body": {
+			wantErr: errNilBodyInResponse,
+			errString: "expected body, received none: " +
+				block2Header.Hash().String(),
+			blockRequest: &network.BlockRequestMessage{
+				RequestedData: network.BootstrapRequestData,
+			},
+			blockResponse: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Hash:          block1Header.Hash(),
+						Header:        block1Header,
+						Body:          &types.Body{},
+						Justification: &[]byte{0},
+					},
+					{
+						Hash:          block2Header.Hash(),
+						Header:        block2Header,
+						Body:          nil,
+						Justification: &[]byte{0},
+					},
+				},
+			},
+			setupChainSync: func(t *testing.T) *chainSync {
+				ctrl := gomock.NewController(t)
+				blockStateMock := NewMockBlockState(ctrl)
+				blockStateMock.EXPECT().HasHeader(block1Header.ParentHash).Return(true, nil)
+				networkMock := NewMockNetwork(ctrl)
+
+				return &chainSync{
+					blockState: blockStateMock,
+					badBlocks:  []string{block2Header.Hash().String()},
+					network:    networkMock,
+				}
+			},
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			chainSync := tt.setupChainSync(t)
+			err := chainSync.validateResponse(tt.blockRequest, tt.blockResponse, peer.ID("peer"))
+			require.ErrorIs(t, err, tt.wantErr)
+			if tt.errString != "" {
+				require.EqualError(t, err, tt.errString)
+			}
+		})
 	}
 }

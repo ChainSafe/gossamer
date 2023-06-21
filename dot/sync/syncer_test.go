@@ -205,7 +205,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 			peerID:              somePeer,
 			blockAnnounceHeader: block2AnnounceHeader,
 			errWrapped:          errTest,
-			errMessage:          "has header: test error",
+			errMessage:          "while checking if header exists: test error",
 		},
 		"number_smaller_than_best_block_number_and_" +
 			"finalised_number_smaller_than_number_and_" +
