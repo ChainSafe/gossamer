@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package wazero_runtime
 
 import (
@@ -5,8 +8,8 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -37,8 +40,7 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	return NewTestInstanceWithTrie(t, targetRuntime, nil)
 }
 
-func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level,
-	role common.NetworkRole, targetRuntime string) Config {
+func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level, role common.NetworkRole) Config {
 	t.Helper()
 
 	s := storage.NewTrieState(tt)
@@ -49,14 +51,6 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 
-	// version := (*runtime.Version)(nil)
-	// if targetRuntime == runtime.HOST_API_TEST_RUNTIME {
-	// 	// Force state version to 0 since the host api test runtime
-	// 	// does not implement the Core_version call so we cannot get the
-	// 	// state version from it.
-	// 	version = &runtime.Version{}
-	// }
-
 	return Config{
 		Storage:     s,
 		Keystore:    keystore.NewGlobalKeystore(),
@@ -65,7 +59,6 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 		Network:     new(runtime.TestRuntimeNetwork),
 		Transaction: mocks.NewMockTransactionState(ctrl),
 		Role:        role,
-		// testVersion: version,
 	}
 }
 
@@ -80,7 +73,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 
 	ctrl := gomock.NewController(t)
 
-	cfg := setupConfig(t, ctrl, tt, DefaultTestLogLvl, common.NoNetworkRole, targetRuntime)
+	cfg := setupConfig(t, ctrl, tt, DefaultTestLogLvl, common.NoNetworkRole)
 	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
 	require.NoError(t, err)
 
@@ -94,7 +87,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	// Retrieve WASM binary
-	bytes, err := ioutil.ReadFile(fp)
+	bytes, err := os.ReadFile(fp)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read wasm file: %s", err)
 	}
@@ -651,8 +644,6 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	for name, testcase := range testcases {
 		testcase := testcase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			hashEnc, err := scale.Marshal(testcase.root)
 			require.NoError(t, err)
 
@@ -689,7 +680,7 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 
 	// Reads the WebAssembly module as bytes.
 	// Retrieve WASM binary
-	bytes, err := ioutil.ReadFile(fp)
+	bytes, err := os.ReadFile(fp)
 	if err != nil {
 		t.Errorf("Failed to read wasm file: %s", err)
 	}
@@ -1167,7 +1158,6 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
-	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -1187,7 +1177,6 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
-	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
@@ -1806,7 +1795,6 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {
-	t.Parallel()
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -1855,7 +1843,6 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1_again(t *testing.T) {
-	t.Parallel()
 	DefaultTestLogLvl = 5
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
