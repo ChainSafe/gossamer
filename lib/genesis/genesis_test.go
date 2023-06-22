@@ -4,7 +4,6 @@
 package genesis
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -84,12 +83,8 @@ func TestBalancesFieldsMarshal(t *testing.T) {
 	for _, tt := range tcBalancesFields {
 		t.Run(tt.name, func(t *testing.T) {
 			marshalledValue, err := tt.goValue.MarshalJSON()
-			if err != nil {
-				t.Fatalf("Couldn't marshal BalancesFields: %v", err)
-			}
-			if !reflect.DeepEqual(marshalledValue, tt.jsonValue) {
-				t.Errorf("Unexpected marshal value : \nactual: %v \nExpected: %v", marshalledValue, tt.jsonValue)
-			}
+			require.NoError(t, err)
+			require.Equal(t, tt.jsonValue, marshalledValue)
 		})
 	}
 }
@@ -99,12 +94,8 @@ func TestBalancesFieldsUnmarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var bfs balancesFields
 			err := bfs.UnmarshalJSON(tt.jsonValue)
-			if err != nil {
-				t.Fatalf("Couldn't unmarshal BalancesFields: %v", err)
-			}
-			if !reflect.DeepEqual(bfs, tt.goValue) {
-				t.Errorf("Unexpected unmarshal value : \nactual: %v \nExpected: %v", bfs, tt.goValue)
-			}
+			require.NoError(t, err)
+			require.EqualValues(t, bfs, tt.goValue)
 		})
 	}
 }

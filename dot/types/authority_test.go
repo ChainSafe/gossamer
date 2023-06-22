@@ -4,8 +4,9 @@
 package types
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var tcAuthorityAsAddress = []struct {
@@ -28,12 +29,8 @@ func TestAuthorityAsAddressMarshal(t *testing.T) {
 	for _, tt := range tcAuthorityAsAddress {
 		t.Run(tt.name, func(t *testing.T) {
 			marshalledValue, err := tt.goValue.MarshalJSON()
-			if err != nil {
-				t.Fatalf("Couldn't marshal AuthorityAsAddress: %v", err)
-			}
-			if !reflect.DeepEqual(marshalledValue, tt.jsonValue) {
-				t.Errorf("Unexpected marshal value : \nactual: %v \nExpected: %v", marshalledValue, tt.jsonValue)
-			}
+			require.NoError(t, err)
+			require.Equal(t, tt.jsonValue, marshalledValue)
 		})
 	}
 
@@ -44,12 +41,8 @@ func TestAuthorityAsAddressUnmarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var authorityAsAddress AuthorityAsAddress
 			err := authorityAsAddress.UnmarshalJSON(tt.jsonValue)
-			if err != nil {
-				t.Fatalf("Couldn't unmarshal AuthorityAsAddress: %v", err)
-			}
-			if !reflect.DeepEqual(authorityAsAddress, tt.goValue) {
-				t.Errorf("Unexpected unmarshal value : \nactual: %+v \nExpected: %+v", authorityAsAddress, tt.goValue)
-			}
+			require.NoError(t, err)
+			require.EqualValues(t, tt.goValue, authorityAsAddress)
 		})
 	}
 

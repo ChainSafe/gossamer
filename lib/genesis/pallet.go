@@ -46,8 +46,8 @@ type keyOwner struct {
 
 func (b *nextKey) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID1, &b.AccountID2, &b.KeyOwner}
-	err := json.Unmarshal(buf, &tmp)
-	return err
+	return json.Unmarshal(buf, &tmp)
+
 }
 
 func (b nextKey) MarshalJSON() ([]byte, error) {

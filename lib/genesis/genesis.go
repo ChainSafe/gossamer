@@ -276,8 +276,7 @@ func interfaceToTelemetryEndpoint(endpoints []interface{}) []*TelemetryEndpoint 
 
 func (b *balancesFields) UnmarshalJSON(buf []byte) error {
 	tmp := []interface{}{&b.AccountID, &b.Balance}
-	err := json.Unmarshal(buf, &tmp)
-	return err
+	return json.Unmarshal(buf, &tmp)
 }
 
 func (b balancesFields) MarshalJSON() ([]byte, error) {

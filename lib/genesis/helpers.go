@@ -251,12 +251,12 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 
 				}
 				if err := buildRawArrayInterface(listOfInterface, kv); err != nil {
-					return err
+					return fmt.Errorf("error building raw array interface: %w", err)
 				}
 			case reflect.Struct:
 				kv.valueLen = big.NewInt(int64(v.NumField()))
 				if err := buildRawStructInterface(v2, kv); err != nil {
-					return err
+					return fmt.Errorf("error building raw struct interface: %w", err)
 				}
 			}
 		}
@@ -271,9 +271,8 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 
 		switch v2 := v.Interface().(type) {
 		case []interface{}:
-			err := buildRawArrayInterface(v2, kv)
-			if err != nil {
-				return err
+			if err := buildRawArrayInterface(v2, kv); err != nil {
+				return fmt.Errorf("error building raw array interface: %w", err)
 			}
 		case string:
 			// TODO: check to confirm it's an address (#1865)
@@ -330,12 +329,12 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 				}
 				kv.valueLen = big.NewInt(int64(v.Len()))
 				if err := buildRawArrayInterface(list, kv); err != nil {
-					return err
+					return fmt.Errorf("error building raw array interface: %w", err)
 				}
 			case reflect.Struct:
 				kv.valueLen = big.NewInt(int64(v.NumField()))
 				if err := buildRawStructInterface(v2, kv); err != nil {
-					return err
+					return fmt.Errorf("error building raw struct interface: %w", err)
 				}
 			}
 		}
@@ -362,7 +361,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 			switch reflect.ValueOf(v2).Kind() {
 			case reflect.Struct:
 				if err := buildRawStructInterface(v2, kv); err != nil {
-					return err
+					return fmt.Errorf("error building raw struct interface: %w", err)
 				}
 			default:
 				return fmt.Errorf("invalid value type %T", v2)
@@ -689,14 +688,14 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 			//  slice value since it was encoded starting with 0x01
 			err := addAuthoritiesValues("grandpa", crypto.Ed25519Type, v[1:], gen)
 			if err != nil {
-				return err
+				return fmt.Errorf("error adding grandpa authorities values: %v", err)
 			}
 			addRawValue(key, v, gen)
 		case BABEAuthoritiesKeyHex:
 			// handle Babe Authorities
 			err := addAuthoritiesValues("babe", crypto.Sr25519Type, v, gen)
 			if err != nil {
-				return err
+				return fmt.Errorf("error adding babe authorities values: %v", err)
 			}
 			addRawValue(key, v, gen)
 		}
