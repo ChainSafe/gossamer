@@ -16,6 +16,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewService(t *testing.T) {
@@ -279,65 +280,21 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	t.Parallel()
 
-	errTest := errors.New("test error")
+	ctrl := gomock.NewController(t)
+	chainSync := NewMockChainSync(ctrl)
+	chainSync.EXPECT().setPeerHead(peer.ID("peer"), common.Hash{1}, uint(2))
 
-	testCases := map[string]struct {
-		serviceBuilder func(ctrl *gomock.Controller) Service
-		from           peer.ID
-		message        *network.BlockAnnounceHandshake
-		errWrapped     error
-		errMessage     string
-	}{
-		"success": {
-			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().setPeerHead(peer.ID("abc"), common.Hash{1}, uint(2)).
-					Return(nil)
-				return Service{
-					chainSync: chainSync,
-				}
-			},
-			from: peer.ID("abc"),
-			message: &network.BlockAnnounceHandshake{
-				BestBlockHash:   common.Hash{1},
-				BestBlockNumber: 2,
-			},
-		},
-		"failure": {
-			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().setPeerHead(peer.ID("abc"), common.Hash{1}, uint(2)).
-					Return(errTest)
-				return Service{
-					chainSync: chainSync,
-				}
-			},
-			from: peer.ID("abc"),
-			message: &network.BlockAnnounceHandshake{
-				BestBlockHash:   common.Hash{1},
-				BestBlockNumber: 2,
-			},
-			errWrapped: errTest,
-			errMessage: "test error",
-		},
+	service := Service{
+		chainSync: chainSync,
 	}
 
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			service := testCase.serviceBuilder(ctrl)
-
-			err := service.HandleBlockAnnounceHandshake(testCase.from, testCase.message)
-
-			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
-			}
-		})
+	message := &network.BlockAnnounceHandshake{
+		BestBlockHash:   common.Hash{1},
+		BestBlockNumber: 2,
 	}
+
+	err := service.HandleBlockAnnounceHandshake(peer.ID("peer"), message)
+	require.Nil(t, err)
 }
 
 func TestService_IsSynced(t *testing.T) {

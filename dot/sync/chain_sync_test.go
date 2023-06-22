@@ -252,7 +252,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 			shouldBeAWorker: true,
 			workerStatus:    available,
 		},
-		"set_peer_head_with_a_to_ignore_peer_should_be_included_in_the_workerpoll": {
+		"set_peer_head_with_a_to_ignore_peer_should_not_be_included_in_the_workerpoll": {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock)
@@ -267,7 +267,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 			peerID:          peer.ID("peer-test"),
 			bestHash:        randomHash,
 			bestNumber:      uint(20),
-			shouldBeAWorker: true,
+			shouldBeAWorker: false,
 		},
 		"set_peer_head_that_stills_punished_in_the_worker_poll": {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
@@ -419,8 +419,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	mockedBlockState := NewMockBlockState(ctrl)
 	mockedBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 
-	mockedBlockState.EXPECT().BestBlockHeader().Return(mockedGenesisHeader, nil)
-
 	mockBabeVerifier := NewMockBabeVerifier(ctrl)
 	mockStorageState := NewMockStorageState(ctrl)
 	mockImportHandler := NewMockBlockImportHandler(ctrl)
@@ -467,7 +465,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
 		trie.EmptyHash, 0, types.NewDigest())
-	mockBlockState.EXPECT().BestBlockHeader().Return(mockedGenesisHeader, nil)
 
 	mockNetwork := NewMockNetwork(ctrl)
 
@@ -539,7 +536,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing.T) {
-
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -547,7 +543,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
 	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
 		trie.EmptyHash, 0, types.NewDigest())
-	mockBlockState.EXPECT().BestBlockHeader().Return(mockedGenesisHeader, nil)
 
 	mockNetwork := NewMockNetwork(ctrl)
 
@@ -586,11 +581,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	doBlockRequestCount := 0
 	mockNetwork.EXPECT().DoBlockRequest(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(peerID, _ any) (any, any) {
-			// this simple logic does: ensure that the DoBlockRequest is called by
+			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method will fail
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
-
 			defer func() { doBlockRequestCount++ }()
 
 			pID := peerID.(peer.ID) // cast to peer ID
@@ -645,12 +639,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker_Failing(t *testing
 	close(stopCh)
 	<-cs.workerPool.doneCh
 
-	// peer should be in the ignore set
-	_, ok := cs.workerPool.ignorePeers[peer.ID("bob")]
+	// peer should be punished
+	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
 	require.True(t, ok)
-
-	_, ok = cs.workerPool.workers[peer.ID("bob")]
-	require.False(t, ok)
+	require.Equal(t, punished, syncWorker.status)
 }
 
 func createSuccesfullBlockResponse(_ *testing.T, genesisHash common.Hash,
@@ -694,8 +686,6 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 	mockBabeVerifier *MockBabeVerifier, mockStorageState *MockStorageState,
 	mockImportHandler *MockBlockImportHandler, mockTelemetry *MockTelemetry, announceBlock bool) {
 	t.Helper()
-
-	mockBlockState.EXPECT().HasHeader(parentHeader.Hash()).Return(true, nil)
 
 	for idx, blockData := range blocksReceived {
 		mockBlockState.EXPECT().HasHeader(blockData.Header.Hash()).Return(false, nil)
