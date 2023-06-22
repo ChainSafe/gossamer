@@ -14,11 +14,12 @@ import (
 // node is an element in the BlockTree
 type node struct {
 	hash        common.Hash // Block hash
-	parent      *node       // Parent Node
-	children    []*node     // Nodes of children blocks
-	number      uint        // block number
-	arrivalTime time.Time   // Arrival time of the block
-	isPrimary   bool        // whether the block was authored in a primary slot or not
+	slotNumber  uint64
+	parent      *node     // Parent Node
+	children    []*node   // Nodes of children blocks
+	number      uint      // block number
+	arrivalTime time.Time // Arrival time of the block
+	isPrimary   bool      // whether the block was authored in a primary slot or not
 }
 
 // addChild appends Node to n's list of children
