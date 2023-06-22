@@ -259,18 +259,7 @@ func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
 }
 
 func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
-	defer func() {
-		s.mtx.Lock()
-		peerSync, has := s.workers[who]
-		if has {
-			peerSync.status = available
-			s.workers[who] = peerSync
-		}
-		s.mtx.Unlock()
-
-		s.availableCond.Signal()
-		s.wg.Done()
-	}()
+	defer s.wg.Done()
 	request := task.request
 
 	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
@@ -280,6 +269,15 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	} else if response != nil {
 		logger.Debugf("[FINISHED] worker %s, block data amount: %d", who, len(response.BlockData))
 	}
+
+	s.mtx.Lock()
+	peerSync, has := s.workers[who]
+	if has {
+		peerSync.status = available
+		s.workers[who] = peerSync
+	}
+	s.mtx.Unlock()
+	s.availableCond.Signal()
 
 	task.resultCh <- &syncTaskResult{
 		who:      who,
