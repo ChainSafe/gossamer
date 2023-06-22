@@ -404,6 +404,8 @@ func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption p
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 
+	fmt.Println("validationCode: ", validationCode)
+
 	return &validationCode, nil
 }
 

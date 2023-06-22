@@ -1217,28 +1217,36 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 }
 
 func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
+	t.Parallel()
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
 	parachainID := uint32(1000)
 	assumption := parachaintypes.NewOccupiedCoreAssumption()
 	err := assumption.Set(parachaintypes.Included{})
 	require.NoError(t, err)
 
-	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	// runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
 	// TODO: scaled encoding of persisted validation data is coming out to be [0], which is not the expected results.
-	_, err = runtime.ParachainHostPersistedValidationData(parachainID, assumption)
+	_, err = rt.ParachainHostPersistedValidationData(parachainID, assumption)
 	require.NoError(t, err)
 }
 
 func TestInstance_ParachainHostValidationCode(t *testing.T) {
+	t.Parallel()
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+
 	parachainID := uint32(1000)
 	assumption := parachaintypes.NewOccupiedCoreAssumption()
 	err := assumption.Set(parachaintypes.Included{})
 	require.NoError(t, err)
 
-	runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	// runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
 	// TODO: validation code is coming out to be empty slice, which is not expected result.
-	_, err = runtime.ParachainHostValidationCode(parachainID, assumption)
+	_, err = rt.ParachainHostValidationCode(parachainID, assumption)
 	require.NoError(t, err)
 }
 
