@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -16,7 +15,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -25,75 +23,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// NewTestInstance will create a new runtime instance using the given target runtime
-func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
-	t.Helper()
-	return NewTestInstanceWithTrie(t, targetRuntime, nil)
-}
-
-func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level, role common.NetworkRole) Config {
-	t.Helper()
-
-	s := storage.NewTrieState(tt)
-
-	ns := runtime.NodeStorage{
-		LocalStorage:      runtime.NewInMemoryDB(t),
-		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-		BaseDB:            runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-	}
-
-	return Config{
-		Storage:     s,
-		Keystore:    keystore.NewGlobalKeystore(),
-		LogLvl:      lvl,
-		NodeStorage: ns,
-		Network:     new(runtime.TestRuntimeNetwork),
-		Transaction: mocks.NewMockTransactionState(ctrl),
-		Role:        role,
-	}
-}
-
-// DefaultTestLogLvl is the log level used for test runtime instances
-var DefaultTestLogLvl = log.Info
-
-// NewTestInstanceWithTrie returns an instance based on the target runtime string specified,
-// which can be a file path or a constant from the constants defined in `lib/runtime/constants.go`.
-// The instance uses the trie given as argument for its storage.
-func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
-	t.Helper()
-
-	ctrl := gomock.NewController(t)
-
-	cfg := setupConfig(t, ctrl, tt, DefaultTestLogLvl, common.NoNetworkRole)
-	targetRuntime, err := runtime.GetRuntime(context.Background(), targetRuntime)
-	require.NoError(t, err)
-
-	r, err := NewInstanceFromFile(targetRuntime, cfg)
-	require.NoError(t, err)
-
-	return r
-}
-
-// NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
-	// Reads the WebAssembly module as bytes.
-	// Retrieve WASM binary
-	bytes, err := os.ReadFile(fp)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read wasm file: %s", err)
-	}
-
-	return NewInstance(bytes, cfg)
-}
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -356,6 +292,61 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) 
 	err = publicKey.Decode(rawPub)
 	require.NoError(t, err)
 	require.Equal(t, expectedPubKey, publicKey.Encode())
+}
+
+func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
+	testCases := map[string]struct {
+		sig      []byte
+		msg      []byte
+		key      []byte
+		expected []byte
+		err      string
+	}{
+		"valid_signature": {
+			sig:      []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			expected: []byte{1, 0, 0, 0},
+		},
+		"invalid_signature": {
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			expected: []byte{0, 0, 0, 0},
+		},
+		"wrong_key": {
+			sig:      []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
+			msg:      []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key:      []byte{132, 2, 39, 0, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			expected: []byte{0, 0, 0, 0},
+		},
+		"invalid_key": {
+			sig: []byte{5, 1, 187, 0, 0, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
+			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33},
+			key: []byte{132, 2, 39, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			err: "running runtime function: wasm error",
+		},
+		"invalid_message": {
+			sig: []byte{5, 1, 187, 179, 88, 183, 46, 115, 242, 32, 9, 54, 141, 207, 44, 15, 238, 42, 217, 196, 111, 173, 239, 204, 128, 93, 49, 179, 137, 150, 162, 125, 226, 225, 28, 145, 122, 127, 15, 154, 185, 11, 3, 66, 27, 187, 204, 242, 107, 68, 26, 111, 245, 30, 115, 141, 85, 74, 158, 211, 161, 217, 43, 151, 120, 125, 1}, //nolint:lll
+			msg: []byte{48, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100},
+			key: []byte{132, 2, 39, 206, 55, 134, 131, 142, 43, 100, 63, 134, 96, 14, 253, 15, 222, 119, 154, 110, 188, 20, 159, 62, 125, 42, 59, 127, 19, 16, 0, 161, 236, 109}, //nolint:lll
+			err: "running runtime function: wasm error",
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+			ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(tc.sig, tc.msg...), tc.key...))
+			assert.Equal(t, tc.expected, ret)
+			if tc.err != "" {
+				assert.ErrorContains(t, err, tc.err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {

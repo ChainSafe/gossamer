@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -94,7 +94,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgStorageState := stateSrvc.Storage
 	cfgCodeSubstitutedState := stateSrvc.Base
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
@@ -105,12 +105,12 @@ func createTestService(t *testing.T, genesisFilePath string,
 
 	rtCfg.NodeStorage = nodeStorage
 
-	cfgRuntime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	cfgRuntime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfgRuntime.GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
+	cfgRuntime.Context.Storage.Put(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfgRuntime.GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
+	cfgRuntime.Context.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 
@@ -212,7 +212,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		var rtCfg wasmer.Config
+		var rtCfg wazero_runtime.Config
 
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -231,7 +231,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 		rtCfg.NodeStorage = nodeStorage
 
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)

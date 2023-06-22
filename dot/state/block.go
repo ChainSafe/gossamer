@@ -22,7 +22,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
 const (
@@ -853,7 +853,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
 	if codeSubBlockHash != (common.Hash{}) {
-		newVersion, err := wasmer.GetRuntimeVersion(code)
+		newVersion, err := wazero_runtime.GetRuntimeVersion(code)
 		if err != nil {
 			return err
 		}
@@ -875,7 +875,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 			bHash, parentCodeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
 
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		Storage:     newState,
 		Keystore:    parentRuntimeInstance.Keystore(),
 		NodeStorage: parentRuntimeInstance.NodeStorage(),
@@ -887,7 +887,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		rtCfg.Role = 4
 	}
 
-	instance, err := wasmer.NewInstance(code, rtCfg)
+	instance, err := wazero_runtime.NewInstance(code, rtCfg)
 	if err != nil {
 		return err
 	}
