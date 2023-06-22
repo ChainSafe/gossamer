@@ -696,7 +696,8 @@ func (cs *chainSync) handleWorkersResults(
 		}
 
 		retreiveBlocksSeconds := time.Since(startTime).Seconds()
-		logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...", expectedSyncedBlocks, retreiveBlocksSeconds)
+		logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
+			expectedSyncedBlocks, retreiveBlocksSeconds)
 
 		// response was validated! place into ready block queue
 		for _, bd := range syncingChain {
