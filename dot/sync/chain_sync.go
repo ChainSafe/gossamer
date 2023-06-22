@@ -598,16 +598,13 @@ func (cs *chainSync) handleWorkersResults(
 						taskResult.who, taskResult.err)
 
 					if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-						switch {
-						case strings.Contains(taskResult.err.Error(), "protocols not supported"):
+						if strings.Contains(taskResult.err.Error(), "protocols not supported") {
 							cs.network.ReportPeer(peerset.ReputationChange{
 								Value:  peerset.BadProtocolValue,
 								Reason: peerset.BadProtocolReason,
 							}, taskResult.who)
-							cs.workerPool.ignorePeerAsWorker(taskResult.who)
-						default:
-							cs.workerPool.punishPeer(taskResult.who)
 						}
+						cs.workerPool.punishPeer(taskResult.who)
 					}
 
 					cs.workerPool.submitRequest(taskResult.request, workersResults)
@@ -623,14 +620,21 @@ func (cs *chainSync) handleWorkersResults(
 					reverseBlockData(response.BlockData)
 				}
 
-				if len(response.BlockData) > 0 {
-					firstBlockInResponse := response.BlockData[0]
-					lastBlockInResponse := response.BlockData[len(response.BlockData)-1]
+				err := validateResponseFields(request.RequestedData, response.BlockData)
+				if err != nil {
+					logger.Criticalf("validating fields: %s", err)
+					// TODO: check the reputation change for nil body in response
+					// and nil justification in response
+					if errors.Is(err, errNilHeaderInResponse) {
+						cs.network.ReportPeer(peerset.ReputationChange{
+							Value:  peerset.IncompleteHeaderValue,
+							Reason: peerset.IncompleteHeaderReason,
+						}, who)
+					}
 
-					logger.Tracef("processing %d blocks: %s (#%d) to %s (#%d)",
-						len(response.BlockData),
-						firstBlockInResponse.Hash.Short(), firstBlockInResponse.Header.Number,
-						lastBlockInResponse.Hash.Short(), lastBlockInResponse.Header.Number)
+					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					continue taskResultLoop
 				}
 
 				isChain := isResponseAChain(response.BlockData)
@@ -642,23 +646,6 @@ func (cs *chainSync) handleWorkersResults(
 				}
 
 				for _, blockInResponse := range response.BlockData {
-					err := validateResponseFields(request.RequestedData, blockInResponse)
-					if err != nil {
-						logger.Criticalf("validating fields: %s", err)
-						// TODO: check the reputation change for nil body in response
-						// and nil justification in response
-						if errors.Is(err, errNilHeaderInResponse) {
-							cs.network.ReportPeer(peerset.ReputationChange{
-								Value:  peerset.IncompleteHeaderValue,
-								Reason: peerset.IncompleteHeaderReason,
-							}, who)
-						}
-
-						cs.workerPool.punishPeer(taskResult.who)
-						cs.workerPool.submitRequest(taskResult.request, workersResults)
-						continue taskResultLoop
-					}
-
 					if slices.Contains(cs.badBlocks, blockInResponse.Hash.String()) {
 						logger.Criticalf("%s sent a known bad block: %s (#%d)",
 							who, blockInResponse.Hash.String(), blockInResponse.Number())
@@ -688,8 +675,9 @@ func (cs *chainSync) handleWorkersResults(
 			parentElement := syncingChain[0]
 			for _, element := range syncingChain[1:] {
 				if parentElement.Header.Hash() != element.Header.ParentHash {
-					panic(fmt.Sprintf("expected %s be parent of %s",
-						parentElement.Header.Hash(), element.Header.ParentHash))
+					panic(fmt.Sprintf("expected %s (#%d) be parent of %s (#%d)",
+						parentElement.Header.Hash(), parentElement.Header.Number,
+						element.Header.Hash(), element.Header.Number))
 				}
 				parentElement = element
 			}
@@ -947,23 +935,25 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 }
 
 // validateResponseFields checks that the expected fields are in the block data
-func validateResponseFields(requestedData byte, bd *types.BlockData) error {
-	if bd == nil {
-		return errNilBlockData
-	}
+func validateResponseFields(requestedData byte, blocks []*types.BlockData) error {
+	for _, bd := range blocks {
+		if bd == nil {
+			return errNilBlockData
+		}
 
-	if (requestedData&network.RequestedDataHeader) == network.RequestedDataHeader && bd.Header == nil {
-		return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
-	}
+		if (requestedData&network.RequestedDataHeader) == network.RequestedDataHeader && bd.Header == nil {
+			return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
+		}
 
-	if (requestedData&network.RequestedDataBody) == network.RequestedDataBody && bd.Body == nil {
-		return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
-	}
+		if (requestedData&network.RequestedDataBody) == network.RequestedDataBody && bd.Body == nil {
+			return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
+		}
 
-	// if we requested strictly justification
-	if (requestedData|network.RequestedDataJustification) == network.RequestedDataJustification &&
-		bd.Justification == nil {
-		return fmt.Errorf("%w: %s", errNilJustificationInResponse, bd.Hash)
+		// if we requested strictly justification
+		if (requestedData|network.RequestedDataJustification) == network.RequestedDataJustification &&
+			bd.Justification == nil {
+			return fmt.Errorf("%w: %s", errNilJustificationInResponse, bd.Hash)
+		}
 	}
 
 	return nil
