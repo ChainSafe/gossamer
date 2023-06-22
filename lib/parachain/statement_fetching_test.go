@@ -8,6 +8,8 @@ import (
 )
 
 func TestEncodeStatementFetchingRequest(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name           string
 		request        StatementFetchingRequest
@@ -31,11 +33,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 				RelayParent:   getDummyHash(4),
 				CandidateHash: CandidateHash{Value: getDummyHash(4)},
 			},
-			expectedEncode: []byte{
-				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-				4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-			},
+			expectedEncode: common.MustHexToBytes(testDataStatement["all4InCommonHash"]),
 		},
 		{
 			name: "all 7 in common.Hash",
@@ -43,11 +41,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 				RelayParent:   getDummyHash(7),
 				CandidateHash: CandidateHash{Value: getDummyHash(7)},
 			},
-			expectedEncode: []byte{
-				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-			},
+			expectedEncode: common.MustHexToBytes(testDataStatement["all7InCommonHash"]),
 		},
 	}
 
@@ -63,6 +57,8 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 }
 
 func TestStatementFetchingResponse(t *testing.T) {
+	t.Parallel()
+
 	hash5 := getDummyHash(5)
 
 	var collatorID CollatorID
@@ -70,7 +66,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature CollatorSignature
-	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
+	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	missingDataInStatement := MissingDataInStatement{
@@ -94,14 +90,15 @@ func TestStatementFetchingResponse(t *testing.T) {
 		},
 	}
 
-	EncodedValue := []byte{0, 1, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 72, 33, 91, 157, 50, 38, 1, 229, 177, 169, 81, 100, 206, 160, 220, 70, 38, 245, 69, 249, 131, 67, 208, 127, 21, 81, 235, 149, 67, 196, 177, 71, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 12, 1, 2, 3, 0, 1, 12, 1, 2, 3, 12, 1, 2, 3, 5, 0, 0, 0, 0, 0, 0, 0}
+	EncodedValue := common.MustHexToBytes(testDataStatement["hexOfStatementFetchingResponse"])
 
 	response := NewStatementFetchingResponse()
-
 	err := response.Set(missingDataInStatement)
 	require.NoError(t, err)
 
 	t.Run("Encode StatementFetchingResponse", func(t *testing.T) {
+		t.Parallel()
+
 		actualEncode, err := response.Encode()
 		require.NoError(t, err)
 
@@ -109,6 +106,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 	})
 
 	t.Run("Decode StatementFetchingResponse", func(t *testing.T) {
+		t.Parallel()
 		err := response.Decode(EncodedValue)
 		require.NoError(t, err)
 
