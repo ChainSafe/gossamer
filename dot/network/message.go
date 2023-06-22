@@ -17,11 +17,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type MessageType byte
+
 // Message types for notifications protocol messages. Used internally to map message to protocol.
 const (
-	blockAnnounceMsgType byte = 3
-	transactionMsgType   byte = 4
-	ConsensusMsgType     byte = 5
+	blockAnnounceMsgType MessageType = iota + 3
+	transactionMsgType
+	ConsensusMsgType
 )
 
 // Message must be implemented by all network messages
@@ -32,11 +34,10 @@ type Message interface {
 // NotificationsMessage must be implemented by all messages sent over a notifications protocol
 type NotificationsMessage interface {
 	Message
-	Type() byte
+	Type() MessageType
 	Hash() (common.Hash, error)
 }
 
-//nolint:revive
 const (
 	RequestedDataHeader        = byte(1)
 	RequestedDataBody          = byte(2)
@@ -324,7 +325,7 @@ type ConsensusMessage struct {
 }
 
 // Type returns ConsensusMsgType
-func (cm *ConsensusMessage) Type() byte {
+func (cm *ConsensusMessage) Type() MessageType {
 	return ConsensusMsgType
 }
 

@@ -114,6 +114,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeBigInt(dstv)
 	case *Uint128:
 		err = ds.decodeUint128(dstv)
+	case BitVec:
+		err = ds.decodeBitVec(dstv)
 	case int, uint:
 		err = ds.decodeUint(dstv)
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
@@ -344,6 +346,22 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 
 func (ds *decodeState) decodeCustomVaryingDataType(dstv reflect.Value) (err error) {
 	initialType := dstv.Type()
+
+	methodVal := dstv.MethodByName("New")
+	if methodVal.IsValid() && !methodVal.IsZero() {
+		if methodVal.Type().Out(0).String() != dstv.Type().String() {
+			return fmt.Errorf("%s.New() returns %s instead of %s", dstv.Type(), methodVal.Type().Out(0), dstv.Type())
+		}
+
+		values := methodVal.Call(nil)
+		if len(values) > 1 {
+			return fmt.Errorf("%s.New() returns too many values", dstv.Type())
+		} else if len(values) == 0 {
+			return fmt.Errorf("%s.New() does not return a value", dstv.Type())
+		}
+		dstv.Set(values[0])
+	}
+
 	converted := dstv.Convert(reflect.TypeOf(VaryingDataType{}))
 	tempVal := reflect.New(converted.Type())
 	tempVal.Elem().Set(converted)
@@ -751,4 +769,32 @@ func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	}
 	dstv.Set(reflect.ValueOf(ui128))
 	return
+}
+
+// decodeBitVec accepts a byte array representing a SCALE encoded
+// BitVec and performs SCALE decoding of the BitVec
+func (ds *decodeState) decodeBitVec(dstv reflect.Value) error {
+	var size uint
+	if err := ds.decodeUint(reflect.ValueOf(&size).Elem()); err != nil {
+		return err
+	}
+
+	if size > maxLen {
+		return fmt.Errorf("%w: %d", errBitVecTooLong, size)
+	}
+
+	numBytes := (size + (byteSize - 1)) / byteSize
+	b := make([]byte, numBytes)
+	_, err := ds.Read(b)
+	if err != nil {
+		return err
+	}
+
+	bitvec := NewBitVec(bytesToBits(b, size))
+	if len(bitvec.bits) > int(size) {
+		return fmt.Errorf("bitvec length mismatch: expected %d, got %d", size, len(bitvec.bits))
+	}
+
+	dstv.Set(reflect.ValueOf(bitvec))
+	return nil
 }

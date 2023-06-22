@@ -8,9 +8,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Instance for runtime methods
@@ -56,4 +58,17 @@ type Instance interface {
 	) (*parachaintypes.PersistedValidationData, error)
 	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
+	ParachainHostValidators() ([]parachain.ValidatorID, error)
+	ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error)
+	ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error)
+	ParachainHostCheckValidationOutputs(
+		parachainID parachain.ParaID,
+		outputs parachain.CandidateCommitments,
+	) (bool, error)
+	ParachainHostSessionIndexForChild() (parachain.SessionIndex, error)
+	ParachainHostCandidatePendingAvailability(
+		parachainID parachain.ParaID,
+	) (*parachain.CommittedCandidateReceipt, error)
+	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
+	ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error)
 }
