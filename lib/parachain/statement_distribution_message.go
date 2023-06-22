@@ -45,7 +45,8 @@ func (SignedFullStatement) Index() uint {
 	return 0
 }
 
-// SecondedStatementWithLargePayload represents Seconded statement with large payload (e.g. containing a runtime upgrade).
+// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
