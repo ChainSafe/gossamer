@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -251,9 +251,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				}
 			},
 			blockHash:  common.Hash{0x01},
-			errWrapped: wasmer.ErrWASMDecompress,
-			errMessage: "creating new runtime instance: setting up VM: " +
-				"wasm decompression failed: unexpected EOF",
+			errMessage: "creating new runtime instance: unexpected EOF",
 		},
 		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
@@ -302,7 +300,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 					Return(nil)
 
 				blockState.EXPECT().StoreRuntime(common.Hash{0x01},
-					gomock.AssignableToTypeOf(&wasmer.Instance{}))
+					gomock.AssignableToTypeOf(&wazero_runtime.Instance{}))
 
 				return &Service{
 					blockState: blockState,
@@ -325,9 +323,11 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			service := testCase.serviceBuilder(ctrl)
 
 			err := service.handleCodeSubstitution(testCase.blockHash, testCase.trieState)
-			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
+				assert.ErrorIs(t, err, testCase.errWrapped)
+			}
+			if testCase.errMessage != "" {
+				assert.ErrorContains(t, err, testCase.errMessage)
 			}
 		})
 	}

@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -31,7 +31,7 @@ func newTestSyncer(t *testing.T) *Service {
 	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	wasmer.DefaultTestLogLvl = log.Warn
+	wazero_runtime.DefaultTestLogLvl = log.Warn
 
 	cfg := &Config{}
 	testDatadirPath := t.TempDir()
@@ -62,7 +62,7 @@ func newTestSyncer(t *testing.T) *Service {
 	// initialise runtime
 	genState := rtstorage.NewTrieState(&genTrie)
 
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -77,7 +77,7 @@ func newTestSyncer(t *testing.T) *Service {
 	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	instance, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	instance, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	bestBlockHash := cfg.BlockState.(*state.BlockState).BestBlockHash()

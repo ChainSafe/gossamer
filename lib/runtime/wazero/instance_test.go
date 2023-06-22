@@ -6,8 +6,6 @@ package wazero_runtime
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -29,30 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(cfg Config) (instance *Instance, err error) {
-	if cfg.Storage == nil {
-		return nil, errors.New("storage is nil")
-	}
-
-	code := cfg.Storage.LoadCode()
-	if len(code) == 0 {
-		return nil, fmt.Errorf("cannot find :code in state")
-	}
-
-	return NewInstance(code, cfg)
-}
-
-// NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
-	code := t.Get(common.CodeKey)
-	if len(code) == 0 {
-		return nil, fmt.Errorf("cannot find :code in trie")
-	}
-
-	return NewInstance(code, cfg)
-}
 
 func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
 	t.Helper()
