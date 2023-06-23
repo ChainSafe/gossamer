@@ -232,6 +232,9 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		mockNetwork := mocks.NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
+		digestOnBlockImportMock := mocks.NewMockBlockImportDigestHandler(ctrl)
+		digestOnBlockImportMock.EXPECT().Handle(gomock.Any()).AnyTimes()
+
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
 			StorageState:         storageState,
@@ -241,6 +244,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			Network:              mockNetwork,
 			CodeSubstitutedState: dbSrv.Base,
 			CodeSubstitutes:      make(map[common.Hash]string),
+			OnBlockImport:        digestOnBlockImportMock,
 		}
 
 		babeService.blockImportHandler = newTestCoreService(t, &coreConfig, genesis,
