@@ -10,13 +10,13 @@ import (
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
 type StatementDistributionMessage scale.VaryingDataType
 
-// NewStatementDistributionMessage returns a new StatementDistributionMessage VaryingDataType
+// NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
 	vdt := scale.MustNewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
 	return StatementDistributionMessage(vdt)
 }
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+// Set will set a value using the underlying  varying data type
 func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*sdm)
 	err = vdt.Set(val)
@@ -28,7 +28,7 @@ func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (er
 	return nil
 }
 
-// Value returns the value from the underlying VaryingDataType
+// Value returns the value from the underlying varying data type
 func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*sdm)
 	return vdt.Value()
@@ -40,19 +40,20 @@ type SignedFullStatement struct {
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
-// Index returns the VaryingDataType Index
-func (s SignedFullStatement) Index() uint {
+// Index returns the index of varying data type
+func (SignedFullStatement) Index() uint {
 	return 0
 }
 
-// Seconded statement with large payload (e.g. containing a runtime upgrade).
+// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
 type SecondedStatementWithLargePayload StatementMetadata
 
-// Index returns the VaryingDataType Index
-func (l SecondedStatementWithLargePayload) Index() uint {
+// Index returns the index of varying data type
+func (SecondedStatementWithLargePayload) Index() uint {
 	return 1
 }
 
