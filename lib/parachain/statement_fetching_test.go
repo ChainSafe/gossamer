@@ -28,7 +28,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			// 		statement_fetching_request.encode()
 			// 	);
 			// }
-			name: "all 4 in common.Hash",
+			name: "all 4 in hash",
 			request: StatementFetchingRequest{
 				RelayParent:   getDummyHash(4),
 				CandidateHash: CandidateHash{Value: getDummyHash(4)},
@@ -36,7 +36,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			expectedEncode: common.MustHexToBytes(testDataStatement["all4InCommonHash"]),
 		},
 		{
-			name: "all 7 in common.Hash",
+			name: "all 7 in hash",
 			request: StatementFetchingRequest{
 				RelayParent:   getDummyHash(7),
 				CandidateHash: CandidateHash{Value: getDummyHash(7)},
