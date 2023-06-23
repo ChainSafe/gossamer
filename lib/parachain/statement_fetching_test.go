@@ -96,7 +96,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 	err := response.Set(missingDataInStatement)
 	require.NoError(t, err)
 
-	t.Run("Encode StatementFetchingResponse", func(t *testing.T) {
+	t.Run("encode statement fetching response", func(t *testing.T) {
 		t.Parallel()
 
 		actualEncode, err := response.Encode()
@@ -105,7 +105,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 		require.Equal(t, EncodedValue, actualEncode)
 	})
 
-	t.Run("Decode StatementFetchingResponse", func(t *testing.T) {
+	t.Run("Decode statement fetching response", func(t *testing.T) {
 		t.Parallel()
 		err := response.Decode(EncodedValue)
 		require.NoError(t, err)
