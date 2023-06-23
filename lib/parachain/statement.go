@@ -64,7 +64,7 @@ func (mvdt Statement) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// NewStatement returns a new Statement VaryingDataType
+// NewStatement returns a new statement varying data type
 func NewStatement() Statement {
 	return Statement{}
 }
