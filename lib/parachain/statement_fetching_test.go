@@ -28,7 +28,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			// 		statement_fetching_request.encode()
 			// 	);
 			// }
-			name: "all 4 in hash",
+			name: "all_4_in_hash",
 			request: StatementFetchingRequest{
 				RelayParent:   getDummyHash(4),
 				CandidateHash: CandidateHash{Value: getDummyHash(4)},
@@ -36,7 +36,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			expectedEncode: common.MustHexToBytes(testDataStatement["all4InCommonHash"]),
 		},
 		{
-			name: "all 7 in hash",
+			name: "all_7_in_hash",
 			request: StatementFetchingRequest{
 				RelayParent:   getDummyHash(7),
 				CandidateHash: CandidateHash{Value: getDummyHash(7)},
@@ -96,7 +96,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 	err := response.Set(missingDataInStatement)
 	require.NoError(t, err)
 
-	t.Run("encode statement fetching response", func(t *testing.T) {
+	t.Run("encode_statement_fetching_response", func(t *testing.T) {
 		t.Parallel()
 
 		actualEncode, err := response.Encode()
@@ -105,7 +105,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 		require.Equal(t, EncodedValue, actualEncode)
 	})
 
-	t.Run("Decode statement fetching response", func(t *testing.T) {
+	t.Run("Decode_statement_fetching_response", func(t *testing.T) {
 		t.Parallel()
 		err := response.Decode(EncodedValue)
 		require.NoError(t, err)
