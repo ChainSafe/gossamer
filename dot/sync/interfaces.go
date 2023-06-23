@@ -6,9 +6,7 @@ package sync
 import (
 	"encoding/json"
 	"sync"
-	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -77,10 +75,6 @@ type Network interface {
 
 	// ReportPeer reports peer based on the peer behaviour.
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
-
-	// GetRequestResponseProtocol returns the request/response protocol with the given ID.
-	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-		maxResponseSize uint64) *network.RequestResponseProtocol
 }
 
 // Telemetry is the telemetry client to send telemetry messages.

@@ -15,6 +15,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
+type RequestMaker interface {
+	Do(to peer.ID, req Message, res ResponseMessage) error
+}
+
 type RequestResponseProtocol struct {
 	ctx             context.Context
 	host            *host
