@@ -64,7 +64,7 @@ func (mvdt StatementDistributionMessage) ValueAt(index uint) (value any, err err
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// NewStatementDistributionMessage returns a new StatementDistributionMessage VaryingDataType
+// NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
 	return StatementDistributionMessage{}
 }
@@ -75,7 +75,8 @@ type SignedFullStatement struct {
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
-// Seconded statement with large payload (e.g. containing a runtime upgrade).
+// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
