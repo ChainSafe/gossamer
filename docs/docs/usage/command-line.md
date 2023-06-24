@@ -23,17 +23,14 @@ These are the flags that can be used with the `gossamer` command
 --help help for gossamer
 --id Identifier used to identify this node in the network
 --key Key to use for the node
---lbabe Log level for BABE module (default 'info')
---lcore Log level for core module (default 'info')
---ldigest Log level for digest module (default 'info')
---lgrandpa Log level for GRANDPA module (default 'info')
 --listen-addr  Overrides the listen address used for peer to peer networking
---lnetwork Log level for network module (default 'info')
---log Global log level (default 'info')
---lrpc Log level for RPC module (default 'info')
---lruntime Log level for runtime module (default 'info')
---lstate Log level for state module (default 'info')
---lsync Log level for sync module (default 'info')
+--log:  Set a logging filter.
+	    Syntax is a list of 'module=logLevel' (comma separated)
+	    e.g. --log sync=debug,core=trace
+	    Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa, wasmer.
+	    Log levels (least to most verbose) are error, warn, info, debug, and trace.
+	    By default, all modules log 'info'.
+	    The global log level can be set with --log global=debug
 --max-peers Maximum number of peers to connect to (default 50)
 --min-peers Minimum number of peers to connect to (default 5)
 --name Name of the node
