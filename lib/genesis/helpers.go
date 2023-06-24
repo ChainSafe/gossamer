@@ -224,7 +224,14 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 		kv.key = append(kv.key, k)
 		v := mRefObjVal.Field(i)
 
-		if v.Kind() == reflect.Struct && v.IsNil() {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				continue
+			}
+			v = v.Elem()
+		}
+
+		if v.IsZero() {
 			continue
 		}
 
@@ -258,6 +265,8 @@ func buildRawMapInterface(m interface{}, kv *keyValue) error {
 				if err := buildRawStructInterface(v2, kv); err != nil {
 					return fmt.Errorf("error building raw struct interface: %w", err)
 				}
+			default:
+				return fmt.Errorf("invalid value type %T", v2)
 			}
 		}
 	}
@@ -336,6 +345,8 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 				if err := buildRawStructInterface(v2, kv); err != nil {
 					return fmt.Errorf("error building raw struct interface: %w", err)
 				}
+			default:
+				return fmt.Errorf("invalid value type %T", v2)
 			}
 		}
 	}
