@@ -12,12 +12,12 @@ import (
 )
 
 //go:embed testdata/collation_protocol.yaml
-var testCollationProtocolHexRaw string
+var testDataCollationProtocolRaw string
 
-var testCollationProtocolHex map[string]string
+var testDataCollationProtocol map[string]string
 
 func init() {
-	err := yaml.Unmarshal([]byte(testCollationProtocolHexRaw), &testCollationProtocolHex)
+	err := yaml.Unmarshal([]byte(testDataCollationProtocolRaw), &testDataCollationProtocol)
 	if err != nil {
 		fmt.Println("Error unmarshaling test data:", err)
 		return
@@ -78,7 +78,7 @@ func TestCollationProtocol(t *testing.T) {
 				ParaID:            uint32(5),
 				CollatorSignature: collatorSignature,
 			},
-			encodingValue: common.MustHexToBytes(testCollationProtocolHex["declare"]),
+			encodingValue: common.MustHexToBytes(testDataCollationProtocol["declare"]),
 		},
 		{
 			name:          "AdvertiseCollation",
@@ -95,7 +95,7 @@ func TestCollationProtocol(t *testing.T) {
 					Signature:      validatorSignature,
 				},
 			},
-			encodingValue: common.MustHexToBytes(testCollationProtocolHex["collationSeconded"]),
+			encodingValue: common.MustHexToBytes(testDataCollationProtocol["collationSeconded"]),
 		},
 	}
 
