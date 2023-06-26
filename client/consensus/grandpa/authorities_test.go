@@ -230,7 +230,6 @@ func TestApplyChange(t *testing.T) {
 				panic("unreachable")
 			}
 		}),
-		false,
 		nil,
 	)
 
@@ -255,7 +254,6 @@ func TestApplyChange(t *testing.T) {
 				panic("unreachable")
 			}
 		}),
-		false,
 		nil,
 	)
 
@@ -347,7 +345,6 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		common.BytesToHash([]byte("hash_d")),
 		40,
 		isDescOf,
-		false,
 		nil,
 	)
 
@@ -358,7 +355,6 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		common.BytesToHash([]byte("hash_b")),
 		15,
 		isDescOf,
-		false,
 		nil,
 	)
 	require.True(t, status.changed)
@@ -380,7 +376,6 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		common.BytesToHash([]byte("hash_d")),
 		40,
 		isDescOf,
-		false,
 		nil,
 	)
 	require.True(t, status.changed)
@@ -562,12 +557,12 @@ func TestForceChanges(t *testing.T) {
 
 	// let's try and apply the forced changes.
 	// too early and there's no forced changes to apply
-	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a10")), 10, staticIsDescendentOf(true), false, nil)
+	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a10")), 10, staticIsDescendentOf(true), nil)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
 	// too late
-	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a16")), 16, isDescOfA, false, nil)
+	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a16")), 16, isDescOfA, nil)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
@@ -587,7 +582,7 @@ func TestForceChanges(t *testing.T) {
 			},
 		},
 	}
-	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a15")), 15, isDescOfA, false, nil)
+	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a15")), 15, isDescOfA, nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -628,7 +623,7 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	require.NoError(t, err)
 
 	// it should be enacted at the same block that signaled it
-	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a")), 5, staticIsDescendentOf(false), false, nil)
+	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a")), 5, staticIsDescendentOf(false), nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 }
@@ -707,7 +702,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 	// the forced change cannot be applied since the pending changes it depends on
 	// have not been applied yet.
-	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf(true), false, nil)
+	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf(true), nil)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, 0, len(authorities.authoritySetChanges))
 
@@ -718,11 +713,11 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			blockNumber: 15,
 		},
 	}
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf(true), false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf(true), nil)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// but the forced change still depends on the next standard change
-	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf(true), false, nil)
+	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf(true), nil)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
@@ -731,7 +726,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		setId:       1,
 		blockNumber: 20,
 	})
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_b")), 20, staticIsDescendentOf(true), false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_b")), 20, staticIsDescendentOf(true), nil)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// afterwards the forced change at #45 can already be applied since it signals
@@ -751,7 +746,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			authoritySetChanges:    expChanges,
 		},
 	}
-	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d")), 45, staticIsDescendentOf(true), false, nil)
+	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d")), 45, staticIsDescendentOf(true), nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -846,7 +841,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Equal(t, expChange, c)
 
 	// we apply the change at A0 which should prune it and the fork at B
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, nil)
 	require.NoError(t, err)
 
 	// the next change is now at A1 (#10)
@@ -1041,17 +1036,17 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 
 	// applying the standard change at A should not prune anything
 	// other then the change that was applied
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 6, len(authorities.PendingChanges()))
 
 	// same for B
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.PendingChanges()))
 
 	// finalizing C2 should clear all forced changes
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("C2")), 15, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("C2")), 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(authorities.pendingForcedChanges))
 }
@@ -1148,17 +1143,17 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 
 	// applying the standard change at A should not prune anything
 	// other then the change that was applied
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 6, len(authorities.PendingChanges()))
 
 	// same for B
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.PendingChanges()))
 
 	// finalizing C0 should clear all forced changes but D
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("C0")), 15, isDescOf, false, nil)
+	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("C0")), 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(authorities.pendingForcedChanges))
 	require.Equal(t, common.BytesToHash([]byte("D")), authorities.pendingForcedChanges[0].canonHash)

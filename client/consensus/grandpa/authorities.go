@@ -149,17 +149,19 @@ func (authSet *AuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsD
 		break
 	}
 
-	if standard != nil && forced != nil {
+	switch {
+	case standard != nil && forced != nil:
 		if forced.number < standard.number {
 			return forced, nil
 		}
 		return standard, nil
-	} else if forced != nil {
+	case forced != nil:
 		return forced, nil
-	} else if standard != nil {
+	case standard != nil:
 		return standard, nil
+	default:
+		return nil, nil
 	}
-	return nil, nil
 }
 
 func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
@@ -250,8 +252,6 @@ func (authSet *AuthoritySet) addPendingChange(pending PendingChange, isDescenden
 	default:
 		panic("delayKind is invalid type")
 	}
-
-	return nil
 }
 
 // PendingChanges Inspect pending changes. Standard pending changes are iterated first,
@@ -307,7 +307,6 @@ func (authSet *AuthoritySet) CurrentLimit(min uint) (limit *uint) {
 func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 	bestNumber uint,
 	isDescendentOf IsDescendentOf,
-	initialSync bool,
 	telemetry *telemetry.Client) (newSet *appliedChanges, err error) {
 
 	for _, change := range authSet.pendingForcedChanges {
@@ -341,17 +340,12 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 				}
 
 				// apply this change: make the set canonical
-				logger.Infof("%v 👴 Applying authority set change forced at block %d", initialSync, change.canonHeight)
+				logger.Infof("👴 Applying authority set change forced at block #%d", change.canonHeight)
 
 				// TODO telemetry
 
-				authorityChange := authorityChange{
-					setId:       authSet.setId,
-					blockNumber: medianLastFinalized,
-				}
-
 				authSetChanges := authSet.authoritySetChanges
-				authSetChanges = append(authSetChanges, authorityChange)
+				authSetChanges.append(authSet.setId, medianLastFinalized)
 				newSet = &appliedChanges{
 					medianLastFinalized,
 					AuthoritySet{
@@ -384,7 +378,6 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	finalizedHash common.Hash,
 	finalizedNumber uint,
 	isDescendentOf IsDescendentOf,
-	initialSync bool,
 	telemetry *telemetry.Client) (Status, error) {
 	// TODO telemetry here is just a place holder, replace with real
 
@@ -418,16 +411,12 @@ func (authSet *AuthoritySet) ApplyStandardChanges(
 	}
 
 	if finalizationResult.value != nil {
-		logger.Infof("%v 👴 Applying authority set change forced at block %d", initialSync, *finalizationResult.value)
+		logger.Infof("👴 Applying authority set change forced at block #%d", *finalizationResult.value)
 
 		// TODO add telemetry
 
 		// Store the set_id together with the last block_number for the set
-		authoritySetChange := authorityChange{
-			setId:       authSet.setId,
-			blockNumber: finalizedNumber,
-		}
-		authSet.authoritySetChanges = append(authSet.authoritySetChanges, authoritySetChange)
+		authSet.authoritySetChanges.append(authSet.setId, finalizedNumber)
 		authSet.currentAuthorities = finalizationResult.value.nextAuthorities
 		authSet.setId++
 
@@ -528,7 +517,7 @@ func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bo
 func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 	var idx int
 	if authSetChanges == nil {
-		idx = 0
+		panic("authority set changes must be initialized")
 	} else {
 		idx, _ = searchSetChanges(blockNumber, *authSetChanges)
 	}
@@ -542,8 +531,7 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 		setId = set[idx-1].setId + 1
 	}
 
-	// TODO reviewer double check this logic
-	if !(idx == len(set) || set[idx].setId != setId) {
+	if idx != len(set) && set[idx].setId == setId {
 		panic("inserting authority set change")
 	}
 
