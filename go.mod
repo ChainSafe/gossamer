@@ -26,8 +26,8 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.16.5
-	github.com/libp2p/go-libp2p v0.27.6
-	github.com/libp2p/go-libp2p-kad-dht v0.24.1
+	github.com/libp2p/go-libp2p v0.27.7
+	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/multiformats/go-multiaddr v0.9.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.16.0
