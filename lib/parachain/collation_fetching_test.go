@@ -48,7 +48,7 @@ func TestCollationFetchingResponse(t *testing.T) {
 			},
 			CommitmentsHash: hash6,
 		},
-		PoV: PoV{BlockData: []byte{1, 2, 3}},
+		PoV: []byte{1, 2, 3},
 	}
 
 	responseVDT := NewCollationFetchingResponse()
