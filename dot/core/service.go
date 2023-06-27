@@ -217,6 +217,11 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return fmt.Errorf("on block import handle: %w", err)
 	}
 
+	err = s.grandpaState.ApplyForcedChanges(&block.Header)
+	if err != nil {
+		return fmt.Errorf("applying forced changes: %w", err)
+	}
+
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
