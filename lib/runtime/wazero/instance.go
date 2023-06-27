@@ -451,7 +451,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
 
-	values, err := runtimeFunc.Call(ctx, api.EncodeI32(int32(inputPtr)), api.EncodeI32(int32(dataLength)))
+	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
