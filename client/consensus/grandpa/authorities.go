@@ -181,7 +181,7 @@ func (authSet *AuthoritySet) addStandardChange(pending PendingChange, isDescende
 	logger.Debugf(
 		"There are now %d alternatives for the next pending standard change (roots), "+
 			"and a total of %d pending standard changes (across all forks)",
-		len(authSet.pendingStandardChanges.Roots()), authSet.pendingStandardChanges.GetPreOrder(),
+		len(authSet.pendingStandardChanges.Roots()), len(authSet.pendingStandardChanges.GetPreOrder()),
 	)
 
 	return nil
@@ -195,7 +195,7 @@ func (authSet *AuthoritySet) addForcedChange(pending PendingChange, isDescendent
 
 		isDescendent, err := isDescendentOf(change.canonHash, pending.canonHash)
 		if err != nil {
-			return fmt.Errorf("addForcedChange: checking isDescendentOf")
+			return fmt.Errorf("addForcedChange: checking isDescendentOf: %w", err)
 		}
 
 		if isDescendent {
