@@ -1223,7 +1223,7 @@ func TestInstance_ExecuteBlock_WestendBlock1097836(t *testing.T) {
 		*types.NewBABEPreRuntimeDigest(common.MustHexToBytes("0x02020000006522d30f00000000")),
 		types.SealDigest{
 			ConsensusEngineID: types.BabeEngineID,
-			Data:              common.MustHexToBytes("0xa06e4a23ae347c7edd24f84153c007563895d64a06b8781b1e21bf2c8bc426676bfd4bf20c08f276e54598aff3b64541d84c4b5da7bfa39479d0a45585a75388"),
+			Data:              common.MustHexToBytes("0xa06e4a23ae347c7edd24f84153c007563895d64a06b8781b1e21bf2c8bc426676bfd4bf20c08f276e54598aff3b64541d84c4b5da7bfa39479d0a45585a75388"), //nolint:lll
 		},
 	)
 
@@ -1234,7 +1234,7 @@ func TestInstance_ExecuteBlock_WestendBlock1097836(t *testing.T) {
 	ext, err = common.HexToBytes("0x040d0000")
 	require.NoError(t, err)
 	exts = append(exts, ext)
-	ext, err = common.HexToBytes("0x84c2c9676ac7a4e56bcb861cf443899114a17baa817ae5c295b9bb6f947fc427fd02db25d6a66498b5e81ac3a52ae4025eef7bb36eee31195c60c7ebdb6f0bac4177baf32e73719fe3e5fdce1059e9e16bb85bad0a0c4e34c4b0e680fb7a132cc4f7018502000004000c60f6d9b5a5ee5a0c0428d1940936a1b91cd29924578f7ac9e793db6dab0cd70700e40b5402")
+	ext, err = common.HexToBytes("0x84c2c9676ac7a4e56bcb861cf443899114a17baa817ae5c295b9bb6f947fc427fd02db25d6a66498b5e81ac3a52ae4025eef7bb36eee31195c60c7ebdb6f0bac4177baf32e73719fe3e5fdce1059e9e16bb85bad0a0c4e34c4b0e680fb7a132cc4f7018502000004000c60f6d9b5a5ee5a0c0428d1940936a1b91cd29924578f7ac9e793db6dab0cd70700e40b5402") //nolint:lll
 	require.NoError(t, err)
 	exts = append(exts, ext)
 

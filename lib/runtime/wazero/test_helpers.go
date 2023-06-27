@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -73,9 +74,9 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	// Retrieve WASM binary
-	bytes, err := os.ReadFile(fp)
+	bytes, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read wasm file: %s", err)
+		return nil, fmt.Errorf("failed to read wasm file: %s", err)
 	}
 
 	return NewInstance(bytes, cfg)
