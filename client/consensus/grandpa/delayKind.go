@@ -27,7 +27,7 @@ func newDelayKind[T DelayedKinds](val T) DelayKind {
 type Finalized struct{}
 
 // Best Depth in best chain. The median last finalized block is calculated at the time the
-// change was signaled.
+// hashNumber was signaled.
 type Best struct {
 	medianLastFinalized uint
 }

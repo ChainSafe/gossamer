@@ -3,10 +3,12 @@
 
 package grandpa
 
+import "golang.org/x/exp/constraints"
+
 // searchKey TODO for reviewer is this ok or do we want a better search algorithm?
-func searchKey(k key, changes []PendingChange) int {
+func searchKey[H comparable, N constraints.Unsigned](k key[N], changes []PendingChange[H, N]) int {
 	for i, change := range changes {
-		changeKey := key{
+		changeKey := key[N]{
 			effectiveNumber:   change.EffectiveNumber(),
 			signalBlockNumber: change.canonHeight,
 		}
@@ -21,7 +23,7 @@ func searchKey(k key, changes []PendingChange) int {
 
 // returns an index representing either the found element or the index to insert the given element, and a bool
 // indicating if the given element was found
-func searchSetChanges(number uint, changes AuthoritySetChanges) (int, bool) {
+func searchSetChanges[N constraints.Unsigned](number N, changes AuthoritySetChanges[N]) (int, bool) {
 	for i, change := range changes {
 		if change.blockNumber == number {
 			return i, true
