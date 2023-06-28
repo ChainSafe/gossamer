@@ -52,7 +52,8 @@ type Service struct {
 	codeSubstitutedState CodeSubstitutedState
 
 	// Keystore
-	keys *keystore.GlobalKeystore
+	keys          *keystore.GlobalKeystore
+	onBlockImport BlockImportDigestHandler
 }
 
 // Config holds the configuration for the core Service.
@@ -68,6 +69,7 @@ type Config struct {
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
+	OnBlockImport        BlockImportDigestHandler
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -89,6 +91,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
+		onBlockImport:        cfg.OnBlockImport,
 	}
 
 	return srv, nil
@@ -209,16 +212,22 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
+	err = s.onBlockImport.Handle(&block.Header)
+	if err != nil {
+		return fmt.Errorf("on block import handle: %w", err)
+	}
+
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	rt, err := s.blockState.GetRuntime(block.Header.ParentHash)
+	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
 		return err
 	}
 
 	// check for runtime changes
-	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+	err = s.blockState.HandleRuntimeChanges(state, parentRuntimeInstance, block.Header.Hash())
+	if err != nil {
 		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}

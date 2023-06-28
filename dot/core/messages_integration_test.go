@@ -104,6 +104,11 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
+	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportHandlerMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportHandlerMock
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
@@ -137,15 +142,14 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	net := NewMockNetwork(ctrl)
-	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
-	net.EXPECT().IsSynced().Return(true).AnyTimes()
+	net.EXPECT().IsSynced().Return(true).Times(2)
 	net.EXPECT().ReportPeer(
 		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
 		gomock.AssignableToTypeOf(peer.ID("")),
-	).AnyTimes()
+	)
 
 	cfg := &Config{
 		Keystore:         ks,
@@ -173,6 +177,10 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	currentSlot := currentTimestamp / babeConfig.SlotDuration
 
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlot, currentTimestamp)
+	onBlockImportDigestHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportDigestHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportDigestHandlerMock
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
