@@ -4,59 +4,58 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestSwapRemove(t *testing.T) {
-	change1 := &PendingChange[common.Hash, uint]{
-		canonHash: common.Hash{1},
+	change1 := &PendingChange[Hash, uint]{
+		canonHash: Hash{1},
 	}
 
-	change2 := &PendingChange[common.Hash, uint]{
-		canonHash: common.Hash{2},
+	change2 := &PendingChange[Hash, uint]{
+		canonHash: Hash{2},
 	}
 
-	change3 := &PendingChange[common.Hash, uint]{
-		canonHash: common.Hash{2},
+	change3 := &PendingChange[Hash, uint]{
+		canonHash: Hash{2},
 	}
 
-	pendingChangeNode1 := &pendingChangeNode[common.Hash, uint]{
+	pendingChangeNode1 := &pendingChangeNode[Hash, uint]{
 		change: change1,
 	}
 
-	pendingChangeNode2 := &pendingChangeNode[common.Hash, uint]{
+	pendingChangeNode2 := &pendingChangeNode[Hash, uint]{
 		change: change2,
 	}
 
-	pendingChangeNode3 := &pendingChangeNode[common.Hash, uint]{
+	pendingChangeNode3 := &pendingChangeNode[Hash, uint]{
 		change: change3,
 	}
 
-	changeNodes1 := []*pendingChangeNode[common.Hash, uint]{
+	changeNodes1 := []*pendingChangeNode[Hash, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 	}
 
-	changeNodes2 := []*pendingChangeNode[common.Hash, uint]{
+	changeNodes2 := []*pendingChangeNode[Hash, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 		pendingChangeNode3,
 	}
 	type args struct {
-		ct    ChangeTree[common.Hash, uint]
+		ct    ChangeTree[Hash, uint]
 		index uint
 	}
 	tests := []struct {
 		name string
 		args args
-		exp  pendingChangeNode[common.Hash, uint]
+		exp  pendingChangeNode[Hash, uint]
 	}{
 		{
 			name: "2 elem slice deleting last element",
 			args: args{
-				ct: ChangeTree[common.Hash, uint]{
+				ct: ChangeTree[Hash, uint]{
 					roots: changeNodes1,
 				},
 				index: 1,
@@ -66,7 +65,7 @@ func TestSwapRemove(t *testing.T) {
 		{
 			name: "3 elem slice deleting first element",
 			args: args{
-				ct: ChangeTree[common.Hash, uint]{
+				ct: ChangeTree[Hash, uint]{
 					roots: changeNodes2,
 				},
 				index: 0,

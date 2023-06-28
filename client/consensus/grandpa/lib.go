@@ -9,6 +9,9 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 
+// Hash represents a grandpa hash
+type Hash [32]byte
+
 // Authority represents a grandpa authority
 type Authority struct {
 	Key    PublicKey

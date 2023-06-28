@@ -3,7 +3,6 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/stretchr/testify/require"
 	"strings"
@@ -30,34 +29,34 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 	finalizedKind := Finalized{}
 	delayKind := newDelayKind(finalizedKind)
 
-	pendingChange1 := PendingChange[common.Hash, uint]{
+	pendingChange1 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     1,
-		canonHash:       common.BytesToHash([]byte{1}),
+		canonHash:       bytesToHash([]byte{1}),
 		delayKind:       delayKind,
 	}
 
-	pendingChange2 := PendingChange[common.Hash, uint]{
+	pendingChange2 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     2,
-		canonHash:       common.BytesToHash([]byte{2}),
+		canonHash:       bytesToHash([]byte{2}),
 		delayKind:       delayKind,
 	}
 
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	err = authorities.addPendingChange(pendingChange1, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(pendingChange1, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(pendingChange2, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(pendingChange2, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
 	require.Equal(t, uint(1), *authorities.CurrentLimit(0))
@@ -81,48 +80,48 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	bestKind := Best{}
 	delayKindBest := newDelayKind(bestKind)
 
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeB := PendingChange[common.Hash, uint]{
+	changeB := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_b")),
+		canonHash:       bytesToHash([]byte("hash_b")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeC := PendingChange[common.Hash, uint]{
+	changeC := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           5,
 		canonHeight:     10,
-		canonHash:       common.BytesToHash([]byte("hash_c")),
+		canonHash:       bytesToHash([]byte("hash_c")),
 		delayKind:       delayKindFinalized,
 	}
 
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeB, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeC, isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-		if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) {
+	err = authorities.addPendingChange(changeC, isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+		if h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_c")) {
 			return true, nil
-		} else if h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+		} else if h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("hash_c")) {
 			return false, nil
 		} else {
 			panic("unreachable")
@@ -130,29 +129,29 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	}))
 	require.NoError(t, err)
 
-	changeD := PendingChange[common.Hash, uint]{
+	changeD := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           2,
 		canonHeight:     1,
-		canonHash:       common.BytesToHash([]byte("hash_d")),
+		canonHash:       bytesToHash([]byte("hash_d")),
 		delayKind:       delayKindBest,
 	}
 
-	changeE := PendingChange[common.Hash, uint]{
+	changeE := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           2,
 		canonHeight:     0,
-		canonHash:       common.BytesToHash([]byte("hash_e")),
+		canonHash:       bytesToHash([]byte("hash_e")),
 		delayKind:       delayKindBest,
 	}
 
-	err = authorities.addPendingChange(changeD, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeD, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeE, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeE, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	expectedChanges := []PendingChange[common.Hash, uint]{
+	expectedChanges := []PendingChange[Hash, uint]{
 		changeA, changeC, changeB, changeE, changeD,
 	}
 	pendingChanges := authorities.pendingChanges()
@@ -160,11 +159,11 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 }
 
 func TestApplyChange(t *testing.T) {
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     AuthorityList{},
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -187,29 +186,29 @@ func TestApplyChange(t *testing.T) {
 	finalizedKind := Finalized{}
 	delayKindFinalized := newDelayKind(finalizedKind)
 
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeB := PendingChange[common.Hash, uint]{
+	changeB := PendingChange[Hash, uint]{
 		nextAuthorities: setB,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_b")),
+		canonHash:       bytesToHash([]byte("hash_b")),
 		delayKind:       delayKindFinalized,
 	}
 
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeB, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	expectedChanges := []PendingChange[common.Hash, uint]{
+	expectedChanges := []PendingChange[Hash, uint]{
 		changeA, changeB,
 	}
 	pendingChanges := authorities.pendingChanges()
@@ -218,12 +217,12 @@ func TestApplyChange(t *testing.T) {
 	// finalizing "hash_c" won't enact the hashNumber signaled at "hash_a" but it will prune out
 	// "hash_b"
 	status, err := authorities.applyStandardChanges(
-		common.BytesToHash([]byte("hash_c")),
+		bytesToHash([]byte("hash_c")),
 		11,
-		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-			if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) {
+		isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+			if h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_c")) {
 				return true, nil
-			} else if h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+			} else if h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("hash_c")) {
 				return false, nil
 			} else {
 				panic("unreachable")
@@ -236,7 +235,7 @@ func TestApplyChange(t *testing.T) {
 	require.True(t, status.changed)
 	require.Nil(t, status.newSetBlock)
 
-	expectedChanges = []PendingChange[common.Hash, uint]{
+	expectedChanges = []PendingChange[Hash, uint]{
 		changeA,
 	}
 	pendingChanges = authorities.pendingChanges()
@@ -244,10 +243,10 @@ func TestApplyChange(t *testing.T) {
 	require.True(t, len(authorities.authoritySetChanges) == 0)
 
 	status, err = authorities.applyStandardChanges(
-		common.BytesToHash([]byte("hash_d")),
+		bytesToHash([]byte("hash_d")),
 		15,
-		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-			if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_d")) {
+		isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+			if h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_d")) {
 				return true, nil
 			} else {
 				panic("unreachable")
@@ -256,8 +255,8 @@ func TestApplyChange(t *testing.T) {
 		nil,
 	)
 
-	expectedBlockInfo := &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_d")),
+	expectedBlockInfo := &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_d")),
 		number: 15,
 	}
 
@@ -276,11 +275,11 @@ func TestApplyChange(t *testing.T) {
 }
 
 func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     AuthorityList{},
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -303,36 +302,36 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	finalizedKind := Finalized{}
 	delayKindFinalized := newDelayKind(finalizedKind)
 
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeC := PendingChange[common.Hash, uint]{
+	changeC := PendingChange[Hash, uint]{
 		nextAuthorities: setC,
 		delay:           10,
 		canonHeight:     30,
-		canonHash:       common.BytesToHash([]byte("hash_c")),
+		canonHash:       bytesToHash([]byte("hash_c")),
 		delayKind:       delayKindFinalized,
 	}
 
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeC, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeC, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-		if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_b")) ||
-			h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) ||
-			h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_d")) ||
-			h1 == common.BytesToHash([]byte("hash_c")) && h2 == common.BytesToHash([]byte("hash_d")) ||
-			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+	isDescOf := isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+		if h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_b")) ||
+			h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_c")) ||
+			h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_d")) ||
+			h1 == bytesToHash([]byte("hash_c")) && h2 == bytesToHash([]byte("hash_d")) ||
+			h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("hash_c")) {
 			return true, nil
-		} else if h1 == common.BytesToHash([]byte("hash_c")) && h2 == common.BytesToHash([]byte("hash_b")) {
+		} else if h1 == bytesToHash([]byte("hash_c")) && h2 == bytesToHash([]byte("hash_b")) {
 			return false, nil
 		} else {
 			panic("unreachable")
@@ -341,7 +340,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 
 	// trying to finalize past `change_c` without finalizing `change_a` first
 	_, err = authorities.applyStandardChanges(
-		common.BytesToHash([]byte("hash_d")),
+		bytesToHash([]byte("hash_d")),
 		40,
 		isDescOf,
 		nil,
@@ -351,15 +350,15 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.Equal(t, AuthoritySetChanges[uint]{}, authorities.authoritySetChanges)
 
 	status, err := authorities.applyStandardChanges(
-		common.BytesToHash([]byte("hash_b")),
+		bytesToHash([]byte("hash_b")),
 		15,
 		isDescOf,
 		nil,
 	)
 	require.True(t, status.changed)
 
-	expectedBlockInfo := &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_b")),
+	expectedBlockInfo := &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_b")),
 		number: 15,
 	}
 	expAuthSetChange := AuthoritySetChanges[uint]{authorityChange[uint]{
@@ -372,15 +371,15 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
 
 	status, err = authorities.applyStandardChanges(
-		common.BytesToHash([]byte("hash_d")),
+		bytesToHash([]byte("hash_d")),
 		40,
 		isDescOf,
 		nil,
 	)
 	require.True(t, status.changed)
 
-	expectedBlockInfo = &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_d")),
+	expectedBlockInfo = &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_d")),
 		number: 40,
 	}
 	expAuthSetChange = AuthoritySetChanges[uint]{
@@ -401,11 +400,11 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 }
 
 func TestEnactsStandardChangeWorks(t *testing.T) {
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     AuthorityList{},
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -420,36 +419,36 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	finalizedKind := Finalized{}
 	delayKindFinalized := newDelayKind(finalizedKind)
 
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeB := PendingChange[common.Hash, uint]{
+	changeB := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     20,
-		canonHash:       common.BytesToHash([]byte("hash_b")),
+		canonHash:       bytesToHash([]byte("hash_b")),
 		delayKind:       delayKindFinalized,
 	}
 
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeB, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-		if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_d")) ||
-			h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_e")) ||
-			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_d")) ||
-			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_e")) {
+	isDescOf := isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+		if h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_d")) ||
+			h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_e")) ||
+			h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("hash_d")) ||
+			h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("hash_e")) {
 			return true, nil
-		} else if h1 == common.BytesToHash([]byte("hash_a")) && h2 == common.BytesToHash([]byte("hash_c")) ||
-			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("hash_c")) {
+		} else if h1 == bytesToHash([]byte("hash_a")) && h2 == bytesToHash([]byte("hash_c")) ||
+			h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("hash_c")) {
 			return false, nil
 		} else {
 			panic("unreachable")
@@ -457,33 +456,33 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	})
 
 	// "hash_c" won't finalize the existing hashNumber since it isn't a descendent
-	res, err := authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_c")), 15, isDescOf)
+	res, err := authorities.EnactsStandardChange(bytesToHash([]byte("hash_c")), 15, isDescOf)
 	require.NoError(t, err)
 	require.Nil(t, res)
 
 	// "hash_d" at depth 14 won't work either
-	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_d")), 14, isDescOf)
+	res, err = authorities.EnactsStandardChange(bytesToHash([]byte("hash_d")), 14, isDescOf)
 	require.NoError(t, err)
 	require.Nil(t, res)
 
 	// but it should work at depth 15 (hashNumber height + depth)
-	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_d")), 15, isDescOf)
+	res, err = authorities.EnactsStandardChange(bytesToHash([]byte("hash_d")), 15, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, true, *res)
 
 	// finalizing "hash_e" at depth 20 will trigger hashNumber at "hash_b", but
 	// it can't be applied yet since "hash_a" must be applied first
-	res, err = authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_e")), 30, isDescOf)
+	res, err = authorities.EnactsStandardChange(bytesToHash([]byte("hash_e")), 30, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, false, *res)
 }
 
 func TestForceChanges(t *testing.T) {
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     AuthorityList{},
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -509,46 +508,46 @@ func TestForceChanges(t *testing.T) {
 	finalizedKindB := Best{0}
 	delayKindFinalizedB := newDelayKind(finalizedKindB)
 
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalizedA,
 	}
 
-	changeB := PendingChange[common.Hash, uint]{
+	changeB := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_b")),
+		canonHash:       bytesToHash([]byte("hash_b")),
 		delayKind:       delayKindFinalizedB,
 	}
 
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeB, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
 	// no duplicates are allowed
-	err = authorities.addPendingChange(changeB, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf[Hash](false))
 	require.ErrorIs(t, err, errDuplicateAuthoritySetChanges)
 
-	res, err := authorities.EnactsStandardChange(common.BytesToHash([]byte("hash_c")), 1, staticIsDescendentOf[common.Hash](true))
+	res, err := authorities.EnactsStandardChange(bytesToHash([]byte("hash_c")), 1, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 	require.Nil(t, res)
 
-	changeC := PendingChange[common.Hash, uint]{
+	changeC := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           3,
 		canonHeight:     8,
-		canonHash:       common.BytesToHash([]byte("hash_a8")),
+		canonHash:       bytesToHash([]byte("hash_a8")),
 		delayKind:       delayKindFinalizedB,
 	}
 
-	isDescOfA := isDescendentof(func(h1 common.Hash, _ common.Hash) (bool, error) {
-		return strings.HasPrefix(h1.String(), common.BytesToHash([]byte("hash_a")).String()), nil
+	isDescOfA := isDescendentof(func(h1 Hash, _ Hash) (bool, error) {
+		return strings.HasPrefix(h1.String(), bytesToHash([]byte("hash_a")).String()), nil
 	})
 
 	err = authorities.addPendingChange(changeC, isDescOfA)
@@ -556,22 +555,22 @@ func TestForceChanges(t *testing.T) {
 
 	// let's try and apply the forced changes.
 	// too early and there's no forced changes to apply
-	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a10")), 10, staticIsDescendentOf[common.Hash](true), nil)
+	resForced, err := authorities.applyForcedChanges(bytesToHash([]byte("hash_a10")), 10, staticIsDescendentOf[Hash](true), nil)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
 	// too late
-	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a16")), 16, isDescOfA, nil)
+	resForced, err = authorities.applyForcedChanges(bytesToHash([]byte("hash_a16")), 16, isDescOfA, nil)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
 	// on time -- chooses the right hashNumber for this fork
-	exp := appliedChanges[common.Hash, uint]{
+	exp := appliedChanges[Hash, uint]{
 		median: 42,
-		set: AuthoritySet[common.Hash, uint]{
+		set: AuthoritySet[Hash, uint]{
 			currentAuthorities:     setA,
 			setId:                  1,
-			pendingStandardChanges: NewChangeTree[common.Hash, uint](),
+			pendingStandardChanges: NewChangeTree[Hash, uint](),
 			pendingForcedChanges:   nil,
 			authoritySetChanges: AuthoritySetChanges[uint]{
 				authorityChange[uint]{
@@ -581,7 +580,7 @@ func TestForceChanges(t *testing.T) {
 			},
 		},
 	}
-	resForced, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a15")), 15, isDescOfA, nil)
+	resForced, err = authorities.applyForcedChanges(bytesToHash([]byte("hash_a15")), 15, isDescOfA, nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -589,11 +588,11 @@ func TestForceChanges(t *testing.T) {
 
 func TestForceChangesWithNoDelay(t *testing.T) {
 	// NOTE: this is a regression test
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     AuthorityList{},
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -609,30 +608,30 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	delayKindFinalized := newDelayKind(finalizedKind)
 
 	// we create a forced hashNumber with no delay
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           0,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalized,
 	}
 
 	// and import it
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
 	// it should be enacted at the same block that signaled it
-	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_a")), 5, staticIsDescendentOf[common.Hash](false), nil)
+	resForced, err := authorities.applyForcedChanges(bytesToHash([]byte("hash_a")), 5, staticIsDescendentOf[Hash](false), nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 }
 
 func TestForceChangesBlockedByStandardChanges(t *testing.T) {
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     AuthorityList{},
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -648,60 +647,60 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	delayKindFinalized := newDelayKind(finalizedKind)
 
 	// effective at #15
-	changeA := PendingChange[common.Hash, uint]{
+	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           5,
 		canonHeight:     10,
-		canonHash:       common.BytesToHash([]byte("hash_a")),
+		canonHash:       bytesToHash([]byte("hash_a")),
 		delayKind:       delayKindFinalized,
 	}
 
 	// effective #20
-	changeB := PendingChange[common.Hash, uint]{
+	changeB := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           0,
 		canonHeight:     20,
-		canonHash:       common.BytesToHash([]byte("hash_b")),
+		canonHash:       bytesToHash([]byte("hash_b")),
 		delayKind:       delayKindFinalized,
 	}
 
 	// effective at #35
-	changeC := PendingChange[common.Hash, uint]{
+	changeC := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           5,
 		canonHeight:     30,
-		canonHash:       common.BytesToHash([]byte("hash_c")),
+		canonHash:       bytesToHash([]byte("hash_c")),
 		delayKind:       delayKindFinalized,
 	}
 
 	// add some pending standard changes all on the same fork
-	err = authorities.addPendingChange(changeA, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeA, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeB, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeB, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	err = authorities.addPendingChange(changeC, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeC, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
 	finalizedKind2 := Best{31}
 	delayKindFinalized2 := newDelayKind(finalizedKind2)
 
 	// effective at #45
-	changeD := PendingChange[common.Hash, uint]{
+	changeD := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           5,
 		canonHeight:     40,
-		canonHash:       common.BytesToHash([]byte("hash_d")),
+		canonHash:       bytesToHash([]byte("hash_d")),
 		delayKind:       delayKindFinalized2,
 	}
 
-	err = authorities.addPendingChange(changeD, staticIsDescendentOf[common.Hash](true))
+	err = authorities.addPendingChange(changeD, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
 	// the forced hashNumber cannot be applied since the pending changes it depends on
 	// have not been applied yet.
-	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf[common.Hash](true), nil)
+	_, err = authorities.applyForcedChanges(bytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf[Hash](true), nil)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, 0, len(authorities.authoritySetChanges))
 
@@ -712,11 +711,11 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			blockNumber: 15,
 		},
 	}
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf[common.Hash](true), nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf[Hash](true), nil)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// but the forced hashNumber still depends on the next standard hashNumber
-	_, err = authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf[common.Hash](true), nil)
+	_, err = authorities.applyForcedChanges(bytesToHash([]byte("hash_d45")), 45, staticIsDescendentOf[Hash](true), nil)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
@@ -725,7 +724,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		setId:       1,
 		blockNumber: 20,
 	})
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("hash_b")), 20, staticIsDescendentOf[common.Hash](true), nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("hash_b")), 20, staticIsDescendentOf[Hash](true), nil)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// afterwards the forced hashNumber at #45 can already be applied since it signals
@@ -735,17 +734,17 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		setId:       2,
 		blockNumber: 31,
 	})
-	exp := appliedChanges[common.Hash, uint]{
+	exp := appliedChanges[Hash, uint]{
 		median: 31,
-		set: AuthoritySet[common.Hash, uint]{
+		set: AuthoritySet[Hash, uint]{
 			currentAuthorities:     setA,
 			setId:                  3,
-			pendingStandardChanges: NewChangeTree[common.Hash, uint](),
+			pendingStandardChanges: NewChangeTree[Hash, uint](),
 			pendingForcedChanges:   nil,
 			authoritySetChanges:    expChanges,
 		},
 	}
-	resForced, err := authorities.applyForcedChanges(common.BytesToHash([]byte("hash_d")), 45, staticIsDescendentOf[common.Hash](true), nil)
+	resForced, err := authorities.applyForcedChanges(bytesToHash([]byte("hash_d")), 45, staticIsDescendentOf[Hash](true), nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -760,11 +759,11 @@ func TestNextChangeWorks(t *testing.T) {
 		Weight: 1,
 	})
 
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -773,38 +772,38 @@ func TestNextChangeWorks(t *testing.T) {
 
 	// We have three pending changes with 2 possible roots that are enacted
 	// immediately on finality (i.e. standard changes).
-	changeA0 := PendingChange[common.Hash, uint]{
+	changeA0 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     5,
-		canonHash:       common.BytesToHash([]byte("hash_a0")),
+		canonHash:       bytesToHash([]byte("hash_a0")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeA1 := PendingChange[common.Hash, uint]{
+	changeA1 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     10,
-		canonHash:       common.BytesToHash([]byte("hash_a1")),
+		canonHash:       bytesToHash([]byte("hash_a1")),
 		delayKind:       delayKindFinalized,
 	}
 
-	changeB := PendingChange[common.Hash, uint]{
+	changeB := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     4,
-		canonHash:       common.BytesToHash([]byte("hash_b")),
+		canonHash:       bytesToHash([]byte("hash_b")),
 		delayKind:       delayKindFinalized,
 	}
 
 	// A0 (#5) <- A10 (#8) <- A1 (#10) <- best_a
 	// B (#4) <- best_b
-	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-		if h1 == common.BytesToHash([]byte("hash_a0")) && h2 == common.BytesToHash([]byte("hash_a1")) ||
-			h1 == common.BytesToHash([]byte("hash_a0")) && h2 == common.BytesToHash([]byte("hash_b")) ||
-			h1 == common.BytesToHash([]byte("hash_a1")) && h2 == common.BytesToHash([]byte("best_a")) ||
-			h1 == common.BytesToHash([]byte("hash_a10")) && h2 == common.BytesToHash([]byte("best_a")) ||
-			h1 == common.BytesToHash([]byte("hash_b")) && h2 == common.BytesToHash([]byte("best_b")) {
+	isDescOf := isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+		if h1 == bytesToHash([]byte("hash_a0")) && h2 == bytesToHash([]byte("hash_a1")) ||
+			h1 == bytesToHash([]byte("hash_a0")) && h2 == bytesToHash([]byte("hash_b")) ||
+			h1 == bytesToHash([]byte("hash_a1")) && h2 == bytesToHash([]byte("best_a")) ||
+			h1 == bytesToHash([]byte("hash_a10")) && h2 == bytesToHash([]byte("best_a")) ||
+			h1 == bytesToHash([]byte("hash_b")) && h2 == bytesToHash([]byte("best_b")) {
 			return true, nil
 		} else {
 			return false, nil
@@ -822,69 +821,69 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// the earliest hashNumber at block `best_a` should be the hashNumber at A0 (#5)
-	expChange := &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_a0")),
+	expChange := &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_a0")),
 		number: 5,
 	}
-	c, err := authorities.nextChange(common.BytesToHash([]byte("hash_b")), isDescOf)
+	c, err := authorities.nextChange(bytesToHash([]byte("hash_b")), isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
 	// the earliest hashNumber at block `best_b` should be the hashNumber at B (#4)
-	expChange = &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_b")),
+	expChange = &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_b")),
 		number: 4,
 	}
-	c, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
+	c, err = authorities.nextChange(bytesToHash([]byte("best_b")), isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
 	// we apply the hashNumber at A0 which should prune it and the fork at B
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("hash_a0")), 5, isDescOf, nil)
 	require.NoError(t, err)
 
 	// the next hashNumber is now at A1 (#10)
-	expChange = &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_a1")),
+	expChange = &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_a1")),
 		number: 10,
 	}
-	c, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
+	c, err = authorities.nextChange(bytesToHash([]byte("best_a")), isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
 	// there's no longer any pending hashNumber at `best_b` fork
-	c, err = authorities.nextChange(common.BytesToHash([]byte("best_b")), isDescOf)
+	c, err = authorities.nextChange(bytesToHash([]byte("best_b")), isDescOf)
 	require.NoError(t, err)
 	require.Nil(t, c)
 
 	// we a forced hashNumber at A10 (#8)
 	finalizedKind2 := Best{0}
 	delayKindFinalized2 := newDelayKind(finalizedKind2)
-	changeA10 := PendingChange[common.Hash, uint]{
+	changeA10 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     8,
-		canonHash:       common.BytesToHash([]byte("hash_a10")),
+		canonHash:       bytesToHash([]byte("hash_a10")),
 		delayKind:       delayKindFinalized2,
 	}
 
-	err = authorities.addPendingChange(changeA10, staticIsDescendentOf[common.Hash](false))
+	err = authorities.addPendingChange(changeA10, staticIsDescendentOf[Hash](false))
 	require.NoError(t, err)
 
 	// it should take precedence over the hashNumber at A1 (#10)
-	expChange = &hashNumber[common.Hash, uint]{
-		hash:   common.BytesToHash([]byte("hash_a10")),
+	expChange = &hashNumber[Hash, uint]{
+		hash:   bytesToHash([]byte("hash_a10")),
 		number: 8,
 	}
-	c, err = authorities.nextChange(common.BytesToHash([]byte("best_a")), isDescOf)
+	c, err = authorities.nextChange(bytesToHash([]byte("best_a")), isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 }
 
 func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	// empty authority lists are invalid
-	require.Nil(t, NewGenesisAuthoritySet[common.Hash, uint](AuthorityList{}))
-	require.Nil(t, NewAuthoritySet[common.Hash, uint](AuthorityList{}, 0, NewChangeTree[common.Hash, uint](), nil, nil))
+	require.Nil(t, NewGenesisAuthoritySet[Hash, uint](AuthorityList{}))
+	require.Nil(t, NewAuthoritySet[Hash, uint](AuthorityList{}, 0, NewChangeTree[Hash, uint](), nil, nil))
 
 	kpA, err := ed25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -904,42 +903,42 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	}
 
 	// authority weight of zero is invalid
-	require.Nil(t, NewGenesisAuthoritySet[common.Hash, uint](invalidAuthoritiesWeight))
-	require.Nil(t, NewAuthoritySet[common.Hash, uint](invalidAuthoritiesWeight, 0, NewChangeTree[common.Hash, uint](), nil, nil))
+	require.Nil(t, NewGenesisAuthoritySet[Hash, uint](invalidAuthoritiesWeight))
+	require.Nil(t, NewAuthoritySet[Hash, uint](invalidAuthoritiesWeight, 0, NewChangeTree[Hash, uint](), nil, nil))
 
-	authoritySet := NewGenesisAuthoritySet[common.Hash, uint](AuthorityList{Authority{
+	authoritySet := NewGenesisAuthoritySet[Hash, uint](AuthorityList{Authority{
 		Key:    kpA.Public(),
 		Weight: 5,
 	}})
 
 	finalizedKind := Finalized{}
 	delayKindFinalized := newDelayKind(finalizedKind)
-	invalidChangeEmptyAuthorities := PendingChange[common.Hash, uint]{
+	invalidChangeEmptyAuthorities := PendingChange[Hash, uint]{
 		nextAuthorities: nil,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.Hash{},
+		canonHash:       Hash{},
 		delayKind:       delayKindFinalized,
 	}
 
 	// pending hashNumber contains an empty authority set
-	err = authoritySet.addPendingChange(invalidChangeEmptyAuthorities, staticIsDescendentOf[common.Hash](false))
+	err = authoritySet.addPendingChange(invalidChangeEmptyAuthorities, staticIsDescendentOf[Hash](false))
 	require.ErrorIs(t, err, errInvalidAuthoritySet)
 
 	delayKind := Best{0}
 	delayKindBest := newDelayKind(delayKind)
 
-	invalidChangeAuthoritiesWeight := PendingChange[common.Hash, uint]{
+	invalidChangeAuthoritiesWeight := PendingChange[Hash, uint]{
 		nextAuthorities: invalidAuthoritiesWeight,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       common.Hash{},
+		canonHash:       Hash{},
 		delayKind:       delayKindBest,
 	}
 
 	// pending hashNumber contains an authority set
 	// where one authority has weight of 0
-	err = authoritySet.addPendingChange(invalidChangeAuthoritiesWeight, staticIsDescendentOf[common.Hash](false))
+	err = authoritySet.addPendingChange(invalidChangeAuthoritiesWeight, staticIsDescendentOf[Hash](false))
 	require.ErrorIs(t, err, errInvalidAuthoritySet)
 }
 
@@ -952,11 +951,11 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 		Weight: 1,
 	})
 
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -972,37 +971,37 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 	//
 	// () - Standard hashNumber
 	// [] - Forced hashNumber
-	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-		hashes := []common.Hash{
-			common.BytesToHash([]byte("B")),
-			common.BytesToHash([]byte("C0")),
-			common.BytesToHash([]byte("C1")),
-			common.BytesToHash([]byte("C2")),
-			common.BytesToHash([]byte("C3")),
-			common.BytesToHash([]byte("D")),
+	isDescOf := isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+		hashes := []Hash{
+			bytesToHash([]byte("B")),
+			bytesToHash([]byte("C0")),
+			bytesToHash([]byte("C1")),
+			bytesToHash([]byte("C2")),
+			bytesToHash([]byte("C3")),
+			bytesToHash([]byte("D")),
 		}
 
-		if h1 == common.BytesToHash([]byte("B")) && h2 == common.BytesToHash([]byte("B")) {
+		if h1 == bytesToHash([]byte("B")) && h2 == bytesToHash([]byte("B")) {
 			return false, nil
-		} else if h1 == common.BytesToHash([]byte("A")) || h1 == common.BytesToHash([]byte("B")) {
+		} else if h1 == bytesToHash([]byte("A")) || h1 == bytesToHash([]byte("B")) {
 			for _, val := range hashes {
 				if val == h2 {
 					return true, nil
 				}
 			}
 			return false, nil
-		} else if h1 == common.BytesToHash([]byte("C0")) && h2 == common.BytesToHash([]byte("D")) {
+		} else if h1 == bytesToHash([]byte("C0")) && h2 == bytesToHash([]byte("D")) {
 			return true, nil
 		}
 		return false, nil
 	})
 
-	addPendingChangeFunction := func(canonHeight uint, canonHash common.Hash, forced bool) {
-		var change PendingChange[common.Hash, uint]
+	addPendingChangeFunction := func(canonHeight uint, canonHash Hash, forced bool) {
+		var change PendingChange[Hash, uint]
 		if forced {
 			delayKind := Best{0}
 			delayKindBest := newDelayKind(delayKind)
-			change = PendingChange[common.Hash, uint]{
+			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
 				canonHeight:     canonHeight,
@@ -1012,7 +1011,7 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 		} else {
 			delayKind := Finalized{}
 			delayKindFinalized := newDelayKind(delayKind)
-			change = PendingChange[common.Hash, uint]{
+			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
 				canonHeight:     canonHeight,
@@ -1025,27 +1024,27 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	addPendingChangeFunction(5, common.BytesToHash([]byte("A")), false)
-	addPendingChangeFunction(10, common.BytesToHash([]byte("B")), false)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C0")), false)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C1")), true)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C2")), false)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C3")), true)
-	addPendingChangeFunction(20, common.BytesToHash([]byte("D")), true)
+	addPendingChangeFunction(5, bytesToHash([]byte("A")), false)
+	addPendingChangeFunction(10, bytesToHash([]byte("B")), false)
+	addPendingChangeFunction(15, bytesToHash([]byte("C0")), false)
+	addPendingChangeFunction(15, bytesToHash([]byte("C1")), true)
+	addPendingChangeFunction(15, bytesToHash([]byte("C2")), false)
+	addPendingChangeFunction(15, bytesToHash([]byte("C3")), true)
+	addPendingChangeFunction(20, bytesToHash([]byte("D")), true)
 
 	// applying the standard hashNumber at A should not prune anything
 	// other then the hashNumber that was applied
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("A")), 5, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 6, len(authorities.pendingChanges()))
 
 	// same for B
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("B")), 10, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.pendingChanges()))
 
 	// finalizing C2 should clear all forced changes
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("C2")), 15, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("C2")), 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(authorities.pendingForcedChanges))
 }
@@ -1059,11 +1058,11 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 		Weight: 1,
 	})
 
-	authorities := AuthoritySet[common.Hash, uint]{
+	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     currentAuthorities,
 		setId:                  0,
-		pendingStandardChanges: NewChangeTree[common.Hash, uint](),
-		pendingForcedChanges:   []PendingChange[common.Hash, uint]{},
+		pendingStandardChanges: NewChangeTree[Hash, uint](),
+		pendingForcedChanges:   []PendingChange[Hash, uint]{},
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -1079,37 +1078,37 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 	//
 	// () - Standard hashNumber
 	// [] - Forced hashNumber
-	isDescOf := isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
-		hashes := []common.Hash{
-			common.BytesToHash([]byte("B")),
-			common.BytesToHash([]byte("C0")),
-			common.BytesToHash([]byte("C1")),
-			common.BytesToHash([]byte("C2")),
-			common.BytesToHash([]byte("C3")),
-			common.BytesToHash([]byte("D")),
+	isDescOf := isDescendentof(func(h1 Hash, h2 Hash) (bool, error) {
+		hashes := []Hash{
+			bytesToHash([]byte("B")),
+			bytesToHash([]byte("C0")),
+			bytesToHash([]byte("C1")),
+			bytesToHash([]byte("C2")),
+			bytesToHash([]byte("C3")),
+			bytesToHash([]byte("D")),
 		}
 
-		if h1 == common.BytesToHash([]byte("B")) && h2 == common.BytesToHash([]byte("B")) {
+		if h1 == bytesToHash([]byte("B")) && h2 == bytesToHash([]byte("B")) {
 			return false, nil
-		} else if h1 == common.BytesToHash([]byte("A")) || h1 == common.BytesToHash([]byte("B")) {
+		} else if h1 == bytesToHash([]byte("A")) || h1 == bytesToHash([]byte("B")) {
 			for _, val := range hashes {
 				if val == h2 {
 					return true, nil
 				}
 			}
 			return false, nil
-		} else if h1 == common.BytesToHash([]byte("C0")) && h2 == common.BytesToHash([]byte("D")) {
+		} else if h1 == bytesToHash([]byte("C0")) && h2 == bytesToHash([]byte("D")) {
 			return true, nil
 		}
 		return false, nil
 	})
 
-	addPendingChangeFunction := func(canonHeight uint, canonHash common.Hash, forced bool) {
-		var change PendingChange[common.Hash, uint]
+	addPendingChangeFunction := func(canonHeight uint, canonHash Hash, forced bool) {
+		var change PendingChange[Hash, uint]
 		if forced {
 			delayKind := Best{0}
 			delayKindBest := newDelayKind(delayKind)
-			change = PendingChange[common.Hash, uint]{
+			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
 				canonHeight:     canonHeight,
@@ -1119,7 +1118,7 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 		} else {
 			delayKind := Finalized{}
 			delayKindFinalized := newDelayKind(delayKind)
-			change = PendingChange[common.Hash, uint]{
+			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
 				canonHeight:     canonHeight,
@@ -1132,30 +1131,30 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 		require.NoError(t, err)
 	}
 
-	addPendingChangeFunction(5, common.BytesToHash([]byte("A")), false)
-	addPendingChangeFunction(10, common.BytesToHash([]byte("B")), false)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C0")), false)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C1")), true)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C2")), false)
-	addPendingChangeFunction(15, common.BytesToHash([]byte("C3")), true)
-	addPendingChangeFunction(20, common.BytesToHash([]byte("D")), true)
+	addPendingChangeFunction(5, bytesToHash([]byte("A")), false)
+	addPendingChangeFunction(10, bytesToHash([]byte("B")), false)
+	addPendingChangeFunction(15, bytesToHash([]byte("C0")), false)
+	addPendingChangeFunction(15, bytesToHash([]byte("C1")), true)
+	addPendingChangeFunction(15, bytesToHash([]byte("C2")), false)
+	addPendingChangeFunction(15, bytesToHash([]byte("C3")), true)
+	addPendingChangeFunction(20, bytesToHash([]byte("D")), true)
 
 	// applying the standard hashNumber at A should not prune anything
 	// other then the hashNumber that was applied
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("A")), 5, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 6, len(authorities.pendingChanges()))
 
 	// same for B
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("B")), 10, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.pendingChanges()))
 
 	// finalizing C0 should clear all forced changes but D
-	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("C0")), 15, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(bytesToHash([]byte("C0")), 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(authorities.pendingForcedChanges))
-	require.Equal(t, common.BytesToHash([]byte("D")), authorities.pendingForcedChanges[0].canonHash)
+	require.Equal(t, bytesToHash([]byte("D")), authorities.pendingForcedChanges[0].canonHash)
 }
 
 func TestAuthoritySetChangesInsert(t *testing.T) {
@@ -1306,7 +1305,7 @@ func TestIterFromWorks(t *testing.T) {
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
 		authorities  AuthorityList
-		authoritySet AuthoritySet[common.Hash, uint]
+		authoritySet AuthoritySet[Hash, uint]
 	}
 	tests := []struct {
 		name string
@@ -1317,7 +1316,7 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 			name: "nil authorities",
 			args: args{
 				authorities:  nil,
-				authoritySet: AuthoritySet[common.Hash, uint]{},
+				authoritySet: AuthoritySet[Hash, uint]{},
 			},
 			exp: true,
 		},
@@ -1325,7 +1324,7 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 			name: "empty authorities",
 			args: args{
 				authorities:  AuthorityList{},
-				authoritySet: AuthoritySet[common.Hash, uint]{},
+				authoritySet: AuthoritySet[Hash, uint]{},
 			},
 			exp: true,
 		},
@@ -1337,7 +1336,7 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 						Weight: 0,
 					},
 				},
-				authoritySet: AuthoritySet[common.Hash, uint]{},
+				authoritySet: AuthoritySet[Hash, uint]{},
 			},
 			exp: true,
 		},
@@ -1349,7 +1348,7 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 						Weight: 1,
 					},
 				},
-				authoritySet: AuthoritySet[common.Hash, uint]{},
+				authoritySet: AuthoritySet[Hash, uint]{},
 			},
 		},
 	}
