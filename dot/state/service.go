@@ -34,6 +34,7 @@ type Service struct {
 	Transaction *TransactionState
 	Epoch       *EpochState
 	Grandpa     *GrandpaState
+	Slot        *SlotState
 	closeCh     chan interface{}
 
 	PrunerCfg pruner.Config
@@ -157,6 +158,7 @@ func (s *Service) Start() (err error) {
 		"created state service with head %s, highest number %d and genesis hash %s",
 		s.Block.BestBlockHash(), num, s.Block.genesisHash.String())
 
+	s.Slot = NewSlotState(s.db)
 	return nil
 }
 

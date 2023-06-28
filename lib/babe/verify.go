@@ -38,6 +38,7 @@ type onDisabledInfo struct {
 type VerificationManager struct {
 	lock       sync.RWMutex
 	blockState BlockState
+	slotState  SlotState
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
 	// there may be different OnDisabled digests on different
@@ -47,9 +48,10 @@ type VerificationManager struct {
 }
 
 // NewVerificationManager returns a new NewVerificationManager
-func NewVerificationManager(blockState BlockState, epochState EpochState) *VerificationManager {
+func NewVerificationManager(blockState BlockState, slotState SlotState, epochState EpochState) *VerificationManager {
 	return &VerificationManager{
 		epochState: epochState,
+		slotState:  slotState,
 		blockState: blockState,
 		epochInfo:  make(map[uint64]*verifierInfo),
 		onDisabled: make(map[uint64]map[uint32][]*onDisabledInfo),
@@ -183,7 +185,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	verifier := newVerifier(v.blockState, epoch, info)
+	verifier := newVerifier(v.blockState, v.slotState, epoch, info)
 
 	return verifier.verifyAuthorshipRight(header)
 }
@@ -215,6 +217,7 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
 	blockState     BlockState
+	slotState      SlotState
 	epoch          uint64
 	authorities    []types.Authority
 	randomness     Randomness
@@ -223,9 +226,10 @@ type verifier struct {
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) *verifier {
+func newVerifier(blockState BlockState, slotState SlotState, epoch uint64, info *verifierInfo) *verifier {
 	return &verifier{
 		blockState:     blockState,
+		slotState:      slotState,
 		epoch:          epoch,
 		authorities:    info.authorities,
 		randomness:     info.randomness,
@@ -341,37 +345,19 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
-func (b *verifier) submitAndReportEquivocation(
-	slot uint64, authorityIndex uint32, firstHeader, secondHeader types.Header) error {
-
-	// TODO: Check if it is initial sync
-	// don't report any equivocations during initial sync
-	// as they are most likely stale.
-	// https://github.com/ChainSafe/gossamer/issues/3004
-
+func (b *verifier) submitAndReportEquivocation(equivocationProof *types.BabeEquivocationProof) error {
 	bestBlockHash := b.blockState.BestBlockHash()
 	runtimeInstance, err := b.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
 		return fmt.Errorf("getting runtime: %w", err)
 	}
 
-	if len(b.authorities) <= int(authorityIndex) {
-		return ErrAuthIndexOutOfBound
-	}
-
-	offenderPublicKey := b.authorities[authorityIndex].ToRaw().Key
-	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(slot, offenderPublicKey)
+	keyOwnershipProof, err := runtimeInstance.BabeGenerateKeyOwnershipProof(
+		equivocationProof.Slot, equivocationProof.Offender)
 	if err != nil {
 		return fmt.Errorf("getting key ownership proof from runtime: %w", err)
 	} else if keyOwnershipProof == nil {
 		return errEmptyKeyOwnershipProof
-	}
-
-	equivocationProof := &types.BabeEquivocationProof{
-		Offender:     types.AuthorityID(offenderPublicKey),
-		Slot:         slot,
-		FirstHeader:  firstHeader,
-		SecondHeader: secondHeader,
 	}
 
 	err = runtimeInstance.BabeSubmitReportEquivocationUnsignedExtrinsic(*equivocationProof, keyOwnershipProof)
@@ -384,50 +370,48 @@ func (b *verifier) submitAndReportEquivocation(
 
 // verifyBlockEquivocation checks if the given block's author has occupied the corresponding slot more than once.
 // It returns true if the block was equivocated.
+// TODO: Check if it is initial sync
+// don't report any equivocations during initial sync
+// as they are most likely stale.
+// https://github.com/ChainSafe/gossamer/issues/3004
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
-	author, err := getAuthorityIndex(header)
+	authorityIndex, err := getAuthorityIndex(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get authority index: %w", err)
 	}
 
+	if len(b.authorities) <= int(authorityIndex) {
+		return false, ErrAuthIndexOutOfBound
+	}
+
+	parentHeader, err := b.blockState.GetHeader(header.ParentHash)
+	if err != nil {
+		return false, fmt.Errorf("while getting parent header: %w", err)
+	}
+
 	currentHash := header.Hash()
+	slotNow, err := types.GetSlotFromHeader(parentHeader)
+	if err != nil {
+		return false, fmt.Errorf("getting parent slot number: %w", err)
+	}
+
 	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
 	}
 
-	blockHashesInSlot, err := b.blockState.GetBlockHashesBySlot(slot)
+	signer := types.AuthorityID(b.authorities[authorityIndex].ToRaw().Key)
+	equivocationProof, err := b.slotState.CheckEquivocation(slotNow, slot, header, signer)
 	if err != nil {
-		return false, fmt.Errorf("failed to get blocks produced in slot: %w", err)
+		return false, fmt.Errorf("checking equivocation: %w", err)
 	}
 
-	for _, blockHashInSlot := range blockHashesInSlot {
-		if blockHashInSlot == currentHash {
-			continue
-		}
-
-		existingHeader, err := b.blockState.GetHeader(blockHashInSlot)
-		if err != nil {
-			return false, fmt.Errorf("failed to get header for block: %w", err)
-		}
-
-		authorOfExistingHeader, err := getAuthorityIndex(existingHeader)
-		if err != nil {
-			return false, fmt.Errorf("failed to get authority index for block %s: %w", blockHashInSlot, err)
-		}
-		if authorOfExistingHeader != author {
-			continue
-		}
-
-		err = b.submitAndReportEquivocation(slot, authorOfExistingHeader, *existingHeader, *header)
-		if err != nil {
-			return true, fmt.Errorf("submitting and reporting equivocation: %w", err)
-		}
-
-		return true, nil
+	err = b.submitAndReportEquivocation(equivocationProof)
+	if err != nil {
+		return false, fmt.Errorf("submiting equivocation: %w", err)
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
