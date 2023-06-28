@@ -2,6 +2,8 @@ package parachain
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/parachain"
+	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
@@ -117,6 +119,67 @@ func TestSpamSlots_Concurrency(t *testing.T) {
 	wg.Wait()
 }
 
-//TODO: add test for NewSpamSlotsFromState
+func TestNewSpamSlotsFromState(t *testing.T) {
+	t.Parallel()
 
-//TODO: add benchmarks
+	// with
+	unconfirmedDisputes := make(map[unconfirmedKey]*treeset.Set)
+	unconfirmedDisputes[unconfirmedKey{session: 1, candidate: common.Hash{1}}] = treeset.NewWith(byIndex, 1, 2, 3)
+	unconfirmedDisputes[unconfirmedKey{session: 1, candidate: common.Hash{2}}] = treeset.NewWith(byIndex, 1, 2, 3)
+	unconfirmedDisputes[unconfirmedKey{session: 1, candidate: common.Hash{3}}] = treeset.NewWith(byIndex, 1, 2, 3)
+
+	// when
+	ss := NewSpamSlotsFromState(unconfirmedDisputes, 3)
+
+	// then
+	require.False(t, ss.AddUnconfirmed(1, common.Hash{1}, 1))
+}
+
+func byIndex(a, b interface{}) int {
+	return a.(int) - b.(int)
+}
+
+func BenchmarkSpamSlots_AddUnconfirmed(b *testing.B) {
+	ss := NewSpamSlots(MaxSpamVotes)
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		require.True(b, ss.AddUnconfirmed(1, common.Hash{0}, parachain.ValidatorIndex(b.N%10)))
+	}
+}
+
+func BenchmarkSpamSlots_Clear(b *testing.B) {
+	ss := NewSpamSlots(uint32(b.N))
+	for n := 0; n < b.N; n++ {
+		require.True(b, ss.AddUnconfirmed(1, common.Hash{0}, parachain.ValidatorIndex(b.N)))
+	}
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		ss.Clear(1, common.Hash{0})
+	}
+}
+
+func BenchmarkSpamSlots_PruneOld(b *testing.B) {
+	ss := NewSpamSlots(uint32(b.N))
+	for n := 0; n < b.N; n++ {
+		require.True(b, ss.AddUnconfirmed(parachain.SessionIndex(n), common.Hash{0}, parachain.ValidatorIndex(b.N)))
+	}
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		ss.PruneOld(parachain.SessionIndex(n))
+	}
+}
+
+func BenchmarkNewSpamSlotsFromState(b *testing.B) {
+	unconfirmedDisputes := make(map[unconfirmedKey]*treeset.Set)
+	for n := 0; n < b.N; n++ {
+		unconfirmedDisputes[unconfirmedKey{session: 1, candidate: common.Hash{byte(n)}}] = treeset.NewWith(byIndex, 1, 2, 3)
+	}
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		NewSpamSlotsFromState(unconfirmedDisputes, MaxSpamVotes)
+	}
+}
