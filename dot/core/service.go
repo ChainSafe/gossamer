@@ -46,7 +46,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	net              Network
-	grandpaState GrandpaState 
+	grandpaState     GrandpaState
 
 	// map of code substitutions keyed by block hash
 	codeSubstitute       map[common.Hash]string
@@ -95,7 +95,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		onBlockImport:        cfg.OnBlockImport,
-		grandpaState: 		  cfg.grandpaState,
+		grandpaState:         cfg.GrandpaState,
 	}
 
 	return srv, nil
