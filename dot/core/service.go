@@ -46,6 +46,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	net              Network
+	grandpaState GrandpaState 
 
 	// map of code substitutions keyed by block hash
 	codeSubstitute       map[common.Hash]string
@@ -70,11 +71,13 @@ type Config struct {
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
 	OnBlockImport        BlockImportDigestHandler
+
+	GrandpaState GrandpaState
 }
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
-func NewService(cfg *Config) (*Service, error) {
+func NewService(cfg *Config, grandpaState GrandpaState) (*Service, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	blockAddCh := make(chan *types.Block, 256)
@@ -92,6 +95,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		onBlockImport:        cfg.OnBlockImport,
+		grandpaState: 		  cfg.grandpaState,
 	}
 
 	return srv, nil
