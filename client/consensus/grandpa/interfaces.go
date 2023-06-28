@@ -19,8 +19,8 @@ import (
 type ForkTree[H comparable, N constraints.Unsigned] interface {
 	Import(hash H, number N, change PendingChange[H, N], isDescendentOf IsDescendentOf[H]) (bool, error)
 	Roots() []*pendingChangeNode[H, N]
-	FinalizeAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate Predicate[*PendingChange[H, N]]) (*bool, error)
-	FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate Predicate[*PendingChange[H, N]]) (*FinalizationResult[H, N], error)
+	FinalizeAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*bool, error)
+	FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*FinalizationResult[H, N], error)
 	DrainFilter()
 
 	// GetPreOrder Implemented this as part of interface, but can remove if we want since it's not part of the substrate interface

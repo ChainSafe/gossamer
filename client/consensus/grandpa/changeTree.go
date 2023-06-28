@@ -119,8 +119,8 @@ func (ct *ChangeTree[H, N]) GetPreOrderChangeNodes() []*pendingChangeNode[H, N] 
 // nil if no node in the tree is finalized. The given `Predicate` is
 // checked on the prospective finalized root and must pass for finalization
 // to occur. The given function `is_descendent_of` should return `true` if
-// the second hash (target) is a descendent of the first hash (base).
-func (ct *ChangeTree[H, N]) FinalizeAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate Predicate[*PendingChange[H, N]]) (*bool, error) {
+// the second hash (target) is a descendent of the first hash (base). func(T) bool
+func (ct *ChangeTree[H, N]) FinalizeAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*bool, error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
 			return nil, errRevert
@@ -181,7 +181,7 @@ type FinalizationResult[H comparable, N constraints.Unsigned] struct {
 // root and must pass for finalization to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate Predicate[*PendingChange[H, N]]) (*FinalizationResult[H, N], error) {
+func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*FinalizationResult[H, N], error) {
 	if ct.bestFinalizedNumber != nil {
 		if number <= *ct.bestFinalizedNumber {
 			return nil, errRevert

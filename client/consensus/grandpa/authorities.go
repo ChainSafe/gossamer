@@ -581,29 +581,10 @@ func (asc *AuthoritySetChanges[N]) iterFrom(blockNumber N) *AuthoritySetChanges[
 	return &iterChanges
 }
 
-////// Function Types //////
-
-// Predicate is a type to represent the function signature of a Predicate function
-type Predicate[T any] func(T) bool
+////// Additional types //////
 
 // IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
 type IsDescendentOf[H comparable] func(h1, h2 H) (bool, error)
-
-////// Predicate Functions //////
-
-func applyStandardChangesPredicate[H comparable, N constraints.Unsigned](finalizedNumber N) Predicate[*PendingChange[H, N]] {
-	return func(change *PendingChange[H, N]) bool {
-		return change.EffectiveNumber() <= finalizedNumber
-	}
-}
-
-func enactStandardChangesPredicate[H comparable, N constraints.Unsigned](finalizedNumber N) Predicate[*PendingChange[H, N]] {
-	return func(change *PendingChange[H, N]) bool {
-		return change.EffectiveNumber() == finalizedNumber
-	}
-}
-
-////// Additional types //////
 
 // authorityChange represents the set id and block number of an authority set hashNumber
 type authorityChange[N constraints.Unsigned] struct {
