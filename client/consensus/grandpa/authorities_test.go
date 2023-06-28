@@ -156,7 +156,7 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	expectedChanges := []PendingChange{
 		changeA, changeC, changeB, changeE, changeD,
 	}
-	pendingChanges := authorities.PendingChanges()
+	pendingChanges := authorities.pendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
 }
 
@@ -213,12 +213,12 @@ func TestApplyChange(t *testing.T) {
 	expectedChanges := []PendingChange{
 		changeA, changeB,
 	}
-	pendingChanges := authorities.PendingChanges()
+	pendingChanges := authorities.pendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
 
 	// finalizing "hash_c" won't enact the change signaled at "hash_a" but it will prune out
 	// "hash_b"
-	status, err := authorities.ApplyStandardChanges(
+	status, err := authorities.applyStandardChanges(
 		common.BytesToHash([]byte("hash_c")),
 		11,
 		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
@@ -240,11 +240,11 @@ func TestApplyChange(t *testing.T) {
 	expectedChanges = []PendingChange{
 		changeA,
 	}
-	pendingChanges = authorities.PendingChanges()
+	pendingChanges = authorities.pendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
 	require.True(t, len(authorities.authoritySetChanges) == 0)
 
-	status, err = authorities.ApplyStandardChanges(
+	status, err = authorities.applyStandardChanges(
 		common.BytesToHash([]byte("hash_d")),
 		15,
 		isDescendentof(func(h1 common.Hash, h2 common.Hash) (bool, error) {
@@ -267,7 +267,7 @@ func TestApplyChange(t *testing.T) {
 	require.Equal(t, authorities.currentAuthorities, setA)
 	require.Equal(t, authorities.setId, uint64(1))
 
-	pendingChanges = authorities.PendingChanges()
+	pendingChanges = authorities.pendingChanges()
 	require.Equal(t, 0, len(pendingChanges))
 	expChange := authorityChange{
 		setId:       0,
@@ -341,7 +341,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	})
 
 	// trying to finalize past `change_c` without finalizing `change_a` first
-	_, err = authorities.ApplyStandardChanges(
+	_, err = authorities.applyStandardChanges(
 		common.BytesToHash([]byte("hash_d")),
 		40,
 		isDescOf,
@@ -351,7 +351,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.ErrorIs(t, err, errUnfinalizedAncestor)
 	require.Equal(t, AuthoritySetChanges{}, authorities.authoritySetChanges)
 
-	status, err := authorities.ApplyStandardChanges(
+	status, err := authorities.applyStandardChanges(
 		common.BytesToHash([]byte("hash_b")),
 		15,
 		isDescOf,
@@ -372,7 +372,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.Equal(t, uint64(1), authorities.setId)
 	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
 
-	status, err = authorities.ApplyStandardChanges(
+	status, err = authorities.applyStandardChanges(
 		common.BytesToHash([]byte("hash_d")),
 		40,
 		isDescOf,
@@ -713,7 +713,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			blockNumber: 15,
 		},
 	}
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf(true), nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("hash_a15")), 15, staticIsDescendentOf(true), nil)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// but the forced change still depends on the next standard change
@@ -726,7 +726,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		setId:       1,
 		blockNumber: 20,
 	})
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_b")), 20, staticIsDescendentOf(true), nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("hash_b")), 20, staticIsDescendentOf(true), nil)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// afterwards the forced change at #45 can already be applied since it signals
@@ -841,7 +841,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Equal(t, expChange, c)
 
 	// we apply the change at A0 which should prune it and the fork at B
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("hash_a0")), 5, isDescOf, nil)
 	require.NoError(t, err)
 
 	// the next change is now at A1 (#10)
@@ -884,7 +884,7 @@ func TestNextChangeWorks(t *testing.T) {
 
 func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	// empty authority lists are invalid
-	require.Nil(t, Genesis(AuthorityList{}))
+	require.Nil(t, NewGenesisAuthoritySet(AuthorityList{}))
 	require.Nil(t, NewAuthoritySet(AuthorityList{}, 0, NewChangeTree(), nil, nil))
 
 	kpA, err := ed25519.GenerateKeypair()
@@ -905,10 +905,10 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	}
 
 	// authority weight of zero is invalid
-	require.Nil(t, Genesis(invalidAuthoritiesWeight))
+	require.Nil(t, NewGenesisAuthoritySet(invalidAuthoritiesWeight))
 	require.Nil(t, NewAuthoritySet(invalidAuthoritiesWeight, 0, NewChangeTree(), nil, nil))
 
-	authoritySet := Genesis(AuthorityList{types.Authority{
+	authoritySet := NewGenesisAuthoritySet(AuthorityList{types.Authority{
 		Key:    kpA.Public(),
 		Weight: 5,
 	}})
@@ -1036,17 +1036,17 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 
 	// applying the standard change at A should not prune anything
 	// other then the change that was applied
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
 	require.NoError(t, err)
-	require.Equal(t, 6, len(authorities.PendingChanges()))
+	require.Equal(t, 6, len(authorities.pendingChanges()))
 
 	// same for B
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
 	require.NoError(t, err)
-	require.Equal(t, 5, len(authorities.PendingChanges()))
+	require.Equal(t, 5, len(authorities.pendingChanges()))
 
 	// finalizing C2 should clear all forced changes
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("C2")), 15, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("C2")), 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(authorities.pendingForcedChanges))
 }
@@ -1143,17 +1143,17 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 
 	// applying the standard change at A should not prune anything
 	// other then the change that was applied
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("A")), 5, isDescOf, nil)
 	require.NoError(t, err)
-	require.Equal(t, 6, len(authorities.PendingChanges()))
+	require.Equal(t, 6, len(authorities.pendingChanges()))
 
 	// same for B
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("B")), 10, isDescOf, nil)
 	require.NoError(t, err)
-	require.Equal(t, 5, len(authorities.PendingChanges()))
+	require.Equal(t, 5, len(authorities.pendingChanges()))
 
 	// finalizing C0 should clear all forced changes but D
-	_, err = authorities.ApplyStandardChanges(common.BytesToHash([]byte("C0")), 15, isDescOf, nil)
+	_, err = authorities.applyStandardChanges(common.BytesToHash([]byte("C0")), 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(authorities.pendingForcedChanges))
 	require.Equal(t, common.BytesToHash([]byte("D")), authorities.pendingForcedChanges[0].canonHash)
@@ -1171,11 +1171,11 @@ func TestAuthoritySetChangesInsert(t *testing.T) {
 		setId:       2,
 		blockNumber: 101,
 	}
-	_, set, err := authoritySetChanges.getSetId(100)
+	_, set, err := authoritySetChanges.getSetID(100)
 	require.NoError(t, err)
 	require.Equal(t, expChange, *set)
 
-	_, set, err = authoritySetChanges.getSetId(101)
+	_, set, err = authoritySetChanges.getSetID(101)
 	require.NoError(t, err)
 	require.Equal(t, expChange, *set)
 }
@@ -1196,23 +1196,23 @@ func TestAuthoritySetChangesForCompleteData(t *testing.T) {
 		blockNumber: 81,
 	}
 
-	_, set, err := authoritySetChanges.getSetId(20)
+	_, set, err := authoritySetChanges.getSetID(20)
 	require.NoError(t, err)
 	require.Equal(t, expChange0, *set)
 
-	_, set, err = authoritySetChanges.getSetId(40)
+	_, set, err = authoritySetChanges.getSetID(40)
 	require.NoError(t, err)
 	require.Equal(t, expChange0, *set)
 
-	_, set, err = authoritySetChanges.getSetId(41)
+	_, set, err = authoritySetChanges.getSetID(41)
 	require.NoError(t, err)
 	require.Equal(t, expChange0, *set)
 
-	_, set, err = authoritySetChanges.getSetId(42)
+	_, set, err = authoritySetChanges.getSetID(42)
 	require.NoError(t, err)
 	require.Equal(t, expChange1, *set)
 
-	latest, _, err := authoritySetChanges.getSetId(141)
+	latest, _, err := authoritySetChanges.getSetID(141)
 	require.NoError(t, err)
 	require.True(t, latest)
 }
@@ -1228,23 +1228,23 @@ func TestAuthoritySetChangesForIncompleteData(t *testing.T) {
 		blockNumber: 81,
 	}
 
-	_, set, err := authoritySetChanges.getSetId(20)
+	_, set, err := authoritySetChanges.getSetID(20)
 	require.NoError(t, err)
 	require.Nil(t, set)
 
-	_, set, err = authoritySetChanges.getSetId(40)
+	_, set, err = authoritySetChanges.getSetID(40)
 	require.NoError(t, err)
 	require.Nil(t, set)
 
-	_, set, err = authoritySetChanges.getSetId(41)
+	_, set, err = authoritySetChanges.getSetID(41)
 	require.NoError(t, err)
 	require.Nil(t, set)
 
-	_, set, err = authoritySetChanges.getSetId(42)
+	_, set, err = authoritySetChanges.getSetID(42)
 	require.NoError(t, err)
 	require.Equal(t, expChange, *set)
 
-	latest, _, err := authoritySetChanges.getSetId(141)
+	latest, _, err := authoritySetChanges.getSetID(141)
 	require.NoError(t, err)
 	require.True(t, latest)
 }

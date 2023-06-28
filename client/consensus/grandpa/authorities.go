@@ -68,8 +68,8 @@ func (authSet *AuthoritySet) InvalidAuthorityList(authorities AuthorityList) boo
 	return false
 }
 
-// Genesis Get a genesis set with given authorities.
-func Genesis(initial AuthorityList) (authSet *AuthoritySet) {
+// NewGenesisAuthoritySet Get a genesis set with given authorities.
+func NewGenesisAuthoritySet(initial AuthorityList) (authSet *AuthoritySet) {
 	if authSet.InvalidAuthorityList(initial) {
 		return nil
 	}
@@ -103,8 +103,8 @@ func NewAuthoritySet(authorities AuthorityList,
 	}
 }
 
-// Current Get the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet) Current() (uint64, *AuthorityList) {
+// current Get the current set id and a reference to the current authority set.
+func (authSet *AuthoritySet) current() (uint64, *AuthorityList) {
 	return authSet.setId, &authSet.currentAuthorities
 }
 
@@ -254,10 +254,10 @@ func (authSet *AuthoritySet) addPendingChange(pending PendingChange, isDescenden
 	}
 }
 
-// PendingChanges Inspect pending changes. Standard pending changes are iterated first,
+// pendingChanges Inspect pending changes. Standard pending changes are iterated first,
 // and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
-func (authSet *AuthoritySet) PendingChanges() []PendingChange {
+func (authSet *AuthoritySet) pendingChanges() []PendingChange {
 	// get everything from standard change roots
 	changes := authSet.pendingStandardChanges.GetPreOrder()
 
@@ -364,7 +364,7 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 	return newSet, nil
 }
 
-// ApplyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
+// applyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
 // method ensures that if there are multiple changes in the same branch,
 // finalizing this block won't finalize past multiple transitions (i.e.
 // transitions must be finalized in-order). The given function
@@ -374,7 +374,7 @@ func (authSet *AuthoritySet) applyForcedChanges(bestHash common.Hash,
 // When the set has changed, the return value will be a Status type where newSetBlockInfo
 // is the canonical block where the set last changed (i.e. the given
 // hash and number).
-func (authSet *AuthoritySet) ApplyStandardChanges(
+func (authSet *AuthoritySet) applyStandardChanges(
 	finalizedHash common.Hash,
 	finalizedNumber uint,
 	isDescendentOf IsDescendentOf,
@@ -477,8 +477,8 @@ func (pc *PendingChange) EffectiveNumber() uint {
 type AuthoritySetChanges []authorityChange
 
 // append an authorityChange to AuthoritySetChanges
-func (authSetChanges *AuthoritySetChanges) append(setId uint64, blockNumber uint) {
-	*authSetChanges = append(*authSetChanges, authorityChange{
+func (asc *AuthoritySetChanges) append(setId uint64, blockNumber uint) {
+	*asc = append(*asc, authorityChange{
 		setId:       setId,
 		blockNumber: blockNumber,
 	})
@@ -489,11 +489,11 @@ func (authSetChanges *AuthoritySetChanges) append(setId uint64, blockNumber uint
 // Set => &AuthorityChange
 // Unknown => nil
 // TODO for reviewers, this can be a VDT but I'm not sure its needed
-func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bool, set *authorityChange, err error) {
-	if authSetChanges == nil {
-		return false, nil, fmt.Errorf("getSetId: authSetChanges is nil")
+func (asc *AuthoritySetChanges) getSetID(blockNumber uint) (latest bool, set *authorityChange, err error) {
+	if asc == nil {
+		return false, nil, fmt.Errorf("getSetID: authSetChanges is nil")
 	}
-	authSet := *authSetChanges
+	authSet := *asc
 	last := authSet[len(authSet)-1]
 	if last.blockNumber < blockNumber {
 		return true, nil, nil // Latest case
@@ -514,15 +514,15 @@ func (authSetChanges *AuthoritySetChanges) getSetId(blockNumber uint) (latest bo
 	return false, nil, nil // Unknown case
 }
 
-func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
+func (asc *AuthoritySetChanges) insert(blockNumber uint) {
 	var idx int
-	if authSetChanges == nil {
+	if asc == nil {
 		panic("authority set changes must be initialized")
 	} else {
-		idx, _ = searchSetChanges(blockNumber, *authSetChanges)
+		idx, _ = searchSetChanges(blockNumber, *asc)
 	}
 
-	set := *authSetChanges
+	set := *asc
 
 	var setId uint64
 	if idx == 0 {
@@ -547,34 +547,34 @@ func (authSetChanges *AuthoritySetChanges) insert(blockNumber uint) {
 		set = append(set[:idx+1], set[idx:]...)
 		set[idx] = change
 	}
-	*authSetChanges = set
+	*asc = set
 }
 
 // This logic is used in warp sync proof
-func (authSetChanges *AuthoritySetChanges) iterFrom(blockNumber uint) (*AuthoritySetChanges, error) {
-	if authSetChanges == nil {
-		return nil, fmt.Errorf("getSetId: authSetChanges is nil")
+func (asc *AuthoritySetChanges) iterFrom(blockNumber uint) *AuthoritySetChanges {
+	if asc == nil {
+		return nil
 	}
-	authSet := *authSetChanges
+	authSet := *asc
 
-	idx, found := searchSetChanges(blockNumber, *authSetChanges)
+	idx, found := searchSetChanges(blockNumber, *asc)
 	if found {
 		// if there was a change at the given block number then we should start on the next
 		// index since we want to exclude the current block number
 		idx += 1
 	}
 
-	if idx < len(*authSetChanges) {
+	if idx < len(*asc) {
 		authChange := authSet[idx]
 
 		// if this is the first index but not the first set id then we are missing data.
 		if idx == 0 && authChange.setId != 0 {
-			return nil, nil
+			return nil
 		}
 	}
 
 	iterChanges := authSet[idx:]
-	return &iterChanges, nil
+	return &iterChanges
 }
 
 ////// Function Types //////

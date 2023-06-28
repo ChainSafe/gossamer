@@ -25,3 +25,12 @@ type ForkTree interface {
 	// GetPreOrder Implemented this as part of interface, but can remove if we want since it's not part of the substrate interface
 	GetPreOrder() []PendingChange
 }
+
+// PublicKey interface
+type PublicKey interface {
+	Verify(msg, sig []byte) (bool, error)
+	Encode() []byte
+	Decode([]byte) error
+	Address() common.Address
+	Hex() string
+}

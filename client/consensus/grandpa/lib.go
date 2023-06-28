@@ -4,12 +4,16 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 
+// Authority represents a grandpa authority
+type Authority struct {
+	Key    PublicKey
+	Weight uint64
+}
+
 // AuthorityList A list of Grandpa authorities with associated weights.
-// TODO migrate this type and associated functions to this package
-type AuthorityList []types.Authority
+type AuthorityList []Authority
