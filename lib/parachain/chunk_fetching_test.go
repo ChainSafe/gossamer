@@ -49,11 +49,10 @@ func TestChunkFetchingResponse(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			chunkFetchingResponse := NewChunkFetchingResponse()
-
 			t.Run("encode", func(t *testing.T) {
 				t.Parallel()
 
+				chunkFetchingResponse := NewChunkFetchingResponse()
 				err := chunkFetchingResponse.Set(c.value)
 				require.NoError(t, err)
 
@@ -66,6 +65,7 @@ func TestChunkFetchingResponse(t *testing.T) {
 			t.Run("decode", func(t *testing.T) {
 				t.Parallel()
 
+				chunkFetchingResponse := NewChunkFetchingResponse()
 				err := chunkFetchingResponse.Decode(c.encodeValue)
 				require.NoError(t, err)
 
