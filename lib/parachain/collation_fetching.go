@@ -11,10 +11,10 @@ import (
 // the advertised collation at the specified relay chain block.
 type CollationFetchingRequest struct {
 	// Relay parent we want a collation for
-	RelayParent common.Hash
+	RelayParent common.Hash `scale:"1"`
 
 	// Parachain id of the collation
-	ParaID ParaID
+	ParaID ParaID `scale:"2"`
 }
 
 // Encode returns the SCALE encoding of the CollationFetchingRequest
