@@ -10,12 +10,12 @@ type RoundStateReport[ID comparable] struct {
 	// The threshold voter weight.
 	ThresholdWeight VoterWeight
 
-	// current weight of the prevotes.
+	// Current weight of the prevotes.
 	PrevoteCurrentWeight VoteWeight
 	// The identities of nodes that have cast prevotes so far.
 	PrevoteIDs []ID
 
-	// current weight of the precommits.
+	// Current weight of the precommits.
 	PrecommitCurrentWeight VoteWeight
 	// The identities of nodes that have cast precommits so far.
 	PrecommitIDs []ID
