@@ -92,11 +92,10 @@ func TestStatementFetchingResponse(t *testing.T) {
 
 	EncodedValue := common.MustHexToBytes(testDataStatement["hexOfStatementFetchingResponse"])
 
-	response := NewStatementFetchingResponse()
-
 	t.Run("encode_statement_fetching_response", func(t *testing.T) {
 		t.Parallel()
 
+		response := NewStatementFetchingResponse()
 		err := response.Set(missingDataInStatement)
 		require.NoError(t, err)
 
@@ -108,6 +107,8 @@ func TestStatementFetchingResponse(t *testing.T) {
 
 	t.Run("Decode_statement_fetching_response", func(t *testing.T) {
 		t.Parallel()
+
+		response := NewStatementFetchingResponse()
 		err := response.Decode(EncodedValue)
 		require.NoError(t, err)
 
