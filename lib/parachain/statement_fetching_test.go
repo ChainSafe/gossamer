@@ -93,11 +93,12 @@ func TestStatementFetchingResponse(t *testing.T) {
 	EncodedValue := common.MustHexToBytes(testDataStatement["hexOfStatementFetchingResponse"])
 
 	response := NewStatementFetchingResponse()
-	err := response.Set(missingDataInStatement)
-	require.NoError(t, err)
 
 	t.Run("encode_statement_fetching_response", func(t *testing.T) {
 		t.Parallel()
+
+		err := response.Set(missingDataInStatement)
+		require.NoError(t, err)
 
 		actualEncode, err := response.Encode()
 		require.NoError(t, err)
