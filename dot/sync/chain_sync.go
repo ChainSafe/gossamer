@@ -169,6 +169,8 @@ func (cs *chainSync) start() {
 	// wait until we have a minimal workers in the sync worker pool
 	// and we have a clear target otherwise just wait
 	for {
+		cs.workerPool.useConnectedPeers()
+
 		_, err := cs.getTarget()
 		totalAvailable := cs.workerPool.totalWorkers()
 
