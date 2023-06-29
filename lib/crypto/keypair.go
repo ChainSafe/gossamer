@@ -31,7 +31,7 @@ type PublicKey interface {
 	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
-	Address() common.Address
+	Address() string
 	Hex() string
 }
 
@@ -49,12 +49,12 @@ var ss58Prefix = []byte("SS58PRE")
 // PublicKeyToAddress returns an ss58 address given a PublicKey
 // see: https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
 // also see: https://github.com/paritytech/substrate/blob/master/primitives/core/src/crypto.rs#L275
-func PublicKeyToAddress(pub PublicKey) common.Address {
+func PublicKeyToAddress(pub PublicKey) string {
 	enc := append([]byte{42}, pub.Encode()...)
 	return publicKeyBytesToAddress(enc)
 }
 
-func publicKeyBytesToAddress(b []byte) common.Address {
+func publicKeyBytesToAddress(b []byte) string {
 	hasher, err := blake2b.New(64, nil)
 	if err != nil {
 		return ""
@@ -64,7 +64,7 @@ func publicKeyBytesToAddress(b []byte) common.Address {
 		return ""
 	}
 	checksum := hasher.Sum(nil)
-	return common.Address(base58.Encode(append(b, checksum[:2]...)))
+	return base58.Encode(append(b, checksum[:2]...))
 }
 
 // PublicAddressToByteArray returns []byte address for given PublicKey Address

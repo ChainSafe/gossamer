@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
 	"golang.org/x/exp/constraints"
 )
 
@@ -32,6 +31,6 @@ type PublicKey interface {
 	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
-	Address() common.Address
+	Address() string
 	Hex() string
 }

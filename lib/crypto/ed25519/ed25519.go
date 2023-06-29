@@ -255,7 +255,7 @@ func (k *PublicKey) Decode(in []byte) error {
 }
 
 // Address returns the ss58 address for this public key
-func (k *PublicKey) Address() common.Address {
+func (k *PublicKey) Address() string {
 	return crypto.PublicKeyToAddress(k)
 }
 

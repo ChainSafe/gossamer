@@ -124,7 +124,7 @@ func AuthoritiesToRaw(auths []Authority) []AuthorityRaw {
 
 // AuthorityAsAddress represents an Authority with their address instead of public key
 type AuthorityAsAddress struct {
-	Address common.Address
+	Address string
 	Weight  uint64
 }
 
