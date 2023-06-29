@@ -584,6 +584,7 @@ func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout 
 		maxResponseSize: maxResponseSize,
 		protocolID:      protocolID,
 		responseBuf:     make([]byte, maxResponseSize),
+		responseBufMu:   sync.Mutex{},
 	}
 }
 
