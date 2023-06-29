@@ -222,7 +222,7 @@ func NewService(cfg *Config) (*Service, error) {
 		Metrics:                cfg.Metrics,
 	}
 
-	return network, err
+	return network, nil
 }
 
 // SetSyncer sets the Syncer used by the network service
