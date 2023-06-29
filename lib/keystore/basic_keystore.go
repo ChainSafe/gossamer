@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 
@@ -21,7 +20,7 @@ var (
 type BasicKeystore struct {
 	name Name
 	typ  crypto.KeyType
-	keys map[common.Address]KeyPair // map of public key encodings to keypairs
+	keys map[string]KeyPair // map of public key encodings to keypairs
 	lock sync.RWMutex
 }
 
@@ -30,7 +29,7 @@ func NewBasicKeystore(name Name, typ crypto.KeyType) *BasicKeystore {
 	return &BasicKeystore{
 		name: name,
 		typ:  typ,
-		keys: make(map[common.Address]KeyPair),
+		keys: make(map[string]KeyPair),
 	}
 }
 
@@ -75,7 +74,7 @@ func (ks *BasicKeystore) GetKeypair(pub crypto.PublicKey) KeyPair {
 }
 
 // GetKeypairFromAddress returns a keypair corresponding to the given address, or nil if it doesn't exist
-func (ks *BasicKeystore) GetKeypairFromAddress(pub common.Address) KeyPair {
+func (ks *BasicKeystore) GetKeypairFromAddress(pub string) KeyPair {
 	ks.lock.RLock()
 	defer ks.lock.RUnlock()
 	return ks.keys[pub]

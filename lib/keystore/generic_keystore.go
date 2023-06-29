@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
@@ -17,7 +16,7 @@ import (
 // GenericKeystore holds keys of any type
 type GenericKeystore struct {
 	name Name
-	keys map[common.Address]KeyPair // map of public key encodings to keypairs
+	keys map[string]KeyPair // map of public key encodings to keypairs
 	lock sync.RWMutex
 }
 
@@ -25,7 +24,7 @@ type GenericKeystore struct {
 func NewGenericKeystore(name Name) *GenericKeystore {
 	return &GenericKeystore{
 		name: name,
-		keys: make(map[common.Address]KeyPair),
+		keys: make(map[string]KeyPair),
 	}
 }
 
@@ -66,7 +65,7 @@ func (ks *GenericKeystore) GetKeypair(pub crypto.PublicKey) KeyPair {
 }
 
 // GetKeypairFromAddress returns a keypair corresponding to the given address, or nil if it doesn't exist
-func (ks *GenericKeystore) GetKeypairFromAddress(pub common.Address) KeyPair {
+func (ks *GenericKeystore) GetKeypairFromAddress(pub string) KeyPair {
 	ks.lock.RLock()
 	defer ks.lock.RUnlock()
 	return ks.keys[pub]

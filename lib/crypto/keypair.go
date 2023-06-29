@@ -4,8 +4,6 @@
 package crypto
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/btcsuite/btcutil/base58"
 	bip39 "github.com/cosmos/go-bip39"
 	"golang.org/x/crypto/blake2b"
@@ -68,8 +66,8 @@ func publicKeyBytesToAddress(b []byte) string {
 }
 
 // PublicAddressToByteArray returns []byte address for given PublicKey Address
-func PublicAddressToByteArray(add common.Address) []byte {
-	k := base58.Decode(string(add))
+func PublicAddressToByteArray(add string) []byte {
+	k := base58.Decode(add)
 	return k[1:33]
 }
 
