@@ -56,7 +56,7 @@ type TransactionState interface {
 
 // BabeVerifier deals with BABE block verification
 type BabeVerifier interface {
-	VerifyBlock(header *types.Header) error
+	VerifyBlock(header *types.Header, isInitialSync bool) error
 }
 
 // FinalityGadget implements justification verification functionality

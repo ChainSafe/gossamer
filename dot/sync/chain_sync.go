@@ -878,7 +878,10 @@ func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.Bloc
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
-	err = cs.babeVerifier.VerifyBlock(blockData.Header)
+
+	syncState := cs.syncState()
+	isInitialSync := syncState == bootstrap
+	err = cs.babeVerifier.VerifyBlock(blockData.Header, isInitialSync)
 	if err != nil {
 		return fmt.Errorf("babe verifying block: %w", err)
 	}

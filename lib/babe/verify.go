@@ -124,7 +124,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It checks the next epoch and config data stored in memory only if it cannot retrieve the data from database
 // It returns an error if the block is invalid.
-func (v *VerificationManager) VerifyBlock(header *types.Header) error {
+func (v *VerificationManager) VerifyBlock(header *types.Header, isInitialSync bool) error {
 	var (
 		info *verifierInfo
 		has  bool
@@ -184,7 +184,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	v.lock.Unlock()
 
 	verifier := newVerifier(v.blockState, epoch, info)
-
+	verifier.isInitialSync = isInitialSync
 	return verifier.verifyAuthorshipRight(header)
 }
 
@@ -214,6 +214,7 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
+	isInitialSync  bool
 	blockState     BlockState
 	epoch          uint64
 	authorities    []types.Authority
@@ -327,6 +328,10 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	if !ok {
 		return ErrBadSignature
+	}
+
+	if b.isInitialSync {
+		return nil
 	}
 
 	equivocated, err := b.verifyBlockEquivocation(header)
