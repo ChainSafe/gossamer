@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -68,8 +69,8 @@ func encodeAndHashHeader(t *testing.T, header *types.Header) common.Hash {
 	return hash
 }
 
-func newTestVerifier(kp *sr25519.Keypair, blockState BlockState,
-	threshold *scale.Uint128, secSlots bool) *verifier {
+func newTestVerifier(kp *sr25519.Keypair, blockState BlockState, slotState SlotState,
+	threshold *scale.Uint128, secSlots bool, slotDuration time.Duration) *verifier {
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
 		authorities:    []types.Authority{*authority, *authority},
@@ -77,7 +78,7 @@ func newTestVerifier(kp *sr25519.Keypair, blockState BlockState,
 		threshold:      threshold,
 		secondarySlots: secSlots,
 	}
-	return newVerifier(blockState, 1, info)
+	return newVerifier(blockState, slotState, 1, info, slotDuration)
 }
 
 func Test_getAuthorityIndex(t *testing.T) {

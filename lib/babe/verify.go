@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -184,9 +185,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	}
 
 	v.lock.Unlock()
+	slotDuration, err := v.epochState.GetSlotDuration()
+	if err != nil {
+		return fmt.Errorf("getting current slot duration: %w", err)
+	}
 
-	verifier := newVerifier(v.blockState, v.slotState, epoch, info)
-
+	verifier := newVerifier(v.blockState, v.slotState, epoch, info, slotDuration)
 	return verifier.verifyAuthorshipRight(header)
 }
 
@@ -223,10 +227,11 @@ type verifier struct {
 	randomness     Randomness
 	threshold      *scale.Uint128
 	secondarySlots bool
+	slotDuration   time.Duration
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, slotState SlotState, epoch uint64, info *verifierInfo) *verifier {
+func newVerifier(blockState BlockState, slotState SlotState, epoch uint64, info *verifierInfo, slotDuration time.Duration) *verifier {
 	return &verifier{
 		blockState:     blockState,
 		slotState:      slotState,
@@ -235,6 +240,7 @@ func newVerifier(blockState BlockState, slotState SlotState, epoch uint64, info 
 		randomness:     info.randomness,
 		threshold:      info.threshold,
 		secondarySlots: info.secondarySlots,
+		slotDuration:   slotDuration,
 	}
 }
 
@@ -375,6 +381,7 @@ func (b *verifier) submitAndReportEquivocation(equivocationProof *types.BabeEqui
 // as they are most likely stale.
 // https://github.com/ChainSafe/gossamer/issues/3004
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
+	fmt.Printf("CHECKING EQUIVOCATION FOR: %v\n", header)
 	authorityIndex, err := getAuthorityIndex(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get authority index: %w", err)
@@ -384,17 +391,13 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		return false, ErrAuthIndexOutOfBound
 	}
 
-	parentHeader, err := b.blockState.GetHeader(header.ParentHash)
-	if err != nil {
-		return false, fmt.Errorf("while getting parent header: %w", err)
+	if header.Hash() == b.blockState.GenesisHash() {
+		return false, nil
 	}
+
+	slotNow := getCurrentSlot(b.slotDuration)
 
 	currentHash := header.Hash()
-	slotNow, err := types.GetSlotFromHeader(parentHeader)
-	if err != nil {
-		return false, fmt.Errorf("getting parent slot number: %w", err)
-	}
-
 	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
