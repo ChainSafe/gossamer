@@ -468,7 +468,6 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockStateErr := NewMockBlockState(ctrl)
 
 	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
@@ -535,16 +534,9 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	testSecVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfHeader))
 	testSecVrfHeader.ParentHash = testVrfParentHash
 
-	h := common.MustHexToHash("0x01")
-	h1 := []common.Hash{h}
+	mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
 
-	mockBlockState.EXPECT().GetHeader(h).Return(types.NewEmptyHeader(), nil)
-	mockBlockState.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
-
-	mockBlockStateErr.EXPECT().GetHeader(h).Return(nil, errors.New("get header error"))
-	mockBlockStateErr.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(h1, nil)
-
-	mockSlotState := NewMockSlotState(nil)
+	mockSlotStateNoOp := NewMockSlotState(nil)
 
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
@@ -559,28 +551,28 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	babePrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header3 := newTestHeader(t, *babePrd, testInvalidSeal)
-	babeVerifier := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, false)
+	babeVerifier := newTestVerifier(kp, mockBlockState, mockSlotStateNoOp, scale.MaxUint128, false)
 
 	// Case 4: Invalid signature - BabePrimaryPreDigest
 	babePrd2, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header4 := newTestHeader(t, *babePrd2)
 	signAndAddSeal(t, kp, header4, []byte{1})
-	babeVerifier2 := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, false)
+	babeVerifier2 := newTestVerifier(kp, mockBlockState, mockSlotStateNoOp, scale.MaxUint128, false)
 
 	// Case 5: Invalid signature - BabeSecondaryPlainPreDigest
 	babeSecPlainPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
 	header5 := newTestHeader(t, *babeSecPlainPrd)
 	signAndAddSeal(t, kp, header5, []byte{1})
-	babeVerifier3 := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, true)
+	babeVerifier3 := newTestVerifier(kp, mockBlockState, mockSlotStateNoOp, scale.MaxUint128, true)
 
 	// Case 6: Invalid signature - BabeSecondaryVrfPreDigest
 	encSecVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
 	assert.NoError(t, err)
 	header6 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encSecVrfDigest))
 	signAndAddSeal(t, kp, header6, []byte{1})
-	babeVerifier4 := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, true)
+	babeVerifier4 := newTestVerifier(kp, mockBlockState, mockSlotStateNoOp, scale.MaxUint128, true)
 
 	// Case 7: GetAuthorityIndex Err
 	babeParentPrd, err := testBabePrimaryPreDigest.ToPreRuntimeDigest()
@@ -596,10 +588,16 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 
 	hash := encodeAndHashHeader(t, header7)
 	signAndAddSeal(t, kp, header7, hash[:])
-	babeVerifier5 := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, false)
 
-	//// Case 8: Get header error
-	babeVerifier6 := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, false)
+	signerPublicKey := kp.Public().(*sr25519.PublicKey)
+	signerAuthID := types.AuthorityID(signerPublicKey.AsBytes())
+
+	slotStateMockErr := errors.New("slot state mock error")
+	mockSlotState := NewMockSlotState(ctrl)
+	mockSlotState.EXPECT().CheckEquivocation(gomock.Any(),
+		testBabePrimaryPreDigest.SlotNumber, header7, signerAuthID).Return(nil, slotStateMockErr)
+
+	babeVerifier5 := newTestVerifier(kp, mockBlockState, mockSlotState, scale.MaxUint128, false)
 
 	tests := []struct {
 		name     string
@@ -657,19 +655,11 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 			expErr:   ErrBadSignature,
 		},
 		{
-			name:     "valid digest items, getAuthorityIndex error",
+			name:     "check_equivocation_error",
 			verifier: *babeVerifier5,
 			header:   header7,
 			expErr: fmt.Errorf("could not verify block equivocation: "+
-				"failed to get authority index for block %s: for block hash %s: %w",
-				h, types.NewEmptyHeader().Hash(), errNoDigest),
-		},
-		{
-			name:     "get header err",
-			verifier: *babeVerifier6,
-			header:   header7,
-			expErr: fmt.Errorf("could not verify block equivocation: " +
-				"failed to get header for block: get header error"),
+				"checking equivocation: %w", slotStateMockErr),
 		},
 	}
 	for _, tt := range tests {

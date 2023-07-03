@@ -382,7 +382,6 @@ func (b *verifier) submitAndReportEquivocation(equivocationProof *types.BabeEqui
 // as they are most likely stale.
 // https://github.com/ChainSafe/gossamer/issues/3004
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
-	fmt.Printf("CHECKING EQUIVOCATION FOR: %v\n", header)
 	authorityIndex, err := getAuthorityIndex(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get authority index: %w", err)
@@ -411,7 +410,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	}
 
 	if equivocationProof == nil {
-		return true, nil
+		return false, nil
 	}
 
 	err = b.submitAndReportEquivocation(equivocationProof)
