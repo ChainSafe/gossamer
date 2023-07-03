@@ -81,16 +81,16 @@ func Test_checkEquivocation(t *testing.T) {
 
 	// It's ok to sign same headers.
 	equivProf, err := slotState.CheckEquivocation(2, 2, header1, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, equivProf)
 
 	equivProf, err = slotState.CheckEquivocation(3, 2, header1, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, equivProf)
 
 	// But not two different headers at the same slot.
 	equivProf, err = slotState.CheckEquivocation(4, 2, header2, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, equivProf)
 	require.Equal(t, &types.BabeEquivocationProof{
 		Slot:         2,
@@ -101,13 +101,13 @@ func Test_checkEquivocation(t *testing.T) {
 
 	// Different slot is ok.
 	equivProf, err = slotState.CheckEquivocation(5, 4, header3, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, equivProf)
 
 	// Here we trigger pruning and save header 4.
 	equivProf, err = slotState.CheckEquivocation(
 		pruningBound+2, maxSlotCapacity+4, header4, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, equivProf)
 
 	require.False(t, checkSlotToMapKeyExists(t, slotState.db, 2))
@@ -116,7 +116,7 @@ func Test_checkEquivocation(t *testing.T) {
 	// This fails because header 5 is an equivocation of header 4.
 	equivProf, err = slotState.CheckEquivocation(
 		pruningBound+3, maxSlotCapacity+4, header5, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, equivProf)
 
 	require.Equal(t, &types.BabeEquivocationProof{
@@ -129,6 +129,6 @@ func Test_checkEquivocation(t *testing.T) {
 	// This is ok because we pruned the corresponding header. Shows that we are pruning.
 	equivProf, err = slotState.CheckEquivocation(
 		pruningBound+4, 4, header6, aliceAuthorityID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, equivProf)
 }
