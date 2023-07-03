@@ -100,6 +100,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		s.Block = blockState
 		s.Epoch = epochState
 		s.Grandpa = grandpaState
+		s.Slot = NewSlotState(db)
 	} else if err = db.Close(); err != nil {
 		return fmt.Errorf("failed to close database: %s", err)
 	}

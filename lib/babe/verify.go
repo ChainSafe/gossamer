@@ -231,7 +231,8 @@ type verifier struct {
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, slotState SlotState, epoch uint64, info *verifierInfo, slotDuration time.Duration) *verifier {
+func newVerifier(blockState BlockState, slotState SlotState,
+	epoch uint64, info *verifierInfo, slotDuration time.Duration) *verifier {
 	return &verifier{
 		blockState:     blockState,
 		slotState:      slotState,
@@ -407,6 +408,10 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	equivocationProof, err := b.slotState.CheckEquivocation(slotNow, slot, header, signer)
 	if err != nil {
 		return false, fmt.Errorf("checking equivocation: %w", err)
+	}
+
+	if equivocationProof == nil {
+		return true, nil
 	}
 
 	err = b.submitAndReportEquivocation(equivocationProof)

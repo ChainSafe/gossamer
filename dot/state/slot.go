@@ -49,7 +49,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	// We don't check equivocations for old headers out of our capacity.
 	// checking slotNow is greater than slot to avoid overflow, same as saturating_sub
 	if saturatingSub(slotNow, slot) > maxSlotCapacity {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	slotEncoded := make([]byte, 8)
@@ -81,7 +81,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 
 	if slotNow < firstSavedSlot {
 		// The code below assumes that slots will be visited sequentially.
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	for _, headerAndSigner := range headersWithSigners {
@@ -100,7 +100,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 				// We don't need to continue in case of duplicated header,
 				// since it's already saved and a possible equivocation
 				// would have been detected before.
-				return nil, nil
+				return nil, nil //nolint:nilnil
 			}
 		}
 	}
@@ -123,7 +123,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	headersWithSigners = append(headersWithSigners, headerAndSigner{Header: header, Signer: signer})
 	encodedheadersWithSigners, err = scale.Marshal(headersWithSigners)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling: %w", err)
+		return nil, fmt.Errorf("marshalling: %w", err)
 	}
 
 	batch := s.db.NewBatch()
@@ -146,8 +146,12 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 		}
 	}
 
-	batch.Flush()
-	return nil, nil
+	err = batch.Flush()
+	if err != nil {
+		return nil, fmt.Errorf("failed to flush batch operations: %w", err)
+	}
+
+	return nil, nil //nolint:nilnil
 }
 
 func saturatingSub(a, b uint64) uint64 {
