@@ -40,8 +40,8 @@ func NewSlotState(db *chaindb.BadgerDB) *SlotState {
 }
 
 type headerAndSigner struct {
-	Header *types.Header
-	Signer types.AuthorityID
+	Header *types.Header     `scale:"1"`
+	Signer types.AuthorityID `scale:"2"`
 }
 
 func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header,
@@ -56,16 +56,34 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	binary.LittleEndian.PutUint64(slotEncoded, slot)
 
 	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded[:]}, nil)
-	encodedheadersWithSigners, err := s.db.Get(currentSlotKey)
+	encodedHeadersWithSigners, err := s.db.Get(currentSlotKey)
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("getting key slot header map key %d: %w", slot, err)
 	}
 
 	headersWithSigners := make([]headerAndSigner, 0)
-	if len(encodedheadersWithSigners) > 0 {
-		err = scale.Unmarshal(encodedheadersWithSigners, &headersWithSigners)
+	if len(encodedHeadersWithSigners) > 0 {
+		encodedSliceHeadersWithSigners := make([][]byte, 0)
+
+		err = scale.Unmarshal(encodedHeadersWithSigners, &encodedSliceHeadersWithSigners)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshaling headers with signers: %w", err)
+			return nil, fmt.Errorf("unmarshaling encoded headers with signers: %w", err)
+		}
+
+		for _, encodedHeaderAndSigner := range encodedSliceHeadersWithSigners {
+			// each header and signer instance should have an empty header
+			// so we will be able to scale decode the whole byte stream with
+			// the digests correctly in place
+			decodedHeaderAndSigner := headerAndSigner{
+				Header: types.NewEmptyHeader(),
+			}
+
+			err := scale.Unmarshal(encodedHeaderAndSigner, &decodedHeaderAndSigner)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshaling header with signer: %w", err)
+			}
+
+			headersWithSigners = append(headersWithSigners, decodedHeaderAndSigner)
 		}
 	}
 
@@ -121,13 +139,26 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	}
 
 	headersWithSigners = append(headersWithSigners, headerAndSigner{Header: header, Signer: signer})
-	encodedheadersWithSigners, err = scale.Marshal(headersWithSigners)
+	encodedHeaderAndSigner := make([][]byte, len(headersWithSigners))
+
+	// encode each header and signer and push to a slice of bytes
+	// that will be scale encoded and stored in the database
+	for idx, headerAndSigner := range headersWithSigners {
+		encoded, err := scale.Marshal(headerAndSigner)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling header and signer: %w", err)
+		}
+
+		encodedHeaderAndSigner[idx] = encoded
+	}
+
+	encodedHeadersWithSigners, err = scale.Marshal(encodedHeaderAndSigner)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling: %w", err)
 	}
 
 	batch := s.db.NewBatch()
-	err = batch.Put(currentSlotKey, encodedheadersWithSigners)
+	err = batch.Put(currentSlotKey, encodedHeadersWithSigners)
 	if err != nil {
 		return nil, fmt.Errorf("while batch putting encoded headers with signers: %w", err)
 	}

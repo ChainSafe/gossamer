@@ -170,7 +170,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 		{
 			name:   "First Digest Invalid Type",
 			args:   args{headerNoPre},
-			expErr: errors.New("first digest item is not pre-runtime digest"),
+			expErr: errors.New("first digest item is not pre-digest"),
 		},
 		{
 			name: "Invalid_Preruntime_Digest_Type",

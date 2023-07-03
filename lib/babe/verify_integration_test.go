@@ -497,21 +497,29 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
+	// bestBlockHash := babeService.blockState.BestBlockHash()
+	// runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	// require.NoError(t, err)
 
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
-	timestamp := time.Unix(6, 0)
-	slot := getSlot(t, runtime, timestamp)
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+
+	const slotDuration = 6 * time.Second
+	slotNumber := getCurrentSlot(slotDuration)
+	startTime := getSlotStartTime(slotNumber, slotDuration)
+	slot := NewSlot(startTime, slotDuration, slotNumber)
+
+	if time.Now().After(startTime) {
+		slot = NewSlot(startTime.Add(6*time.Second), slotDuration, slotNumber+1)
+	}
+
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, *slot)
 	block.Header.Hash()
 
 	// create new block for same slot
-	block2 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block2 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, *slot)
 	block2.Header.Hash()
 
 	err = babeService.blockState.AddBlock(block)
