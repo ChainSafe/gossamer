@@ -382,7 +382,7 @@ func (b *verifier) submitAndReportEquivocation(equivocationProof *types.BabeEqui
 // as they are most likely stale.
 // https://github.com/ChainSafe/gossamer/issues/3004
 func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
-	authorityIndex, err := getAuthorityIndex(header)
+	authorityIndex, slotNumber, err := getAuthorityIndexAndSlot(header)
 	if err != nil {
 		return false, fmt.Errorf("failed to get authority index: %w", err)
 	}
@@ -396,15 +396,9 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	}
 
 	slotNow := getCurrentSlot(b.slotDuration)
-
-	currentHash := header.Hash()
-	slot, err := types.GetSlotFromHeader(header)
-	if err != nil {
-		return false, fmt.Errorf("failed to get slot from header of block %s: %w", currentHash, err)
-	}
-
 	signer := types.AuthorityID(b.authorities[authorityIndex].ToRaw().Key)
-	equivocationProof, err := b.slotState.CheckEquivocation(slotNow, slot, header, signer)
+	equivocationProof, err := b.slotState.CheckEquivocation(slotNow, slotNumber,
+		header, signer)
 	if err != nil {
 		return false, fmt.Errorf("checking equivocation: %w", err)
 	}
@@ -527,34 +521,36 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 	return pk.VrfVerify(t, vrfOutput, vrfProof)
 }
 
-func getAuthorityIndex(header *types.Header) (uint32, error) {
+func getAuthorityIndexAndSlot(header *types.Header) (authIdx uint32, slot uint64, err error) {
 	if len(header.Digest.Types) == 0 {
-		return 0, fmt.Errorf("for block hash %s: %w", header.Hash(), errNoDigest)
+		return 0, 0, fmt.Errorf("for block hash %s: %w", header.Hash(), errNoDigest)
 	}
 
 	digestValue, err := header.Digest.Types[0].Value()
 	if err != nil {
-		return 0, fmt.Errorf("getting first digest type value: %w", err)
+		return 0, 0, fmt.Errorf("getting first digest type value: %w", err)
 	}
 	preDigest, ok := digestValue.(types.PreRuntimeDigest)
 	if !ok {
-		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
+		return 0, 0, types.ErrNoFirstPreDigest
 	}
 
 	babePreDigest, err := types.DecodeBabePreDigest(preDigest.Data)
 	if err != nil {
-		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+		return 0, 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	var authIdx uint32
 	switch d := babePreDigest.(type) {
 	case types.BabePrimaryPreDigest:
 		authIdx = d.AuthorityIndex
+		slot = d.SlotNumber
 	case types.BabeSecondaryVRFPreDigest:
 		authIdx = d.AuthorityIndex
+		slot = d.SlotNumber
 	case types.BabeSecondaryPlainPreDigest:
 		authIdx = d.AuthorityIndex
+		slot = d.SlotNumber
 	}
 
-	return authIdx, nil
+	return authIdx, slot, nil
 }

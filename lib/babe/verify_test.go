@@ -103,7 +103,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 
 	// BabePrimaryPreDigest Case
 	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 21})
+	err = babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 21, SlotNumber: 1})
 	assert.NoError(t, err)
 
 	bdEnc, err := scale.Marshal(babeDigest)
@@ -120,7 +120,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 
 	//BabeSecondaryVRFPreDigest Case
 	babeDigest2 := types.NewBabeDigest()
-	err = babeDigest2.Set(types.BabeSecondaryVRFPreDigest{AuthorityIndex: 21})
+	err = babeDigest2.Set(types.BabeSecondaryVRFPreDigest{AuthorityIndex: 21, SlotNumber: 10})
 	assert.NoError(t, err)
 
 	bdEnc2, err := scale.Marshal(babeDigest2)
@@ -137,7 +137,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 
 	//BabeSecondaryPlainPreDigest case
 	babeDigest3 := types.NewBabeDigest()
-	err = babeDigest3.Set(types.BabeSecondaryPlainPreDigest{AuthorityIndex: 21})
+	err = babeDigest3.Set(types.BabeSecondaryPlainPreDigest{AuthorityIndex: 21, SlotNumber: 100})
 	assert.NoError(t, err)
 
 	bdEnc3, err := scale.Marshal(babeDigest3)
@@ -156,10 +156,11 @@ func Test_getAuthorityIndex(t *testing.T) {
 		header *types.Header
 	}
 	tests := []struct {
-		name   string
-		args   args
-		exp    uint32
-		expErr error
+		name          string
+		args          args
+		expAuthIdx    uint32
+		expSlotNumber uint64
+		expErr        error
 	}{
 		{
 			name:   "No Digest",
@@ -178,30 +179,34 @@ func Test_getAuthorityIndex(t *testing.T) {
 				" index 0: EOF"),
 		},
 		{
-			name: "BabePrimaryPreDigest_Type",
-			args: args{headerPrimary},
-			exp:  21,
+			name:          "BabePrimaryPreDigest_Type",
+			args:          args{headerPrimary},
+			expAuthIdx:    21,
+			expSlotNumber: 1,
 		},
 		{
-			name: "BabeSecondaryVRFPreDigest_Type",
-			args: args{headerSecondary},
-			exp:  21,
+			name:          "BabeSecondaryVRFPreDigest_Type",
+			args:          args{headerSecondary},
+			expAuthIdx:    21,
+			expSlotNumber: 10,
 		},
 		{
-			name: "BabeSecondaryPlainPreDigest_Type",
-			args: args{headerSecondaryPlain},
-			exp:  21,
+			name:          "BabeSecondaryPlainPreDigest_Type",
+			args:          args{headerSecondaryPlain},
+			expAuthIdx:    21,
+			expSlotNumber: 100,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := getAuthorityIndex(tt.args.header)
+			authIdx, slotNumber, err := getAuthorityIndexAndSlot(tt.args.header)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tt.exp, res)
+			assert.Equal(t, tt.expAuthIdx, authIdx)
+			assert.Equal(t, tt.expSlotNumber, slotNumber)
 		})
 	}
 }
@@ -676,185 +681,253 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	}
 }
 
-func Test_verifier_verifyBlockEquivocation(t *testing.T) {
-	t.Parallel()
-
+func Test_verifyBlockEquivocation(t *testing.T) {
+	//t.Parallel()
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	auth := types.NewAuthority(kp.Public(), uint64(1))
-	vi := &verifierInfo{
-		authorities: []types.Authority{*auth, *auth},
-		threshold:   scale.MaxUint128,
-	}
+	slotStateMockErr := errors.New("slot state error")
+	getRuntimeErr := errors.New("mock get runtime error")
 
-	mockBlockState := NewMockBlockState(gomock.NewController(t))
-	mockSlotState := NewMockSlotState(nil)
-
-	// Case 1. could not get authority index from header
-	verifier1 := newVerifier(mockBlockState, mockSlotState, 1, vi, testSlotDuration)
-	testHeader1 := types.NewEmptyHeader()
-
-	// Case 2. could not get slot from header
-	verifier2 := verifier1
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
-	testDigest := types.BabePrimaryPreDigest{
-		AuthorityIndex: 1,
+	babePrimaryDigest := types.BabePrimaryPreDigest{
+		AuthorityIndex: 0,
 		SlotNumber:     1,
 		VRFOutput:      output,
 		VRFProof:       proof,
 	}
-	prd, err := testDigest.ToPreRuntimeDigest()
+	prd, err := babePrimaryDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
+	defaultHeader := newTestHeader(t, *prd)
 
-	testHeader2 := newTestHeader(t, *prd)
-	testHeader2.Number = 0
-
-	// Case 3. could not get block hashes by slot
-	testHeader3 := newTestHeader(t, *prd)
-	testHeader3.Number = 1
-
-	mockBlockState3 := NewMockBlockState(gomock.NewController(t))
-	mockBlockState3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		nil, errors.New("test error"))
-
-	verifier3 := newVerifier(mockBlockState3, mockSlotState, 1, vi, testSlotDuration)
-
-	// Case 4. no equivocation on finding the same block
-	testHeader4 := newTestHeader(t, *prd)
-	testHeader4.Number = 1
-	testHash4 := testHeader4.Hash()
-	mockBlockState4 := NewMockBlockState(gomock.NewController(t))
-	mockBlockState4.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		[]common.Hash{testHash4}, nil)
-
-	verifier4 := newVerifier(mockBlockState4, mockSlotState, 1, vi, testSlotDuration)
-
-	// Case 5. claiming a slot twice results in equivocation
-	testHeader5 := newTestHeader(t, *prd)
-	testHeader5.Number = 1
-
-	output5, proof5, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 2))
-	assert.NoError(t, err)
-
-	testDigest5 := types.BabePrimaryPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     1,
-		VRFOutput:      output5,
-		VRFProof:       proof5,
-	}
-	prd5, err := testDigest5.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-
-	existingHeader := newTestHeader(t, *prd5)
-	mockBlockState5 := NewMockBlockState(gomock.NewController(t))
-	mockBlockState5.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		[]common.Hash{existingHeader.Hash()}, nil)
-	mockBlockState5.EXPECT().GetHeader(existingHeader.Hash()).Return(
-		existingHeader, nil)
-	mockBlockState5.EXPECT().BestBlockHash().Return(existingHeader.Hash())
-
-	verifier5 := newVerifier(mockBlockState5, mockSlotState, 1, vi, testSlotDuration)
-
-	const slot = uint64(1)
-	const authorityIndex = uint32(1)
-	offenderPublicKey := verifier5.authorities[authorityIndex].ToRaw().Key
-	keyOwnershipProof := testKeyOwnershipProof
-	mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
-	testHeader5.Hash()
-
-	equivocationProof := types.BabeEquivocationProof{
-		Offender:     offenderPublicKey,
-		Slot:         slot,
-		FirstHeader:  *existingHeader,
-		SecondHeader: *testHeader5,
-	}
-
-	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil)
-	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof).Return(nil)
-
-	mockBlockState5.EXPECT().GetRuntime(existingHeader.Hash()).Return(mockRuntime, nil)
-
-	mockBlockState6 := NewMockBlockState(gomock.NewController(t))
-	mockBlockState6.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		[]common.Hash{existingHeader.Hash()}, nil)
-	mockBlockState6.EXPECT().GetHeader(existingHeader.Hash()).Return(
-		existingHeader, nil)
-	mockBlockState6.EXPECT().BestBlockHash().Return(existingHeader.Hash())
-	mockBlockState6.EXPECT().GetRuntime(existingHeader.Hash()).Return(nil, errors.New("test error"))
-
-	verifier6 := newVerifier(mockBlockState6, mockSlotState, 1, vi, testSlotDuration)
-
-	testHeader6 := newTestHeader(t, *prd)
-	testHeader6.Number = 1
-
-	tests := []struct {
-		name        string
-		verifier    verifier
-		header      *types.Header
-		equivocated bool
-		expErr      error
+	cases := map[string]struct {
+		header        *types.Header
+		wantErr       error
+		errString     string
+		expected      bool
+		buildVerifier func(t *testing.T) *verifier
 	}{
-		{
-			name:        "could not get authority index from header",
-			verifier:    *verifier1,
-			header:      testHeader1,
-			equivocated: false,
-			expErr:      fmt.Errorf("failed to get authority index: for block hash %s: %w", testHeader1.Hash(), errNoDigest),
+		"empty_digest_failed_to_get_auth_index": {
+			header: types.NewEmptyHeader(),
+			errString: "failed to get authority index: for block hash " +
+				"0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a: no digest provided",
+			wantErr: errNoDigest,
+			buildVerifier: func(t *testing.T) *verifier {
+				return &verifier{}
+			},
 		},
-		{
-			name:        "could not get slot from header",
-			verifier:    *verifier2,
-			header:      testHeader2,
-			equivocated: false,
-			expErr: fmt.Errorf("failed to get slot from header of block %s: %w",
-				testHeader2.Hash(), types.ErrGenesisHeader),
+		"cannot_get_slot_from_header": {
+			header: func() *types.Header {
+				wrongDigest := types.NewGrandpaConsensusDigest()
+				require.NoError(t, wrongDigest.Set(types.GrandpaForcedChange{}))
+
+				data, err := scale.Marshal(wrongDigest)
+				require.NoError(t, err)
+
+				consensusDigest := types.ConsensusDigest{
+					ConsensusEngineID: types.GrandpaEngineID,
+					Data:              data,
+				}
+
+				return newTestHeader(t, consensusDigest)
+			}(),
+			errString: "failed to get authority index: first digest item is not pre-digest",
+			wantErr:   types.ErrNoFirstPreDigest,
+			buildVerifier: func(t *testing.T) *verifier {
+				return &verifier{
+					authorities: []types.Authority{},
+				}
+			},
 		},
-		{
-			name:        "could not get block hashes by slot",
-			verifier:    *verifier3,
-			header:      testHeader3,
-			equivocated: false,
-			expErr:      fmt.Errorf("failed to get blocks produced in slot: test error"),
+		"auth_index_out_of_bound": {
+			header:    defaultHeader,
+			errString: "authority index doesn't exist",
+			wantErr:   ErrAuthIndexOutOfBound,
+			buildVerifier: func(t *testing.T) *verifier {
+				return &verifier{
+					authorities: []types.Authority{},
+				}
+			},
 		},
-		{
-			name:        "no equivocation on finding the same block",
-			verifier:    *verifier4,
-			header:      testHeader4,
-			equivocated: false,
-			expErr:      nil,
+		"failed_to_check_equivocation": {
+			header:    defaultHeader,
+			errString: "checking equivocation: slot state error",
+			wantErr:   slotStateMockErr,
+			buildVerifier: func(t *testing.T) *verifier {
+				ctrl := gomock.NewController(t)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+
+				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.
+					EXPECT().
+					CheckEquivocation(gomock.Any(), uint64(1),
+						defaultHeader, expectedAuthorityId).
+					Return(nil, slotStateMockErr)
+
+				return &verifier{
+					authorities: []types.Authority{
+						{
+							Key:    kp.Public(),
+							Weight: 1,
+						},
+					},
+					blockState:   mockBlockState,
+					slotState:    mockSlotState,
+					slotDuration: 6 * time.Second,
+				}
+			},
 		},
-		{
-			name:        "claiming same slot twice results in equivocation",
-			verifier:    *verifier5,
-			header:      testHeader5,
-			equivocated: true,
-			expErr:      nil,
+		"nil_equivocation_proof_from_check_equivocation": {
+			header: defaultHeader,
+			buildVerifier: func(t *testing.T) *verifier {
+				ctrl := gomock.NewController(t)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+
+				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.
+					EXPECT().
+					CheckEquivocation(gomock.Any(), uint64(1),
+						defaultHeader, expectedAuthorityId).
+					Return(nil, nil)
+
+				return &verifier{
+					authorities: []types.Authority{
+						{
+							Key:    kp.Public(),
+							Weight: 1,
+						},
+					},
+					blockState:   mockBlockState,
+					slotState:    mockSlotState,
+					slotDuration: 6 * time.Second,
+				}
+			},
 		},
-		{
-			name:        "submitting equivocation fails",
-			verifier:    *verifier6,
-			header:      testHeader6,
-			equivocated: true,
-			expErr:      errors.New("submitting and reporting equivocation: getting runtime: test error"),
+		"got_equivocation_proof": {
+			expected: true,
+			header:   defaultHeader,
+			buildVerifier: func(t *testing.T) *verifier {
+				ctrl := gomock.NewController(t)
+
+				secondHeader := types.NewEmptyHeader()
+				secondHeader.Number = 1
+				secondHeader.Hash()
+
+				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+
+				mockedEquivocationProof := &types.BabeEquivocationProof{
+					Offender:     expectedAuthorityId,
+					Slot:         1,
+					FirstHeader:  *defaultHeader,
+					SecondHeader: *secondHeader,
+				}
+
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.
+					EXPECT().
+					CheckEquivocation(gomock.Any(), uint64(1),
+						defaultHeader, expectedAuthorityId).
+					Return(mockedEquivocationProof, nil)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+				mockBlockState.EXPECT().BestBlockHash().Return(defaultHeader.Hash())
+
+				opaqueOwnershipProof := []byte{0, 1, 2, 3, 4, 5} // random data
+
+				mockRuntimeInstance := mocks.NewMockInstance(ctrl)
+				mockRuntimeInstance.EXPECT().
+					BabeGenerateKeyOwnershipProof(uint64(1), expectedAuthorityId).
+					Return(types.OpaqueKeyOwnershipProof(opaqueOwnershipProof), nil)
+
+				mockRuntimeInstance.EXPECT().
+					BabeSubmitReportEquivocationUnsignedExtrinsic(*mockedEquivocationProof, opaqueOwnershipProof).
+					Return(nil)
+
+				mockBlockState.EXPECT().GetRuntime(defaultHeader.Hash()).Return(mockRuntimeInstance, nil)
+
+				return &verifier{
+					authorities: []types.Authority{
+						{
+							Key:    kp.Public(),
+							Weight: 1,
+						},
+					},
+					blockState:   mockBlockState,
+					slotState:    mockSlotState,
+					slotDuration: 6 * time.Second,
+				}
+			},
+		},
+		"failed_to_get_runtime_while_submiting_equivocation": {
+			header:    defaultHeader,
+			wantErr:   getRuntimeErr,
+			errString: "submiting equivocation: getting runtime: mock get runtime error",
+			buildVerifier: func(t *testing.T) *verifier {
+				ctrl := gomock.NewController(t)
+
+				secondHeader := types.NewEmptyHeader()
+				secondHeader.Number = 1
+				secondHeader.Hash()
+
+				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+
+				mockedEquivocationProof := &types.BabeEquivocationProof{
+					Offender:     expectedAuthorityId,
+					Slot:         1,
+					FirstHeader:  *defaultHeader,
+					SecondHeader: *secondHeader,
+				}
+
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.
+					EXPECT().
+					CheckEquivocation(gomock.Any(), uint64(1),
+						defaultHeader, expectedAuthorityId).
+					Return(mockedEquivocationProof, nil)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+				mockBlockState.EXPECT().BestBlockHash().Return(defaultHeader.Hash())
+				mockBlockState.EXPECT().GetRuntime(defaultHeader.Hash()).Return(nil, getRuntimeErr)
+
+				return &verifier{
+					authorities: []types.Authority{
+						{
+							Key:    kp.Public(),
+							Weight: 1,
+						},
+					},
+					blockState:   mockBlockState,
+					slotState:    mockSlotState,
+					slotDuration: 6 * time.Second,
+				}
+			},
 		},
 	}
 
-	for _, tt := range tests {
+	for tname, tt := range cases {
 		tt := tt
 
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+		t.Run(tname, func(t *testing.T) {
+			//t.Parallel()
 
-			equivocated, err := tt.verifier.verifyBlockEquivocation(tt.header)
-			assert.Equal(t, equivocated, tt.equivocated)
-			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErr.Error())
-			} else {
-				assert.NoError(t, err)
+			verifier := tt.buildVerifier(t)
+			out, err := verifier.verifyBlockEquivocation(tt.header)
+			require.ErrorIs(t, err, tt.wantErr)
+			if tt.errString != "" {
+				require.EqualError(t, err, tt.errString)
 			}
+
+			require.Equal(t, out, tt.expected)
 		})
 	}
 }
