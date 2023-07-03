@@ -4,6 +4,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/emirpasic/gods/sets/treeset"
+	"golang.org/x/exp/maps"
 	"sync"
 )
 
@@ -34,8 +35,8 @@ type unconfirmedKey struct {
 	candidate common.Hash
 }
 
-// spamSlots is an implementation of SpamSlots
-type spamSlots struct {
+// SpamSlotsHandler is an implementation of SpamSlots
+type SpamSlotsHandler struct {
 	slots     map[slotKey]uint32
 	slotsLock sync.RWMutex
 
@@ -50,53 +51,53 @@ func byValidatorIndex(a, b interface{}) int {
 	return int(a.(parachain.ValidatorIndex) - b.(parachain.ValidatorIndex))
 }
 
-func slotsKey(session parachain.SessionIndex, validator parachain.ValidatorIndex) slotKey {
+func newSlotsKey(session parachain.SessionIndex, validator parachain.ValidatorIndex) slotKey {
 	return slotKey{
 		session:   session,
 		validator: validator,
 	}
 }
 
-func unconfirmedDisputesKey(session parachain.SessionIndex, candidate common.Hash) unconfirmedKey {
+func newUnconfirmedDisputesKey(session parachain.SessionIndex, candidate common.Hash) unconfirmedKey {
 	return unconfirmedKey{
 		session:   session,
 		candidate: candidate,
 	}
 }
 
-func (s *spamSlots) getSpamCount(session parachain.SessionIndex, validator parachain.ValidatorIndex) (uint32, bool) {
+func (s *SpamSlotsHandler) getSpamCount(session parachain.SessionIndex, validator parachain.ValidatorIndex) (uint32, bool) {
 	s.slotsLock.RLock()
 	defer s.slotsLock.RUnlock()
-	spamCount, ok := s.slots[slotsKey(session, validator)]
+	spamCount, ok := s.slots[newSlotsKey(session, validator)]
 	return spamCount, ok
 }
 
-func (s *spamSlots) getValidators(session parachain.SessionIndex, candidate common.Hash) (*treeset.Set, bool) {
+func (s *SpamSlotsHandler) getValidators(session parachain.SessionIndex, candidate common.Hash) (*treeset.Set, bool) {
 	s.unconfirmedLock.RLock()
 	defer s.unconfirmedLock.RUnlock()
-	validators, ok := s.unconfirmed[unconfirmedDisputesKey(session, candidate)]
+	validators, ok := s.unconfirmed[newUnconfirmedDisputesKey(session, candidate)]
 	return validators, ok
 }
 
-func (s *spamSlots) clearValidators(session parachain.SessionIndex, candidate common.Hash) {
+func (s *SpamSlotsHandler) clearValidators(session parachain.SessionIndex, candidate common.Hash) {
 	s.unconfirmedLock.Lock()
 	defer s.unconfirmedLock.Unlock()
-	delete(s.unconfirmed, unconfirmedDisputesKey(session, candidate))
+	delete(s.unconfirmed, newUnconfirmedDisputesKey(session, candidate))
 }
 
-func (s *spamSlots) clearSlots(session parachain.SessionIndex, validator parachain.ValidatorIndex) {
+func (s *SpamSlotsHandler) clearSlots(session parachain.SessionIndex, validator parachain.ValidatorIndex) {
 	s.slotsLock.Lock()
 	defer s.slotsLock.Unlock()
-	delete(s.slots, slotsKey(session, validator))
+	delete(s.slots, newSlotsKey(session, validator))
 }
 
-func (s *spamSlots) incrementSpamCount(session parachain.SessionIndex, validator parachain.ValidatorIndex) {
+func (s *SpamSlotsHandler) incrementSpamCount(session parachain.SessionIndex, validator parachain.ValidatorIndex) {
 	s.slotsLock.Lock()
 	defer s.slotsLock.Unlock()
-	s.slots[slotsKey(session, validator)]++
+	s.slots[newSlotsKey(session, validator)]++
 }
 
-func (s *spamSlots) AddUnconfirmed(session parachain.SessionIndex, candidate common.Hash, validator parachain.ValidatorIndex) bool {
+func (s *SpamSlotsHandler) AddUnconfirmed(session parachain.SessionIndex, candidate common.Hash, validator parachain.ValidatorIndex) bool {
 	if spamCount, _ := s.getSpamCount(session, validator); spamCount >= s.maxSpamVotes {
 		return false
 	}
@@ -104,7 +105,7 @@ func (s *spamSlots) AddUnconfirmed(session parachain.SessionIndex, candidate com
 	s.unconfirmedLock.Lock()
 	defer s.unconfirmedLock.Unlock()
 
-	validators, ok := s.unconfirmed[unconfirmedDisputesKey(session, candidate)]
+	validators, ok := s.unconfirmed[newUnconfirmedDisputesKey(session, candidate)]
 	if !ok || validators == nil {
 		validators = treeset.NewWith(byValidatorIndex)
 	}
@@ -114,85 +115,80 @@ func (s *spamSlots) AddUnconfirmed(session parachain.SessionIndex, candidate com
 		s.incrementSpamCount(session, validator)
 	}
 
-	s.unconfirmed[unconfirmedDisputesKey(session, candidate)] = validators
+	s.unconfirmed[newUnconfirmedDisputesKey(session, candidate)] = validators
 
 	return true
 }
 
-func (s *spamSlots) Clear(session parachain.SessionIndex, candidate common.Hash) {
-	if validators, ok := s.getValidators(session, candidate); ok {
-		validatorSet := validators.Values()
-		s.clearValidators(session, candidate)
-
-		for _, validator := range validatorSet {
-			spamCount, ok := s.getSpamCount(session, validator.(parachain.ValidatorIndex))
-			if ok {
-				if spamCount == 1 {
-					s.clearSlots(session, validator.(parachain.ValidatorIndex))
-					continue
-				}
-
-				s.slotsLock.Lock()
-				s.slots[slotsKey(session, validator.(parachain.ValidatorIndex))] = spamCount - 1
-				s.slotsLock.Unlock()
-			}
-		}
+func (s *SpamSlotsHandler) Clear(session parachain.SessionIndex, candidate common.Hash) {
+	validators, ok := s.getValidators(session, candidate)
+	if !ok {
+		return
 	}
+
+	validatorSet := validators.Values()
+	s.clearValidators(session, candidate)
+
+	for _, validator := range validatorSet {
+		spamCount, ok := s.getSpamCount(session, validator.(parachain.ValidatorIndex))
+		if !ok {
+			continue
+		}
+
+		if spamCount == 1 {
+			s.clearSlots(session, validator.(parachain.ValidatorIndex))
+			continue
+		}
+
+		s.slotsLock.Lock()
+		s.slots[newSlotsKey(session, validator.(parachain.ValidatorIndex))] = spamCount - 1
+		s.slotsLock.Unlock()
+
+	}
+
 }
 
-func (s *spamSlots) PruneOld(oldestIndex parachain.SessionIndex) {
+func (s *SpamSlotsHandler) PruneOld(oldestIndex parachain.SessionIndex) {
 	s.unconfirmedLock.Lock()
-	unconfirmedToDelete := make([]unconfirmedKey, 0)
-	for k := range s.unconfirmed {
-		if k.session < oldestIndex {
-			unconfirmedToDelete = append(unconfirmedToDelete, k)
-		}
-	}
-
-	for _, k := range unconfirmedToDelete {
-		delete(s.unconfirmed, k)
-	}
+	maps.DeleteFunc(s.unconfirmed, func(k unconfirmedKey, v *treeset.Set) bool {
+		return k.session < oldestIndex
+	})
 	s.unconfirmedLock.Unlock()
 
 	s.slotsLock.Lock()
-	slotsToDelete := make([]slotKey, 0)
-	for k := range s.slots {
-		if k.session < oldestIndex {
-			slotsToDelete = append(slotsToDelete, k)
-		}
-	}
-
-	for _, k := range slotsToDelete {
-		delete(s.slots, k)
-	}
+	maps.DeleteFunc(s.slots, func(k slotKey, v uint32) bool {
+		return k.session < oldestIndex
+	})
 	s.slotsLock.Unlock()
 }
 
-// NewSpamSlots returns a new SpamSlots instance
-func NewSpamSlots(maxSpamVotes uint32) SpamSlots {
-	return &spamSlots{
+var _ SpamSlots = &SpamSlotsHandler{}
+
+// NewSpamSlots returns a new SpamSlotsHandler instance
+func NewSpamSlots(maxSpamVotes uint32) *SpamSlotsHandler {
+	return &SpamSlotsHandler{
 		slots:        make(map[slotKey]uint32),
 		unconfirmed:  make(map[unconfirmedKey]*treeset.Set),
 		maxSpamVotes: maxSpamVotes,
 	}
 }
 
-// NewSpamSlotsFromState returns a new SpamSlots instance from the given state
-func NewSpamSlotsFromState(unconfirmedDisputes map[unconfirmedKey]*treeset.Set, maxSpamVotes uint32) SpamSlots {
+// NewSpamSlotsFromState returns a new SpamSlotsHandler instance from the given state
+func NewSpamSlotsFromState(unconfirmedDisputes map[unconfirmedKey]*treeset.Set, maxSpamVotes uint32) *SpamSlotsHandler {
 	slots := make(map[slotKey]uint32)
 
 	for k, v := range unconfirmedDisputes {
 		for validator := range v.Values() {
 			// increment the spam count for this validator and session
-			key := slotsKey(k.session, parachain.ValidatorIndex(validator))
+			key := newSlotsKey(k.session, parachain.ValidatorIndex(validator))
 			slots[key]++
 			if slots[key] > maxSpamVotes {
-				// TODO: log this
+				// TODO: log this after we have a logger
 			}
 		}
 	}
 
-	return &spamSlots{
+	return &SpamSlotsHandler{
 		slots:        slots,
 		unconfirmed:  unconfirmedDisputes,
 		maxSpamVotes: maxSpamVotes,
