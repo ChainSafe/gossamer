@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -19,6 +20,8 @@ var (
 	ErrKeyNotFoundInProofTrie = errors.New("key not found in proof trie")
 	ErrValueMismatchProofTrie = errors.New("value found in proof trie does not match")
 )
+
+var logger = log.NewFromGlobal(log.AddContext("pkg", "proof"))
 
 // Verify verifies a given key and value belongs to the trie by creating
 // a proof trie based on the encoded proof nodes given. The order of proofs is ignored.
@@ -66,6 +69,8 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	defer pools.DigestBuffers.Put(buffer)
 
+	db := trie.HashedNodesMap{}
+
 	// This loop does two things:
 	// 1. It finds the root node by comparing it with the root hash and decodes it.
 	// 2. It stores other encoded nodes in a mapping from their encoding digest to
@@ -73,6 +78,13 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	//    descendant nodes reference their hash digest.
 	var root *node.Node
 	for _, encodedProofNode := range encodedProofNodes {
+
+		nodeHash, err := common.Blake2bHash(encodedProofNode)
+		if err != nil {
+			return nil, err
+		}
+		db[nodeHash] = encodedProofNode
+
 		// Note all encoded proof nodes are one of the following:
 		// - trie root node
 		// - child trie root node
@@ -119,7 +131,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewTrie(root), nil
+	return trie.NewTrie(root, db), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based
@@ -137,6 +149,9 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 
 		merkleValue := child.MerkleValue
 		encoding, ok := digestToEncoding[string(merkleValue)]
+
+		logger.Infof("Node: %x", encoding)
+
 		if !ok {
 			inlinedChild := len(child.StorageValue) > 0 || child.HasChild()
 			if inlinedChild {
@@ -157,6 +172,7 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 			continue
 		}
 
+		logger.Info("loading proof DECODING...")
 		child, err := node.Decode(bytes.NewReader(encoding))
 		if err != nil {
 			return fmt.Errorf("decoding child node for hash digest 0x%x: %w",

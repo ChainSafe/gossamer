@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/qdm12/gotree"
 	"golang.org/x/text/cases"
@@ -58,8 +59,10 @@ func (n *Node) StringNode() (stringNode *gotree.Node) {
 	stringNode = gotree.New(caser.String(n.Kind().String()))
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
+	stringNode.Appendf("Kind: " + n.Kind().String())
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
 	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
+	stringNode.Appendf("Hashed: " + strconv.FormatBool(n.HashedValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
@@ -69,7 +72,7 @@ func (n *Node) StringNode() (stringNode *gotree.Node) {
 		if child == nil {
 			continue
 		}
-		childNode := stringNode.Appendf("Child %d", i)
+		childNode := stringNode.Appendf("Child: %d", i)
 		childNode.AppendNode(child.StringNode())
 	}
 

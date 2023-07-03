@@ -167,7 +167,7 @@ func Test_buildTrie(t *testing.T) {
 				PartialKey:   leafAShort.PartialKey,
 				StorageValue: leafAShort.StorageValue,
 				Dirty:        true,
-			}),
+			}, trie.HashedNodesMap{}),
 		},
 		"root_proof_encoding_larger_than_32_bytes": {
 			encodedProofNodes: [][]byte{
@@ -178,7 +178,7 @@ func Test_buildTrie(t *testing.T) {
 				PartialKey:   leafBLarge.PartialKey,
 				StorageValue: leafBLarge.StorageValue,
 				Dirty:        true,
-			}),
+			}, trie.HashedNodesMap{}),
 		},
 		"discard_unused_node": {
 			encodedProofNodes: [][]byte{
@@ -190,7 +190,7 @@ func Test_buildTrie(t *testing.T) {
 				PartialKey:   leafAShort.PartialKey,
 				StorageValue: leafAShort.StorageValue,
 				Dirty:        true,
-			}),
+			}, trie.HashedNodesMap{}),
 		},
 		"multiple_unordered_nodes": {
 			encodedProofNodes: [][]byte{
@@ -241,7 +241,7 @@ func Test_buildTrie(t *testing.T) {
 						Dirty:        true,
 					},
 				}),
-			}),
+			}, trie.HashedNodesMap{}),
 		},
 		"load_proof_decoding_error": {
 			encodedProofNodes: [][]byte{

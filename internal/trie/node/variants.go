@@ -48,3 +48,25 @@ var (
 func (v variant) partialKeyLengthHeaderMask() byte {
 	return ^v.mask
 }
+
+func (v variant) String() string {
+	switch v {
+	case leafVariant:
+		return "Leaf"
+	case leafWithHashedValueVariant:
+		return "LeafWithHashedValue"
+	case branchVariant:
+		return "Branch"
+	case branchWithValueVariant:
+		return "BranchWithValue"
+	case branchWithHashedValueVariant:
+		return "BranchWithHashedValue"
+	case emptyVariant:
+		return "Empty"
+	case compactEncodingVariant:
+		return "Compact"
+	default:
+		return "Not reachable"
+	}
+
+}
