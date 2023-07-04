@@ -40,7 +40,7 @@ func Test_Generate(t *testing.T) {
 		"failed_loading_trie": {
 			rootHash: someHash,
 			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
-				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase := db.NewMockDatabase(ctrl)
 				mockDatabase.EXPECT().Get(someHash).
 					Return(nil, errTest)
 				return mockDatabase
@@ -55,7 +55,7 @@ func Test_Generate(t *testing.T) {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{1}},
 			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
-				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase := db.NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
 					StorageValue: []byte{2},
@@ -71,7 +71,7 @@ func Test_Generate(t *testing.T) {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{}},
 			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
-				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase := db.NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
 					StorageValue: []byte{2},
@@ -91,7 +91,7 @@ func Test_Generate(t *testing.T) {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{}},
 			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
-				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase := db.NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
 					StorageValue: []byte{2},
@@ -127,7 +127,7 @@ func Test_Generate(t *testing.T) {
 				{1, 2, 3, 4},
 			},
 			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
-				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase := db.NewMockDatabase(ctrl)
 
 				rootNode := node.Node{
 					PartialKey:   []byte{1, 2},
@@ -176,7 +176,7 @@ func Test_Generate(t *testing.T) {
 				{1, 2, 5, 5},
 			},
 			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
-				mockDatabase := NewMockDatabase(ctrl)
+				mockDatabase := db.NewMockDatabase(ctrl)
 
 				rootNode := node.Node{
 					PartialKey:   []byte{1, 2},
