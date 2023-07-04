@@ -4,6 +4,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -480,4 +481,56 @@ func setViperDefault(config *cfg.Config) {
 			}
 		}
 	}
+}
+
+func parseLogLevel() error {
+	// set default log level
+	moduleToLogLevel := map[string]string{
+		"global":  cfg.DefaultLogLevel,
+		"core":    cfg.DefaultLogLevel,
+		"digest":  cfg.DefaultLogLevel,
+		"sync":    cfg.DefaultLogLevel,
+		"network": cfg.DefaultLogLevel,
+		"rpc":     cfg.DefaultLogLevel,
+		"state":   cfg.DefaultLogLevel,
+		"runtime": cfg.DefaultLogLevel,
+		"babe":    cfg.DefaultLogLevel,
+		"grandpa": cfg.DefaultLogLevel,
+		"wasmer":  cfg.DefaultLogLevel,
+	}
+
+	if logLevel != "" {
+		logConfigurations := strings.Split(logLevel, ",")
+		for _, config := range logConfigurations {
+			parts := strings.SplitN(config, "=", 2)
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid log configuration: %s", config)
+			}
+
+			module := strings.TrimSpace(parts[0])
+			logLevel := strings.TrimSpace(parts[1])
+
+			if _, ok := moduleToLogLevel[module]; !ok {
+				return fmt.Errorf("invalid module: %s", module)
+			}
+			moduleToLogLevel[module] = logLevel
+		}
+	}
+
+	// set global log level
+	config.LogLevel = moduleToLogLevel["global"]
+	viper.Set("log-level", config.LogLevel)
+
+	// set config.Log
+	jsonData, err := json.Marshal(moduleToLogLevel)
+	if err != nil {
+		return fmt.Errorf("error marshalling logs: %s", err)
+	}
+	err = json.Unmarshal(jsonData, &config.Log)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling logs: %s", err)
+	}
+	viper.Set("log", config.Log)
+
+	return nil
 }
