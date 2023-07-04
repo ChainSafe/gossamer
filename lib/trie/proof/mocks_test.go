@@ -2,7 +2,7 @@
 // Source: github.com/ChainSafe/gossamer/lib/trie/db (interfaces: Database)
 
 // Package db is a generated GoMock package.
-package db
+package proof
 
 import (
 	reflect "reflect"
