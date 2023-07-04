@@ -26,10 +26,11 @@ var (
 
 // Flag values for the root command which needs type conversion
 var (
+	logLevel string
+
 	// Base Config
-	logLevelGlobal string
-	pruning        string
-	telemetryURLs  string
+	pruning       string
+	telemetryURLs string
 
 	// Core Config
 	// role of the node. one of: full, light or authority
@@ -117,6 +118,10 @@ Usage:
 				}
 			}
 
+			if err := parseLogLevel(); err != nil {
+				return fmt.Errorf("failed to parse log level: %s", err)
+			}
+
 			if cmd.Name() == "gossamer" {
 				if err := configureViper(config.BasePath); err != nil {
 					return fmt.Errorf("failed to configure viper: %s", err)
@@ -162,9 +167,14 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// Log Config
-	if err := addLogFlags(cmd); err != nil {
-		return fmt.Errorf("failed to add log flags: %s", err)
-	}
+	cmd.PersistentFlags().StringVarP(&logLevel, "log", "l", "",
+		`Set a logging filter.
+	Syntax is a list of 'module=logLevel' (comma separated)
+	e.g. --log sync=debug,core=trace
+	Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa, wasmer.
+	Log levels (least to most verbose) are error, warn, info, debug, and trace.
+	By default, all modules log 'info'.
+	The global log level can be set with --log global=debug`)
 
 	// Account Config
 	if err := addAccountFlags(cmd); err != nil {
@@ -233,10 +243,6 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"retain-blocks"); err != nil {
 		return fmt.Errorf("failed to add --retain-blocks flag: %s", err)
 	}
-	cmd.Flags().StringVar(&logLevelGlobal,
-		"log",
-		config.BaseConfig.LogLevel,
-		"Global log level. Supports levels critical (silent), error, warn, info, debug and trace")
 	cmd.Flags().StringVar(&pruning,
 		"state-pruning",
 		string(config.BaseConfig.Pruning),
@@ -256,83 +262,6 @@ This flag can be passed multiple times as a means to specify multiple telemetry 
 Verbosity levels range from 0-9, with 0 denoting the least verbosity.
 Expected format is 'URL VERBOSITY', e.g. ''--telemetry-url wss://foo/bar:0, wss://baz/quz:1
 `)
-
-	return nil
-}
-
-// addLogFlags adds the log flags to the command
-func addLogFlags(cmd *cobra.Command) error {
-	if err := addStringFlagBindViper(cmd,
-		"lcore",
-		config.Log.Core,
-		"Core module log level",
-		"log.core"); err != nil {
-		return fmt.Errorf("failed to add --lcore flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"ldigest",
-		config.Log.Digest,
-		"Digest module log level",
-		"log.digest"); err != nil {
-		return fmt.Errorf("failed to add --ldigest flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lsync",
-		config.Log.Sync,
-		"Sync module log level",
-		"log.sync"); err != nil {
-		return fmt.Errorf("failed to add --lsync flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lnetwork",
-		config.Log.Network,
-		"Network module log level",
-		"log.network"); err != nil {
-		return fmt.Errorf("failed to add --lnetwork flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lrpc",
-		config.Log.RPC,
-		"RPC module log level",
-		"log.rpc"); err != nil {
-		return fmt.Errorf("failed to add --lrpc flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lstate",
-		config.Log.State,
-		"State module log level",
-		"log.state"); err != nil {
-		return fmt.Errorf("failed to add --lstate flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lruntime",
-		config.Log.Runtime,
-		"Runtime module log level",
-		"log.runtime"); err != nil {
-		return fmt.Errorf("failed to add --lruntime flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lbabe",
-		config.Log.Babe,
-		"BABE module log level",
-		"log.babe"); err != nil {
-		return fmt.Errorf("failed to add --lbabe flag: %s", err)
-	}
-
-	if err := addStringFlagBindViper(cmd,
-		"lgrandpa",
-		config.Log.Grandpa,
-		"GRANDPA module log level",
-		"log.grandpa"); err != nil {
-		return fmt.Errorf("failed to add --lgrandpa flag: %s", err)
-	}
 
 	return nil
 }
