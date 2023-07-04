@@ -48,7 +48,7 @@ func Test_Generate_Verify(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedValue := fmt.Sprintf("%x-%d", key, i)
-		err = Verify(proof, rootHash.ToBytes(), []byte(key), []byte(expectedValue), database)
+		err = Verify(proof, rootHash.ToBytes(), []byte(key), []byte(expectedValue))
 		require.NoError(t, err)
 	}
 }
@@ -94,7 +94,7 @@ func TestParachainHeaderStateProof(t *testing.T) {
 	require.Equal(t, expectedValue, value)
 
 	//Also check that we can verify the proof
-	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue, proofDB)
+	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue)
 
 	require.NoError(t, err)
 }

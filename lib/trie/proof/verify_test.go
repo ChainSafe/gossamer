@@ -106,7 +106,7 @@ func Test_Verify(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := Verify(testCase.encodedProofNodes, testCase.rootHash, testCase.keyLE, testCase.value, nil)
+			err := Verify(testCase.encodedProofNodes, testCase.rootHash, testCase.keyLE, testCase.value)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
