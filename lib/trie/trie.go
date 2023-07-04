@@ -11,19 +11,18 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
-
-type HashedNodesMap map[common.Hash][]byte
 
 // EmptyHash is the empty trie hash.
 var EmptyHash = common.MustBlake2bHash([]byte{0})
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
-	generation         uint64
-	root               *Node
-	childTries         map[common.Hash]*Trie
-	hashedNodesMapping map[common.Hash][]byte
+	generation uint64
+	root       *Node
+	childTries map[common.Hash]*Trie
+	db         db.Database
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -34,17 +33,17 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	return NewTrie(nil, HashedNodesMap{})
+	return NewTrie(nil, nil)
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node, hashedNodesMapping HashedNodesMap) *Trie {
+func NewTrie(root *Node, db db.Database) *Trie {
 	return &Trie{
-		root:               root,
-		childTries:         make(map[common.Hash]*Trie),
-		hashedNodesMapping: hashedNodesMapping,
-		generation:         0, // Initially zero but increases after every snapshot.
-		deltas:             tracking.New(),
+		root:       root,
+		childTries: make(map[common.Hash]*Trie),
+		db:         db,
+		generation: 0, // Initially zero but increases after every snapshot.
+		deltas:     tracking.New(),
 	}
 }
 
@@ -719,32 +718,36 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 // Note the key argument is given in little Endian format.
 func (t *Trie) Get(keyLE []byte) (value []byte) {
 	keyNibbles := codec.KeyLEToNibbles(keyLE)
-	return retrieve(t.hashedNodesMapping, t.root, keyNibbles)
+	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(hashedNodesMapping HashedNodesMap, parent *Node, key []byte) (value []byte) {
+func retrieve(db db.Database, parent *Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
 
 	if parent.Kind() == node.Leaf {
-		return retrieveFromLeaf(hashedNodesMapping, parent, key)
+		return retrieveFromLeaf(db, parent, key)
 	}
-	return retrieveFromBranch(hashedNodesMapping, parent, key)
+	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(hashedNodesMapping HashedNodesMap, leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db db.Database, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
 		if leaf.HashedValue {
 			//We get the node
-			return hashedNodesMapping[common.Hash(leaf.StorageValue)]
+			value, err := db.Get(leaf.StorageValue)
+			if err != nil {
+				panic(fmt.Sprintf("retrieving value from leaf %s", err.Error()))
+			}
+			return value
 		}
 		return leaf.StorageValue
 	}
 	return nil
 }
 
-func retrieveFromBranch(hashedNodesMapping HashedNodesMap, branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db db.Database, branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}
@@ -757,7 +760,7 @@ func retrieveFromBranch(hashedNodesMapping HashedNodesMap, branch *Node, key []b
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
-	return retrieve(hashedNodesMapping, child, childKey)
+	return retrieve(db, child, childKey)
 }
 
 // ClearPrefixLimit deletes the keys having the prefix given in little
@@ -1441,16 +1444,4 @@ func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concat
 
 func intToByteSlice(n int) (slice []byte) {
 	return []byte{byte(n)}
-}
-
-func BuildHashedNodesMap(encodedProofNodes [][]byte) (HashedNodesMap, error) {
-	hashedNodesMap := make(HashedNodesMap, len(encodedProofNodes))
-	for _, encodedProofNode := range encodedProofNodes {
-		nodeHash, err := common.Blake2bHash(encodedProofNode)
-		if err != nil {
-			return nil, err
-		}
-		hashedNodesMap[nodeHash] = encodedProofNode
-	}
-	return hashedNodesMap, nil
 }

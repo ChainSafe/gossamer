@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +48,7 @@ func Test_Generate_Verify(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedValue := fmt.Sprintf("%x-%d", key, i)
-		err = Verify(proof, rootHash.ToBytes(), []byte(key), []byte(expectedValue))
+		err = Verify(proof, rootHash.ToBytes(), []byte(key), []byte(expectedValue), database)
 		require.NoError(t, err)
 	}
 }
@@ -84,13 +85,16 @@ func TestParachainHeaderStateProof(t *testing.T) {
 
 	expectedValue := proof7
 
-	trie, err := buildTrie(proof, stateRoot)
+	proofDB, err := db.NewMemoryDBFromProof(proof)
+	require.NoError(t, err)
+
+	trie, err := buildTrie(proof, stateRoot, proofDB)
 	require.NoError(t, err)
 	value := trie.Get(encodeStorageKey)
 	require.Equal(t, expectedValue, value)
 
 	//Also check that we can verify the proof
-	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue)
+	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue, proofDB)
 
 	require.NoError(t, err)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,7 +106,7 @@ func Test_Verify(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := Verify(testCase.encodedProofNodes, testCase.rootHash, testCase.keyLE, testCase.value)
+			err := Verify(testCase.encodedProofNodes, testCase.rootHash, testCase.keyLE, testCase.value, nil)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -140,6 +141,7 @@ func Test_buildTrie(t *testing.T) {
 		encodedProofNodes [][]byte
 		rootHash          []byte
 		expectedTrie      *trie.Trie
+		db                db.Database
 		errWrapped        error
 		errMessage        string
 	}
@@ -165,17 +167,18 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafAShort),
 			}
 
-			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafAShort),
+				db:                proofDB,
 				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:   leafAShort.PartialKey,
 					StorageValue: leafAShort.StorageValue,
 					Dirty:        true,
-				}, hashedNodesMap),
+				}, proofDB),
 			}
 		}(),
 		"root_proof_encoding_larger_than_32_bytes": func() testCase {
@@ -183,17 +186,18 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafBLarge),
 			}
 
-			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafBLarge),
+				db:                proofDB,
 				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:   leafBLarge.PartialKey,
 					StorageValue: leafBLarge.StorageValue,
 					Dirty:        true,
-				}, hashedNodesMap),
+				}, proofDB),
 			}
 		}(),
 		"discard_unused_node": func() testCase {
@@ -202,17 +206,18 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafBLarge),
 			}
 
-			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafAShort),
+				db:                proofDB,
 				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:   leafAShort.PartialKey,
 					StorageValue: leafAShort.StorageValue,
 					Dirty:        true,
-				}, hashedNodesMap),
+				}, proofDB),
 			}
 		}(),
 		"multiple_unordered_nodes": func() testCase {
@@ -230,7 +235,7 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafCLarge), // children 2
 			}
 
-			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
@@ -244,6 +249,7 @@ func Test_buildTrie(t *testing.T) {
 						&leafBLarge,
 					}),
 				}),
+				db: proofDB,
 				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:  []byte{1},
 					Descendants: 4,
@@ -270,7 +276,7 @@ func Test_buildTrie(t *testing.T) {
 							Dirty:        true,
 						},
 					}),
-				}, hashedNodesMap),
+				}, proofDB),
 			}
 		}(),
 		"load_proof_decoding_error": {
@@ -316,7 +322,7 @@ func Test_buildTrie(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			trie, err := buildTrie(testCase.encodedProofNodes, testCase.rootHash)
+			trie, err := buildTrie(testCase.encodedProofNodes, testCase.rootHash, testCase.db)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

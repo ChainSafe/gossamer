@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 var (
@@ -28,8 +29,8 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "proof"))
 // A nil error is returned on success.
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
-func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
-	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
+func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte, db db.Database) (err error) {
+	proofTrie, err := buildTrie(encodedProofNodes, rootHash, db)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
 	}
@@ -55,7 +56,7 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err error) {
+func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t *trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
 			ErrEmptyProof, rootHash)
@@ -69,8 +70,6 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	defer pools.DigestBuffers.Put(buffer)
 
-	db := make(trie.HashedNodesMap, len(encodedProofNodes))
-
 	// This loop does two things:
 	// 1. It finds the root node by comparing it with the root hash and decodes it.
 	// 2. It stores other encoded nodes in a mapping from their encoding digest to
@@ -78,13 +77,6 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	//    descendant nodes reference their hash digest.
 	var root *node.Node
 	for _, encodedProofNode := range encodedProofNodes {
-
-		nodeHash, err := common.Blake2bHash(encodedProofNode)
-		if err != nil {
-			return nil, err
-		}
-		db[nodeHash] = encodedProofNode
-
 		// Note all encoded proof nodes are one of the following:
 		// - trie root node
 		// - child trie root node
