@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
-
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
@@ -124,9 +122,9 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 
 func TestBuildFromDB(t *testing.T) {
 	// initialise node (initialise state database and load genesis data)
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
+
 	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
-	config.BasePath = t.TempDir()
 	builder := nodeBuilder{}
 	err := builder.initNode(config)
 	require.NoError(t, err)
