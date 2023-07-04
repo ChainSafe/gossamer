@@ -20,6 +20,12 @@ const (
 	WESTEND_RUNTIME_V0929_FP  = "westend_runtime-v929.compact.wasm"
 	WESTEND_RUNTIME_V0929_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9." +
 		"29/westend_runtime-v9290.compact.compressed.wasm?raw=true"
+
+	// v0.9.42 westend
+	WESTEND_RUNTIME_v0942     = "westend_runtime-v942"
+	WESTEND_RUNTIME_V0942_FP  = "westend_runtime-v942.compact.wasm"
+	WESTEND_RUNTIME_V0942_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9." +
+		"42/westend_runtime-v9420.compact.compressed.wasm?raw=true"
 )
 
 const (
@@ -60,4 +66,20 @@ const (
 	TransactionPaymentCallAPIQueryCallInfo = "TransactionPaymentCallApi_query_call_info"
 	// TransactionPaymentCallAPIQueryCallFeeDetails returns call query call fee details
 	TransactionPaymentCallAPIQueryCallFeeDetails = "TransactionPaymentCallApi_query_call_fee_details"
+	// ParachainHostValidators is the runtime API call ParachainHost_validators
+	ParachainHostValidators = "ParachainHost_validators"
+	// ParachainHostValidatorGroups is the runtime API call ParachainHost_validator_groups
+	ParachainHostValidatorGroups = "ParachainHost_validator_groups"
+	// ParachainHostAvailabilityCores is the runtime API call ParachainHost_availability_cores
+	ParachainHostAvailabilityCores = "ParachainHost_availability_cores"
+	// ParachainHostCheckValidationOutputs is the runtime API call ParachainHost_check_validation_outputs
+	ParachainHostCheckValidationOutputs = "ParachainHost_check_validation_outputs"
+	// ParachainHostSessionIndexForChild is the runtime API call ParachainHost_session_index_for_child
+	ParachainHostSessionIndexForChild = "ParachainHost_session_index_for_child"
+	// ParachainHostCandidatePendingAvailability is the runtime API call ParachainHost_candidate_pending_availability
+	ParachainHostCandidatePendingAvailability = "ParachainHost_candidate_pending_availability"
+	// ParachainHostCandidateEvents is the runtime API call ParachainHost_candidate_events
+	ParachainHostCandidateEvents = "ParachainHost_candidate_events"
+	// ParachainHostSessionInfo is the runtime API call ParachainHost_session_info
+	ParachainHostSessionInfo = "ParachainHost_session_info"
 )
