@@ -81,14 +81,14 @@ func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Messa
 
 func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	peer peer.ID, decoder messageDecoder, handler messageHandler) {
-	msgBytes := make([]byte, maxBlockResponseSize)
+	msgBytes := make([]byte, MaxBlockResponseSize)
 
 	defer func() {
 		s.exit = true
 	}()
 
 	for {
-		tot, err := readStream(stream, &msgBytes, maxBlockResponseSize)
+		tot, err := readStream(stream, &msgBytes, MaxBlockResponseSize)
 		if errors.Is(err, io.EOF) {
 			return
 		} else if err != nil {
