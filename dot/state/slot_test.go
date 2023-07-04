@@ -32,10 +32,10 @@ func createHeader(t *testing.T, n uint) (header *types.Header) {
 	_, err = hasher.Write(randomBytes)
 	require.NoError(t, err)
 
-	header = &types.Header{
-		Number:     n,
-		ParentHash: common.NewHash(hasher.Sum(nil)),
-	}
+	header = types.NewEmptyHeader()
+	header.Number = n
+	header.ParentHash = common.NewHash(hasher.Sum(nil))
+
 	header.Hash()
 	return header
 }
