@@ -1013,170 +1013,223 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	mockBlockStateEquiv1 := NewMockBlockState(ctrl)
-	mockBlockStateEquiv2 := NewMockBlockState(ctrl)
-	mockBlockStateEquiv3 := NewMockBlockState(ctrl)
-
-	mockSlotState := NewMockSlotState(ctrl)
-
-	//Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
-	assert.NoError(t, err)
-
-	output2, proof2, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 2))
-	assert.NoError(t, err)
-	secondDigestExisting := types.BabePrimaryPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     1,
-		VRFOutput:      output2,
-		VRFProof:       proof2,
-	}
-	prdExisting, err := secondDigestExisting.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-
-	headerExisting := newTestHeader(t, *prdExisting)
-	headerExisting.Hash()
-	hashExisting := encodeAndHashHeader(t, headerExisting)
-	signAndAddSeal(t, kp, headerExisting, hashExisting[:])
-
-	testBabeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     1,
-	}
-	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     1,
-		VrfOutput:      output,
-		VrfProof:       proof,
-	}
-
-	// BabePrimaryPreDigest case
-	secDigest1 := types.BabePrimaryPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     1,
-		VRFOutput:      output,
-		VRFProof:       proof,
-	}
-	prd1, err := secDigest1.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-
-	auth := types.NewAuthority(kp.Public(), uint64(1))
-	vi := &verifierInfo{
-		authorities: []types.Authority{*auth, *auth},
-		threshold:   scale.MaxUint128,
-	}
-
-	verifierEquivocatoryPrimary := newVerifier(mockBlockStateEquiv1, mockSlotState, 1, vi, testSlotDuration)
-
-	headerEquivocatoryPrimary := newTestHeader(t, *prd1)
-	hashEquivocatoryPrimary := encodeAndHashHeader(t, headerEquivocatoryPrimary)
-	signAndAddSeal(t, kp, headerEquivocatoryPrimary, hashEquivocatoryPrimary[:])
-	headerEquivocatoryPrimary.Hash()
-
-	mockBlockStateEquiv1.EXPECT().GetHeader(hashEquivocatoryPrimary).Return(headerEquivocatoryPrimary, nil)
-	mockBlockStateEquiv1.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		[]common.Hash{hashEquivocatoryPrimary, hashExisting}, nil)
-	mockBlockStateEquiv1.EXPECT().BestBlockHash().Return(hashExisting)
-
-	const slot = uint64(1)
-	const authorityIndex = uint32(1)
-	offenderPublicKey := types.AuthorityID(verifierEquivocatoryPrimary.authorities[authorityIndex].ToRaw().Key)
-	keyOwnershipProof := testKeyOwnershipProof
-	mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
-
-	mockRuntime.EXPECT().BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).Return(keyOwnershipProof, nil).Times(3)
-	// equivocationProof changes inside verifyAuthorshipRight, so we can't keep the current value.
-	mockRuntime.EXPECT().BabeSubmitReportEquivocationUnsignedExtrinsic(
-		gomock.AssignableToTypeOf(types.BabeEquivocationProof{}), keyOwnershipProof,
-	).Return(nil).Times(3)
-
-	mockBlockStateEquiv1.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
-
-	// Secondary Plain Test Header
-	testParentPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-	testParentHeader := newTestHeader(t, *testParentPrd)
-
-	testParentHash := encodeAndHashHeader(t, testParentHeader)
-	testSecondaryPrd, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-	testSecPlainHeader := newTestHeader(t, *testSecondaryPrd)
-	testSecPlainHeader.ParentHash = testParentHash
-
-	babeSecPlainPrd2, err := testBabeSecondaryPlainPreDigest.ToPreRuntimeDigest()
-	assert.NoError(t, err)
-	headerEquivocatorySecondaryPlain := newTestHeader(t, *babeSecPlainPrd2)
-
-	hashEquivocatorySecondaryPlain := encodeAndHashHeader(t, headerEquivocatorySecondaryPlain)
-	signAndAddSeal(t, kp, headerEquivocatorySecondaryPlain, hashEquivocatorySecondaryPlain[:])
-	babeVerifier8 := newTestVerifier(kp, mockBlockStateEquiv2, mockSlotState, scale.MaxUint128, true)
-
-	mockBlockStateEquiv2.EXPECT().GetHeader(hashEquivocatorySecondaryPlain).Return(headerEquivocatorySecondaryPlain, nil)
-	mockBlockStateEquiv2.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		[]common.Hash{hashEquivocatorySecondaryPlain, hashExisting}, nil)
-	mockBlockStateEquiv2.EXPECT().BestBlockHash().Return(hashExisting)
-	mockBlockStateEquiv2.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
-
-	// Secondary Vrf Test Header
-	encParentVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
-	testParentVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encParentVrfDigest))
-
-	testVrfParentHash := encodeAndHashHeader(t, testParentVrfHeader)
-	encVrfHeader := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
-	testSecVrfHeader := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfHeader))
-	testSecVrfHeader.ParentHash = testVrfParentHash
-	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
-	assert.NoError(t, err)
-	headerEquivocatorySecondaryVRF := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-	hashEquivocatorySecondaryVRF := encodeAndHashHeader(t, headerEquivocatorySecondaryVRF)
-	signAndAddSeal(t, kp, headerEquivocatorySecondaryVRF, hashEquivocatorySecondaryVRF[:])
-	babeVerifierEquivocatorySecondaryVRF := newTestVerifier(kp, mockBlockStateEquiv3, mockSlotState,
-		scale.MaxUint128, true)
-
-	mockBlockStateEquiv3.EXPECT().GetHeader(hashEquivocatorySecondaryVRF).Return(headerEquivocatorySecondaryVRF, nil)
-	mockBlockStateEquiv3.EXPECT().GetBlockHashesBySlot(uint64(1)).Return(
-		[]common.Hash{hashEquivocatorySecondaryVRF, hashExisting}, nil)
-	mockBlockStateEquiv3.EXPECT().BestBlockHash().Return(hashExisting)
-	mockBlockStateEquiv3.EXPECT().GetRuntime(hashExisting).Return(mockRuntime, nil)
-
 	tests := []struct {
-		name     string
-		verifier verifier
-		header   *types.Header
-		expErr   error
+		name          string
+		setupVerifier func(t *testing.T, header *types.Header) *verifier
+		setupHeader   func(t *testing.T) *types.Header
+		expErr        func(*types.Header) error
 	}{
 		{
-			name:     "equivocate - primary",
-			verifier: *verifierEquivocatoryPrimary,
-			header:   headerEquivocatoryPrimary,
-			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatoryPrimary.Hash()),
+			name: "equivocate_primary",
+			setupHeader: func(t *testing.T) *types.Header {
+				output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
+				assert.NoError(t, err)
+
+				// BabePrimaryPreDigest case
+				primaryDigest := types.BabePrimaryPreDigest{
+					AuthorityIndex: 1,
+					SlotNumber:     1,
+					VRFOutput:      output,
+					VRFProof:       proof,
+				}
+				primaryDigestRuntime, err := primaryDigest.ToPreRuntimeDigest()
+				assert.NoError(t, err)
+
+				header := newTestHeader(t, *primaryDigestRuntime)
+				header.Hash()
+				headerHash := encodeAndHashHeader(t, header)
+				signAndAddSeal(t, kp, header, headerHash[:])
+
+				return header
+			},
+			setupVerifier: func(t *testing.T, header *types.Header) *verifier {
+				const slot = uint64(1)
+				offenderPublicKey := types.AuthorityID(kp.Public().Encode())
+
+				equivocationProof := &types.BabeEquivocationProof{
+					Offender:     offenderPublicKey,
+					Slot:         slot,
+					FirstHeader:  *header,
+					SecondHeader: *types.NewEmptyHeader(),
+				}
+
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.EXPECT().
+					CheckEquivocation(gomock.Any(), slot, header, offenderPublicKey).
+					Return(equivocationProof, nil)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+				mockBlockState.EXPECT().BestBlockHash().Return(header.Hash())
+
+				mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
+				mockRuntime.EXPECT().
+					BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).
+					Return(testKeyOwnershipProof, nil)
+
+				mockRuntime.EXPECT().
+					BabeSubmitReportEquivocationUnsignedExtrinsic(
+						*equivocationProof, testKeyOwnershipProof).
+					Return(nil)
+
+				mockBlockState.EXPECT().GetRuntime(header.Hash()).Return(mockRuntime, nil)
+				auth := types.NewAuthority(kp.Public(), uint64(1))
+				info := &verifierInfo{
+					authorities: []types.Authority{*auth, *auth},
+					threshold:   scale.MaxUint128,
+				}
+
+				return newVerifier(mockBlockState, mockSlotState, 1, info, testSlotDuration)
+			},
+			expErr: func(h *types.Header) error {
+				return fmt.Errorf("%w for block header %s", ErrProducerEquivocated, h.Hash())
+			},
 		},
 		{
-			name:     "equivocate - secondary plain",
-			verifier: *babeVerifier8,
-			header:   headerEquivocatorySecondaryPlain,
-			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatorySecondaryPlain.Hash()),
+			name: "equivocate_secondary_plain",
+			setupHeader: func(t *testing.T) *types.Header {
+				babeSecondaryPlainPreDigest := types.BabeSecondaryPlainPreDigest{
+					AuthorityIndex: 1,
+					SlotNumber:     1,
+				}
+
+				babeSecPlainPrd2, err := babeSecondaryPlainPreDigest.ToPreRuntimeDigest()
+				assert.NoError(t, err)
+				header := newTestHeader(t, *babeSecPlainPrd2)
+				header.Hash()
+
+				hashEquivocatorySecondaryPlain := encodeAndHashHeader(t, header)
+				signAndAddSeal(t, kp, header, hashEquivocatorySecondaryPlain[:])
+
+				return header
+			},
+			setupVerifier: func(t *testing.T, header *types.Header) *verifier {
+				const slot = uint64(1)
+				offenderPublicKey := types.AuthorityID(kp.Public().Encode())
+
+				equivocationProof := &types.BabeEquivocationProof{
+					Offender:     offenderPublicKey,
+					Slot:         slot,
+					FirstHeader:  *header,
+					SecondHeader: *types.NewEmptyHeader(),
+				}
+
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.EXPECT().
+					CheckEquivocation(gomock.Any(), slot, header, offenderPublicKey).
+					Return(equivocationProof, nil)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+				mockBlockState.EXPECT().BestBlockHash().Return(header.Hash())
+
+				mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
+				mockRuntime.EXPECT().
+					BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).
+					Return(testKeyOwnershipProof, nil)
+
+				mockRuntime.EXPECT().
+					BabeSubmitReportEquivocationUnsignedExtrinsic(
+						*equivocationProof, testKeyOwnershipProof).
+					Return(nil)
+
+				mockBlockState.EXPECT().GetRuntime(header.Hash()).Return(mockRuntime, nil)
+				auth := types.NewAuthority(kp.Public(), uint64(1))
+				info := &verifierInfo{
+					authorities:    []types.Authority{*auth, *auth},
+					threshold:      scale.MaxUint128,
+					secondarySlots: true,
+					randomness:     Randomness{},
+				}
+
+				return newVerifier(mockBlockState, mockSlotState, 1, info, testSlotDuration)
+			},
+			expErr: func(h *types.Header) error {
+				return fmt.Errorf("%w for block header %s", ErrProducerEquivocated, h.Hash())
+			},
 		},
 		{
-			name:     "equivocate - secondary vrf",
-			verifier: *babeVerifierEquivocatorySecondaryVRF,
-			header:   headerEquivocatorySecondaryVRF,
-			expErr:   fmt.Errorf("%w for block header %s", ErrProducerEquivocated, headerEquivocatorySecondaryVRF.Hash()),
+			name: "equivocate_secondary_vrf",
+			expErr: func(h *types.Header) error {
+				return fmt.Errorf("%w for block header %s", ErrProducerEquivocated, h.Hash())
+			},
+			setupHeader: func(t *testing.T) *types.Header {
+				output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
+				assert.NoError(t, err)
+
+				babeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
+					AuthorityIndex: 1,
+					SlotNumber:     1,
+					VrfOutput:      output,
+					VrfProof:       proof,
+				}
+
+				vrfDigest := newEncodedBabeDigest(t, babeSecondaryVRFPreDigest)
+				header := newTestHeader(t, *types.NewBABEPreRuntimeDigest(vrfDigest))
+				header.Hash()
+
+				hashEquivocatorySecondaryVRF := encodeAndHashHeader(t, header)
+				signAndAddSeal(t, kp, header, hashEquivocatorySecondaryVRF[:])
+
+				return header
+			},
+			setupVerifier: func(t *testing.T, header *types.Header) *verifier {
+				const slot = uint64(1)
+				offenderPublicKey := types.AuthorityID(kp.Public().Encode())
+
+				equivocationProof := &types.BabeEquivocationProof{
+					Offender:     offenderPublicKey,
+					Slot:         slot,
+					FirstHeader:  *header,
+					SecondHeader: *types.NewEmptyHeader(),
+				}
+
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.EXPECT().
+					CheckEquivocation(gomock.Any(), slot, header, offenderPublicKey).
+					Return(equivocationProof, nil)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
+				mockBlockState.EXPECT().BestBlockHash().Return(header.Hash())
+
+				mockRuntime := mocks.NewMockInstance(gomock.NewController(t))
+				mockRuntime.EXPECT().
+					BabeGenerateKeyOwnershipProof(slot, offenderPublicKey).
+					Return(testKeyOwnershipProof, nil)
+
+				mockRuntime.EXPECT().
+					BabeSubmitReportEquivocationUnsignedExtrinsic(
+						*equivocationProof, testKeyOwnershipProof).
+					Return(nil)
+
+				mockBlockState.EXPECT().GetRuntime(header.Hash()).Return(mockRuntime, nil)
+
+				auth := types.NewAuthority(kp.Public(), uint64(1))
+				info := &verifierInfo{
+					authorities:    []types.Authority{*auth, *auth},
+					threshold:      scale.MaxUint128,
+					secondarySlots: true,
+					randomness:     Randomness{},
+				}
+
+				return newVerifier(mockBlockState, mockSlotState, 1, info, testSlotDuration)
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			err := b.verifyAuthorshipRight(tt.header)
+			argHeader := tt.setupHeader(t)
+			verifier := tt.setupVerifier(t, argHeader)
+			err := verifier.verifyAuthorshipRight(argHeader)
 			if tt.expErr != nil {
-				assert.EqualError(t, err, tt.expErr.Error())
-			} else {
-				assert.NoError(t, err)
+				assert.EqualError(t, err, tt.expErr(argHeader).Error())
+				return
 			}
-
+			assert.NoError(t, err)
 		})
 	}
 }
