@@ -167,6 +167,8 @@ type chainSync struct {
 	logSyncStarted bool
 	logSyncDone    chan struct{}
 	badBlocks      []string
+
+	blockReqRes network.RequestMaker
 }
 
 type chainSyncConfig struct {
@@ -179,7 +181,7 @@ type chainSyncConfig struct {
 	badBlocks          []string
 }
 
-func newChainSync(cfg chainSyncConfig) *chainSync {
+func newChainSync(cfg chainSyncConfig, blockReqRes network.RequestMaker) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
 	const logSyncPeriod = 5 * time.Second
@@ -208,6 +210,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		logSyncTickerC:   logSyncTicker.C,
 		logSyncDone:      make(chan struct{}),
 		badBlocks:        cfg.badBlocks,
+		blockReqRes:      blockReqRes,
 	}
 }
 
@@ -695,17 +698,13 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
 	who := peers[idx.Int64()]
-	resp, err := cs.network.DoBlockRequest(who, req)
+
+	resp := new(network.BlockResponseMessage)
+
+	err := cs.blockReqRes.Do(who, req, resp)
 	if err != nil {
 		return &workerError{
 			err: err,
-			who: who,
-		}
-	}
-
-	if resp == nil {
-		return &workerError{
-			err: errNilResponse,
 			who: who,
 		}
 	}
