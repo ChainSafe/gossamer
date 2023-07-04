@@ -40,8 +40,10 @@ func (mdb *MemoryDB) Get(key []byte) (value []byte, err error) {
 	if len(key) < common.HashLength {
 		return nil, fmt.Errorf("expected %d bytes length key, given %d (%x)", common.HashLength, len(key), value)
 	}
+	var hash common.Hash
+	copy(hash[:], key)
 
-	if value, found := mdb.data[common.Hash(key)]; found {
+	if value, found := mdb.data[hash]; found {
 		return value, nil
 	}
 
