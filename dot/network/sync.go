@@ -4,83 +4,15 @@
 package network
 
 import (
-	"context"
-	"fmt"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var (
-	blockRequestTimeout = time.Second * 20
+	BlockRequestTimeout = time.Second * 20
 )
-
-// DoBlockRequest sends a request to the given peer.
-// If a response is received within a certain time period, it is returned,
-// otherwise an error is returned.
-func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
-	fullSyncID := s.host.protocolID + syncID
-
-	s.host.p2pHost.ConnManager().Protect(to, "")
-	defer s.host.p2pHost.ConnManager().Unprotect(to, "")
-
-	ctx, cancel := context.WithTimeout(s.ctx, blockRequestTimeout)
-	defer cancel()
-
-	stream, err := s.host.p2pHost.NewStream(ctx, to, fullSyncID)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		err := stream.Close()
-		if err != nil {
-			logger.Warnf("failed to close stream: %s", err)
-		}
-	}()
-
-	if err = s.host.writeToStream(stream, req); err != nil {
-		return nil, err
-	}
-
-	return s.receiveBlockResponse(stream)
-}
-
-func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
-	// allocating a new (large) buffer every time slows down the syncing by a dramatic amount,
-	// as malloc is one of the most CPU intensive tasks.
-	// thus we should allocate buffers at startup and re-use them instead of allocating new ones each time.
-	//
-	// TODO: should we create another buffer pool for block response buffers?
-	// for bootstrap this is ok since it's not parallelized, but will need to be updated for tip-mode (#1858)
-	s.blockResponseBufMu.Lock()
-	defer s.blockResponseBufMu.Unlock()
-
-	buf := s.blockResponseBuf
-
-	n, err := readStream(stream, &buf, maxBlockResponseSize)
-	if err != nil {
-		return nil, fmt.Errorf("read stream error: %w", err)
-	}
-
-	if n == 0 {
-		return nil, fmt.Errorf("received empty message")
-	}
-
-	msg := new(BlockResponseMessage)
-	err = msg.Decode(buf[:n])
-	if err != nil {
-		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.BadMessageValue,
-			Reason: peerset.BadMessageReason,
-		}, stream.Conn().RemotePeer())
-		return nil, fmt.Errorf("failed to decode block response: %w", err)
-	}
-
-	return msg, nil
-}
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
@@ -88,7 +20,7 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage, maxBlockResponseSize)
+	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage, MaxBlockResponseSize)
 }
 
 func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
