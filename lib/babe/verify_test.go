@@ -1366,6 +1366,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, nil)
 
 	mockEpochStateVerifyAuthorshipErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+	mockEpochStateVerifyAuthorshipErr.EXPECT().GetSlotDuration().Return(6*time.Second, nil)
 
 	block1Header := types.NewEmptyHeader()
 	block1Header.Number = 1
