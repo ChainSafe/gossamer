@@ -49,7 +49,7 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 func Test_Tries_SetTrie(t *testing.T) {
 	t.Parallel()
 
-	tr := trie.NewTrie(&node.Node{PartialKey: []byte{1}}, trie.HashedNodesMap{})
+	tr := trie.NewTrie(&node.Node{PartialKey: []byte{1}}, nil)
 
 	tries := NewTries()
 	tries.SetTrie(tr)
@@ -200,14 +200,14 @@ func Test_Tries_get(t *testing.T) {
 					{1, 2, 3}: trie.NewTrie(&node.Node{
 						PartialKey:   []byte{1, 2, 3},
 						StorageValue: []byte{1},
-					}, trie.HashedNodesMap{}),
+					}, nil),
 				},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewTrie(&node.Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
-			}, trie.HashedNodesMap{}),
+			}, nil),
 		},
 		"not_found_in_map": {
 			// similar to not found in database

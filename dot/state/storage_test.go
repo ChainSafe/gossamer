@@ -184,7 +184,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		StorageValue: []byte{3, 4},
 		Dirty:        true,
 	}
-	testChildTrie := trie.NewTrie(trieRoot, trie.HashedNodesMap{})
+	testChildTrie := trie.NewTrie(trieRoot, nil)
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
