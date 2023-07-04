@@ -23,7 +23,6 @@ import (
 func createHeader(t *testing.T, n uint) (header *types.Header) {
 	t.Helper()
 
-	// so that different headers for the same number get different hashes
 	randomBytes := make([]byte, 32)
 	_, err := io.ReadFull(rand.Reader, randomBytes)
 	require.NoError(t, err)
@@ -34,6 +33,8 @@ func createHeader(t *testing.T, n uint) (header *types.Header) {
 
 	header = types.NewEmptyHeader()
 	header.Number = n
+
+	// so that different headers for the same number get different hashes
 	header.ParentHash = common.NewHash(hasher.Sum(nil))
 
 	header.Hash()
