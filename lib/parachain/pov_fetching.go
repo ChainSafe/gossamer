@@ -20,7 +20,7 @@ func (p *PoVFetchingRequest) Encode() ([]byte, error) {
 // PoVFetchingResponse represents the possible responses to a PoVFetchingRequest.
 type PoVFetchingResponse scale.VaryingDataType
 
-// PoVFetchingResponse returns a new PoV fetching response varying data type
+// NewPoVFetchingResponse returns a new PoV fetching response varying data type
 func NewPoVFetchingResponse() PoVFetchingResponse {
 	vdt := scale.MustNewVaryingDataType(PoV{}, NoSuchPoV{})
 	return PoVFetchingResponse(vdt)
