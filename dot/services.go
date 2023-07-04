@@ -492,7 +492,10 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		BadBlocks:          genesisData.BadBlocks,
 	}
 
-	return sync.NewService(syncCfg)
+	blockReqRes := net.GetRequestResponseProtocol(network.SyncID, network.BlockRequestTimeout,
+		network.MaxBlockResponseSize)
+
+	return sync.NewService(syncCfg, blockReqRes)
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {

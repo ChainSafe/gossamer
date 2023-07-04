@@ -40,7 +40,7 @@ type Config struct {
 }
 
 // NewService returns a new *sync.Service
-func NewService(cfg *Config) (*Service, error) {
+func NewService(cfg *Config, blockReqRes network.RequestMaker) (*Service, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
@@ -55,7 +55,7 @@ func NewService(cfg *Config) (*Service, error) {
 		maxPeers:      cfg.MaxPeers,
 		slotDuration:  cfg.SlotDuration,
 	}
-	chainSync := newChainSync(csCfg)
+	chainSync := newChainSync(csCfg, blockReqRes)
 
 	cpCfg := chainProcessorConfig{
 		readyBlocks:        readyBlocks,
