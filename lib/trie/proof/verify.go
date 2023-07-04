@@ -69,7 +69,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
 	defer pools.DigestBuffers.Put(buffer)
 
-	db := trie.HashedNodesMap{}
+	db := make(trie.HashedNodesMap, len(encodedProofNodes))
 
 	// This loop does two things:
 	// 1. It finds the root node by comparing it with the root hash and decodes it.

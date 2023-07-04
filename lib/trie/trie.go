@@ -23,7 +23,7 @@ type Trie struct {
 	generation         uint64
 	root               *Node
 	childTries         map[common.Hash]*Trie
-	hashedNodesMapping HashedNodesMap
+	hashedNodesMapping map[common.Hash][]byte
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -736,7 +736,7 @@ func retrieve(hashedNodesMapping HashedNodesMap, parent *Node, key []byte) (valu
 func retrieveFromLeaf(hashedNodesMapping HashedNodesMap, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
 		if leaf.HashedValue {
-			//We get the node 
+			//We get the node
 			return hashedNodesMapping[common.Hash(leaf.StorageValue)]
 		}
 		return leaf.StorageValue
@@ -1441,4 +1441,16 @@ func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concat
 
 func intToByteSlice(n int) (slice []byte) {
 	return []byte{byte(n)}
+}
+
+func BuildHashedNodesMap(encodedProofNodes [][]byte) (HashedNodesMap, error) {
+	hashedNodesMap := make(HashedNodesMap, len(encodedProofNodes))
+	for _, encodedProofNode := range encodedProofNodes {
+		nodeHash, err := common.Blake2bHash(encodedProofNode)
+		if err != nil {
+			return nil, err
+		}
+		hashedNodesMap[nodeHash] = encodedProofNode
+	}
+	return hashedNodesMap, nil
 }

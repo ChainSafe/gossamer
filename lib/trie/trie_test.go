@@ -30,8 +30,9 @@ func Test_EmptyHash(t *testing.T) {
 
 func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
-		childTries: make(map[common.Hash]*Trie),
-		deltas:     tracking.New(),
+		childTries:         make(map[common.Hash]*Trie),
+		deltas:             tracking.New(),
+		hashedNodesMapping: HashedNodesMap{},
 	}
 	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
@@ -47,10 +48,11 @@ func Test_NewTrie(t *testing.T) {
 			PartialKey:   []byte{0},
 			StorageValue: []byte{17},
 		},
-		childTries: make(map[common.Hash]*Trie),
-		deltas:     tracking.New(),
+		childTries:         make(map[common.Hash]*Trie),
+		deltas:             tracking.New(),
+		hashedNodesMapping: HashedNodesMap{},
 	}
-	trie := NewTrie(root)
+	trie := NewTrie(root, HashedNodesMap{})
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -619,7 +621,7 @@ func Test_Trie_Entries(t *testing.T) {
 			}),
 		}
 
-		trie := NewTrie(root)
+		trie := NewTrie(root, HashedNodesMap{})
 
 		entries := trie.Entries()
 
@@ -673,7 +675,7 @@ func Test_Trie_Entries(t *testing.T) {
 			}),
 		}
 
-		trie := NewTrie(root)
+		trie := NewTrie(root, HashedNodesMap{})
 
 		entries := trie.Entries()
 
@@ -1652,15 +1654,17 @@ func Test_LoadFromMap(t *testing.T) {
 	}{
 		"nil_data": {
 			expectedTrie: Trie{
-				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(),
+				childTries:         map[common.Hash]*Trie{},
+				deltas:             newDeltas(),
+				hashedNodesMapping: HashedNodesMap{},
 			},
 		},
 		"empty_data": {
 			data: map[string]string{},
 			expectedTrie: Trie{
-				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(),
+				childTries:         map[common.Hash]*Trie{},
+				deltas:             newDeltas(),
+				hashedNodesMapping: HashedNodesMap{},
 			},
 		},
 		"bad_key": {
@@ -1692,8 +1696,9 @@ func Test_LoadFromMap(t *testing.T) {
 					},
 					Dirty: true,
 				},
-				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(),
+				childTries:         map[common.Hash]*Trie{},
+				deltas:             newDeltas(),
+				hashedNodesMapping: HashedNodesMap{},
 			},
 		},
 		"load_key_values": {
@@ -1722,8 +1727,9 @@ func Test_LoadFromMap(t *testing.T) {
 						},
 					}),
 				},
-				childTries: map[common.Hash]*Trie{},
-				deltas:     newDeltas(),
+				childTries:         map[common.Hash]*Trie{},
+				deltas:             newDeltas(),
+				hashedNodesMapping: HashedNodesMap{},
 			},
 		},
 	}
@@ -2077,9 +2083,10 @@ func Test_retrieve(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		parent *Node
-		key    []byte
-		value  []byte
+		parent         *Node
+		hashedNodesMap HashedNodesMap
+		key            []byte
+		value          []byte
 	}{
 		"nil_parent": {
 			key: []byte{1},
@@ -2171,7 +2178,7 @@ func Test_retrieve(t *testing.T) {
 				expectedParent = testCase.parent.Copy(copySettings)
 			}
 
-			value := retrieve(testCase.parent, testCase.key)
+			value := retrieve(testCase.hashedNodesMap, testCase.parent, testCase.key)
 
 			assert.Equal(t, testCase.value, value)
 			assert.Equal(t, expectedParent, testCase.parent)

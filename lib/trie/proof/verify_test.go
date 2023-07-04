@@ -136,13 +136,15 @@ func Test_buildTrie(t *testing.T) {
 	}
 	assertLongEncoding(t, leafCLarge)
 
-	testCases := map[string]struct {
+	type testCase struct {
 		encodedProofNodes [][]byte
 		rootHash          []byte
 		expectedTrie      *trie.Trie
 		errWrapped        error
 		errMessage        string
-	}{
+	}
+
+	testCases := map[string]testCase{
 		"no_proof_node": {
 			errWrapped: ErrEmptyProof,
 			rootHash:   []byte{1},
@@ -158,42 +160,63 @@ func Test_buildTrie(t *testing.T) {
 				"decoding header byte: node variant is unknown: " +
 				"for header byte 00000011",
 		},
-		"root_proof_encoding_smaller_than_32_bytes": {
-			encodedProofNodes: [][]byte{
+		"root_proof_encoding_smaller_than_32_bytes": func() testCase {
+			encodedProofNodes := [][]byte{
 				encodeNode(t, leafAShort),
-			},
-			rootHash: blake2bNode(t, leafAShort),
-			expectedTrie: trie.NewTrie(&node.Node{
-				PartialKey:   leafAShort.PartialKey,
-				StorageValue: leafAShort.StorageValue,
-				Dirty:        true,
-			}, trie.HashedNodesMap{}),
-		},
-		"root_proof_encoding_larger_than_32_bytes": {
-			encodedProofNodes: [][]byte{
+			}
+
+			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			assert.NoError(t, err)
+
+			return testCase{
+				encodedProofNodes: encodedProofNodes,
+				rootHash:          blake2bNode(t, leafAShort),
+				expectedTrie: trie.NewTrie(&node.Node{
+					PartialKey:   leafAShort.PartialKey,
+					StorageValue: leafAShort.StorageValue,
+					Dirty:        true,
+				}, hashedNodesMap),
+			}
+		}(),
+		"root_proof_encoding_larger_than_32_bytes": func() testCase {
+			encodedProofNodes := [][]byte{
 				encodeNode(t, leafBLarge),
-			},
-			rootHash: blake2bNode(t, leafBLarge),
-			expectedTrie: trie.NewTrie(&node.Node{
-				PartialKey:   leafBLarge.PartialKey,
-				StorageValue: leafBLarge.StorageValue,
-				Dirty:        true,
-			}, trie.HashedNodesMap{}),
-		},
-		"discard_unused_node": {
-			encodedProofNodes: [][]byte{
+			}
+
+			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			assert.NoError(t, err)
+
+			return testCase{
+				encodedProofNodes: encodedProofNodes,
+				rootHash:          blake2bNode(t, leafBLarge),
+				expectedTrie: trie.NewTrie(&node.Node{
+					PartialKey:   leafBLarge.PartialKey,
+					StorageValue: leafBLarge.StorageValue,
+					Dirty:        true,
+				}, hashedNodesMap),
+			}
+		}(),
+		"discard_unused_node": func() testCase {
+			encodedProofNodes := [][]byte{
 				encodeNode(t, leafAShort),
 				encodeNode(t, leafBLarge),
-			},
-			rootHash: blake2bNode(t, leafAShort),
-			expectedTrie: trie.NewTrie(&node.Node{
-				PartialKey:   leafAShort.PartialKey,
-				StorageValue: leafAShort.StorageValue,
-				Dirty:        true,
-			}, trie.HashedNodesMap{}),
-		},
-		"multiple_unordered_nodes": {
-			encodedProofNodes: [][]byte{
+			}
+
+			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			assert.NoError(t, err)
+
+			return testCase{
+				encodedProofNodes: encodedProofNodes,
+				rootHash:          blake2bNode(t, leafAShort),
+				expectedTrie: trie.NewTrie(&node.Node{
+					PartialKey:   leafAShort.PartialKey,
+					StorageValue: leafAShort.StorageValue,
+					Dirty:        true,
+				}, hashedNodesMap),
+			}
+		}(),
+		"multiple_unordered_nodes": func() testCase {
+			encodedProofNodes := [][]byte{
 				encodeNode(t, leafBLarge), // chilren 1 and 3
 				encodeNode(t, node.Node{ // root
 					PartialKey: []byte{1},
@@ -205,44 +228,51 @@ func Test_buildTrie(t *testing.T) {
 					}),
 				}),
 				encodeNode(t, leafCLarge), // children 2
-			},
-			rootHash: blake2bNode(t, node.Node{
-				PartialKey: []byte{1},
-				Children: padRightChildren([]*node.Node{
-					&leafAShort,
-					&leafBLarge,
-					&leafCLarge,
-					&leafBLarge,
+			}
+
+			hashedNodesMap, err := trie.BuildHashedNodesMap(encodedProofNodes)
+			assert.NoError(t, err)
+
+			return testCase{
+				encodedProofNodes: encodedProofNodes,
+				rootHash: blake2bNode(t, node.Node{
+					PartialKey: []byte{1},
+					Children: padRightChildren([]*node.Node{
+						&leafAShort,
+						&leafBLarge,
+						&leafCLarge,
+						&leafBLarge,
+					}),
 				}),
-			}),
-			expectedTrie: trie.NewTrie(&node.Node{
-				PartialKey:  []byte{1},
-				Descendants: 4,
-				Dirty:       true,
-				Children: padRightChildren([]*node.Node{
-					{
-						PartialKey:   leafAShort.PartialKey,
-						StorageValue: leafAShort.StorageValue,
-						Dirty:        true,
-					},
-					{
-						PartialKey:   leafBLarge.PartialKey,
-						StorageValue: leafBLarge.StorageValue,
-						Dirty:        true,
-					},
-					{
-						PartialKey:   leafCLarge.PartialKey,
-						StorageValue: leafCLarge.StorageValue,
-						Dirty:        true,
-					},
-					{
-						PartialKey:   leafBLarge.PartialKey,
-						StorageValue: leafBLarge.StorageValue,
-						Dirty:        true,
-					},
-				}),
-			}, trie.HashedNodesMap{}),
-		},
+				expectedTrie: trie.NewTrie(&node.Node{
+					PartialKey:  []byte{1},
+					Descendants: 4,
+					Dirty:       true,
+					Children: padRightChildren([]*node.Node{
+						{
+							PartialKey:   leafAShort.PartialKey,
+							StorageValue: leafAShort.StorageValue,
+							Dirty:        true,
+						},
+						{
+							PartialKey:   leafBLarge.PartialKey,
+							StorageValue: leafBLarge.StorageValue,
+							Dirty:        true,
+						},
+						{
+							PartialKey:   leafCLarge.PartialKey,
+							StorageValue: leafCLarge.StorageValue,
+							Dirty:        true,
+						},
+						{
+							PartialKey:   leafBLarge.PartialKey,
+							StorageValue: leafBLarge.StorageValue,
+							Dirty:        true,
+						},
+					}),
+				}, hashedNodesMap),
+			}
+		}(),
 		"load_proof_decoding_error": {
 			encodedProofNodes: [][]byte{
 				getBadNodeEncoding(),
