@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
@@ -39,7 +38,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	ks := keystore.NewGlobalKeystore()
 	ks2 := keystore.NewGlobalKeystore()
@@ -159,7 +158,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := westend_dev.DefaultConfig()
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 
@@ -200,7 +199,7 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			config := westend_dev.DefaultConfig()
+			config := DefaultTestWestendDevConfig(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
 			got, err := no.createNetworkService(config, stateSrvc, nil)
@@ -235,7 +234,7 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := westend_dev.DefaultConfig()
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
@@ -289,7 +288,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := westend_dev.DefaultConfig()
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			networkConfig := &network.Config{
@@ -316,7 +315,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 
 func Test_createRuntime(t *testing.T) {
 	t.Parallel()
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	type args struct {
 		config *cfg.Config
@@ -394,7 +393,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := westend_dev.DefaultConfig()
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
@@ -411,11 +410,10 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 }
 
 func TestCreateStateService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -475,14 +473,13 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 }
 
 func TestCreateCoreService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -506,12 +503,11 @@ func TestCreateCoreService(t *testing.T) {
 }
 
 func TestCreateBlockVerifier(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := newTestGenesisFile(t, config)
+	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -525,12 +521,11 @@ func TestCreateBlockVerifier(t *testing.T) {
 }
 
 func TestCreateSyncService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := newTestGenesisFile(t, config)
+	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -554,12 +549,11 @@ func TestCreateSyncService(t *testing.T) {
 }
 
 func TestCreateNetworkService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -573,7 +567,7 @@ func TestCreateNetworkService(t *testing.T) {
 }
 
 func TestCreateRPCService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -581,7 +575,6 @@ func TestCreateRPCService(t *testing.T) {
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -627,13 +620,12 @@ func TestCreateRPCService(t *testing.T) {
 }
 
 func TestCreateBABEService_Integration(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Core.Role = common.FullNodeRole
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -663,13 +655,12 @@ func TestCreateBABEService_Integration(t *testing.T) {
 }
 
 func TestCreateGrandpaService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Core.Role = common.AuthorityRole
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -731,7 +722,7 @@ func TestNewWebSocketServer(t *testing.T) {
 			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	}
 
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
@@ -743,7 +734,6 @@ func TestNewWebSocketServer(t *testing.T) {
 	config.RPC.WSPort = 9546
 	config.RPC.WSExternal = true
 	config.System.SystemName = "gossamer"
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -830,13 +820,12 @@ func Test_createPprofService(t *testing.T) {
 }
 
 func Test_createDigestHandler(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.Core.Role = common.AuthorityRole
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
