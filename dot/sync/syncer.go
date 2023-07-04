@@ -4,12 +4,15 @@
 package sync
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -108,7 +111,11 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 		// TODO: check what happens when get hash by number returns nothing or ErrNotExists
 		ourHash, err := s.blockState.GetHashByNumber(blockAnnounceHeader.Number)
 		if err != nil {
-			return fmt.Errorf("get block hash by number: %w", err)
+			if errors.Is(err, chaindb.ErrKeyNotFound) {
+				ourHash = common.Hash{}
+			} else {
+				return fmt.Errorf("get block hash by number: %w", err)
+			}
 		}
 
 		if ourHash == blockAnnounceHeaderHash {
@@ -126,7 +133,7 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 		// their block hash doesn't match ours for that number (ie. they are on a different
 		// chain), and also the highest finalised block is higher than that number.
 		// thus the peer is on an invalid chain
-		if fin.Number >= blockAnnounceHeader.Number {
+		if fin.Number >= blockAnnounceHeader.Number && msg.BestBlock {
 			// TODO: downscore this peer, or temporarily don't sync from them? (#1399)
 			// perhaps we need another field in `peerState` to mark whether the state is valid or not
 			s.network.ReportPeer(peerset.ReputationChange{
