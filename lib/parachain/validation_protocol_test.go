@@ -98,7 +98,68 @@ func TestDecodeValidationProtocolApprovalDistributionMessageApprovals(t *testing
 }
 
 func TestDecodeValidationProtocolStatementDistrubitionMessageStatement(t *testing.T) {
-	// TODO
+	/*
+		fn try_validation_protocol_statement_distribution_full_statement() {
+			let hash1 = Hash::repeat_byte(5);
+			let val_sign = ValidatorSignature::from(
+				Signature([198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89,
+					104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152,
+					216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184,
+					148, 207, 27, 134]));
+			let keystore: KeystorePtr = Arc::new(LocalKeystore::in_memory());
+			let collator_result = Keystore::sr25519_generate_new(
+				&*keystore,
+				ValidatorId::ID,
+				Some(&Sr25519Keyring::Alice.to_seed()),
+			);
+			let collator = collator_result.unwrap();
+			let collsign = CollatorSignature::from(Signature([198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89,
+				104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152,
+				216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184,
+				148, 207, 27, 134]));
+			let candidate_descriptor = CandidateDescriptor{
+				para_id: 1.into(),
+				relay_parent: hash1,
+				collator: polkadot_primitives::CollatorId::from(collator),
+				persisted_validation_data_hash: hash1,
+				pov_hash: hash1,
+				erasure_root: hash1,
+				signature: collsign,
+				para_head: hash1,
+				validation_code_hash: ValidationCodeHash::from(hash1)
+			};
+			let commitments_new = CandidateCommitments{
+				upward_messages: vec![vec![1, 2, 3]].try_into().expect("error - upward_messages"),
+				horizontal_messages: vec![].try_into().expect("error - horizontal_messages"),
+				head_data: HeadData(vec![1, 2, 3]),
+				hrmp_watermark: 0_u32,
+				new_validation_code: ValidationCode(vec![1, 2, 3]).try_into().expect("error - new_validation_code"),
+				processed_downward_messages: 5
+			};
+			let committed_candidate_receipt = CommittedCandidateReceipt {
+				 descriptor: candidate_descriptor, commitments: commitments_new };
+			let statement_second = Statement::Seconded(committed_candidate_receipt);
+			let unchecked_signed_full_statement_second = UncheckedSignedFullStatement::new(
+				statement_second, ValidatorIndex(5), val_sign.clone());
+			let sdm_statement_second = protocol_v1::StatementDistributionMessage::Statement(hash1,
+				unchecked_signed_full_statement_second);
+			let validation_sdm_statement = protocol_v1::ValidationProtocol::StatementDistribution(sdm_statement_second);
+			println!("encode validation SecondedStatement => {:?}\n\n", validation_sdm_statement.encode());
+		}
+	*/
+	hexEnc := common.BytesToHex([]byte{3, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1, 1, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 12, 1, 2, 3, 0, 1, 12, 1, 2, 3, 12, 1, 2, 3, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89, 104, 10, 207, 72, 100, 117, 224, 162, 85, 42, 95, 190, 216, 126, 69, 173, 206, 95, 41, 6, 152, 216, 89, 96, 149, 114, 43, 51, 89, 146, 39, 247, 70, 31, 81, 175, 134, 23, 200, 190, 116, 184, 148, 207, 27, 134})
+	fmt.Printf("hex %v\n", hexEnc)
+
+	encoding := common.MustHexToBytes(testValidationProtocolHex["statementDistributionMessageStatement"])
+	validationProtocol := NewValidationProtocolVDT()
+
+	err := scale.Unmarshal(encoding, &validationProtocol)
+	require.NoError(t, err)
+
+	validationProtocolDecoded, err := validationProtocol.Value()
+	require.NoError(t, err)
+	fmt.Printf("decoded %#v\n", validationProtocolDecoded)
+
 }
 
 func TestDecodeValidationProtocolStatementDistributionMessageLargeStatement(t *testing.T) {
