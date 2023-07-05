@@ -6,7 +6,6 @@ package grandpa
 import (
 	"fmt"
 	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/slices"
 )
 
 // searchKey TODO for reviewer is this ok or do we want a better search algorithm?
@@ -23,27 +22,6 @@ func searchKey[H comparable, N constraints.Unsigned](k key[N], changes []Pending
 	}
 
 	return len(changes)
-}
-
-// returns an index representing either the found element or the index to insert the given element, and a bool
-// indicating if the given element was found
-func searchSetChanges[N constraints.Unsigned](number N, changes AuthoritySetChanges[N]) (int, bool) {
-	return slices.BinarySearchFunc(
-		changes,
-		number,
-		func(a authorityChange[N], b N) int {
-			switch {
-			case a.blockNumber == b:
-				return 0
-			case a.blockNumber > b:
-				return 1
-			case a.blockNumber < b:
-				return -1
-			default:
-				panic("huh?")
-			}
-		},
-	)
 }
 
 func bytesToHash(b []byte) Hash {
