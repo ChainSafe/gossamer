@@ -227,6 +227,26 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
+		// TODO: move the syncing logs to a better place
+		finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			logger.Warnf("getting highest finalized header: %w", err)
+		} else {
+			syncTarget, err := cs.getTarget()
+			if err != nil {
+				logger.Warnf("getting target: %w", err)
+			} else {
+				logger.Infof(
+					"🚣 currently syncing, %d peers connected, "+
+						"%d available workers, "+
+						"target block number %d, "+
+						"finalised block number %d with hash %s",
+					len(cs.network.Peers()),
+					cs.workerPool.totalWorkers(),
+					syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
+			}
+		}
+
 		isFarFromTarget, err := cs.isFarFromTarget()
 		if err != nil && !errors.Is(err, errNoPeerViews) {
 			logger.Criticalf("ending bootstrap sync, checking target distance: %s", err)
@@ -566,24 +586,6 @@ func (cs *chainSync) getTarget() (uint, error) {
 // TODO: handle only justification requests
 func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, startAtBlock uint, expectedSyncedBlocks uint32) error {
-	syncTarget, err := cs.getTarget()
-	if err != nil {
-		logger.Warnf("getting target: %w", err)
-	}
-
-	finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return fmt.Errorf("getting finalised block header: %w", err)
-	}
-
-	logger.Infof(
-		"🚣 currently syncing, %d peers connected, "+
-			"%d available workers, "+
-			"target block number %d, "+
-			"finalised block number %d with hash %s",
-		len(cs.network.Peers()),
-		cs.workerPool.totalWorkers(),
-		syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
 
 	startTime := time.Now()
 	defer func() {

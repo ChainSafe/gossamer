@@ -416,7 +416,7 @@ func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte
 
 	reqs := make([]*BlockRequestMessage, numRequests)
 	for i := uint(0); i < numRequests; i++ {
-		max := uint32(MaxBlockResponseSize)
+		max := uint32(MaxBlocksInResponse)
 
 		lastIteration := numRequests - 1
 		if i == lastIteration && missingBlocks != 0 {

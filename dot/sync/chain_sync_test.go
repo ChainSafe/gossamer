@@ -395,6 +395,7 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 
 	chainSync := newChainSync(cfg)
 	chainSync.peerView = peerViewMap
+	chainSync.state.Store(bootstrap)
 
 	return chainSync
 }
@@ -430,8 +431,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 			*responsePtr = *totalBlockResponse
 			return nil
 		})
-
-	mockedNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 
 	mockedBlockState := NewMockBlockState(ctrl)
 	mockedBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
@@ -532,7 +531,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 			return nil
 		})
 
-	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -642,7 +640,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 			return nil
 		}).Times(3)
 
-	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -756,8 +753,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
-
-	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 
 	// since peer.ID("bob") will fail with protocols not supported his
 	// reputation will be affected and
@@ -881,8 +876,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
-
-	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 
 	// since peer.ID("bob") will fail with protocols not supported his
 	// reputation will be affected and
@@ -1010,8 +1003,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 			return nil
 		}).Times(3)
 
-	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
-
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -1130,7 +1121,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 			return nil
 		}).Times(3)
 
-	mockNetwork.EXPECT().AllConnectedPeersID().Return([]peer.ID{})
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadBlockAnnouncementValue,
 		Reason: peerset.BadBlockAnnouncementReason,
