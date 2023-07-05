@@ -1,11 +1,11 @@
-package parachain
+package dispute
 
 import (
 	"sync"
 	"testing"
 
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/stretchr/testify/require"
 )
@@ -145,14 +145,14 @@ func BenchmarkSpamSlots_AddUnconfirmed(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		require.True(b, ss.AddUnconfirmed(1, common.Hash{0}, parachain.ValidatorIndex(b.N%10)))
+		require.True(b, ss.AddUnconfirmed(1, common.Hash{0}, parachainTypes.ValidatorIndex(b.N%10)))
 	}
 }
 
 func BenchmarkSpamSlots_Clear(b *testing.B) {
 	ss := NewSpamSlots(uint32(b.N))
 	for n := 0; n < b.N; n++ {
-		require.True(b, ss.AddUnconfirmed(1, common.Hash{0}, parachain.ValidatorIndex(b.N)))
+		require.True(b, ss.AddUnconfirmed(1, common.Hash{0}, parachainTypes.ValidatorIndex(b.N)))
 	}
 	b.ResetTimer()
 
@@ -164,12 +164,12 @@ func BenchmarkSpamSlots_Clear(b *testing.B) {
 func BenchmarkSpamSlots_PruneOld(b *testing.B) {
 	ss := NewSpamSlots(uint32(b.N))
 	for n := 0; n < b.N; n++ {
-		require.True(b, ss.AddUnconfirmed(parachain.SessionIndex(n), common.Hash{0}, parachain.ValidatorIndex(b.N)))
+		require.True(b, ss.AddUnconfirmed(parachainTypes.SessionIndex(n), common.Hash{0}, parachainTypes.ValidatorIndex(b.N)))
 	}
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		ss.PruneOld(parachain.SessionIndex(n))
+		ss.PruneOld(parachainTypes.SessionIndex(n))
 	}
 }
 
