@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -530,7 +531,22 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (latest bool, set *au
 		return true, nil, nil // Latest case
 	}
 
-	idx, _ := searchSetChanges(blockNumber, authSet)
+	idx, _ := slices.BinarySearchFunc(
+		authSet,
+		blockNumber,
+		func(a authorityChange[N], b N) int {
+			switch {
+			case a.blockNumber == b:
+				return 0
+			case a.blockNumber > b:
+				return 1
+			case a.blockNumber < b:
+				return -1
+			default:
+				panic("huh?")
+			}
+		},
+	)
 	if idx < len(authSet) {
 		authChange := authSet[idx]
 
@@ -550,7 +566,22 @@ func (asc *AuthoritySetChanges[N]) insert(blockNumber N) {
 	if asc == nil {
 		panic("authority set changes must be initialized")
 	} else {
-		idx, _ = searchSetChanges(blockNumber, *asc)
+		idx, _ = slices.BinarySearchFunc(
+			*asc,
+			blockNumber,
+			func(a authorityChange[N], b N) int {
+				switch {
+				case a.blockNumber == b:
+					return 0
+				case a.blockNumber > b:
+					return 1
+				case a.blockNumber < b:
+					return -1
+				default:
+					panic("huh?")
+				}
+			},
+		)
 	}
 
 	set := *asc
@@ -588,7 +619,22 @@ func (asc *AuthoritySetChanges[N]) iterFrom(blockNumber N) *AuthoritySetChanges[
 	}
 	authSet := *asc
 
-	idx, found := searchSetChanges(blockNumber, *asc)
+	idx, found := slices.BinarySearchFunc(
+		*asc,
+		blockNumber,
+		func(a authorityChange[N], b N) int {
+			switch {
+			case a.blockNumber == b:
+				return 0
+			case a.blockNumber > b:
+				return 1
+			case a.blockNumber < b:
+				return -1
+			default:
+				panic("huh?")
+			}
+		},
+	)
 	if found {
 		// if there was a hashNumber at the given block number then we should start on the next
 		// index since we want to exclude the current block number
