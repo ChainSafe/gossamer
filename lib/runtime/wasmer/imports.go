@@ -1665,7 +1665,7 @@ func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	seed := make([]byte, 32)
-	_, err := rand.Read(seed)
+	_, err := rand.Read(seed) //nolint
 	if err != nil {
 		logger.Errorf("failed to generate random seed: %s", err)
 	}
