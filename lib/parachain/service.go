@@ -22,7 +22,7 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	forkID := ""
 	var version uint32 = 1
 
-	validationProtocolID := GeneratePeersetProtocolName(ValidationProtocol, forkID, genesisHash, version)
+	validationProtocolID := GeneratePeersetProtocolName(ValidationProtocolName, forkID, genesisHash, version)
 
 	// register validation protocol
 	err := net.RegisterNotificationsProtocol(
@@ -55,7 +55,7 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		}
 	}
 
-	collationProtocolID := GeneratePeersetProtocolName(CollationProtocol, forkID, genesisHash, version)
+	collationProtocolID := GeneratePeersetProtocolName(CollationProtocolName, forkID, genesisHash, version)
 
 	// register collation protocol
 	err = net.RegisterNotificationsProtocol(

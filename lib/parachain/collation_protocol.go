@@ -2,6 +2,7 @@ package parachain
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -65,9 +66,9 @@ func (c *CollatorProtocolMessage) Value() (val scale.VaryingDataTypeValue, err e
 // Declare the intent to advertise collations under a collator ID, attaching a
 // signature of the `PeerId` of the node using the given collator ID key.
 type Declare struct {
-	CollatorId        CollatorID        `scale:"1"`
-	ParaID            uint32            `scale:"2"`
-	CollatorSignature CollatorSignature `scale:"3"`
+	CollatorId        parachaintypes.CollatorID        `scale:"1"`
+	ParaID            uint32                           `scale:"2"`
+	CollatorSignature parachaintypes.CollatorSignature `scale:"3"`
 }
 
 // Index returns the index of varying data type

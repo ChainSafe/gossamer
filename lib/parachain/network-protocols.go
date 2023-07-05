@@ -29,8 +29,8 @@ const (
 type PeerSetProtocolName uint
 
 const (
-	ValidationProtocol PeerSetProtocolName = iota
-	CollationProtocol
+	ValidationProtocolName PeerSetProtocolName = iota
+	CollationProtocolName
 )
 
 func GenerateReqProtocolName(protocol ReqProtocolName, forkID string, GenesisHash common.Hash) string {
@@ -70,11 +70,11 @@ func GeneratePeersetProtocolName(protocol PeerSetProtocolName, forkID string, Ge
 	}
 
 	switch protocol {
-	case ValidationProtocol:
+	case ValidationProtocolName:
 		return fmt.Sprintf("%s/validation/%d", prefix, version)
 		// message over this protocol is BitfieldDistributionMessage, StatementDistributionMessage,
 		// ApprovalDistributionMessage
-	case CollationProtocol:
+	case CollationProtocolName:
 		return fmt.Sprintf("%s/collation/%d", prefix, version)
 		// message over this protocol is CollatorProtocolMessage
 	default:
