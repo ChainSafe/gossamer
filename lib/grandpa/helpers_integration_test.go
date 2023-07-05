@@ -82,7 +82,7 @@ func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
 
 func (*testNetwork) RegisterNotificationsProtocol(
 	_ protocol.ID,
-	_ byte,
+	_ network.MessageType,
 	_ network.HandshakeGetter,
 	_ network.HandshakeDecoder,
 	_ network.HandshakeValidator,
@@ -151,7 +151,7 @@ func newTestState(t *testing.T) *state.Service {
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t), telemetryMock)
 	require.NoError(t, err)
 
 	return &state.Service{

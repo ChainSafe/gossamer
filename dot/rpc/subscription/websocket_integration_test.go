@@ -216,8 +216,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 	wsconn.BlockAPI = nil
 
 	transactionStateAPI := NewMockTransactionStateAPI(ctrl)
-	transactionStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
-	transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).Times(2)
 	wsconn.TxStateAPI = transactionStateAPI
 
 	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})

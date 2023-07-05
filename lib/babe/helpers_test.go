@@ -42,20 +42,10 @@ var (
 		Number: 0,
 		Digest: types.NewDigest(),
 	}
-
-	genesisBABEConfig = &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
 )
 
-// NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
+// newTestCoreService creates a new test core service
+func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	genesisTrie trie.Trie, genesisHeader types.Header) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -163,7 +153,7 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie trie.Trie, genesisHeader types.Header) *Service {
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
 	wasmer.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
@@ -194,6 +184,8 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
+	dbSrv.Transaction = state.NewTransactionState(telemetryMock)
+
 	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
@@ -204,6 +196,11 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		_ = dbSrv.Stop()
 	})
 
+	// Allow for epoch state to be made from custom babe config
+	if babeConfig != nil {
+		dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, babeConfig)
+		require.NoError(t, err)
+	}
 	cfg.BlockState = dbSrv.Block
 	cfg.StorageState = dbSrv.Storage
 	cfg.EpochState = dbSrv.Epoch
@@ -220,10 +217,12 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	nodeStorage.BaseDB = dbSrv.Base
 
 	rtCfg.NodeStorage = nodeStorage
+	rtCfg.Transaction = dbSrv.Transaction
 	runtime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
 
+	cfg.Authority = true
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(&cfg)
@@ -232,6 +231,9 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	if cfg.BlockImportHandler == nil {
 		mockNetwork := mocks.NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
+
+		digestOnBlockImportMock := mocks.NewMockBlockImportDigestHandler(ctrl)
+		digestOnBlockImportMock.EXPECT().Handle(gomock.Any()).AnyTimes()
 
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
@@ -242,9 +244,10 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			Network:              mockNetwork,
 			CodeSubstitutedState: dbSrv.Base,
 			CodeSubstitutes:      make(map[common.Hash]string),
+			OnBlockImport:        digestOnBlockImportMock,
 		}
 
-		babeService.blockImportHandler = NewTestService(t, &coreConfig, genesis,
+		babeService.blockImportHandler = newTestCoreService(t, &coreConfig, genesis,
 			genesisTrie, genesisHeader)
 	}
 
@@ -307,7 +310,8 @@ func createSecondaryVRFPreDigest(t *testing.T,
 
 func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
 	bestBlockHash common.Hash) types.Extrinsic {
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
 	require.NoError(t, err)
 	var extrinsicParts [][]byte

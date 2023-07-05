@@ -76,6 +76,10 @@ func TestAnnounceBlock(t *testing.T) {
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
+	onBlockImportHandleMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportHandleMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+	s.onBlockImport = onBlockImportHandleMock
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
@@ -288,7 +292,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
 	cfg := &Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
+		Runtime: wasmer.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
 	}
 
 	s := NewTestService(t, cfg)
@@ -445,7 +449,9 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	rtExpected := rt.Version()
+	rtExpected, err := rt.Version()
+	require.NoError(t, err)
+
 	rtv, err := s.GetRuntimeVersion(nil)
 	require.NoError(t, err)
 	require.Equal(t, rtExpected, rtv)
@@ -479,6 +485,10 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlotNumber, currentTimestamp)
 
+	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+	s.onBlockImport = onBlockImportHandlerMock
+
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
 
@@ -495,85 +505,117 @@ func TestService_GetMetadata(t *testing.T) {
 }
 
 func TestService_HandleRuntimeChanges(t *testing.T) {
-	const (
-		updatedSpecVersion        = uint32(262)
-		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
-	)
 	s := NewTestService(t, nil)
-
-	bestBlockHash := s.blockState.BestBlockHash()
-	rt, err := s.blockState.GetRuntime(bestBlockHash)
+	genesisHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	v := rt.Version()
-	currSpecVersion := v.SpecVersion     // genesis runtime version.
-	hash := s.blockState.BestBlockHash() // genesisHash
+	genesisBlockHash := genesisHeader.Hash()
+	genesisStateRoot := genesisHeader.StateRoot
 
+	ts, err := s.storageState.TrieState(&genesisStateRoot) // Pass genesis root
+	require.NoError(t, err)
+
+	firstBlockHash := createBlockUsingOldRuntime(t, genesisBlockHash, ts, s.blockState)
+	updateNodeRuntimeWasmPath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
+	require.NoError(t, err)
+
+	secondBlockHash := createBlockUsingNewRuntime(t, genesisBlockHash, updateNodeRuntimeWasmPath, ts, s.blockState)
+
+	// firstBlockHash runtime should not be updated
+	genesisRuntime, err := s.blockState.GetRuntime(genesisBlockHash)
+	require.NoError(t, err)
+
+	firstBlockRuntime, err := s.blockState.GetRuntime(firstBlockHash)
+	require.NoError(t, err)
+
+	genesisRuntimeVersion, err := genesisRuntime.Version()
+	require.NoError(t, err)
+
+	firstBlockRuntimeVersion, err := firstBlockRuntime.Version()
+	require.NoError(t, err)
+
+	require.Equal(t, genesisRuntimeVersion, firstBlockRuntimeVersion)
+
+	secondBlockRuntime, err := s.blockState.GetRuntime(secondBlockHash)
+	require.NoError(t, err)
+
+	const updatedSpecVersion = uint32(9290)
+	secondBlockRuntimeVersion, err := secondBlockRuntime.Version()
+	require.NoError(t, err)
+
+	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
+}
+
+func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState *rtstorage.TrieState,
+	blockState BlockState) (blockHash common.Hash) {
+	parentRt, err := blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(0), [32]byte{}, [64]byte{})
 	digest := types.NewDigest()
-	err = digest.Add(types.PreRuntimeDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
-	})
+	preRuntimeDigest, err := primaryDigestData.ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*preRuntimeDigest)
 	require.NoError(t, err)
 
-	newBlock1 := &types.Block{
+	newBlock := &types.Block{
 		Header: types.Header{
-			ParentHash: hash,
+			ParentHash: bestBlockHash,
 			Number:     1,
-			Digest:     types.NewDigest()},
+			Digest:     digest,
+		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
+	err = blockState.AddBlock(newBlock)
+	require.NoError(t, err)
 
-	newBlockRTUpdate := &types.Block{
+	newBlockHash := newBlock.Header.Hash()
+	err = blockState.HandleRuntimeChanges(trieState, parentRt, newBlockHash)
+	require.NoError(t, err)
+
+	return newBlockHash
+}
+
+func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRuntimePath string,
+	trieState *rtstorage.TrieState, blockState BlockState) (blockHash common.Hash) {
+	parentRt, err := blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	testRuntime, err := os.ReadFile(newRuntimePath)
+	require.NoError(t, err)
+
+	trieState.Put(common.CodeKey, testRuntime)
+
+	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(1), [32]byte{}, [64]byte{})
+	digest := types.NewDigest()
+	preRuntimeDigest, err := primaryDigestData.ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*preRuntimeDigest)
+	require.NoError(t, err)
+
+	newBlockRuntimeUpdate := &types.Block{
 		Header: types.Header{
-			ParentHash: hash,
+			ParentHash: bestBlockHash,
 			Number:     1,
 			Digest:     digest,
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
-	ts, err := s.storageState.TrieState(nil) // Pass genesis root
+	err = blockState.AddBlock(newBlockRuntimeUpdate)
 	require.NoError(t, err)
 
-	parentRt, err := s.blockState.GetRuntime(hash)
+	newBlockRTUpdateHash := newBlockRuntimeUpdate.Header.Hash()
+	err = blockState.HandleRuntimeChanges(trieState, parentRt, newBlockRTUpdateHash)
 	require.NoError(t, err)
 
-	v = parentRt.Version()
-	require.Equal(t, v.SpecVersion, currSpecVersion)
-
-	bhash1 := newBlock1.Header.Hash()
-	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
-	require.NoError(t, err)
-
-	testRuntime, err := os.ReadFile(updateNodeRuntimeWasmPath)
-	require.NoError(t, err)
-
-	ts.Put(common.CodeKey, testRuntime)
-	rtUpdateBhash := newBlockRTUpdate.Header.Hash()
-
-	// update runtime for new block
-	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
-	require.NoError(t, err)
-
-	// bhash1 runtime should not be updated
-	rt, err = s.blockState.GetRuntime(bhash1)
-	require.NoError(t, err)
-
-	v = rt.Version()
-	require.Equal(t, v.SpecVersion, currSpecVersion)
-
-	rt, err = s.blockState.GetRuntime(rtUpdateBhash)
-	require.NoError(t, err)
-
-	v = rt.Version()
-	require.Equal(t, v.SpecVersion, updatedSpecVersion)
+	return newBlockRTUpdateHash
 }
 
 func TestService_HandleCodeSubstitutes(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
@@ -623,7 +665,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
 
-	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	runtimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
@@ -648,7 +690,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		"expected different code hash after runtime update")
 }
 
-func buildTestBlockWithoutExtrinsics(t *testing.T, instance state.Runtime,
+func buildTestBlockWithoutExtrinsics(t *testing.T, instance runtime.Instance,
 	parentHeader *types.Header, slotNumber, timestamp uint64) *types.Block {
 	digest := types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, slotNumber).ToPreRuntimeDigest()

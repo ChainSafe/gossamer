@@ -31,24 +31,35 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (
 // Version returns the instance version.
 // This is cheap to call since the instance version is cached.
 // Note the instance version is set at creation and on code update.
-func (in *Instance) Version() (version runtime.Version) {
-	return in.ctx.Version
+func (in *Instance) Version() (runtime.Version, error) {
+	if in.ctx.Version != nil {
+		return *in.ctx.Version, nil
+	}
+
+	err := in.version()
+	if err != nil {
+		return runtime.Version{}, err
+	}
+
+	return *in.ctx.Version, nil
 }
 
 // version calls runtime function Core_Version and returns the
 // decoded version structure.
-func (in *Instance) version() (version runtime.Version, err error) {
+func (in *Instance) version() error {
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
-		return version, err
+		return err
 	}
 
-	version, err = runtime.DecodeVersion(res)
+	version, err := runtime.DecodeVersion(res)
 	if err != nil {
-		return version, fmt.Errorf("decoding version: %w", err)
+		return fmt.Errorf("decoding version: %w", err)
 	}
 
-	return version, nil
+	in.ctx.Version = &version
+
+	return nil
 }
 
 // Metadata calls runtime function Metadata_metadata
@@ -110,13 +121,17 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
 
-	keyOwnershipProof := types.OpaqueKeyOwnershipProof{}
+	var keyOwnershipProof *types.OpaqueKeyOwnershipProof
 	err = scale.Unmarshal(encodedKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding key ownership proof: %w", err)
 	}
 
-	return keyOwnershipProof, nil
+	if keyOwnershipProof == nil {
+		return nil, nil
+	}
+
+	return *keyOwnershipProof, nil
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic reports equivocation report to the runtime.
@@ -297,13 +312,17 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 		return nil, err
 	}
 
-	keyOwnershipProof := types.GrandpaOpaqueKeyOwnershipProof{}
+	var keyOwnershipProof *types.GrandpaOpaqueKeyOwnershipProof
 	err = scale.Unmarshal(encodedOpaqueKeyOwnershipProof, &keyOwnershipProof)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 
-	return keyOwnershipProof, nil
+	if keyOwnershipProof == nil {
+		return nil, nil
+	}
+
+	return *keyOwnershipProof, nil
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic reports an equivocation report to the runtime.
@@ -327,6 +346,6 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-func (in *Instance) RandomSeed()          {} //nolint:revive
-func (in *Instance) OffchainWorker()      {} //nolint:revive
-func (in *Instance) GenerateSessionKeys() {} //nolint:revive
+func (in *Instance) RandomSeed()          {}
+func (in *Instance) OffchainWorker()      {}
+func (in *Instance) GenerateSessionKeys() {}

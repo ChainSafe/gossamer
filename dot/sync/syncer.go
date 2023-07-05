@@ -36,10 +36,11 @@ type Config struct {
 	MinPeers, MaxPeers int
 	SlotDuration       time.Duration
 	Telemetry          Telemetry
+	BadBlocks          []string
 }
 
 // NewService returns a new *sync.Service
-func NewService(cfg *Config) (*Service, error) {
+func NewService(cfg *Config, blockReqRes network.RequestMaker) (*Service, error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl))
 
 	readyBlocks := newBlockQueue(maxResponseSize * 30)
@@ -54,7 +55,7 @@ func NewService(cfg *Config) (*Service, error) {
 		maxPeers:      cfg.MaxPeers,
 		slotDuration:  cfg.SlotDuration,
 	}
-	chainSync := newChainSync(csCfg)
+	chainSync := newChainSync(csCfg, blockReqRes)
 
 	cpCfg := chainProcessorConfig{
 		readyBlocks:        readyBlocks,
@@ -67,6 +68,7 @@ func NewService(cfg *Config) (*Service, error) {
 		finalityGadget:     cfg.FinalityGadget,
 		blockImportHandler: cfg.BlockImportHandler,
 		telemetry:          cfg.Telemetry,
+		badBlocks:          cfg.BadBlocks,
 	}
 	chainProcessor := newChainProcessor(cpCfg)
 

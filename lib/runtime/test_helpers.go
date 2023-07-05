@@ -21,8 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -74,30 +72,9 @@ func GetRuntime(ctx context.Context, runtime string) (
 
 	var runtimeFilename, url string
 	switch runtime {
-	case NODE_RUNTIME:
-		runtimeFilename = NODE_RUNTIME_FP
-		url = NODE_RUNTIME_URL
-	case NODE_RUNTIME_v098:
-		runtimeFilename = NODE_RUNTIME_FP_v098
-		url = NODE_RUNTIME_URL_v098
-	case POLKADOT_RUNTIME_v0925:
-		runtimeFilename = POLKADOT_RUNTIME_FP_v0925
-		url = POLKADOT_RUNTIME_URL_v0925
-	case POLKADOT_RUNTIME_v0917:
-		runtimeFilename = POLKADOT_RUNTIME_FP_v0917
-		url = POLKADOT_RUNTIME_URL_v0917
-	case POLKADOT_RUNTIME_v0910:
-		runtimeFilename = POLKADOT_RUNTIME_FP_v0910
-		url = POLKADOT_RUNTIME_URL_v0910
-	case POLKADOT_RUNTIME:
-		runtimeFilename = POLKADOT_RUNTIME_FP
-		url = POLKADOT_RUNTIME_URL
 	case HOST_API_TEST_RUNTIME:
 		runtimeFilename = HOST_API_TEST_RUNTIME_FP
 		url = HOST_API_TEST_RUNTIME_URL
-	case DEV_RUNTIME:
-		runtimeFilename = DEV_RUNTIME_FP
-		url = DEV_RUNTIME_URL
 	case POLKADOT_RUNTIME_v0929:
 		runtimeFilename = POLKADOT_RUNTIME_V0929_FP
 		url = POLKADOT_RUNTIME_V0929_URL
@@ -236,7 +213,7 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	rv, err := rt.Version()
 	require.NoError(t, err)
 
 	c, err := ctypes.NewCall(meta, call, args...)
@@ -263,46 +240,10 @@ func NewTestExtrinsic(t *testing.T, rt MetadataVersioner, genHash, blockHash com
 	return extEnc
 }
 
-// Instance is the interface to interact with the runtime.
-type Instance interface {
-	UpdateRuntimeCode([]byte) error
-	Stop()
-	NodeStorage() NodeStorage
-	NetworkService() BasicNetwork
-	Keystore() *keystore.GlobalKeystore
-	Validator() bool
-	Exec(function string, data []byte) ([]byte, error)
-	SetContextStorage(s Storage)
-	GetCodeHash() common.Hash
-	Versioner
-	Metadataer
-	BabeConfiguration() (*types.BabeConfiguration, error)
-	GrandpaAuthorities() ([]types.Authority, error)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	InitializeBlock(header *types.Header) error
-	InherentExtrinsics(data []byte) ([]byte, error)
-	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlock() (*types.Header, error)
-	ExecuteBlock(block *types.Block) ([]byte, error)
-	DecodeSessionKeys(enc []byte) ([]byte, error)
-	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
-	BabeGenerateKeyOwnershipProof(slot uint64, offenderPublicKey [32]byte) (types.OpaqueKeyOwnershipProof, error)
-	BabeSubmitReportEquivocationUnsignedExtrinsic(types.BabeEquivocationProof, types.OpaqueKeyOwnershipProof) error
-	CheckInherents()
-	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-		types.GrandpaOpaqueKeyOwnershipProof, error)
-	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
-	) error
-	RandomSeed()
-	OffchainWorker()
-	GenerateSessionKeys()
-}
-
 // Versioner returns the version from the runtime.
 // This should return the cached version and be cheap to execute.
 type Versioner interface {
-	Version() (version Version)
+	Version() (Version, error)
 }
 
 // Metadataer returns the metadata from the runtime.

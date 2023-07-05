@@ -7,11 +7,10 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -34,8 +33,8 @@ type BlockState interface {
 	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetRuntime(blockHash common.Hash) (runtime state.Runtime, err error)
-	StoreRuntime(blockHash common.Hash, runtime state.Runtime)
+	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
+	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	GetHeaderByNumber(num uint) (*types.Header, error)
@@ -71,11 +70,6 @@ type BlockImportHandler interface {
 
 // Network is the interface for the network
 type Network interface {
-	// DoBlockRequest sends a request to the given peer.
-	// If a response is received within a certain time period,
-	// it is returned, otherwise an error is returned.
-	DoBlockRequest(to peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error)
-
 	// Peers returns a list of currently connected peers
 	Peers() []common.PeerInfo
 

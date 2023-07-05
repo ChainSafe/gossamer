@@ -4,13 +4,13 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 // BlockState is the interface required by GRANDPA into the block state
@@ -35,11 +35,11 @@ type BlockState interface {
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 	BestBlockHash() common.Hash
-	GetRuntime(blockHash common.Hash) (instance state.Runtime, err error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state
-type GrandpaState interface { //nolint:revive
+type GrandpaState interface {
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num uint) (uint64, error)
@@ -57,7 +57,7 @@ type Network interface {
 	GossipMessage(msg network.NotificationsMessage)
 	SendMessage(to peer.ID, msg NotificationsMessage) error
 	RegisterNotificationsProtocol(sub protocol.ID,
-		messageID byte,
+		messageID network.MessageType,
 		handshakeGetter network.HandshakeGetter,
 		handshakeDecoder network.HandshakeDecoder,
 		handshakeValidator network.HandshakeValidator,

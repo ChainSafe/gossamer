@@ -254,6 +254,69 @@ func TestGetHashesByNumber(t *testing.T) {
 	require.ElementsMatch(t, blocks, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
 }
 
+func TestGetAllDescendants(t *testing.T) {
+	t.Parallel()
+
+	bs := newTestBlockState(t, newTriesEmpty())
+	slot := uint64(77)
+
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			Digest:     digest,
+		},
+		Body: sampleBlockBody,
+	}
+
+	err = bs.AddBlockWithArrivalTime(block, time.Now())
+	require.NoError(t, err)
+
+	babeHeader2 := types.NewBabeDigest()
+	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	data2, err := scale.Marshal(babeHeader2)
+	require.NoError(t, err)
+	preDigest2 := types.NewBABEPreRuntimeDigest(data2)
+
+	digest2 := types.NewDigest()
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
+	block2 := &types.Block{
+		Header: types.Header{
+			ParentHash: block.Header.Hash(),
+			Number:     2,
+			Digest:     digest2,
+		},
+		Body: sampleBlockBody,
+	}
+	err = bs.AddBlockWithArrivalTime(block2, time.Now())
+	require.NoError(t, err)
+
+	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1)
+	require.NoError(t, err)
+
+	// can't fetch given block's descendants since the given block get removed from memory after
+	// being finalised, using blocktree.GetAllDescendants
+	_, err = bs.bt.GetAllDescendants(block.Header.Hash())
+	require.ErrorIs(t, err, blocktree.ErrNodeNotFound)
+
+	// can fetch given finalised block's descendants using disk, using using blockstate.GetAllDescendants
+	blockHashes, err := bs.GetAllDescendants(block.Header.Hash())
+	require.NoError(t, err)
+	require.ElementsMatch(t, blockHashes, []common.Hash{block.Header.Hash(), block2.Header.Hash()})
+}
+
 func TestGetBlockHashesBySlot(t *testing.T) {
 	t.Parallel()
 
@@ -682,7 +745,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
@@ -712,7 +775,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
@@ -742,7 +805,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
@@ -774,7 +837,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
@@ -809,7 +872,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
@@ -841,7 +904,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
@@ -874,7 +937,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
@@ -907,7 +970,7 @@ func TestRange(t *testing.T) {
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
-				telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
@@ -999,7 +1062,7 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	db := NewInMemoryDB(t)
 
@@ -1015,4 +1078,44 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())
 	require.NoError(t, err)
 	require.Equal(t, genesisHeader.Hash(), header.Hash())
+}
+
+func Test_GetRuntime_StoreRuntime(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	db := NewInMemoryDB(t)
+
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigest(),
+	}
+	genesisHash := genesisHeader.Hash()
+	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
+
+	runtimeInstance := NewMockInstance(nil)
+	blockState.StoreRuntime(genesisHash, runtimeInstance)
+
+	genesisRuntimeInstance, err := blockState.GetRuntime(genesisHash)
+	require.NoError(t, err)
+	require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+
+	chain, _ := AddBlocksToState(t, blockState, 5, false)
+	for _, hashInChain := range chain {
+		genesisRuntimeInstance, err := blockState.GetRuntime(hashInChain.Hash())
+		require.NoError(t, err)
+		require.Equal(t, runtimeInstance, genesisRuntimeInstance)
+	}
+
+	lastElementOnChain := chain[len(chain)-1]
+	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0)
+	require.NoError(t, err)
+
+	sameRuntimeOnDiffHash, err := blockState.GetRuntime(lastElementOnChain.Hash())
+	require.NoError(t, err)
+	require.Equal(t, runtimeInstance, sameRuntimeOnDiffHash)
 }

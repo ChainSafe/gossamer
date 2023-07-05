@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -87,7 +88,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths)
+	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
 	}
@@ -148,7 +149,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (Runtime, error) {
+func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
 	genTrie := rtstorage.NewTrieState(t)
 

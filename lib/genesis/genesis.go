@@ -40,8 +40,8 @@ type Data struct {
 
 // TelemetryEndpoint struct to hold telemetry endpoint information
 type TelemetryEndpoint struct {
-	Endpoint  string
-	Verbosity int
+	Endpoint  string `mapstructure:",squash"`
+	Verbosity int    `mapstructure:",squash"`
 }
 
 // Fields stores genesis raw data, and human readable runtime data

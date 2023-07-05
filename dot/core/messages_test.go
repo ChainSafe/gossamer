@@ -40,7 +40,7 @@ type mockBestHeader struct {
 }
 
 type mockGetRuntime struct {
-	runtime RuntimeInstance
+	runtime runtime.Instance
 	err     error
 }
 
@@ -72,7 +72,7 @@ type mockValidateTxn struct {
 }
 
 type mockRuntime struct {
-	runtime           *MockRuntimeInstance
+	runtime           *MockInstance
 	setContextStorage *mockSetContextStorage
 	validateTxn       *mockValidateTxn
 }
@@ -117,9 +117,9 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
 	ctrl := gomock.NewController(t)
-	runtimeMock := NewMockRuntimeInstance(ctrl)
-	runtimeMock2 := NewMockRuntimeInstance(ctrl)
-	runtimeMock3 := NewMockRuntimeInstance(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+	runtimeMock2 := NewMockInstance(ctrl)
+	runtimeMock3 := NewMockInstance(ctrl)
 
 	invalidTransaction := runtime.NewInvalidTransaction()
 	err := invalidTransaction.Set(runtime.Future{})
@@ -392,7 +392,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 					}},
 					TransactionVersion: transactionVersion,
 					StateVersion:       stateVersion,
-				})
+				}, nil)
 			}
 
 			res, err := s.HandleTransactionMessage(tt.args.peerID, tt.args.msg)

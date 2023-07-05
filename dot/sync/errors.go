@@ -22,7 +22,6 @@ var (
 	// chainSync errors
 	errEmptyBlockData               = errors.New("empty block data")
 	errNilBlockData                 = errors.New("block data is nil")
-	errNilResponse                  = errors.New("block response is nil")
 	errNilHeaderInResponse          = errors.New("expected header, received none")
 	errNilBodyInResponse            = errors.New("expected body, received none")
 	errNoPeers                      = errors.New("no peers to sync with")
@@ -34,4 +33,5 @@ var (
 	errFailedToGetParent            = errors.New("failed to get parent header")
 	errStartAndEndMismatch          = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant        = errors.New("failed to find descendant block")
+	errBadBlock                     = errors.New("known bad block")
 )

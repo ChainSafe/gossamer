@@ -5,6 +5,7 @@ package state
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -12,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var errSetIDLowerThanHighest = errors.New("set id lower than highest")
 var highestRoundAndSetIDKey = []byte("hrs")
 
 // finalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
@@ -63,14 +65,13 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 }
 
 func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
-	currRound, currSetID, err := bs.GetHighestRoundAndSetID()
+	_, highestSetID, err := bs.GetHighestRoundAndSetID()
 	if err != nil {
 		return err
 	}
 
-	// higher setID takes precedence over round
-	if setID < currSetID || setID == currSetID && round <= currRound {
-		return nil
+	if setID < highestSetID {
+		return fmt.Errorf("%w: %d should be greater or equal %d", errSetIDLowerThanHighest, setID, highestSetID)
 	}
 
 	return bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
@@ -206,16 +207,7 @@ func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
 		return nil
 	}
 
-	prev, err := bs.GetHighestFinalisedHash()
-	if err != nil {
-		return fmt.Errorf("failed to get highest finalised hash: %w", err)
-	}
-
-	if prev == curr {
-		return nil
-	}
-
-	subchain, err := bs.RangeInMemory(prev, curr)
+	subchain, err := bs.RangeInMemory(bs.lastFinalised, curr)
 	if err != nil {
 		return err
 	}

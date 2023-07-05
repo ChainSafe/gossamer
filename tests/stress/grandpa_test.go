@@ -20,8 +20,7 @@ import (
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Core.BABELead = true
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -32,7 +31,8 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	time.Sleep(time.Second * 10)
 
 	const getChainHeadTimeout = time.Second
-	compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
+	err := compareChainHeadsWithRetry(ctx, nodes, getChainHeadTimeout)
+	require.NoError(t, err)
 
 	const getFinalizedHeadTimeout = time.Second
 	prev, err := compareFinalizedHeads(ctx, t, nodes, getFinalizedHeadTimeout)
@@ -52,7 +52,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,7 +76,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -100,7 +100,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 
 	tomlConfig := config.LogGrandpa()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -124,7 +124,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	genesisPath := utils.GenerateGenesisAuths(t, numNodes)
 
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numNodes, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	nodes.InitAndStartTest(ctx, t, cancel)

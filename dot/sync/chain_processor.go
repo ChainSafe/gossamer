@@ -55,6 +55,7 @@ type chainProcessorConfig struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+	badBlocks          []string
 }
 
 func newChainProcessor(cfg chainProcessorConfig) *chainProcessor {
@@ -92,7 +93,7 @@ func (s *chainProcessor) processReadyBlocks() {
 
 		if err := s.processBlockData(*bd); err != nil {
 			// depending on the error, we might want to save this block for later
-			if !errors.Is(err, errFailedToGetParent) {
+			if !errors.Is(err, errFailedToGetParent) && !errors.Is(err, blocktree.ErrParentNotFound) {
 				logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
 				continue
 			}
@@ -111,7 +112,7 @@ func (s *chainProcessor) processReadyBlocks() {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //nolint:revive
+func (c *chainProcessor) processBlockData(blockData types.BlockData) error {
 	logger.Debugf("processing block data with hash %s", blockData.Hash)
 
 	headerInState, err := c.blockState.HasHeader(blockData.Hash)
@@ -160,7 +161,7 @@ func (c *chainProcessor) processBlockData(blockData types.BlockData) error { //n
 	return nil
 }
 
-func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.BlockData, //nolint:revive
+func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
 	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -204,7 +205,7 @@ func (c *chainProcessor) processBlockDataWithStateHeaderAndBody(blockData types.
 	return nil
 }
 
-func (c *chainProcessor) processBlockDataWithHeaderAndBody(blockData types.BlockData, //nolint:revive
+func (c *chainProcessor) processBlockDataWithHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
 	err = c.babeVerifier.VerifyBlock(blockData.Header)
 	if err != nil {

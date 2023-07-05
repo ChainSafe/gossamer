@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
+	rm "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	rmObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func newPrivateIPFilters() (privateIPs *ma.Filters, err error) {
@@ -82,11 +86,24 @@ type host struct {
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create multiaddress (without p2p identity)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
+	listenAddress := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port)
+	if cfg.ListenAddress != "" {
+		listenAddress = cfg.ListenAddress
+	}
+	addr, err := ma.NewMultiaddr(listenAddress)
 	if err != nil {
 		return nil, err
 	}
 
+	portString, err := addr.ValueForProtocol(ma.P_TCP)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := strconv.ParseUint(portString, 10, 64)
+	if err != nil {
+		return nil, err
+	}
 	var externalAddr ma.Multiaddr
 
 	switch {
@@ -96,13 +113,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			return nil, fmt.Errorf("invalid public ip: %s", cfg.PublicIP)
 		}
 		logger.Debugf("using config PublicIP: %s", ip)
-		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port))
 		if err != nil {
 			return nil, err
 		}
 	case strings.TrimSpace(cfg.PublicDNS) != "":
 		logger.Debugf("using config PublicDNS: %s", cfg.PublicDNS)
-		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/dns/%s/tcp/%d", cfg.PublicDNS, cfg.Port))
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/dns/%s/tcp/%d", cfg.PublicDNS, port))
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +129,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			logger.Errorf("failed to get public IP error: %v", err)
 		} else {
 			logger.Debugf("got public IP address %s", ip)
-			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+			externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port))
 			if err != nil {
 				return nil, err
 			}
@@ -122,13 +139,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse bootnodes: %w", err)
 	}
 
 	// format persistent peers
 	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse persistent peers: %w", err)
 	}
 
 	// We have tried to set maxInPeers and maxOutPeers such that number of peer
@@ -144,7 +161,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create connection manager: %w", err)
 	}
 
 	for _, pp := range pps {
@@ -156,16 +173,35 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}
 
 	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create peerstore: %w", err)
+	}
+
+	limiter := rm.NewFixedLimiter(rm.DefaultLimits.AutoScale())
+	var managerOptions []rm.Option
+
+	if cfg.Metrics.Publish {
+		rmObs.MustRegisterWith(prometheus.DefaultRegisterer)
+		reporter, err := rmObs.NewStatsTraceReporter()
+		if err != nil {
+			return nil, fmt.Errorf("while creating resource manager stats trace reporter: %w", err)
+		}
+
+		managerOptions = append(managerOptions, rm.WithTraceReporter(reporter))
+	}
+
+	manager, err := rm.NewResourceManager(limiter, managerOptions...)
+	if err != nil {
+		return nil, fmt.Errorf("while creating the resource manager: %w", err)
 	}
 
 	// set libp2p host options
 	opts := []libp2p.Option{
+		libp2p.ResourceManager(manager),
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(cfg.privateKey),
@@ -378,7 +414,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 // supportsProtocol checks if the protocol is supported by peerID
 // returns an error if could not get peer protocols
 func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
-	peerProtocols, err := h.p2pHost.Peerstore().SupportsProtocols(peerID, string(protocol))
+	peerProtocols, err := h.p2pHost.Peerstore().SupportsProtocols(peerID, protocol)
 	if err != nil {
 		return false, err
 	}
@@ -405,9 +441,14 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 	return multiaddrs
 }
 
-// protocols returns all protocols currently supported by the node
+// protocols returns all protocols currently supported by the node as strings.
 func (h *host) protocols() []string {
-	return h.p2pHost.Mux().Protocols()
+	protocolIDs := h.p2pHost.Mux().Protocols()
+	protocols := make([]string, len(protocolIDs))
+	for i := range protocolIDs {
+		protocols[i] = string(protocolIDs[i])
+	}
+	return protocols
 }
 
 // closePeer closes connection with peer.

@@ -122,10 +122,11 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 
 func TestBuildFromDB(t *testing.T) {
 	// initialise node (initialise state database and load genesis data)
-	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	config := DefaultTestWestendDevConfig(t)
+
+	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -134,7 +135,7 @@ func TestBuildFromDB(t *testing.T) {
 		want *BuildSpec
 		err  error
 	}{
-		{name: "normal_conditions", path: cfg.Global.BasePath,
+		{name: "normal_conditions", path: config.BasePath,
 			want: &BuildSpec{genesis: &genesis.Genesis{
 				Name:       "Development",
 				ID:         "westend_dev",

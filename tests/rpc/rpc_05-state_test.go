@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
@@ -21,8 +23,7 @@ import (
 func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
-	tomlConfig.Core.BABELead = true
+	tomlConfig.ChainSpec = genesisPath
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
@@ -32,15 +33,24 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	getBlockHashCancel()
 	require.NoError(t, err)
 
+	// TODO: Improve runtime tests
+	// https://github.com/ChainSafe/gossamer/issues/3234
 	t.Run("state_call", func(t *testing.T) {
 		t.Parallel()
 
-		const params = `["", "","0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"]`
-		var response modules.StateCallResponse
+		const params = `["Core_version", "0x"]`
 
-		fetchWithTimeout(ctx, t, "state_call", params, &response)
+		rpcCtx, rpcCancel := context.WithTimeout(ctx, 10*time.Second)
+		defer rpcCancel()
+		endpoint := rpc.NewEndpoint(node.RPCPort())
+		data, err := rpc.Post(rpcCtx, endpoint, "state_call", params)
+		require.NoError(t, err)
 
-		// TODO assert stateCallResponse
+		var response runtime.Version
+		err = rpc.DecodeScaleUnmarshal(data, &response)
+		require.NoError(t, err)
+
+		require.NotEqualf(t, 0, len(response.SpecName), "response must not be empty")
 	})
 
 	t.Run("state_getKeysPaged", func(t *testing.T) {
@@ -78,7 +88,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("valid block hash state_getPairs", func(t *testing.T) {
+	t.Run("valid_block_hash_state_getPairs", func(t *testing.T) {
 		t.Parallel()
 
 		params := fmt.Sprintf(`["0x", "%s"]`, blockHash)
@@ -89,7 +99,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("valid block hash state_getMetadata", func(t *testing.T) {
+	t.Run("valid_block_hash_state_getMetadata", func(t *testing.T) {
 		t.Parallel()
 
 		params := fmt.Sprintf(`["%s"]`, blockHash)
@@ -100,7 +110,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("valid block hash state_getRuntimeVersion", func(t *testing.T) {
+	t.Run("valid_block_hash_state_getRuntimeVersion", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateRuntimeVersionResponse
@@ -110,7 +120,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional params hash state_getPairs", func(t *testing.T) {
+	t.Run("optional_params_hash_state_getPairs", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StatePairResponse
@@ -120,7 +130,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param hash state_getMetadata", func(t *testing.T) {
+	t.Run("optional_param_hash_state_getMetadata", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateMetadataResponse
@@ -130,7 +140,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param value as null state_getRuntimeVersion", func(t *testing.T) {
+	t.Run("optional_param_value_as_null_state_getRuntimeVersion", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateRuntimeVersionResponse
@@ -140,7 +150,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param value as null state_getMetadata", func(t *testing.T) {
+	t.Run("optional_param_value_as_null_state_getMetadata", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StateMetadataResponse
@@ -150,7 +160,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		// TODO assert response
 	})
 
-	t.Run("optional param value as null state_getPairs", func(t *testing.T) {
+	t.Run("optional_param_value_as_null_state_getPairs", func(t *testing.T) {
 		t.Parallel()
 
 		var response modules.StatePairResponse
@@ -164,8 +174,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 func TestStateRPCAPI(t *testing.T) {
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
-	tomlConfig.Core.BABELead = true
+	tomlConfig.ChainSpec = genesisPath
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
@@ -367,8 +376,7 @@ func TestStateRPCAPI(t *testing.T) {
 func TestRPCStructParamUnmarshal(t *testing.T) {
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Core.BABELead = true
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.ChainSpec = genesisPath
 	node := node.New(t, tomlConfig)
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)

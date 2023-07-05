@@ -398,12 +398,15 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	mockNetwork := NewMockNetwork(ctrl)
 	startingBlock := variadic.MustNewUint32OrHash(1)
 	max := uint32(128)
-	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
+
+	mockReqRes := NewMockRequestMaker(ctrl)
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     0,
 		Max:           &max,
-	})
+	}, &network.BlockResponseMessage{})
+	cs.blockReqRes = mockReqRes
 	cs.network = mockNetwork
 
 	go cs.sync()
@@ -419,7 +422,7 @@ func TestChainSync_sync_bootstrap_withWorkerError(t *testing.T) {
 	select {
 	case res := <-cs.resultQueue:
 		expected := &workerError{
-			err: errNilResponse, // since MockNetwork returns a nil response
+			err: errEmptyBlockData, // since MockNetwork returns a nil response
 			who: testPeer,
 		}
 		require.Equal(t, expected, res.err)
@@ -706,6 +709,8 @@ func TestWorkerToRequests(t *testing.T) {
 
 func TestChainSync_validateResponse(t *testing.T) {
 	t.Parallel()
+	badBlockHash := common.NewHash([]byte("badblockhash"))
+
 	tests := map[string]struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
 		networkBuilder    func(ctrl *gomock.Controller) Network
@@ -813,6 +818,31 @@ func TestChainSync_validateResponse(t *testing.T) {
 			},
 			expectedError: errUnknownParent,
 		},
+		"handle_error_bad_block": {
+			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+				return mockBlockState
+			},
+			networkBuilder: func(ctrl *gomock.Controller) Network {
+				return NewMockNetwork(ctrl)
+			},
+			req: &network.BlockRequestMessage{
+				RequestedData: network.RequestedDataHeader,
+			},
+			resp: &network.BlockResponseMessage{
+				BlockData: []*types.BlockData{
+					{
+						Hash: badBlockHash,
+						Header: &types.Header{
+							Number: 2,
+						},
+						Body: &types.Body{},
+					},
+				},
+			},
+			expectedError: errBadBlock,
+		},
 		"no_error": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
@@ -858,8 +888,13 @@ func TestChainSync_validateResponse(t *testing.T) {
 				pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
 				readyBlocks:   newBlockQueue(maxResponseSize),
 				net:           tt.networkBuilder(ctrl),
+				badBlocks: []string{
+					badBlockHash.String(),
+				},
 			}
-			cs := newChainSync(cfg)
+			mockReqRes := NewMockRequestMaker(ctrl)
+
+			cs := newChainSync(cfg, mockReqRes)
 
 			err := cs.validateResponse(tt.req, tt.resp, "")
 			if tt.expectedError != nil {
@@ -901,19 +936,23 @@ func TestChainSync_doSync(t *testing.T) {
 	mockNetwork := NewMockNetwork(ctrl)
 	startingBlock := variadic.MustNewUint32OrHash(1)
 	max1 := uint32(1)
-	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
+
+	mockReqRes := NewMockRequestMaker(ctrl)
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     0,
 		Max:           &max1,
-	})
+	}, &network.BlockResponseMessage{})
+	cs.blockReqRes = mockReqRes
+
 	cs.network = mockNetwork
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.NotNil(t, workerErr)
-	require.Equal(t, errNilResponse, workerErr.err)
+	require.Equal(t, errEmptyBlockData, workerErr.err)
 
-	resp := &network.BlockResponseMessage{
+	expectedResp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Hash: common.Hash{0x1},
@@ -925,26 +964,28 @@ func TestChainSync_doSync(t *testing.T) {
 		},
 	}
 
-	mockNetwork = NewMockNetwork(ctrl)
-	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     0,
 		Max:           &max1,
-	}).Return(resp, nil)
-	cs.network = mockNetwork
+	}, &network.BlockResponseMessage{}).Do(
+		func(_ peer.ID, _ *network.BlockRequestMessage, resp *network.BlockResponseMessage) {
+			*resp = *expectedResp
+		},
+	)
 
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 	bd, err := readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
 	require.NoError(t, err)
-	require.Equal(t, resp.BlockData[0], bd)
+	require.Equal(t, expectedResp.BlockData[0], bd)
 
 	parent := (&types.Header{
 		Number: 2,
 	}).Hash()
-	resp = &network.BlockResponseMessage{
+	expectedResp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Hash: common.Hash{0x3},
@@ -966,25 +1007,30 @@ func TestChainSync_doSync(t *testing.T) {
 
 	// test to see if descending blocks get reversed
 	req.Direction = network.Descending
-	mockNetwork = NewMockNetwork(ctrl)
-	mockNetwork.EXPECT().DoBlockRequest(peer.ID("noot"), &network.BlockRequestMessage{
+
+	mockReqRes.EXPECT().Do(peer.ID("noot"), &network.BlockRequestMessage{
 		RequestedData: 19,
 		StartingBlock: *startingBlock,
 		Direction:     1,
 		Max:           &max1,
-	}).Return(resp, nil)
+	}, &network.BlockResponseMessage{}).Do(
+		func(_ peer.ID, _ *network.BlockRequestMessage, resp *network.BlockResponseMessage) {
+			*resp = *expectedResp
+		},
+	)
+
 	cs.network = mockNetwork
 	workerErr = cs.doSync(req, make(map[peer.ID]struct{}))
 	require.Nil(t, workerErr)
 
 	bd, err = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
-	require.Equal(t, resp.BlockData[0], bd)
+	require.Equal(t, expectedResp.BlockData[0], bd)
 	require.NoError(t, err)
 
 	bd, err = readyBlocks.pop(context.Background())
 	require.NotNil(t, bd)
-	require.Equal(t, resp.BlockData[1], bd)
+	require.Equal(t, expectedResp.BlockData[1], bd)
 	require.NoError(t, err)
 }
 
@@ -1604,8 +1650,9 @@ func newTestChainSyncWithReadyBlocks(ctrl *gomock.Controller, readyBlocks *block
 		maxPeers:      5,
 		slotDuration:  defaultSlotDuration,
 	}
+	mockReqRes := NewMockRequestMaker(ctrl)
 
-	return newChainSync(cfg)
+	return newChainSync(cfg, mockReqRes)
 }
 
 func newTestChainSync(ctrl *gomock.Controller) *chainSync {

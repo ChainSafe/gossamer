@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM golang:1.19
+FROM golang:1.20
 
 ARG DD_API_KEY=somekey
 ARG CHAIN=westend-local
@@ -26,7 +26,7 @@ ARG key
 RUN test -n "$key"
 ENV key=${key}
 
-RUN gossamer --key=${key} init
+RUN gossamer --key=${key} init  --chain chain/$CHAIN/$CHAIN-spec.json --base-path ~/.gossamer/gssmr
 
 ARG METRICS_NAMESPACE=gossamer.local.devnet
 
@@ -36,12 +36,12 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:${ke
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --key=${key} \
+ENTRYPOINT service datadog-agent start && gossamer --base-path ~/.gossamer/gssmr \
+    --key=${key} \
     --bootnodes=/dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-    --publish-metrics \
-    --metrics-address=":9876" \
-    --rpc \
+    --prometheus-external \
+    --prometheus-port=9876 \
     --port 7001 \
-    --pubdns=${key}
+    --public-dns=${key}
 
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp

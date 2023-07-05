@@ -7,11 +7,10 @@ package sync
 import (
 	reflect "reflect"
 
-	network "github.com/ChainSafe/gossamer/dot/network"
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
-	state "github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	gomock "github.com/golang/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -263,10 +262,10 @@ func (mr *MockBlockStateMockRecorder) GetReceipt(arg0 interface{}) *gomock.Call 
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (state.Runtime, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(state.Runtime)
+	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -367,7 +366,7 @@ func (mr *MockBlockStateMockRecorder) SetJustification(arg0, arg1 interface{}) *
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 state.Runtime) {
+func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtime.Instance) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StoreRuntime", arg0, arg1)
 }
@@ -607,21 +606,6 @@ func NewMockNetwork(ctrl *gomock.Controller) *MockNetwork {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 	return m.recorder
-}
-
-// DoBlockRequest mocks base method.
-func (m *MockNetwork) DoBlockRequest(arg0 peer.ID, arg1 *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoBlockRequest", arg0, arg1)
-	ret0, _ := ret[0].(*network.BlockResponseMessage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DoBlockRequest indicates an expected call of DoBlockRequest.
-func (mr *MockNetworkMockRecorder) DoBlockRequest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoBlockRequest", reflect.TypeOf((*MockNetwork)(nil).DoBlockRequest), arg0, arg1)
 }
 
 // Peers mocks base method.

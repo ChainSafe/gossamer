@@ -46,3 +46,26 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, d, dec)
 }
+
+func TestBabeDecodeVersionedNextConfigData(t *testing.T) {
+	// Block #5608275 NextConfigData digest
+	enc := common.MustHexToBytes("0x03010100000000000000040000000000000002")
+
+	var dec = NewBabeConsensusDigest()
+	err := scale.Unmarshal(enc, &dec)
+	require.NoError(t, err)
+
+	decValue, err := dec.Value()
+	require.NoError(t, err)
+
+	nextVersionedConfigData := decValue.(VersionedNextConfigData)
+
+	nextConfigData, err := nextVersionedConfigData.Value()
+	require.NoError(t, err)
+
+	nextConfigDataV1 := nextConfigData.(NextConfigDataV1)
+
+	require.GreaterOrEqual(t, 1, int(nextConfigDataV1.C1))
+	require.GreaterOrEqual(t, 4, int(nextConfigDataV1.C2))
+	require.GreaterOrEqual(t, 2, int(nextConfigDataV1.SecondarySlots))
+}

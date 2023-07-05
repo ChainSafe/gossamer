@@ -57,7 +57,7 @@ func newBABEService(t *testing.T) *babe.Service {
 
 	bs, es := newState(t)
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(
 		common.MustHexToBytes("0x886726f904d8372fdabb7707870c2fad"),

@@ -325,6 +325,7 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 	}
 
 	for tname, tcase := range cases {
+		tcase := tcase
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 

@@ -14,6 +14,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/chain/westend"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	network "github.com/ChainSafe/gossamer/dot/network"
@@ -44,12 +47,21 @@ func TestNewNode(t *testing.T) {
 	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any())
 
-	initConfig := NewTestConfig(t)
-
+	basepath := t.TempDir()
+	initConfig := westend.DefaultConfig()
 	genFile := NewTestGenesisRawFile(t, initConfig)
 
+	initConfig.Name = "TestNode"
+	initConfig.BasePath = basepath
+	initConfig.ChainSpec = genFile
+	initConfig.Account.Key = "alice"
+	initConfig.Core.Role = common.FullNodeRole
+	initConfig.Core.WasmInterpreter = wasmer.Name
+
+	initConfig.Log.Digest = "critical"
+
 	networkConfig := &network.Config{
-		BasePath:    t.TempDir(),
+		BasePath:    basepath,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -58,39 +70,30 @@ func TestNewNode(t *testing.T) {
 	testNetworkService, err := network.NewService(networkConfig)
 	require.NoError(t, err)
 
-	config := state.Config{
-		Path:     initConfig.Global.BasePath,
-		LogLevel: initConfig.Log.StateLvl,
+	logLevel, err := log.ParseLevel(initConfig.Log.State)
+	require.NoError(t, err)
+	stateConfig := state.Config{
+		Path:     initConfig.BasePath,
+		LogLevel: logLevel,
 	}
 
-	dotConfig := &Config{
-		Global:  GlobalConfig{BasePath: initConfig.Global.BasePath},
-		Init:    InitConfig{Genesis: genFile},
-		Account: AccountConfig{Key: "alice"},
-		Core: CoreConfig{
-			Roles:           common.FullNodeRole,
-			WasmInterpreter: wasmer.Name,
-		},
+	systemInfo := &types.SystemInfo{
+		SystemName:    initConfig.System.SystemName,
+		SystemVersion: initConfig.System.SystemVersion,
 	}
 
-	dotConfig.Init = InitConfig{Genesis: genFile}
-	dotConfig.Account = AccountConfig{Key: "alice"}
-	dotConfig.Core.Roles = common.FullNodeRole
-	dotConfig.Core.WasmInterpreter = wasmer.Name
-	dotConfig.Global.Name = "TestNode"
-
-	ks, err := initKeystore(t, dotConfig)
+	ks, err := initKeystore(t, initConfig)
 	assert.NoError(t, err)
 
 	mockServiceRegistry := NewMockServiceRegisterer(ctrl)
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().isNodeInitialised(dotConfig.Global.BasePath).Return(nil)
-	m.EXPECT().createStateService(dotConfig).DoAndReturn(func(cfg *Config) (*state.Service, error) {
-		stateSrvc := state.NewService(config)
+	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
+	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
+		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
-		gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
+		gen, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
@@ -119,36 +122,36 @@ func TestNewNode(t *testing.T) {
 
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
 		NodeStorage{}, nil)
-	m.EXPECT().loadRuntime(dotConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().loadRuntime(initConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
 	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&babe.VerificationManager{})
-	m.EXPECT().createDigestHandler(log.Critical, gomock.AssignableToTypeOf(&state.Service{})).
+	m.EXPECT().createDigestHandler(gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&digest.Handler{}, nil)
-	m.EXPECT().createCoreService(dotConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().createCoreService(initConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
 		gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).
 		Return(&core.Service{}, nil)
-	m.EXPECT().createGRANDPAService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().createGRANDPAService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&grandpa.Service{}, nil)
-	m.EXPECT().newSyncService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
+	m.EXPECT().newSyncService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
 		&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&dotsync.Service{}, nil)
-	m.EXPECT().createBABEService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
+	m.EXPECT().createBABEService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
 		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&babe.Service{}, nil)
-	m.EXPECT().createSystemService(&dotConfig.System, gomock.AssignableToTypeOf(&state.Service{})).
+	m.EXPECT().createSystemService(systemInfo, gomock.AssignableToTypeOf(&state.Service{})).
 		DoAndReturn(func(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
 			gd, err := stateSrvc.Base.LoadGenesisData()
 			systemService := system.NewService(cfg, gd)
 			return systemService, err
 		})
-	m.EXPECT().createNetworkService(dotConfig, gomock.AssignableToTypeOf(&state.Service{}),
+	m.EXPECT().createNetworkService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetworkService, nil)
 
-	got, err := newNode(dotConfig, ks, m, mockServiceRegistry)
+	got, err := newNode(initConfig, ks, m, mockServiceRegistry)
 	assert.NoError(t, err)
 
 	expected := &Node{
@@ -159,12 +162,13 @@ func TestNewNode(t *testing.T) {
 }
 
 func Test_nodeBuilder_loadRuntime(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
+
 	type args struct {
-		cfg *Config
-		ns  *runtime.NodeStorage
-		ks  *keystore.GlobalKeystore
-		net *network.Service
+		config *cfg.Config
+		ns     *runtime.NodeStorage
+		ks     *keystore.GlobalKeystore
+		net    *network.Service
 	}
 	tests := []struct {
 		name string
@@ -174,10 +178,10 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 		{
 			name: "base_case",
 			args: args{
-				cfg: cfg,
-				ns:  &runtime.NodeStorage{},
-				ks:  nil,
-				net: nil,
+				config: config,
+				ns:     &runtime.NodeStorage{},
+				ks:     nil,
+				net:    nil,
 			},
 			err: nil,
 		},
@@ -187,7 +191,7 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
-			err := no.loadRuntime(tt.args.cfg, tt.args.ns, stateSrvc, tt.args.ks, tt.args.net)
+			err := no.loadRuntime(tt.args.config, tt.args.ns, stateSrvc, tt.args.ks, tt.args.net)
 			assert.ErrorIs(t, err, tt.err)
 			blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 			for i := range blocks {
@@ -201,61 +205,61 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 }
 
 func TestInitNode_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	// confirm database was setup
-	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	db, err := utils.SetupDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := newTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
+	db, err := utils.SetupDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	result := IsNodeInitialised(cfg.Global.BasePath)
+	result := IsNodeInitialised(config.BasePath)
 	require.False(t, result)
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
-	result = IsNodeInitialised(cfg.Global.BasePath)
+	result = IsNodeInitialised(config.BasePath)
 	require.True(t, result)
 }
 
 func TestNewNodeIntegration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -268,9 +272,9 @@ func TestNewNodeIntegration(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
-	cfg.Core.Roles = common.FullNodeRole
+	config.Core.Role = common.FullNodeRole
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
 	bp := node.ServiceRegistry.Get(&babe.Service{})
@@ -280,13 +284,13 @@ func TestNewNodeIntegration(t *testing.T) {
 }
 
 func TestNewNode_Authority(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -302,9 +306,9 @@ func TestNewNode_Authority(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Babe.Size())
 
-	cfg.Core.Roles = common.AuthorityRole
+	config.Core.Role = common.AuthorityRole
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
 	bp := node.ServiceRegistry.Get(&babe.Service{})
@@ -314,15 +318,15 @@ func TestNewNode_Authority(t *testing.T) {
 }
 
 func TestStartStopNode(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
-	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeAuthority = false
+	config.ChainSpec = genFile
+	config.Core.GrandpaAuthority = false
+	config.Core.BabeAuthority = false
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -337,9 +341,9 @@ func TestStartStopNode(t *testing.T) {
 	err = keystore.LoadKeystore("alice", ks.Babe, sr25519keyRing)
 	require.NoError(t, err)
 
-	cfg.Core.Roles = common.FullNodeRole
+	config.Core.Role = common.FullNodeRole
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
 	go func() {
@@ -351,19 +355,19 @@ func TestStartStopNode(t *testing.T) {
 }
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genPath
+	config.Core.Role = common.FullNodeRole
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.ChainSpec = genPath
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
 
-	err = InitNode(cfg)
+	err = InitNode(config)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
@@ -371,7 +375,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	ks.Gran.Insert(ed25519Keyring.Alice())
 	sr25519Keyring, _ := keystore.NewSr25519Keyring()
 	ks.Babe.Insert(sr25519Keyring.Alice())
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
 	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
@@ -399,23 +403,23 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 }
 
 func TestInitNode_LoadBalances(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genPath
+	config.Core.Role = common.FullNodeRole
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.ChainSpec = genPath
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
 	mgr := node.ServiceRegistry.Get(&state.Service{})
@@ -439,18 +443,18 @@ func TestInitNode_LoadBalances(t *testing.T) {
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
-	cfg := NewTestConfig(t)
-	cfg.Global.Name = globalName
+	config := DefaultTestWestendDevConfig(t)
+	config.Name = globalName
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = newTestGenesisAndRuntime(t)
+	config.Core.Role = common.FullNodeRole
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.ChainSpec = newTestGenesisAndRuntime(t)
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
-	storedName, err := LoadGlobalNodeName(cfg.Global.BasePath)
+	storedName, err := LoadGlobalNodeName(config.BasePath)
 	require.NoError(t, err)
 	require.Equal(t, globalName, storedName)
 }
@@ -458,7 +462,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 // newTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 func newTestGenesisAndRuntime(t *testing.T) (filename string) {
-	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.NODE_RUNTIME)
+	runtimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	runtimeData, err := os.ReadFile(runtimeFilePath)
 	require.NoError(t, err)

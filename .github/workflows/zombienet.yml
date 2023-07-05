@@ -1,0 +1,54 @@
+name: zombienet
+run-name: Zombienet tests
+on:
+  pull_request:
+
+jobs:
+  zombienet-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.19
+          stable: true
+          check-latest: true
+
+      - name: Set cache variables
+        id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+      - uses: actions/checkout@v3
+
+      - name: Go build cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-build
+
+      - name: Go modules cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-mod
+
+      - name: Run build
+        run: |
+          make build
+          echo "$HOME/work/gossamer/gossamer/bin" >> $GITHUB_PATH
+      - name: Install Zombienet
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+           wget -O /usr/local/bin/zombienet https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-linux-x64
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+           wget -O /usr/local/bin/zombienet https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-macos
+          else
+           echo "Zombienet for $RUNNER_OS is not supported"
+           exit 1
+          fi
+          chmod +x /usr/local/bin/zombienet
+      - name: Zombienet test
+        run: |
+          zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl

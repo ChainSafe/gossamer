@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -22,8 +21,7 @@ type BlockState interface {
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData)
-	StoreBABENextConfigData(epoch uint64, hash common.Hash, nextEpochData types.NextConfigData)
+	HandleBABEDigest(header *types.Header, digest scale.VaryingDataType) error
 	FinalizeBABENextEpochData(finalizedHeader *types.Header) error
 	FinalizeBABENextConfigData(finalizedHeader *types.Header) error
 }

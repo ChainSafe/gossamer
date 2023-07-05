@@ -18,15 +18,15 @@ import (
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -53,15 +53,15 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
 	type args struct {

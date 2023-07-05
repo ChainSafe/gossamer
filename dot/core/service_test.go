@@ -230,7 +230,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"instance_creation_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockRuntimeInstance(ctrl)
+				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
@@ -257,7 +257,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockRuntimeInstance(ctrl)
+				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
@@ -286,7 +286,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		},
 		"success": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-				storedRuntime := NewMockRuntimeInstance(ctrl)
+				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
@@ -344,13 +344,13 @@ func Test_Service_handleBlock(t *testing.T) {
 		}
 	}
 
-	t.Run("nil input", func(t *testing.T) {
+	t.Run("nil_input", func(t *testing.T) {
 		t.Parallel()
 		service := &Service{}
 		execTest(t, service, nil, nil, ErrNilBlockHandlerParameter)
 	})
 
-	t.Run("storeTrie error", func(t *testing.T) {
+	t.Run("storeTrie_error", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -366,7 +366,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
-	t.Run("addBlock quit error", func(t *testing.T) {
+	t.Run("addBlock_quit_error", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -387,7 +387,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
-	t.Run("addBlock parent not found error", func(t *testing.T) {
+	t.Run("addBlock_parent_not_found_error", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -408,7 +408,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		execTest(t, service, &block, trieState, blocktree.ErrParentNotFound)
 	})
 
-	t.Run("addBlock error continue", func(t *testing.T) {
+	t.Run("addBlock_error_continue", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -423,14 +423,18 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(nil, errTestDummyError)
 
+		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
-	t.Run("handle runtime changes error", func(t *testing.T) {
+	t.Run("handle_runtime_changes_error", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -439,7 +443,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -448,14 +452,18 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
 			Return(errTestDummyError)
 
+		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
 
-	t.Run("code substitution ok", func(t *testing.T) {
+	t.Run("code_substitution_ok", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -464,7 +472,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		block.Header.Number = 21
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -472,10 +480,13 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
 
+		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
-			ctx:          context.Background(),
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			ctx:           context.Background(),
+			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, nil)
 	})
@@ -490,13 +501,13 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 			assert.EqualError(t, err, "handling block: "+expErr.Error())
 		}
 	}
-	t.Run("nil input", func(t *testing.T) {
+	t.Run("nil_input", func(t *testing.T) {
 		t.Parallel()
 		service := &Service{}
 		execTest(t, service, nil, nil, ErrNilBlockHandlerParameter)
 	})
 
-	t.Run("happy path", func(t *testing.T) {
+	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
 		trieState := rtstorage.NewTrieState(nil)
 
@@ -522,7 +533,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		}
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -531,12 +542,15 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
 		mockNetwork := NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(msg)
+		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
 
 		service := &Service{
-			storageState: mockStorageState,
-			blockState:   mockBlockState,
-			net:          mockNetwork,
-			ctx:          context.Background(),
+			storageState:  mockStorageState,
+			blockState:    mockBlockState,
+			net:           mockNetwork,
+			ctx:           context.Background(),
+			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, nil)
 	})
@@ -544,7 +558,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 func Test_Service_maintainTransactionPool(t *testing.T) {
 	t.Parallel()
-	t.Run("Validate Transaction err", func(t *testing.T) {
+	t.Run("Validate_Transaction_err", func(t *testing.T) {
 		t.Parallel()
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -569,7 +583,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		vt := transaction.NewValidTransaction(extrinsic, validity)
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(nil, errTestDummyError)
 		runtimeMock.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -583,7 +597,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -608,7 +622,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Validate Transaction ok", func(t *testing.T) {
+	t.Run("Validate_Transaction_ok", func(t *testing.T) {
 		t.Parallel()
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -634,7 +648,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 		tx := transaction.NewValidTransaction(ext, &transaction.Validity{Propagate: true})
 
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		runtimeMock.EXPECT().ValidateTransaction(externalExt).Return(&transaction.Validity{Propagate: true}, nil)
 		runtimeMock.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -648,7 +662,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
@@ -678,7 +692,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 
 func Test_Service_handleBlocksAsync(t *testing.T) {
 	t.Parallel()
-	t.Run("cancelled context", func(t *testing.T) {
+	t.Run("cancelled_context", func(t *testing.T) {
 		t.Parallel()
 		blockAddChan := make(chan *types.Block)
 		ctx, cancel := context.WithCancel(context.Background())
@@ -690,7 +704,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		service.handleBlocksAsync()
 	})
 
-	t.Run("channel not ok", func(t *testing.T) {
+	t.Run("channel_not_ok", func(t *testing.T) {
 		t.Parallel()
 		blockAddChan := make(chan *types.Block)
 		close(blockAddChan)
@@ -701,7 +715,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		service.handleBlocksAsync()
 	})
 
-	t.Run("nil block", func(t *testing.T) {
+	t.Run("nil_block", func(t *testing.T) {
 		t.Parallel()
 		blockAddChan := make(chan *types.Block)
 		go func() {
@@ -715,7 +729,7 @@ func Test_Service_handleBlocksAsync(t *testing.T) {
 		service.handleBlocksAsync()
 	})
 
-	t.Run("handleChainReorg error", func(t *testing.T) {
+	t.Run("handleChainReorg_error", func(t *testing.T) {
 		t.Parallel()
 
 		testHeader := types.NewEmptyHeader()
@@ -763,7 +777,7 @@ func TestService_handleChainReorg(t *testing.T) {
 	testValidity := &transaction.Validity{Propagate: true}
 	vtx := transaction.NewValidTransaction(ext, testValidity)
 
-	t.Run("highest common ancestor err", func(t *testing.T) {
+	t.Run("highest_common_ancestor_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -776,7 +790,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
 	})
 
-	t.Run("highest common ancestor err", func(t *testing.T) {
+	t.Run("highest_common_ancestor_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -789,7 +803,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
 	})
 
-	t.Run("ancestor eq priv", func(t *testing.T) {
+	t.Run("ancestor_eq_priv", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -802,7 +816,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, nil)
 	})
 
-	t.Run("subchain err", func(t *testing.T) {
+	t.Run("subchain_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -816,7 +830,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
 	})
 
-	t.Run("empty subchain", func(t *testing.T) {
+	t.Run("empty_subchain", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -830,7 +844,7 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, nil)
 	})
 
-	t.Run("get runtime err", func(t *testing.T) {
+	t.Run("get_runtime_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -846,11 +860,11 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, errDummyErr)
 	})
 
-	t.Run("invalid transaction", func(t *testing.T) {
+	t.Run("invalid_transaction", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 
-		runtimeMockErr := NewMockRuntimeInstance(ctrl)
+		runtimeMockErr := NewMockInstance(ctrl)
 		runtimeMockErr.EXPECT().ValidateTransaction(externExt).Return(nil, errTestDummyError)
 		runtimeMockErr.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -864,7 +878,7 @@ func TestService_handleChainReorg(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
@@ -886,10 +900,10 @@ func TestService_handleChainReorg(t *testing.T) {
 		execTest(t, service, testPrevHash, testCurrentHash, nil)
 	})
 
-	t.Run("happy path", func(t *testing.T) {
+	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		runtimeMockOk := NewMockRuntimeInstance(ctrl)
+		runtimeMockOk := NewMockInstance(ctrl)
 		runtimeMockOk.EXPECT().ValidateTransaction(externExt).Return(testValidity, nil)
 		runtimeMockOk.EXPECT().Version().Return(runtime.Version{
 			SpecName:         []byte("polkadot"),
@@ -903,7 +917,7 @@ func TestService_handleChainReorg(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().LowestCommonAncestor(testPrevHash, testCurrentHash).
@@ -1051,10 +1065,10 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 		assert.Equal(t, exp, res)
 	}
 
-	t.Run("ok case", func(t *testing.T) {
+	t.Run("ok_case", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		runtimeMock.EXPECT().DecodeSessionKeys(testEncKeys).Return(testEncKeys, nil)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
@@ -1065,7 +1079,7 @@ func TestService_DecodeSessionKeys(t *testing.T) {
 		execTest(t, service, testEncKeys, testEncKeys, nil)
 	})
 
-	t.Run("err case", func(t *testing.T) {
+	t.Run("err_case", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -1105,7 +1119,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		assert.Equal(t, exp, res)
 	}
 
-	t.Run("get state root err", func(t *testing.T) {
+	t.Run("get_state_root_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1117,7 +1131,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
 	})
 
-	t.Run("trie state err", func(t *testing.T) {
+	t.Run("trie_state_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1130,7 +1144,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
 	})
 
-	t.Run("get runtime err", func(t *testing.T) {
+	t.Run("get_runtime_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1147,18 +1161,18 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
 	})
 
-	t.Run("happy path", func(t *testing.T) {
+	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMock, nil)
 		runtimeMock.EXPECT().SetContextStorage(ts)
-		runtimeMock.EXPECT().Version().Return(rv)
+		runtimeMock.EXPECT().Version().Return(rv, nil)
 		service := &Service{
 			storageState: mockStorageState,
 			blockState:   mockBlockState,
@@ -1184,13 +1198,13 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		}
 	}
 
-	t.Run("nil network", func(t *testing.T) {
+	t.Run("nil_network", func(t *testing.T) {
 		t.Parallel()
 		service := &Service{}
 		execTest(t, service, nil, nil)
 	})
 
-	t.Run("trie state err", func(t *testing.T) {
+	t.Run("trie_state_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1210,7 +1224,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		execTest(t, service, nil, errDummyErr)
 	})
 
-	t.Run("get runtime err", func(t *testing.T) {
+	t.Run("get_runtime_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 
@@ -1233,12 +1247,12 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		execTest(t, service, nil, errDummyErr)
 	})
 
-	t.Run("validate txn err", func(t *testing.T) {
+	t.Run("validate_txn_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
-		runtimeMockErr := NewMockRuntimeInstance(ctrl)
+		runtimeMockErr := NewMockInstance(ctrl)
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMockErr, nil).MaxTimes(2)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
@@ -1262,7 +1276,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMockErr.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		service := &Service{
 			storageState:     mockStorageState,
@@ -1273,11 +1287,11 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		execTest(t, service, types.Extrinsic{}, errDummyErr)
 	})
 
-	t.Run("happy path", func(t *testing.T) {
+	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 
-		runtimeMock := NewMockRuntimeInstance(ctrl)
+		runtimeMock := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(runtimeMock, nil).MaxTimes(2)
@@ -1296,7 +1310,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			}},
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
-		})
+		}, nil)
 		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1330,7 +1344,7 @@ func TestServiceGetMetadata(t *testing.T) {
 		assert.Equal(t, exp, res)
 	}
 
-	t.Run("get state root error", func(t *testing.T) {
+	t.Run("get_state_root_error", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1342,7 +1356,7 @@ func TestServiceGetMetadata(t *testing.T) {
 		execTest(t, service, &common.Hash{}, nil, errDummyErr, expectedErrMessage)
 	})
 
-	t.Run("trie state error", func(t *testing.T) {
+	t.Run("trie_state_error", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1354,7 +1368,7 @@ func TestServiceGetMetadata(t *testing.T) {
 		execTest(t, service, nil, nil, errDummyErr, expectedErrMessage)
 	})
 
-	t.Run("get runtime error", func(t *testing.T) {
+	t.Run("get_runtime_error", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
@@ -1370,12 +1384,12 @@ func TestServiceGetMetadata(t *testing.T) {
 		execTest(t, service, nil, nil, errDummyErr, expectedErrMessage)
 	})
 
-	t.Run("happy path", func(t *testing.T) {
+	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
-		runtimeMockOk := NewMockRuntimeInstance(ctrl)
+		runtimeMockOk := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockOk, nil)
@@ -1403,7 +1417,7 @@ func TestService_GetReadProofAt(t *testing.T) {
 		assert.Equal(t, expProofForKeys, resProofForKeys)
 	}
 
-	t.Run("get block state root error", func(t *testing.T) {
+	t.Run("get_block_state_root_error", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -1415,7 +1429,7 @@ func TestService_GetReadProofAt(t *testing.T) {
 		execTest(t, service, common.Hash{}, nil, common.Hash{}, nil, errDummyErr)
 	})
 
-	t.Run("generate trie proof error", func(t *testing.T) {
+	t.Run("generate_trie_proof_error", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
@@ -1431,7 +1445,7 @@ func TestService_GetReadProofAt(t *testing.T) {
 		execTest(t, service, common.Hash{}, [][]byte{{1}}, common.Hash{}, nil, errDummyErr)
 	})
 
-	t.Run("happy path", func(t *testing.T) {
+	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)

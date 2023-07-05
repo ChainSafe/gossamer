@@ -33,26 +33,13 @@ func (m *MockMemory) EXPECT() *MockMemoryMockRecorder {
 	return m.recorder
 }
 
-// Data mocks base method.
-func (m *MockMemory) Data() []byte {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Data")
-	ret0, _ := ret[0].([]byte)
-	return ret0
-}
-
-// Data indicates an expected call of Data.
-func (mr *MockMemoryMockRecorder) Data() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Data", reflect.TypeOf((*MockMemory)(nil).Data))
-}
-
 // Grow mocks base method.
-func (m *MockMemory) Grow(arg0 uint32) error {
+func (m *MockMemory) Grow(arg0 uint32) (uint32, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Grow", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
 }
 
 // Grow indicates an expected call of Grow.
@@ -61,16 +48,74 @@ func (mr *MockMemoryMockRecorder) Grow(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Grow", reflect.TypeOf((*MockMemory)(nil).Grow), arg0)
 }
 
-// Length mocks base method.
-func (m *MockMemory) Length() uint32 {
+// Read mocks base method.
+func (m *MockMemory) Read(arg0, arg1 uint32) ([]byte, bool) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Length")
+	ret := m.ctrl.Call(m, "Read", arg0, arg1)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// Read indicates an expected call of Read.
+func (mr *MockMemoryMockRecorder) Read(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockMemory)(nil).Read), arg0, arg1)
+}
+
+// ReadByte mocks base method.
+func (m *MockMemory) ReadByte(arg0 uint32) (byte, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadByte", arg0)
+	ret0, _ := ret[0].(byte)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// ReadByte indicates an expected call of ReadByte.
+func (mr *MockMemoryMockRecorder) ReadByte(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadByte", reflect.TypeOf((*MockMemory)(nil).ReadByte), arg0)
+}
+
+// Size mocks base method.
+func (m *MockMemory) Size() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Size")
 	ret0, _ := ret[0].(uint32)
 	return ret0
 }
 
-// Length indicates an expected call of Length.
-func (mr *MockMemoryMockRecorder) Length() *gomock.Call {
+// Size indicates an expected call of Size.
+func (mr *MockMemoryMockRecorder) Size() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Length", reflect.TypeOf((*MockMemory)(nil).Length))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockMemory)(nil).Size))
+}
+
+// Write mocks base method.
+func (m *MockMemory) Write(arg0 uint32, arg1 []byte) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Write", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Write indicates an expected call of Write.
+func (mr *MockMemoryMockRecorder) Write(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockMemory)(nil).Write), arg0, arg1)
+}
+
+// WriteByte mocks base method.
+func (m *MockMemory) WriteByte(arg0 uint32, arg1 byte) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteByte", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// WriteByte indicates an expected call of WriteByte.
+func (mr *MockMemoryMockRecorder) WriteByte(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteByte", reflect.TypeOf((*MockMemory)(nil).WriteByte), arg0, arg1)
 }

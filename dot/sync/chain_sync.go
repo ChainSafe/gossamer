@@ -17,6 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -165,6 +166,9 @@ type chainSync struct {
 	logSyncTickerC <-chan time.Time // channel as field for unit testing
 	logSyncStarted bool
 	logSyncDone    chan struct{}
+	badBlocks      []string
+
+	blockReqRes network.RequestMaker
 }
 
 type chainSyncConfig struct {
@@ -174,9 +178,10 @@ type chainSyncConfig struct {
 	pendingBlocks      DisjointBlockSet
 	minPeers, maxPeers int
 	slotDuration       time.Duration
+	badBlocks          []string
 }
 
-func newChainSync(cfg chainSyncConfig) *chainSync {
+func newChainSync(cfg chainSyncConfig, blockReqRes network.RequestMaker) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 	const syncSamplesToKeep = 30
 	const logSyncPeriod = 5 * time.Second
@@ -204,6 +209,8 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		logSyncTicker:    logSyncTicker,
 		logSyncTickerC:   logSyncTicker.C,
 		logSyncDone:      make(chan struct{}),
+		badBlocks:        cfg.badBlocks,
+		blockReqRes:      blockReqRes,
 	}
 }
 
@@ -691,17 +698,13 @@ func (cs *chainSync) doSync(req *network.BlockRequestMessage, peersTried map[pee
 	// TODO: use scoring to determine what peer to try to sync from first (#1399)
 	idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(peers))))
 	who := peers[idx.Int64()]
-	resp, err := cs.network.DoBlockRequest(who, req)
+
+	resp := new(network.BlockResponseMessage)
+
+	err := cs.blockReqRes.Do(who, req, resp)
 	if err != nil {
 		return &workerError{
 			err: err,
-			who: who,
-		}
-	}
-
-	if resp == nil {
-		return &workerError{
-			err: errNilResponse,
 			who: who,
 		}
 	}
@@ -829,6 +832,7 @@ func (cs *chainSync) determineSyncPeers(req *network.BlockRequestMessage, peersT
 // It checks the following:
 //   - the response is not empty
 //   - the response contains all the expected fields
+//   - the block is not contained in the bad block list
 //   - each block has the correct parent, ie. the response constitutes a valid chain
 func (cs *chainSync) validateResponse(req *network.BlockRequestMessage,
 	resp *network.BlockResponseMessage, p peer.ID) error {
@@ -928,6 +932,11 @@ func (cs *chainSync) validateBlockData(req *network.BlockRequestMessage, bd *typ
 	}
 
 	requestedData := req.RequestedData
+
+	if slices.Contains(cs.badBlocks, bd.Hash.String()) {
+		logger.Errorf("Rejecting known bad block Number: %d Hash: %s", bd.Number(), bd.Hash)
+		return errBadBlock
+	}
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
 		cs.network.ReportPeer(peerset.ReputationChange{

@@ -20,7 +20,7 @@ import (
 func TestTransactionState_Pending(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(5)
 
 	ts := NewTransactionState(telemetryMock)
 

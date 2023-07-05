@@ -8,9 +8,9 @@ import (
 	reflect "reflect"
 	time "time"
 
-	state "github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "github.com/golang/mock/gomock"
@@ -182,10 +182,10 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (state.Runtime, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(state.Runtime)
+	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -242,7 +242,7 @@ func (mr *MockBlockStateMockRecorder) NumberIsFinalised(arg0 interface{}) *gomoc
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 state.Runtime) {
+func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtime.Instance) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StoreRuntime", arg0, arg1)
 }
@@ -586,6 +586,20 @@ func (m *MockEpochState) SetCurrentEpoch(arg0 uint64) error {
 func (mr *MockEpochStateMockRecorder) SetCurrentEpoch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrentEpoch", reflect.TypeOf((*MockEpochState)(nil).SetCurrentEpoch), arg0)
+}
+
+// SetEpochData mocks base method.
+func (m *MockEpochState) SetEpochData(arg0 uint64, arg1 *types.EpochData) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetEpochData", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetEpochData indicates an expected call of SetEpochData.
+func (mr *MockEpochStateMockRecorder) SetEpochData(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEpochData", reflect.TypeOf((*MockEpochState)(nil).SetEpochData), arg0, arg1)
 }
 
 // SetFirstSlot mocks base method.

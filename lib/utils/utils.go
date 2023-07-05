@@ -191,14 +191,14 @@ var (
 	ErrFindProjectRoot = errors.New("cannot find project root")
 )
 
-// GetProjectRootPath finds the root of the project where `go.mod` is
-// and returns it as an absolute path.
+// GetProjectRootPath finds the root of the project where directory `cmd`
+// and subdirectory `gossamer` is and returns it as an absolute path.
 func GetProjectRootPath() (rootPath string, err error) {
 	_, fullpath, _, _ := runtime.Caller(0)
 	rootPath = path.Dir(fullpath)
 
-	const directoryToFind = "chain"
-	const subPathsToFind = "dev,gssmr,kusama,polkadot"
+	const directoryToFind = "cmd"
+	const subPathsToFind = "gossamer"
 
 	subPaths := strings.Split(subPathsToFind, ",")
 

@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"golang.org/x/exp/maps"
 )
 
 // InherentIdentifier is an identifier for an inherent.
@@ -98,10 +99,7 @@ func (d *InherentData) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	keys := make([][8]byte, 0, len(d.Data))
-	for key := range d.Data {
-		keys = append(keys, key)
-	}
+	keys := maps.Keys(d.Data)
 
 	sort.Slice(keys, func(i, j int) bool {
 		return bytes.Compare(keys[i][:], keys[j][:]) < 0

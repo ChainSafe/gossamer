@@ -1,12 +1,13 @@
-FROM golang:1.19
+FROM golang:1.20
 
 ARG chain="polkadot"
 ARG basepath="~/.gossamer"
 ARG DD_API_KEY
 
 ENV chain=${chain}
-ENV basepath=${basepath}
+ENV GSSMRHOME=${basepath}
 ENV DD_API_KEY=${DD_API_KEY}
+ENV DD_HOSTNAME=${chain}-host
 
 RUN ["sh", "-c", "DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_API_KEY=${DD_API_KEY} DD_SITE=\"datadoghq.com\" bash -c \"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)\""]
 
@@ -18,6 +19,6 @@ RUN ["sh", "-c", "mv .github/workflows/staging/openmetrics.d/${chain}-conf.yaml 
 RUN go get ./...
 RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 
-RUN ["sh", "-c", "gossamer init --chain=${chain}"]
-ENTRYPOINT ["sh", "-c", "service datadog-agent start && gossamer --chain=${chain} --basepath=${basepath}/${chain} --publish-metrics --metrics-address=\":9876\" --pprofserver --pprofaddress=\":6060\""]
+RUN ["sh", "-c", "gossamer init --chain=${chain} --base-path=${basepath}/${chain}"]
+ENTRYPOINT ["sh", "-c", "service datadog-agent start && gossamer --chain=${chain} --base-path=${basepath}/${chain} --prometheus-external --prometheus-port=9876 --pprof.enabled --pprof.listening-address=\":6060\""]
 EXPOSE 7001 8546 8540 9876 6060

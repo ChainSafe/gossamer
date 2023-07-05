@@ -30,7 +30,7 @@ const (
 	NetworkStateTimeout = time.Minute
 
 	// the following are sub-protocols used by the node
-	syncID          = "/sync/2"
+	SyncID          = "/sync/2"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
@@ -39,8 +39,7 @@ const (
 )
 
 var (
-	logger   = log.NewFromGlobal(log.AddContext("pkg", "network"))
-	maxReads = 256
+	logger = log.NewFromGlobal(log.AddContext("pkg", "network"))
 
 	peerCountGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_node",
@@ -87,6 +86,13 @@ var (
 		Name:      "outbound_total",
 		Help:      "total number of outbound streams",
 	})
+	processStartTimeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "substrate", // Note: this is using substrate namespace because that is what zombienet uses
+		//  to confirm nodes have started TODO: consider other ways to handle this, see issue #3205
+		Name: "process_start_time_seconds",
+		Help: "gossamer process start seconds unix timestamp, " +
+			"using substrate namespace so zombienet detects node start",
+	})
 )
 
 type (
@@ -110,7 +116,7 @@ type Service struct {
 	bufPool       *sync.Pool
 	streamManager *streamManager
 
-	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
+	notificationsProtocols map[MessageType]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
 
 	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
@@ -133,9 +139,7 @@ type Service struct {
 	telemetryInterval time.Duration
 	closeCh           chan struct{}
 
-	blockResponseBuf   []byte
-	blockResponseBufMu sync.Mutex
-	telemetry          Telemetry
+	telemetry Telemetry
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -178,7 +182,7 @@ func NewService(cfg *Config) (*Service, error) {
 	host, err := newHost(ctx, cfg)
 	if err != nil {
 		cancel()
-		return nil, err
+		return nil, fmt.Errorf("failed to create host: %w", err)
 	}
 
 	bufPool := &sync.Pool{
@@ -208,18 +212,17 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
-		notificationsProtocols: make(map[byte]*notificationsProtocol),
+		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
-		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		telemetry:              cfg.Telemetry,
 		Metrics:                cfg.Metrics,
 	}
 
-	return network, err
+	return network, nil
 }
 
 // SetSyncer sets the Syncer used by the network service
@@ -246,7 +249,7 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
+	s.host.registerStreamHandler(s.host.protocolID+SyncID, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
@@ -333,6 +336,7 @@ func (s *Service) Start() error {
 	logger.Info("started network service with supported protocols " + strings.Join(s.host.protocols(), ", "))
 
 	if s.Metrics.Publish {
+		processStartTimeGauge.Set(float64(time.Now().Unix()))
 		go s.updateMetrics()
 	}
 
@@ -380,7 +384,7 @@ func (s *Service) getTotalStreams(inbound bool) (count int64) {
 	return count
 }
 
-func (s *Service) getNumStreams(protocolID byte, inbound bool) (count int64) {
+func (s *Service) getNumStreams(protocolID MessageType, inbound bool) (count int64) {
 	np, has := s.notificationsProtocols[protocolID]
 	if !has {
 		return 0
@@ -487,7 +491,7 @@ mainloop:
 // messageID is a user-defined message ID for the message passed over this protocol.
 func (s *Service) RegisterNotificationsProtocol(
 	protocolID protocol.ID,
-	messageID byte,
+	messageID MessageType,
 	handshakeGetter HandshakeGetter,
 	handshakeDecoder HandshakeDecoder,
 	handshakeValidator HandshakeValidator,
@@ -569,6 +573,21 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	return errors.New("message not supported by any notifications protocol")
 }
 
+func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
+	maxResponseSize uint64) *RequestResponseProtocol {
+
+	protocolID := s.host.protocolID + protocol.ID(subprotocol)
+	return &RequestResponseProtocol{
+		ctx:             s.ctx,
+		host:            s.host,
+		requestTimeout:  requestTimeout,
+		maxResponseSize: maxResponseSize,
+		protocolID:      protocolID,
+		responseBuf:     make([]byte, maxResponseSize),
+		responseBufMu:   sync.Mutex{},
+	}
+}
+
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
 	return common.Health{
@@ -607,7 +626,7 @@ func (s *Service) Peers() []common.PeerInfo {
 		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
-			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			Role:       peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
 			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
@@ -627,7 +646,7 @@ func (s *Service) RemoveReservedPeers(addrs ...string) error {
 }
 
 // NodeRoles Returns the roles the node is running as.
-func (s *Service) NodeRoles() common.Roles {
+func (s *Service) NodeRoles() common.NetworkRole {
 	return s.cfg.Roles
 }
 

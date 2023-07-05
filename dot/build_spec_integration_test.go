@@ -20,16 +20,16 @@ import (
 const codeHex = "0x3a636f6465"
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	config := DefaultTestWestendDevConfig(t)
+	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 
-	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
+	expected, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 	require.NoError(t, err)
 
-	err = InitNode(cfg)
+	err = InitNode(config)
 	require.NoError(t, err)
 
-	bs, err := BuildFromGenesis(cfg.Init.Genesis, 0)
+	bs, err := BuildFromGenesis(config.ChainSpec, 0)
 	require.NoError(t, err)
 
 	data, err := bs.ToJSONRaw()
@@ -59,15 +59,15 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
-	cfg := NewTestConfig(t)
-	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
-	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
+	config := DefaultTestWestendDevConfig(t)
+	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
+	expected, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 	require.NoError(t, err)
 	// initialise node (initialise state database and load genesis data)
-	err = InitNode(cfg)
+	err = InitNode(config)
 	require.NoError(t, err)
 
-	bs, err := BuildFromDB(cfg.Global.BasePath)
+	bs, err := BuildFromDB(config.BasePath)
 	require.NoError(t, err)
 	res, err := bs.ToJSON()
 	require.NoError(t, err)

@@ -56,5 +56,5 @@ type Context struct {
 	Transaction     TransactionState
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
-	Version         Version
+	Version         *Version
 }

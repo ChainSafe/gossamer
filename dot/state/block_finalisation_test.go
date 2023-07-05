@@ -36,12 +36,14 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	require.Equal(t, uint64(10), round)
 	require.Equal(t, uint64(0), setID)
 
+	// is possible to have a lower round number
+	// in the same set ID: https://github.com/ChainSafe/gossamer/issues/3150
 	err = bs.setHighestRoundAndSetID(9, 0)
 	require.NoError(t, err)
 
 	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
-	require.Equal(t, uint64(10), round)
+	require.Equal(t, uint64(9), round)
 	require.Equal(t, uint64(0), setID)
 
 	err = bs.setHighestRoundAndSetID(0, 1)
@@ -53,7 +55,9 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	require.Equal(t, uint64(1), setID)
 
 	err = bs.setHighestRoundAndSetID(100000, 0)
-	require.NoError(t, err)
+	require.ErrorIs(t, err, errSetIDLowerThanHighest)
+	const expectedErrorMessage = "set id lower than highest: 0 should be greater or equal 1"
+	require.EqualError(t, err, expectedErrorMessage)
 
 	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)

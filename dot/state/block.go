@@ -268,6 +268,60 @@ func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error)
 	return blockHashes, nil
 }
 
+// GetAllDescendants gets all the descendants for a given block hash (including itself), by first checking in memory
+// and, if not found, reading from the block state database.
+func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
+	allDescendants, err := bs.bt.GetAllDescendants(hash)
+	if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
+		return nil, err
+	}
+
+	if err == nil {
+		return allDescendants, nil
+	}
+
+	allDescendants = []common.Hash{hash}
+
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return nil, fmt.Errorf("getting header: %w", err)
+	}
+
+	nextBlockHashes, err := bs.GetHashesByNumber(header.Number + 1)
+	if err != nil {
+		return nil, fmt.Errorf("getting hashes by number: %w", err)
+	}
+
+	for _, nextBlockHash := range nextBlockHashes {
+		nextHeader, err := bs.GetHeader(nextBlockHash)
+		if err != nil {
+			return nil, fmt.Errorf("getting header from block hash %s: %w", nextBlockHash, err)
+		}
+		// next block is not a descendant of the block for the given hash
+		if nextHeader.ParentHash != hash {
+			return []common.Hash{hash}, nil
+		}
+
+		nextDescendants, err := bs.bt.GetAllDescendants(nextBlockHash)
+		if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
+			return nil, fmt.Errorf("getting all descendants: %w", err)
+		}
+		if err == nil {
+			allDescendants = append(allDescendants, nextDescendants...)
+			return allDescendants, nil
+		}
+
+		nextDescendants, err = bs.GetAllDescendants(nextBlockHash)
+		if err != nil {
+			return nil, err
+		}
+
+		allDescendants = append(allDescendants, nextDescendants...)
+	}
+
+	return allDescendants, nil
+}
+
 // GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
 func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
 	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
@@ -275,7 +329,7 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)
 	}
 
-	descendants, err := bs.bt.GetAllDescendants(highestFinalisedHash)
+	descendants, err := bs.GetAllDescendants(highestFinalisedHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get descendants: %w", err)
 	}
@@ -719,9 +773,13 @@ func (bs *BlockState) IsDescendantOf(ancestor, descendant common.Hash) (bool, er
 			return false, fmt.Errorf("getting header: %w", err2)
 		}
 
-		for current := descendantHeader; descendantHeader.Number < ancestorHeader.Number; {
+		for current := descendantHeader; current.Number > ancestorHeader.Number; {
 			if current.ParentHash == ancestor {
 				return true, nil
+			}
+			current, err2 = bs.GetHeader(current.ParentHash)
+			if err2 != nil {
+				return false, fmt.Errorf("getting header: %w", err2)
 			}
 		}
 
@@ -770,20 +828,23 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 
 // HandleRuntimeChanges handles the update in runtime.
 func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	rt Runtime, bHash common.Hash) error {
+	parentRuntimeInstance runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
 		return err
 	}
 
-	codeHash := rt.GetCodeHash()
-	if bytes.Equal(codeHash[:], currCodeHash[:]) {
-		bs.StoreRuntime(bHash, rt)
+	parentCodeHash := parentRuntimeInstance.GetCodeHash()
+
+	// if the parent code hash is the same as the new code hash
+	// we do nothing since we don't want to store duplicate runtimes
+	// for different hashes
+	if bytes.Equal(parentCodeHash[:], currCodeHash[:]) {
 		return nil
 	}
 
 	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...", //nolint:lll
-		bHash, codeHash, currCodeHash)
+		bHash, parentCodeHash, currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
 		return errors.New("new :code is empty")
@@ -798,27 +859,31 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		}
 
 		// only update runtime during code substitution if runtime SpecVersion is updated
-		previousVersion := rt.Version()
+		previousVersion, err := parentRuntimeInstance.Version()
+		if err != nil {
+			return err
+		}
+
 		if previousVersion.SpecVersion == newVersion.SpecVersion {
 			logger.Info("not upgrading runtime code during code substitution")
-			bs.StoreRuntime(bHash, rt)
+			bs.StoreRuntime(bHash, parentRuntimeInstance)
 			return nil
 		}
 
 		logger.Infof(
 			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
-			bHash, codeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
+			bHash, parentCodeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
 
 	rtCfg := wasmer.Config{
 		Storage:     newState,
-		Keystore:    rt.Keystore(),
-		NodeStorage: rt.NodeStorage(),
-		Network:     rt.NetworkService(),
+		Keystore:    parentRuntimeInstance.Keystore(),
+		NodeStorage: parentRuntimeInstance.NodeStorage(),
+		Network:     parentRuntimeInstance.NetworkService(),
 		CodeHash:    currCodeHash,
 	}
 
-	if rt.Validator() {
+	if parentRuntimeInstance.Validator() {
 		rtCfg.Role = 4
 	}
 
@@ -834,18 +899,37 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
-	newVersion := rt.Version()
+	newVersion, err := parentRuntimeInstance.Version()
+	if err != nil {
+		return err
+	}
 	go bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }
 
 // GetRuntime gets the runtime instance pointer for the block hash given.
-func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance Runtime, err error) {
-	return bs.bt.GetBlockRuntime(blockHash)
+func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
+	// we search primarily in the blocktree so we ensure the
+	// fork aware property while searching for a runtime, however
+	// if there is no runtimes in that fork then we look for the
+	// closest ancestor with a runtime instance
+	runtimeInstance, err := bs.bt.GetBlockRuntime(blockHash)
+
+	if err != nil {
+		// in this case the node is not in the blocktree which mean
+		// it is a finalized node already persisted in database
+		if errors.Is(err, blocktree.ErrNodeNotFound) {
+			panic(err.Error() + " see https://github.com/ChainSafe/gossamer/issues/3066")
+		}
+
+		return nil, fmt.Errorf("while getting runtime: %w", err)
+	}
+
+	return runtimeInstance, nil
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bs *BlockState) StoreRuntime(hash common.Hash, rt Runtime) {
+func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 

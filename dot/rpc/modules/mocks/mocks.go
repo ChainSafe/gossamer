@@ -351,10 +351,10 @@ func (mr *MockBlockAPIMockRecorder) GetJustification(arg0 interface{}) *gomock.C
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockAPI) GetRuntime(arg0 common.Hash) (state.Runtime, error) {
+func (m *MockBlockAPI) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", arg0)
-	ret0, _ := ret[0].(state.Runtime)
+	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -494,10 +494,10 @@ func (mr *MockNetworkAPIMockRecorder) NetworkState() *gomock.Call {
 }
 
 // NodeRoles mocks base method.
-func (m *MockNetworkAPI) NodeRoles() common.Roles {
+func (m *MockNetworkAPI) NodeRoles() common.NetworkRole {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NodeRoles")
-	ret0, _ := ret[0].(common.Roles)
+	ret0, _ := ret[0].(common.NetworkRole)
 	return ret0
 }
 
