@@ -25,13 +25,13 @@ func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*networ
 
 func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var (
-		max         uint = network.MaxBlockResponseSize
+		max         uint = network.MaxBlocksInResponse
 		startHash   *common.Hash
 		startNumber uint
 	)
 
 	// determine maximum response size
-	if req.Max != nil && *req.Max < network.MaxBlockResponseSize {
+	if req.Max != nil && *req.Max < network.MaxBlocksInResponse {
 		max = uint(*req.Max)
 	}
 
@@ -102,11 +102,11 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	var (
 		startHash   *common.Hash
 		startNumber uint
-		max         uint = network.MaxBlockResponseSize
+		max         uint = network.MaxBlocksInResponse
 	)
 
 	// determine maximum response size
-	if req.Max != nil && *req.Max < network.MaxBlockResponseSize {
+	if req.Max != nil && *req.Max < network.MaxBlocksInResponse {
 		max = uint(*req.Max)
 	}
 

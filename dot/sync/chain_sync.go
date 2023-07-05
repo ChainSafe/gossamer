@@ -49,7 +49,7 @@ func (s chainSyncState) String() string {
 }
 
 var (
-	pendingBlocksLimit = network.MaxBlockResponseSize * 32
+	pendingBlocksLimit = network.MaxBlocksInResponse * 32
 	isSyncedGauge      = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_syncer",
 		Name:      "is_synced",
@@ -124,11 +124,13 @@ type chainSync struct {
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
 	badBlocks          []string
+	requestMaker       network.RequestMaker
 }
 
 type chainSyncConfig struct {
 	bs                 BlockState
 	net                Network
+	requestMaker       network.RequestMaker
 	pendingBlocks      DisjointBlockSet
 	minPeers, maxPeers int
 	slotDuration       time.Duration
@@ -160,8 +162,9 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		finalisedCh:        cfg.bs.GetFinalisedNotifierChannel(),
 		minPeers:           cfg.minPeers,
 		slotDuration:       cfg.slotDuration,
-		workerPool:         newSyncWorkerPool(cfg.net),
+		workerPool:         newSyncWorkerPool(cfg.net, cfg.requestMaker),
 		badBlocks:          cfg.badBlocks,
+		requestMaker:       cfg.requestMaker,
 	}
 }
 
@@ -211,7 +214,7 @@ func (cs *chainSync) isFarFromTarget() (bool, error) {
 	}
 
 	bestBlockNumber := bestBlockHeader.Number
-	isFarFromTarget := bestBlockNumber+network.MaxBlockResponseSize < syncTarget
+	isFarFromTarget := bestBlockNumber+network.MaxBlocksInResponse < syncTarget
 	return isFarFromTarget, nil
 }
 

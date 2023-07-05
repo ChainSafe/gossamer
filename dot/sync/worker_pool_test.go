@@ -31,7 +31,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 					AllConnectedPeersID().
 					Return([]peer.ID{})
 
-				return newSyncWorkerPool(networkMock)
+				return newSyncWorkerPool(networkMock, nil)
 			},
 			expectedPool: make(map[peer.ID]*peerSyncWorker),
 		},
@@ -46,7 +46,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 						peer.ID("available-2"),
 						peer.ID("available-3"),
 					})
-				return newSyncWorkerPool(networkMock)
+				return newSyncWorkerPool(networkMock, nil)
 			},
 			expectedPool: map[peer.ID]*peerSyncWorker{
 				peer.ID("available-1"): {status: available},
@@ -65,7 +65,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 						peer.ID("available-2"),
 						peer.ID("available-3"),
 					})
-				workerPool := newSyncWorkerPool(networkMock)
+				workerPool := newSyncWorkerPool(networkMock, nil)
 				workerPool.ignorePeers[peer.ID("available-3")] = struct{}{}
 				return workerPool
 			},
@@ -85,7 +85,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 						peer.ID("available-2"),
 						peer.ID("available-3"),
 					})
-				workerPool := newSyncWorkerPool(networkMock)
+				workerPool := newSyncWorkerPool(networkMock, nil)
 				workerPool.workers[peer.ID("available-3")] = &peerSyncWorker{
 					status: punished,
 					//arbitrary unix value
@@ -113,7 +113,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 						peer.ID("available-2"),
 						peer.ID("available-3"),
 					})
-				workerPool := newSyncWorkerPool(networkMock)
+				workerPool := newSyncWorkerPool(networkMock, nil)
 				workerPool.workers[peer.ID("available-3")] = &peerSyncWorker{
 					status:         punished,
 					punishmentTime: stablePunishmentTime,
@@ -156,7 +156,7 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 		"very_fist_entry": {
 			peerID: peer.ID("peer-1"),
 			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-				return newSyncWorkerPool(nil)
+				return newSyncWorkerPool(nil, nil)
 			},
 			expectedPool: map[peer.ID]*peerSyncWorker{
 				peer.ID("peer-1"): {status: available},
@@ -165,7 +165,7 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 		"peer_to_ignore": {
 			peerID: peer.ID("to-ignore"),
 			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-				workerPool := newSyncWorkerPool(nil)
+				workerPool := newSyncWorkerPool(nil, nil)
 				workerPool.ignorePeers[peer.ID("to-ignore")] = struct{}{}
 				return workerPool
 			},
@@ -174,7 +174,7 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 		"peer_punishment_not_valid_anymore": {
 			peerID: peer.ID("free-again"),
 			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-				workerPool := newSyncWorkerPool(nil)
+				workerPool := newSyncWorkerPool(nil, nil)
 				workerPool.workers[peer.ID("free-again")] = &peerSyncWorker{
 					status: punished,
 					//arbitrary unix value
@@ -193,7 +193,7 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 			peerID: peer.ID("peer_punished"),
 			setupWorkerPool: func(*testing.T) *syncWorkerPool {
 
-				workerPool := newSyncWorkerPool(nil)
+				workerPool := newSyncWorkerPool(nil, nil)
 				workerPool.workers[peer.ID("peer_punished")] = &peerSyncWorker{
 					status:         punished,
 					punishmentTime: stablePunishmentTime,
@@ -227,7 +227,8 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	networkMock := NewMockNetwork(ctrl)
-	workerPool := newSyncWorkerPool(networkMock)
+	requestMakerMock := NewMockRequestMaker(ctrl)
+	workerPool := newSyncWorkerPool(networkMock, requestMakerMock)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -252,11 +253,13 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 
 	// introduce a timeout of 5s then we can test the
 	// peer status change to busy
-	networkMock.EXPECT().
-		DoBlockRequest(availablePeer, blockRequest).
-		DoAndReturn(func(any, any) (any, any) {
+	requestMakerMock.EXPECT().
+		Do(availablePeer, blockRequest, &network.BlockResponseMessage{}).
+		DoAndReturn(func(_, _, response any) any {
 			time.Sleep(5 * time.Second)
-			return mockedBlockResponse, nil
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *mockedBlockResponse
+			return nil
 		})
 
 	resultCh := make(chan *syncTaskResult)
@@ -284,7 +287,8 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	networkMock := NewMockNetwork(ctrl)
-	workerPool := newSyncWorkerPool(networkMock)
+	requestMakerMock := NewMockRequestMaker(ctrl)
+	workerPool := newSyncWorkerPool(networkMock, requestMakerMock)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -325,17 +329,21 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 
 	// introduce a timeout of 5s then we can test the
 	// then we can simulate a busy peer
-	networkMock.EXPECT().
-		DoBlockRequest(availablePeer, firstBlockRequest).
-		DoAndReturn(func(any, any) (any, any) {
+	requestMakerMock.EXPECT().
+		Do(availablePeer, firstBlockRequest, &network.BlockResponseMessage{}).
+		DoAndReturn(func(_, _, response any) any {
 			time.Sleep(5 * time.Second)
-			return firstMockedBlockResponse, nil
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *firstMockedBlockResponse
+			return nil
 		})
 
-	networkMock.EXPECT().
-		DoBlockRequest(availablePeer, secondBlockRequest).
-		DoAndReturn(func(any, any) (any, any) {
-			return secondMockedBlockResponse, nil
+	requestMakerMock.EXPECT().
+		Do(availablePeer, firstBlockRequest, &network.BlockResponseMessage{}).
+		DoAndReturn(func(_, _, response any) any {
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *secondMockedBlockResponse
+			return nil
 		})
 
 	resultCh := make(chan *syncTaskResult)

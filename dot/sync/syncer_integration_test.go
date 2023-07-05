@@ -116,6 +116,7 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.FinalityGadget = mockFinalityGadget
 	cfg.Network = NewMockNetwork(ctrl)
 	cfg.Telemetry = mockTelemetryClient
+	cfg.RequestMaker = NewMockRequestMaker(ctrl)
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer

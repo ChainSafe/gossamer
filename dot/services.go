@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
@@ -476,6 +477,13 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
 	}
+
+	const blockRequestTimeout = time.Second * 20
+	requestMaker := net.GetRequestResponseProtocol(
+		network.SyncID,
+		blockRequestTimeout,
+		network.MaxBlockResponseSize)
+
 	syncCfg := &sync.Config{
 		LogLvl:             syncLogLevel,
 		Network:            net,
@@ -490,6 +498,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		SlotDuration:       slotDuration,
 		Telemetry:          telemetryMailer,
 		BadBlocks:          genesisData.BadBlocks,
+		RequestMaker:       requestMaker,
 	}
 
 	return sync.NewService(syncCfg)

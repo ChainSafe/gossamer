@@ -30,7 +30,7 @@ const (
 	NetworkStateTimeout = time.Minute
 
 	// the following are sub-protocols used by the node
-	syncID          = "/sync/2"
+	SyncID          = "/sync/2"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
@@ -139,9 +139,7 @@ type Service struct {
 	telemetryInterval time.Duration
 	closeCh           chan struct{}
 
-	blockResponseBuf   []byte
-	blockResponseBufMu sync.Mutex
-	telemetry          Telemetry
+	telemetry Telemetry
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -220,12 +218,11 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
-		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 		telemetry:              cfg.Telemetry,
 		Metrics:                cfg.Metrics,
 	}
 
-	return network, err
+	return network, nil
 }
 
 // SetSyncer sets the Syncer used by the network service
@@ -252,7 +249,7 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
+	s.host.registerStreamHandler(s.host.protocolID+SyncID, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
@@ -574,6 +571,21 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	}
 
 	return errors.New("message not supported by any notifications protocol")
+}
+
+func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
+	maxResponseSize uint64) *RequestResponseProtocol {
+
+	protocolID := s.host.protocolID + protocol.ID(subprotocol)
+	return &RequestResponseProtocol{
+		ctx:             s.ctx,
+		host:            s.host,
+		requestTimeout:  requestTimeout,
+		maxResponseSize: maxResponseSize,
+		protocolID:      protocolID,
+		responseBuf:     make([]byte, maxResponseSize),
+		responseBufMu:   sync.Mutex{},
+	}
 }
 
 // Health returns information about host needed for the rpc server

@@ -18,7 +18,7 @@ import (
 )
 
 // maxResponseSize is maximum number of block data a BlockResponse message can contain
-const MaxBlockResponseSize = 128
+const MaxBlocksInResponse = 128
 
 type MessageType byte
 
@@ -52,7 +52,7 @@ const (
 		RequestedDataJustification
 )
 
-var _ Message = &BlockRequestMessage{}
+var _ Message = (*BlockRequestMessage)(nil)
 
 // SyncDirection is the direction of data in a block response
 type SyncDirection byte
@@ -173,7 +173,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	return nil
 }
 
-var _ Message = &BlockResponseMessage{}
+var _ ResponseMessage = (*BlockResponseMessage)(nil)
 
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
@@ -402,14 +402,14 @@ func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte
 		}
 	}
 
-	numRequests := diff / MaxBlockResponseSize
+	numRequests := diff / MaxBlocksInResponse
 	// we should check if the diff is in the maxResponseSize bounds
 	// otherwise we should increase the numRequests by one, take this
 	// example, we want to sync from 0 to 259, the diff is 259
 	// then the num of requests is 2 (uint(259)/uint(128)) however two requests will
 	// retrieve only 256 blocks (each request can retrieve a max of 128 blocks), so we should
 	// create one more request to retrieve those missing blocks, 3 in this example.
-	missingBlocks := diff % MaxBlockResponseSize
+	missingBlocks := diff % MaxBlocksInResponse
 	if missingBlocks != 0 {
 		numRequests++
 	}

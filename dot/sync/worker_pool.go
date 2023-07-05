@@ -47,19 +47,21 @@ type syncWorkerPool struct {
 	doneCh        chan struct{}
 	availableCond *sync.Cond
 
-	network     Network
-	taskQueue   chan *syncTask
-	workers     map[peer.ID]*peerSyncWorker
-	ignorePeers map[peer.ID]struct{}
+	network      Network
+	requestMaker network.RequestMaker
+	taskQueue    chan *syncTask
+	workers      map[peer.ID]*peerSyncWorker
+	ignorePeers  map[peer.ID]struct{}
 }
 
-func newSyncWorkerPool(net Network) *syncWorkerPool {
+func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWorkerPool {
 	swp := &syncWorkerPool{
-		network:     net,
-		doneCh:      make(chan struct{}),
-		workers:     make(map[peer.ID]*peerSyncWorker),
-		taskQueue:   make(chan *syncTask, maxRequestsAllowed+1),
-		ignorePeers: make(map[peer.ID]struct{}),
+		network:      net,
+		requestMaker: requestMaker,
+		doneCh:       make(chan struct{}),
+		workers:      make(map[peer.ID]*peerSyncWorker),
+		taskQueue:    make(chan *syncTask, maxRequestsAllowed+1),
+		ignorePeers:  make(map[peer.ID]struct{}),
 	}
 
 	swp.availableCond = sync.NewCond(&swp.mtx)
@@ -263,7 +265,8 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	request := task.request
 
 	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
-	response, err := s.network.DoBlockRequest(who, request)
+	response := new(network.BlockResponseMessage)
+	err := s.requestMaker.Do(who, request, response)
 	if err != nil {
 		logger.Debugf("[FINISHED] worker %s, err: %s", who, err)
 	} else if response != nil {

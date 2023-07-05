@@ -8,3 +8,4 @@ package sync
 //go:generate mockgen -destination=mock_runtime_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
 //go:generate mockgen -destination=mock_chain_sync_test.go -package $GOPACKAGE -source chain_sync.go . ChainSync
 //go:generate mockgen -destination=mock_disjoint_block_set_test.go -package=$GOPACKAGE . DisjointBlockSet
+//go:generate mockgen -destination=mock_request.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network RequestMaker

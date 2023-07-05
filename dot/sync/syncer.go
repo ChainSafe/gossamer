@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -41,6 +40,7 @@ type Config struct {
 	SlotDuration       time.Duration
 	Telemetry          Telemetry
 	BadBlocks          []string
+	RequestMaker       network.RequestMaker
 }
 
 // NewService returns a new *sync.Service
@@ -63,6 +63,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockImportHandler: cfg.BlockImportHandler,
 		telemetry:          cfg.Telemetry,
 		badBlocks:          cfg.BadBlocks,
+		requestMaker:       cfg.RequestMaker,
 	}
 	chainSync := newChainSync(csCfg)
 
@@ -110,12 +111,8 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 		// as we already have that block
 		// TODO: check what happens when get hash by number returns nothing or ErrNotExists
 		ourHash, err := s.blockState.GetHashByNumber(blockAnnounceHeader.Number)
-		if err != nil {
-			if errors.Is(err, chaindb.ErrKeyNotFound) {
-				ourHash = common.Hash{}
-			} else {
-				return fmt.Errorf("get block hash by number: %w", err)
-			}
+		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+			return fmt.Errorf("get block hash by number: %w", err)
 		}
 
 		if ourHash == blockAnnounceHeaderHash {
