@@ -1,11 +1,13 @@
 package parachain
 
 import (
+	"sync"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/emirpasic/gods/sets/treeset"
 	"golang.org/x/exp/maps"
-	"sync"
 )
 
 // MaxSpamVotes is the maximum number of spam votes a validator can have for a particular session
@@ -97,7 +99,9 @@ func (s *SpamSlotsHandler) incrementSpamCount(session parachain.SessionIndex, va
 	s.slots[newSlotsKey(session, validator)]++
 }
 
-func (s *SpamSlotsHandler) AddUnconfirmed(session parachain.SessionIndex, candidate common.Hash, validator parachain.ValidatorIndex) bool {
+func (s *SpamSlotsHandler) AddUnconfirmed(session parachain.SessionIndex,
+	candidate common.Hash,
+	validator parachain.ValidatorIndex) bool {
 	if spamCount, _ := s.getSpamCount(session, validator); spamCount >= s.maxSpamVotes {
 		return false
 	}
@@ -183,7 +187,9 @@ func NewSpamSlotsFromState(unconfirmedDisputes map[unconfirmedKey]*treeset.Set, 
 			key := newSlotsKey(k.session, parachain.ValidatorIndex(validator))
 			slots[key]++
 			if slots[key] > maxSpamVotes {
-				// TODO: log this after we have a logger
+				// TODO: improve this after we have a logger for dispute coordinator
+				log.Errorf("Spam count for validator %d in session %d is greater than max spam votes %d",
+					validator, k.session, maxSpamVotes)
 			}
 		}
 	}

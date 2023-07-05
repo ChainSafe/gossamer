@@ -1,12 +1,13 @@
 package parachain
 
 import (
+	"sync"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/stretchr/testify/require"
-	"sync"
-	"testing"
 )
 
 func TestSpamSlots_AddUnconfirmed(t *testing.T) {
