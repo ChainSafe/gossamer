@@ -5,12 +5,7 @@ package blocktree
 
 import (
 	"bytes"
-	crand "crypto/rand"
 	"fmt"
-<<<<<<< HEAD
-	"math/big"
-=======
->>>>>>> development
 	"testing"
 	"time"
 
