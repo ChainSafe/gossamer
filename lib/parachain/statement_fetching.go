@@ -7,7 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Request for fetching a large statement via request/response.
+// StatementFetchingRequest represents a request for fetching a large statement via request/response.
 type StatementFetchingRequest struct {
 	// Data needed to locate and identify the needed statement.
 	RelayParent common.Hash `scale:"1"`
