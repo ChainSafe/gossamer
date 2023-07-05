@@ -22,7 +22,7 @@ grandpa = "trace | debug | info | warn | error | crit"
 ```
 
 ## Logging Global Flags
-```--log value        Supports levels crit (silent) to trce (trace) (default: "info")```
+```--log global=value        Supports levels crit (silent) to trce (trace) (default: "info")```
 
 ## Running node with log level as `DEBUG`
-```./bin/gossamer --config chain/gssmr/config.toml --log debug```
+```./bin/gossamer --config chain/gssmr/config.toml --log global=debug```
