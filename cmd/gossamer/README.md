@@ -75,7 +75,13 @@ Here are the list of basic flags for the `gossamer` command:
 --key: The keypair to use for the node.
 --name: The name of the node.
 --id: The id of the node.
---log-level: The global log level. Supported levels are `crit`, `error`, `warn`, `info`, `debug` and `trace`.
+--log:  Set a logging filter.
+	    Syntax is a list of 'module=logLevel' (comma separated)
+	    e.g. --log sync=debug,core=trace
+	    Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa, wasmer.
+	    Log levels (least to most verbose) are error, warn, info, debug, and trace.
+	    By default, all modules log 'info'.
+	    The global log level can be set with --log global=debug
 --prometheus-port: The port to expose prometheus metrics.
 --retain-blocks: retain number of block from latest block while pruning
 --pruning: The pruning strategy to use. Supported strategiey: `archive`
