@@ -426,7 +426,7 @@ func TestDecodeConsensusMessage(t *testing.T) {
 func TestAscendingBlockRequest(t *testing.T) {
 	one := uint32(1)
 	three := uint32(3)
-	maxResponseSize := uint32(MaxBlockResponseSize)
+	maxResponseSize := uint32(MaxBlocksInResponse)
 	cases := map[string]struct {
 		startNumber, targetNumber   uint
 		expectedBlockRequestMessage []*BlockRequestMessage
@@ -537,7 +537,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 
 		t.Run(tname, func(t *testing.T) {
 			requests := NewAscedingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
-			require.Equal(t, requests, tt.expectedBlockRequestMessage)
+			require.Equal(t, tt.expectedBlockRequestMessage, requests)
 		})
 	}
 }
