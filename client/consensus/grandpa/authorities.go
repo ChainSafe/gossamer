@@ -20,6 +20,33 @@ var (
 
 ////// TODO Shared Authority Set //////
 
+// IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
+type IsDescendentOf[H comparable] func(h1, h2 H) (bool, error)
+
+// authorityChange represents the set id and block number of an authority set hashNumber
+type authorityChange[N constraints.Unsigned] struct {
+	setId       uint64
+	blockNumber N
+}
+
+// generic representation of hash and number tuple
+type hashNumber[H comparable, N constraints.Unsigned] struct {
+	hash   H
+	number N
+}
+
+// key is used to represent a tuple ordered first by effective number and then by signal-block number
+type key[N constraints.Unsigned] struct {
+	effectiveNumber   N
+	signalBlockNumber N
+}
+
+// appliedChanges represents the median and new set when a forced hashNumber has occured
+type appliedChanges[H comparable, N constraints.Unsigned] struct {
+	median N
+	set    AuthoritySet[H, N]
+}
+
 // Status of the set after changes were applied.
 type Status[H comparable, N constraints.Unsigned] struct {
 	// Whether internal changes were made.
@@ -55,7 +82,7 @@ type AuthoritySet[H comparable, N constraints.Unsigned] struct {
 }
 
 // InvalidAuthorityList authority sets must be non-empty and all weights must be greater than 0
-func (authSet *AuthoritySet[H, N]) InvalidAuthorityList(authorities AuthorityList) bool {
+func InvalidAuthorityList(authorities AuthorityList) bool {
 	if len(authorities) == 0 {
 		return true
 	}
@@ -70,7 +97,7 @@ func (authSet *AuthoritySet[H, N]) InvalidAuthorityList(authorities AuthorityLis
 
 // NewGenesisAuthoritySet Get a genesis set with given authorities.
 func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](initial AuthorityList) (authSet *AuthoritySet[H, N]) {
-	if authSet.InvalidAuthorityList(initial) {
+	if InvalidAuthorityList(initial) {
 		return nil
 	}
 
@@ -90,7 +117,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](authorities Authority
 	pendingForcedChanges []PendingChange[H, N],
 	authoritySetChanges AuthoritySetChanges[N],
 ) (authSet *AuthoritySet[H, N]) {
-	if authSet.InvalidAuthorityList(authorities) {
+	if InvalidAuthorityList(authorities) {
 		return nil
 	}
 
@@ -240,7 +267,7 @@ func (authSet *AuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], 
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 func (authSet *AuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], isDescendentOf IsDescendentOf[H]) error {
-	if authSet.InvalidAuthorityList(pending.nextAuthorities) {
+	if InvalidAuthorityList(pending.nextAuthorities) {
 		return errInvalidAuthoritySet
 	}
 
@@ -579,33 +606,4 @@ func (asc *AuthoritySetChanges[N]) iterFrom(blockNumber N) *AuthoritySetChanges[
 
 	iterChanges := authSet[idx:]
 	return &iterChanges
-}
-
-////// Additional types //////
-
-// IsDescendentOf is a type to represent the function signature of a IsDescendentOf function
-type IsDescendentOf[H comparable] func(h1, h2 H) (bool, error)
-
-// authorityChange represents the set id and block number of an authority set hashNumber
-type authorityChange[N constraints.Unsigned] struct {
-	setId       uint64
-	blockNumber N
-}
-
-// generic representation of hash and number tuple
-type hashNumber[H comparable, N constraints.Unsigned] struct {
-	hash   H
-	number N
-}
-
-// key is used to represent a tuple ordered first by effective number and then by signal-block number
-type key[N constraints.Unsigned] struct {
-	effectiveNumber   N
-	signalBlockNumber N
-}
-
-// appliedChanges represents the median and new set when a forced hashNumber has occured
-type appliedChanges[H comparable, N constraints.Unsigned] struct {
-	median N
-	set    AuthoritySet[H, N]
 }

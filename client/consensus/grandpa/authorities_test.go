@@ -1304,8 +1304,7 @@ func TestIterFromWorks(t *testing.T) {
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
-		authorities  AuthorityList
-		authoritySet AuthoritySet[Hash, uint]
+		authorities AuthorityList
 	}
 	tests := []struct {
 		name string
@@ -1315,16 +1314,14 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 		{
 			name: "nil authorities",
 			args: args{
-				authorities:  nil,
-				authoritySet: AuthoritySet[Hash, uint]{},
+				authorities: nil,
 			},
 			exp: true,
 		},
 		{
 			name: "empty authorities",
 			args: args{
-				authorities:  AuthorityList{},
-				authoritySet: AuthoritySet[Hash, uint]{},
+				authorities: AuthorityList{},
 			},
 			exp: true,
 		},
@@ -1336,7 +1333,6 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 						Weight: 0,
 					},
 				},
-				authoritySet: AuthoritySet[Hash, uint]{},
 			},
 			exp: true,
 		},
@@ -1348,13 +1344,12 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 						Weight: 1,
 					},
 				},
-				authoritySet: AuthoritySet[Hash, uint]{},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.args.authoritySet.InvalidAuthorityList(tt.args.authorities); got != tt.exp {
+			if got := InvalidAuthorityList(tt.args.authorities); got != tt.exp {
 				t.Errorf("InvalidAuthorityList() = %v, want %v", got, tt.exp)
 			}
 		})
