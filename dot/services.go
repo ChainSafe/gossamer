@@ -456,7 +456,7 @@ func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, k
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
-	return babe.NewVerificationManager(st.Block, st.Epoch)
+	return babe.NewVerificationManager(st.Block, st.Slot, st.Epoch)
 }
 
 func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
