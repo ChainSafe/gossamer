@@ -343,7 +343,10 @@ func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 		return cs.requestForkBlocks(bestBlockHeader, highestFinalizedHeader, announce.header, announce.who)
 	}
 
-	cs.requestChainBlocks(announce.header, bestBlockHeader, peerWhoAnnounced)
+	err = cs.requestChainBlocks(announce.header, bestBlockHeader, peerWhoAnnounced)
+	if err != nil {
+		return fmt.Errorf("requesting chain blocks: %w", err)
+	}
 
 	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
 	if err != nil {
@@ -358,14 +361,16 @@ func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 	return nil
 }
 
-func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.Header, peerWhoAnnounced peer.ID) error {
+func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.Header,
+	peerWhoAnnounced peer.ID) error {
 	gapLength := uint32(announcedHeader.Number - bestBlockHeader.Number)
 	startAtBlock := announcedHeader.Number
 	totalBlocks := uint32(1)
 
 	var request *network.BlockRequestMessage
 	if gapLength > 1 {
-		request = network.NewDescendingBlockRequest(announcedHeader.Hash(), gapLength, network.BootstrapRequestData)
+		request = network.NewDescendingBlockRequest(announcedHeader.Hash(), gapLength,
+			network.BootstrapRequestData)
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 

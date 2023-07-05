@@ -267,11 +267,7 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
 	response := new(network.BlockResponseMessage)
 	err := s.requestMaker.Do(who, request, response)
-	if err != nil {
-		logger.Debugf("[FINISHED] worker %s, err: %s", who, err)
-	} else if response != nil {
-		logger.Debugf("[FINISHED] worker %s, block data amount: %d", who, len(response.BlockData))
-	}
+	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
 
 	s.mtx.Lock()
 	peerSync, has := s.workers[who]
