@@ -85,7 +85,7 @@ type NoSuchData struct{}
 
 // Index returns the index of varying data type
 func (NoSuchData) Index() uint {
-	return 0
+	return 1
 }
 
 // Encode returns the SCALE encoding of the AvailableDataFetchingResponse
