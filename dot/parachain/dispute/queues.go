@@ -123,8 +123,8 @@ type QueueHandler struct {
 	bestEffort *btree.BTree
 	priority   *btree.BTree
 
-	bestEffortLock sync.Mutex
-	priorityLock   sync.Mutex
+	bestEffortLock sync.RWMutex
+	priorityLock   sync.RWMutex
 
 	bestEffortMaxSize int
 	priorityMaxSize   int
@@ -212,13 +212,17 @@ func (q *QueueHandler) PopPriority() *ParticipationItem {
 
 func (q *QueueHandler) Len(queueType ParticipationPriority) int {
 	if queueType.IsPriority() {
+		q.priorityLock.RLock()
+		defer q.priorityLock.RUnlock()
 		return q.priority.Len()
 	}
 
+	q.bestEffortLock.RLock()
+	defer q.bestEffortLock.RUnlock()
 	return q.bestEffort.Len()
 }
 
-var _ Queue = &QueueHandler{}
+var _ Queue = (*QueueHandler)(nil)
 
 func NewQueue() *QueueHandler {
 	return &QueueHandler{
