@@ -1,7 +1,6 @@
 package parachain
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -18,7 +17,6 @@ func TestEncodePoVFetchingRequest(t *testing.T) {
 	require.NoError(t, err)
 
 	expextedEncode := common.MustHexToBytes("0x0606060606060606060606060606060606060606060606060606060606060606")
-	fmt.Printf("encode: 0x%x", expextedEncode)
 	require.Equal(t, expextedEncode, actualEncode)
 
 }
