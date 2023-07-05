@@ -58,6 +58,10 @@ func (AvailableData) Index() uint {
 	return 0
 }
 
+// PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
+// It contains the necessary data for the parachain specific state transition logic.
+type PoV []byte
+
 // PersistedValidationData provides information about how to create the inputs for the validation
 // of a candidate by calling the Runtime.
 // This information is derived from the parachain state and will vary from parachain to parachain,
