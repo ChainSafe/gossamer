@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 type BlockImportDigestHandler interface {

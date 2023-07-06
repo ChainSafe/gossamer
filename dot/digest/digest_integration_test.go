@@ -50,7 +50,7 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 
-	blockImportHandler := NewBlockImportHandler(stateSrvc.Epoch, stateSrvc.Grandpa)
+	blockImportHandler := NewBlockImportHandler(stateSrvc.Epoch)
 	return dh, blockImportHandler, stateSrvc
 }
 
@@ -255,7 +255,6 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 				grandpaState.EXPECT().HandleGRANDPADigest(header, expected).Return(nil)
 			}
 
-			blockImportHandler.grandpaState = grandpaState
 			err := blockImportHandler.handleDigests(header)
 			require.NoError(t, err)
 		})
