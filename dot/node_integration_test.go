@@ -57,7 +57,6 @@ func TestNewNode(t *testing.T) {
 	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
 	initConfig.Core.WasmInterpreter = wasmer.Name
-
 	initConfig.Log.Digest = "critical"
 
 	networkConfig := &network.Config{
@@ -86,7 +85,7 @@ func TestNewNode(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockServiceRegistry := NewMockServiceRegisterer(ctrl)
-	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
+	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(9)
 
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
