@@ -1165,6 +1165,95 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	require.True(t, ok)
 }
 
+func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, 0, types.NewDigest())
+
+	mockNetwork := NewMockNetwork(ctrl)
+	mockRequestMaker := NewMockRequestMaker(ctrl)
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockStorageState := NewMockStorageState(ctrl)
+	mockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockTelemetry := NewMockTelemetry(ctrl)
+
+	// create a set of 128 blocks
+	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 128)
+	const announceBlock = false
+
+	// the worker will return a partial size of the set
+	worker1Response := &network.BlockResponseMessage{
+		BlockData: blockResponse.BlockData[:97],
+	}
+
+	// the first peer will respond the from the block 1 to 96 so the ensureBlockImportFlow
+	// will setup the expectations starting from the genesis header until block 96
+	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
+
+	worker1MissingBlocksResponse := &network.BlockResponseMessage{
+		BlockData: blockResponse.BlockData[97:],
+	}
+
+	// last item from the previous response
+	parent := worker1Response.BlockData[96]
+	ensureSuccessfulBlockImportFlow(t, parent.Header, worker1MissingBlocksResponse.BlockData, mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
+
+	doBlockRequestCount := 0
+	mockRequestMaker.EXPECT().
+		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		DoAndReturn(func(peerID, _, response any) any {
+			// lets ensure that the DoBlockRequest is called by
+			// peer.ID(alice). The first call will return only 97 blocks
+			// the handler should issue another call to retrieve the missing blocks
+			pID := peerID.(peer.ID) // cast to peer ID
+			require.Equalf(t, pID, peer.ID("alice"),
+				"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
+
+			responsePtr := response.(*network.BlockResponseMessage)
+			defer func() { doBlockRequestCount++ }()
+
+			if doBlockRequestCount == 0 {
+				*responsePtr = *worker1Response
+				return nil
+			}
+
+			*responsePtr = *worker1MissingBlocksResponse
+			return nil
+		}).Times(2)
+
+	const blocksAhead = 256
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
+		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
+		mockStorageState, mockImportHandler, mockTelemetry)
+
+	target, err := cs.getTarget()
+	require.NoError(t, err)
+	require.Equal(t, uint(blocksAhead), target)
+
+	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
+
+	stopCh := make(chan struct{})
+	go cs.workerPool.listenForRequests(stopCh)
+
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	require.NoError(t, err)
+
+	close(stopCh)
+	<-cs.workerPool.doneCh
+
+	require.Len(t, cs.workerPool.workers, 1)
+
+	_, ok := cs.workerPool.workers[peer.ID("alice")]
+	require.True(t, ok)
+}
+
 func createSuccesfullBlockResponse(_ *testing.T, genesisHash common.Hash,
 	startingAt, numBlocks int) *network.BlockResponseMessage {
 	response := new(network.BlockResponseMessage)

@@ -388,6 +388,7 @@ func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte
 	}
 
 	diff := targetNumber - startNumber
+	fmt.Printf("target number: %d, start number: %d = %d\n", targetNumber, startNumber, diff)
 
 	// start and end block are the same, just request 1 block
 	if diff == 0 {

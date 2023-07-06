@@ -534,12 +534,17 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	requests := network.NewAscedingBlockRequests(startRequestAt, targetBlockNumber,
 		network.BootstrapRequestData)
 
+	fmt.Printf("===> amount of requests: %d\n", len(requests))
+
 	var expectedAmountOfBlocks uint32
 	for _, request := range requests {
 		if request.Max != nil {
+			fmt.Printf("===> request max: %d\n", *request.Max)
 			expectedAmountOfBlocks += *request.Max
 		}
 	}
+
+	fmt.Printf("===> expected amount of blocks: %d\n", expectedAmountOfBlocks)
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequests(requests, resultsQueue)
