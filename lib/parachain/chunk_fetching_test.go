@@ -10,20 +10,23 @@ import (
 
 func TestEncodeChunkFetchingRequest(t *testing.T) {
 	chunkFetchingRequest := ChunkFetchingRequest{
-		CandidateHash: CandidateHash{getDummyHash(4)},
-		Index:         ValidatorIndex(8),
+		CandidateHash: CandidateHash{
+			common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
+		},
+		Index: ValidatorIndex(8),
 	}
 
 	actualEncode, err := chunkFetchingRequest.Encode()
 	require.NoError(t, err)
 
-	expextedEncode := common.MustHexToBytes("0x040404040404040404040404040404040404040404040404040404040404040408000000")
+	expextedEncode := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c1908000000")
 	require.Equal(t, expextedEncode, actualEncode)
 }
 
 func TestChunkFetchingResponse(t *testing.T) {
 	t.Parallel()
 
+	testBytes := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 	testCases := []struct {
 		name        string
 		value       scale.VaryingDataTypeValue
@@ -32,10 +35,10 @@ func TestChunkFetchingResponse(t *testing.T) {
 		{
 			name: "chunkResponse",
 			value: ChunkResponse{
-				Chunk: getDummyHash(9).ToBytes(),
-				Proof: [][]byte{getDummyHash(3).ToBytes()},
+				Chunk: testBytes,
+				Proof: [][]byte{testBytes},
 			},
-			encodeValue: common.MustHexToBytes("0x0080090909090909090909090909090909090909090909090909090909090909090904800303030303030303030303030303030303030303030303030303030303030303"), //nolint:lll
+			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c190480677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"), //nolint:lll
 		},
 		{
 			name:        "NoSuchChunk",
