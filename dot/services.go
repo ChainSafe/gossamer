@@ -277,6 +277,7 @@ func (nodeBuilder) createCoreService(config *cfg.Config, ks *keystore.GlobalKeys
 		CodeSubstitutes:      codeSubs,
 		CodeSubstitutedState: st.Base,
 		OnBlockImport:        digest.NewBlockImportHandler(st.Epoch, st.Grandpa),
+		GrandpaState:         st.Grandpa,
 	}
 
 	// create new core service
