@@ -22,7 +22,6 @@ var (
 	// chainSync errors
 	errEmptyBlockData               = errors.New("empty block data")
 	errNilBlockData                 = errors.New("block data is nil")
-	errNilResponse                  = errors.New("block response is nil")
 	errNilHeaderInResponse          = errors.New("expected header, received none")
 	errNilBodyInResponse            = errors.New("expected body, received none")
 	errNoPeers                      = errors.New("no peers to sync with")

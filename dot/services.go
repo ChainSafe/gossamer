@@ -457,7 +457,7 @@ func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, k
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
-	return babe.NewVerificationManager(st.Block, st.Epoch)
+	return babe.NewVerificationManager(st.Block, st.Slot, st.Epoch)
 }
 
 func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
@@ -493,7 +493,10 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		BadBlocks:          genesisData.BadBlocks,
 	}
 
-	return sync.NewService(syncCfg)
+	blockReqRes := net.GetRequestResponseProtocol(network.SyncID, network.BlockRequestTimeout,
+		network.MaxBlockResponseSize)
+
+	return sync.NewService(syncCfg, blockReqRes)
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {

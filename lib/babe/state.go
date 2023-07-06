@@ -14,6 +14,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+type SlotState interface {
+	CheckEquivocation(slotNow, slot uint64, header *types.Header,
+		signer types.AuthorityID) (*types.BabeEquivocationProof, error)
+}
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
