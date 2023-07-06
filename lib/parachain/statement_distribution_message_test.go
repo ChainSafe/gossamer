@@ -12,13 +12,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed testdata/statement_distribution_message.yaml
-var testSDMHexRaw string
+//go:embed testdata/statement.yaml
+var testDataStatementRaw string
 
-var testSDMHex map[string]string
+var testDataStatement map[string]string
 
 func init() {
-	err := yaml.Unmarshal([]byte(testSDMHexRaw), &testSDMHex)
+	err := yaml.Unmarshal([]byte(testDataStatementRaw), &testDataStatement)
 	if err != nil {
 		fmt.Printf("Error unmarshaling test data: %s\n", err)
 		return
@@ -29,7 +29,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	t.Parallel()
 
 	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
+	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature ValidatorSignature
@@ -167,17 +167,17 @@ func TestStatementDistributionMessage(t *testing.T) {
 		{
 			name:          "SignedFullStatement with valid statement",
 			enumValue:     signedFullStatementWithValid,
-			encodingValue: common.MustHexToBytes(testSDMHex["sfsValid"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["sfsValid"]),
 		},
 		{
 			name:          "SignedFullStatement with Seconded statement",
 			enumValue:     signedFullStatementWithSeconded,
-			encodingValue: common.MustHexToBytes(testSDMHex["sfsSeconded"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["sfsSeconded"]),
 		},
 		{
 			name:          "Seconded Statement With LargePayload",
 			enumValue:     secondedStatementWithLargePayload,
-			encodingValue: common.MustHexToBytes(testSDMHex["statementWithLargePayload"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["statementWithLargePayload"]),
 		},
 	}
 

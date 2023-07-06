@@ -34,7 +34,7 @@ func TestCollationProtocol(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
+	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature ValidatorSignature

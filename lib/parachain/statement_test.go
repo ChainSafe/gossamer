@@ -25,7 +25,7 @@ func TestStatement(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
+	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	hash5 := getDummyHash(5)
@@ -60,8 +60,7 @@ func TestStatement(t *testing.T) {
 		{
 			name:          "Seconded",
 			enumValue:     secondedEnumValue,
-			encodingValue: common.MustHexToBytes(testSDMHex["statementSeconded"]),
-			// expected Hex stored in statement_distribution_message.yaml
+			encodingValue: common.MustHexToBytes(testDataStatement["statementSeconded"]),
 		},
 		{
 			name:          "Valid",
