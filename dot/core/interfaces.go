@@ -83,7 +83,5 @@ type KeyPair interface {
 
 // GrandpaState is the interface for the state.GrandpaState
 type GrandpaState interface {
-	HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error
-	ApplyScheduledChanges(finalizedHeader *types.Header) error
 	ApplyForcedChanges(importedHeader *types.Header) error
 }

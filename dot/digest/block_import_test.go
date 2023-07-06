@@ -336,9 +336,8 @@ func TestBlockImportHandle(t *testing.T) {
 			// idexes 0 and 1 belongs to the BABE digests next epoch data and next config data respectively
 			// the indexes after that are for GRANDPA scheduled change and forced change
 			epochStateMock := tt.setupEpochState(t, ctrl, importedHeader, consensusDigests[:2])
-			grandpaStateMock := tt.setupGrandpaState(t, ctrl, importedHeader, consensusDigests[2:])
 
-			onBlockImportDigestHandler := NewBlockImportHandler(epochStateMock, grandpaStateMock)
+			onBlockImportDigestHandler := NewBlockImportHandler(epochStateMock)
 			err := onBlockImportDigestHandler.Handle(importedHeader)
 			require.ErrorIs(t, err, tt.wantErr)
 			if tt.errString != "" {

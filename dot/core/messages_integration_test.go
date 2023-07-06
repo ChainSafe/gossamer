@@ -180,7 +180,11 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	onBlockImportDigestHandlerMock := NewMockBlockImportDigestHandler(ctrl)
 	onBlockImportDigestHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
 
+	grandpaStateMock := NewMockGrandpaState(ctrl)
+	grandpaStateMock.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
+
 	s.onBlockImport = onBlockImportDigestHandlerMock
+	s.grandpaState = grandpaStateMock
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

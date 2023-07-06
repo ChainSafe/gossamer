@@ -487,7 +487,12 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 
 	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
 	onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+
+	grandpaStateMock := NewMockGrandpaState(ctrl)
+	grandpaStateMock.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
+
 	s.onBlockImport = onBlockImportHandlerMock
+	s.grandpaState = grandpaStateMock
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
