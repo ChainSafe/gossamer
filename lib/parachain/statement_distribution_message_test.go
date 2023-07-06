@@ -197,3 +197,12 @@ func TestStatementDistributionMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodingStatemenDistributionMessage(t *testing.T) {
+	vdt := NewStatementDistributionMessage()
+	//enc := common.MustHexToBytes(testSDMHex["sfsSeconded"])
+	enc := common.MustHexToBytes(testSDMHex["sfsValid"])
+	err := scale.Unmarshal(enc, &vdt)
+	require.NoError(t, err)
+	fmt.Printf("decoded %v\n", vdt)
+}
