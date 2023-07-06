@@ -93,7 +93,7 @@ func TestParachainHeaderStateProof(t *testing.T) {
 	value := trie.Get(encodeStorageKey)
 	require.Equal(t, expectedValue, value)
 
-	//Also check that we can verify the proof
+	// Also check that we can verify the proof
 	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue)
 
 	require.NoError(t, err)

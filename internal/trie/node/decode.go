@@ -98,7 +98,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 		node.StorageValue = hashedValue
 		node.HashedValue = true
 	default:
-		//Ignored
+		// Ignored
 	}
 
 	for i := 0; i < ChildrenCapacity; i++ {

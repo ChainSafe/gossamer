@@ -735,7 +735,7 @@ func retrieve(db db.Database, parent *Node, key []byte) (value []byte) {
 func retrieveFromLeaf(db db.Database, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
 		if leaf.HashedValue {
-			//We get the node
+			// We get the node
 			value, err := db.Get(leaf.StorageValue)
 			if err != nil {
 				panic(fmt.Sprintf("retrieving value from leaf %s", err.Error()))
