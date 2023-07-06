@@ -15,7 +15,6 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
-	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
@@ -602,32 +601,4 @@ func (m *MockGrandpaState) ApplyForcedChanges(arg0 *types.Header) error {
 func (mr *MockGrandpaStateMockRecorder) ApplyForcedChanges(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyForcedChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyForcedChanges), arg0)
-}
-
-// ApplyScheduledChanges mocks base method.
-func (m *MockGrandpaState) ApplyScheduledChanges(arg0 *types.Header) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyScheduledChanges", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ApplyScheduledChanges indicates an expected call of ApplyScheduledChanges.
-func (mr *MockGrandpaStateMockRecorder) ApplyScheduledChanges(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyScheduledChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyScheduledChanges), arg0)
-}
-
-// HandleGRANDPADigest mocks base method.
-func (m *MockGrandpaState) HandleGRANDPADigest(arg0 *types.Header, arg1 scale.VaryingDataType) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleGRANDPADigest", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// HandleGRANDPADigest indicates an expected call of HandleGRANDPADigest.
-func (mr *MockGrandpaStateMockRecorder) HandleGRANDPADigest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleGRANDPADigest", reflect.TypeOf((*MockGrandpaState)(nil).HandleGRANDPADigest), arg0, arg1)
 }
