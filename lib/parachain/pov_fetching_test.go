@@ -10,13 +10,15 @@ import (
 
 func TestEncodePoVFetchingRequest(t *testing.T) {
 	poVFetchingRequest := PoVFetchingRequest{
-		CandidateHash: CandidateHash{Value: getDummyHash(6)},
+		CandidateHash: CandidateHash{
+			common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
+		},
 	}
 
 	actualEncode, err := poVFetchingRequest.Encode()
 	require.NoError(t, err)
 
-	expextedEncode := common.MustHexToBytes("0x0606060606060606060606060606060606060606060606060606060606060606")
+	expextedEncode := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 	require.Equal(t, expextedEncode, actualEncode)
 
 }
@@ -24,6 +26,7 @@ func TestEncodePoVFetchingRequest(t *testing.T) {
 func TestPoVFetchingResponse(t *testing.T) {
 	t.Parallel()
 
+	testBytes := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 	testCases := []struct {
 		name        string
 		value       scale.VaryingDataTypeValue
@@ -31,8 +34,8 @@ func TestPoVFetchingResponse(t *testing.T) {
 	}{
 		{
 			name:        "PoV",
-			value:       PoV(getDummyHash(6).ToBytes()),
-			encodeValue: common.MustHexToBytes("0x00800606060606060606060606060606060606060606060606060606060606060606"),
+			value:       PoV(testBytes),
+			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 		},
 		{
 			name:        "NoSuchPoV",
