@@ -87,7 +87,7 @@ func TestTransactionState_NotifierChannels(t *testing.T) {
 	// number of "ready" status updates
 	var readyCount int
 
-	rand.Seed(time.Now().UnixNano()) //nolint
+	rand.Seed(time.Now().UnixNano()) //nolint:staticcheck
 
 	// In practice, one won't see ready and future in this order. This is merely
 	// meant to check that notifier channels work as expected.

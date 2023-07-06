@@ -122,3 +122,16 @@ func TestCollationProtocol(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeCollationHandshake(t *testing.T) {
+	t.Parallel()
+
+	testHandshake := &collatorHandshake{}
+
+	enc, err := testHandshake.Encode()
+	require.NoError(t, err)
+
+	msg, err := decodeCollatorHandshake(enc)
+	require.NoError(t, err)
+	require.Equal(t, testHandshake, msg)
+}
