@@ -37,6 +37,13 @@ const (
 	tip
 )
 
+type blockOrigin byte
+
+const (
+	networkInitialSync blockOrigin = iota
+	networkBroadcast
+)
+
 func (s chainSyncState) String() string {
 	switch s {
 	case bootstrap:
@@ -258,7 +265,7 @@ func (cs *chainSync) bootstrapSync() {
 			}
 
 			cs.workerPool.useConnectedPeers()
-			err = cs.requestMaxBlocksFrom(bestBlockHeader)
+			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
 			if err != nil {
 				logger.Errorf("while executing bootsrap sync: %s", err)
 			}
@@ -401,7 +408,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitBoundedRequest(request, peerWhoAnnounced, resultsQueue)
-	err := cs.handleWorkersResults(resultsQueue, startAtBlock, totalBlocks)
+	err := cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, totalBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -438,7 +445,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitBoundedRequest(request, peerWhoAnnounced, resultsQueue)
 
-	err = cs.handleWorkersResults(resultsQueue, startAtBlock, gapLength)
+	err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, gapLength)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -466,7 +473,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		}
 
 		if parentExists {
-			err := cs.handleReadyBlock(pendingBlock.toBlockData())
+			err := cs.handleReadyBlock(pendingBlock.toBlockData(), networkBroadcast)
 			if err != nil {
 				return fmt.Errorf("handling ready block: %w", err)
 			}
@@ -491,7 +498,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		// TODO: we should handle the requests concurrently
 		// a way of achieve that is by constructing a new `handleWorkersResults` for
 		// handling only tip sync requests
-		err = cs.handleWorkersResults(resultsQueue, startAtBlock, *descendingGapRequest.Max)
+		err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, *descendingGapRequest.Max)
 		if err != nil {
 			return fmt.Errorf("while handling workers results: %w", err)
 		}
@@ -500,7 +507,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 	return nil
 }
 
-func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
+func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin blockOrigin) error {
 	startRequestAt := bestBlockHeader.Number + 1
 
 	// we build the set of requests based on the amount of available peers
@@ -534,22 +541,17 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	requests := network.NewAscedingBlockRequests(startRequestAt, targetBlockNumber,
 		network.BootstrapRequestData)
 
-	fmt.Printf("===> amount of requests: %d\n", len(requests))
-
 	var expectedAmountOfBlocks uint32
 	for _, request := range requests {
 		if request.Max != nil {
-			fmt.Printf("===> request max: %d\n", *request.Max)
 			expectedAmountOfBlocks += *request.Max
 		}
 	}
 
-	fmt.Printf("===> expected amount of blocks: %d\n", expectedAmountOfBlocks)
-
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequests(requests, resultsQueue)
 
-	err = cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks)
+	err = cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -587,7 +589,7 @@ func (cs *chainSync) getTarget() (uint, error) {
 // in the queue and wait for it to completes
 // TODO: handle only justification requests
 func (cs *chainSync) handleWorkersResults(
-	workersResults chan *syncTaskResult, startAtBlock uint, expectedSyncedBlocks uint32) error {
+	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
 
 	startTime := time.Now()
 	defer func() {
@@ -744,14 +746,14 @@ taskResultLoop:
 	// response was validated! place into ready block queue
 	for _, bd := range syncingChain {
 		// block is ready to be processed!
-		if err := cs.handleReadyBlock(bd); err != nil {
+		if err := cs.handleReadyBlock(bd, origin); err != nil {
 			return fmt.Errorf("while handling ready block: %w", err)
 		}
 	}
 	return nil
 }
 
-func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
+func (cs *chainSync) handleReadyBlock(bd *types.BlockData, origin blockOrigin) error {
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
@@ -783,7 +785,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 		bd.Header = block.header
 	}
 
-	err := cs.processBlockData(*bd)
+	err := cs.processBlockData(*bd, origin)
 	if err != nil {
 		// depending on the error, we might want to save this block for later
 		logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
@@ -797,7 +799,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (cs *chainSync) processBlockData(blockData types.BlockData) error {
+func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOrigin) error {
 	headerInState, err := cs.blockState.HasHeader(blockData.Hash)
 	if err != nil {
 		return fmt.Errorf("checking if block state has header: %w", err)
@@ -821,7 +823,7 @@ func (cs *chainSync) processBlockData(blockData types.BlockData) error {
 
 	if blockData.Header != nil {
 		if blockData.Body != nil {
-			err = cs.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
+			err = cs.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
 			if err != nil {
 				return fmt.Errorf("processing block data with header and body: %w", err)
 			}
@@ -889,10 +891,13 @@ func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.Bloc
 }
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
-	announceImportedBlock bool) (err error) {
-	err = cs.babeVerifier.VerifyBlock(blockData.Header)
-	if err != nil {
-		return fmt.Errorf("babe verifying block: %w", err)
+	origin blockOrigin, announceImportedBlock bool) (err error) {
+
+	if origin != networkInitialSync {
+		err = cs.babeVerifier.VerifyBlock(blockData.Header)
+		if err != nil {
+			return fmt.Errorf("babe verifying block: %w", err)
+		}
 	}
 
 	cs.handleBody(blockData.Body)
