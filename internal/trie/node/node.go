@@ -9,8 +9,6 @@ import (
 	"fmt"
 
 	"github.com/qdm12/gotree"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // Node is a node in the trie and can be a leaf or a branch.
@@ -54,8 +52,7 @@ func (n *Node) String() string {
 
 // StringNode returns a gotree compatible node for String methods.
 func (n *Node) StringNode() (stringNode *gotree.Node) {
-	caser := cases.Title(language.BritishEnglish)
-	stringNode = gotree.New(caser.String(n.Kind().String()))
+	stringNode = gotree.New(n.Kind().String())
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
