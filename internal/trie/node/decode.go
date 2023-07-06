@@ -25,6 +25,8 @@ var (
 	ErrDecodeChildHash = errors.New("cannot decode child hash")
 )
 
+const hashLength = common.HashLength
+
 // Decode decodes a node from a reader.
 // The encoding format is documented in the README.md
 // of this package, and specified in the Polkadot spec at
@@ -82,18 +84,21 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 
 	sd := scale.NewDecoder(reader)
 
-	if variant == branchWithValueVariant {
+	switch variant {
+	case branchWithValueVariant:
 		err := sd.Decode(&node.StorageValue)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
-	} else if variant == branchWithHashedValueVariant {
+	case branchWithHashedValueVariant:
 		hashedValue, err := decodeHashedValue(reader)
 		if err != nil {
 			return nil, err
 		}
 		node.StorageValue = hashedValue
 		node.HashedValue = true
+	default:
+		//Ignored
 	}
 
 	for i := 0; i < ChildrenCapacity; i++ {
@@ -111,7 +116,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 		childNode := &Node{
 			MerkleValue: hash,
 		}
-		if len(hash) < common.HashLength {
+		if len(hash) < hashLength {
 			// Handle inlined nodes
 			reader = bytes.NewReader(hash)
 			childNode, err = Decode(reader)
@@ -158,13 +163,13 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 }
 
 func decodeHashedValue(reader io.Reader) ([]byte, error) {
-	buffer := make([]byte, common.HashLength)
+	buffer := make([]byte, hashLength)
 	n, err := reader.Read(buffer)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
-	if n < common.HashLength {
-		return nil, fmt.Errorf("%w: expected %d, got: %d", ErrDecodeHashedValueTooShort, common.HashLength, n)
+	if n < hashLength {
+		return nil, fmt.Errorf("%w: expected %d, got: %d", ErrDecodeHashedValueTooShort, hashLength, n)
 	}
 
 	return buffer, nil

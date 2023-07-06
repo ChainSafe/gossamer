@@ -175,5 +175,5 @@ func decodeHeaderByte(header byte) (nodeVariant variant,
 		return nodeVariant, partialKeyLengthHeader, nil
 	}
 
-	return variant{}, 0, fmt.Errorf("%w: for header byte %08b", ErrVariantUnknown, header)
+	return invalidVariant, 0, fmt.Errorf("%w: for header byte %08b", ErrVariantUnknown, header)
 }

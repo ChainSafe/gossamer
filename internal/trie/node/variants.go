@@ -39,6 +39,10 @@ var (
 		bits: 0b0000_0001,
 		mask: 0b1111_1111,
 	}
+	invalidVariant = variant{
+		bits: 0b0000_0000,
+		mask: 0b0000_0000,
+	}
 )
 
 // partialKeyLengthHeaderMask returns the partial key length
@@ -65,6 +69,8 @@ func (v variant) String() string {
 		return "Empty"
 	case compactEncodingVariant:
 		return "Compact"
+	case invalidVariant:
+		return "Invalid"
 	default:
 		return "Not reachable"
 	}
