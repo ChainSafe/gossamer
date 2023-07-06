@@ -10,25 +10,29 @@ import (
 
 func TestEncodeAvailableDataFetchingRequest(t *testing.T) {
 	availableDataFetchingRequest := AvailableDataFetchingRequest{
-		CandidateHash: CandidateHash{Value: getDummyHash(4)},
+		CandidateHash: CandidateHash{
+			common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
+		},
 	}
 
 	actualEncode, err := availableDataFetchingRequest.Encode()
 	require.NoError(t, err)
 
-	expextedEncode := common.MustHexToBytes("0x0404040404040404040404040404040404040404040404040404040404040404")
+	expextedEncode := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 	require.Equal(t, expextedEncode, actualEncode)
 }
 
 func TestAvailableDataFetchingResponse(t *testing.T) {
 	t.Parallel()
 
+	testHash := common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
+	testBytes := testHash.ToBytes()
 	availableData := AvailableData{
-		PoV: getDummyHash(2).ToBytes(),
+		PoV: testBytes,
 		ValidationData: PersistedValidationData{
-			ParentHead:             getDummyHash(3).ToBytes(),
+			ParentHead:             testBytes,
 			RelayParentNumber:      BlockNumber(4),
-			RelayParentStorageRoot: getDummyHash(5),
+			RelayParentStorageRoot: testHash,
 			MaxPovSize:             6,
 		},
 	}
@@ -41,7 +45,7 @@ func TestAvailableDataFetchingResponse(t *testing.T) {
 		{
 			name:        "AvailableData",
 			value:       availableData,
-			encodeValue: common.MustHexToBytes("0x0080020202020202020202020202020202020202020202020202020202020202020280030303030303030303030303030303030303030303030303030303030303030304000000050505050505050505050505050505050505050505050505050505050505050506000000"), //nolint:lll
+			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c1980677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c1904000000677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c1906000000"), //nolint:lll
 		},
 		{
 			name:        "NoSuchData",
