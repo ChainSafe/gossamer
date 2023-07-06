@@ -426,10 +426,14 @@ func Test_Service_handleBlock(t *testing.T) {
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
 		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
 
+		grandpaStateMock := NewMockGrandpaState(ctrl)
+		grandpaStateMock.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
+
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			onBlockImport: onBlockImportHandlerMock,
+			grandpaState:  grandpaStateMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
@@ -455,10 +459,14 @@ func Test_Service_handleBlock(t *testing.T) {
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
 		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
 
+		grandpaStateMock := NewMockGrandpaState(ctrl)
+		grandpaStateMock.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
+
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			onBlockImport: onBlockImportHandlerMock,
+			grandpaState:  grandpaStateMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
 	})
@@ -482,11 +490,16 @@ func Test_Service_handleBlock(t *testing.T) {
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
 		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+
+		grandpaStateMock := NewMockGrandpaState(ctrl)
+		grandpaStateMock.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
+
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			ctx:           context.Background(),
 			onBlockImport: onBlockImportHandlerMock,
+			grandpaState:  grandpaStateMock,
 		}
 		execTest(t, service, &block, trieState, nil)
 	})
