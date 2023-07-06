@@ -170,16 +170,13 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 
 func (cs *chainSync) start() {
 	// wait until we have a minimal workers in the sync worker pool
-	// and we have a clear target otherwise just wait
 	for {
-		_, err := cs.getTarget()
 		totalAvailable := cs.workerPool.totalWorkers()
-
-		if err == nil && totalAvailable >= uint(cs.minPeers) {
+		if totalAvailable >= uint(cs.minPeers) {
 			break
 		}
 
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Second)
 	}
 
 	isSyncedGauge.Set(0)
