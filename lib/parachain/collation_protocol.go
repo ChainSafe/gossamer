@@ -104,7 +104,7 @@ func (CollationSeconded) Index() uint {
 
 const MaxCollationMessageSize uint64 = 100 * 1024
 
-type CollationProtocolV1 CollationProtocol
+type CollationProtocolV1 struct{}
 
 // Type returns CollationMsgType
 func (*CollationProtocolV1) Type() network.MessageType {
@@ -126,7 +126,7 @@ func (cp *CollationProtocolV1) Hash() (common.Hash, error) {
 func (cp *CollationProtocolV1) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*cp)
 	if err != nil {
-		return enc, err
+		return nil, err
 	}
 	return enc, nil
 }
