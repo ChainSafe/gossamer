@@ -54,7 +54,6 @@ func TestCollationProtocol(t *testing.T) {
 		},
 		Commitments: CandidateCommitments{
 			UpwardMessages:            []UpwardMessage{{1, 2, 3}},
-			HorizontalMessages:        []OutboundHrmpMessage{},
 			NewValidationCode:         &ValidationCode{1, 2, 3},
 			HeadData:                  headData{1, 2, 3},
 			ProcessedDownwardMessages: uint32(5),
@@ -102,21 +101,43 @@ func TestCollationProtocol(t *testing.T) {
 	for _, c := range testCases {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
+			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
 
-			vdt_parent := NewCollationProtocol()
-			vdt_child := NewCollatorProtocolMessage()
+				vdt_parent := NewCollationProtocol()
+				vdt_child := NewCollatorProtocolMessage()
 
-			err := vdt_child.Set(c.enumValue)
-			require.NoError(t, err)
+				err := vdt_child.Set(c.enumValue)
+				require.NoError(t, err)
 
-			err = vdt_parent.Set(vdt_child)
-			require.NoError(t, err)
+				err = vdt_parent.Set(vdt_child)
+				require.NoError(t, err)
 
-			bytes, err := scale.Marshal(vdt_parent)
-			require.NoError(t, err)
+				bytes, err := scale.Marshal(vdt_parent)
+				require.NoError(t, err)
 
-			require.Equal(t, c.encodingValue, bytes)
+				require.Equal(t, c.encodingValue, bytes)
+			})
+
+			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
+
+				vdt_parent := NewCollationProtocol()
+				err := scale.Unmarshal(c.encodingValue, &vdt_parent)
+				require.NoError(t, err)
+
+				vdt_child_temp, err := vdt_parent.Value()
+				require.NoError(t, err)
+				require.Equal(t, uint(0), vdt_child_temp.Index())
+
+				vdt_child := vdt_child_temp.(CollatorProtocolMessage)
+				require.NoError(t, err)
+
+				actualData, err := vdt_child.Value()
+
+				require.Equal(t, c.enumValue.Index(), actualData.Index())
+				require.EqualValues(t, c.enumValue, actualData)
+			})
 		})
 	}
 }
