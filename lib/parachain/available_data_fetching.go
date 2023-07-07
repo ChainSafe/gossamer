@@ -14,8 +14,8 @@ type AvailableDataFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the AvailableDataFetchingRequest
-func (a AvailableDataFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(a)
+func (a *AvailableDataFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(*a)
 }
 
 // AvailableDataFetchingResponse represents the possible responses to an available data fetching request.
