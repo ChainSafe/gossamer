@@ -58,7 +58,6 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 		Commitments: CandidateCommitments{
 			UpwardMessages:            []UpwardMessage{{1, 2, 3}},
-			HorizontalMessages:        []OutboundHrmpMessage{},
 			NewValidationCode:         &ValidationCode{1, 2, 3},
 			HeadData:                  headData{1, 2, 3},
 			ProcessedDownwardMessages: uint32(5),
@@ -184,16 +183,31 @@ func TestStatementDistributionMessage(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
+			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
 
-			vtd := NewStatementDistributionMessage()
+				vdt := NewStatementDistributionMessage()
+				err := vdt.SetValue(c.enumValue)
+				require.NoError(t, err)
 
-			err := vtd.SetValue(c.enumValue)
-			require.NoError(t, err)
+				bytes, err := scale.Marshal(vdt)
+				require.NoError(t, err)
 
-			bytes, err := scale.Marshal(vtd)
-			require.NoError(t, err)
+				require.Equal(t, c.encodingValue, bytes)
+			})
 
-			require.Equal(t, c.encodingValue, bytes)
+			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
+
+				vdt := NewStatementDistributionMessage()
+				err := scale.Unmarshal(c.encodingValue, &vdt)
+				require.NoError(t, err)
+
+				actualData, err := vdt.Value()
+				require.NoError(t, err)
+
+				require.EqualValues(t, c.enumValue, actualData)
+			})
 		})
 	}
 }
