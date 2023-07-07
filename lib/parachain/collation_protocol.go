@@ -14,6 +14,11 @@ func NewCollationProtocol() CollationProtocol {
 	return CollationProtocol(vdt)
 }
 
+// New will enable scale to create new instance when needed
+func (CollationProtocol) New() CollationProtocol {
+	return NewCollationProtocol()
+}
+
 // Set will set a value using the underlying  varying data type
 func (c *CollationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*c)
@@ -43,6 +48,11 @@ func (CollatorProtocolMessage) Index() uint {
 func NewCollatorProtocolMessage() CollatorProtocolMessage {
 	vdt := scale.MustNewVaryingDataType(Declare{}, AdvertiseCollation{}, CollationSeconded{})
 	return CollatorProtocolMessage(vdt)
+}
+
+// New will enable scale to create new instance when needed
+func (CollatorProtocolMessage) New() CollatorProtocolMessage {
+	return NewCollatorProtocolMessage()
 }
 
 // Set will set a value using the underlying  varying data type
