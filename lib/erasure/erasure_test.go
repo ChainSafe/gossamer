@@ -27,6 +27,7 @@ var missing5Chunks = [][]byte{{}, {}, {}, {115, 116, 32, 111},
 	{88, 245, 245, 220}, {59, 208, 165, 70}, {127, 213, 208, 179}}
 
 func TestObtainChunks(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		validatorsQty int
 		data          []byte
@@ -59,7 +60,9 @@ func TestObtainChunks(t *testing.T) {
 		},
 	}
 	for name, tt := range tests {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			got, err := ObtainChunks(tt.args.validatorsQty, tt.args.data)
 			expectedThreshold, _ := recoveryThreshold(tt.args.validatorsQty)
 			if tt.expectedError != nil {
@@ -74,6 +77,7 @@ func TestObtainChunks(t *testing.T) {
 }
 
 func TestReconstruct(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		validatorsQty int
 		chunks        [][]byte
@@ -118,15 +122,17 @@ func TestReconstruct(t *testing.T) {
 		},
 	}
 	for name, tt := range tests {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			data, err := Reconstruct(tt.args.validatorsQty, len(testData), tt.args.chunks)
 			if tt.expectedError != nil {
 				assert.EqualError(t, err, tt.expectedError.Error())
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedChunks, tt.args.chunks)
 			}
 			assert.Equal(t, tt.expectedData, data)
-			assert.Equal(t, tt.expectedChunks, tt.args.chunks)
 		})
 	}
 }
