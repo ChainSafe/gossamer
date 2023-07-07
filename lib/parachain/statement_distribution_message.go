@@ -16,6 +16,11 @@ func NewStatementDistributionMessage() StatementDistributionMessage {
 	return StatementDistributionMessage(vdt)
 }
 
+// New will enable scale to create new instance when needed
+func (StatementDistributionMessage) New() StatementDistributionMessage {
+	return NewStatementDistributionMessage()
+}
+
 // Set will set a value using the underlying  varying data type
 func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*sdm)
