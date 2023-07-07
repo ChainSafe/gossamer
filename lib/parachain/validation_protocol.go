@@ -5,15 +5,26 @@ package parachain
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type AvailabilityBitfield scale.BitVec
+type UncheckedSignedAvailabilityBitfield struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload scale.BitVec `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
 
 type Bitfield struct {
-	Hash                                common.Hash
-	UncheckedSignedAvailabilityBitfield AvailabilityBitfield
+	Hash                                common.Hash                         `scale:"1"`
+	UncheckedSignedAvailabilityBitfield UncheckedSignedAvailabilityBitfield `scale:"2"`
 }
 
 // Index returns the VaryingDataType Index
@@ -23,9 +34,9 @@ func (b Bitfield) Index() uint {
 
 type BitfieldDistributionMessage scale.VaryingDataType
 
-func (bdm BitfieldDistributionMessage) Index() uint {
-	return 0
-}
+//	func (bdm BitfieldDistributionMessage) Index() uint {
+//		return 0
+//	}
 func NewBitfieldDistributionMessageVDT() BitfieldDistributionMessage {
 	vdt := scale.MustNewVaryingDataType(Bitfield{})
 	return BitfieldDistributionMessage(vdt)
@@ -56,7 +67,7 @@ func (bdm *BitfieldDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 type BitfieldDistribution BitfieldDistributionMessage
 
 func NewBitfieldDistributionVDT() BitfieldDistribution {
-	vdt := scale.MustNewVaryingDataType(BitfieldDistributionMessage{})
+	vdt := scale.MustNewVaryingDataType(Bitfield{})
 	return BitfieldDistribution(vdt)
 }
 
@@ -65,6 +76,18 @@ func (bd BitfieldDistribution) Index() uint {
 }
 func (bd BitfieldDistribution) New() BitfieldDistribution {
 	return NewBitfieldDistributionVDT()
+}
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (bd *BitfieldDistribution) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*bd)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+
+	*bd = BitfieldDistribution(vdt)
+	return nil
 }
 
 type ApprovalDistribution ApprovalDistributionMessage
@@ -87,6 +110,18 @@ func (ad ApprovalDistribution) Index() uint {
 	return 4
 }
 
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (ad *ApprovalDistribution) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*ad)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+
+	*ad = ApprovalDistribution(vdt)
+	return nil
+}
+
 type StatementDistribution StatementDistributionMessage
 
 func NewStatementDistributionVDT() StatementDistribution {
@@ -99,6 +134,24 @@ func NewStatementDistributionVDT() StatementDistribution {
 
 func (sd StatementDistribution) New() StatementDistribution {
 	return NewStatementDistributionVDT()
+}
+
+// Value returns the value from the underlying VaryingDataType
+func (sd *StatementDistribution) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*sd)
+	return vdt.Value()
+}
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (sd *StatementDistribution) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*sd)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+
+	*sd = StatementDistribution(vdt)
+	return nil
 }
 
 func (sd StatementDistribution) Index() uint {
@@ -124,4 +177,16 @@ func (vp ValidationProtocol) New() ValidationProtocol {
 func (vp *ValidationProtocol) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*vp)
 	return vdt.Value()
+}
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (vp *ValidationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*vp)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+
+	*vp = ValidationProtocol(vdt)
+	return nil
 }

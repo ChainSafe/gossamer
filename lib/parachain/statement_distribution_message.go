@@ -16,6 +16,10 @@ func NewStatementDistributionMessage() StatementDistributionMessage {
 	return StatementDistributionMessage(vdt)
 }
 
+func (StatementDistributionMessage) New() StatementDistributionMessage {
+	return NewStatementDistributionMessage()
+}
+
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
 func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*sdm)
