@@ -16,8 +16,8 @@ type ChunkFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the ChunkFetchingRequest
-func (c *ChunkFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(*c)
+func (c ChunkFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(c)
 }
 
 // ChunkFetchingResponse represents the response for a requested erasure chunk
