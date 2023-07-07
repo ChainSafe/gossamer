@@ -130,6 +130,7 @@ func TestDecodeCollationHandshake(t *testing.T) {
 
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)
+	require.Equal(t, []byte{}, enc)
 
 	msg, err := decodeCollatorHandshake(enc)
 	require.NoError(t, err)
