@@ -13,16 +13,20 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
+const (
+	CollationProtocolVersion  = 1
+	ValidationProtocolVersion = 1
+)
+
 type Service struct {
 	Network Network
 }
 
 func NewService(net Network, genesisHash common.Hash) (*Service, error) {
-	// TODO: Where do I get forkID and version from from?
+	// TODO: Use actual fork id from chain spec #3373
 	forkID := ""
-	var version uint32 = 1
 
-	validationProtocolID := GeneratePeersetProtocolName(ValidationProtocolName, forkID, genesisHash, version)
+	validationProtocolID := GeneratePeersetProtocolName(ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
 	// register validation protocol
 	err := net.RegisterNotificationsProtocol(
@@ -55,7 +59,7 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		}
 	}
 
-	collationProtocolID := GeneratePeersetProtocolName(CollationProtocolName, forkID, genesisHash, version)
+	collationProtocolID := GeneratePeersetProtocolName(CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
 	err = net.RegisterNotificationsProtocol(
