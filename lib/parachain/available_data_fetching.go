@@ -59,8 +59,8 @@ type Pov struct {
 	BlockData BlockData `scale:"1"`
 }
 
-// Parachain block data.
-// Contains everything required to validate para-block, may contain block and witness data.
+// BlockData represents parachain block data.
+// It contains everything required to validate para-block, may contain block and witness data.
 type BlockData []byte
 
 // Index returns the index of varying data type
