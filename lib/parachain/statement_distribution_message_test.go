@@ -182,6 +182,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	for _, c := range testCases {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
