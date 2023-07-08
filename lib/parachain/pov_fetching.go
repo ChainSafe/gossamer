@@ -13,8 +13,8 @@ type PoVFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingRequest
-func (p *PoVFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(*p)
+func (p PoVFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(p)
 }
 
 // PoVFetchingResponse represents the possible responses to a PoVFetchingRequest.
@@ -42,10 +42,6 @@ func (p *PoVFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error
 	vdt := scale.VaryingDataType(*p)
 	return vdt.Value()
 }
-
-// PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
-// It contains the necessary data for the parachain specific state transition logic.
-type PoV []byte
 
 // Index returns the index of varying data type
 func (PoV) Index() uint {
