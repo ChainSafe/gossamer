@@ -17,6 +17,11 @@ func NewStatement() Statement {
 	return Statement(vdt)
 }
 
+// New will enable scale to create new instance when needed
+func (Statement) New() Statement {
+	return NewStatement()
+}
+
 // Set will set a value using the underlying  varying data type
 func (s *Statement) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*s)

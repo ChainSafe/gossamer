@@ -26,7 +26,8 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 	// TODO: Use actual fork id from chain spec #3373
 	forkID := ""
 
-	validationProtocolID := GeneratePeersetProtocolName(ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
+	validationProtocolID := GeneratePeersetProtocolName(
+		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
 	// register validation protocol
 	err := net.RegisterNotificationsProtocol(
@@ -59,7 +60,8 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		}
 	}
 
-	collationProtocolID := GeneratePeersetProtocolName(CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
+	collationProtocolID := GeneratePeersetProtocolName(
+		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
 	err = net.RegisterNotificationsProtocol(

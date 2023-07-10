@@ -73,16 +73,31 @@ func TestStatement(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
+			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
 
-			vtd := NewStatement()
+				vdt := NewStatement()
+				err := vdt.Set(c.enumValue)
+				require.NoError(t, err)
 
-			err := vtd.Set(c.enumValue)
-			require.NoError(t, err)
+				bytes, err := scale.Marshal(vdt)
+				require.NoError(t, err)
 
-			bytes, err := scale.Marshal(vtd)
-			require.NoError(t, err)
+				require.Equal(t, c.encodingValue, bytes)
+			})
 
-			require.Equal(t, c.encodingValue, bytes)
+			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
+
+				vdt := NewStatement()
+				err := scale.Unmarshal(c.encodingValue, &vdt)
+				require.NoError(t, err)
+
+				actualData, err := vdt.Value()
+				require.NoError(t, err)
+
+				require.EqualValues(t, c.enumValue, actualData)
+			})
 		})
 	}
 }

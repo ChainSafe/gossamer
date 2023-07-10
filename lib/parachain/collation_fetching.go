@@ -32,10 +32,6 @@ type Collation struct {
 	PoV              PoV                             `scale:"2"`
 }
 
-// PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
-// It contains the necessary data for the parachain specific state transition logic.
-type PoV []byte
-
 // Index returns the index of varying data type
 func (Collation) Index() uint {
 	return 0
