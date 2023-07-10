@@ -178,8 +178,9 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 func (cs *chainSync) start() {
 	// wait until we have a minimal workers in the sync worker pool
 	for {
+		_, err := cs.getTarget()
 		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) {
+		if totalAvailable >= uint(cs.minPeers) && err == nil {
 			break
 		}
 
@@ -290,6 +291,7 @@ func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber u
 	cs.peerViewLock.Lock()
 	defer cs.peerViewLock.Unlock()
 
+	logger.Debugf("sync peer view: %s, best hash: %s, best number: #%d", who, bestHash.Short(), bestNumber)
 	cs.peerView[who] = &peerView{
 		who:    who,
 		hash:   bestHash,

@@ -465,7 +465,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -554,7 +554,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -663,7 +663,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -783,7 +783,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
