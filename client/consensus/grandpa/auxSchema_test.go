@@ -99,6 +99,8 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 		}
 
 		insert := map[string][]byte{}
+		// TODO this encoding has to encode/decode authority, which uses custom encoding logic from public key.
+		// Need to compare this encoding to types.Authority encoding
 		insert[string(AUTHORITY_SET_KEY)] = scale.MustMarshal(authoritySet)
 		insert[string(SET_STATE_KEY)] = scale.MustMarshal(voterSetState)
 

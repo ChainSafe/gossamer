@@ -90,9 +90,73 @@ type migrationData[H comparable, N constraints.Unsigned] struct {
 	voterSetState VoterSetState
 }
 
-func migrateFromVersion0[H comparable, N constraints.Unsigned](client AuxStore, genesisRound func(genesis finalityGrandpa.HashNumber[H, N]) finalityGrandpa.RoundState[H, N], genesisData finalityGrandpa.HashNumber[H, N]) *migrationData[H, N] {
-	// TODO
-	return nil
+func migrateFromVersion0[H comparable, N constraints.Unsigned](client AuxStore, genesisRound func(genesis finalityGrandpa.HashNumber[H, N]) finalityGrandpa.RoundState[H, N], genesisData finalityGrandpa.HashNumber[H, N]) (*migrationData[H, N], error) {
+	// I think I need to encode current version
+
+	// Maybe this should return error?
+	insert := map[string][]byte{}
+	insert[string(VERSION_KEY)] = scale.MustMarshal(CURRENT_VERSION)
+	err := client.InsertAux(insert, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	encAuthSet := loadDecode(client, AUTHORITY_SET_KEY)
+	if encAuthSet != nil {
+		var oldSet V0AuthoritySet[H, N]
+		fmt.Println(*encAuthSet)
+		err = scale.Unmarshal(*encAuthSet, &oldSet)
+		if err != nil {
+			return nil, err
+		}
+		newSet := oldSet.into()
+
+		insert = map[string][]byte{}
+		insert[string(AUTHORITY_SET_KEY)] = scale.MustMarshal(newSet)
+		err = client.InsertAux(insert, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get last voter set state
+		var lastRoundVoterSetState V0VoterSetState[H, N]
+		encSetState := loadDecode(client, SET_STATE_KEY)
+		if encSetState != nil {
+			err = scale.Unmarshal(*encSetState, &lastRoundVoterSetState)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			lastRoundVoterSetState = V0VoterSetState[H, N]{
+				0, genesisRound(genesisData),
+			}
+		}
+
+		_ = newSet.setId
+		base := lastRoundVoterSetState.roundState.PrevoteGHOST
+		if base == nil {
+			panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
+		}
+
+		curRounds := NewCurrentRounds()
+		curRounds.Set(lastRoundVoterSetState.roundNumber+1, HasVoted{}) // Needs to be no case
+
+		// TODO set setState as Live with updated info
+		setState := VoterSetState{}
+
+		insert = map[string][]byte{}
+		insert[string(SET_STATE_KEY)] = scale.MustMarshal(setState)
+		err = client.InsertAux(insert, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &migrationData[H, N]{
+			authSet:       newSet,
+			voterSetState: setState,
+		}, nil
+	}
+
+	return nil, nil
 }
 
 func migrateFromVersion1[H comparable, N constraints.Unsigned](client AuxStore, genesisRound func(genesis finalityGrandpa.HashNumber[H, N]) finalityGrandpa.RoundState[H, N], genesisData finalityGrandpa.HashNumber[H, N]) *migrationData[H, N] {
@@ -119,7 +183,10 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 	// None case
 	if encodedVersion == nil {
 		fmt.Println("none case")
-		migrationInfo := migrateFromVersion0[H, N](client, makeGenesisRound, genesis)
+		migrationInfo, err := migrateFromVersion0[H, N](client, makeGenesisRound, genesis)
+		if err != nil {
+			return nil, err
+		}
 		if migrationInfo != nil {
 			return &PersistentData[H, N]{
 				authoritySet: migrationInfo.authSet,
