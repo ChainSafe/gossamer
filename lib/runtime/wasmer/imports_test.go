@@ -36,9 +36,6 @@ var testValue = []byte("value")
 func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	testKey := []byte("testkey")
-	testValue := []byte("testvalue")
-
 	err := inst.ctx.NodeStorage.BaseDB.Put(testKey, testValue)
 	require.NoError(t, err)
 

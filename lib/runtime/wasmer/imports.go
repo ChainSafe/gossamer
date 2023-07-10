@@ -1064,7 +1064,8 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_clear_prefix_version_2
-func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, childStorageKey, prefixSpan, limitSpan C.int64_t) C.int64_t {
+func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, childStorageKey, prefixSpan,
+	limitSpan C.int64_t) C.int64_t {
 	logger.Debug("executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
