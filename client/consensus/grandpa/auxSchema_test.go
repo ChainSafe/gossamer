@@ -27,7 +27,11 @@ func (client dummyClient) InsertAux(insert map[string][]byte, deleted []string) 
 }
 
 func (client dummyClient) GetAux(key []byte) *[]byte {
-	return nil
+	res := client[string(key)]
+	if len(res) == 0 {
+		return nil
+	}
+	return &res
 }
 
 func newDummyClient(t *testing.T) dummyClient {
@@ -84,9 +88,9 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 	// they have block here, idk why
 	{
 		authoritySet := V0AuthoritySet[Hash, uint]{
-			currentAuthorities: authorities,
-			pendingChanges:     []V0PendingChange[Hash, uint]{},
-			setID:              setId,
+			CurrentAuthorities: authorities,
+			PendingChanges:     []V0PendingChange[Hash, uint]{},
+			SetID:              setId,
 		}
 
 		voterSetState := roundInfo[Hash, uint]{
@@ -94,16 +98,22 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 			roundState:  roundState,
 		}
 
-		// I don't think our scale can support this
 		insert := map[string][]byte{}
 		insert[string(AUTHORITY_SET_KEY)] = scale.MustMarshal(authoritySet)
 		insert[string(SET_STATE_KEY)] = scale.MustMarshal(voterSetState)
 
-		fmt.Println("here")
 		err := client.InsertAux(insert, nil)
 		require.NoError(t, err)
-
-		fmt.Println(client)
 	}
+
+	res := loadDecode(client, VERSION_KEY)
+	require.Nil(t, res)
+
+	// should perform the migration
+	persistent, err := loadPersistent[Hash, uint](client, Hash{}, 0, func() (AuthorityList, error) {
+		panic("error")
+	})
+
+	fmt.Println(persistent)
 
 }

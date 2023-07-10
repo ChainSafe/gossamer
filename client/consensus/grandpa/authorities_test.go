@@ -607,7 +607,7 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	finalizedKind := Best{0}
 	delayKindFinalized := newDelayKind(finalizedKind)
 
-	// we create a forced hashNumber with no delay
+	// we create a forced hashNumber with no Delay
 	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
 		delay:           0,

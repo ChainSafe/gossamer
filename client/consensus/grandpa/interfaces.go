@@ -41,11 +41,11 @@ type PublicKey interface {
 // This is a simple global database not aware of forks. Can be used for storing auxiliary
 // information like total block weight/difficulty for fork resolution purposes as a common use
 // case.
-type AuxStore []interface {
+type AuxStore interface {
 	// InsertAux Insert auxiliary data into key-value store.
 	//
 	// Deletions occur after insertions.
-	InsertAux(insert map[string][]byte, delete map[string][]byte) error
+	InsertAux(insert map[string][]byte, deleted []string) error
 	// GetAux Query auxiliary data from key-value store.
 	GetAux(key []byte) *[]byte
 }
