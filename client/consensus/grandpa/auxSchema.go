@@ -95,6 +95,16 @@ func migrateFromVersion0[H comparable, N constraints.Unsigned](client AuxStore, 
 	return nil
 }
 
+func migrateFromVersion1[H comparable, N constraints.Unsigned](client AuxStore, genesisRound func(genesis finalityGrandpa.HashNumber[H, N]) finalityGrandpa.RoundState[H, N], genesisData finalityGrandpa.HashNumber[H, N]) *migrationData[H, N] {
+	// TODO
+	return nil
+}
+
+func migrateFromVersion2[H comparable, N constraints.Unsigned](client AuxStore, genesisRound func(genesis finalityGrandpa.HashNumber[H, N]) finalityGrandpa.RoundState[H, N], genesisData finalityGrandpa.HashNumber[H, N]) *migrationData[H, N] {
+	// TODO
+	return nil
+}
+
 // Load or initialize persistent data from backend.
 
 type GenesisAuthoritiesFunc func() (AuthorityList, error)
@@ -108,7 +118,7 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 
 	// None case
 	if encodedVersion == nil {
-		fmt.Println("here")
+		fmt.Println("none case")
 		migrationInfo := migrateFromVersion0[H, N](client, makeGenesisRound, genesis)
 		if migrationInfo != nil {
 			return &PersistentData[H, N]{
@@ -119,7 +129,6 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 		}
 	} else {
 		// Handle the some cases
-
 		var version uint32
 		err := scale.Unmarshal(*encodedVersion, &version)
 		if err != nil {
@@ -129,15 +138,97 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 		switch version {
 		case 1:
 			fmt.Println("1")
+			migrationInfo := migrateFromVersion1[H, N](client, makeGenesisRound, genesis)
+			if migrationInfo != nil {
+				return &PersistentData[H, N]{
+					authoritySet: migrationInfo.authSet,
+					//  TODO fix this cast
+					setState: SharedVoterSetState(migrationInfo.voterSetState),
+				}, nil
+			}
 		case 2:
 			fmt.Println("2")
+			migrationInfo := migrateFromVersion2[H, N](client, makeGenesisRound, genesis)
+			if migrationInfo != nil {
+				return &PersistentData[H, N]{
+					authoritySet: migrationInfo.authSet,
+					//  TODO fix this cast
+					setState: SharedVoterSetState(migrationInfo.voterSetState),
+				}, nil
+			}
 		case 3:
 			fmt.Println("3")
-		default:
+			encodedAuthSet := loadDecode(client, AUTHORITY_SET_KEY)
+			if encodedAuthSet != nil {
+				var setState VoterSetState
+				encodedSetState := loadDecode(client, SET_STATE_KEY)
+				if encodedSetState != nil {
+					// Some case
+					err = scale.Unmarshal(*encodedSetState, &setState)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					// None case
+					state := makeGenesisRound(genesis)
+					base := state.PrevoteGHOST
+					if base != nil {
+						// VoterSetState as live
+					} else {
+						panic("state is for completed round; completed rounds must have a prevote ghost; qed")
+					}
+				}
+				var set AuthoritySet[H, N]
+				err = scale.Unmarshal(*encodedAuthSet, &set)
+				if err != nil {
+					return nil, err
+				}
+				return &PersistentData[H, N]{
+					// Fix cast
+					authoritySet: set,
+					// Fix cast
+					setState: SharedVoterSetState(setState),
+				}, nil
+			}
+		default: // Some(other), is this same as default? Think not
 			return nil, fmt.Errorf("unsupported GRANDPA DB version: %v", version)
 
 		}
 	}
 
-	return nil, nil
+	// TODO investigate how load can lead to this case
+	logger.Infof("👴 Loading GRANDPA authority set from genesis on what appears to be first startup.")
+
+	genesisAuths, err := genesisAuthorities()
+	if err != nil {
+		return nil, err
+	}
+	genesisSet := NewGenesisAuthoritySet[H, N](genesisAuths)
+	if genesisSet == nil {
+		panic("genesis authorities is non-empty; all weights are non-zero; qed.")
+	}
+
+	state := makeGenesisRound(genesis)
+	base := state.PrevoteGHOST
+	if base == nil {
+		panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
+	}
+	// This should be VoterSetState::Live
+	genesisState := VoterSetState{}
+
+	insert := map[string][]byte{}
+	insert[string(AUTHORITY_SET_KEY)] = scale.MustMarshal(*genesisSet)
+	insert[string(SET_STATE_KEY)] = scale.MustMarshal(genesisState)
+
+	err = client.InsertAux(insert, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PersistentData[H, N]{
+		// Fix cast
+		authoritySet: *genesisSet,
+		// Fix cast
+		setState: SharedVoterSetState(genesisState),
+	}, nil
 }
