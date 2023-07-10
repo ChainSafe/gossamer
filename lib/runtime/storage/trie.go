@@ -253,6 +253,26 @@ func (s *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	return nil
 }
 
+func (s *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	child, err := s.t.GetChild(keyToChild)
+	if err != nil {
+		return err
+	}
+	if child == nil {
+		return nil
+	}
+
+	_, _, err = child.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
+	}
+
+	return nil
+}
+
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.
 func (s *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	s.lock.RLock()
