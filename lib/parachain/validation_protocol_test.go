@@ -261,23 +261,23 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		enumValue     scale.VaryingDataTypeValue
 		encodingValue []byte
 	}{
-		"ValidationProtocol with ApprovalDistribution with Assignments": {
+		"ValidationProtocol_with_ApprovalDistribution_with_Assignments": {
 			enumValue:     vpApprovalDistributionAssignmentsValue,
 			encodingValue: common.MustHexToBytes(testValidationProtocolHex["approvalDistributionMessageAssignments"]),
 		},
-		"ValidationProtocol with ApprovalDistribution with Approvals": {
+		"ValidationProtocol_with_ApprovalDistribution_with_Approvals": {
 			enumValue:     vpApprovalDistributionApprovalsValue,
 			encodingValue: common.MustHexToBytes(testValidationProtocolHex["approvalDistributionMessageApprovals"]),
 		},
-		"ValidationProtocol with StatementDistribution with Statement": {
+		"ValidationProtocol_with_StatementDistribution_with_Statement": {
 			enumValue:     vpStatementDistributionStatementValue,
 			encodingValue: common.MustHexToBytes(testValidationProtocolHex["statementDistributionMessageStatement"]),
 		},
-		"ValidationProtocol with StatementDistribution with Large Statement": {
+		"ValidationProtocol_with_StatementDistribution_with_Large_Statement": {
 			enumValue:     vpStatementDistributionLargeStatementValue,
 			encodingValue: common.MustHexToBytes(testValidationProtocolHex["statementDistributionMessageLargeStatement"]),
 		},
-		"ValidationProtocol with BitfieldDistribution": {
+		"ValidationProtocol_with_BitfieldDistribution": {
 			enumValue:     vpBitfieldDistributionVal,
 			encodingValue: common.MustHexToBytes(testValidationProtocolHex["bitfieldDistribution"]),
 		},
@@ -295,7 +295,6 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 
 			validationProtocolDecoded, err := validationProtocol.Value()
 			require.NoError(t, err)
-			fmt.Printf("decoded %#v\n", validationProtocolDecoded)
 			require.Equal(t, c.enumValue, validationProtocolDecoded)
 		})
 		t.Run("marshal "+name, func(t *testing.T) {
