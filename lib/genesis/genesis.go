@@ -14,6 +14,7 @@ type Genesis struct {
 	ChainType          string                 `json:"chainType"`
 	Bootnodes          []string               `json:"bootNodes"`
 	TelemetryEndpoints []interface{}          `json:"telemetryEndpoints"`
+	ForkId             string                 `json:"forkId"`
 	ProtocolID         string                 `json:"protocolId"`
 	Genesis            Fields                 `json:"genesis"`
 	Properties         map[string]interface{} `json:"properties"`
