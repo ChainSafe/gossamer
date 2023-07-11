@@ -19,10 +19,12 @@ func isDescendentof[H comparable](f IsDescendentOf[H]) IsDescendentOf[H] {
 
 func TestCurrentLimitFiltersMin(t *testing.T) {
 	var currentAuthorities AuthorityList
-	kp, err := ed25519.GenerateKeypair()
+	//kp, err := ed25519.GenerateKeypair()
+	//require.NoError(t, err)
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kp.Public(),
+		Key:    *pubKey,
 		Weight: 1,
 	})
 
@@ -67,10 +69,10 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 
 func TestChangesIteratedInPreOrder(t *testing.T) {
 	var currentAuthorities AuthorityList
-	kp, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kp.Public(),
+		Key:    *pubKey,
 		Weight: 1,
 	})
 
@@ -168,18 +170,18 @@ func TestApplyChange(t *testing.T) {
 	}
 
 	var setA AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
 	var setB AuthorityList
-	kpB, err := ed25519.GenerateKeypair()
+	pubKey, err = ed25519.NewPublicKey([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setB = append(setB, Authority{
-		Key:    kpB.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
@@ -284,18 +286,18 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	}
 
 	var setA AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
 	var setC AuthorityList
-	kpC, err := ed25519.GenerateKeypair()
+	pubKey, err = ed25519.NewPublicKey([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setC = append(setC, Authority{
-		Key:    kpC.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
@@ -409,10 +411,10 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	}
 
 	var setA AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
@@ -487,18 +489,18 @@ func TestForceChanges(t *testing.T) {
 	}
 
 	var setA AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
 	var setB AuthorityList
-	kpB, err := ed25519.GenerateKeypair()
+	pubKey, err = ed25519.NewPublicKey([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setB = append(setB, Authority{
-		Key:    kpB.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
@@ -597,10 +599,10 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	}
 
 	var setA AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
@@ -636,10 +638,10 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	}
 
 	var setA AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	})
 
@@ -752,10 +754,10 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 func TestNextChangeWorks(t *testing.T) {
 	var currentAuthorities AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 1,
 	})
 
@@ -885,19 +887,19 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	require.Nil(t, NewGenesisAuthoritySet[Hash, uint](AuthorityList{}))
 	require.Nil(t, NewAuthoritySet[Hash, uint](AuthorityList{}, 0, NewChangeTree[Hash, uint](), nil, nil))
 
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 
-	kpB, err := ed25519.GenerateKeypair()
+	pubKeyB, err := ed25519.NewPublicKey([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 
 	invalidAuthoritiesWeight := AuthorityList{
 		{
-			Key:    kpA.Public(),
+			Key:    *pubKey,
 			Weight: 5,
 		},
 		{
-			Key:    kpB.Public(),
+			Key:    *pubKeyB,
 			Weight: 0,
 		},
 	}
@@ -907,7 +909,7 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	require.Nil(t, NewAuthoritySet[Hash, uint](invalidAuthoritiesWeight, 0, NewChangeTree[Hash, uint](), nil, nil))
 
 	authoritySet := NewGenesisAuthoritySet[Hash, uint](AuthorityList{Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 5,
 	}})
 
@@ -944,10 +946,10 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 
 func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 	var currentAuthorities AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 1,
 	})
 
@@ -1051,10 +1053,10 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 
 func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *testing.T) {
 	var currentAuthorities AuthorityList
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 1,
 	})
 

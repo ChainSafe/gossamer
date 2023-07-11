@@ -65,15 +65,51 @@ func TestDummyClientInsert(t *testing.T) {
 	require.Equal(t, 3, len(client))
 }
 
+func TestDecode(t *testing.T) {
+	// Panics
+	//kpA, err := ed25519.GenerateKeypair()
+	//require.NoError(t, err)
+	//
+	//var authorities AuthorityList
+	//authorities = append(authorities, Authority{
+	//	Key:    kpA.Public(),
+	//	Weight: 100,
+	//})
+	//
+	//enc, err := scale.Marshal(&authorities)
+	//require.NoError(t, err)
+	//
+	//var newAuth *AuthorityList
+	//err = scale.Unmarshal(enc, &newAuth)
+	//require.NoError(t, err)
+	//require.Equal(t, authorities, newAuth)
+
+	//kpA, err := ed25519.GenerateKeypair()
+	//require.NoError(t, err)
+
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	require.NoError(t, err)
+
+	//pubKey := kpA.Public()
+
+	enc, err := scale.Marshal(*pubKey)
+	require.NoError(t, err)
+
+	var auth ed25519.PublicKey
+	err = scale.Unmarshal(enc, &auth)
+	require.NoError(t, err)
+	require.Equal(t, *pubKey, auth)
+}
+
 func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 	client := newDummyClient(t)
 
-	kpA, err := ed25519.GenerateKeypair()
+	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 
 	var authorities AuthorityList
 	authorities = append(authorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubKey,
 		Weight: 100,
 	})
 	setId := uint64(3)
@@ -87,10 +123,11 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 
 	// they have block here, idk why
 	{
+		// [4 1 128 114 187 247 112 153 251 68 184 82 240 222 222 154 103 230 8 55 55 76 209 175 50 30 199 172 119 20 227 104 143 230 58 100 0 0 0 0 0 0 0 3 0 0 0 0 0 0 0 0]
 		authoritySet := V0AuthoritySet[Hash, uint]{
 			CurrentAuthorities: authorities,
-			PendingChanges:     []V0PendingChange[Hash, uint]{},
 			SetID:              setId,
+			PendingChanges:     []V0PendingChange[Hash, uint]{},
 		}
 
 		voterSetState := roundInfo[Hash, uint]{
@@ -99,8 +136,6 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 		}
 
 		insert := map[string][]byte{}
-		// TODO this encoding has to encode/decode authority, which uses custom encoding logic from public key.
-		// Need to compare this encoding to types.Authority encoding
 		insert[string(AUTHORITY_SET_KEY)] = scale.MustMarshal(authoritySet)
 		insert[string(SET_STATE_KEY)] = scale.MustMarshal(voterSetState)
 

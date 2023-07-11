@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
@@ -14,7 +15,7 @@ type Hash [32]byte
 
 // Authority represents a grandpa authority
 type Authority struct {
-	Key    PublicKey
+	Key    ed25519.PublicKey
 	Weight uint64
 }
 
