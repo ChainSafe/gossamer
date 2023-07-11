@@ -5,45 +5,17 @@ package dot
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// newTestGenesisFile returns a human-readable test genesis file using "westend-dev" human readable data
-func newTestGenesisFile(t *testing.T, config *cfg.Config) (filename string) {
-	t.Helper()
-
-	fp := utils.GetWestendDevRawGenesisPath(t)
-	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
-	require.NoError(t, err)
-
-	gen := &genesis.Genesis{
-		Name:       config.Name,
-		ID:         config.ID,
-		Bootnodes:  config.Network.Bootnodes,
-		ProtocolID: config.Network.ProtocolID,
-		Genesis:    westendDevGenesis.GenesisFields(),
-	}
-
-	b, err := json.Marshal(gen)
-	require.NoError(t, err)
-
-	filename = filepath.Join(t.TempDir(), "genesis.json")
-	err = os.WriteFile(filename, b, os.ModePerm)
-	require.NoError(t, err)
-
-	return filename
-}
 
 func TestCreateJSONRawFile(t *testing.T) {
 	type args struct {
@@ -91,14 +63,14 @@ func TestNewTestGenesisFile(t *testing.T) {
 			name: "working_example",
 			args: args{
 				t:      t,
-				config: westend_dev.DefaultConfig(),
+				config: DefaultTestWestendDevConfig(t),
 			},
 			want: &os.File{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newTestGenesisFile(tt.args.t, tt.args.config)
+			got := NewTestGenesisRawFile(tt.args.t, tt.args.config)
 			if tt.want != nil {
 				assert.NotNil(t, got)
 			}
