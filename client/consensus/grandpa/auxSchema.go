@@ -53,21 +53,21 @@ type PersistentData[H comparable, N constraints.Unsigned] struct {
 
 func (authSet V0AuthoritySet[H, N]) into() AuthoritySet[H, N] {
 	pendingStandardChanges := NewChangeTree[H, N]()
-
 	for _, oldChange := range authSet.PendingChanges {
+
 		finalizedKind := Finalized{}
 		newChange := PendingChange[H, N]{
-			nextAuthorities: oldChange.NextAuthorities,
-			delay:           oldChange.Delay,
-			canonHeight:     oldChange.CanonHeight,
-			canonHash:       oldChange.CanonHash,
-			delayKind:       newDelayKind(finalizedKind),
+			NextAuthorities: oldChange.NextAuthorities,
+			Delay:           oldChange.Delay,
+			CanonHeight:     oldChange.CanonHeight,
+			CanonHash:       oldChange.CanonHash,
+			DelayKind:       newDelayKind(finalizedKind),
 		}
 
 		isDescOf := func(H, H) (bool, error) { return false, nil }
-		_, err := pendingStandardChanges.Import(newChange.canonHash, newChange.canonHeight, newChange, isDescOf)
+		_, err := pendingStandardChanges.Import(newChange.CanonHash, newChange.CanonHeight, newChange, isDescOf)
 		if err != nil {
-			logger.Warnf("migrating pending authority set change: %s", err)
+			logger.Warnf("migrating pending authority set Change: %s", err)
 			logger.Warn("node is in a potentially inconsistent state")
 		}
 	}
@@ -81,7 +81,7 @@ func (authSet V0AuthoritySet[H, N]) into() AuthoritySet[H, N] {
 
 // Dont decode I think
 func loadDecode(client AuxStore, key []byte) *[]byte {
-	// Nil case means value not in db, not nil means encoded value retrieved
+	// Nil case means Value not in db, not nil means encoded Value retrieved
 	return client.GetAux(key)
 }
 
@@ -103,15 +103,25 @@ func migrateFromVersion0[H comparable, N constraints.Unsigned](client AuxStore, 
 
 	encAuthSet := loadDecode(client, AUTHORITY_SET_KEY)
 	if encAuthSet != nil {
+		fmt.Println("in this case in 0")
 		var oldSet V0AuthoritySet[H, N]
-		fmt.Println(*encAuthSet)
 		err = scale.Unmarshal(*encAuthSet, &oldSet)
 		if err != nil {
 			return nil, err
 		}
+
+		fmt.Println("old set")
+		fmt.Println(oldSet)
+		fmt.Println("old set enc")
+		fmt.Println(scale.MustMarshal(oldSet))
 		newSet := oldSet.into()
 
 		insert = map[string][]byte{}
+
+		// New set is empty here
+		// Data seems okay but why not encoding
+		fmt.Println("new set enc")
+		fmt.Println(scale.MustMarshal(newSet))
 		insert[string(AUTHORITY_SET_KEY)] = scale.MustMarshal(newSet)
 		err = client.InsertAux(insert, nil)
 		if err != nil {
@@ -132,7 +142,7 @@ func migrateFromVersion0[H comparable, N constraints.Unsigned](client AuxStore, 
 			}
 		}
 
-		_ = newSet.setId
+		_ = newSet.SetId
 		base := lastRoundVoterSetState.roundState.PrevoteGHOST
 		if base == nil {
 			panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
@@ -226,6 +236,7 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 			fmt.Println("3")
 			encodedAuthSet := loadDecode(client, AUTHORITY_SET_KEY)
 			if encodedAuthSet != nil {
+				fmt.Println("here")
 				var setState VoterSetState
 				encodedSetState := loadDecode(client, SET_STATE_KEY)
 				if encodedSetState != nil {
@@ -256,6 +267,7 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 					setState: SharedVoterSetState(setState),
 				}, nil
 			}
+			fmt.Println("awe man")
 		default: // Some(other), is this same as default? Think not
 			return nil, fmt.Errorf("unsupported GRANDPA DB version: %v", version)
 

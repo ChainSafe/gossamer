@@ -3,18 +3,19 @@
 
 package grandpa
 
-// DelayedKinds Kinds of delays for pending changes.
+// DelayedKinds Kinds of Delays for pending changes.
 type DelayedKinds interface {
 	Finalized | Best
 }
 
 // DelayKind struct to represent DelayedKinds
+// TODO this needs to be a vdt I think
 type DelayKind struct {
-	value interface{}
+	Value interface{}
 }
 
 func setDelayKind[T DelayedKinds](delayKind *DelayKind, val T) {
-	delayKind.value = val
+	delayKind.Value = val
 }
 
 func newDelayKind[T DelayedKinds](val T) DelayKind {
@@ -29,5 +30,5 @@ type Finalized struct{}
 // Best Depth in best chain. The median last finalized block is calculated at the time the
 // hashNumber was signaled.
 type Best struct {
-	medianLastFinalized uint
+	MedianLastFinalized uint
 }

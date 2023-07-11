@@ -14,7 +14,7 @@ func searchKey[H comparable, N constraints.Unsigned](k key[N], changes []Pending
 	for i, change := range changes {
 		changeKey := key[N]{
 			effectiveNumber:   change.EffectiveNumber(),
-			signalBlockNumber: change.canonHeight,
+			signalBlockNumber: change.CanonHeight,
 		}
 		if (k.effectiveNumber == k.effectiveNumber &&
 			k.signalBlockNumber == k.signalBlockNumber) || k.effectiveNumber < changeKey.effectiveNumber {
@@ -31,13 +31,13 @@ func searchSetChanges[N constraints.Unsigned](number N, changes AuthoritySetChan
 	return slices.BinarySearchFunc(
 		changes,
 		number,
-		func(a authorityChange[N], b N) int {
+		func(a AuthorityChange[N], b N) int {
 			switch {
-			case a.blockNumber == b:
+			case a.BlockNumber == b:
 				return 0
-			case a.blockNumber > b:
+			case a.BlockNumber > b:
 				return 1
-			case a.blockNumber < b:
+			case a.BlockNumber < b:
 				return -1
 			default:
 				panic("huh?")
@@ -52,7 +52,7 @@ func bytesToHash(b []byte) Hash {
 	return h
 }
 
-// SetBytes sets the hash to the value of b.
+// SetBytes sets the hash to the Value of b.
 // If b is larger than len(h), b will be cropped from the left.
 func (h *Hash) setBytes(b []byte) { //skipcq: GO-W1029
 	if len(b) > len(h) {

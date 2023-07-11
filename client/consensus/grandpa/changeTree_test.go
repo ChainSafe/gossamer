@@ -10,35 +10,35 @@ import (
 
 func TestSwapRemove(t *testing.T) {
 	change1 := &PendingChange[Hash, uint]{
-		canonHash: Hash{1},
+		CanonHash: Hash{1},
 	}
 
 	change2 := &PendingChange[Hash, uint]{
-		canonHash: Hash{2},
+		CanonHash: Hash{2},
 	}
 
 	change3 := &PendingChange[Hash, uint]{
-		canonHash: Hash{2},
+		CanonHash: Hash{2},
 	}
 
-	pendingChangeNode1 := &pendingChangeNode[Hash, uint]{
-		change: change1,
+	pendingChangeNode1 := &PendingChangeNode[Hash, uint]{
+		Change: change1,
 	}
 
-	pendingChangeNode2 := &pendingChangeNode[Hash, uint]{
-		change: change2,
+	pendingChangeNode2 := &PendingChangeNode[Hash, uint]{
+		Change: change2,
 	}
 
-	pendingChangeNode3 := &pendingChangeNode[Hash, uint]{
-		change: change3,
+	pendingChangeNode3 := &PendingChangeNode[Hash, uint]{
+		Change: change3,
 	}
 
-	changeNodes1 := []*pendingChangeNode[Hash, uint]{
+	changeNodes1 := []*PendingChangeNode[Hash, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 	}
 
-	changeNodes2 := []*pendingChangeNode[Hash, uint]{
+	changeNodes2 := []*PendingChangeNode[Hash, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 		pendingChangeNode3,
@@ -50,13 +50,13 @@ func TestSwapRemove(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		exp  pendingChangeNode[Hash, uint]
+		exp  PendingChangeNode[Hash, uint]
 	}{
 		{
 			name: "2 elem slice deleting last element",
 			args: args{
 				ct: ChangeTree[Hash, uint]{
-					roots: changeNodes1,
+					TreeRoots: changeNodes1,
 				},
 				index: 1,
 			},
@@ -66,7 +66,7 @@ func TestSwapRemove(t *testing.T) {
 			name: "3 elem slice deleting first element",
 			args: args{
 				ct: ChangeTree[Hash, uint]{
-					roots: changeNodes2,
+					TreeRoots: changeNodes2,
 				},
 				index: 0,
 			},

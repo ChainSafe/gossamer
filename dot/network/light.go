@@ -428,7 +428,7 @@ func (rc *RemoteChangesResponse) String() string {
 			strRoots = append(strRoots, string(p.First), string(p.Second))
 		}
 	}
-	return fmt.Sprintf("Max =%s Proof =%s Roots=%v RootsProof=%s",
+	return fmt.Sprintf("Max =%s Proof =%s TreeRoots=%v RootsProof=%s",
 		string(rc.Max),
 		strProof,
 		strRoots,

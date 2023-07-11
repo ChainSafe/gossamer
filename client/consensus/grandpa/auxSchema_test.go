@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -64,42 +65,6 @@ func TestDummyClientInsert(t *testing.T) {
 	require.Equal(t, 3, len(client))
 }
 
-func TestDecode(t *testing.T) {
-	// Panics
-	//kpA, err := ed25519.GenerateKeypair()
-	//require.NoError(t, err)
-	//
-	//var authorities AuthorityList
-	//authorities = append(authorities, Authority{
-	//	Key:    kpA.Public(),
-	//	Weight: 100,
-	//})
-	//
-	//enc, err := scale.Marshal(&authorities)
-	//require.NoError(t, err)
-	//
-	//var newAuth *AuthorityList
-	//err = scale.Unmarshal(enc, &newAuth)
-	//require.NoError(t, err)
-	//require.Equal(t, authorities, newAuth)
-
-	//kpA, err := ed25519.GenerateKeypair()
-	//require.NoError(t, err)
-
-	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-	require.NoError(t, err)
-
-	//pubKey := kpA.Public()
-
-	enc, err := scale.Marshal(*pubKey)
-	require.NoError(t, err)
-
-	var auth ed25519.PublicKey
-	err = scale.Unmarshal(enc, &auth)
-	require.NoError(t, err)
-	require.Equal(t, *pubKey, auth)
-}
-
 func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 	client := newDummyClient(t)
 
@@ -156,4 +121,18 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 	err = scale.Unmarshal(*res, &version)
 	require.NoError(t, err)
 	require.Equal(t, CURRENT_VERSION, version)
+
+	fmt.Println(res)
+
+	persistantData, err := loadPersistent[Hash, uint](client, Hash{}, 0, func() (AuthorityList, error) {
+		panic("error")
+	})
+	require.NotNil(t, persistantData)
+	require.Equal(t, AuthoritySet[Hash, uint]{
+		CurrentAuthorities:     authorities,
+		SetId:                  setId,
+		PendingStandardChanges: NewChangeTree[Hash, uint](),
+		PendingForcedChanges:   []PendingChange[Hash, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
+	}, *persistantData)
 }
