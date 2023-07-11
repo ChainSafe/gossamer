@@ -241,21 +241,27 @@ func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genes
 				encodedSetState := loadDecode(client, SET_STATE_KEY)
 				if encodedSetState != nil {
 					// Some case
+					fmt.Println("encodedSetState not nil")
 					err = scale.Unmarshal(*encodedSetState, &setState)
 					if err != nil {
 						return nil, err
 					}
 				} else {
 					// None case
+					fmt.Println("encodedSetState is nil")
 					state := makeGenesisRound(genesis)
 					base := state.PrevoteGHOST
 					if base != nil {
 						// VoterSetState as live
+						// TODO implement VoterSetState
 					} else {
 						panic("state is for completed round; completed rounds must have a prevote ghost; qed")
 					}
 				}
+
+				// TODO then worry about this panic
 				var set AuthoritySet[H, N]
+				// Panicing here
 				err = scale.Unmarshal(*encodedAuthSet, &set)
 				if err != nil {
 					return nil, err
