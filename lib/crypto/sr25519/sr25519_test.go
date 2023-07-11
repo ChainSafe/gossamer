@@ -149,13 +149,13 @@ func TestVerifySignature(t *testing.T) {
 			publicKey: []byte{},
 			signature: signature,
 			message:   message,
-			err:       errors.New("sr25519: cannot create public key: input is not 32 bytes"),
+			err:       errors.New("creating new sr25519 public key: cannot create public key: input is not 32 bytes"),
 		},
 		"invalid_signature_length": {
 			publicKey: publicKey,
 			signature: []byte{},
 			message:   message,
-			err:       fmt.Errorf("sr25519: invalid signature length"),
+			err:       fmt.Errorf("verifying sr25519 public key: invalid signature length"),
 		},
 		"verification_failed": {
 			publicKey: publicKey,
