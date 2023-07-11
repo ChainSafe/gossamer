@@ -32,6 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -491,6 +492,11 @@ func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, k
 	}
 
 	return grandpa.NewService(gsCfg)
+}
+
+func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) (
+	*parachain.Service, error) {
+	return parachain.NewService(net, genesisHash)
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {

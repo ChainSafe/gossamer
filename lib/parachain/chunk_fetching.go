@@ -3,6 +3,7 @@ package parachain
 import (
 	"fmt"
 
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -12,7 +13,7 @@ type ChunkFetchingRequest struct {
 	CandidateHash CandidateHash `scale:"1"`
 
 	// The index of the chunk to fetch.
-	Index ValidatorIndex `scale:"2"`
+	Index parachaintypes.ValidatorIndex `scale:"2"`
 }
 
 // Encode returns the SCALE encoding of the ChunkFetchingRequest
