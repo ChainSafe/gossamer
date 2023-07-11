@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -40,7 +41,7 @@ func (s *Statement) Value() (scale.VaryingDataTypeValue, error) {
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
-type Seconded CommittedCandidateReceipt
+type Seconded parachaintypes.CommittedCandidateReceipt
 
 // Index returns the index of varying data type
 func (Seconded) Index() uint {
