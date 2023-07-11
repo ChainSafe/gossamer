@@ -24,6 +24,8 @@ const (
 	blockAnnounceMsgType MessageType = iota + 3
 	transactionMsgType
 	ConsensusMsgType
+	CollationMsgType
+	ValidationMsgType
 )
 
 // Message must be implemented by all network messages
