@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -28,7 +29,7 @@ func (s *StatementFetchingRequest) Encode() ([]byte, error) {
 type StatementFetchingResponse scale.VaryingDataType
 
 // MissingDataInStatement represents the data missing to reconstruct the full signed statement.
-type MissingDataInStatement CommittedCandidateReceipt
+type MissingDataInStatement parachaintypes.CommittedCandidateReceipt
 
 // Index returns the index of varying data type
 func (MissingDataInStatement) Index() uint {
