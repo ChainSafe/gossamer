@@ -169,10 +169,9 @@ func migrateFromVersion2[H comparable, N constraints.Unsigned](client AuxStore, 
 	return nil
 }
 
-// Load or initialize persistent data from backend.
-
 type GenesisAuthoritiesFunc func() (AuthorityList, error)
 
+// Load or initialize persistent data from backend.
 func loadPersistent[H comparable, N constraints.Unsigned](client AuxStore, genesisHash H, genesisNumber N, genesisAuthorities GenesisAuthoritiesFunc) (*PersistentData[H, N], error) {
 	encodedVersion := loadDecode(client, VERSION_KEY)
 
