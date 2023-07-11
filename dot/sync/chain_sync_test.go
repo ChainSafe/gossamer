@@ -118,7 +118,7 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 
 				return &chainSync{
 					pendingBlocks: pendingBlocks,
-					state:         state,
+					syncMode:      state,
 				}
 			},
 			peerID:              somePeer,
@@ -145,8 +145,8 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 					GetHighestFinalisedHeader().
 					Return(block2AnnounceHeader, nil)
 
-				expectedRequest := network.NewSingleBlockRequestMessage(block2AnnounceHeader.Hash(),
-					network.BootstrapRequestData)
+				expectedRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
+					1, network.BootstrapRequestData, network.Descending)
 
 				fakeBlockBody := types.Body([]types.Extrinsic{})
 				mockedBlockResponse := &network.BlockResponseMessage{
@@ -188,7 +188,7 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 
 				return &chainSync{
 					pendingBlocks:      pendingBlocksMock,
-					state:              state,
+					syncMode:           state,
 					workerPool:         workerPool,
 					network:            networkMock,
 					blockState:         blockStateMock,
@@ -395,7 +395,7 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 
 	chainSync := newChainSync(cfg)
 	chainSync.peerView = peerViewMap
-	chainSync.state.Store(bootstrap)
+	chainSync.syncMode.Store(bootstrap)
 
 	return chainSync
 }

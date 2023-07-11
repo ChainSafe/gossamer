@@ -50,6 +50,20 @@ func (mr *MockChainSyncMockRecorder) getHighestBlock() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getHighestBlock", reflect.TypeOf((*MockChainSync)(nil).getHighestBlock))
 }
 
+// getSyncMode mocks base method.
+func (m *MockChainSync) getSyncMode() chainSyncState {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "getSyncMode")
+	ret0, _ := ret[0].(chainSyncState)
+	return ret0
+}
+
+// getSyncMode indicates an expected call of getSyncMode.
+func (mr *MockChainSyncMockRecorder) getSyncMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getSyncMode", reflect.TypeOf((*MockChainSync)(nil).getSyncMode))
+}
+
 // onBlockAnnounce mocks base method.
 func (m *MockChainSync) onBlockAnnounce(arg0 announcedBlock) error {
 	m.ctrl.T.Helper()
@@ -98,18 +112,4 @@ func (m *MockChainSync) stop() {
 func (mr *MockChainSyncMockRecorder) stop() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "stop", reflect.TypeOf((*MockChainSync)(nil).stop))
-}
-
-// syncState mocks base method.
-func (m *MockChainSync) syncState() chainSyncState {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "syncState")
-	ret0, _ := ret[0].(chainSyncState)
-	return ret0
-}
-
-// syncState indicates an expected call of syncState.
-func (mr *MockChainSyncMockRecorder) syncState() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncState", reflect.TypeOf((*MockChainSync)(nil).syncState))
 }

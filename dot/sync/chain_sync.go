@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
 
-var _ ChainSync = &chainSync{}
+var _ ChainSync = (*chainSync)(nil)
 
 type chainSyncState byte
 
@@ -78,8 +78,8 @@ type ChainSync interface {
 	// called upon receiving a BlockAnnounceHandshake
 	setPeerHead(p peer.ID, hash common.Hash, number uint)
 
-	// syncState returns the current syncing state
-	syncState() chainSyncState
+	// getSyncMode returns the current syncing state
+	getSyncMode() chainSyncState
 
 	// getHighestBlock returns the highest block or an error
 	getHighestBlock() (highestBlock uint, err error)
@@ -110,7 +110,7 @@ type chainSync struct {
 	// note: the block may have empty fields, as some data about it may be unknown
 	pendingBlocks DisjointBlockSet
 
-	state atomic.Value
+	syncMode atomic.Value
 
 	finalisedCh <-chan *types.FinalisationInfo
 
@@ -158,7 +158,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		network:            cfg.net,
 		peerView:           make(map[peer.ID]*peerView),
 		pendingBlocks:      cfg.pendingBlocks,
-		state:              atomicState,
+		syncMode:           atomicState,
 		finalisedCh:        cfg.bs.GetFinalisedNotifierChannel(),
 		minPeers:           cfg.minPeers,
 		slotDuration:       cfg.slotDuration,
@@ -183,15 +183,8 @@ func (cs *chainSync) start() {
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh)
 	go cs.workerPool.listenForRequests(cs.stopCh)
 
-	isFarFromTarget, err := cs.isFarFromTarget()
-	if err != nil && !errors.Is(err, errNoPeerViews) {
-		panic("failing while checking target distance: " + err.Error())
-	}
-
-	if isFarFromTarget {
-		cs.state.Store(bootstrap)
-		go cs.bootstrapSync()
-	}
+	cs.syncMode.Store(bootstrap)
+	go cs.bootstrapSync()
 }
 
 func (cs *chainSync) stop() {
@@ -199,20 +192,20 @@ func (cs *chainSync) stop() {
 	<-cs.workerPool.doneCh
 }
 
-func (cs *chainSync) isFarFromTarget() (bool, error) {
-	syncTarget, err := cs.getTarget()
+func (cs *chainSync) isFarFromTarget() (bestBlockHeader *types.Header, syncTarget uint, isFarFromTarget bool, err error) {
+	syncTarget, err = cs.getTarget()
 	if err != nil {
-		return false, fmt.Errorf("getting target: %w", err)
+		return nil, syncTarget, false, fmt.Errorf("getting target: %w", err)
 	}
 
-	bestBlockHeader, err := cs.blockState.BestBlockHeader()
+	bestBlockHeader, err = cs.blockState.BestBlockHeader()
 	if err != nil {
-		return false, fmt.Errorf("getting best block header: %w", err)
+		return nil, syncTarget, false, fmt.Errorf("getting best block header: %w", err)
 	}
 
 	bestBlockNumber := bestBlockHeader.Number
-	isFarFromTarget := bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return isFarFromTarget, nil
+	isFarFromTarget = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
+	return bestBlockHeader, syncTarget, isFarFromTarget, nil
 }
 
 func (cs *chainSync) bootstrapSync() {
@@ -224,56 +217,45 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		// TODO: move the syncing logs to a better place
-		finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			logger.Warnf("getting highest finalized header: %w", err)
-		} else {
-			syncTarget, err := cs.getTarget()
-			if err != nil {
-				logger.Warnf("getting target: %w", err)
-			} else {
-				logger.Infof(
-					"🚣 currently syncing, %d peers connected, "+
-						"%d available workers, "+
-						"target block number %d, "+
-						"finalised block number %d with hash %s",
-					len(cs.network.Peers()),
-					cs.workerPool.totalWorkers(),
-					syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
-			}
-		}
-
-		isFarFromTarget, err := cs.isFarFromTarget()
+		bestBlockHeader, syncTarget, isFarFromTarget, err := cs.isFarFromTarget()
 		if err != nil && !errors.Is(err, errNoPeerViews) {
 			logger.Criticalf("ending bootstrap sync, checking target distance: %s", err)
 			return
 		}
 
-		if isFarFromTarget {
-			bestBlockHeader, err := cs.blockState.BestBlockHeader()
-			if err != nil {
-				logger.Criticalf("getting best block header: %s", err)
-				return
-			}
+		finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			logger.Criticalf("getting highest finalized header: %w", err)
+			return
+		}
 
+		logger.Infof(
+			"🚣 currently syncing, %d peers connected, "+
+				"%d available workers, "+
+				"target block number %d, "+
+				"finalised block number %d with hash %s",
+			len(cs.network.Peers()),
+			cs.workerPool.totalWorkers(),
+			syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
+
+		if isFarFromTarget {
 			cs.workerPool.useConnectedPeers()
 			err = cs.requestMaxBlocksFrom(bestBlockHeader)
 			if err != nil {
-				logger.Errorf("while executing bootsrap sync: %s", err)
+				logger.Errorf("requesting max blocks from best block header: %s", err)
 			}
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
-			cs.state.Store(tip)
+			cs.syncMode.Store(tip)
 			isSyncedGauge.Set(1)
-			logger.Debugf("switched sync mode to %d", tip)
+			logger.Debugf("switched sync mode to %d", tip.String())
 			return
 		}
 	}
 }
 
-func (cs *chainSync) syncState() chainSyncState {
-	return cs.state.Load().(chainSyncState)
+func (cs *chainSync) getSyncMode() chainSyncState {
+	return cs.syncMode.Load().(chainSyncState)
 }
 
 // setPeerHead sets a peer's best known block
@@ -301,12 +283,11 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return fmt.Errorf("while adding pending block header: %w", err)
 	}
 
-	syncState := cs.state.Load().(chainSyncState)
-	if syncState != tip {
+	if cs.getSyncMode() != tip {
 		return nil
 	}
 
-	isFarFromTarget, err := cs.isFarFromTarget()
+	_, _, isFarFromTarget, err := cs.isFarFromTarget()
 	if err != nil && !errors.Is(err, errNoPeerViews) {
 		return fmt.Errorf("checking target distance: %w", err)
 	}
@@ -316,9 +297,9 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	}
 
 	// we are more than 128 blocks behind the head, switch to bootstrap
-	cs.state.Store(bootstrap)
+	cs.syncMode.Store(bootstrap)
 	isSyncedGauge.Set(0)
-	logger.Debugf("switched sync mode to %d", bootstrap)
+	logger.Debugf("switched sync mode to %d", bootstrap.String())
 	go cs.bootstrapSync()
 	return nil
 }
@@ -385,16 +366,19 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	totalBlocks := uint32(1)
 
 	var request *network.BlockRequestMessage
+	startingBlock := *variadic.MustNewUint32OrHash(announcedHeader.Hash())
+
 	if gapLength > 1 {
-		request = network.NewDescendingBlockRequest(announcedHeader.Hash(), gapLength,
-			network.BootstrapRequestData)
+		request = network.NewBlockRequest(startingBlock, gapLength,
+			network.BootstrapRequestData, network.Descending)
+
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 
 		logger.Debugf("received a block announce from %s, requesting %d blocks, descending request from %s (#%d)",
 			peerWhoAnnounced, gapLength, announcedHeader.Hash(), announcedHeader.Number)
 	} else {
-		request = network.NewSingleBlockRequestMessage(announcedHeader.Hash(), network.BootstrapRequestData)
+		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
 		logger.Debugf("received a block announce from %s, requesting a single block %s (#%d)",
 			peerWhoAnnounced, announcedHeader.Hash(), announcedHeader.Number)
 	}
@@ -423,13 +407,14 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	startAtBlock := announcedHeader.Number
 	announcedHash := announcedHeader.Hash()
 	var request *network.BlockRequestMessage
+	startingBlock := *variadic.MustNewUint32OrHash(announcedHash)
 
 	if parentExists {
-		request = network.NewSingleBlockRequestMessage(announcedHash, network.BootstrapRequestData)
+		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
 	} else {
 		gapLength = uint32(announcedHeader.Number - highestFinalizedHeader.Number)
 		startAtBlock = highestFinalizedHeader.Number + 1
-		request = network.NewDescendingBlockRequest(announcedHash, gapLength, network.BootstrapRequestData)
+		request = network.NewBlockRequest(startingBlock, gapLength, network.BootstrapRequestData, network.Descending)
 	}
 
 	logger.Debugf("requesting %d fork blocks, starting at %s (#%d)",
@@ -479,8 +464,8 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 			gapLength = 128
 		}
 
-		descendingGapRequest := network.NewDescendingBlockRequest(pendingBlock.hash,
-			uint32(gapLength), network.BootstrapRequestData)
+		descendingGapRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(pendingBlock.hash),
+			uint32(gapLength), network.BootstrapRequestData, network.Descending)
 		startAtBlock := pendingBlock.number - uint(*descendingGapRequest.Max) + 1
 
 		// the `requests` in the tip sync are not related necessarily
@@ -534,8 +519,6 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	requests := network.NewAscedingBlockRequests(startRequestAt, targetBlockNumber,
 		network.BootstrapRequestData)
 
-	fmt.Printf("===> amount of requests: %d\n", len(requests))
-
 	var expectedAmountOfBlocks uint32
 	for _, request := range requests {
 		if request.Max != nil {
@@ -543,8 +526,6 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 			expectedAmountOfBlocks += *request.Max
 		}
 	}
-
-	fmt.Printf("===> expected amount of blocks: %d\n", expectedAmountOfBlocks)
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequests(requests, resultsQueue)
@@ -809,7 +790,7 @@ func (cs *chainSync) processBlockData(blockData types.BlockData) error {
 	}
 
 	// while in bootstrap mode we don't need to broadcast block announcements
-	announceImportedBlock := cs.state.Load().(chainSyncState) == tip
+	announceImportedBlock := cs.getSyncMode() == tip
 	if headerInState && bodyInState {
 		err = cs.processBlockDataWithStateHeaderAndBody(blockData, announceImportedBlock)
 		if err != nil {

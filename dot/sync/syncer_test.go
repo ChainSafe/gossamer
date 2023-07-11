@@ -307,7 +307,7 @@ func TestService_IsSynced(t *testing.T) {
 		"tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
 				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().syncState().Return(tip)
+				chainSync.EXPECT().getSyncMode().Return(tip)
 				return Service{
 					chainSync: chainSync,
 				}
@@ -317,7 +317,7 @@ func TestService_IsSynced(t *testing.T) {
 		"not_tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
 				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().syncState().Return(bootstrap)
+				chainSync.EXPECT().getSyncMode().Return(bootstrap)
 				return Service{
 					chainSync: chainSync,
 				}

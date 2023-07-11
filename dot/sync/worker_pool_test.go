@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
@@ -238,7 +239,8 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	workerPool.newPeer(availablePeer)
 
 	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	blockRequest := network.NewSingleBlockRequestMessage(blockHash, network.BootstrapRequestData)
+	blockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(blockHash),
+		1, network.BootstrapRequestData, network.Descending)
 	mockedBlockResponse := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
@@ -298,10 +300,12 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 	workerPool.newPeer(availablePeer)
 
 	firstRequestBlockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	firstBlockRequest := network.NewSingleBlockRequestMessage(firstRequestBlockHash, network.BootstrapRequestData)
+	firstBlockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
+		1, network.BootstrapRequestData, network.Descending)
 
 	secondRequestBlockHash := common.MustHexToHash("0x897646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	secondBlockRequest := network.NewSingleBlockRequestMessage(firstRequestBlockHash, network.BootstrapRequestData)
+	secondBlockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
+		1, network.BootstrapRequestData, network.Descending)
 
 	firstMockedBlockResponse := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{

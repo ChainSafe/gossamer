@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// maxResponseSize is maximum number of block data a BlockResponse message can contain
+// MaxBlocksInResponse is maximum number of block data a BlockResponse message can contain
 const MaxBlocksInResponse = 128
 
 type MessageType byte
@@ -361,23 +361,11 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-// NewSingleBlockRequestMessage returns a request to retrieve a single block
-func NewSingleBlockRequestMessage(blockHash common.Hash, requestedData byte) *BlockRequestMessage {
-	one := uint32(1)
+func NewBlockRequest(startingBlock variadic.Uint32OrHash, amount uint32, requestedData byte, direction SyncDirection) *BlockRequestMessage {
 	return &BlockRequestMessage{
 		RequestedData: requestedData,
-		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
-		Direction:     Descending,
-		Max:           &one,
-	}
-}
-
-// NewDescendingBlockRequest returns a descending block request message
-func NewDescendingBlockRequest(blockHash common.Hash, amount uint32, requestedData byte) *BlockRequestMessage {
-	return &BlockRequestMessage{
-		RequestedData: requestedData,
-		StartingBlock: *variadic.MustNewUint32OrHash(blockHash),
-		Direction:     Descending,
+		StartingBlock: startingBlock,
+		Direction:     direction,
 		Max:           &amount,
 	}
 }
@@ -388,18 +376,11 @@ func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte
 	}
 
 	diff := targetNumber - startNumber
-	fmt.Printf("target number: %d, start number: %d = %d\n", targetNumber, startNumber, diff)
 
 	// start and end block are the same, just request 1 block
 	if diff == 0 {
-		one := uint32(1)
 		return []*BlockRequestMessage{
-			{
-				RequestedData: requestedData,
-				StartingBlock: *variadic.MustNewUint32OrHash(uint32(startNumber)),
-				Direction:     Ascending,
-				Max:           &one,
-			},
+			NewBlockRequest(*variadic.MustNewUint32OrHash(uint32(startNumber)), 1, requestedData, Ascending),
 		}
 	}
 
@@ -425,13 +406,7 @@ func NewAscedingBlockRequests(startNumber, targetNumber uint, requestedData byte
 		}
 
 		start := variadic.MustNewUint32OrHash(startNumber)
-
-		reqs[i] = &BlockRequestMessage{
-			RequestedData: requestedData,
-			StartingBlock: *start,
-			Direction:     Ascending,
-			Max:           &max,
-		}
+		reqs[i] = NewBlockRequest(*start, max, requestedData, Ascending)
 		startNumber += uint(max)
 	}
 
