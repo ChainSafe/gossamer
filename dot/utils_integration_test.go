@@ -8,18 +8,15 @@ package dot
 import (
 	"testing"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
-
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTrieSnapshot(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genRawFile := NewTestGenesisRawFile(t, config)
-	config.BasePath = t.TempDir()
 
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
