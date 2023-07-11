@@ -6,11 +6,11 @@ package parachain
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-  "github.com/ChainSafe/gossamer/dot/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-
 )
 
 type UncheckedSignedAvailabilityBitfield struct {
@@ -19,7 +19,7 @@ type UncheckedSignedAvailabilityBitfield struct {
 	Payload scale.BitVec `scale:"1"`
 
 	// The index of the validator signing this statement.
-	ValidatorIndex ValidatorIndex `scale:"2"`
+	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
 
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`

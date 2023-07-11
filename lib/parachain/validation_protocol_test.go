@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -44,7 +45,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	approvalDistribution := NewApprovalDistributionVDT()
 	approvalDistribution.Set(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(1), false),
+			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(1), false),
 			CandidateIndex:         4,
 		},
 	})
@@ -138,14 +139,14 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 
 	}
 	*/
-	var collatorID CollatorID
+	var collatorID parachaintypes.CollatorID
 	tempID := common.MustHexToBytes(testValidationProtocolHex["collatorID"])
 	copy(collatorID[:], tempID)
-	var collatorSignature CollatorSignature
+	var collatorSignature parachaintypes.CollatorSignature
 	copy(collatorSignature[:], tempSignature)
 
 	statementSecond := Seconded{
-		Descriptor: CandidateDescriptor{
+		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      1,
 			RelayParent:                 hash,
 			Collator:                    collatorID,
@@ -154,13 +155,13 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			ErasureRoot:                 hash,
 			Signature:                   collatorSignature,
 			ParaHead:                    hash,
-			ValidationCodeHash:          ValidationCodeHash(hash),
+			ValidationCodeHash:          parachaintypes.ValidationCodeHash(hash),
 		},
-		Commitments: CandidateCommitments{
-			UpwardMessages:            []UpwardMessage{[]byte{1, 2, 3}},
+		Commitments: parachaintypes.CandidateCommitments{
+			UpwardMessages:            []parachaintypes.UpwardMessage{[]byte{1, 2, 3}},
 			HorizontalMessages:        nil,
-			NewValidationCode:         &ValidationCode{1, 2, 3},
-			HeadData:                  headData{1, 2, 3},
+			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
+			HeadData:                  []byte{1, 2, 3},
 			ProcessedDownwardMessages: 5,
 			HrmpWatermark:             0,
 		},
