@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package parachaintypes
 
 import (
 	_ "embed"
@@ -45,23 +45,23 @@ func Test_Validators(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := []ValidatorID{
-		ValidatorID(mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d")),
-		ValidatorID(mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e")),
-		ValidatorID(mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72")),
-		ValidatorID(mustHexTo32BArray(t, "0x74c337d57035cd6b7718e92a0d8ea6ef710da8ab1215a057c40c4ef792155a68")),
-		ValidatorID(mustHexTo32BArray(t, "0xe61d138eebd2069f1a76b3570f9de6a4b196289b198e33e6f0b59cef8837c511")),
-		ValidatorID(mustHexTo32BArray(t, "0x94ef34321ca5d37a6e8953183406b76f8ebf6a4be5eefc3997d022ac6e0a050e")),
-		ValidatorID(mustHexTo32BArray(t, "0xac837e8ca589521a83e7d9a7b307d1c41a5d9b940422488236f99646d21f3841")),
-		ValidatorID(mustHexTo32BArray(t, "0xb61cb85f7cf7616f9ef8f95010a51a68a4eae8afcdff715cc6a8d43da4a32a12")),
-		ValidatorID(mustHexTo32BArray(t, "0x382f17dae6b13a8ce5a7cc805056d9b592d918c8593f077db28cb14cf08a760c")),
-		ValidatorID(mustHexTo32BArray(t, "0x0825ba7677597ec9453ab5dbaa9e68bf89dc36694cb6e74cbd5a9a74b167e547")),
-		ValidatorID(mustHexTo32BArray(t, "0xcee3f65d78a239d7d199b100295e7a2d852ae898a6b81fd867b3471f25be7237")),
-		ValidatorID(mustHexTo32BArray(t, "0xe2ac8f039eb02370a9577e49ffc6032e6b5bf5ff77783bdc676d1432d714fd53")),
-		ValidatorID(mustHexTo32BArray(t, "0xce35fa64fe7a5a6fc456ed2830e64d5d1a5dba26e7a57ab458f8cedf1ec77016")),
-		ValidatorID(mustHexTo32BArray(t, "0xae40e895f46c8bfb3df63c119047d7faf21c3fe3e7a91994a3f00da6fa80f848")),
-		ValidatorID(mustHexTo32BArray(t, "0xa0e038975cff34d01c62960828c23ec10a305fe9f5c3589c2ae40f51963e380a")),
-		ValidatorID(mustHexTo32BArray(t, "0x807fa54347a8957ff5ef6c28e2403c83947e5fad4aa805c914df0645a07aab5a")),
-		ValidatorID(mustHexTo32BArray(t, "0x4c8e878d7f558ce5086cc37ca0d5964bed54ddd6b15a6663a95fe42e36858936")),
+		mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
+		mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
+		mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
+		mustHexTo32BArray(t, "0x74c337d57035cd6b7718e92a0d8ea6ef710da8ab1215a057c40c4ef792155a68"),
+		mustHexTo32BArray(t, "0xe61d138eebd2069f1a76b3570f9de6a4b196289b198e33e6f0b59cef8837c511"),
+		mustHexTo32BArray(t, "0x94ef34321ca5d37a6e8953183406b76f8ebf6a4be5eefc3997d022ac6e0a050e"),
+		mustHexTo32BArray(t, "0xac837e8ca589521a83e7d9a7b307d1c41a5d9b940422488236f99646d21f3841"),
+		mustHexTo32BArray(t, "0xb61cb85f7cf7616f9ef8f95010a51a68a4eae8afcdff715cc6a8d43da4a32a12"),
+		mustHexTo32BArray(t, "0x382f17dae6b13a8ce5a7cc805056d9b592d918c8593f077db28cb14cf08a760c"),
+		mustHexTo32BArray(t, "0x0825ba7677597ec9453ab5dbaa9e68bf89dc36694cb6e74cbd5a9a74b167e547"),
+		mustHexTo32BArray(t, "0xcee3f65d78a239d7d199b100295e7a2d852ae898a6b81fd867b3471f25be7237"),
+		mustHexTo32BArray(t, "0xe2ac8f039eb02370a9577e49ffc6032e6b5bf5ff77783bdc676d1432d714fd53"),
+		mustHexTo32BArray(t, "0xce35fa64fe7a5a6fc456ed2830e64d5d1a5dba26e7a57ab458f8cedf1ec77016"),
+		mustHexTo32BArray(t, "0xae40e895f46c8bfb3df63c119047d7faf21c3fe3e7a91994a3f00da6fa80f848"),
+		mustHexTo32BArray(t, "0xa0e038975cff34d01c62960828c23ec10a305fe9f5c3589c2ae40f51963e380a"),
+		mustHexTo32BArray(t, "0x807fa54347a8957ff5ef6c28e2403c83947e5fad4aa805c914df0645a07aab5a"),
+		mustHexTo32BArray(t, "0x4c8e878d7f558ce5086cc37ca0d5964bed54ddd6b15a6663a95fe42e36858936"),
 	}
 	require.Equal(t, expected, validatorIDs)
 

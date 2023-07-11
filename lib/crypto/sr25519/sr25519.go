@@ -53,12 +53,12 @@ type PrivateKey struct {
 func VerifySignature(publicKey, signature, message []byte) error {
 	pubKey, err := NewPublicKey(publicKey)
 	if err != nil {
-		return fmt.Errorf("sr25519: %w", err)
+		return fmt.Errorf("creating new sr25519 public key: %w", err)
 	}
 
 	ok, err := pubKey.Verify(message, signature)
 	if err != nil {
-		return fmt.Errorf("sr25519: %w", err)
+		return fmt.Errorf("verifying sr25519 public key: %w", err)
 	} else if !ok {
 		return fmt.Errorf("sr25519: %w: for message 0x%x, signature 0x%x and public key 0x%x",
 			crypto.ErrSignatureVerificationFailed, message, signature, publicKey)
@@ -305,9 +305,10 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	copy(b[:], sig)
 
 	s := &sr25519.Signature{}
+
 	err := s.Decode(b)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("decoding: %w", err)
 	}
 
 	t := sr25519.NewSigningContext(SigningContext, msg)
