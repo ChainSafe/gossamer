@@ -361,7 +361,8 @@ func (cm *ConsensusMessage) Hash() (common.Hash, error) {
 	return common.Blake2bHash(encMsg)
 }
 
-func NewBlockRequest(startingBlock variadic.Uint32OrHash, amount uint32, requestedData byte, direction SyncDirection) *BlockRequestMessage {
+func NewBlockRequest(startingBlock variadic.Uint32OrHash, amount uint32,
+	requestedData byte, direction SyncDirection) *BlockRequestMessage {
 	return &BlockRequestMessage{
 		RequestedData: requestedData,
 		StartingBlock: startingBlock,

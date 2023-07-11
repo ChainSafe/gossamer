@@ -192,7 +192,8 @@ func (cs *chainSync) stop() {
 	<-cs.workerPool.doneCh
 }
 
-func (cs *chainSync) isFarFromTarget() (bestBlockHeader *types.Header, syncTarget uint, isFarFromTarget bool, err error) {
+func (cs *chainSync) isFarFromTarget() (bestBlockHeader *types.Header, syncTarget uint,
+	isFarFromTarget bool, err error) {
 	syncTarget, err = cs.getTarget()
 	if err != nil {
 		return nil, syncTarget, false, fmt.Errorf("getting target: %w", err)
