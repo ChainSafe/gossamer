@@ -59,7 +59,6 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 		Commitments: parachaintypes.CandidateCommitments{
 			UpwardMessages:            []parachaintypes.UpwardMessage{{1, 2, 3}},
-			HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
 			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
 			HeadData:                  []byte{1, 2, 3},
 			ProcessedDownwardMessages: uint32(5),

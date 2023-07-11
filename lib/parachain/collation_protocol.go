@@ -152,7 +152,7 @@ func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
 	return &collationMessage, nil
 }
 
-func handleCollationMessage(peerID peer.ID, msg network.NotificationsMessage) (bool, error) {
+func handleCollationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
 	// TODO: Add things
 	fmt.Println("We got a collation message", msg)
 	return false, nil

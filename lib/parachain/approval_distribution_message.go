@@ -166,7 +166,7 @@ func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 }
 
 // New returns new ApprovalDistributionMessage VDT
-func (adm ApprovalDistributionMessage) New() ApprovalDistributionMessage {
+func (ApprovalDistributionMessage) New() ApprovalDistributionMessage {
 	return NewApprovalDistributionMessageVDT()
 }
 
