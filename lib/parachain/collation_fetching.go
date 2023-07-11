@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -14,7 +15,7 @@ type CollationFetchingRequest struct {
 	RelayParent common.Hash `scale:"1"`
 
 	// Parachain id of the collation
-	ParaID ParaID `scale:"2"`
+	ParaID parachaintypes.ParaID `scale:"2"`
 }
 
 // Encode returns the SCALE encoding of the CollationFetchingRequest
@@ -71,8 +72,8 @@ func (mvdt CollationFetchingResponse) ValueAt(index uint) (value any, err error)
 
 // Collation represents a requested collation to be delivered
 type Collation struct {
-	CandidateReceipt CandidateReceipt `scale:"1"`
-	PoV              PoV              `scale:"2"`
+	CandidateReceipt parachaintypes.CandidateReceipt `scale:"1"`
+	PoV              PoV                             `scale:"2"`
 }
 
 // NewCollationFetchingResponse returns a new collation fetching response varying data type

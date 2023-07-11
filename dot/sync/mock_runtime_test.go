@@ -16,7 +16,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
-	parachain "github.com/ChainSafe/gossamer/lib/parachain"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "go.uber.org/mock/gomock"
@@ -345,10 +345,10 @@ func (mr *MockInstanceMockRecorder) OffchainWorker() *gomock.Call {
 }
 
 // ParachainHostAvailabilityCores mocks base method.
-func (m *MockInstance) ParachainHostAvailabilityCores() ([]parachain.CoreState, error) {
+func (m *MockInstance) ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostAvailabilityCores")
-	ret0, _ := ret[0].([]parachain.CoreState)
+	ret0, _ := ret[0].([]parachaintypes.CoreState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -360,10 +360,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostAvailabilityCores() *gomock.Cal
 }
 
 // ParachainHostCandidateEvents mocks base method.
-func (m *MockInstance) ParachainHostCandidateEvents() ([]parachain.CandidateEvent, error) {
+func (m *MockInstance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCandidateEvents")
-	ret0, _ := ret[0].([]parachain.CandidateEvent)
+	ret0, _ := ret[0].([]parachaintypes.CandidateEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -375,10 +375,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostCandidateEvents() *gomock.Call 
 }
 
 // ParachainHostCandidatePendingAvailability mocks base method.
-func (m *MockInstance) ParachainHostCandidatePendingAvailability(arg0 parachain.ParaID) (*parachain.CommittedCandidateReceipt, error) {
+func (m *MockInstance) ParachainHostCandidatePendingAvailability(arg0 parachaintypes.ParaID) (*parachaintypes.CommittedCandidateReceipt, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCandidatePendingAvailability", arg0)
-	ret0, _ := ret[0].(*parachain.CommittedCandidateReceipt)
+	ret0, _ := ret[0].(*parachaintypes.CommittedCandidateReceipt)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -390,7 +390,7 @@ func (mr *MockInstanceMockRecorder) ParachainHostCandidatePendingAvailability(ar
 }
 
 // ParachainHostCheckValidationOutputs mocks base method.
-func (m *MockInstance) ParachainHostCheckValidationOutputs(arg0 parachain.ParaID, arg1 parachain.CandidateCommitments) (bool, error) {
+func (m *MockInstance) ParachainHostCheckValidationOutputs(arg0 parachaintypes.ParaID, arg1 parachaintypes.CandidateCommitments) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCheckValidationOutputs", arg0, arg1)
 	ret0, _ := ret[0].(bool)
@@ -405,10 +405,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, ar
 }
 
 // ParachainHostSessionIndexForChild mocks base method.
-func (m *MockInstance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
+func (m *MockInstance) ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostSessionIndexForChild")
-	ret0, _ := ret[0].(parachain.SessionIndex)
+	ret0, _ := ret[0].(parachaintypes.SessionIndex)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -420,10 +420,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostSessionIndexForChild() *gomock.
 }
 
 // ParachainHostSessionInfo mocks base method.
-func (m *MockInstance) ParachainHostSessionInfo(arg0 parachain.SessionIndex) (*parachain.SessionInfo, error) {
+func (m *MockInstance) ParachainHostSessionInfo(arg0 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostSessionInfo", arg0)
-	ret0, _ := ret[0].(*parachain.SessionInfo)
+	ret0, _ := ret[0].(*parachaintypes.SessionInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -435,10 +435,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostSessionInfo(arg0 any) *gomock.C
 }
 
 // ParachainHostValidatorGroups mocks base method.
-func (m *MockInstance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
+func (m *MockInstance) ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostValidatorGroups")
-	ret0, _ := ret[0].(*parachain.ValidatorGroups)
+	ret0, _ := ret[0].(*parachaintypes.ValidatorGroups)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -450,10 +450,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostValidatorGroups() *gomock.Call 
 }
 
 // ParachainHostValidators mocks base method.
-func (m *MockInstance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
+func (m *MockInstance) ParachainHostValidators() ([]parachaintypes.ValidatorID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostValidators")
-	ret0, _ := ret[0].([]parachain.ValidatorID)
+	ret0, _ := ret[0].([]parachaintypes.ValidatorID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

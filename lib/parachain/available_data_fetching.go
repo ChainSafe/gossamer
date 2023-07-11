@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -106,10 +107,10 @@ type BlockData []byte
 // although some of the fields may be the same for every parachain.
 type PersistedValidationData struct {
 	// The parent head-data
-	ParentHead headData `scale:"1"`
+	ParentHead []byte `scale:"1"`
 
 	// The relay-chain block number this is in the context of
-	RelayParentNumber BlockNumber `scale:"2"`
+	RelayParentNumber parachaintypes.BlockNumber `scale:"2"`
 
 	// The relay-chain block storage root this is in the context of
 	RelayParentStorageRoot common.Hash `scale:"3"`

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +31,7 @@ func TestAvailableDataFetchingResponse(t *testing.T) {
 		PoV: PoV{BlockData: testBytes},
 		ValidationData: PersistedValidationData{
 			ParentHead:             testBytes,
-			RelayParentNumber:      BlockNumber(4),
+			RelayParentNumber:      parachaintypes.BlockNumber(4),
 			RelayParentStorageRoot: testHash,
 			MaxPovSize:             6,
 		},

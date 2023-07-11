@@ -8,7 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/parachain"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -49,17 +49,17 @@ type Instance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
-	ParachainHostValidators() ([]parachain.ValidatorID, error)
-	ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error)
-	ParachainHostAvailabilityCores() ([]parachain.CoreState, error)
+	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
+	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
+	ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error)
 	ParachainHostCheckValidationOutputs(
-		parachainID parachain.ParaID,
-		outputs parachain.CandidateCommitments,
+		parachainID parachaintypes.ParaID,
+		outputs parachaintypes.CandidateCommitments,
 	) (bool, error)
-	ParachainHostSessionIndexForChild() (parachain.SessionIndex, error)
+	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
 	ParachainHostCandidatePendingAvailability(
-		parachainID parachain.ParaID,
-	) (*parachain.CommittedCandidateReceipt, error)
-	ParachainHostCandidateEvents() ([]parachain.CandidateEvent, error)
-	ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error)
+		parachainID parachaintypes.ParaID,
+	) (*parachaintypes.CommittedCandidateReceipt, error)
+	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
+	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 }

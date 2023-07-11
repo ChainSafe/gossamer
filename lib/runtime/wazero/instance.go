@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/parachain"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
@@ -1117,13 +1117,13 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 
 // ParachainHostValidators returns the validator set at the current state.
 // The specified validators are responsible for backing parachains for the current state.
-func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
+func (in *Instance) ParachainHostValidators() ([]parachaintypes.ValidatorID, error) {
 	encodedValidators, err := in.Exec(runtime.ParachainHostValidators, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var validatorIDs []parachain.ValidatorID
+	var validatorIDs []parachaintypes.ValidatorID
 	err = scale.Unmarshal(encodedValidators, &validatorIDs)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1134,13 +1134,13 @@ func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
 
 // ParachainHostValidatorGroups returns the validator groups used during the current session.
 // The validators in the groups are referred to by the validator set Id.
-func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
+func (in *Instance) ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error) {
 	encodedValidatorGroups, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var validatorGroups parachain.ValidatorGroups
+	var validatorGroups parachaintypes.ValidatorGroups
 	err = scale.Unmarshal(encodedValidatorGroups, &validatorGroups)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1150,13 +1150,13 @@ func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, 
 }
 
 // ParachainHostAvailabilityCores returns the availability cores for the current state.
-func (in *Instance) ParachainHostAvailabilityCores() ([]parachain.CoreState, error) {
+func (in *Instance) ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error) {
 	encodedAvailabilityCores, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	availabilityCores := parachain.NewAvailabilityCores()
+	availabilityCores := parachaintypes.NewAvailabilityCores()
 	err = scale.Unmarshal(encodedAvailabilityCores, &availabilityCores)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1168,8 +1168,8 @@ func (in *Instance) ParachainHostAvailabilityCores() ([]parachain.CoreState, err
 // ParachainHostCheckValidationOutputs checks the validation outputs of a candidate.
 // Returns true if the candidate is valid.
 func (in *Instance) ParachainHostCheckValidationOutputs(
-	parachainID parachain.ParaID,
-	outputs parachain.CandidateCommitments,
+	parachainID parachaintypes.ParaID,
+	outputs parachaintypes.CandidateCommitments,
 ) (bool, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -1197,13 +1197,13 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 }
 
 // ParachainHostSessionIndexForChild returns the session index that is expected at the child of a block.
-func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
+func (in *Instance) ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error) {
 	encodedSessionIndex, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
 	if err != nil {
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
-	var sessionIndex parachain.SessionIndex
+	var sessionIndex parachaintypes.SessionIndex
 	err = scale.Unmarshal(encodedSessionIndex, &sessionIndex)
 	if err != nil {
 		return 0, fmt.Errorf("unmarshalling: %w", err)
@@ -1215,8 +1215,8 @@ func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex,
 // ParachainHostCandidatePendingAvailability returns the receipt of a candidate pending availability
 // for any parachain assigned to an occupied availability core.
 func (in *Instance) ParachainHostCandidatePendingAvailability(
-	parachainID parachain.ParaID,
-) (*parachain.CommittedCandidateReceipt, error) {
+	parachainID parachaintypes.ParaID,
+) (*parachaintypes.CommittedCandidateReceipt, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -1229,7 +1229,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var candidateReceipt *parachain.CommittedCandidateReceipt
+	var candidateReceipt *parachaintypes.CommittedCandidateReceipt
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1239,13 +1239,13 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 }
 
 // ParachainHostCandidateEvents returns an array of candidate events that occurred within the latest state.
-func (in *Instance) ParachainHostCandidateEvents() ([]parachain.CandidateEvent, error) {
+func (in *Instance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error) {
 	encodedCandidateEvents, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	candidateEvents := parachain.NewCandidateEvents()
+	candidateEvents := parachaintypes.NewCandidateEvents()
 	err = scale.Unmarshal(encodedCandidateEvents, &candidateEvents)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1255,7 +1255,7 @@ func (in *Instance) ParachainHostCandidateEvents() ([]parachain.CandidateEvent, 
 }
 
 // ParachainHostSessionInfo returns the session info of the given session, if available.
-func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error) {
+func (in *Instance) ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(sessionIndex)
@@ -1268,7 +1268,7 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var sessionInfo *parachain.SessionInfo
+	var sessionInfo *parachaintypes.SessionInfo
 	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
