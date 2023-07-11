@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +14,7 @@ func TestEncodeChunkFetchingRequest(t *testing.T) {
 		CandidateHash: CandidateHash{
 			common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 		},
-		Index: ValidatorIndex(8),
+		Index: parachaintypes.ValidatorIndex(8),
 	}
 
 	actualEncode, err := chunkFetchingRequest.Encode()
