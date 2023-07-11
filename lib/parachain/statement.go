@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -70,7 +71,7 @@ func NewStatement() Statement {
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
-type Seconded CommittedCandidateReceipt
+type Seconded parachaintypes.CommittedCandidateReceipt
 
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash

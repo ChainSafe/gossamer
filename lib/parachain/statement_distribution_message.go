@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -89,7 +90,7 @@ type UncheckedSignedFullStatement struct {
 	Payload Statement `scale:"1"`
 
 	// The index of the validator signing this statement.
-	ValidatorIndex ValidatorIndex `scale:"2"`
+	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
 
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`
@@ -104,7 +105,7 @@ type StatementMetadata struct {
 	CandidateHash CandidateHash `scale:"2"`
 
 	// Validator that attested the validity.
-	SignedBy ValidatorIndex `scale:"3"`
+	SignedBy parachaintypes.ValidatorIndex `scale:"3"`
 
 	// Signature of seconding validator.
 	Signature ValidatorSignature `scale:"4"`

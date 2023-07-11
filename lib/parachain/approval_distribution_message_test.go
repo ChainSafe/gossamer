@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +37,7 @@ func TestEncodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 
 	approvalDistributionMessage.SetValue(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(1), false),
+			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(1), false),
 			CandidateIndex:         4,
 		},
 	})
@@ -63,7 +64,7 @@ func TestEncodeApprovalDistributionMessageAssignmentDelay(t *testing.T) {
 
 	approvalDistributionMessage.SetValue(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(2), true),
+			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(2), true),
 			CandidateIndex:         2,
 		},
 	})
@@ -114,7 +115,7 @@ func TestEncodeApprovalDistributionMessageApprovals(t *testing.T) {
 		IndirectSignedApprovalVote{
 			BlockHash:      hash,
 			CandidateIndex: CandidateIndex(2),
-			ValidatorIndex: ValidatorIndex(3),
+			ValidatorIndex: parachaintypes.ValidatorIndex(3),
 			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1},
@@ -140,7 +141,7 @@ func TestDecodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
 	expectedApprovalDistributionMessage.SetValue(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, ValidatorIndex(2), false),
+			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(2), false),
 			CandidateIndex:         4,
 		},
 	})
@@ -162,7 +163,7 @@ func TestDecodeApprovalDistributionMessageApprovals(t *testing.T) {
 		IndirectSignedApprovalVote{
 			BlockHash:      hash,
 			CandidateIndex: CandidateIndex(2),
-			ValidatorIndex: ValidatorIndex(3),
+			ValidatorIndex: parachaintypes.ValidatorIndex(3),
 			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 				1, 1, 1, 1, 1, 1},
@@ -175,7 +176,8 @@ func TestDecodeApprovalDistributionMessageApprovals(t *testing.T) {
 	require.Equal(t, expectedApprovalDistributionMessage, approvalDistributionMessage)
 }
 
-func fakeAssignmentCert(blockHash common.Hash, validator ValidatorIndex, useDelay bool) IndirectAssignmentCert {
+func fakeAssignmentCert(blockHash common.Hash, validator parachaintypes.ValidatorIndex, useDelay bool,
+) IndirectAssignmentCert {
 	output := [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
 		27, 28, 29, 30, 31, 32}
 	proof := [64]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,

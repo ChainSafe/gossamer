@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -120,7 +121,7 @@ type IndirectAssignmentCert struct {
 	// BlockHash a block hash where the canidate appears.
 	BlockHash common.Hash `scale:"1"`
 	// Validator the validator index.
-	Validator ValidatorIndex `scale:"2"`
+	Validator parachaintypes.ValidatorIndex `scale:"2"`
 	// Cert the cert itself.
 	Cert AssignmentCert `scale:"3"`
 }
@@ -144,7 +145,7 @@ type IndirectSignedApprovalVote struct {
 	// CandidateIndex the index of the candidate in the list of candidates fully included as-of the block.
 	CandidateIndex CandidateIndex `scale:"2"`
 	// ValidatorIndex the validator index.
-	ValidatorIndex ValidatorIndex `scale:"3"`
+	ValidatorIndex parachaintypes.ValidatorIndex `scale:"3"`
 	// Signature the signature of the validator.
 	Signature ValidatorSignature `scale:"4"`
 }
