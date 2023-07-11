@@ -33,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 )
@@ -63,6 +64,7 @@ type nodeBuilderIface interface {
 	) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
+	createParachainHostService(net *network.Service, genesishHash common.Hash) (*parachain.Service, error)
 	newSyncService(config *cfg.Config, st *state.Service, finalityGadget BlockJustificationVerifier,
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
 		telemetryMailer Telemetry) (*dotsync.Service, error)
@@ -378,6 +380,12 @@ func newNode(config *cfg.Config,
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
+
+	phs, err := builder.createParachainHostService(networkSrvc, stateSrvc.Block.GenesisHash())
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, phs)
 
 	syncer, err := builder.newSyncService(config, stateSrvc, fg, ver, coreSrvc, networkSrvc, telemetryMailer)
 	if err != nil {
