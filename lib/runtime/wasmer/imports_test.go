@@ -42,7 +42,7 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	encKey, err := scale.Marshal(testKey)
 	require.NoError(t, err)
 
-	_, err = inst.Exec("ext_offchain_index_clear_version_1", encKey)
+	_, err = inst.Exec("rtm_ext_offchain_index_clear_version_1", encKey)
 	require.NoError(t, err)
 
 	value, err := inst.ctx.NodeStorage.BaseDB.Get(testKey)
