@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package parachaintypes
 
 import (
 	"fmt"
@@ -10,6 +10,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+// The primary purpose of this package is to put types being used by other packages to avoid cyclic
+// dependencies.
 
 // NOTE: https://github.com/ChainSafe/gossamer/pull/3297#discussion_r1214740051
 

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,16 +72,16 @@ func TestStatementFetchingResponse(t *testing.T) {
 
 	testHash := common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 
-	var collatorID CollatorID
+	var collatorID parachaintypes.CollatorID
 	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
 	copy(collatorID[:], tempCollatID)
 
-	var collatorSignature CollatorSignature
+	var collatorSignature parachaintypes.CollatorSignature
 	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	missingDataInStatement := MissingDataInStatement{
-		Descriptor: CandidateDescriptor{
+		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 testHash,
 			Collator:                    collatorID,
@@ -89,12 +90,12 @@ func TestStatementFetchingResponse(t *testing.T) {
 			ErasureRoot:                 testHash,
 			Signature:                   collatorSignature,
 			ParaHead:                    testHash,
-			ValidationCodeHash:          ValidationCodeHash(testHash),
+			ValidationCodeHash:          parachaintypes.ValidationCodeHash(testHash),
 		},
-		Commitments: CandidateCommitments{
-			UpwardMessages:            []UpwardMessage{{1, 2, 3}},
-			NewValidationCode:         &ValidationCode{1, 2, 3},
-			HeadData:                  headData{1, 2, 3},
+		Commitments: parachaintypes.CandidateCommitments{
+			UpwardMessages:            []parachaintypes.UpwardMessage{{1, 2, 3}},
+			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
+			HeadData:                  []byte{1, 2, 3},
 			ProcessedDownwardMessages: uint32(5),
 			HrmpWatermark:             uint32(0),
 		},
