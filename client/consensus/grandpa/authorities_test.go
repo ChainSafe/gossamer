@@ -19,8 +19,6 @@ func isDescendentof[H comparable](f IsDescendentOf[H]) IsDescendentOf[H] {
 
 func TestCurrentLimitFiltersMin(t *testing.T) {
 	var currentAuthorities AuthorityList
-	//kp, err := ed25519.GenerateKeypair()
-	//require.NoError(t, err)
 	pubKey, err := ed25519.NewPublicKey([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{

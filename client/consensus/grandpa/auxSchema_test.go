@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -123,7 +122,6 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 
 	// they have block here, idk why
 	{
-		// [4 1 128 114 187 247 112 153 251 68 184 82 240 222 222 154 103 230 8 55 55 76 209 175 50 30 199 172 119 20 227 104 143 230 58 100 0 0 0 0 0 0 0 3 0 0 0 0 0 0 0 0]
 		authoritySet := V0AuthoritySet[Hash, uint]{
 			CurrentAuthorities: authorities,
 			SetID:              setId,
@@ -147,10 +145,15 @@ func TestDecodeFromV0MigratesDataFormat(t *testing.T) {
 	require.Nil(t, res)
 
 	// should perform the migration
-	persistent, err := loadPersistent[Hash, uint](client, Hash{}, 0, func() (AuthorityList, error) {
+	_, err = loadPersistent[Hash, uint](client, Hash{}, 0, func() (AuthorityList, error) {
 		panic("error")
 	})
 
-	fmt.Println(persistent)
+	res = loadDecode(client, VERSION_KEY)
+	require.NotNil(t, res)
 
+	var version uint32
+	err = scale.Unmarshal(*res, &version)
+	require.NoError(t, err)
+	require.Equal(t, CURRENT_VERSION, version)
 }
