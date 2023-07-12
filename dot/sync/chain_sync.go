@@ -175,21 +175,44 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	}
 }
 
-func (cs *chainSync) start() {
-	// wait until we have a minimal workers in the sync worker pool
-	for {
-		_, err := cs.getTarget()
-		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) && err == nil {
-			break
+func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
+	resultCh := make(chan struct{})
+	go func() {
+		defer close(resultCh)
+		for {
+			select {
+			case <-resultCh:
+				return
+			default:
+			}
+
+			cs.workerPool.useConnectedPeers()
+			_, err := cs.getTarget()
+			totalAvailable := cs.workerPool.totalWorkers()
+			if totalAvailable >= uint(cs.minPeers) && err == nil {
+				return
+			}
+
+			time.Sleep(100 * time.Millisecond)
 		}
+	}()
 
-		time.Sleep(time.Second)
-	}
+	return resultCh
+}
 
+func (cs *chainSync) start() {
 	isSyncedGauge.Set(0)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh)
 	go cs.workerPool.listenForRequests(cs.stopCh)
+
+	// wait until we have a minimal workers in the sync worker pool
+	resultCh := cs.waitEnoughPeersAndTarget()
+
+	select {
+	case <-resultCh:
+	case <-cs.stopCh:
+		return
+	}
 
 	isFarFromTarget, err := cs.isFarFromTarget()
 	if err != nil && !errors.Is(err, errNoPeerViews) {
@@ -266,7 +289,7 @@ func (cs *chainSync) bootstrapSync() {
 			}
 
 			cs.workerPool.useConnectedPeers()
-			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
+			err = cs.requestBlocks(bestBlockHeader, networkInitialSync)
 			if err != nil {
 				logger.Errorf("while executing bootsrap sync: %s", err)
 			}
@@ -509,7 +532,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 	return nil
 }
 
-func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin blockOrigin) error {
+func (cs *chainSync) requestBlocks(bestBlockHeader *types.Header, origin blockOrigin) error {
 	startRequestAt := bestBlockHeader.Number + 1
 
 	// we build the set of requests based on the amount of available peers
@@ -747,10 +770,15 @@ taskResultLoop:
 
 	// response was validated! place into ready block queue
 	for _, bd := range syncingChain {
+		importTimer := time.Now()
 		// block is ready to be processed!
 		if err := cs.handleReadyBlock(bd, origin); err != nil {
 			return fmt.Errorf("while handling ready block: %w", err)
 		}
+
+		importTimeTake := time.Since(importTimer).Seconds()
+		fmt.Printf(">>>>> TAKE %.2f seconds TO IMPORT BLOCK %s #%d\n",
+			importTimeTake, bd.Hash.String(), bd.Header.Number)
 	}
 	return nil
 }
@@ -948,6 +976,7 @@ func (cs *chainSync) handleJustification(header *types.Header, justification []b
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool) error {
+	importTimer := time.Now()
 	parent, err := cs.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
@@ -956,37 +985,57 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 	cs.storageState.Lock()
 	defer cs.storageState.Unlock()
 
+	loadTrieStateTime := time.Now()
 	ts, err := cs.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}
+	loadTrieStateTake := time.Since(loadTrieStateTime).Seconds()
+	fmt.Printf(">>>>> TAKE %.2f seconds TO TrieState of %s #%d\n",
+		loadTrieStateTake, block.Header.Hash().String(), block.Header.Number)
 
 	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}
 
+	getRuntimeTimer := time.Now()
 	rt, err := cs.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}
+	getRuntimeTake := time.Since(getRuntimeTimer).Seconds()
+	fmt.Printf(">>>>> TAKE %.2f seconds TO GetRuntime of %s #%d\n",
+		getRuntimeTake, parent.Hash().String(), block.Header.Number-1)
 
 	rt.SetContextStorage(ts)
 
+	execBlockTimer := time.Now()
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
+	execBlockTake := time.Since(execBlockTimer).Seconds()
+	fmt.Printf(">>>>> TAKE %.2f seconds TO execute block against runtime of %s #%d\n",
+		execBlockTake, block.Header.Hash().String(), block.Header.Number)
 
+	handleBlockTimer := time.Now()
 	if err = cs.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
 		return err
 	}
+	handleBlockTake := time.Since(handleBlockTimer).Seconds()
+	fmt.Printf(">>>>> TAKE %.2f seconds TO HandleBlockImport of %s #%d\n",
+		handleBlockTake, block.Header.Hash().String(), block.Header.Number)
 
 	blockHash := block.Header.Hash()
 	cs.telemetry.SendMessage(telemetry.NewBlockImport(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
+
+	importTimeTake := time.Since(importTimer).Seconds()
+	fmt.Printf(">>>>> TAKE %.2f seconds TO HANDLE BLOCK %s #%d\n",
+		importTimeTake, blockHash.String(), block.Header.Number)
 
 	return nil
 }

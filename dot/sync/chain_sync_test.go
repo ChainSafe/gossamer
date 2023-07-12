@@ -465,7 +465,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -554,7 +554,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -663,7 +663,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -783,7 +783,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -906,7 +906,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1026,7 +1026,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1150,7 +1150,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1242,7 +1242,7 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	stopCh := make(chan struct{})
 	go cs.workerPool.listenForRequests(stopCh)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1299,7 +1299,7 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 	for idx, blockData := range blocksReceived {
 		mockBlockState.EXPECT().HasHeader(blockData.Header.Hash()).Return(false, nil)
 		mockBlockState.EXPECT().HasBlockBody(blockData.Header.Hash()).Return(false, nil)
-		mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
+		//mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
 
 		var previousHeader *types.Header
 		if idx == 0 {

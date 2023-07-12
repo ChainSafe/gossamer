@@ -62,7 +62,6 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 
 func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	// get all currently connected peers and use them to bootstrap the DHT
-
 	currentPeers := d.h.Network().Peers()
 
 	t := time.NewTicker(startDHTTimeout)
@@ -106,7 +105,7 @@ func (d *discovery) start() error {
 		dual.DHTOption(kaddht.Datastore(d.ds)),
 		dual.DHTOption(kaddht.BootstrapPeers(d.bootnodes...)),
 		dual.DHTOption(kaddht.V1ProtocolOverride(d.pid + "/kad")),
-		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
+		dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
 	}
 
 	// create DHT service
@@ -158,7 +157,6 @@ func (d *discovery) advertise() {
 			timer.Stop()
 			return
 		case <-timer.C:
-			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
 				logger.Warnf("failed to bootstrap DHT: %s", err)
@@ -169,7 +167,9 @@ func (d *discovery) advertise() {
 			if err != nil {
 				logger.Warnf("failed to advertise in the DHT: %s", err)
 				ttl = tryAdvertiseTimeout
+				continue
 			}
+			logger.Debug("advertising ourselves in the DHT...")
 		}
 	}
 }
@@ -194,6 +194,7 @@ func (d *discovery) checkPeerCount() {
 
 func (d *discovery) findPeers() {
 	logger.Debug("attempting to find DHT peers...")
+
 	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
 		logger.Warnf("failed to begin finding peers via DHT: %s", err)

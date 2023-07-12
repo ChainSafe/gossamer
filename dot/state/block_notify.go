@@ -59,7 +59,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 		return
 	}
 
-	logger.Trace("notifying imported block channels...")
+	//logger.Trace("notifying imported block channels...")
 	for ch := range bs.imported {
 		go func(ch chan *types.Block) {
 			select {

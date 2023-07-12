@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -100,6 +101,29 @@ func NewService(cfg *Config) (*Service, error) {
 // Start starts the core service
 func (s *Service) Start() error {
 	go s.handleBlocksAsync()
+
+	go func() {
+		time.Sleep(time.Second * 30)
+
+		header, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			logger.Criticalf(err.Error())
+			return
+		}
+
+		b := &types.Block{
+			Header: *header,
+		}
+
+		announce, err := createBlockAnnounce(b, true)
+		if err != nil {
+			logger.Criticalf(err.Error())
+			return
+		}
+
+		s.net.GossipMessage(announce)
+		return
+	}()
 	return nil
 }
 
@@ -217,8 +241,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return fmt.Errorf("on block import handle: %w", err)
 	}
 
-	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot())
+	logger.Debugf("imported block %s (#%d) with root %s",
+		block.Header.Hash(), block.Header.Number, state.MustRoot())
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
