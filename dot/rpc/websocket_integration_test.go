@@ -53,9 +53,10 @@ var testCalls = []struct {
 		call:     []byte(`{"jsonrpc":"2.0","method":"chain_subscribeFinalizedHeads","params":[],"id":5}`),
 		expected: []byte(`{"jsonrpc":"2.0","result":3,"id":5}` + "\n")},
 	{
-		call: []byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0xad018400d43593c` +
-			`715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d010ad5f15867dd0ef29d9a1ec3f9558c735a7bedd3c27bddd85` +
-			`6b4af633c66c622289431745eebd4d8e41879ba1bfb7aa7d537740ecfeed8c0aa8e36d4b4e49d81000000000108abcd"],"id":6}`),
+		call: []byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0x4102840062136` +
+			`fef1fa4136a3932066121c623417022c4447ebfb3d0cddbfc1bc68057070148356becc7653f6120ae247cfd757f36dd4e53` +
+			`0c9f9c1a9370b034324665727ef3e3c8e7b3d2b432bb93ed01a17c86a5f8e01cf200583c2a22281dec21a6348605021c000` +
+			`4070000ac81b86d05495a73dd7e98d33fb5bf55a837c6b87e3da0bf45618fed00be6d070010a5d4e8"],"id":6}`),
 		expected: []byte(`{"jsonrpc":"2.0","method":"author_extrinsicUpdate",` +
 			`"params":{"result":"invalid","subscription":4}}` + "\n")},
 	{
