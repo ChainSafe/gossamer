@@ -13,6 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const MaxValidationMessageSize uint64 = 100 * 1024
+
 type UncheckedSignedAvailabilityBitfield struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
@@ -192,19 +194,13 @@ func (vp *ValidationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
 
 }
 
-const MaxValidationMessageSize uint64 = 100 * 1024
-
-type ValidationProtocolV1 struct {
-	//	TODO: Implement this struct https://github.com/ChainSafe/gossamer/issues/3318
-}
-
 // Type returns ValidationMsgType
-func (*ValidationProtocolV1) Type() network.MessageType {
+func (*ValidationProtocol) Type() network.MessageType {
 	return network.ValidationMsgType
 }
 
 // Hash returns the hash of the CollationProtocolV1
-func (vp *ValidationProtocolV1) Hash() (common.Hash, error) {
+func (vp *ValidationProtocol) Hash() (common.Hash, error) {
 	encMsg, err := vp.Encode()
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
@@ -214,7 +210,7 @@ func (vp *ValidationProtocolV1) Hash() (common.Hash, error) {
 }
 
 // Encode a collator protocol message using scale encode
-func (vp *ValidationProtocolV1) Encode() ([]byte, error) {
+func (vp *ValidationProtocol) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*vp)
 	if err != nil {
 		return enc, err
@@ -223,7 +219,7 @@ func (vp *ValidationProtocolV1) Encode() ([]byte, error) {
 }
 
 func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
-	validationMessage := ValidationProtocolV1{}
+	validationMessage := ValidationProtocol{}
 
 	err := scale.Unmarshal(in, &validationMessage)
 	if err != nil {

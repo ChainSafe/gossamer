@@ -123,7 +123,7 @@ func (s Service) run() {
 	collationMessage := CollationProtocolV1{}
 	s.Network.GossipMessage(&collationMessage)
 
-	validationMessage := ValidationProtocolV1{}
+	validationMessage := ValidationProtocol{}
 	s.Network.GossipMessage(&validationMessage)
 
 }
