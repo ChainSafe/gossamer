@@ -21,6 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/klauspost/compress/zstd"
+	"github.com/tetratelabs/wabin/binary"
+	"github.com/tetratelabs/wabin/leb128"
+	"github.com/tetratelabs/wabin/wasm"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 )
@@ -78,9 +81,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	ctx := context.Background()
 	rt := wazero.NewRuntime(ctx)
 
-	_, err = rt.NewHostModuleBuilder("env").
-		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", 23).
+	compiledModule, err := rt.NewHostModuleBuilder("host").
+		// // values from newer kusama/polkadot runtimes
+		// ExportMemory("memory", 23).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
@@ -345,12 +348,20 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		NewFunctionBuilder().
 		WithFunc(ext_storage_commit_transaction_version_1).
 		Export("ext_storage_commit_transaction_version_1").
-		Instantiate(ctx)
+		Compile(ctx)
 
 	if err != nil {
 		panic(err)
 	}
 
+	rt.InstantiateModule(ctx, compiledModule, wazero.NewModuleConfig())
+
+	proxyBin := NewModuleBinary("host", compiledModule)
+
+	_, err = rt.Instantiate(ctx, proxyBin)
+	if err != nil {
+		return nil, err
+	}
 	code, err = decompressWasm(code)
 	if err != nil {
 		return nil, err
@@ -391,6 +402,73 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module: mod,
 	}, nil
+}
+
+// NewModuleBinary creates the proxy module to proxy a function call against
+// all the exported functions in `proxyTarget`, and returns its encoded binary.
+// The resulting module exports the proxy functions whose names are exactly the same
+// as the proxy destination.
+//
+// This is used to test host call implementations. If logging, use
+// NewLoggingListenerFactory to avoid messages from the proxying module.
+func NewModuleBinary(moduleName string, proxyTarget wazero.CompiledModule) []byte {
+	funcDefs := proxyTarget.ExportedFunctions()
+	funcNum := uint32(len(funcDefs))
+	proxyModule := &wasm.Module{
+		MemorySection: &wasm.Memory{Min: 23},
+		ExportSection: []*wasm.Export{{Name: "memory", Type: api.ExternTypeMemory}},
+		NameSection:   &wasm.NameSection{ModuleName: "env"},
+	}
+	var cnt wasm.Index
+	for _, def := range funcDefs {
+		proxyModule.TypeSection = append(proxyModule.TypeSection, &wasm.FunctionType{
+			Params: def.ParamTypes(), Results: def.ResultTypes(),
+		})
+
+		// Imports the function.
+		name := def.ExportNames()[0]
+		proxyModule.ImportSection = append(proxyModule.ImportSection, &wasm.Import{
+			Module:   moduleName,
+			Name:     name,
+			DescFunc: cnt,
+		})
+
+		// Ensures that type of the proxy function matches the imported function.
+		proxyModule.FunctionSection = append(proxyModule.FunctionSection, cnt)
+
+		// Build the function body of the proxy function.
+		var body []byte
+		for i := range def.ParamTypes() {
+			body = append(body, wasm.OpcodeLocalGet)
+			body = append(body, leb128.EncodeUint32(uint32(i))...)
+		}
+
+		body = append(body, wasm.OpcodeCall)
+		body = append(body, leb128.EncodeUint32(cnt)...)
+		body = append(body, wasm.OpcodeEnd)
+		proxyModule.CodeSection = append(proxyModule.CodeSection, &wasm.Code{Body: body})
+
+		proxyFuncIndex := cnt + funcNum
+		// Assigns the same params name as the imported one.
+		paramNames := wasm.NameMapAssoc{Index: proxyFuncIndex}
+		for i, n := range def.ParamNames() {
+			paramNames.NameMap = append(paramNames.NameMap, &wasm.NameAssoc{Index: wasm.Index(i), Name: n})
+		}
+		proxyModule.NameSection.LocalNames = append(proxyModule.NameSection.LocalNames, &paramNames)
+
+		// Plus, assigns the same function name.
+		proxyModule.NameSection.FunctionNames = append(proxyModule.NameSection.FunctionNames,
+			&wasm.NameAssoc{Index: proxyFuncIndex, Name: name})
+
+		// Finally, exports the proxy function with the same name as the imported one.
+		proxyModule.ExportSection = append(proxyModule.ExportSection, &wasm.Export{
+			Type:  wasm.ExternTypeFunc,
+			Name:  name,
+			Index: proxyFuncIndex,
+		})
+		cnt++
+	}
+	return binary.EncodeModule(proxyModule)
 }
 
 var ErrExportFunctionNotFound = errors.New("export function not found")

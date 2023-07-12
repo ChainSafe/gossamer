@@ -97,6 +97,7 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 
 func ext_crypto_ed25519_generate_version_1(
 	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
+	fmt.Println("yo")
 	id, ok := m.Memory().Read(keyTypeID, 4)
 	if !ok {
 		panic("out of range read")
@@ -109,6 +110,7 @@ func ext_crypto_ed25519_generate_version_1(
 		logger.Warnf("cannot generate key: %s", err)
 		return 0
 	}
+	fmt.Println("seed", seed)
 
 	var kp *ed25519.Keypair
 
@@ -140,6 +142,7 @@ func ext_crypto_ed25519_generate_version_1(
 		return 0
 	}
 
+	fmt.Println("writing", kp.Public().Encode())
 	ret, err := write(m, rtCtx.Allocator, kp.Public().Encode())
 	if err != nil {
 		logger.Warnf("failed to allocate memory: %s", err)
