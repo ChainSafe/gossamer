@@ -5,6 +5,7 @@ package types
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -126,6 +127,22 @@ func AuthoritiesToRaw(auths []Authority) []AuthorityRaw {
 type AuthorityAsAddress struct {
 	Address common.Address
 	Weight  uint64
+}
+
+// UnmarshalJSON converts data to Go struct of type AuthorityAsAddress.
+func (a *AuthorityAsAddress) UnmarshalJSON(buf []byte) error {
+	//  It's encoded as an array [] instead of an object {}, which is why this need.
+	tmp := []interface{}{&a.Address, &a.Weight}
+	return json.Unmarshal(buf, &tmp)
+}
+
+func (a AuthorityAsAddress) MarshalJSON() ([]byte, error) {
+	tmp := []interface{}{&a.Address, &a.Weight}
+	buf, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
 }
 
 // AuthoritiesRawToAuthorityAsAddress converts an array of AuthorityRaws into an array of AuthorityAsAddress
