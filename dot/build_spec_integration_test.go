@@ -75,5 +75,5 @@ func TestBuildFromDB_Integration(t *testing.T) {
 	err = json.Unmarshal(res, &jGen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime["system"]["code"])
+	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime.System.Code)
 }
