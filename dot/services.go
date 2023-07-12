@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -455,6 +456,11 @@ func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, k
 	return grandpa.NewService(gsCfg)
 }
 
+func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) (
+	*parachain.Service, error) {
+	return parachain.NewService(net, genesisHash)
+}
+
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
 	return babe.NewVerificationManager(st.Block, st.Epoch)
 }
@@ -492,7 +498,10 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		BadBlocks:          genesisData.BadBlocks,
 	}
 
-	return sync.NewService(syncCfg)
+	blockReqRes := net.GetRequestResponseProtocol(network.SyncID, network.BlockRequestTimeout,
+		network.MaxBlockResponseSize)
+
+	return sync.NewService(syncCfg, blockReqRes)
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {

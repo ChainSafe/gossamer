@@ -363,6 +363,17 @@ func Test_createRuntime(t *testing.T) {
 func Test_nodeBuilder_newSyncService(t *testing.T) {
 	t.Parallel()
 	finalityGadget := &grandpa.Service{}
+
+	ctrl := gomock.NewController(t)
+	stateSrvc := newStateService(t, ctrl)
+	networkConfig := &network.Config{
+		BasePath:   t.TempDir(),
+		BlockState: stateSrvc.Block,
+		RandSeed:   2,
+	}
+	networkService, err := network.NewService(networkConfig)
+	require.NoError(t, err)
+
 	type args struct {
 		fg              BlockJustificationVerifier
 		verifier        *babe.VerificationManager
@@ -382,7 +393,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 				fg:              finalityGadget,
 				verifier:        nil,
 				cs:              nil,
-				net:             nil,
+				net:             networkService,
 				telemetryMailer: nil,
 			},
 			expectNil: false,
@@ -546,10 +557,15 @@ func TestCreateSyncService(t *testing.T) {
 	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{}, dh)
+	networkService, err := network.NewService(&network.Config{
+		BlockState: stateSrvc.Block,
+	})
 	require.NoError(t, err)
 
-	_, err = builder.newSyncService(config, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{}, nil)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkService, dh)
+	require.NoError(t, err)
+
+	_, err = builder.newSyncService(config, stateSrvc, &grandpa.Service{}, ver, coreSrvc, networkService, nil)
 	require.NoError(t, err)
 }
 

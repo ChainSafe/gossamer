@@ -21,7 +21,7 @@ import (
 
 const (
 	// maxBlockRequestSize              uint64 = 1024 * 1024      // 1mb
-	maxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
+	MaxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
 	// MaxGrandpaNotificationSize is maximum size for a grandpa notification message.
 	MaxGrandpaNotificationSize       uint64 = 1024 * 1024      // 1mb
 	maxTransactionsNotificationSize  uint64 = 1024 * 1024 * 16 // 16mb

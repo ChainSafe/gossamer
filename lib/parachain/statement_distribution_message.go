@@ -4,19 +4,25 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
 type StatementDistributionMessage scale.VaryingDataType
 
-// NewStatementDistributionMessage returns a new StatementDistributionMessage VaryingDataType
+// NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
 	vdt := scale.MustNewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
 	return StatementDistributionMessage(vdt)
 }
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+// New will enable scale to create new instance when needed
+func (StatementDistributionMessage) New() StatementDistributionMessage {
+	return NewStatementDistributionMessage()
+}
+
+// Set will set a value using the underlying  varying data type
 func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*sdm)
 	err = vdt.Set(val)
@@ -28,7 +34,7 @@ func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (er
 	return nil
 }
 
-// Value returns the value from the underlying VaryingDataType
+// Value returns the value from the underlying varying data type
 func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*sdm)
 	return vdt.Value()
@@ -40,19 +46,20 @@ type SignedFullStatement struct {
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
-// Index returns the VaryingDataType Index
-func (s SignedFullStatement) Index() uint {
+// Index returns the index of varying data type
+func (SignedFullStatement) Index() uint {
 	return 0
 }
 
-// Seconded statement with large payload (e.g. containing a runtime upgrade).
+// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
 type SecondedStatementWithLargePayload StatementMetadata
 
-// Index returns the VaryingDataType Index
-func (l SecondedStatementWithLargePayload) Index() uint {
+// Index returns the index of varying data type
+func (SecondedStatementWithLargePayload) Index() uint {
 	return 1
 }
 
@@ -63,7 +70,7 @@ type UncheckedSignedFullStatement struct {
 	Payload Statement `scale:"1"`
 
 	// The index of the validator signing this statement.
-	ValidatorIndex ValidatorIndex `scale:"2"`
+	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
 
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`
@@ -78,7 +85,7 @@ type StatementMetadata struct {
 	CandidateHash CandidateHash `scale:"2"`
 
 	// Validator that attested the validity.
-	SignedBy ValidatorIndex `scale:"3"`
+	SignedBy parachaintypes.ValidatorIndex `scale:"3"`
 
 	// Signature of seconding validator.
 	Signature ValidatorSignature `scale:"4"`

@@ -8,10 +8,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/parachain"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -58,17 +56,17 @@ type Instance interface {
 	) (*parachaintypes.PersistedValidationData, error)
 	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
-	ParachainHostValidators() ([]parachain.ValidatorID, error)
-	ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error)
+	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
+	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
 	ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error)
 	ParachainHostCheckValidationOutputs(
-		parachainID parachain.ParaID,
-		outputs parachain.CandidateCommitments,
+		parachainID parachaintypes.ParaID,
+		outputs parachaintypes.CandidateCommitments,
 	) (bool, error)
-	ParachainHostSessionIndexForChild() (parachain.SessionIndex, error)
+	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
 	ParachainHostCandidatePendingAvailability(
-		parachainID parachain.ParaID,
-	) (*parachain.CommittedCandidateReceipt, error)
+		parachainID parachaintypes.ParaID,
+	) (*parachaintypes.CommittedCandidateReceipt, error)
 	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
-	ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error)
+	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 }

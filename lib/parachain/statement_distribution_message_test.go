@@ -6,18 +6,19 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed testdata/statement_distribution_message.yaml
-var testSDMHexRaw string
+//go:embed testdata/statement.yaml
+var testDataStatementRaw string
 
-var testSDMHex map[string]string
+var testDataStatement map[string]string
 
 func init() {
-	err := yaml.Unmarshal([]byte(testSDMHexRaw), &testSDMHex)
+	err := yaml.Unmarshal([]byte(testDataStatementRaw), &testDataStatement)
 	if err != nil {
 		fmt.Printf("Error unmarshaling test data: %s\n", err)
 		return
@@ -27,14 +28,14 @@ func init() {
 func TestStatementDistributionMessage(t *testing.T) {
 	t.Parallel()
 
-	var collatorSignature CollatorSignature
-	tempSignature := common.MustHexToBytes(testSDMHex["collatorSignature"])
+	var collatorSignature parachaintypes.CollatorSignature
+	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature ValidatorSignature
 	copy(validatorSignature[:], tempSignature)
 
-	var collatorID CollatorID
+	var collatorID parachaintypes.CollatorID
 	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
 	copy(collatorID[:], tempCollatID)
 
@@ -45,7 +46,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	secondedEnumValue := Seconded{
-		Descriptor: CandidateDescriptor{
+		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 hash5,
 			Collator:                    collatorID,
@@ -54,13 +55,12 @@ func TestStatementDistributionMessage(t *testing.T) {
 			ErasureRoot:                 hash5,
 			Signature:                   collatorSignature,
 			ParaHead:                    hash5,
-			ValidationCodeHash:          ValidationCodeHash(hash5),
+			ValidationCodeHash:          parachaintypes.ValidationCodeHash(hash5),
 		},
-		Commitments: CandidateCommitments{
-			UpwardMessages:            []UpwardMessage{{1, 2, 3}},
-			HorizontalMessages:        []OutboundHrmpMessage{},
-			NewValidationCode:         &ValidationCode{1, 2, 3},
-			HeadData:                  headData{1, 2, 3},
+		Commitments: parachaintypes.CandidateCommitments{
+			UpwardMessages:            []parachaintypes.UpwardMessage{{1, 2, 3}},
+			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
+			HeadData:                  []byte{1, 2, 3},
 			ProcessedDownwardMessages: uint32(5),
 			HrmpWatermark:             uint32(0),
 		},
@@ -74,7 +74,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		Hash: hash5,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
 			Payload:        statementWithValid,
-			ValidatorIndex: ValidatorIndex(5),
+			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
 		},
 	}
@@ -83,7 +83,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		Hash: hash5,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
 			Payload:        statementWithSeconded,
-			ValidatorIndex: ValidatorIndex(5),
+			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
 		},
 	}
@@ -91,7 +91,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	secondedStatementWithLargePayload := SecondedStatementWithLargePayload{
 		RelayParent:   hash5,
 		CandidateHash: CandidateHash{hash5},
-		SignedBy:      ValidatorIndex(5),
+		SignedBy:      parachaintypes.ValidatorIndex(5),
 		Signature:     validatorSignature,
 	}
 
@@ -166,17 +166,17 @@ func TestStatementDistributionMessage(t *testing.T) {
 		{
 			name:          "SignedFullStatement with valid statement",
 			enumValue:     signedFullStatementWithValid,
-			encodingValue: common.MustHexToBytes(testSDMHex["sfsValid"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["sfsValid"]),
 		},
 		{
 			name:          "SignedFullStatement with Seconded statement",
 			enumValue:     signedFullStatementWithSeconded,
-			encodingValue: common.MustHexToBytes(testSDMHex["sfsSeconded"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["sfsSeconded"]),
 		},
 		{
 			name:          "Seconded Statement With LargePayload",
 			enumValue:     secondedStatementWithLargePayload,
-			encodingValue: common.MustHexToBytes(testSDMHex["statementWithLargePayload"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["statementWithLargePayload"]),
 		},
 	}
 
@@ -184,16 +184,31 @@ func TestStatementDistributionMessage(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
+			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
 
-			vtd := NewStatementDistributionMessage()
+				vdt := NewStatementDistributionMessage()
+				err := vdt.Set(c.enumValue)
+				require.NoError(t, err)
 
-			err := vtd.Set(c.enumValue)
-			require.NoError(t, err)
+				bytes, err := scale.Marshal(vdt)
+				require.NoError(t, err)
 
-			bytes, err := scale.Marshal(vtd)
-			require.NoError(t, err)
+				require.Equal(t, c.encodingValue, bytes)
+			})
 
-			require.Equal(t, c.encodingValue, bytes)
+			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
+
+				vdt := NewStatementDistributionMessage()
+				err := scale.Unmarshal(c.encodingValue, &vdt)
+				require.NoError(t, err)
+
+				actualData, err := vdt.Value()
+				require.NoError(t, err)
+
+				require.EqualValues(t, c.enumValue, actualData)
+			})
 		})
 	}
 }

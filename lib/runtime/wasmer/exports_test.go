@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/parachain"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer/testdata"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -29,8 +29,6 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain-interaction/types"
 )
 
 //go:embed testdata/parachain.yaml
@@ -1223,7 +1221,7 @@ func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 
 	parachainID := uint32(1000)
 	assumption := parachaintypes.NewOccupiedCoreAssumption()
-	err := assumption.Set(parachaintypes.Included{})
+	err := assumption.Set(parachaintypes.IncludedOccupiedCoreAssumption{})
 	require.NoError(t, err)
 
 	// runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
@@ -1240,7 +1238,7 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 
 	parachainID := uint32(1000)
 	assumption := parachaintypes.NewOccupiedCoreAssumption()
-	err := assumption.Set(parachaintypes.Included{})
+	err := assumption.Set(parachaintypes.IncludedOccupiedCoreAssumption{})
 	require.NoError(t, err)
 
 	// runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
@@ -1259,24 +1257,24 @@ func TestInstance_ParachainHostValidators(t *testing.T) {
 	response, err := rt.ParachainHostValidators()
 	require.NoError(t, err)
 
-	expected := []parachain.ValidatorID{
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x74c337d57035cd6b7718e92a0d8ea6ef710da8ab1215a057c40c4ef792155a68")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xe61d138eebd2069f1a76b3570f9de6a4b196289b198e33e6f0b59cef8837c511")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x94ef34321ca5d37a6e8953183406b76f8ebf6a4be5eefc3997d022ac6e0a050e")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xac837e8ca589521a83e7d9a7b307d1c41a5d9b940422488236f99646d21f3841")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xb61cb85f7cf7616f9ef8f95010a51a68a4eae8afcdff715cc6a8d43da4a32a12")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x382f17dae6b13a8ce5a7cc805056d9b592d918c8593f077db28cb14cf08a760c")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x0825ba7677597ec9453ab5dbaa9e68bf89dc36694cb6e74cbd5a9a74b167e547")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xcee3f65d78a239d7d199b100295e7a2d852ae898a6b81fd867b3471f25be7237")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xe2ac8f039eb02370a9577e49ffc6032e6b5bf5ff77783bdc676d1432d714fd53")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xce35fa64fe7a5a6fc456ed2830e64d5d1a5dba26e7a57ab458f8cedf1ec77016")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xae40e895f46c8bfb3df63c119047d7faf21c3fe3e7a91994a3f00da6fa80f848")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0xa0e038975cff34d01c62960828c23ec10a305fe9f5c3589c2ae40f51963e380a")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x807fa54347a8957ff5ef6c28e2403c83947e5fad4aa805c914df0645a07aab5a")),
-		parachain.ValidatorID(mustHexTo32BArray(t, "0x4c8e878d7f558ce5086cc37ca0d5964bed54ddd6b15a6663a95fe42e36858936")),
+	expected := []parachaintypes.ValidatorID{
+		mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
+		mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
+		mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
+		mustHexTo32BArray(t, "0x74c337d57035cd6b7718e92a0d8ea6ef710da8ab1215a057c40c4ef792155a68"),
+		mustHexTo32BArray(t, "0xe61d138eebd2069f1a76b3570f9de6a4b196289b198e33e6f0b59cef8837c511"),
+		mustHexTo32BArray(t, "0x94ef34321ca5d37a6e8953183406b76f8ebf6a4be5eefc3997d022ac6e0a050e"),
+		mustHexTo32BArray(t, "0xac837e8ca589521a83e7d9a7b307d1c41a5d9b940422488236f99646d21f3841"),
+		mustHexTo32BArray(t, "0xb61cb85f7cf7616f9ef8f95010a51a68a4eae8afcdff715cc6a8d43da4a32a12"),
+		mustHexTo32BArray(t, "0x382f17dae6b13a8ce5a7cc805056d9b592d918c8593f077db28cb14cf08a760c"),
+		mustHexTo32BArray(t, "0x0825ba7677597ec9453ab5dbaa9e68bf89dc36694cb6e74cbd5a9a74b167e547"),
+		mustHexTo32BArray(t, "0xcee3f65d78a239d7d199b100295e7a2d852ae898a6b81fd867b3471f25be7237"),
+		mustHexTo32BArray(t, "0xe2ac8f039eb02370a9577e49ffc6032e6b5bf5ff77783bdc676d1432d714fd53"),
+		mustHexTo32BArray(t, "0xce35fa64fe7a5a6fc456ed2830e64d5d1a5dba26e7a57ab458f8cedf1ec77016"),
+		mustHexTo32BArray(t, "0xae40e895f46c8bfb3df63c119047d7faf21c3fe3e7a91994a3f00da6fa80f848"),
+		mustHexTo32BArray(t, "0xa0e038975cff34d01c62960828c23ec10a305fe9f5c3589c2ae40f51963e380a"),
+		mustHexTo32BArray(t, "0x807fa54347a8957ff5ef6c28e2403c83947e5fad4aa805c914df0645a07aab5a"),
+		mustHexTo32BArray(t, "0x4c8e878d7f558ce5086cc37ca0d5964bed54ddd6b15a6663a95fe42e36858936"),
 	}
 	require.Equal(t, expected, response)
 }
@@ -1290,13 +1288,13 @@ func TestInstance_ParachainHostValidatorGroups(t *testing.T) {
 	response, err := rt.ParachainHostValidatorGroups()
 	require.NoError(t, err)
 
-	expected := &parachain.ValidatorGroups{
-		Validators: [][]parachain.ValidatorIndex{
+	expected := &parachaintypes.ValidatorGroups{
+		Validators: [][]parachaintypes.ValidatorIndex{
 			{0, 1, 2, 3, 4, 5},
 			{6, 7, 8, 9, 10, 11},
 			{12, 13, 14, 15, 16},
 		},
-		GroupRotationInfo: parachain.GroupRotationInfo{
+		GroupRotationInfo: parachaintypes.GroupRotationInfo{
 			SessionStartBlock:      15946156,
 			GroupRotationFrequency: 10,
 			Now:                    15946391,
@@ -1334,7 +1332,7 @@ func TestInstance_ParachainHostSessionIndexForChild(t *testing.T) {
 	response, err := rt.ParachainHostSessionIndexForChild()
 	require.NoError(t, err)
 
-	expected := parachain.SessionIndex(27379)
+	expected := parachaintypes.SessionIndex(27379)
 	require.Equal(t, expected, response)
 }
 
@@ -1344,7 +1342,7 @@ func TestInstance_ParachainHostCandidatePendingAvailability(t *testing.T) {
 	tt := getParachainHostTrie(t)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
-	response, err := rt.ParachainHostCandidatePendingAvailability(parachain.ParaID(1000))
+	response, err := rt.ParachainHostCandidatePendingAvailability(parachaintypes.ParaID(1000))
 	require.NoError(t, err)
 
 	expectedHash := parachainTestData.Expected["candidatePendingAvailability"]
@@ -1384,14 +1382,14 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	tt := getParachainHostTrie(t)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
-	response, err := rt.ParachainHostSessionInfo(parachain.SessionIndex(27379))
+	response, err := rt.ParachainHostSessionInfo(parachaintypes.SessionIndex(27379))
 	require.NoError(t, err)
 
-	expected := &parachain.SessionInfo{
-		ActiveValidatorIndices: []parachain.ValidatorIndex{7, 12, 14, 1, 4, 16, 3, 11, 9, 6, 13, 15, 5, 0, 8, 10, 2},
+	expected := &parachaintypes.SessionInfo{
+		ActiveValidatorIndices: []parachaintypes.ValidatorIndex{7, 12, 14, 1, 4, 16, 3, 11, 9, 6, 13, 15, 5, 0, 8, 10, 2},
 		RandomSeed:             mustHexTo32BArray(t, "0x9a14667dcf973e46392904593e8caf2fb7a57904edbadf1547531657e7a56b5e"),
 		DisputePeriod:          6,
-		Validators: []parachain.ValidatorID{
+		Validators: []parachaintypes.ValidatorID{
 			mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
 			mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
 			mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
@@ -1410,7 +1408,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 			mustHexTo32BArray(t, "0x807fa54347a8957ff5ef6c28e2403c83947e5fad4aa805c914df0645a07aab5a"),
 			mustHexTo32BArray(t, "0x4c8e878d7f558ce5086cc37ca0d5964bed54ddd6b15a6663a95fe42e36858936"),
 		},
-		DiscoveryKeys: []parachain.AuthorityDiscoveryID{
+		DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{
 			mustHexTo32BArray(t, "0x407a89ac6943b9d2ef1ceb5f1299941758a6af5b8f79b89b90f95a3e38179341"),
 			mustHexTo32BArray(t, "0x307744a128c608be0dff2189557715b74734359974606d96dc4d256d61b1047d"),
 			mustHexTo32BArray(t, "0x74fff2667b4a2cc69198ec9d3bf41f4d001ab644b45feaf89a21ff7ef3bd2618"),
@@ -1429,7 +1427,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 			mustHexTo32BArray(t, "0xca17f0edc319c140113a44722f829aa1313da1b54298a10df49ad7d67d9de85f"),
 			mustHexTo32BArray(t, "0x5a6bf6911fc41d8981c7c28f87e8ed4416c65e15624f7b4e36c6a1a72c7a7819"),
 		},
-		AssignmentKeys: []parachain.AssignmentID{
+		AssignmentKeys: []parachaintypes.AssignmentID{
 			mustHexTo32BArray(t, "0x6acc35b896fe346adeda25c4031cf6a81e58dca091164370859828cc4456901a"),
 			mustHexTo32BArray(t, "0x466627d554785807aaf50bfbdc9b8f729e8e20eb596ee5def5acd2acb72e405f"),
 			mustHexTo32BArray(t, "0xc05cab9e7773ffaf045407579f9c8e16d56f119117421cd18a250c2e37fcb53a"),
@@ -1448,7 +1446,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 			mustHexTo32BArray(t, "0xae7a30d143fd125490434ca7325025a2338d0b8bb28dcd9373dfd83756191022"),
 			mustHexTo32BArray(t, "0xeeba7c46f5fa1ea21e736d9ebd7a171fb2afe0a4f828a222ea0605a4ad0e6067"),
 		},
-		ValidatorGroups: [][]parachain.ValidatorIndex{
+		ValidatorGroups: [][]parachaintypes.ValidatorIndex{
 			{
 				0, 1, 2, 3, 4, 5,
 			},

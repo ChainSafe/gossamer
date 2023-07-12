@@ -24,6 +24,8 @@ const (
 	blockAnnounceMsgType MessageType = iota + 3
 	transactionMsgType
 	ConsensusMsgType
+	CollationMsgType
+	ValidationMsgType
 )
 
 // Message must be implemented by all network messages
@@ -46,7 +48,7 @@ const (
 	RequestedDataJustification = byte(16)
 )
 
-var _ Message = &BlockRequestMessage{}
+var _ Message = (*BlockRequestMessage)(nil)
 
 // SyncDirection is the direction of data in a block response
 type SyncDirection byte
@@ -167,7 +169,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	return nil
 }
 
-var _ Message = &BlockResponseMessage{}
+var _ ResponseMessage = (*BlockResponseMessage)(nil)
 
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {

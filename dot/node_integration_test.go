@@ -33,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -87,7 +88,7 @@ func TestNewNode(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockServiceRegistry := NewMockServiceRegisterer(ctrl)
-	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
+	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(9)
 
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
@@ -121,6 +122,9 @@ func TestNewNode(t *testing.T) {
 		return stateSrvc, nil
 	})
 
+	phs, err := parachain.NewService(testNetworkService, common.Hash{})
+	require.NoError(t, err)
+
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
 		NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(initConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
@@ -151,6 +155,8 @@ func TestNewNode(t *testing.T) {
 		})
 	m.EXPECT().createNetworkService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetworkService, nil)
+	m.EXPECT().createParachainHostService(gomock.AssignableToTypeOf(&network.Service{}),
+		gomock.AssignableToTypeOf(common.Hash{})).Return(phs, nil)
 
 	got, err := newNode(initConfig, ks, m, mockServiceRegistry)
 	assert.NoError(t, err)
