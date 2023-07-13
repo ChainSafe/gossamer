@@ -17,7 +17,7 @@ type Genesis struct {
 	ChainType          string                 `json:"chainType"`
 	Bootnodes          []string               `json:"bootNodes"`
 	TelemetryEndpoints []interface{}          `json:"telemetryEndpoints"`
-	ForkId             string                 `json:"forkId"`
+	ForkID             string                 `json:"forkId"`
 	ProtocolID         string                 `json:"protocolId"`
 	Genesis            Fields                 `json:"genesis"`
 	Properties         map[string]interface{} `json:"properties"`
@@ -34,6 +34,7 @@ type Data struct {
 	ChainType          string
 	Bootnodes          [][]byte
 	TelemetryEndpoints []*TelemetryEndpoint
+	ForkID             string
 	ProtocolID         string
 	Properties         map[string]interface{}
 	ForkBlocks         []string
@@ -211,6 +212,7 @@ func (g *Genesis) GenesisData() *Data {
 		ChainType:          g.ChainType,
 		Bootnodes:          common.StringArrayToBytes(g.Bootnodes),
 		TelemetryEndpoints: interfaceToTelemetryEndpoint(g.TelemetryEndpoints),
+		ForkID:             g.ForkID,
 		ProtocolID:         g.ProtocolID,
 		Properties:         g.Properties,
 		ForkBlocks:         g.ForkBlocks,
