@@ -120,7 +120,16 @@ func (s Service) run() {
 	collationMessage := CollationProtocolV1{}
 	s.Network.GossipMessage(&collationMessage)
 
-	validationMessage := ValidationProtocol{}
+	statementDistributionLargeStatement := NewStatementDistributionVDT()
+	statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
+		RelayParent:   common.Hash{},
+		CandidateHash: CandidateHash{Value: common.Hash{}},
+		SignedBy:      5,
+		Signature:     ValidatorSignature{},
+	})
+
+	validationMessage := NewValidationProtocolVDT()
+	validationMessage.Set(statementDistributionLargeStatement)
 	s.Network.GossipMessage(&validationMessage)
 
 }
