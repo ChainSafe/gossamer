@@ -33,7 +33,7 @@ type Bitfield struct {
 }
 
 // Index returns the VaryingDataType Index
-func (b Bitfield) Index() uint {
+func (Bitfield) Index() uint {
 	return 0
 }
 
@@ -44,7 +44,7 @@ func NewBitfieldDistributionMessageVDT() BitfieldDistributionMessage {
 	return BitfieldDistributionMessage(vdt)
 }
 
-func (bdm BitfieldDistributionMessage) New() BitfieldDistributionMessage {
+func (BitfieldDistributionMessage) New() BitfieldDistributionMessage {
 	return NewBitfieldDistributionMessageVDT()
 }
 
@@ -73,10 +73,10 @@ func NewBitfieldDistributionVDT() BitfieldDistribution {
 	return BitfieldDistribution(vdt)
 }
 
-func (bd BitfieldDistribution) Index() uint {
+func (BitfieldDistribution) Index() uint {
 	return 1
 }
-func (bd BitfieldDistribution) New() BitfieldDistribution {
+func (BitfieldDistribution) New() BitfieldDistribution {
 	return NewBitfieldDistributionVDT()
 }
 
@@ -104,11 +104,11 @@ func NewApprovalDistributionVDT() ApprovalDistribution {
 }
 
 // New returns new ApprovalDistributionMessage VDT
-func (ad ApprovalDistribution) New() ApprovalDistribution {
+func (ApprovalDistribution) New() ApprovalDistribution {
 	return NewApprovalDistributionVDT()
 }
 
-func (ad ApprovalDistribution) Index() uint {
+func (ApprovalDistribution) Index() uint {
 	return 4
 }
 
@@ -134,7 +134,7 @@ func NewStatementDistributionVDT() StatementDistribution {
 	return StatementDistribution(vdt)
 }
 
-func (sd StatementDistribution) New() StatementDistribution {
+func (StatementDistribution) New() StatementDistribution {
 	return NewStatementDistributionVDT()
 }
 
@@ -156,7 +156,7 @@ func (sd *StatementDistribution) Set(val scale.VaryingDataTypeValue) (err error)
 	return nil
 }
 
-func (sd StatementDistribution) Index() uint {
+func (StatementDistribution) Index() uint {
 	return 3
 }
 
@@ -171,7 +171,7 @@ func NewValidationProtocolVDT() ValidationProtocol {
 }
 
 // New returns new ApprovalDistributionMessage VDT
-func (vp ValidationProtocol) New() ValidationProtocol {
+func (ValidationProtocol) New() ValidationProtocol {
 	return NewValidationProtocolVDT()
 }
 
@@ -195,7 +195,7 @@ func (vp *ValidationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Type returns ValidationMsgType
-func (*ValidationProtocol) Type() network.MessageType {
+func (ValidationProtocol) Type() network.MessageType {
 	return network.ValidationMsgType
 }
 
