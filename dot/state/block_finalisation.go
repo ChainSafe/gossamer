@@ -257,7 +257,8 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 			bs.tries.delete(blockHeader.StateRoot)
 		}
 
-		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s", blockHeader.Number, subchainHash)
+		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s",
+			blockHeader.Number, subchainHash)
 	}
 
 	return batch.Flush()
