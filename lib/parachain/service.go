@@ -138,7 +138,7 @@ func (s Service) run() {
 	}
 
 	validationMessage := NewValidationProtocolVDT()
-	err = validationMessage.Set(statementDistributionLargeStatement)
+	err = validationMessage.Set(&statementDistributionLargeStatement)
 	if err != nil {
 		logger.Errorf("creating test validation message: %w\n", err)
 	}
