@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 // EmptyHash is the empty trie hash.
@@ -22,7 +21,7 @@ type Trie struct {
 	generation uint64
 	root       *Node
 	childTries map[common.Hash]*Trie
-	db         db.Database
+	db         DBGetter
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -37,7 +36,7 @@ func NewEmptyTrie() *Trie {
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node, db db.Database) *Trie {
+func NewTrie(root *Node, db DBGetter) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
@@ -721,7 +720,7 @@ func (t *Trie) Get(keyLE []byte) (value []byte) {
 	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(db db.Database, parent *Node, key []byte) (value []byte) {
+func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
@@ -732,7 +731,7 @@ func retrieve(db db.Database, parent *Node, key []byte) (value []byte) {
 	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(db db.Database, leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
 		if leaf.HashedValue {
 			// We get the node
@@ -747,7 +746,7 @@ func retrieveFromLeaf(db db.Database, leaf *Node, key []byte) (value []byte) {
 	return nil
 }
 
-func retrieveFromBranch(db db.Database, branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db DBGetter, branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}

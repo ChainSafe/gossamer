@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,14 +31,14 @@ func Test_Generate(t *testing.T) {
 	testCases := map[string]struct {
 		rootHash          []byte
 		fullKeysNibbles   [][]byte
-		databaseBuilder   func(ctrl *gomock.Controller) db.Database
+		databaseBuilder   func(ctrl *gomock.Controller) Database
 		encodedProofNodes [][]byte
 		errWrapped        error
 		errMessage        string
 	}{
 		"failed_loading_trie": {
 			rootHash: someHash,
-			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				mockDatabase.EXPECT().Get(someHash).
 					Return(nil, errTest)
@@ -54,7 +53,7 @@ func Test_Generate(t *testing.T) {
 		"walk_error": {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{1}},
-			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
@@ -70,7 +69,7 @@ func Test_Generate(t *testing.T) {
 		"leaf_root": {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{}},
-			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
@@ -90,7 +89,7 @@ func Test_Generate(t *testing.T) {
 		"branch_root": {
 			rootHash:        someHash,
 			fullKeysNibbles: [][]byte{{}},
-			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 				encodedRoot := encodeNode(t, node.Node{
 					PartialKey:   []byte{1},
@@ -126,7 +125,7 @@ func Test_Generate(t *testing.T) {
 			fullKeysNibbles: [][]byte{
 				{1, 2, 3, 4},
 			},
-			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 
 				rootNode := node.Node{
@@ -175,7 +174,7 @@ func Test_Generate(t *testing.T) {
 				{1, 2, 4, 4},
 				{1, 2, 5, 5},
 			},
-			databaseBuilder: func(ctrl *gomock.Controller) db.Database {
+			databaseBuilder: func(ctrl *gomock.Controller) Database {
 				mockDatabase := NewMockDatabase(ctrl)
 
 				rootNode := node.Node{

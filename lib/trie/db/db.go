@@ -8,12 +8,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// Database defines a key value Get method used
-// for proof generation.
-type Database interface {
-	Get(key []byte) (value []byte, err error)
-}
-
 type MemoryDB struct {
 	data map[common.Hash][]byte
 }
