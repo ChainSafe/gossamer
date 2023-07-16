@@ -95,7 +95,7 @@ func decodeHeader(reader io.Reader) (nodeVariant variant,
 	}
 
 	partialKeyLengthHeaderMask := nodeVariant.partialKeyLengthHeaderMask()
-	if partialKeyLengthHeaderMask == 0b0000_0000 {
+	if partialKeyLengthHeaderMask == emptyVariant.bits {
 		// empty node or compact encoding which have no
 		// partial key. The partial key length mask is
 		// 0b0000_0000 since the variant mask is
