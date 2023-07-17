@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -167,8 +166,8 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafAShort),
 			}
 
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
+			storageProof := NewStorageProof(encodedProofNodes)
+			proofDB := storageProof.toMemoryDB()
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,
@@ -186,8 +185,8 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafBLarge),
 			}
 
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
+			storageProof := NewStorageProof(encodedProofNodes)
+			proofDB := storageProof.toMemoryDB()
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,
@@ -206,8 +205,8 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafBLarge),
 			}
 
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
+			storageProof := NewStorageProof(encodedProofNodes)
+			proofDB := storageProof.toMemoryDB()
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,
@@ -235,8 +234,8 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafCLarge), // children 2
 			}
 
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
+			storageProof := NewStorageProof(encodedProofNodes)
+			proofDB := storageProof.toMemoryDB()
 
 			return testCase{
 				encodedProofNodes: encodedProofNodes,

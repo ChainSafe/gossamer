@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 var (
@@ -30,7 +29,8 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "proof"))
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
 func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
-	proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
+	storageProof := NewStorageProof(encodedProofNodes)
+	proofDB := storageProof.toMemoryDB()
 
 	if err != nil {
 		return err

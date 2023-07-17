@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,10 +81,11 @@ func TestParachainHeaderStateProof(t *testing.T) {
 	require.NoError(t, err)
 
 	proof := [][]byte{proof1, proof2, proof3, proof4, proof5, proof6, proof7}
-
 	expectedValue := proof7
 
-	proofDB, err := db.NewMemoryDBFromProof(proof)
+	storageProof := NewStorageProof(proof)
+
+	proofDB := storageProof.toMemoryDB()
 	require.NoError(t, err)
 
 	trie, err := buildTrie(proof, stateRoot, proofDB)
