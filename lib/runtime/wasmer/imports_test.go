@@ -6,7 +6,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"net/http"
 	"sort"
 	"testing"
@@ -1173,8 +1172,6 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	err = scale.Unmarshal(out, &val)
 	require.NoError(t, err)
 	require.NotNil(t, val)
-
-	fmt.Println("val", val)
 
 	value := make([]byte, 64)
 	copy(value[:], val[:])
