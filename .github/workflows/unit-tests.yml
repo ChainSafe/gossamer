@@ -41,19 +41,19 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Go build cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go-cache-paths.outputs.go-build }}
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-build
+      # - name: Go build cache
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ${{ steps.go-cache-paths.outputs.go-build }}
+      #     key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+      #     restore-keys: ${{ runner.os }}-go-build
 
-      - name: Go modules cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go-cache-paths.outputs.go-mod }}
-          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-mod
+      # - name: Go modules cache
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ${{ steps.go-cache-paths.outputs.go-mod }}
+      #     key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+      #     restore-keys: ${{ runner.os }}-go-mod
 
       - name: Install Subkey
         run: |
