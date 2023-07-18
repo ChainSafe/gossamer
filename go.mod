@@ -199,4 +199,4 @@ require (
 
 go 1.20
 
-replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20230704172759-e8fb236a3492
+replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f
