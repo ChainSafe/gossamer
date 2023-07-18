@@ -288,7 +288,6 @@ func ext_crypto_ed25519_verify_version_1(ctx context.Context, m api.Module, sig 
 	memory := m.Memory()
 	sigVerifier := rtCtx.SigVerifier
 
-	// signature := memory[sig : sig+64]
 	signature, ok := memory.Read(sig, 64)
 	if !ok {
 		panic("read overflow")
