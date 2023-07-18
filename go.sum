@@ -52,8 +52,8 @@ github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf h1:S195Z
 github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf/go.mod h1:dpzHYVxLZcp8pjlV+O+UR8K0Hp/z7vcchBSbMBEhCw4=
 github.com/ChainSafe/log15 v1.0.0 h1:vRDVtWtVwIH5uSCBvgTTZh6FA58UBJ6+QiiypaZfBf8=
 github.com/ChainSafe/log15 v1.0.0/go.mod h1:5v1+ALHtdW0NfAeeoYyKmzCAMcAeqkdhIg4uxXWIgOg=
-github.com/ChainSafe/wazero v0.0.0-20230704172759-e8fb236a3492 h1:0R41SUCg5tbd/xeoWk5xHQAuTIGAnNW3yK2h/XbQHP0=
-github.com/ChainSafe/wazero v0.0.0-20230704172759-e8fb236a3492/go.mod h1:wYx2gNRg8/WihJfSDxA1TIL8H+GkfLYm+bIfbblu9VQ=
+github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f h1:/sI8TMJ77HL2UImQs7pY7khVN96EXQJGVOrX88dTpcY=
+github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f/go.mod h1:wYx2gNRg8/WihJfSDxA1TIL8H+GkfLYm+bIfbblu9VQ=
 github.com/DataDog/zstd v1.4.1/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.8 h1:31czK/TI9sNkxIKfaUfGlU47BAxQ0ztGgd9vPyqimf8=
