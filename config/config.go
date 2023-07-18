@@ -279,7 +279,7 @@ func (c *CoreConfig) ValidateBasic() error {
 	if c.WasmInterpreter == "" {
 		return fmt.Errorf("wasm-interpreter cannot be empty")
 	}
-	if !(c.WasmInterpreter == wasmer.Name || c.WasmInterpreter == wazero.Name) {
+	if c.WasmInterpreter != wasmer.Name && c.WasmInterpreter != wazero.Name {
 		return fmt.Errorf("wasm-interpreter is invalid")
 	}
 

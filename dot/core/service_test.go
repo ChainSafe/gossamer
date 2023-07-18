@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -251,7 +252,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				}
 			},
 			blockHash:  common.Hash{0x01},
-			errMessage: "creating new runtime instance: unexpected EOF",
+			errWrapped: io.ErrUnexpectedEOF,
 		},
 		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
@@ -323,11 +324,9 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			service := testCase.serviceBuilder(ctrl)
 
 			err := service.handleCodeSubstitution(testCase.blockHash, testCase.trieState)
-			if testCase.errWrapped != nil {
-				assert.ErrorIs(t, err, testCase.errWrapped)
-			}
+			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errMessage != "" {
-				assert.ErrorContains(t, err, testCase.errMessage)
+				assert.EqualError(t, err, testCase.errMessage)
 			}
 		})
 	}
