@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -126,19 +127,41 @@ func (s Service) run() {
 	collationMessage := CollationProtocolV1{}
 	s.Network.GossipMessage(&collationMessage)
 
-	statementDistributionLargeStatement := NewStatementDistributionVDT()
-	err := statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
-		RelayParent:   common.Hash{},
-		CandidateHash: CandidateHash{Value: common.Hash{}},
-		SignedBy:      5,
-		Signature:     ValidatorSignature{},
+	time.Sleep(time.Second * 10)
+	logger.Infof("creating bitfield distribution message")
+	bitfieldDistribution := NewBitfieldDistributionVDT()
+	err := bitfieldDistribution.Set(Bitfield{
+		Hash: common.Hash{},
+		UncheckedSignedAvailabilityBitfield: UncheckedSignedAvailabilityBitfield{
+			Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
+				true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+				true, true, true, true}),
+			ValidatorIndex: 0,
+			Signature:      ValidatorSignature{},
+		},
 	})
 	if err != nil {
-		logger.Errorf("creating test statement message: %w\n", err)
+		logger.Errorf("creating test bitfield distribution: %w\n", err)
 	}
 
+	//vpBitfieldDistribution := NewValidationProtocolVDT()
+	//vpBitfieldDistribution.Set(bitfieldDistribution)
+	//vpBitfieldDistributionVal, err := vpBitfieldDistribution.Value()
+	//require.NoError(t, err)
+	//
+	//statementDistributionLargeStatement := NewStatementDistributionVDT()
+	//err := statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
+	//	RelayParent:   common.Hash{},
+	//	CandidateHash: CandidateHash{Value: common.Hash{}},
+	//	SignedBy:      5,
+	//	Signature:     ValidatorSignature{},
+	//})
+	//if err != nil {
+	//	logger.Errorf("creating test statement message: %w\n", err)
+	//}
+
 	validationMessage := NewValidationProtocolVDT()
-	err = validationMessage.Set(&statementDistributionLargeStatement)
+	err = validationMessage.Set(bitfieldDistribution)
 	if err != nil {
 		logger.Errorf("creating test validation message: %w\n", err)
 	}

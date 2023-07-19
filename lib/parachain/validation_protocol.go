@@ -231,6 +231,7 @@ func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
 
 func handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
 	// TODO: Add things
+	logger.Infof("We got a validation message %v\n", msg)
 	fmt.Println("We got a validation message", msg)
 	return false, nil
 }
