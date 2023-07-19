@@ -3,4 +3,4 @@
 
 package proof
 
-//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . Database
+//go:generate mockgen -destination=database_mocks_test.go -package=$GOPACKAGE . Database
