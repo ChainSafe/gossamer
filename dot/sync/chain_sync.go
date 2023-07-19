@@ -768,17 +768,10 @@ taskResultLoop:
 	logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
 		expectedSyncedBlocks, retreiveBlocksSeconds)
 
-	// response was validated! place into ready block queue
 	for _, bd := range syncingChain {
-		importTimer := time.Now()
-		// block is ready to be processed!
 		if err := cs.handleReadyBlock(bd, origin); err != nil {
 			return fmt.Errorf("while handling ready block: %w", err)
 		}
-
-		importTimeTake := time.Since(importTimer).Seconds()
-		fmt.Printf(">>>>> TAKE %.2f seconds TO IMPORT BLOCK %s #%d\n",
-			importTimeTake, bd.Hash.String(), bd.Header.Number)
 	}
 	return nil
 }
@@ -976,7 +969,6 @@ func (cs *chainSync) handleJustification(header *types.Header, justification []b
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool) error {
-	importTimer := time.Now()
 	parent, err := cs.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
@@ -985,57 +977,37 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 	cs.storageState.Lock()
 	defer cs.storageState.Unlock()
 
-	loadTrieStateTime := time.Now()
 	ts, err := cs.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}
-	loadTrieStateTake := time.Since(loadTrieStateTime).Seconds()
-	fmt.Printf(">>>>> TAKE %.2f seconds TO TrieState of %s #%d\n",
-		loadTrieStateTake, block.Header.Hash().String(), block.Header.Number)
 
 	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}
 
-	getRuntimeTimer := time.Now()
 	rt, err := cs.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}
-	getRuntimeTake := time.Since(getRuntimeTimer).Seconds()
-	fmt.Printf(">>>>> TAKE %.2f seconds TO GetRuntime of %s #%d\n",
-		getRuntimeTake, parent.Hash().String(), block.Header.Number-1)
 
 	rt.SetContextStorage(ts)
 
-	execBlockTimer := time.Now()
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
-	execBlockTake := time.Since(execBlockTimer).Seconds()
-	fmt.Printf(">>>>> TAKE %.2f seconds TO execute block against runtime of %s #%d\n",
-		execBlockTake, block.Header.Hash().String(), block.Header.Number)
 
-	handleBlockTimer := time.Now()
 	if err = cs.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
 		return err
 	}
-	handleBlockTake := time.Since(handleBlockTimer).Seconds()
-	fmt.Printf(">>>>> TAKE %.2f seconds TO HandleBlockImport of %s #%d\n",
-		handleBlockTake, block.Header.Hash().String(), block.Header.Number)
 
 	blockHash := block.Header.Hash()
 	cs.telemetry.SendMessage(telemetry.NewBlockImport(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
-
-	importTimeTake := time.Since(importTimer).Seconds()
-	fmt.Printf(">>>>> TAKE %.2f seconds TO HANDLE BLOCK %s #%d\n",
-		importTimeTake, blockHash.String(), block.Header.Number)
 
 	return nil
 }

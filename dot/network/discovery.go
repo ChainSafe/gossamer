@@ -105,7 +105,7 @@ func (d *discovery) start() error {
 		dual.DHTOption(kaddht.Datastore(d.ds)),
 		dual.DHTOption(kaddht.BootstrapPeers(d.bootnodes...)),
 		dual.DHTOption(kaddht.V1ProtocolOverride(d.pid + "/kad")),
-		dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
+		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 	}
 
 	// create DHT service
