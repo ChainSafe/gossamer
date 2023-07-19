@@ -20,7 +20,7 @@ const DefaultHeapBase = uint32(1469576)
 const alignment uint32 = 8
 
 // HeadsQty 22
-const HeadsQty = 22
+const HeadsQty = 23
 
 // MaxPossibleAllocation 2^25 bytes, 32 MiB
 const MaxPossibleAllocation = (1 << 25)
