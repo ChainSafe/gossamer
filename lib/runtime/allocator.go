@@ -22,7 +22,7 @@ const alignment uint32 = 8
 // HeadsQty 22
 const HeadsQty = 22
 
-// MaxPossibleAllocation 2^24 bytes
+// MaxPossibleAllocation 2^25 bytes, 32 MiB
 const MaxPossibleAllocation = (1 << 25)
 
 // FreeingBumpHeapAllocator struct
