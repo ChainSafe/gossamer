@@ -368,14 +368,13 @@ func (in *Instance) ParachainHostPersistedValidationData(
 		return nil, err
 	}
 
-	fmt.Println("persistedValidationData: ", encodedPersistedValidationData)
-	persistedValidationData := parachaintypes.PersistedValidationData{}
+	persistedValidationData := &parachaintypes.PersistedValidationData{}
 	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 
-	return &persistedValidationData, nil
+	return persistedValidationData, nil
 }
 
 // ParachainHostValidationCode returns validation code for the given parachain id.

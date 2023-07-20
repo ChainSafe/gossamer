@@ -393,7 +393,9 @@ func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
 // PersistedValidationData should be relatively lightweight primarily because it is constructed
 // during inclusion for each candidate and therefore lies on the critical path of inclusion.
 type PersistedValidationData struct {
-	ParentHead             []byte      `scale:"1"`
+	// NOTE: In polkadot, ParentHead is not an option.
+	// But ParentHead returned by runtime call `ParachainHostPersistedValidationData` is an option. So, we are going to use as option for now.
+	ParentHead             HeadData    `scale:"1"`
 	RelayParentNumber      uint32      `scale:"2"`
 	RelayParentStorageRoot common.Hash `scale:"3"`
 	MaxPovSize             uint32      `scale:"4"`

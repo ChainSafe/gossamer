@@ -376,7 +376,7 @@ func TestPersistedValidationData(t *testing.T) {
 	expected := []byte{12, 7, 8, 9, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0} //nolint:lll
 
 	pvd := PersistedValidationData{
-		ParentHead:             []byte{7, 8, 9},
+		ParentHead:             HeadData{Data: []byte{7, 8, 9}},
 		RelayParentNumber:      uint32(10),
 		RelayParentStorageRoot: common.Hash{},
 		MaxPovSize:             uint32(1024),
