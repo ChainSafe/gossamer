@@ -186,10 +186,9 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.oldTrie = s.t
-	s.t = s.t.Snapshot()
+	trieSnapshot := s.t.Snapshot()
 
-	tr, err := s.t.GetChild(key)
+	tr, err := trieSnapshot.GetChild(key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -197,14 +196,12 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	childTrieEntries := tr.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = s.t.DeleteChild(key)
+		err = trieSnapshot.DeleteChild(key)
 		if err != nil {
-			s.t = s.oldTrie
-			s.oldTrie = nil
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
 
-		s.oldTrie = nil
+		s.t = trieSnapshot
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
@@ -219,8 +216,6 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		// See https://github.com/ChainSafe/gossamer/issues/3032
 		err = tr.Delete([]byte(k))
 		if err != nil {
-			s.t = s.oldTrie
-			s.oldTrie = nil
 			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
 		}
 
@@ -230,7 +225,7 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		}
 	}
 
-	s.oldTrie = nil
+	s.t = trieSnapshot
 
 	allDeleted = deleted == qtyEntries
 	return deleted, allDeleted, nil
