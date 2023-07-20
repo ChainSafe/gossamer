@@ -347,6 +347,22 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
+func fixPersistedValidationDataEncodedBytes(bytes []byte) ([]byte, error) {
+	// Trim first byte (01) in the beginning and bytes for RelayParentNumber(4),
+	// RelayParentStorageRoot (32), MaxPovSize(4) to get HeadData bytes
+
+	bytes = bytes[1:]
+	bytesExceptHeadData := bytes[len(bytes)-40:]
+	headDataBytes := bytes[:len(bytes)-40]
+
+	newEncodedHeadData, err := scale.Marshal(headDataBytes)
+	if err != nil {
+		return []byte{}, fmt.Errorf("scale marshalling: %w", err)
+	}
+
+	return append(newEncodedHeadData, bytesExceptHeadData...), nil
+}
+
 // ParachainHostPersistedValidationData returns persisted validation data for the given parachain id.
 func (in *Instance) ParachainHostPersistedValidationData(
 	parachaidID uint32,
@@ -368,8 +384,13 @@ func (in *Instance) ParachainHostPersistedValidationData(
 		return nil, err
 	}
 
+	fixedEncodedBytes, err := fixPersistedValidationDataEncodedBytes(encodedPersistedValidationData)
+	if err != nil {
+		return nil, fmt.Errorf("fixing persisted validation data bytes: %w", err)
+	}
+
 	persistedValidationData := &parachaintypes.PersistedValidationData{}
-	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
+	err = scale.Unmarshal(fixedEncodedBytes, persistedValidationData)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
