@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +51,7 @@ func Test_NewTrie(t *testing.T) {
 		childTries: make(map[common.Hash]*Trie),
 		deltas:     tracking.New(),
 	}
-	trie := NewTrie(root)
+	trie := NewTrie(root, nil)
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -619,7 +620,7 @@ func Test_Trie_Entries(t *testing.T) {
 			}),
 		}
 
-		trie := NewTrie(root)
+		trie := NewTrie(root, nil)
 
 		entries := trie.Entries()
 
@@ -673,7 +674,7 @@ func Test_Trie_Entries(t *testing.T) {
 			}),
 		}
 
-		trie := NewTrie(root)
+		trie := NewTrie(root, nil)
 
 		entries := trie.Entries()
 
@@ -2076,13 +2077,22 @@ func Test_Trie_Get(t *testing.T) {
 func Test_retrieve(t *testing.T) {
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
+	defaultDBGetterMock := NewMockDBGetter(ctrl)
+	defaultDBGetterMock.EXPECT().Get(gomock.Any()).Times(0)
+
+	hashedValue := []byte("hashedvalue")
+	hashedValueResult := []byte("hashedvalueresult")
+
 	testCases := map[string]struct {
 		parent *Node
 		key    []byte
 		value  []byte
+		db     DBGetter
 	}{
 		"nil_parent": {
 			key: []byte{1},
+			db:  defaultDBGetterMock,
 		},
 		"leaf_key_match": {
 			parent: &Node{
@@ -2091,6 +2101,7 @@ func Test_retrieve(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte{2},
+			db:    defaultDBGetterMock,
 		},
 		"leaf_key_mismatch": {
 			parent: &Node{
@@ -2098,6 +2109,7 @@ func Test_retrieve(t *testing.T) {
 				StorageValue: []byte{2},
 			},
 			key: []byte{1},
+			db:  defaultDBGetterMock,
 		},
 		"branch_key_match": {
 			parent: &Node{
@@ -2110,6 +2122,7 @@ func Test_retrieve(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte{2},
+			db:    defaultDBGetterMock,
 		},
 		"branch_key_with_empty_search_key": {
 			parent: &Node{
@@ -2121,6 +2134,7 @@ func Test_retrieve(t *testing.T) {
 				}),
 			},
 			value: []byte{2},
+			db:    defaultDBGetterMock,
 		},
 		"branch_key_mismatch_with_shorter_search_key": {
 			parent: &Node{
@@ -2132,6 +2146,7 @@ func Test_retrieve(t *testing.T) {
 				}),
 			},
 			key: []byte{1},
+			db:  defaultDBGetterMock,
 		},
 		"bottom_leaf_in_branch": {
 			parent: &Node{
@@ -2156,6 +2171,38 @@ func Test_retrieve(t *testing.T) {
 			},
 			key:   []byte{1, 2, 3, 4, 5},
 			value: []byte{3},
+			db:    defaultDBGetterMock,
+		},
+		"bottom_leaf_with_hashed_value_in_branch": {
+			parent: &Node{
+				PartialKey:   []byte{1},
+				StorageValue: []byte{1},
+				Descendants:  2,
+				Children: padRightChildren([]*Node{
+					nil, nil,
+					{ // full key 1, 2, 3
+						PartialKey:   []byte{3},
+						StorageValue: []byte{2},
+						Descendants:  1,
+						Children: padRightChildren([]*Node{
+							nil, nil, nil, nil,
+							{ // full key 1, 2, 3, 4, 5
+								PartialKey:   []byte{5},
+								StorageValue: hashedValue,
+								HashedValue:  true,
+							},
+						}),
+					},
+				}),
+			},
+			key:   []byte{1, 2, 3, 4, 5},
+			value: hashedValueResult,
+			db: func() DBGetter {
+				defaultDBGetterMock := NewMockDBGetter(ctrl)
+				defaultDBGetterMock.EXPECT().Get(gomock.Any()).Return(hashedValueResult, nil).Times(1)
+
+				return defaultDBGetterMock
+			}(),
 		},
 	}
 
@@ -2171,7 +2218,7 @@ func Test_retrieve(t *testing.T) {
 				expectedParent = testCase.parent.Copy(copySettings)
 			}
 
-			value := retrieve(testCase.parent, testCase.key)
+			value := retrieve(testCase.db, testCase.parent, testCase.key)
 
 			assert.Equal(t, testCase.value, value)
 			assert.Equal(t, expectedParent, testCase.parent)

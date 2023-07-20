@@ -21,6 +21,7 @@ type Trie struct {
 	generation uint64
 	root       *Node
 	childTries map[common.Hash]*Trie
+	db         DBGetter
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -31,14 +32,15 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	return NewTrie(nil)
+	return NewTrie(nil, nil)
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node) *Trie {
+func NewTrie(root *Node, db DBGetter) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
+		db:         db,
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
 	}
@@ -715,28 +717,36 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 // Note the key argument is given in little Endian format.
 func (t *Trie) Get(keyLE []byte) (value []byte) {
 	keyNibbles := codec.KeyLEToNibbles(keyLE)
-	return retrieve(t.root, keyNibbles)
+	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(parent *Node, key []byte) (value []byte) {
+func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
 
 	if parent.Kind() == node.Leaf {
-		return retrieveFromLeaf(parent, key)
+		return retrieveFromLeaf(db, parent, key)
 	}
-	return retrieveFromBranch(parent, key)
+	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
+		if leaf.HashedValue {
+			// We get the node
+			value, err := db.Get(leaf.StorageValue)
+			if err != nil {
+				panic(fmt.Sprintf("retrieving value from leaf %s", err.Error()))
+			}
+			return value
+		}
 		return leaf.StorageValue
 	}
 	return nil
 }
 
-func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db DBGetter, branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}
@@ -749,7 +759,7 @@ func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
-	return retrieve(child, childKey)
+	return retrieve(db, child, childKey)
 }
 
 // ClearPrefixLimit deletes the keys having the prefix given in little
