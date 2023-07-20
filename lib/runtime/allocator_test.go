@@ -90,7 +90,7 @@ var allocateFreeTest = []testSet{
 			totalSize: 40}},
 	{test: &freeTest{ptr: 24}, // address of second allocation
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 16}},
 }
 
@@ -108,7 +108,7 @@ var allocateDeallocateReallocateWithOffset = []testSet{
 			totalSize: 40}},
 	{test: &freeTest{ptr: 40}, // address of second allocation
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 16}},
 	{test: &allocateTest{size: 9},
@@ -141,18 +141,18 @@ var allocateShouldBuildFreeList = []testSet{
 	// free second allocation
 	{test: &freeTest{ptr: 24}, // address of second allocation
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 16}},
 	// free third allocation
 	{test: &freeTest{ptr: 40}, // address of third allocation
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 0}},
 	// allocate 8 bytes
 	{test: &allocateTest{size: 8},
 		output: uint32(40),
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 16}},
 }
 
@@ -200,7 +200,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// second free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// third alloc
@@ -212,7 +212,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// third free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// forth alloc
@@ -224,7 +224,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// forth free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// fifth alloc
@@ -236,7 +236,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// fifth free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 }
