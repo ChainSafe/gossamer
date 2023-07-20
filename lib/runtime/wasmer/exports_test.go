@@ -1250,11 +1250,12 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 	err := assumption.Set(parachaintypes.IncludedOccupiedCoreAssumption{})
 	require.NoError(t, err)
 
-	// runtime := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
-
-	// TODO: validation code is coming out to be empty slice, which is not expected result.
-	_, err = rt.ParachainHostValidationCode(parachainID, assumption)
+	validationCode, err := rt.ParachainHostValidationCode(parachainID, assumption)
 	require.NoError(t, err)
+
+	// convert validationCode to hex
+	validationCodeHex := common.BytesToHex(*validationCode)
+	fmt.Println(validationCodeHex[len(validationCodeHex)-10:])
 }
 
 func TestInstance_ParachainHostValidators(t *testing.T) {

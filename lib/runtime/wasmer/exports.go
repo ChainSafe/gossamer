@@ -396,15 +396,17 @@ func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption p
 		return nil, err
 	}
 
-	validationCode := parachaintypes.ValidationCode{}
+	fmt.Println("encodedValidationCode", len(encodedValidationCode))
+
+	var validationCode []byte
 	err = scale.Unmarshal(encodedValidationCode, &validationCode)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 
-	fmt.Println("validationCode: ", validationCode)
+	fmt.Println("validationCode", len(validationCode))
 
-	return &validationCode, nil
+	return (*parachaintypes.ValidationCode)(&validationCode), nil
 }
 
 // ParachainHostValidators returns the validator set at the current state.
