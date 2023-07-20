@@ -484,7 +484,7 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 // that that getItemSizeFromIndex method gets expected item size from index
 // max index position
 func TestShouldGetMaxFromIndex(t *testing.T) {
-	index := uint(21)
+	index := uint(HeadsQty - 1)
 	itemSize := getItemSizeFromIndex(index)
 	if itemSize != MaxPossibleAllocation {
 		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)
