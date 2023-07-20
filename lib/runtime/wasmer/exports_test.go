@@ -1233,6 +1233,7 @@ func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 
 	actualPVD, err := rt.ParachainHostPersistedValidationData(parachainID, assumption)
 	require.NoError(t, err)
+	// This line of the test still fails, but I'm not sure which one is right after it's decoded fine
 	require.Equal(t, expectedPVD.ParentHead, actualPVD.ParentHead)
 	require.Equal(t, expectedPVD.RelayParentNumber, actualPVD.RelayParentNumber)
 	require.Equal(t, expectedPVD.RelayParentStorageRoot, actualPVD.RelayParentStorageRoot)

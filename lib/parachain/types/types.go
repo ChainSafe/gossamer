@@ -297,7 +297,7 @@ type CandidateReceipt struct {
 
 // HeadData Parachain head data included in the chain.
 type HeadData struct {
-	Data []byte `scale:"1"`
+	Data []byte
 }
 
 // CoreIndex The unique (during session) index of a core.
@@ -393,12 +393,10 @@ func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
 // PersistedValidationData should be relatively lightweight primarily because it is constructed
 // during inclusion for each candidate and therefore lies on the critical path of inclusion.
 type PersistedValidationData struct {
-	// NOTE: In polkadot, ParentHead is not an option.
-	// But ParentHead returned by runtime call `ParachainHostPersistedValidationData` is an option. So, we are going to use as option for now.
-	ParentHead             HeadData    `scale:"1"`
-	RelayParentNumber      uint32      `scale:"2"`
-	RelayParentStorageRoot common.Hash `scale:"3"`
-	MaxPovSize             uint32      `scale:"4"`
+	ParentHead             HeadData
+	RelayParentNumber      uint32
+	RelayParentStorageRoot common.Hash
+	MaxPovSize             uint32
 }
 
 // OccupiedCoreAssumption is an assumption being made about the state of an occupied core.

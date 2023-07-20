@@ -384,13 +384,15 @@ func (in *Instance) ParachainHostPersistedValidationData(
 		return nil, err
 	}
 
-	fixedEncodedBytes, err := fixPersistedValidationDataEncodedBytes(encodedPersistedValidationData)
-	if err != nil {
-		return nil, fmt.Errorf("fixing persisted validation data bytes: %w", err)
-	}
+	// fixedEncodedBytes, err := fixPersistedValidationDataEncodedBytes(encodedPersistedValidationData)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("fixing persisted validation data bytes: %w", err)
+	// }
 
 	persistedValidationData := &parachaintypes.PersistedValidationData{}
-	err = scale.Unmarshal(fixedEncodedBytes, persistedValidationData)
+	// NOTE: the runtime method returns Option<PersistedValidationData<H, N>>,
+	// so we need to pass in a pointer to *parachaintypes.PersistedValidationData
+	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
