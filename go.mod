@@ -37,6 +37,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
+	github.com/tetratelabs/wazero v1.1.0
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.11.0
@@ -197,3 +198,5 @@ require (
 )
 
 go 1.20
+
+replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f
