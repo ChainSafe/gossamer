@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/chain/westend"
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -169,7 +168,8 @@ func TestNewNode(t *testing.T) {
 }
 
 func Test_nodeBuilder_loadRuntime(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
+
 	type args struct {
 		config *cfg.Config
 		ns     *runtime.NodeStorage
@@ -211,12 +211,11 @@ func Test_nodeBuilder_loadRuntime(t *testing.T) {
 }
 
 func TestInitNode_Integration(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -228,12 +227,11 @@ func TestInitNode_Integration(t *testing.T) {
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := newTestGenesisFile(t, config)
+	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -244,12 +242,11 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	result := IsNodeInitialised(config.BasePath)
 	require.False(t, result)
@@ -262,12 +259,11 @@ func TestNodeInitializedIntegration(t *testing.T) {
 }
 
 func TestNewNodeIntegration(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -294,12 +290,11 @@ func TestNewNodeIntegration(t *testing.T) {
 }
 
 func TestNewNode_Authority(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -329,12 +324,11 @@ func TestNewNode_Authority(t *testing.T) {
 }
 
 func TestStartStopNode(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
 
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 	config.Core.GrandpaAuthority = false
 	config.Core.BabeAuthority = false
 
@@ -367,7 +361,7 @@ func TestStartStopNode(t *testing.T) {
 }
 
 func TestInitNode_LoadStorageRoot(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -375,7 +369,6 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.ChainSpec = genPath
-	config.BasePath = t.TempDir()
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
@@ -416,7 +409,7 @@ func balanceKey(t *testing.T, publicKey [32]byte) (storageTrieKey []byte) {
 }
 
 func TestInitNode_LoadBalances(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	genPath := newTestGenesisAndRuntime(t)
 
@@ -424,7 +417,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.ChainSpec = genPath
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -457,14 +449,13 @@ func TestInitNode_LoadBalances(t *testing.T) {
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	globalName := RandomNodeName()
 
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 	config.Name = globalName
 
 	config.Core.Role = common.FullNodeRole
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.ChainSpec = newTestGenesisAndRuntime(t)
-	config.BasePath = t.TempDir()
 
 	err := InitNode(config)
 	require.NoError(t, err)

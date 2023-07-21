@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
+	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
 	cfg "github.com/ChainSafe/gossamer/config"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -27,10 +27,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInitNode(t *testing.T) {
-	config := westend_dev.DefaultConfig()
-	config.ChainSpec = NewTestGenesisRawFile(t, config)
+func DefaultTestWestendDevConfig(t *testing.T) *cfg.Config {
+	config := westenddev.DefaultConfig()
 	config.BasePath = t.TempDir()
+
+	return config
+}
+
+func TestInitNode(t *testing.T) {
+	config := DefaultTestWestendDevConfig(t)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	tests := []struct {
 		name   string
 		config *cfg.Config
@@ -129,10 +135,9 @@ func setConfigTestDefaults(t *testing.T, cfg *network.Config) {
 }
 
 func TestNodeInitialized(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 	genFile := NewTestGenesisRawFile(t, config)
 	config.ChainSpec = genFile
-	config.BasePath = t.TempDir()
 
 	nodeInstance := nodeBuilder{}
 	err := nodeInstance.initNode(config)
