@@ -8,7 +8,8 @@ const (
 	// This wasm is generated using https://github.com/ChainSafe/polkadot-spec.
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
-	HOST_API_TEST_RUNTIME_URL = "https://raw.githubusercontent.com/ChainSafe/polkadot-spec/master/test/runtimes/hostapi/hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_URL = "https://raw.githubusercontent.com/ChainSafe/polkadot-spec/" +
+		"master/test/runtimes/hostapi/hostapi_runtime.compact.wasm"
 
 	// v0.9.29 polkadot
 	POLKADOT_RUNTIME_v0929     = "polkadot_runtime-v929"

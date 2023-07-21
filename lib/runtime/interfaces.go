@@ -24,7 +24,7 @@ type Storage interface {
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
-	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) error
+	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error)
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
 	ClearPrefix(prefix []byte) (err error)

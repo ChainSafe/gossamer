@@ -1063,6 +1063,33 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 	}
 }
 
+// AllRemoved is a vdt value suggesting that all keys to remove were removed, containing number of
+// keys removed.
+type AllRemoved uint32
+
+// Index returns VDT index
+func (AllRemoved) Index() uint { return 0 }
+
+// SomeRemaining is a vdt value suggesting that all keys to remove were not removed, containing number of
+// keys removed.
+type SomeRemaining uint32
+
+// Index returns VDT index
+func (SomeRemaining) Index() uint { return 1 }
+
+// NewDigestItem returns a new VaryingDataType to represent a DigestItem
+func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType {
+	killStorageResult := scale.MustNewVaryingDataType(new(AllRemoved), new(SomeRemaining))
+
+	if allDeleted {
+		killStorageResult.Set(AllRemoved(deleted))
+	} else {
+		killStorageResult.Set(SomeRemaining(deleted))
+	}
+
+	return killStorageResult
+}
+
 //export ext_default_child_storage_clear_prefix_version_2
 func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, childStorageKey, prefixSpan,
 	limitSpan C.int64_t) C.int64_t {
@@ -1075,19 +1102,32 @@ func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, ch
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	prefix := asMemorySlice(instanceContext, prefixSpan)
 
-	var limit *uint32
+	limit := new(uint32)
 	err := scale.Unmarshal(asMemorySlice(instanceContext, limitSpan), limit)
 	if err != nil {
 		logger.Errorf("failed to decode limit: %s", err)
 	}
 
-	err = storage.ClearPrefixInChildWithLimit(keyToChild, prefix, *limit)
+	deleted, allDeleted, err := storage.ClearPrefixInChildWithLimit(keyToChild, prefix, *limit)
 	if err != nil {
 		logger.Errorf("failed to clear prefix in child with limit: %s", err)
 	}
 
-	// TODO: Should this always be 0 or could this be something else as well?
-	return C.int64_t(0)
+	killStorageResult := NewKillStorageResult(deleted, allDeleted)
+
+	encodedKillStorageResult, err := scale.Marshal(killStorageResult)
+	if err != nil {
+		logger.Errorf("failed to encode result: %s", err)
+		return 0
+	}
+
+	resultSpan, err := toWasmMemoryOptional(instanceContext, encodedKillStorageResult)
+	if err != nil {
+		logger.Errorf("failed to allocate: %s", err)
+		return 0
+	}
+
+	return C.int64_t(resultSpan)
 }
 
 //export ext_default_child_storage_exists_version_1

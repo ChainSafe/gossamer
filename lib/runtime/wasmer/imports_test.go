@@ -39,16 +39,18 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	err := inst.ctx.NodeStorage.BaseDB.Put(testKey, testValue)
 	require.NoError(t, err)
 
+	value, err := inst.ctx.NodeStorage.BaseDB.Get(testKey)
+	require.NoError(t, err)
+	require.Equal(t, testValue, value)
+
 	encKey, err := scale.Marshal(testKey)
 	require.NoError(t, err)
 
 	_, err = inst.Exec("rtm_ext_offchain_index_clear_version_1", encKey)
 	require.NoError(t, err)
 
-	value, err := inst.ctx.NodeStorage.BaseDB.Get(testKey)
-	require.NoError(t, err)
-
-	require.True(t, bytes.Equal(testValue, value))
+	_, err = inst.ctx.NodeStorage.BaseDB.Get(testKey)
+	require.ErrorIs(t, err, chaindb.ErrKeyNotFound)
 }
 
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
