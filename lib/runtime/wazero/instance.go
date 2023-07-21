@@ -753,7 +753,7 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 
 // CheckInherents checks inherents in the block verification process.
 // TODO: use this in block verification process (#1873)
-func (_ *Instance) CheckInherents() {}
+func (*Instance) CheckInherents() {}
 
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
@@ -808,13 +808,13 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-func (_ *Instance) RandomSeed() {
+func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
-func (_ *Instance) OffchainWorker() {
+func (*Instance) OffchainWorker() {
 	panic("unimplemented")
 }
-func (_ *Instance) GenerateSessionKeys() {
+func (*Instance) GenerateSessionKeys() {
 	panic("unimplemented")
 }
 
