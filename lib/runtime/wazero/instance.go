@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/klauspost/compress/zstd"
 	"github.com/tetratelabs/wazero"
@@ -36,9 +37,10 @@ var _ runtime.Instance = &Instance{}
 
 // Instance backed by wazero.Runtime
 type Instance struct {
-	Runtime wazero.Runtime
-	Module  api.Module
-	Context *runtime.Context
+	Runtime  wazero.Runtime
+	Module   api.Module
+	Context  *runtime.Context
+	codeHash common.Hash
 	sync.Mutex
 }
 
@@ -69,6 +71,30 @@ func decompressWasm(code []byte) ([]byte, error) {
 		return nil, err
 	}
 	return bytes, err
+}
+
+// NewRuntimeFromGenesis creates a runtime instance from the genesis data
+func NewRuntimeFromGenesis(cfg Config) (instance *Instance, err error) {
+	if cfg.Storage == nil {
+		return nil, errors.New("storage is nil")
+	}
+
+	code := cfg.Storage.LoadCode()
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in state")
+	}
+
+	return NewInstance(code, cfg)
+}
+
+// NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
+func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
+	code := t.Get(common.CodeKey)
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in trie")
+	}
+
+	return NewInstance(code, cfg)
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
@@ -348,7 +374,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		Instantiate(ctx)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	code, err = decompressWasm(code)
@@ -389,7 +415,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
 		},
-		Module: mod,
+		Module:   mod,
+		codeHash: cfg.CodeHash,
 	}, nil
 }
 
@@ -424,7 +451,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
 
-	values, err := runtimeFunc.Call(ctx, api.EncodeI32(int32(inputPtr)), api.EncodeI32(int32(dataLength)))
+	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
@@ -784,8 +811,7 @@ func (in *Instance) GenerateSessionKeys() {
 
 // GetCodeHash returns the code of the instance
 func (in *Instance) GetCodeHash() common.Hash {
-	panic("huh?")
-	// return in.codeHash
+	return in.codeHash
 }
 
 // NodeStorage to get reference to runtime node service

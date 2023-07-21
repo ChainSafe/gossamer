@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -360,7 +360,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -371,7 +371,7 @@ func newTestStateService(t *testing.T) *state.Service {
 		require.NoError(t, err)
 	}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
