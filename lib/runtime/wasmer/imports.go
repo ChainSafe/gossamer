@@ -1102,13 +1102,24 @@ func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, ch
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	prefix := asMemorySlice(instanceContext, prefixSpan)
 
-	limit := new(uint32)
-	err := scale.Unmarshal(asMemorySlice(instanceContext, limitSpan), limit)
+	limitBytes := asMemorySlice(instanceContext, limitSpan)
+
+	var limit []byte
+	err := scale.Unmarshal(limitBytes, &limit)
 	if err != nil {
-		logger.Errorf("failed to decode limit: %s", err)
+		logger.Warnf("failed scale decoding limit: %s", err)
+		return mustToWasmMemoryNil(instanceContext)
 	}
 
-	deleted, allDeleted, err := storage.ClearPrefixInChildWithLimit(keyToChild, prefix, *limit)
+	if len(limit) == 0 {
+		// limit is None, set limit to max
+		limit = []byte{0xff, 0xff, 0xff, 0xff}
+	}
+
+	limitUint := binary.LittleEndian.Uint32(limit)
+
+	deleted, allDeleted, err := storage.ClearPrefixInChildWithLimit(
+		keyToChild, prefix, limitUint)
 	if err != nil {
 		logger.Errorf("failed to clear prefix in child with limit: %s", err)
 	}

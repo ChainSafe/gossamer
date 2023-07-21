@@ -1307,7 +1307,6 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	prefix := []byte("key")
-	limit := uint32(0)
 
 	testKeyValuePair := []struct {
 		key   []byte
@@ -1337,7 +1336,11 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 	encPrefix, err := scale.Marshal(prefix)
 	require.NoError(t, err)
 
-	encLimit, err := scale.Marshal(limit)
+	testLimit := uint32(1)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	encLimit, err := scale.Marshal(&testLimitBytes)
 	require.NoError(t, err)
 
 	data := append(encChildKey, encPrefix...)
