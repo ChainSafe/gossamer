@@ -1225,7 +1225,7 @@ func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedPVD := parachaintypes.PersistedValidationData{
-		ParentHead:             parachaintypes.HeadData{Data: common.MustHexToBytes("0xe902d91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e")},
+		ParentHead:             parachaintypes.HeadData{Data: common.MustHexToBytes("0xe902d91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e")}, //nolint:lll
 		RelayParentNumber:      uint32(15946390),
 		RelayParentStorageRoot: common.MustHexToHash("0xdf650f4c6b9bfcc8f768c4d3037fafbd6831ff23473e090d443684fb5e305bd6"),
 		MaxPovSize:             1024 * 1024 * 5,
@@ -1252,10 +1252,7 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 
 	validationCode, err := rt.ParachainHostValidationCode(parachainID, assumption)
 	require.NoError(t, err)
-
-	// convert validationCode to hex
-	validationCodeHex := common.BytesToHex(*validationCode)
-	fmt.Println(validationCodeHex[len(validationCodeHex)-10:])
+	require.NotEmpty(t, validationCode)
 }
 
 func TestInstance_ParachainHostValidators(t *testing.T) {
