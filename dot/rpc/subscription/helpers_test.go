@@ -42,7 +42,9 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 	defer server.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	ws, r, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	r.Body.Close()
+
 	require.NoError(t, err)
 
 	// Wait for the WebSocket connection to be ready before proceeding
