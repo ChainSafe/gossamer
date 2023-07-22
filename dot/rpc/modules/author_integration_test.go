@@ -29,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -49,7 +49,7 @@ type useRuntimeInstance func(*testing.T, *storage.TrieState) runtime.Instance
 func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Storage: rtStorage,
 		LogLvl:  log.Warn,
 		NodeStorage: runtime.NodeStorage{
@@ -57,7 +57,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 		},
 	}
 
-	runtimeInstance, err := wasmer.NewRuntimeFromGenesis(cfg)
+	runtimeInstance, err := wazero_runtime.NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	return runtimeInstance
@@ -71,7 +71,7 @@ func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (in
 
 	rtStorage.Put(common.CodeKey, bytes)
 
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Role:     0,
 		LogLvl:   log.Critical,
 		Storage:  rtStorage,
@@ -83,7 +83,7 @@ func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (in
 		},
 	}
 
-	runtimeInstance, err := wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)
+	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.Trie(), cfg)
 	require.NoError(t, err)
 
 	return runtimeInstance

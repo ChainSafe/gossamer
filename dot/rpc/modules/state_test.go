@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
@@ -288,7 +288,7 @@ func TestStateModuleGetKeysPaged(t *testing.T) {
 func TestCall(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	testHash := common.NewHash([]byte{0x01, 0x02})
-	rt := wasmer.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
+	rt := wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929)
 
 	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
 	mockStorageAPI := mocks.NewMockStorageAPI(ctrl)
