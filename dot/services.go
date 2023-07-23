@@ -33,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -162,6 +163,22 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 
 		// create runtime executor
 		rt, err = wasmer.NewInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
+	case wazero_runtime.Name:
+		rtCfg := wazero_runtime.Config{
+			Storage:     ts,
+			Keystore:    ks,
+			LogLvl:      wasmerLogLevel,
+			NodeStorage: ns,
+			Network:     net,
+			Role:        config.Core.Role,
+			CodeHash:    codeHash,
+		}
+
+		// create runtime executor
+		rt, err = wazero_runtime.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}

@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -354,7 +354,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
 		rt.Stop()

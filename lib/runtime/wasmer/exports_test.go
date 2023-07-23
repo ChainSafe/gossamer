@@ -46,7 +46,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				genesisPath := utils.GetKusamaGenesisPath(t)
 				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
-				genesisTrie, err := NewTrieFromGenesis(kusamaGenesis)
+				genesisTrie, err := runtime.NewTrieFromGenesis(kusamaGenesis)
 				require.NoError(t, err)
 
 				cfg := Config{
@@ -170,7 +170,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -472,7 +472,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -529,7 +529,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
@@ -579,7 +579,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genesisPath := utils.GetKusamaGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
@@ -1186,5 +1186,72 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 		Equivocation: *equivocationVote,
 	}
 	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
+	require.NoError(t, err)
+}
+
+func loadEntries(t *testing.T, filename string) *trie.Trie {
+	data, err := os.ReadFile(filename)
+	require.NoError(t, err)
+
+	entries := make([][2][]byte, 0)
+	err = json.Unmarshal(data, &entries)
+	require.NoError(t, err)
+
+	tr, err := trie.LoadFromEntries(entries)
+	require.NoError(t, err)
+	return tr
+}
+
+func TestInstance_ExecuteBlock_WestendBlock1097836(t *testing.T) {
+	trie := loadEntries(t, "../test_data/westend/entrieslist-1097836.json")
+	expectedRoot := common.MustHexToHash("0x97d68d4c5a01571cf4beea9b058d53dfd6d6ce5382d0657a185041d736880e03")
+	require.Equal(t, expectedRoot, trie.MustHash())
+
+	// set state to genesis state
+	state := storage.NewTrieState(trie)
+
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
+
+	instance, err := NewInstanceFromTrie(trie, cfg)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	digest.Add(
+		*types.NewBABEPreRuntimeDigest(common.MustHexToBytes("0x02020000006522d30f00000000")),
+		types.SealDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0xa06e4a23ae347c7edd24f84153c007563895d64a06b8781b1e21bf2c8bc426676bfd4bf20c08f276e54598aff3b64541d84c4b5da7bfa39479d0a45585a75388"), //nolint:lll
+		},
+	)
+
+	exts := make([]types.Extrinsic, 0)
+	ext, err := common.HexToBytes("0x0402000b301f76e47201")
+	require.NoError(t, err)
+	exts = append(exts, ext)
+	ext, err = common.HexToBytes("0x040d0000")
+	require.NoError(t, err)
+	exts = append(exts, ext)
+	ext, err = common.HexToBytes("0x84c2c9676ac7a4e56bcb861cf443899114a17baa817ae5c295b9bb6f947fc427fd02db25d6a66498b5e81ac3a52ae4025eef7bb36eee31195c60c7ebdb6f0bac4177baf32e73719fe3e5fdce1059e9e16bb85bad0a0c4e34c4b0e680fb7a132cc4f7018502000004000c60f6d9b5a5ee5a0c0428d1940936a1b91cd29924578f7ac9e793db6dab0cd70700e40b5402") //nolint:lll
+	require.NoError(t, err)
+	exts = append(exts, ext)
+
+	header := types.NewHeader(
+		common.MustHexToHash("0x805b7d8f50e4f30b014a25460c3a4057072ed902058d1f49fbbd99d3d6925ba3"),
+		common.MustHexToHash("0xb4df4c5bbceb56923f77d003e5064a839d3a319c0c930b955159637fdd74c393"),
+		common.MustHexToHash("0x2b0ee636bae60b595392d330a57e20524a13614605d3b3665433b7875f7a06fc"),
+		1097836,
+		digest,
+	)
+	require.Equal(t, "0x32ad1878e447c67f12395cef8d3f9e1c7871170711ba61350f40766e00998f89", header.Hash().String())
+
+	block := &types.Block{
+		Header: *header,
+		Body:   types.Body(exts),
+	}
+
+	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }

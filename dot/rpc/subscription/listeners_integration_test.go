@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
@@ -319,7 +319,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := wasmer.GetRuntimeVersion(code)
+	version, err := wazero_runtime.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{
