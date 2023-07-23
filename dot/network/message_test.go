@@ -536,7 +536,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
-			requests := NewAscedingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
+			requests := NewAscendingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
 			require.Equal(t, tt.expectedBlockRequestMessage, requests)
 		})
 	}

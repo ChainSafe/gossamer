@@ -169,6 +169,8 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 }
 
 func (cs *chainSync) start() {
+	isSyncedGauge.Set(0)
+
 	// wait until we have a minimal workers in the sync worker pool
 	for {
 		totalAvailable := cs.workerPool.totalWorkers()
@@ -179,7 +181,6 @@ func (cs *chainSync) start() {
 		time.Sleep(time.Second)
 	}
 
-	isSyncedGauge.Set(0)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh)
 	go cs.workerPool.listenForRequests(cs.stopCh)
 
@@ -284,7 +285,7 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return fmt.Errorf("while adding pending block header: %w", err)
 	}
 
-	if cs.getSyncMode() != tip {
+	if cs.getSyncMode() == bootstrap {
 		return nil
 	}
 
@@ -517,7 +518,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 		targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
 	}
 
-	requests := network.NewAscedingBlockRequests(startRequestAt, targetBlockNumber,
+	requests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
 		network.BootstrapRequestData)
 
 	var expectedAmountOfBlocks uint32
