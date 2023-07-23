@@ -43,7 +43,7 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
 	ws, r, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	r.Body.Close()
+	defer r.Body.Close()
 
 	require.NoError(t, err)
 
