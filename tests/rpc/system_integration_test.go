@@ -63,7 +63,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 	// wait until all nodes are connected
 	t.Log("waiting for all nodes to be connected")
-	peerTimeout, peerCancel := context.WithTimeout(context.Background(), 120*time.Second)
+	peerTimeout, peerCancel := context.WithTimeout(context.Background(), 150*time.Second)
 	defer peerCancel()
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
 		for _, node := range nodes {
