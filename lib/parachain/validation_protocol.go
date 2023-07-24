@@ -219,11 +219,12 @@ func (vp *ValidationProtocol) Encode() ([]byte, error) {
 }
 
 func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
-	validationMessage := ValidationProtocol{}
+	logger.Debugf("decode in bytes %v\n", in)
+	validationMessage := NewValidationProtocolVDT()
 
 	err := scale.Unmarshal(in, &validationMessage)
 	if err != nil {
-		return nil, fmt.Errorf("cannot decode message: %w", err)
+		return nil, fmt.Errorf("cannot decode message: %v,  %w", in, err)
 	}
 
 	return &validationMessage, nil
@@ -237,7 +238,7 @@ func handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool,
 }
 
 func getValidationHandshake() (network.Handshake, error) {
-	return &collatorHandshake{}, nil
+	return &validationHandshake{}, nil
 }
 
 func decodeValidationHandshake(_ []byte) (network.Handshake, error) {

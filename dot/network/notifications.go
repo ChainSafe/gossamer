@@ -284,6 +284,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	// we've completed the handshake with the peer, send message directly
 	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
+	enc, err := msg.Encode()
+	logger.Tracef("encoding %v, err %v\n", enc, err)
 	if err := s.host.writeToStream(stream, msg); err != nil {
 		logger.Debugf("failed to send message to peer %s: %s", peer, err)
 

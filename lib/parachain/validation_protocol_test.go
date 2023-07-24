@@ -324,3 +324,40 @@ func TestDecodeValidationHandshake(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
 }
+
+func TestEmptyValidatonMessage(t *testing.T) {
+	bitfieldDistribution := NewBitfieldDistributionVDT()
+	err := bitfieldDistribution.Set(Bitfield{
+		Hash: common.Hash{},
+		UncheckedSignedAvailabilityBitfield: UncheckedSignedAvailabilityBitfield{
+			Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
+				true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+				true, true, true, true}),
+			ValidatorIndex: 0,
+			Signature:      ValidatorSignature{},
+		},
+	})
+	require.NoError(t, err)
+
+	msg := NewValidationProtocolVDT()
+	err = msg.Set(bitfieldDistribution)
+	require.NoError(t, err)
+
+	encRec, err := msg.Encode()
+	fmt.Printf("encRec %v\n", encRec)
+	/////////////////
+	validationProtocol := NewValidationProtocolVDT()
+	enc := []byte{2, 4, 161, 173, 196, 16, 151, 33, 103, 247, 51, 156, 91, 208, 95, 78, 198, 81, 165, 207, 184, 241, 98,
+		133, 103, 133, 90, 241, 123, 103, 116, 168, 242, 142, 0, 0, 0, 0}
+	err = scale.Unmarshal(enc, &validationProtocol)
+	require.NoError(t, err)
+	fmt.Printf("val pro %v\n", validationProtocol)
+}
+
+func TestDecodeMessage(t *testing.T) {
+	decoded := NewValidationProtocolVDT()
+	enc := []byte{2, 0, 0, 0, 0, 0}
+	err := scale.Unmarshal(enc, &decoded)
+	require.NoError(t, err)
+	fmt.Printf("decode %v\n", decoded)
+}

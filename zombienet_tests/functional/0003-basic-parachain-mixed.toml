@@ -9,22 +9,28 @@ chain = "westend-local"
   name = "alice"
   command = "polkadot"
   validator = true
-
-  [[relaychain.nodes]]
-  name = "bob"
-  command = "gossamer"
-  args = ["--key bob"]
+  args = ["-lparachain=debug -lnetwork=trace"]
 
 #  [[relaychain.nodes]]
-#  name = "charlie"
+#  name = "bob"
 #  command = "polkadot"
 #  validator = true
 
-[[parachains]]
-id = 100
+  [[relaychain.nodes]]
+  name = "charlie"
+  command = "gossamer"
+  args = ["--key charlie --log network=trace"]
 
-  [parachains.collator]
-  name = "collator01"
-  image = "docker.io/parity/polkadot-parachain:latest"
-  command = "polkadot-parachain"
-  args = ["-lparachain=debug"]
+#  [[relaychain.nodes]]
+#  name = "dave"
+#  command = "gossamer"
+#  args = ["--key dave"]
+
+#[[parachains]]
+#id = 100
+
+#  [parachains.collator]
+#  name = "collator01"
+#  image = "docker.io/parity/polkadot-parachain:latest"
+#  command = "polkadot-parachain"
+#  args = ["-lparachain=debug"]

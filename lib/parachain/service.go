@@ -5,9 +5,6 @@ package parachain
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-	"time"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -122,27 +119,27 @@ func (s Service) run() {
 
 	// NOTE: this is a temporary test, just to show that we can send messages to peers
 	//
-	time.Sleep(time.Second * 15)
-	// let's try sending a collation message  and validation message to a peer and see what happens
-	collationMessage := CollationProtocolV1{}
-	s.Network.GossipMessage(&collationMessage)
+	//time.Sleep(time.Second * 15)
+	//// let's try sending a collation message  and validation message to a peer and see what happens
+	//collationMessage := CollationProtocolV1{}
+	//s.Network.GossipMessage(&collationMessage)
 
-	time.Sleep(time.Second * 10)
-	logger.Infof("creating bitfield distribution message")
-	bitfieldDistribution := NewBitfieldDistributionVDT()
-	err := bitfieldDistribution.Set(Bitfield{
-		Hash: common.Hash{},
-		UncheckedSignedAvailabilityBitfield: UncheckedSignedAvailabilityBitfield{
-			Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
-				true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
-				true, true, true, true}),
-			ValidatorIndex: 0,
-			Signature:      ValidatorSignature{},
-		},
-	})
-	if err != nil {
-		logger.Errorf("creating test bitfield distribution: %w\n", err)
-	}
+	//time.Sleep(time.Second * 10)
+	//logger.Infof("creating bitfield distribution message")
+	//bitfieldDistribution := NewBitfieldDistributionVDT()
+	//err := bitfieldDistribution.Set(Bitfield{
+	//	Hash: common.Hash{},
+	//	UncheckedSignedAvailabilityBitfield: UncheckedSignedAvailabilityBitfield{
+	//		Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
+	//			true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+	//			true, true, true, true}),
+	//		ValidatorIndex: 0,
+	//		Signature:      ValidatorSignature{},
+	//	},
+	//})
+	//if err != nil {
+	//	logger.Errorf("creating test bitfield distribution: %w\n", err)
+	//}
 
 	//vpBitfieldDistribution := NewValidationProtocolVDT()
 	//vpBitfieldDistribution.Set(bitfieldDistribution)
@@ -160,13 +157,15 @@ func (s Service) run() {
 	//	logger.Errorf("creating test statement message: %w\n", err)
 	//}
 
-	validationMessage := NewValidationProtocolVDT()
-	err = validationMessage.Set(bitfieldDistribution)
-	if err != nil {
-		logger.Errorf("creating test validation message: %w\n", err)
-	}
-	s.Network.GossipMessage(&validationMessage)
-
+	//validationMessage := NewValidationProtocolVDT()
+	//err = validationMessage.Set(bitfieldDistribution)
+	//if err != nil {
+	//	logger.Errorf("creating test validation message: %w\n", err)
+	//}
+	//
+	//h, err := validationMessage.Hash()
+	//fmt.Printf("h %v e %v\n", h, err)
+	//s.Network.GossipMessage(&validationMessage)
 }
 
 // Network is the interface required by parachain service for the network
