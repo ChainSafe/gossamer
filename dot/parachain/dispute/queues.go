@@ -145,7 +145,7 @@ func (q *QueueHandler) Queue(
 	priority ParticipationPriority,
 ) error {
 	if priority.IsPriority() {
-		if q.priority.Len() >= q.priorityMaxSize {
+		if q.Len(ParticipationPriorityHigh) >= q.priorityMaxSize {
 			return errorPriorityQueueFull
 		}
 
@@ -153,7 +153,7 @@ func (q *QueueHandler) Queue(
 		q.priority.ReplaceOrInsert(newParticipationItem(comparator, request))
 		q.priorityLock.Unlock()
 	} else {
-		if q.bestEffort.Len() >= q.bestEffortMaxSize {
+		if q.Len(ParticipationPriorityBestEffort) >= q.bestEffortMaxSize {
 			return errorBestEffortQueueFull
 		}
 
@@ -174,7 +174,7 @@ func (q *QueueHandler) Dequeue() *ParticipationItem {
 }
 
 func (q *QueueHandler) PrioritiseIfPresent(comparator CandidateComparator) error {
-	if q.priority.Len() >= priorityQueueSize {
+	if q.Len(ParticipationPriorityHigh) >= priorityQueueSize {
 		return errorPriorityQueueFull
 	}
 
