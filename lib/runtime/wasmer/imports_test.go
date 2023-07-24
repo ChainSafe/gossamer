@@ -1351,7 +1351,8 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 
 	keys, err = inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(keys))
+	// since one key is removed, there will be two remaining.
+	require.Equal(t, 2, len(keys))
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {

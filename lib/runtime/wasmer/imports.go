@@ -1063,28 +1063,14 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 	}
 }
 
-// AllRemoved is a vdt value suggesting that all keys to remove were removed, containing number of
-// keys removed.
-type AllRemoved uint32
-
-// Index returns VDT index
-func (AllRemoved) Index() uint { return 0 }
-
-// SomeRemaining is a vdt value suggesting that all keys to remove were not removed, containing number of
-// keys removed.
-type SomeRemaining uint32
-
-// Index returns VDT index
-func (SomeRemaining) Index() uint { return 1 }
-
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType {
-	killStorageResult := scale.MustNewVaryingDataType(new(AllRemoved), new(SomeRemaining))
+	killStorageResult := scale.MustNewVaryingDataType(new(noneRemain), new(someRemain))
 
 	if allDeleted {
-		killStorageResult.Set(AllRemoved(deleted))
+		killStorageResult.Set(noneRemain(deleted))
 	} else {
-		killStorageResult.Set(SomeRemaining(deleted))
+		killStorageResult.Set(someRemain(deleted))
 	}
 
 	return killStorageResult
