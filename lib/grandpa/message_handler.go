@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/cockroachdb/pebble"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -166,7 +166,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 
 	err := verifyBlockHashAgainstBlockNumber(h.blockState, msg.Hash, uint(msg.Number))
 	if err != nil {
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, pebble.ErrNotFound) {
 			h.grandpa.tracker.addCatchUpResponse(msg)
 			logger.Infof("we might not have synced to the given block %s yet: %s", msg.Hash, err)
 			return nil
@@ -285,7 +285,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *CatchUpResponse) (commo
 	for _, pvj := range msg.PreVoteJustification {
 		err := verifyBlockHashAgainstBlockNumber(h.blockState, pvj.Vote.Hash, uint(pvj.Vote.Number))
 		if err != nil {
-			if errors.Is(err, chaindb.ErrKeyNotFound) {
+			if errors.Is(err, pebble.ErrNotFound) {
 				h.grandpa.tracker.addCatchUpResponse(msg)
 				logger.Infof("we might not have synced to the given block %s yet: %s", pvj.Vote.Hash, err)
 				continue
@@ -371,7 +371,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 		err = verifyBlockHashAgainstBlockNumber(h.blockState, just.Vote.Hash, uint(just.Vote.Number))
 		if err != nil {
-			if errors.Is(err, chaindb.ErrKeyNotFound) {
+			if errors.Is(err, pebble.ErrNotFound) {
 				h.grandpa.tracker.addCatchUpResponse(msg)
 				logger.Infof("we might not have synced to the given block %s yet: %s", just.Vote.Hash, err)
 				continue

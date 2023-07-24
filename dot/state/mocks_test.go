@@ -8,7 +8,7 @@ import (
 	json "encoding/json"
 	reflect "reflect"
 
-	chaindb "github.com/ChainSafe/chaindb"
+	database "github.com/ChainSafe/gossamer/internal/database"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -115,10 +115,10 @@ func (mr *MockBlockStateDatabaseMockRecorder) Has(arg0 interface{}) *gomock.Call
 }
 
 // NewBatch mocks base method.
-func (m *MockBlockStateDatabase) NewBatch() chaindb.Batch {
+func (m *MockBlockStateDatabase) NewBatch() database.Batch {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewBatch")
-	ret0, _ := ret[0].(chaindb.Batch)
+	ret0, _ := ret[0].(database.Batch)
 	return ret0
 }
 

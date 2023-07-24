@@ -10,7 +10,6 @@ import (
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -20,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -56,7 +56,7 @@ type rpcServiceSettings struct {
 	syncer        *sync.Service
 }
 
-func newInMemoryDB() (*chaindb.BadgerDB, error) {
+func newInMemoryDB() (database.Database, error) {
 	return utils.SetupDatabase("", true)
 }
 
@@ -110,7 +110,7 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 
 	return &runtime.NodeStorage{
 		LocalStorage:      localStorage,
-		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
+		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 		BaseDB:            st.Base,
 	}, nil
 }

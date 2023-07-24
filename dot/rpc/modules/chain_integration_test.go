@@ -18,9 +18,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/cockroachdb/pebble"
 	"github.com/golang/mock/gomock"
 
-	database "github.com/ChainSafe/chaindb"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -113,7 +113,7 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetHeader(nil, req, res)
-	require.EqualError(t, err, database.ErrKeyNotFound.Error())
+	require.EqualError(t, err, pebble.ErrNotFound.Error())
 }
 
 func TestChainGetBlock_Genesis(t *testing.T) {
@@ -212,7 +212,7 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetBlock(nil, req, res)
-	require.EqualError(t, err, database.ErrKeyNotFound.Error())
+	require.EqualError(t, err, pebble.ErrNotFound.Error())
 }
 
 func TestChainGetBlockHash_Latest(t *testing.T) {

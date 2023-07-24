@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -37,11 +37,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 
 	s.db = db
 
-	if err = db.ClearAll(); err != nil {
-		return fmt.Errorf("failed to clear database: %s", err)
-	}
-
-	if err = t.WriteDirty(chaindb.NewTable(db, storagePrefix)); err != nil {
+	if err = t.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
 	}
 
@@ -137,7 +133,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 	// write genesis trie to database
-	if err := t.WriteDirty(chaindb.NewTable(s.db, storagePrefix)); err != nil {
+	if err := t.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 

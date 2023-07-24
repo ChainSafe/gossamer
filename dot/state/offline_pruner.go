@@ -5,15 +5,15 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/dgraph-io/badger/v2"
-	"github.com/dgraph-io/badger/v2/pb"
+	"github.com/cockroachdb/pebble"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
@@ -21,10 +21,10 @@ import (
 // - iterate the storage state, reconstruct the relevant state tries
 // - iterate the database, stream all the targeted keys to new DB
 type OfflinePruner struct {
-	inputDB        *chaindb.BadgerDB
+	inputDB        database.Database
 	storageState   *StorageState
 	blockState     *BlockState
-	filterDatabase *chaindb.BadgerDB
+	filterDatabase database.Database
 	bestBlockHash  common.Hash
 	retainBlockNum uint32
 
@@ -66,10 +66,7 @@ func NewOfflinePruner(inputDBPath string,
 		}
 	}()
 
-	filterDatabaseOptions := &chaindb.Config{
-		DataDir: filterDatabaseDir,
-	}
-	filterDatabase, err := chaindb.NewBadgerDB(filterDatabaseOptions)
+	filterDatabase, err := database.NewPebble(filterDatabaseDir, false)
 	if err != nil {
 		return nil, fmt.Errorf("creating badger filter database: %w", err)
 	}
@@ -155,7 +152,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 // Prune starts streaming the data from input db to the pruned db.
 func (p *OfflinePruner) Prune() error {
-	inputDB, err := utils.LoadBadgerDB(p.inputDBPath)
+	inputDB, err := pebble.Open(p.inputDBPath, &pebble.Options{})
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
@@ -172,33 +169,48 @@ func (p *OfflinePruner) Prune() error {
 	}()
 
 	storagePrefixBytes := []byte(storagePrefix)
-	stream := inputDB.NewStream()
-	stream.ChooseKey = func(item *badger.Item) bool {
-		key := item.Key()
-		if !bytes.HasPrefix(key, storagePrefixBytes) {
-			// Ignore non-storage keys
-			return false
+
+	keyUpperBound := func(b []byte) []byte {
+		end := make([]byte, len(b))
+		copy(end, b)
+		for i := len(end) - 1; i >= 0; i-- {
+			end[i] = end[i] + 1
+			if end[i] != 0 {
+				return end[:i+1]
+			}
 		}
+		return nil // no upper-bound
+	}
+
+	prefixIterOptions := &pebble.IterOptions{
+		LowerBound: storagePrefixBytes,
+		UpperBound: keyUpperBound(storagePrefixBytes),
+	}
+
+	// Ignore non-storage keys
+	inputDBIter := inputDB.NewIter(prefixIterOptions)
+	writeBatch := inputDB.NewBatch()
+	for inputDBIter.First(); inputDBIter.Valid(); inputDBIter.Next() {
+		key := inputDBIter.Key()
 
 		// Storage keys not found in filter database are deleted.
 		nodeHash := bytes.TrimPrefix(key, storagePrefixBytes)
 		_, err := p.filterDatabase.Get(nodeHash)
-		return err == nil
-	}
-
-	writeBatch := inputDB.NewWriteBatch()
-	stream.Send = func(l *pb.KVList) error {
-		keyValues := l.GetKv()
-		for _, keyValue := range keyValues {
-			err = writeBatch.Delete(keyValue.Key)
-			if err != nil {
-				return err
+		if err != nil {
+			if errors.Is(err, pebble.ErrNotFound) {
+				continue
 			}
+
+			return fmt.Errorf("checking filter database: %w", err)
 		}
-		return nil
+
+		writeBatch.Delete(key, &pebble.WriteOptions{})
+		if err != nil {
+			return fmt.Errorf("inserting in the batch delete: %w", err)
+		}
 	}
 
-	err = writeBatch.Flush()
+	err = writeBatch.Commit(pebble.Sync)
 	if err != nil {
 		return fmt.Errorf("flushing write batch: %w", err)
 	}

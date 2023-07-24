@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/cockroachdb/pebble"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -212,6 +212,31 @@ func newChainSync(cfg chainSyncConfig, blockReqRes network.RequestMaker) *chainS
 		badBlocks:        cfg.badBlocks,
 		blockReqRes:      blockReqRes,
 	}
+}
+
+func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
+	resultCh := make(chan struct{})
+	go func() {
+		defer close(resultCh)
+		for {
+			select {
+			case <-resultCh:
+				return
+			default:
+			}
+
+			cs.workerPool.useConnectedPeers()
+			_, err := cs.getTarget()
+			totalAvailable := cs.workerPool.totalWorkers()
+			if totalAvailable >= uint(cs.minPeers) && err == nil {
+				return
+			}
+
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+
+	return resultCh
 }
 
 func (cs *chainSync) start() {
@@ -747,7 +772,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 			// block wasn't in the pending set!
 			// let's check the db as maybe we already processed it
 			has, err := cs.blockState.HasHeader(bd.Hash)
-			if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+			if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 				logger.Debugf("failed to check if header is known for hash %s: %s", bd.Hash, err)
 				return
 			}
