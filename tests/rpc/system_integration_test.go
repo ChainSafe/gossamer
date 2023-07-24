@@ -56,10 +56,13 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		select {
 		case <-timer.C:
 		case <-ctx.Done():
+			t.Log("=====|TestStableNetworkRPC - select|=====")
 			timer.Stop()
 			return
 		}
 	}
+
+	t.Log("=====|TestStableNetworkRPC - after for loop|=====")
 
 	// wait until all nodes are connected
 	t.Log("waiting for all nodes to be connected")
