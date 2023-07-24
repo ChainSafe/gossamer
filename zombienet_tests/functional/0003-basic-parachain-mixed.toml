@@ -9,7 +9,7 @@ chain = "westend-local"
   name = "alice"
   command = "polkadot"
   validator = true
-  args = ["-lparachain=debug -lnetwork=trace"]
+  args = ["-lparachain=trace -lsub-libp2p=trace -lgossip=trace -lpeerset=trace"]
 
 #  [[relaychain.nodes]]
 #  name = "bob"
@@ -19,7 +19,7 @@ chain = "westend-local"
   [[relaychain.nodes]]
   name = "charlie"
   command = "gossamer"
-  args = ["--key charlie --log network=trace"]
+  args = ["--key charlie --log network=trace,parachain=trace"]
 
 #  [[relaychain.nodes]]
 #  name = "dave"

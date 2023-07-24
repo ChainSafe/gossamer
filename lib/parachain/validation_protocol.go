@@ -170,7 +170,7 @@ func NewValidationProtocolVDT() ValidationProtocol {
 	return ValidationProtocol(vdt)
 }
 
-// New returns new ApprovalDistributionMessage VDT
+// New returns new ValidationProtocol VDT
 func (ValidationProtocol) New() ValidationProtocol {
 	return NewValidationProtocolVDT()
 }
@@ -220,14 +220,22 @@ func (vp *ValidationProtocol) Encode() ([]byte, error) {
 
 func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
 	logger.Debugf("decode in bytes %v\n", in)
-	validationMessage := NewValidationProtocolVDT()
 
-	err := scale.Unmarshal(in, &validationMessage)
+	wireMessage := NewWireMessageVDT()
+	err := scale.Unmarshal(in, &wireMessage)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode message: %v,  %w", in, err)
 	}
+	logger.Debugf("decoded wire message %v\n", wireMessage)
 
-	return &validationMessage, nil
+	//validationMessage := NewValidationProtocolVDT()
+
+	//err := scale.Unmarshal(in, &validationMessage)
+	//if err != nil {
+	//	return nil, fmt.Errorf("cannot decode message: %v,  %w", in, err)
+	//}
+
+	return &wireMessage, nil
 }
 
 func handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {

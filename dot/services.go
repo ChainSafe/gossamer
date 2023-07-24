@@ -473,9 +473,18 @@ func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, k
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) (
+func (nodeBuilder) createParachainHostService(config *cfg.Config, net *network.Service, genesisHash common.Hash) (
 	*parachain.Service, error) {
-	return parachain.NewService(net, genesisHash)
+	parachainLogLevel, err := log.ParseLevel(config.Log.Parachain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse parachain log level: %w", err)
+	}
+
+	parachainConfig := &parachain.Config{
+		LogLvl: parachainLogLevel,
+	}
+
+	return parachain.NewService(parachainConfig, net, genesisHash)
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {

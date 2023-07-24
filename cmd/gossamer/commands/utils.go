@@ -497,6 +497,7 @@ func parseLogLevel() error {
 		"babe":    config.Log.Babe,
 		"grandpa": config.Log.Grandpa,
 		"wasmer":  config.Log.Wasmer,
+		"parachain": config.Log.Parachain,
 	}
 
 	if logLevel != "" {
