@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var testValidationcode []byte
+
 //go:embed testdata/parachain.yaml
 var parachainTestDataRaw string
 
@@ -1253,6 +1255,7 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 	validationCode, err := rt.ParachainHostValidationCode(parachainID, assumption)
 	require.NoError(t, err)
 	require.NotEmpty(t, validationCode)
+	require.Equal(t, testValidationcode[4:], []byte(*validationCode))
 }
 
 func TestInstance_ParachainHostValidators(t *testing.T) {
@@ -1482,6 +1485,10 @@ func getParachainHostTrie(t *testing.T) *trie.Trie {
 		value := common.MustHexToBytes(s.Value)
 		err := tt.Put(key, value)
 		require.NoError(t, err)
+
+		if s.Key == "0xcd710b30bd2eab0352ddcc26417aa194383e6dcb39e0be0a2e6aeb8b94951ab6cafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b5145337" {
+			testValidationcode = value
+		}
 	}
 
 	return tt
