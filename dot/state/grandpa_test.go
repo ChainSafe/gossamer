@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -124,7 +124,7 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 	require.Equal(t, uint64(99), r)
 }
 
-func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
+func testBlockState(t *testing.T, db database.Database) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{}))

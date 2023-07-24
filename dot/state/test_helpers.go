@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -24,7 +24,7 @@ import (
 var inc, _ = time.ParseDuration("1s")
 
 // NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
+func NewInMemoryDB(t *testing.T) database.Database {
 	testDatadirPath := t.TempDir()
 
 	db, err := utils.SetupDatabase(testDatadirPath, true)

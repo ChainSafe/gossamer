@@ -14,6 +14,7 @@ cd gossamer
 ### Compile
 
 To put the binary in ./bin, run:
+
 ```bash
 make build
 ```
@@ -62,7 +63,7 @@ The node configuration can be modified in the `config.toml` file.
 ### Start the node
 
 ```bash
-gossamer --basepath /tmp/gossamer --key alice 
+gossamer --basepath /tmp/gossamer --key alice
 ```
 
 **Note: The `init` command is optional. If the node is not initialised, it will be initialised with the default configuration.**
@@ -108,12 +109,14 @@ This subcommand provides capabilities that are similar to
 [Parity's Subkey utility](https://docs.substrate.io/v3/tools/subkey).
 
 The account command supports following arguments:
+
 - `generate` - generates a new key pair; specify `--scheme ed25519`, `--scheme secp256k1`, or `--scheme sr25519` (default)
 - `list` - lists the keys in the Gossamer keystore
 - `import` - imports a key from a keystore file
 - `import-raw` - imports a raw key from a keystore file
 
 Supported flags:
+
 - `keystore-path` - path to the Gossamer keystore
 - `keystore-file` - path to the keystore file
 - `chain` - path to the human-readable chain-spec file
@@ -121,6 +124,7 @@ Supported flags:
 - `--password` - allows the user to provide a password to either encrypt a generated key or unlock the Gossamer keystore
 
 Examples:
+
 - `gossamer account generate --scheme ed25519` - generates an `ed25519` key pair
 - `gossamer account list` - lists the keys in the Gossamer keystore
 - `gossamer account import --keystore-file keystore.json` - imports a key from a keystore file
@@ -145,6 +149,7 @@ represent the Gossamer default configuration.
 - `--output-path` - path to the file where the compiled chain-spec should be written
 
 Examples:
+
 - `gossamer build-spec --chain chain-spec.json --output-path compiled-chain-spec.json` - compiles a human-readable
   chain-spec into a format that Gossamer can consume
 - `gossamer build-spec --chain chain-spec.json --raw --output-path compiled-chain-spec.json` - compiles a human-readable
@@ -166,6 +171,7 @@ of a JSON file. The input for this subcommand can be retrieved from
 - `--chain` - path to the human-readable chain-spec file
 
 Examples:
+
 - `gossamer import-state --first-slot 1 --header header.json --state state.json --chain chain-spec.json` - seeds Gossamer
   storage with key-value pairs from a JSON file
 
@@ -185,6 +191,7 @@ What follows is a list that describes the services and capabilities that inform 
 
 #### State
 
+// TODO: update the `State` description to pebble db
 This service is a wrapper around an instance of [`chaindb`](https://github.com/ChainSafe/chaindb), a key-value database
 that is built on top of [BadgerDB](https://github.com/dgraph-io/badger) from [Dgraph](https://dgraph.io/). The state
 service provides storage capabilities for the other Gossamer services - each service is assigned a prefix that is added

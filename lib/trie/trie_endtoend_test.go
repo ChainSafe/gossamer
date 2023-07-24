@@ -11,10 +11,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -267,11 +267,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	cfg := &chaindb.Config{
-		DataDir: t.TempDir(),
-	}
-
-	db, err := chaindb.NewBadgerDB(cfg)
+	db, err := database.NewPebble(t.TempDir(), false)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -279,7 +275,7 @@ func TestTrieDiff(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	storageDB := chaindb.NewTable(db, "storage")
+	storageDB := database.NewTable(db, "storage")
 	t.Cleanup(func() {
 		err = storageDB.Close()
 		require.NoError(t, err)

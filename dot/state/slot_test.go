@@ -11,11 +11,12 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/cockroachdb/pebble"
 	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +42,7 @@ func createHeader(t *testing.T, n uint) (header *types.Header) {
 	return header
 }
 
-func checkSlotToMapKeyExists(t *testing.T, db chaindb.Database, slotNumber uint64) bool {
+func checkSlotToMapKeyExists(t *testing.T, db database.Table, slotNumber uint64) bool {
 	t.Helper()
 
 	slotEncoded := make([]byte, 8)
@@ -51,7 +52,7 @@ func checkSlotToMapKeyExists(t *testing.T, db chaindb.Database, slotNumber uint6
 
 	_, err := db.Get(slotToHeaderKey)
 	if err != nil {
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, pebble.ErrNotFound) {
 			return false
 		}
 
@@ -62,10 +63,7 @@ func checkSlotToMapKeyExists(t *testing.T, db chaindb.Database, slotNumber uint6
 }
 
 func Test_checkEquivocation(t *testing.T) {
-	inMemoryDB, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  t.TempDir(),
-		InMemory: true,
-	})
+	inMemoryDB, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
 
 	kr, err := keystore.NewSr25519Keyring()

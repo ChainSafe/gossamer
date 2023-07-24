@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/cockroachdb/pebble"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -168,17 +168,41 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	}
 }
 
+func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
+	resultCh := make(chan struct{})
+	go func() {
+		defer close(resultCh)
+		for {
+			select {
+			case <-resultCh:
+				return
+			default:
+			}
+
+			cs.workerPool.useConnectedPeers()
+			_, err := cs.getTarget()
+			totalAvailable := cs.workerPool.totalWorkers()
+			if totalAvailable >= uint(cs.minPeers) && err == nil {
+				return
+			}
+
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+
+	return resultCh
+}
+
 func (cs *chainSync) start() {
 	isSyncedGauge.Set(0)
 
 	// wait until we have a minimal workers in the sync worker pool
-	for {
-		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) {
-			break
-		}
+	resultCh := cs.waitEnoughPeersAndTarget()
 
-		time.Sleep(time.Second)
+	select {
+	case <-resultCh:
+	case <-cs.stopCh:
+		return
 	}
 
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh)
@@ -267,6 +291,7 @@ func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber u
 	cs.peerViewLock.Lock()
 	defer cs.peerViewLock.Unlock()
 
+	logger.Debugf("sync peer view: %s, best hash: %s, best number: #%d", who, bestHash.Short(), bestNumber)
 	cs.peerView[who] = &peerView{
 		who:    who,
 		hash:   bestHash,
@@ -401,7 +426,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		bestBlockHeader.Hash(), bestBlockHeader.Number, highestFinalizedHeader.Hash(), highestFinalizedHeader.Number)
 
 	parentExists, err := cs.blockState.HasHeader(announcedHeader.ParentHash)
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 		return fmt.Errorf("while checking header exists: %w", err)
 	}
 
@@ -524,7 +549,6 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	var expectedAmountOfBlocks uint32
 	for _, request := range requests {
 		if request.Max != nil {
-			fmt.Printf("===> request max: %d\n", *request.Max)
 			expectedAmountOfBlocks += *request.Max
 		}
 	}
@@ -743,7 +767,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 			// block wasn't in the pending set!
 			// let's check the db as maybe we already processed it
 			has, err := cs.blockState.HasHeader(bd.Hash)
-			if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+			if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 				logger.Debugf("failed to check if header is known for hash %s: %s", bd.Hash, err)
 				return err
 			}

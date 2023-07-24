@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -569,11 +569,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	tmp := t.TempDir()
-
-	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-		DataDir:  tmp,
-	})
+	memdb, err := database.NewPebble(tmp, true)
 	require.NoError(t, err)
 
 	otherTrie := trie.NewEmptyTrie()

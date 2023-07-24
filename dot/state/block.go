@@ -11,12 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/cockroachdb/pebble"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/exp/slices"
@@ -73,11 +74,11 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db *chaindb.BadgerDB, trs *Tries, telemetry Telemetry) (*BlockState, error) {
+func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
+		db:                         database.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
@@ -105,12 +106,12 @@ func NewBlockState(db *chaindb.BadgerDB, trs *Tries, telemetry Telemetry) (*Bloc
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db *chaindb.BadgerDB, trs *Tries, header *types.Header,
+func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.Header,
 	telemetryMailer Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
+		db:                         database.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
@@ -211,7 +212,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if has, _ := bs.HasHeader(hash); !has {
-		return nil, chaindb.ErrKeyNotFound
+		return nil, pebble.ErrNotFound
 	}
 
 	data, err := bs.db.Get(headerKey(hash))
@@ -226,7 +227,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if result.Empty() {
-		return nil, chaindb.ErrKeyNotFound
+		return nil, pebble.ErrNotFound
 	}
 
 	result.Hash()
@@ -644,7 +645,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 	}
 
 	endHeader, err := bs.loadHeaderFromDatabase(endHash)
-	if errors.Is(err, chaindb.ErrKeyNotFound) ||
+	if errors.Is(err, pebble.ErrNotFound) ||
 		errors.Is(err, ErrEmptyHeader) {
 		// end hash is not in the database so we should lookup the
 		// block that could be in memory and in the database as well

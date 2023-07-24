@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/cockroachdb/pebble"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -110,7 +110,7 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
 		ourHash, err := s.blockState.GetHashByNumber(blockAnnounceHeader.Number)
-		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+		if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 			return fmt.Errorf("get block hash by number: %w", err)
 		}
 

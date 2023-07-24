@@ -14,8 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
-	"github.com/dgraph-io/badger/v2"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,11 +22,9 @@ import (
 const DefaultDatabaseDir = "db"
 
 // SetupDatabase will return an instance of database based on basepath
-func SetupDatabase(basepath string, inMemory bool) (*chaindb.BadgerDB, error) {
-	return chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  filepath.Join(basepath, DefaultDatabaseDir),
-		InMemory: inMemory,
-	})
+func SetupDatabase(basepath string, inMemory bool) (database.Database, error) {
+	basepath = filepath.Join(basepath, DefaultDatabaseDir)
+	return database.NewPebble(basepath, inMemory)
 }
 
 // PathExists returns true if the named file or directory exists, otherwise false
@@ -255,27 +252,11 @@ func GetProjectRootPath() (rootPath string, err error) {
 }
 
 // LoadChainDB load the db at the given path.
-func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
-	cfg := &chaindb.Config{
-		DataDir: basePath,
-	}
-
+func LoadChainDB(basePath string) (database.Database, error) {
 	// Open already existing DB
-	db, err := chaindb.NewBadgerDB(cfg)
+	db, err := database.NewPebble(basePath, false)
 	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
-// LoadBadgerDB load the db at the given path.
-func LoadBadgerDB(basePath string) (*badger.DB, error) {
-	opts := badger.DefaultOptions(basePath)
-	// Open already existing DB
-	db, err := badger.Open(opts)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening database: %w", err)
 	}
 
 	return db, nil
