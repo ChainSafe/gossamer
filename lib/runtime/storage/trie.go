@@ -185,7 +185,10 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	deleted uint32, allDeleted bool, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	tr, err := s.t.GetChild(key)
+
+	trieSnapshot := s.t.Snapshot()
+
+	tr, err := trieSnapshot.GetChild(key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -193,11 +196,12 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	childTrieEntries := tr.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = s.t.DeleteChild(key)
+		err = trieSnapshot.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
 
+		s.t = trieSnapshot
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
@@ -220,6 +224,8 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 			break
 		}
 	}
+
+	s.t = trieSnapshot
 
 	allDeleted = deleted == qtyEntries
 	return deleted, allDeleted, nil
