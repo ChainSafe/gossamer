@@ -4,6 +4,8 @@
 package sync
 
 import (
+	"fmt"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -383,4 +385,78 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 
 	close(stopCh)
 	wg.Wait()
+}
+
+func TestSyncCond(t *testing.T) {
+	var mtx sync.RWMutex
+	cond := sync.NewCond(&mtx)
+	tasks := make(map[int]bool)
+
+	for {
+		select {
+		case <-time.NewTicker(5 * time.Millisecond).C:
+			id := rand.Intn(5)
+			fmt.Println("tick", id)
+			mtx.Lock()
+			for {
+				_, ok := tasks[id]
+				if !ok {
+					tasks[id] = true
+					mtx.Unlock()
+					go func(id int) {
+						fmt.Println("started")
+						time.Sleep(2 * time.Second)
+						fmt.Println("done, signalling")
+						mtx.Lock()
+						delete(tasks, id)
+						mtx.Unlock()
+						cond.Signal()
+					}(id)
+					break
+				}
+				fmt.Println("waiting on id", id)
+				cond.Wait()
+			}
+		}
+
+	}
+}
+
+func TestSyncCond1(t *testing.T) {
+	const maxConcurrency = 5
+	guard := make(chan any, maxConcurrency)
+	var mtx sync.RWMutex
+	peerQueue := make(map[int]chan any)
+
+	for {
+		select {
+		case <-time.NewTicker(5 * time.Millisecond).C:
+			id := rand.Intn(5)
+			fmt.Println("tick", id)
+			mtx.Lock()
+			_, ok := peerQueue[id]
+			if !ok {
+				// uses same maxConurrency constant as number of requests
+				// that can be buffered before applying back pressure on the channel
+				peerQueue[id] = make(chan any, maxConcurrency)
+				// create goroutine which listens on peerQueue
+				go func(queue chan any, id int) {
+					for range queue {
+						// push to guard, will block if max concurrency reached
+						guard <- true
+						fmt.Println("started", id)
+						time.Sleep(1 * time.Second)
+						fmt.Println("done", id)
+						// read from guard
+						<-guard
+					}
+				}(peerQueue[id], id)
+			} else {
+				fmt.Println("waiting on id", id)
+			}
+			mtx.Unlock()
+			peerQueue[id] <- nil
+		}
+	}
+
 }
