@@ -90,7 +90,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				workerPool := newSyncWorkerPool(networkMock, nil)
 				workerPool.workers[peer.ID("available-3")] = &peerSyncWorker{
 					status: punished,
-					//arbitrary unix value
+					// arbitrary unix value
 					punishmentTime: time.Unix(1000, 0),
 				}
 				return workerPool
@@ -179,7 +179,7 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 				workerPool := newSyncWorkerPool(nil, nil)
 				workerPool.workers[peer.ID("free-again")] = &peerSyncWorker{
 					status: punished,
-					//arbitrary unix value
+					// arbitrary unix value
 					punishmentTime: time.Unix(1000, 0),
 				}
 				return workerPool
@@ -357,10 +357,8 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 			return nil
 		})
 
-	resultCh := make(chan *syncTaskResult)
-
-	workerPool.submitRequests(
-		[]*network.BlockRequestMessage{firstBlockRequest, secondBlockRequest}, resultCh)
+	resultCh := workerPool.submitRequests(
+		[]*network.BlockRequestMessage{firstBlockRequest, secondBlockRequest})
 
 	// ensure the task is in the pool and was already
 	// assigned to the peer

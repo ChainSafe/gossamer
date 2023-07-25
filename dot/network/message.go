@@ -331,7 +331,7 @@ type ConsensusMessage struct {
 }
 
 // Type returns ConsensusMsgType
-func (cm *ConsensusMessage) Type() MessageType {
+func (*ConsensusMessage) Type() MessageType {
 	return ConsensusMsgType
 }
 

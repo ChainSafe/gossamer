@@ -113,7 +113,8 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
 // parameter or if nil the very first available worker or
 // to perform the request, the response will be dispatch in the resultCh.
-func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, who *peer.ID, resultCh chan<- *syncTaskResult) {
+func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
+	who *peer.ID, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
 		boundTo:  who,
 		request:  request,
@@ -123,10 +124,13 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, who
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
-func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
+func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
+	resultCh = make(chan *syncTaskResult)
 	for _, request := range requests {
 		s.submitRequest(request, nil, resultCh)
 	}
+
+	return resultCh
 }
 
 // punishPeer given a peer.ID we check increase its times punished

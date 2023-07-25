@@ -1000,9 +1000,8 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 				if pID == peer.ID("bob") {
 					notAChainBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
 					// swap positions to force the problem
-					firstItem := notAChainBlockData.BlockData[0]
-					notAChainBlockData.BlockData[0] = notAChainBlockData.BlockData[130]
-					notAChainBlockData.BlockData[130] = firstItem
+					notAChainBlockData.BlockData[0], notAChainBlockData.BlockData[130] =
+						notAChainBlockData.BlockData[130], notAChainBlockData.BlockData[0]
 
 					*responsePtr = *notAChainBlockData
 					return nil

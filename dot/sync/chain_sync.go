@@ -549,8 +549,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 		}
 	}
 
-	resultsQueue := make(chan *syncTaskResult)
-	cs.workerPool.submitRequests(requests, resultsQueue)
+	resultsQueue := cs.workerPool.submitRequests(requests)
 
 	err = cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
