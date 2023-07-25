@@ -64,7 +64,8 @@ type nodeBuilderIface interface {
 		dh *digest.Handler) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
-	createParachainHostService(config *cfg.Config, net *network.Service, genesishHash common.Hash) (*parachain.Service, error)
+	createParachainHostService(config *cfg.Config, net *network.Service,
+		genesishHash common.Hash) (*parachain.Service, error)
 	newSyncService(config *cfg.Config, st *state.Service, finalityGadget BlockJustificationVerifier,
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
 		telemetryMailer Telemetry) (*dotsync.Service, error)

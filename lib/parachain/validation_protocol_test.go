@@ -344,6 +344,7 @@ func TestEmptyValidatonMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	encRec, err := msg.Encode()
+	require.NoError(t, err)
 	fmt.Printf("encRec %v\n", encRec)
 	/////////////////
 	validationProtocol := NewValidationProtocolVDT()

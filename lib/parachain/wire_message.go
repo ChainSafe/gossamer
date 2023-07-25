@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
@@ -13,7 +14,10 @@ import (
 
 type WireMessage scale.VaryingDataType
 
-type ProtocolMessage struct{}
+// ProtocolMessage a message from a peer on a specific protocol
+type ProtocolMessage struct {
+	M network.Message
+}
 
 // Index returns the VaryingDataType Index
 func (ProtocolMessage) Index() uint {
@@ -26,8 +30,8 @@ type ViewUpdate struct {
 
 type View struct {
 	// A bounded amount of chain heads.
-	// Invariant: Sorted
-	heads []common.Hash
+	// Invariant: Sorted (this was a comment in rust code, how do we handle invarient sorted?)
+	Heads []common.Hash
 
 	// The highest known finalized block number.
 	FinalizedNumber parachaintypes.BlockNumber
@@ -37,6 +41,8 @@ type View struct {
 func (ViewUpdate) Index() uint {
 	return 2
 }
+
+// NewWireMessageVDT returns new WireMessage VDT
 func NewWireMessageVDT() WireMessage {
 	vdt, err := scale.NewVaryingDataType(ProtocolMessage{}, ViewUpdate{})
 	if err != nil {
