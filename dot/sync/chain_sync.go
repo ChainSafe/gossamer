@@ -407,7 +407,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	}
 
 	resultsQueue := make(chan *syncTaskResult)
-	cs.workerPool.submitBoundedRequest(request, peerWhoAnnounced, resultsQueue)
+	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
 	err := cs.handleWorkersResults(resultsQueue, startAtBlock, totalBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
@@ -444,7 +444,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		peerWhoAnnounced, gapLength, announcedHash, announcedHeader.Number)
 
 	resultsQueue := make(chan *syncTaskResult)
-	cs.workerPool.submitBoundedRequest(request, peerWhoAnnounced, resultsQueue)
+	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
 
 	err = cs.handleWorkersResults(resultsQueue, startAtBlock, gapLength)
 	if err != nil {
@@ -494,7 +494,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		// the `requests` in the tip sync are not related necessarily
 		// this is why we need to treat them separately
 		resultsQueue := make(chan *syncTaskResult)
-		cs.workerPool.submitRequest(descendingGapRequest, resultsQueue)
+		cs.workerPool.submitRequest(descendingGapRequest, nil, resultsQueue)
 
 		// TODO: we should handle the requests concurrently
 		// a way of achieve that is by constructing a new `handleWorkersResults` for
@@ -545,7 +545,6 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	var expectedAmountOfBlocks uint32
 	for _, request := range requests {
 		if request.Max != nil {
-			fmt.Printf("===> request max: %d\n", *request.Max)
 			expectedAmountOfBlocks += *request.Max
 		}
 	}
@@ -626,6 +625,15 @@ taskResultLoop:
 				<-idleTimer.C
 			}
 
+			who := taskResult.who
+			request := taskResult.request
+			response := taskResult.response
+
+			var boundedTo *peer.ID
+			if taskResult.isBounded {
+				boundedTo = &taskResult.who
+			}
+
 			logger.Debugf("task result: peer(%s), with error: %v, with response: %v",
 				taskResult.who, taskResult.err != nil, taskResult.response != nil)
 
@@ -638,18 +646,14 @@ taskResultLoop:
 						cs.network.ReportPeer(peerset.ReputationChange{
 							Value:  peerset.BadProtocolValue,
 							Reason: peerset.BadProtocolReason,
-						}, taskResult.who)
+						}, who)
 					}
-					cs.workerPool.punishPeer(taskResult.who)
+					cs.workerPool.punishPeer(who)
 				}
 
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				cs.workerPool.submitRequest(request, boundedTo, workersResults)
 				continue
 			}
-
-			who := taskResult.who
-			request := taskResult.request
-			response := taskResult.response
 
 			if request.Direction == network.Descending {
 				// reverse blocks before pre-validating and placing in ready queue
@@ -669,7 +673,7 @@ taskResultLoop:
 				}
 
 				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
 				continue taskResultLoop
 			}
 
@@ -677,7 +681,7 @@ taskResultLoop:
 			if !isChain {
 				logger.Criticalf("response from %s is not a chain", who)
 				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
 				continue taskResultLoop
 			}
 
@@ -692,7 +696,7 @@ taskResultLoop:
 					}, who)
 
 					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, workersResults)
+					cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
 					continue taskResultLoop
 				}
 
@@ -722,7 +726,7 @@ taskResultLoop:
 					Direction:     network.Ascending,
 					Max:           &difference,
 				}
-				cs.workerPool.submitRequest(taskResult.request, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
 				continue taskResultLoop
 			}
 		}

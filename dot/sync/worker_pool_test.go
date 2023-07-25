@@ -268,7 +268,7 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 		})
 
 	resultCh := make(chan *syncTaskResult)
-	workerPool.submitRequest(blockRequest, resultCh)
+	workerPool.submitRequest(blockRequest, nil, resultCh)
 
 	// ensure the task is in the pool and was already
 	// assigned to the peer

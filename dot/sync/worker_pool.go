@@ -29,10 +29,11 @@ type syncTask struct {
 }
 
 type syncTaskResult struct {
-	who      peer.ID
-	request  *network.BlockRequestMessage
-	response *network.BlockResponseMessage
-	err      error
+	isBounded bool
+	who       peer.ID
+	request   *network.BlockRequestMessage
+	response  *network.BlockResponseMessage
+	err       error
 }
 
 type peerSyncWorker struct {
@@ -109,22 +110,12 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 	}
 }
 
-// submitBoundedRequest given a request the worker pool will driven it
-// to the given peer.ID, used for tip sync when we receive a block announce
-// from a peer and we want to use the exact same peer to request blocks
-func (s *syncWorkerPool) submitBoundedRequest(request *network.BlockRequestMessage,
-	who peer.ID, resultCh chan<- *syncTaskResult) {
+// submitRequest given a request, the worker pool will get the peer given the peer.ID
+// parameter or if nil the very first available worker or
+// to perform the request, the response will be dispatch in the resultCh.
+func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, who *peer.ID, resultCh chan<- *syncTaskResult) {
 	s.taskQueue <- &syncTask{
-		boundTo:  &who,
-		request:  request,
-		resultCh: resultCh,
-	}
-}
-
-// submitRequest given a request the worker pool will get the very first available worker
-// to perform the request, the response will be dispatch in the resultCh
-func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
-	s.taskQueue <- &syncTask{
+		boundTo:  who,
 		request:  request,
 		resultCh: resultCh,
 	}
@@ -134,7 +125,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage, res
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage, resultCh chan<- *syncTaskResult) {
 	for _, request := range requests {
-		s.submitRequest(request, resultCh)
+		s.submitRequest(request, nil, resultCh)
 	}
 }
 
@@ -277,9 +268,10 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	s.availableCond.Signal()
 
 	task.resultCh <- &syncTaskResult{
-		who:      who,
-		request:  request,
-		response: response,
-		err:      err,
+		isBounded: task.boundTo != nil,
+		who:       who,
+		request:   request,
+		response:  response,
+		err:       err,
 	}
 }
