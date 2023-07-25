@@ -93,6 +93,7 @@ type announcedBlock struct {
 }
 
 type chainSync struct {
+	wg     sync.WaitGroup
 	stopCh chan struct{}
 
 	blockState BlockState
@@ -181,16 +182,40 @@ func (cs *chainSync) start() {
 		time.Sleep(time.Second)
 	}
 
-	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh)
-	go cs.workerPool.listenForRequests(cs.stopCh)
+	cs.wg.Add(1)
+	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
+
+	cs.wg.Add(1)
+	go cs.workerPool.listenForRequests(cs.stopCh, &cs.wg)
 
 	cs.syncMode.Store(bootstrap)
-	go cs.bootstrapSync()
+
+	cs.wg.Add(1)
+	go func() {
+		cs.bootstrapSync()
+	}()
 }
 
 func (cs *chainSync) stop() {
 	close(cs.stopCh)
-	<-cs.workerPool.doneCh
+
+	allStopCh := make(chan struct{})
+	go func() {
+		defer close(allStopCh)
+		cs.wg.Wait()
+	}()
+
+	timeoutTimer := time.NewTimer(30 * time.Second)
+
+	select {
+	case <-allStopCh:
+		if !timeoutTimer.Stop() {
+			<-timeoutTimer.C
+		}
+		return
+	case <-timeoutTimer.C:
+		logger.Critical("not all chainsync goroutines stopped successfully ")
+	}
 }
 
 func (cs *chainSync) isFarFromTarget() (bestBlockHeader *types.Header, syncTarget uint,

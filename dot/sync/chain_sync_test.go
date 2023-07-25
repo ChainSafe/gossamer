@@ -6,6 +6,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -211,10 +212,11 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			chainSync := tt.chainSyncBuilder(ctrl)
+			stopCh := make(chan struct{})
+			wg := sync.WaitGroup{}
 			if tt.listenForRequests {
-				stopCh := make(chan struct{})
-				defer close(stopCh)
-				go chainSync.workerPool.listenForRequests(stopCh)
+				wg.Add(1)
+				go chainSync.workerPool.listenForRequests(stopCh, &wg)
 			}
 
 			err := chainSync.onBlockAnnounce(announcedBlock{
@@ -225,6 +227,11 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			assert.ErrorIs(t, err, tt.errWrapped)
 			if tt.errWrapped != nil {
 				assert.EqualError(t, err, tt.errMessage)
+			}
+
+			if tt.listenForRequests {
+				close(stopCh)
+				wg.Wait()
 			}
 		})
 	}
@@ -463,13 +470,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
@@ -552,13 +561,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot2"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.T) {
@@ -661,13 +672,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
@@ -781,13 +794,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
@@ -904,13 +919,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
@@ -1024,13 +1041,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
@@ -1148,13 +1167,15 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 
 	// peer should be not in the worker pool
 	// peer should be in the ignore list
@@ -1240,13 +1261,15 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 
 	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go cs.workerPool.listenForRequests(stopCh, &wg)
 
 	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
 	require.NoError(t, err)
 
 	close(stopCh)
-	<-cs.workerPool.doneCh
+	wg.Wait()
 
 	require.Len(t, cs.workerPool.workers, 1)
 

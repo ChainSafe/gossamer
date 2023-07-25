@@ -44,7 +44,6 @@ type peerSyncWorker struct {
 type syncWorkerPool struct {
 	wg            sync.WaitGroup
 	mtx           sync.RWMutex
-	doneCh        chan struct{}
 	availableCond *sync.Cond
 
 	network      Network
@@ -58,7 +57,6 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 	swp := &syncWorkerPool{
 		network:      net,
 		requestMaker: requestMaker,
-		doneCh:       make(chan struct{}),
 		workers:      make(map[peer.ID]*peerSyncWorker),
 		taskQueue:    make(chan *syncTask, maxRequestsAllowed+1),
 		ignorePeers:  make(map[peer.ID]struct{}),
@@ -71,7 +69,7 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 // useConnectedPeers will retrieve all connected peers
 // through the network layer and use them as sources of blocks
 func (s *syncWorkerPool) useConnectedPeers() {
-	connectedPeers := s.network.AllConnectedPeersID()
+	connectedPeers := s.network.AllConnectedPeersIDs()
 	if len(connectedPeers) < 1 {
 		return
 	}
@@ -214,8 +212,8 @@ func (s *syncWorkerPool) getPeerByID(peerID peer.ID) *peerSyncWorker {
 	return peerSync
 }
 
-func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}) {
-	defer close(s.doneCh)
+func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		select {
 		case <-stopCh:

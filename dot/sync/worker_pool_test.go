@@ -4,6 +4,7 @@
 package sync
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				networkMock := NewMockNetwork(ctrl)
 				networkMock.EXPECT().
-					AllConnectedPeersID().
+					AllConnectedPeersIDs().
 					Return([]peer.ID{})
 
 				return newSyncWorkerPool(networkMock, nil)
@@ -41,7 +42,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				networkMock := NewMockNetwork(ctrl)
 				networkMock.EXPECT().
-					AllConnectedPeersID().
+					AllConnectedPeersIDs().
 					Return([]peer.ID{
 						peer.ID("available-1"),
 						peer.ID("available-2"),
@@ -60,7 +61,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				networkMock := NewMockNetwork(ctrl)
 				networkMock.EXPECT().
-					AllConnectedPeersID().
+					AllConnectedPeersIDs().
 					Return([]peer.ID{
 						peer.ID("available-1"),
 						peer.ID("available-2"),
@@ -80,7 +81,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				networkMock := NewMockNetwork(ctrl)
 				networkMock.EXPECT().
-					AllConnectedPeersID().
+					AllConnectedPeersIDs().
 					Return([]peer.ID{
 						peer.ID("available-1"),
 						peer.ID("available-2"),
@@ -108,7 +109,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				networkMock := NewMockNetwork(ctrl)
 				networkMock.EXPECT().
-					AllConnectedPeersID().
+					AllConnectedPeersIDs().
 					Return([]peer.ID{
 						peer.ID("available-1"),
 						peer.ID("available-2"),
@@ -232,8 +233,10 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	workerPool := newSyncWorkerPool(networkMock, requestMakerMock)
 
 	stopCh := make(chan struct{})
-	defer close(stopCh)
-	go workerPool.listenForRequests(stopCh)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go workerPool.listenForRequests(stopCh, &wg)
 
 	availablePeer := peer.ID("available-peer")
 	workerPool.newPeer(availablePeer)
@@ -282,6 +285,9 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	require.Equal(t, syncTaskResult.who, availablePeer)
 	require.Equal(t, syncTaskResult.request, blockRequest)
 	require.Equal(t, syncTaskResult.response, mockedBlockResponse)
+
+	close(stopCh)
+	wg.Wait()
 }
 
 func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
@@ -293,8 +299,9 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 	workerPool := newSyncWorkerPool(networkMock, requestMakerMock)
 
 	stopCh := make(chan struct{})
-	defer close(stopCh)
-	go workerPool.listenForRequests(stopCh)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go workerPool.listenForRequests(stopCh, &wg)
 
 	availablePeer := peer.ID("available-peer")
 	workerPool.newPeer(availablePeer)
@@ -373,4 +380,7 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 	require.Equal(t, syncTaskResult.response, secondMockedBlockResponse)
 
 	require.Equal(t, uint(1), workerPool.totalWorkers())
+
+	close(stopCh)
+	wg.Wait()
 }
