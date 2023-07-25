@@ -179,6 +179,7 @@ func (cs *chainSync) start() {
 			break
 		}
 
+		// TODO: https://github.com/ChainSafe/gossamer/issues/3402
 		time.Sleep(time.Second)
 	}
 
@@ -350,15 +351,15 @@ func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 		return fmt.Errorf("getting best block header: %w", err)
 	}
 
+	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return fmt.Errorf("getting highest finalized header")
+	}
+
 	// if the announced block contains a lower number than our best
 	// block header, let's check if it is greater than our latests
 	// finalized header, if so this block belongs to a fork chain
 	if announcedNumber < bestBlockHeader.Number {
-		highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			return fmt.Errorf("getting highest finalized header")
-		}
-
 		// ignore the block if it has the same or lower number
 		// TODO: is it following the protocol to send a blockAnnounce with number < highestFinalized number?
 		if announcedNumber <= highestFinalizedHeader.Number {
@@ -371,11 +372,6 @@ func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 	err = cs.requestChainBlocks(announce.header, bestBlockHeader, peerWhoAnnounced)
 	if err != nil {
 		return fmt.Errorf("requesting chain blocks: %w", err)
-	}
-
-	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return fmt.Errorf("while getting highest finalized header: %w", err)
 	}
 
 	err = cs.requestPendingBlocks(highestFinalizedHeader)
