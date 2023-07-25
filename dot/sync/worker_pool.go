@@ -94,18 +94,18 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 		return
 	}
 
-	peerSync, has := s.workers[who]
+	worker, has := s.workers[who]
 	if !has {
-		peerSync = &peerSyncWorker{status: available}
-		s.workers[who] = peerSync
+		worker = &peerSyncWorker{status: available}
+		s.workers[who] = worker
 
 		logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 	}
 
 	// check if the punishment is not valid
-	if peerSync.status == punished && peerSync.punishmentTime.Before(time.Now()) {
-		peerSync.status = available
-		s.workers[who] = peerSync
+	if worker.status == punished && worker.punishmentTime.Before(time.Now()) {
+		worker.status = available
+		s.workers[who] = worker
 	}
 }
 
@@ -268,10 +268,10 @@ func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
 	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
 
 	s.mtx.Lock()
-	peerSync, has := s.workers[who]
+	worker, has := s.workers[who]
 	if has {
-		peerSync.status = available
-		s.workers[who] = peerSync
+		worker.status = available
+		s.workers[who] = worker
 	}
 	s.mtx.Unlock()
 	s.availableCond.Signal()

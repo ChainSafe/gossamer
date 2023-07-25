@@ -377,9 +377,9 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 		peer.ID("some_peer_3"),
 	}
 
-	peerViewMap := map[peer.ID]*peerView{}
+	peerViewMap := map[peer.ID]peerView{}
 	for _, p := range mockedPeerID {
-		peerViewMap[p] = &peerView{
+		peerViewMap[p] = peerView{
 			who:    p,
 			hash:   common.Hash{1, 2, 3},
 			number: blocksAhead,
@@ -1558,16 +1558,16 @@ func TestChainSync_getHighestBlock(t *testing.T) {
 	cases := map[string]struct {
 		expectedHighestBlock uint
 		wantErr              error
-		chainSyncPeerView    map[peer.ID]*peerView
+		chainSyncPeerView    map[peer.ID]peerView
 	}{
 		"no_peer_view": {
 			wantErr:              errNoPeers,
 			expectedHighestBlock: 0,
-			chainSyncPeerView:    make(map[peer.ID]*peerView),
+			chainSyncPeerView:    make(map[peer.ID]peerView),
 		},
 		"highest_block": {
 			expectedHighestBlock: 500,
-			chainSyncPeerView: map[peer.ID]*peerView{
+			chainSyncPeerView: map[peer.ID]peerView{
 				peer.ID("peer-A"): {
 					number: 100,
 				},

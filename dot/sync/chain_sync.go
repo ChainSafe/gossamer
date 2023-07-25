@@ -104,7 +104,7 @@ type chainSync struct {
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
 	peerViewLock sync.RWMutex
-	peerView     map[peer.ID]*peerView
+	peerView     map[peer.ID]peerView
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -157,7 +157,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		telemetry:          cfg.telemetry,
 		blockState:         cfg.bs,
 		network:            cfg.net,
-		peerView:           make(map[peer.ID]*peerView),
+		peerView:           make(map[peer.ID]peerView),
 		pendingBlocks:      cfg.pendingBlocks,
 		syncMode:           atomicState,
 		finalisedCh:        cfg.bs.GetFinalisedNotifierChannel(),
@@ -218,8 +218,8 @@ func (cs *chainSync) stop() {
 	}
 }
 
-func (cs *chainSync) isFarFromTarget() (bestBlockHeader *types.Header, syncTarget uint,
-	isFarFromTarget bool, err error) {
+func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget uint,
+	isBootstrap bool, err error) {
 	syncTarget, err = cs.getTarget()
 	if err != nil {
 		return nil, syncTarget, false, fmt.Errorf("getting target: %w", err)
@@ -231,8 +231,8 @@ func (cs *chainSync) isFarFromTarget() (bestBlockHeader *types.Header, syncTarge
 	}
 
 	bestBlockNumber := bestBlockHeader.Number
-	isFarFromTarget = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, syncTarget, isFarFromTarget, nil
+	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
+	return bestBlockHeader, syncTarget, isBootstrap, nil
 }
 
 func (cs *chainSync) bootstrapSync() {
@@ -244,7 +244,7 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, syncTarget, isFarFromTarget, err := cs.isFarFromTarget()
+		bestBlockHeader, syncTarget, isFarFromTarget, err := cs.isBootstrap()
 		if err != nil && !errors.Is(err, errNoPeerViews) {
 			logger.Criticalf("ending bootstrap sync, checking target distance: %s", err)
 			return
@@ -292,7 +292,7 @@ func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber u
 	cs.peerViewLock.Lock()
 	defer cs.peerViewLock.Unlock()
 
-	cs.peerView[who] = &peerView{
+	cs.peerView[who] = peerView{
 		who:    who,
 		hash:   bestHash,
 		number: bestNumber,
@@ -314,7 +314,7 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	_, _, isFarFromTarget, err := cs.isFarFromTarget()
+	_, _, isFarFromTarget, err := cs.isBootstrap()
 	if err != nil && !errors.Is(err, errNoPeerViews) {
 		return fmt.Errorf("checking target distance: %w", err)
 	}
