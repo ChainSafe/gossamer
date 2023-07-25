@@ -616,7 +616,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -625,10 +625,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
 			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
+			switch doBlockRequestCount.Load() {
 			case 0, 1:
 				if pID == peer.ID("alice") {
 					*responsePtr = *worker1Response
@@ -732,7 +732,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -741,10 +741,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
 			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
+			switch doBlockRequestCount.Load() {
 			case 0, 1:
 				if pID == peer.ID("alice") {
 					*responsePtr = *worker1Response
@@ -854,7 +854,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -862,10 +862,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response item but without header as was requested
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
 			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
+			switch doBlockRequestCount.Load() {
 			case 0, 1:
 				if pID == peer.ID("alice") {
 					*responsePtr = *worker1Response
@@ -979,7 +979,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -987,10 +987,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response that does not form an chain
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
 			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
+			switch doBlockRequestCount.Load() {
 			case 0, 1:
 				if pID == peer.ID("alice") {
 					*responsePtr = *worker1Response
@@ -1102,7 +1102,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -1110,10 +1110,10 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response that contains a know bad block
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
 			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
+			switch doBlockRequestCount.Load() {
 			case 0, 1:
 				if pID == peer.ID("alice") {
 					*responsePtr = *worker1Response
