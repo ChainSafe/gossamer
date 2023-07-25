@@ -33,7 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	gomock "github.com/golang/mock/gomock"
@@ -56,7 +56,7 @@ func TestNewNode(t *testing.T) {
 	initConfig.ChainSpec = genFile
 	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
-	initConfig.Core.WasmInterpreter = wasmer.Name
+	initConfig.Core.WasmInterpreter = wazero_runtime.Name
 
 	initConfig.Log.Digest = "critical"
 

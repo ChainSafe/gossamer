@@ -459,8 +459,7 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
 		panic("read overflow")
 	}
 
-	res := scale.NewResult([]byte{}, nil)
-
+	res := scale.NewResult([33]byte{}, nil)
 	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
 		logger.Errorf("failed to recover public key: %s", err)
@@ -475,7 +474,10 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
 		return ret
 	}
 
-	err = res.Set(scale.OK, cpub)
+	var fixed [33]byte
+	copy(fixed[:], cpub)
+
+	err = res.Set(scale.OK, fixed)
 	if err != nil {
 		panic(err)
 	}
