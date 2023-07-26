@@ -73,6 +73,10 @@ func (n *Node) StringNode() (stringNode *gotree.Node) {
 	return stringNode
 }
 
+func (n *Node) IsHashed() bool {
+	return n.HashedValue
+}
+
 func bytesToString(b []byte) (s string) {
 	switch {
 	case b == nil:

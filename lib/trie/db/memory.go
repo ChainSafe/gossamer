@@ -59,8 +59,8 @@ func (mdb *MemoryDB) GetWithPrefix(key []byte, prefix trie.Prefix) (value []byte
 		return mdb.nullNodeData, nil
 	}
 
-	//TODO: complete this code
-	return nil, nil
+	computatedKey := mdb.keyFunction(common.Hash(key), prefix)
+	return mdb.Get(computatedKey[:])
 }
 
 func (mdb *MemoryDB) Insert(prefix trie.Prefix, value []byte) common.Hash {

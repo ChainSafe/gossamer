@@ -25,6 +25,8 @@ var (
 	ErrDecodeChildHash = errors.New("cannot decode child hash")
 )
 
+var EmptyNode = &Node{}
+
 const hashLength = common.HashLength
 
 // Decode decodes a node from a reader.
@@ -41,7 +43,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 
 	switch variant {
 	case emptyVariant:
-		return nil, nil //nolint:nilnil
+		return EmptyNode, nil //nolint:nilnil
 	case leafVariant, leafWithHashedValueVariant:
 		n, err = decodeLeaf(reader, variant, partialKeyLength)
 		if err != nil {

@@ -4,7 +4,7 @@ import "github.com/ChainSafe/gossamer/lib/common"
 
 type Prefix struct {
 	data   []byte
-	padded *[]byte
+	padded *byte
 }
 
 type HashDB interface {
@@ -35,6 +35,6 @@ type TrieDB struct {
 	//TODO: implement cache and recorder
 }
 
-func (tdb TrieDB) GetValue(key []byte) (*[]byte, error) {
+func (tdb TrieDB) GetValue(key []byte) ([]byte, error) {
 	return NewLookup(tdb.db, tdb.root).Lookup(key, NewNibbleSlice(key))
 }

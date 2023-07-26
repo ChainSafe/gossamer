@@ -60,7 +60,7 @@ func Test_Decode(t *testing.T) {
 		},
 		"empty_node": {
 			reader: bytes.NewReader([]byte{emptyVariant.bits}),
-			n:      nil,
+			n:      EmptyNode,
 		},
 		"leaf_decoding_error": {
 			reader: bytes.NewReader([]byte{

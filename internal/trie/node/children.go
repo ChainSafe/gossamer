@@ -40,3 +40,7 @@ func (n *Node) HasChild() (has bool) {
 	}
 	return false
 }
+
+func (n *Node) ChildAt(i uint) *Node {
+	return n.Children[i]
+}
