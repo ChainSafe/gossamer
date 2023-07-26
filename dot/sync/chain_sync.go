@@ -276,7 +276,7 @@ func (cs *chainSync) bootstrapSync() {
 			// we are less than 128 blocks behind the target we can use tip sync
 			cs.syncMode.Store(tip)
 			isSyncedGauge.Set(1)
-			logger.Debugf("switched sync mode to %d", tip.String())
+			logger.Debugf("switched sync mode to %s", tip.String())
 			return
 		}
 	}
@@ -329,7 +329,7 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	// we are more than 128 blocks behind the head, switch to bootstrap
 	cs.syncMode.Store(bootstrap)
 	isSyncedGauge.Set(0)
-	logger.Debugf("switched sync mode to %d", bootstrap.String())
+	logger.Debugf("switched sync mode to %s", bootstrap.String())
 	go cs.bootstrapSync()
 	return nil
 }
@@ -686,6 +686,15 @@ taskResultLoop:
 				continue taskResultLoop
 			}
 
+			grows := doResponseGrowsTheChain(response.BlockData, syncingChain,
+				startAtBlock, expectedSyncedBlocks)
+			if !grows {
+				logger.Criticalf("response from %s does not grows the ongoing chain", who)
+				cs.workerPool.punishPeer(taskResult.who)
+				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
+				continue taskResultLoop
+			}
+
 			for _, blockInResponse := range response.BlockData {
 				if slices.Contains(cs.badBlocks, blockInResponse.Hash.String()) {
 					logger.Criticalf("%s sent a known bad block: %s (#%d)",
@@ -730,19 +739,6 @@ taskResultLoop:
 				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
 				continue taskResultLoop
 			}
-		}
-	}
-
-	if len(syncingChain) >= 2 {
-		// ensure the acquired block set forms an actual chain
-		parentElement := syncingChain[0]
-		for _, element := range syncingChain[1:] {
-			if parentElement.Header.Hash() != element.Header.ParentHash {
-				panic(fmt.Sprintf("expected %s (#%d) be parent of %s (#%d)",
-					parentElement.Header.Hash(), parentElement.Header.Number,
-					element.Header.Hash(), element.Header.Number))
-			}
-			parentElement = element
 		}
 	}
 
@@ -1032,6 +1028,64 @@ func isResponseAChain(responseBlockData []*types.BlockData) bool {
 		}
 
 		previousBlockData = currBlockData
+	}
+
+	return true
+}
+
+// doResponseGrowsTheChain will check if the acquired blocks grows the current chain
+// matching their parent hashes
+func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtBlock uint, expectedTotal uint32) bool {
+	// the ongoing chain does not have any element, we can safely insert an item in it
+	if len(ongoingChain) < 1 {
+		return true
+	}
+
+	compareParentHash := func(parent, child *types.BlockData) bool {
+		return parent.Header.Hash() == child.Header.ParentHash
+	}
+
+	firstBlockInResponse := response[0]
+	firstBlockExactIndex := firstBlockInResponse.Header.Number - startAtBlock
+	if firstBlockExactIndex != 0 {
+		leftElement := ongoingChain[firstBlockExactIndex-1]
+		if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
+			return false
+		}
+
+	}
+
+	switch {
+	// if the reponse contains only one block then we should check both sides
+	// for example, if the response contains only one block called X we should
+	// check if its parent hash matches with the left element as well as we should
+	// check if the right element contains X hash as its parent hash
+	// ... W <- X -> Y ...
+	// we can skip left side comparision if X is in the 0 index and we can skip
+	// right side comparision if X is in the last index
+	case len(response) == 1:
+		if uint32(firstBlockExactIndex+1) < expectedTotal {
+			rightElement := ongoingChain[firstBlockExactIndex+1]
+			if rightElement != nil && !compareParentHash(firstBlockInResponse, rightElement) {
+				return false
+			}
+		}
+	// if the reponse contains more than 1 block then we need to compare
+	// only the start and the end of the acquired response, for example
+	// let's say we receive a response [C, D, E] and we need to check
+	// if those values fits correctly:
+	// ... B <- C D E -> F
+	// we skip the left check if its index is equals to 0 and we skip the right
+	// check if it ends in the latest position of the ongoing array
+	case len(response) > 1:
+		lastBlockInResponse := response[len(response)-1]
+		lastBlockExactIndex := lastBlockInResponse.Header.Number - startAtBlock
+		if uint32(lastBlockExactIndex+1) < expectedTotal {
+			rightElement := ongoingChain[lastBlockExactIndex+1]
+			if rightElement != nil && !compareParentHash(lastBlockInResponse, rightElement) {
+				return false
+			}
+		}
 	}
 
 	return true
