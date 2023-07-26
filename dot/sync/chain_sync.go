@@ -320,6 +320,8 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return fmt.Errorf("checking target distance: %w", err)
 	}
 
+	fmt.Printf("ON BLOCK ANNOUNCE FAR FROM TARGET: %v\n", isFarFromTarget)
+
 	if !isFarFromTarget {
 		return cs.requestAnnouncedBlock(announced)
 	}

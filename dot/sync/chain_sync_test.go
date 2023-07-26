@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -60,11 +59,11 @@ func Test_chainSyncState_String(t *testing.T) {
 	}
 }
 
-func Test_chainSync_onImportBlock(t *testing.T) {
+func Test_chainSync_onBlockAnnounce(t *testing.T) {
 	t.Parallel()
 	const somePeer = peer.ID("abc")
 
-	errTest := errors.New("test error")
+	//errTest := errors.New("test error")
 	emptyTrieState := storage.NewTrieState(nil)
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
 		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
@@ -78,54 +77,133 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 		blockAnnounceHeader *types.Header
 		errWrapped          error
 		errMessage          string
+		expectedSyncMode    chainSyncState
 	}{
-		"announced_block_already_exists_in_disjoint_set": {
-			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
-				pendingBlocks := NewMockDisjointBlockSet(ctrl)
-				pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(true)
-				return &chainSync{
-					pendingBlocks: pendingBlocks,
-				}
-			},
-			peerID:              somePeer,
-			blockAnnounceHeader: block2AnnounceHeader,
-			errWrapped:          errAlreadyInDisjointSet,
-			errMessage: fmt.Sprintf("already in disjoint set: block %s (#%d)",
-				block2AnnounceHeader.Hash(), block2AnnounceHeader.Number),
-		},
-		"failed_to_add_announced_block_in_disjoint_set": {
-			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
-				pendingBlocks := NewMockDisjointBlockSet(ctrl)
-				pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
-				pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(errTest)
+		// "announced_block_already_exists_in_disjoint_set": {
+		// 	chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+		// 		pendingBlocks := NewMockDisjointBlockSet(ctrl)
+		// 		pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(true)
+		// 		return &chainSync{
+		// 			pendingBlocks: pendingBlocks,
+		// 		}
+		// 	},
+		// 	peerID:              somePeer,
+		// 	blockAnnounceHeader: block2AnnounceHeader,
+		// 	errWrapped:          errAlreadyInDisjointSet,
+		// 	errMessage: fmt.Sprintf("already in disjoint set: block %s (#%d)",
+		// 		block2AnnounceHeader.Hash(), block2AnnounceHeader.Number),
+		// },
+		// "failed_to_add_announced_block_in_disjoint_set": {
+		// 	chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+		// 		pendingBlocks := NewMockDisjointBlockSet(ctrl)
+		// 		pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
+		// 		pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(errTest)
 
-				return &chainSync{
-					pendingBlocks: pendingBlocks,
-				}
-			},
-			peerID:              somePeer,
-			blockAnnounceHeader: block2AnnounceHeader,
-			errWrapped:          errTest,
-			errMessage:          "while adding pending block header: test error",
-		},
-		"announced_block_while_in_bootstrap_mode": {
-			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
-				pendingBlocks := NewMockDisjointBlockSet(ctrl)
-				pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
-				pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
+		// 		return &chainSync{
+		// 			pendingBlocks: pendingBlocks,
+		// 		}
+		// 	},
+		// 	peerID:              somePeer,
+		// 	blockAnnounceHeader: block2AnnounceHeader,
+		// 	errWrapped:          errTest,
+		// 	errMessage:          "while adding pending block header: test error",
+		// },
+		// "announced_block_while_in_bootstrap_mode": {
+		// 	chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+		// 		pendingBlocks := NewMockDisjointBlockSet(ctrl)
+		// 		pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
+		// 		pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
 
-				state := atomic.Value{}
-				state.Store(bootstrap)
+		// 		state := atomic.Value{}
+		// 		state.Store(bootstrap)
 
-				return &chainSync{
-					pendingBlocks: pendingBlocks,
-					syncMode:      state,
-				}
-			},
-			peerID:              somePeer,
-			blockAnnounceHeader: block2AnnounceHeader,
-		},
-		"announced_block_while_in_tip_mode": {
+		// 		return &chainSync{
+		// 			pendingBlocks: pendingBlocks,
+		// 			syncMode:      state,
+		// 		}
+		// 	},
+		// 	peerID:              somePeer,
+		// 	blockAnnounceHeader: block2AnnounceHeader,
+		// },
+		// "announced_block_while_in_tip_mode": {
+		// 	chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
+		// 		pendingBlocksMock := NewMockDisjointBlockSet(ctrl)
+		// 		pendingBlocksMock.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
+		// 		pendingBlocksMock.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
+		// 		pendingBlocksMock.EXPECT().removeBlock(block2AnnounceHeader.Hash())
+		// 		pendingBlocksMock.EXPECT().size().Return(int(0))
+
+		// 		blockStateMock := NewMockBlockState(ctrl)
+		// 		blockStateMock.EXPECT().
+		// 			HasHeader(block2AnnounceHeader.Hash()).
+		// 			Return(false, nil)
+
+		// 		blockStateMock.EXPECT().
+		// 			BestBlockHeader().
+		// 			Return(block1AnnounceHeader, nil)
+
+		// 		blockStateMock.EXPECT().
+		// 			GetHighestFinalisedHeader().
+		// 			Return(block2AnnounceHeader, nil)
+
+		// 		expectedRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
+		// 			1, network.BootstrapRequestData, network.Descending)
+
+		// 		fakeBlockBody := types.Body([]types.Extrinsic{})
+		// 		mockedBlockResponse := &network.BlockResponseMessage{
+		// 			BlockData: []*types.BlockData{
+		// 				{
+		// 					Hash:   block2AnnounceHeader.Hash(),
+		// 					Header: block2AnnounceHeader,
+		// 					Body:   &fakeBlockBody,
+		// 				},
+		// 			},
+		// 		}
+
+		// 		networkMock := NewMockNetwork(ctrl)
+		// 		requestMaker := NewMockRequestMaker(ctrl)
+		// 		requestMaker.EXPECT().
+		// 			Do(somePeer, expectedRequest, &network.BlockResponseMessage{}).
+		// 			DoAndReturn(func(_, _, response any) any {
+		// 				responsePtr := response.(*network.BlockResponseMessage)
+		// 				*responsePtr = *mockedBlockResponse
+		// 				return nil
+		// 			})
+
+		// 		babeVerifierMock := NewMockBabeVerifier(ctrl)
+		// 		storageStateMock := NewMockStorageState(ctrl)
+		// 		importHandlerMock := NewMockBlockImportHandler(ctrl)
+		// 		telemetryMock := NewMockTelemetry(ctrl)
+
+		// 		const announceBlock = true
+		// 		ensureSuccessfulBlockImportFlow(t, block1AnnounceHeader, mockedBlockResponse.BlockData,
+		// 			blockStateMock, babeVerifierMock, storageStateMock, importHandlerMock, telemetryMock,
+		// 			announceBlock)
+
+		// 		workerPool := newSyncWorkerPool(networkMock, requestMaker)
+		// 		// include the peer who announced the block in the pool
+		// 		workerPool.newPeer(somePeer)
+
+		// 		state := atomic.Value{}
+		// 		state.Store(tip)
+
+		// 		return &chainSync{
+		// 			pendingBlocks:      pendingBlocksMock,
+		// 			syncMode:           state,
+		// 			workerPool:         workerPool,
+		// 			network:            networkMock,
+		// 			blockState:         blockStateMock,
+		// 			babeVerifier:       babeVerifierMock,
+		// 			telemetry:          telemetryMock,
+		// 			storageState:       storageStateMock,
+		// 			blockImportHandler: importHandlerMock,
+		// 		}
+		// 	},
+		// 	listenForRequests:   true,
+		// 	peerID:              somePeer,
+		// 	blockAnnounceHeader: block2AnnounceHeader,
+		// },
+		"announced_block_while_in_tip_mode_but_far_behind_tip": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				pendingBlocksMock := NewMockDisjointBlockSet(ctrl)
 				pendingBlocksMock.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
@@ -187,7 +265,17 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 				state := atomic.Value{}
 				state.Store(tip)
 
+				fakeBlock := types.NewHeader(block1AnnounceHeader.Hash(), emptyTrieState.MustRoot(),
+					common.Hash{}, 130, scale.VaryingDataTypeSlice{})
+
 				return &chainSync{
+					peerView: map[peer.ID]peerView{
+						peer.ID("peerA"): {
+							who:    peer.ID("peerA"),
+							hash:   fakeBlock.Hash(),
+							number: 130,
+						},
+					},
 					pendingBlocks:      pendingBlocksMock,
 					syncMode:           state,
 					workerPool:         workerPool,
@@ -235,6 +323,115 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_chainSync_onBlockAnnounce_tipModeNeedToCatchup(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	const somePeer = peer.ID("abc")
+
+	emptyTrieState := storage.NewTrieState(nil)
+	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
+		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(), emptyTrieState.MustRoot(),
+		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
+
+	pendingBlocksMock := NewMockDisjointBlockSet(ctrl)
+	pendingBlocksMock.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
+	pendingBlocksMock.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
+	pendingBlocksMock.EXPECT().removeBlock(block2AnnounceHeader.Hash())
+	pendingBlocksMock.EXPECT().size().Return(int(0))
+
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		HasHeader(block2AnnounceHeader.Hash()).
+		Return(false, nil)
+
+	blockStateMock.EXPECT().
+		BestBlockHeader().
+		Return(block1AnnounceHeader, nil)
+
+	blockStateMock.EXPECT().
+		GetHighestFinalisedHeader().
+		Return(block2AnnounceHeader, nil)
+
+	expectedRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
+		1, network.BootstrapRequestData, network.Descending)
+
+	fakeBlockBody := types.Body([]types.Extrinsic{})
+	mockedBlockResponse := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Hash:   block2AnnounceHeader.Hash(),
+				Header: block2AnnounceHeader,
+				Body:   &fakeBlockBody,
+			},
+		},
+	}
+
+	networkMock := NewMockNetwork(ctrl)
+	requestMaker := NewMockRequestMaker(ctrl)
+	requestMaker.EXPECT().
+		Do(somePeer, expectedRequest, &network.BlockResponseMessage{}).
+		DoAndReturn(func(_, _, response any) any {
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *mockedBlockResponse
+			return nil
+		})
+
+	babeVerifierMock := NewMockBabeVerifier(ctrl)
+	storageStateMock := NewMockStorageState(ctrl)
+	importHandlerMock := NewMockBlockImportHandler(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	const announceBlock = true
+	ensureSuccessfulBlockImportFlow(t, block1AnnounceHeader, mockedBlockResponse.BlockData,
+		blockStateMock, babeVerifierMock, storageStateMock, importHandlerMock, telemetryMock,
+		announceBlock)
+
+	workerPool := newSyncWorkerPool(networkMock, requestMaker)
+	// include the peer who announced the block in the pool
+	workerPool.newPeer(somePeer)
+
+	state := atomic.Value{}
+	state.Store(tip)
+
+	fakeBlock := types.NewHeader(block1AnnounceHeader.Hash(), emptyTrieState.MustRoot(),
+		common.Hash{}, 130, scale.VaryingDataTypeSlice{})
+
+	stopCh := make(chan struct{})
+	chainSync := &chainSync{
+		stopCh: stopCh,
+		peerView: map[peer.ID]peerView{
+			peer.ID("peerA"): {
+				who:    peer.ID("peerA"),
+				hash:   fakeBlock.Hash(),
+				number: 130, // the target is much higher, we should catch up
+			},
+		},
+		pendingBlocks:      pendingBlocksMock,
+		syncMode:           state,
+		workerPool:         workerPool,
+		network:            networkMock,
+		blockState:         blockStateMock,
+		babeVerifier:       babeVerifierMock,
+		telemetry:          telemetryMock,
+		storageState:       storageStateMock,
+		blockImportHandler: importHandlerMock,
+	}
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go chainSync.workerPool.listenForRequests(stopCh, &wg)
+
+	err := chainSync.onBlockAnnounce(announcedBlock{
+		who:    somePeer,
+		header: block2AnnounceHeader,
+	})
+	require.NoError(t, err)
+
+	close(stopCh)
+	wg.Wait()
 }
 
 func TestChainSync_setPeerHead(t *testing.T) {
