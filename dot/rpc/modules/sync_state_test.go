@@ -118,7 +118,7 @@ func TestNewStateSync(t *testing.T) {
 				ProtocolID: "",
 				Genesis: genesis.Fields{
 					Raw:     map[string]map[string]string{},
-					Runtime: map[string]map[string]interface{}{},
+					Runtime: new(genesis.Runtime),
 				},
 			},
 			},

@@ -60,9 +60,14 @@ it-polkadotjs: build
 	MODE=polkadot go test ./tests/polkadotjs_test/... -timeout=5m -v
 
 ## test: Runs `go test -race` on project test files.
-test-state-race:
+test-using-race-detector:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
 	go test ./dot/state/... -race -timeout=5m
+	go test ./dot/sync/... -race -timeout=5m
+	go test ./internal/log/... -race -timeout=5m
+	go test ./lib/blocktree/... -race -timeout=5m
+	go test ./lib/grandpa/... -race -timeout=5m
+
 
 ## deps: Install missing dependencies. Runs `go mod download` internally.
 deps:

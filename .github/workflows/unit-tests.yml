@@ -86,8 +86,8 @@ jobs:
           go test -run ^Test_Trie_MemoryUsage$ ./lib/trie
           sed -i 's/const skip = false/const skip = true/g' ./lib/trie/mem_test.go
 
-      - name: Test State - Race
-        run: make test-state-race
+      - name: Test - Race
+        run: make test-using-race-detector
 
       - uses: codecov/codecov-action@v3.1.4
         with:

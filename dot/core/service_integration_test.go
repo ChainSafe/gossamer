@@ -22,7 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -292,7 +292,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
 	cfg := &Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
+		Runtime: wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
 	}
 
 	s := NewTestService(t, cfg)
