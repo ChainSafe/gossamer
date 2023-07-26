@@ -1067,12 +1067,16 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType {
 	killStorageResult := scale.MustNewVaryingDataType(new(noneRemain), new(someRemain))
 
+	var err error
 	if allDeleted {
-		killStorageResult.Set(noneRemain(deleted))
+		err = killStorageResult.Set(noneRemain(deleted))
 	} else {
-		killStorageResult.Set(someRemain(deleted))
+		err = killStorageResult.Set(someRemain(deleted))
 	}
 
+	if err != nil {
+		panic(err)
+	}
 	return killStorageResult
 }
 
