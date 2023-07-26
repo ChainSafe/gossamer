@@ -31,8 +31,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testValidationcode []byte
-
 //go:embed testdata/parachain.yaml
 var parachainTestDataRaw string
 
@@ -1256,7 +1254,9 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 	validationCode, err := rt.ParachainHostValidationCode(parachainID, assumption)
 	require.NoError(t, err)
 	require.NotEmpty(t, validationCode)
-	require.Equal(t, testValidationcode[4:], []byte(*validationCode))
+
+	expected := []byte(parachainTestData.Expected["validationCode"])
+	require.Equal(t, expected[4:], []byte(*validationCode))
 }
 
 func TestInstance_ParachainHostValidators(t *testing.T) {
@@ -1487,8 +1487,11 @@ func getParachainHostTrie(t *testing.T) *trie.Trie {
 		err := tt.Put(key, value)
 		require.NoError(t, err)
 
+		// TODO: We currently have to manually set the storage expected values for the exports tests.
+		// We could avoid this if we can lookup the value from the `storage` section of the test data easily.
+		// https://github.com/ChainSafe/gossamer/issues/3405
 		if s.Name == "validationCode" {
-			testValidationcode = value
+			parachainTestData.Expected["validationCode"] = string(value)
 		}
 	}
 
