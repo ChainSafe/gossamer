@@ -1486,7 +1486,7 @@ func getParachainHostTrie(t *testing.T) *trie.Trie {
 		err := tt.Put(key, value)
 		require.NoError(t, err)
 
-		if s.Key == "0xcd710b30bd2eab0352ddcc26417aa194383e6dcb39e0be0a2e6aeb8b94951ab6cafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b5145337" {
+		if s.Key == "0xcd710b30bd2eab0352ddcc26417aa194383e6dcb39e0be0a2e6aeb8b94951ab6cafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b5145337" { //nolint:lll
 			testValidationcode = value
 		}
 	}
