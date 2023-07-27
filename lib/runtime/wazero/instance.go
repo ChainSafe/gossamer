@@ -240,6 +240,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_default_child_storage_clear_prefix_version_1).
 		Export("ext_default_child_storage_clear_prefix_version_1").
 		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_clear_prefix_version_2).
+		Export("ext_default_child_storage_clear_prefix_version_2").
+		NewFunctionBuilder().
 		WithFunc(ext_default_child_storage_exists_version_1).
 		Export("ext_default_child_storage_exists_version_1").
 		NewFunctionBuilder().
@@ -251,6 +254,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		NewFunctionBuilder().
 		WithFunc(ext_default_child_storage_root_version_1).
 		Export("ext_default_child_storage_root_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_default_child_storage_root_version_2).
+		Export("ext_default_child_storage_root_version_2").
 		NewFunctionBuilder().
 		WithFunc(ext_default_child_storage_storage_kill_version_1).
 		Export("ext_default_child_storage_storage_kill_version_1").
@@ -290,6 +296,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		NewFunctionBuilder().
 		WithFunc(ext_offchain_index_set_version_1).
 		Export("ext_offchain_index_set_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_offchain_index_clear_version_1).
+		Export("ext_offchain_index_clear_version_1").
 		NewFunctionBuilder().
 		WithFunc(ext_offchain_local_storage_clear_version_1).
 		Export("ext_offchain_local_storage_clear_version_1").
