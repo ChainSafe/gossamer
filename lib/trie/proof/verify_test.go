@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

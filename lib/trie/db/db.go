@@ -8,11 +8,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type MemoryDB struct {
+type InMemoryDB struct {
 	data map[common.Hash][]byte
 }
 
-func NewMemoryDBFromProof(encodedNodes [][]byte) (*MemoryDB, error) {
+func NewMemoryDBFromProof(encodedNodes [][]byte) (*InMemoryDB, error) {
 	data := make(map[common.Hash][]byte, len(encodedNodes))
 
 	for _, encodedProofNode := range encodedNodes {
@@ -24,13 +24,13 @@ func NewMemoryDBFromProof(encodedNodes [][]byte) (*MemoryDB, error) {
 		data[nodeHash] = encodedProofNode
 	}
 
-	return &MemoryDB{
+	return &InMemoryDB{
 		data: data,
 	}, nil
 
 }
 
-func (mdb *MemoryDB) Get(key []byte) (value []byte, err error) {
+func (mdb *InMemoryDB) Get(key []byte) (value []byte, err error) {
 	if len(key) < common.HashLength {
 		return nil, fmt.Errorf("expected %d bytes length key, given %d (%x)", common.HashLength, len(key), value)
 	}
