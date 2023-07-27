@@ -347,6 +347,64 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
+// ParachainHostPersistedValidationData returns persisted validation data for the given parachain id.
+func (in *Instance) ParachainHostPersistedValidationData(
+	parachaidID uint32,
+	assumption parachaintypes.OccupiedCoreAssumption,
+) (*parachaintypes.PersistedValidationData, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachaidID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding equivocation proof: %w", err)
+	}
+	err = encoder.Encode(assumption)
+	if err != nil {
+		return nil, fmt.Errorf("encoding key ownership proof: %w", err)
+	}
+
+	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostPersistedValidationData, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	persistedValidationData := &parachaintypes.PersistedValidationData{}
+	err = scale.Unmarshal(encodedPersistedValidationData, &persistedValidationData)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return persistedValidationData, nil
+}
+
+// ParachainHostValidationCode returns validation code for the given parachain id.
+func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+) (*parachaintypes.ValidationCode, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(parachaidID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain id: %w", err)
+	}
+	err = encoder.Encode(assumption)
+	if err != nil {
+		return nil, fmt.Errorf("encoding occupied core assumption: %w", err)
+	}
+
+	encodedValidationCode, err := in.Exec(runtime.ParachainHostValidationCode, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	var validationCode *parachaintypes.ValidationCode
+	err = scale.Unmarshal(encodedValidationCode, &validationCode)
+	if err != nil {
+		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return validationCode, nil
+}
+
 // ParachainHostValidators returns the validator set at the current state.
 // The specified validators are responsible for backing parachains for the current state.
 func (in *Instance) ParachainHostValidators() ([]parachaintypes.ValidatorID, error) {

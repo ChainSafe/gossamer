@@ -34,7 +34,7 @@ type customVDT VaryingDataType
 
 type customVDTWithNew VaryingDataType
 
-func (cvwn customVDTWithNew) New() customVDTWithNew {
+func (customVDTWithNew) New() customVDTWithNew {
 	return customVDTWithNew(mustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0)))
 }
 
