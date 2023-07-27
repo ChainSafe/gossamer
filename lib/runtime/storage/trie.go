@@ -264,11 +264,8 @@ func (s *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 	defer s.lock.Unlock()
 
 	child, err := s.t.GetChild(keyToChild)
-	if err != nil {
+	if err != nil || child == nil {
 		return 0, false, err
-	}
-	if child == nil {
-		return 0, false, nil
 	}
 
 	return child.ClearPrefixLimit(prefix, limit)
