@@ -414,3 +414,107 @@ func NewCandidateEventVDT() scale.VaryingDataType {
 func NewCandidateEvents() (events []CandidateEvent) {
 	return
 }
+
+// PersistedValidationData should be relatively lightweight primarily because it is constructed
+// during inclusion for each candidate and therefore lies on the critical path of inclusion.
+type PersistedValidationData struct {
+	ParentHead             HeadData    `scale:"1"`
+	RelayParentNumber      uint32      `scale:"2"`
+	RelayParentStorageRoot common.Hash `scale:"3"`
+	MaxPovSize             uint32      `scale:"4"`
+}
+
+type OccupiedCoreAssumptionValues interface {
+	IncludedOccupiedCoreAssumption | TimedOutOccupiedCoreAssumption | FreeOccupiedCoreAssumption
+}
+
+// OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
+type OccupiedCoreAssumption struct {
+	inner any
+}
+
+func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](mvdt *OccupiedCoreAssumption, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *OccupiedCoreAssumption) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case IncludedOccupiedCoreAssumption:
+		setOccupiedCoreAssumption(mvdt, value)
+		return
+
+	case FreeOccupiedCoreAssumption:
+		setOccupiedCoreAssumption(mvdt, value)
+		return
+
+	case TimedOutOccupiedCoreAssumption:
+		setOccupiedCoreAssumption(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt OccupiedCoreAssumption) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case IncludedOccupiedCoreAssumption:
+		return 0, mvdt.inner, nil
+
+	case FreeOccupiedCoreAssumption:
+		return 2, mvdt.inner, nil
+
+	case TimedOutOccupiedCoreAssumption:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt OccupiedCoreAssumption) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt OccupiedCoreAssumption) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(IncludedOccupiedCoreAssumption), nil
+
+	case 2:
+		return *new(FreeOccupiedCoreAssumption), nil
+
+	case 1:
+		return *new(TimedOutOccupiedCoreAssumption), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+// IncludedOccupiedCoreAssumption means the candidate occupying the core was made available and
+// included to free the core.
+type IncludedOccupiedCoreAssumption struct{}
+
+func (IncludedOccupiedCoreAssumption) String() string {
+	return "Included"
+}
+
+// TimedOutOccupiedCoreAssumption means the candidate occupying the core timed out and freed the
+// core without advancing the para.
+type TimedOutOccupiedCoreAssumption struct{}
+
+func (TimedOutOccupiedCoreAssumption) String() string {
+	return "TimedOut"
+}
+
+// FreeOccupiedCoreAssumption means the core was not occupied to begin with.
+type FreeOccupiedCoreAssumption struct{}
+
+func (FreeOccupiedCoreAssumption) String() string {
+	return "Free"
+}
+
+// NewOccupiedCoreAssumption creates a OccupiedCoreAssumption varying data type.
+func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
+	return OccupiedCoreAssumption{}
+}
