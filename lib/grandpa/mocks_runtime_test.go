@@ -405,6 +405,21 @@ func (mr *MockInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCheckValidationOutputs", reflect.TypeOf((*MockInstance)(nil).ParachainHostCheckValidationOutputs), arg0, arg1)
 }
 
+// ParachainHostPersistedValidationData mocks base method.
+func (m *MockInstance) ParachainHostPersistedValidationData(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostPersistedValidationData", arg0, arg1)
+	ret0, _ := ret[0].(*parachaintypes.PersistedValidationData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostPersistedValidationData indicates an expected call of ParachainHostPersistedValidationData.
+func (mr *MockInstanceMockRecorder) ParachainHostPersistedValidationData(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostPersistedValidationData", reflect.TypeOf((*MockInstance)(nil).ParachainHostPersistedValidationData), arg0, arg1)
+}
+
 // ParachainHostSessionIndexForChild mocks base method.
 func (m *MockInstance) ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error) {
 	m.ctrl.T.Helper()
@@ -433,6 +448,21 @@ func (m *MockInstance) ParachainHostSessionInfo(arg0 parachaintypes.SessionIndex
 func (mr *MockInstanceMockRecorder) ParachainHostSessionInfo(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionInfo", reflect.TypeOf((*MockInstance)(nil).ParachainHostSessionInfo), arg0)
+}
+
+// ParachainHostValidationCode mocks base method.
+func (m *MockInstance) ParachainHostValidationCode(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostValidationCode", arg0, arg1)
+	ret0, _ := ret[0].(*parachaintypes.ValidationCode)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostValidationCode indicates an expected call of ParachainHostValidationCode.
+func (mr *MockInstanceMockRecorder) ParachainHostValidationCode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCode", reflect.TypeOf((*MockInstance)(nil).ParachainHostValidationCode), arg0, arg1)
 }
 
 // ParachainHostValidatorGroups mocks base method.

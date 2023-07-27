@@ -389,3 +389,82 @@ func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
 
 	return scale.NewVaryingDataTypeSlice(vdt), nil
 }
+
+// PersistedValidationData should be relatively lightweight primarily because it is constructed
+// during inclusion for each candidate and therefore lies on the critical path of inclusion.
+type PersistedValidationData struct {
+	ParentHead             HeadData    `scale:"1"`
+	RelayParentNumber      uint32      `scale:"2"`
+	RelayParentStorageRoot common.Hash `scale:"3"`
+	MaxPovSize             uint32      `scale:"4"`
+}
+
+// OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
+type OccupiedCoreAssumption scale.VaryingDataType
+
+// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
+func (o *OccupiedCoreAssumption) Set(val scale.VaryingDataTypeValue) (err error) {
+	// cast to VaryingDataType to use VaryingDataType.Set method
+	vdt := scale.VaryingDataType(*o)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value to varying data type: %w", err)
+	}
+	// store original ParentVDT with VaryingDataType that has been set
+	*o = OccupiedCoreAssumption(vdt)
+	return nil
+}
+
+// Value will return value from underying VaryingDataType
+func (o *OccupiedCoreAssumption) Value() (scale.VaryingDataTypeValue, error) {
+	vdt := scale.VaryingDataType(*o)
+	return vdt.Value()
+}
+
+// IncludedOccupiedCoreAssumption means the candidate occupying the core was made available and
+// included to free the core.
+type IncludedOccupiedCoreAssumption struct{}
+
+// Index returns VDT index
+func (IncludedOccupiedCoreAssumption) Index() uint {
+	return 0
+}
+
+func (IncludedOccupiedCoreAssumption) String() string {
+	return "Included"
+}
+
+// TimedOutOccupiedCoreAssumption means the candidate occupying the core timed out and freed the
+// core without advancing the para.
+type TimedOutOccupiedCoreAssumption struct{}
+
+// Index returns VDT index
+func (TimedOutOccupiedCoreAssumption) Index() uint {
+	return 1
+}
+
+func (TimedOutOccupiedCoreAssumption) String() string {
+	return "TimedOut"
+}
+
+// FreeOccupiedCoreAssumption means the core was not occupied to begin with.
+type FreeOccupiedCoreAssumption struct{}
+
+// Index returns VDT index
+func (FreeOccupiedCoreAssumption) Index() uint {
+	return 2
+}
+
+func (FreeOccupiedCoreAssumption) String() string {
+	return "Free"
+}
+
+// NewOccupiedCoreAssumption creates a OccupiedCoreAssumption varying data type.
+func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
+	vdt := scale.MustNewVaryingDataType(
+		IncludedOccupiedCoreAssumption{},
+		FreeOccupiedCoreAssumption{},
+		TimedOutOccupiedCoreAssumption{})
+
+	return OccupiedCoreAssumption(vdt)
+}
