@@ -27,10 +27,10 @@ func NewLookup(db HashDB, hash []byte) *Lookup {
 }
 
 func (l Lookup) Lookup(key []byte, nibbleKey *NibbleSlice) ([]byte, error) {
-	return l.lookupWithoutCache(nibbleKey, key)
+	return l.lookupWithoutCache(nibbleKey)
 }
 
-func (l Lookup) lookupWithoutCache(nibbleKey *NibbleSlice, fullKey []byte) ([]byte, error) {
+func (l Lookup) lookupWithoutCache(nibbleKey *NibbleSlice) ([]byte, error) {
 	partial := nibbleKey
 	hash := l.hash
 	keyNibbles := uint(0)
@@ -67,7 +67,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *NibbleSlice, fullKey []byte) ([]by
 			case node.Leaf:
 				//If leaf and matches return value
 				if bytes.Equal(decodedNode.PartialKey, partial.data) {
-					l.loadValue(decodedNode, nibbleKey.originalDataAsPrefix(), fullKey)
+					return l.loadValue(decodedNode, nibbleKey.originalDataAsPrefix())
 				}
 				return EmptyValue, nil
 			//Nibbled branch
@@ -80,11 +80,11 @@ func (l Lookup) lookupWithoutCache(nibbleKey *NibbleSlice, fullKey []byte) ([]by
 
 				if partial.len() == slice.len() {
 					if len(decodedNode.StorageValue) > 0 {
-						return l.loadValue(decodedNode, nibbleKey.originalDataAsPrefix(), fullKey)
+						return l.loadValue(decodedNode, nibbleKey.originalDataAsPrefix())
 					}
 				}
 
-				nextNode := decodedNode.ChildAt(slice.len())
+				nextNode = decodedNode.ChildAt(slice.len())
 				if nextNode == node.EmptyNode {
 					return EmptyValue, nil
 				}
@@ -103,7 +103,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *NibbleSlice, fullKey []byte) ([]by
 	}
 }
 
-func (l Lookup) loadValue(node *Node, prefix Prefix, fullKey []byte) ([]byte, error) {
+func (l Lookup) loadValue(node *Node, prefix Prefix) ([]byte, error) {
 	if !node.IsHashed() {
 		return node.StorageValue, nil
 	}

@@ -43,7 +43,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 
 	switch variant {
 	case emptyVariant:
-		return EmptyNode, nil //nolint:nilnil
+		return EmptyNode, nil
 	case leafVariant, leafWithHashedValueVariant:
 		n, err = decodeLeaf(reader, variant, partialKeyLength)
 		if err != nil {

@@ -27,14 +27,14 @@ func NewTrieDBBuilder(db HashDB, root []byte, layout TrieLayout) *TrieDBBuilder 
 	return &TrieDBBuilder{db, root, layout}
 }
 
-func (tdbb TrieDBBuilder) build() *TrieDB {
+func (tdbb TrieDBBuilder) Build() *TrieDB {
 	return &TrieDB{tdbb.db, tdbb.root, tdbb.layout}
 }
 
 type TrieDB struct {
 	db     HashDB
 	root   []byte
-	layout TrieLayout
+	Layout TrieLayout
 	//TODO: implement cache and recorder
 }
 

@@ -30,10 +30,6 @@ func (ns *NibbleSlice) left() *Prefix {
 	return &Prefix{ns.data[:split], padLeft(ns.data[split])}
 }
 
-func (ns *NibbleSlice) isEmpty() bool {
-	return ns.len() == 0
-}
-
 func (ns *NibbleSlice) len() uint {
 	return uint(len(ns.data))*NibblePerByte - ns.offset
 }
