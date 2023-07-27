@@ -60,7 +60,7 @@ func (mdb *MemoryDB) GetWithPrefix(key []byte, prefix trie.Prefix) (value []byte
 		return mdb.nullNodeData, nil
 	}
 
-	computatedKey := mdb.keyFunction(common.Hash(key), prefix)
+	computatedKey := mdb.keyFunction(common.Hash(key[:]), prefix)
 	return mdb.Get(computatedKey[:])
 }
 
