@@ -17,7 +17,7 @@ import (
 type AssignmentCertKind scale.VaryingDataType
 
 // New will enable scale to create new instance when needed
-func (ack AssignmentCertKind) New() AssignmentCertKind {
+func (AssignmentCertKind) New() AssignmentCertKind {
 	return NewAssignmentCertKindVDT()
 }
 
@@ -77,7 +77,7 @@ func NewVRFDelay() RelayVRFDelay {
 }
 
 // Index returns varying data type index
-func (rvd RelayVRFDelay) Index() uint {
+func (RelayVRFDelay) Index() uint {
 	return 1
 }
 
@@ -121,7 +121,7 @@ type Assignment struct {
 type Assignments []Assignment
 
 // Index returns varying data type index
-func (a Assignments) Index() uint {
+func (Assignments) Index() uint {
 	return 0
 }
 
@@ -141,7 +141,7 @@ type IndirectSignedApprovalVote struct {
 type Approvals []IndirectSignedApprovalVote
 
 // Index returns varying data type index
-func (ap Approvals) Index() uint {
+func (Approvals) Index() uint {
 	return 1
 }
 
