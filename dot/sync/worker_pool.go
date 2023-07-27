@@ -148,7 +148,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
-	resultCh = make(chan *syncTaskResult)
+	resultCh = make(chan *syncTaskResult, maxRequestsAllowed+1)
 	for _, request := range requests {
 		s.submitRequest(request, nil, resultCh)
 	}

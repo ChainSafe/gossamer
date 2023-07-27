@@ -84,7 +84,6 @@ func executeRequest(who peer.ID, requestMaker network.RequestMaker,
 	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
 	response := new(network.BlockResponseMessage)
 	err := requestMaker.Do(who, request, response)
-	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
 
 	task.resultCh <- &syncTaskResult{
 		who:      who,
@@ -92,4 +91,6 @@ func executeRequest(who peer.ID, requestMaker network.RequestMaker,
 		response: response,
 		err:      err,
 	}
+
+	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
 }

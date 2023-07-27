@@ -529,19 +529,10 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	startRequestAt := bestBlockHeader.Number + 1
 
-	// we build the set of requests based on the amount of available peers
-	// in the worker pool, if we have more peers than `maxRequestAllowed`
-	// so we limit to `maxRequestAllowed` to avoid the error:
-	// cannot reserve outbound connection: resource limit exceeded
-	availableWorkers := cs.workerPool.totalWorkers()
-	if availableWorkers > maxRequestsAllowed {
-		availableWorkers = maxRequestsAllowed
-	}
-
 	// targetBlockNumber is the virtual target we will request, however
 	// we should bound it to the real target which is collected through
 	// block announces received from other peers
-	targetBlockNumber := startRequestAt + availableWorkers*128
+	targetBlockNumber := startRequestAt + maxRequestsAllowed*128
 	realTarget, err := cs.getTarget()
 	if err != nil {
 		return fmt.Errorf("while getting target: %w", err)
@@ -568,7 +559,6 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	}
 
 	resultsQueue := cs.workerPool.submitRequests(requests)
-
 	err = cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
