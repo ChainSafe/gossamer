@@ -421,7 +421,8 @@ func (o *OccupiedCoreAssumption) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
-// IncludedOccupiedCoreAssumption means the candidate occupying the core was made available and included to free the core.
+// IncludedOccupiedCoreAssumption means the candidate occupying the core was made available and
+// included to free the core.
 type IncludedOccupiedCoreAssumption struct{}
 
 // Index returns VDT index
@@ -433,7 +434,8 @@ func (IncludedOccupiedCoreAssumption) String() string {
 	return "Included"
 }
 
-// TimedOutOccupiedCoreAssumption means the candidate occupying the core timed out and freed the core without advancing the para.
+// TimedOutOccupiedCoreAssumption means the candidate occupying the core timed out and freed the
+// core without advancing the para.
 type TimedOutOccupiedCoreAssumption struct{}
 
 // Index returns VDT index
