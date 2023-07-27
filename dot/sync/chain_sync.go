@@ -76,7 +76,7 @@ type ChainSync interface {
 	stop()
 
 	// called upon receiving a BlockAnnounceHandshake
-	setPeerHead(p peer.ID, hash common.Hash, number uint)
+	onBlockAnnounceHandshake(p peer.ID, hash common.Hash, number uint) error
 
 	// getSyncMode returns the current syncing state
 	getSyncMode() chainSyncState
@@ -186,15 +186,14 @@ func (cs *chainSync) start() {
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
-	cs.wg.Add(1)
-	go cs.workerPool.listenForRequests(cs.stopCh, &cs.wg)
+	// cs.wg.Add(1)
+	// go cs.workerPool.listenForRequests(cs.stopCh, &cs.wg)
 
-	cs.syncMode.Store(bootstrap)
-
-	cs.wg.Add(1)
-	go func() {
-		cs.bootstrapSync()
-	}()
+	// cs.syncMode.Store(bootstrap)
+	// cs.wg.Add(1)
+	// go func() {
+	// 	cs.bootstrapSync()
+	// }()
 }
 
 func (cs *chainSync) stop() {
@@ -286,18 +285,37 @@ func (cs *chainSync) getSyncMode() chainSyncState {
 	return cs.syncMode.Load().(chainSyncState)
 }
 
-// setPeerHead sets a peer's best known block
-func (cs *chainSync) setPeerHead(who peer.ID, bestHash common.Hash, bestNumber uint) {
+// onBlockAnnounceHandshake sets a peer's best known block
+func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash, bestNumber uint) error {
 	cs.workerPool.fromBlockAnnounce(who)
 
 	cs.peerViewLock.Lock()
-	defer cs.peerViewLock.Unlock()
-
 	cs.peerView[who] = peerView{
 		who:    who,
 		hash:   bestHash,
 		number: bestNumber,
 	}
+	cs.peerViewLock.Unlock()
+
+	if cs.getSyncMode() == bootstrap {
+		return nil
+	}
+
+	_, _, isFarFromTarget, err := cs.isBootstrap()
+	if err != nil && !errors.Is(err, errNoPeerViews) {
+		return fmt.Errorf("checking target distance: %w", err)
+	}
+
+	if !isFarFromTarget {
+		return nil
+	}
+
+	// we are more than 128 blocks behind the head, switch to bootstrap
+	cs.syncMode.Store(bootstrap)
+	isSyncedGauge.Set(0)
+	logger.Debugf("switched sync mode to %s", bootstrap.String())
+	go cs.bootstrapSync()
+	return nil
 }
 
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
@@ -319,8 +337,6 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	if err != nil && !errors.Is(err, errNoPeerViews) {
 		return fmt.Errorf("checking target distance: %w", err)
 	}
-
-	fmt.Printf("ON BLOCK ANNOUNCE FAR FROM TARGET: %v\n", isFarFromTarget)
 
 	if !isFarFromTarget {
 		return cs.requestAnnouncedBlock(announced)

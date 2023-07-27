@@ -40,6 +40,7 @@ type peerSyncWorker struct {
 	status         byte
 	timesPunished  int
 	punishmentTime time.Time
+	worker         *worker
 }
 
 type syncWorkerPool struct {
@@ -52,6 +53,8 @@ type syncWorkerPool struct {
 	taskQueue    chan *syncTask
 	workers      map[peer.ID]*peerSyncWorker
 	ignorePeers  map[peer.ID]struct{}
+
+	sharedGuard chan struct{}
 }
 
 func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWorkerPool {
@@ -61,6 +64,7 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 		workers:      make(map[peer.ID]*peerSyncWorker),
 		taskQueue:    make(chan *syncTask, maxRequestsAllowed+1),
 		ignorePeers:  make(map[peer.ID]struct{}),
+		sharedGuard:  make(chan struct{}, maxRequestsAllowed),
 	}
 
 	swp.availableCond = sync.NewCond(&swp.mtx)
@@ -95,18 +99,22 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 		return
 	}
 
-	worker, has := s.workers[who]
+	syncWorker, has := s.workers[who]
 	if !has {
-		worker = &peerSyncWorker{status: available}
-		s.workers[who] = worker
+		syncWorker = &peerSyncWorker{status: available}
+		syncWorker.worker = newWorker(who, s.sharedGuard, s.taskQueue, s.requestMaker)
+		syncWorker.worker.start()
 
+		s.workers[who] = syncWorker
 		logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 	}
 
 	// check if the punishment is not valid
-	if worker.status == punished && worker.punishmentTime.Before(time.Now()) {
-		worker.status = available
-		s.workers[who] = worker
+	if syncWorker.status == punished && syncWorker.punishmentTime.Before(time.Now()) {
+		syncWorker.status = available
+		syncWorker.worker.start()
+
+		s.workers[who] = syncWorker
 	}
 }
 
@@ -115,11 +123,26 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 // to perform the request, the response will be dispatch in the resultCh.
 func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	who *peer.ID, resultCh chan<- *syncTaskResult) {
-	s.taskQueue <- &syncTask{
+	task := &syncTask{
 		boundTo:  who,
 		request:  request,
 		resultCh: resultCh,
 	}
+
+	// if the request is bounded to a specific peer then just
+	// request it and sent through its queue otherwise send
+	// the request in the general queue where all worker are
+	// listening on
+	if who != nil {
+		s.mtx.RLock()
+		defer s.mtx.RUnlock()
+
+		syncWorker := s.workers[*who]
+		syncWorker.worker.processTask(task)
+	} else {
+		s.taskQueue <- task
+	}
+
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
@@ -140,26 +163,33 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	worker, has := s.workers[who]
+	syncWorker, has := s.workers[who]
 	if !has {
 		return
 	}
 
-	timesPunished := worker.timesPunished + 1
+	timesPunished := syncWorker.timesPunished + 1
 	punishmentTime := time.Duration(timesPunished) * punishmentBaseTimeout
 	logger.Debugf("⏱️ punishement time for peer %s: %.2fs", who, punishmentTime.Seconds())
 
-	s.workers[who] = &peerSyncWorker{
-		status:         punished,
-		timesPunished:  timesPunished,
-		punishmentTime: time.Now().Add(punishmentTime),
-	}
+	syncWorker.status = punished
+	syncWorker.timesPunished = timesPunished
+	syncWorker.punishmentTime = time.Now().Add(punishmentTime)
+	syncWorker.worker.stop()
+
+	s.workers[who] = syncWorker
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	syncWorker, has := s.workers[who]
+	if !has {
+		return
+	}
+
+	syncWorker.worker.stop()
 	delete(s.workers, who)
 	s.ignorePeers[who] = struct{}{}
 }
