@@ -369,3 +369,60 @@ func TestMustHexTo32BArray(t *testing.T) {
 	result := mustHexTo32BArray(t, inputHex)
 	require.Equal(t, expectedArray, result)
 }
+
+func TestPersistedValidationData(t *testing.T) {
+	expected := []byte{12, 7, 8, 9, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0} //nolint:lll
+
+	pvd := PersistedValidationData{
+		ParentHead:             HeadData{Data: []byte{7, 8, 9}},
+		RelayParentNumber:      uint32(10),
+		RelayParentStorageRoot: common.Hash{},
+		MaxPovSize:             uint32(1024),
+	}
+
+	actual, err := scale.Marshal(pvd)
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	newpvd := PersistedValidationData{}
+	err = scale.Unmarshal(actual, &newpvd)
+	require.NoError(t, err)
+	require.Equal(t, pvd, newpvd)
+}
+
+func TestOccupiedCoreAssumption(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   any
+		out  byte
+	}{
+		{
+			name: "included",
+			in:   IncludedOccupiedCoreAssumption{},
+			out:  0,
+		},
+		{
+			name: "timeout",
+			in:   TimedOutOccupiedCoreAssumption{},
+			out:  1,
+		},
+		{
+			name: "free",
+			in:   FreeOccupiedCoreAssumption{},
+			out:  2,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			vdt := NewOccupiedCoreAssumption()
+			err := vdt.SetValue(tc.in)
+			require.NoError(t, err)
+			res, err := scale.Marshal(vdt)
+			require.NoError(t, err)
+			require.Equal(t, []byte{tc.out}, res)
+
+			vdt2 := NewOccupiedCoreAssumption()
+			err = scale.Unmarshal([]byte{tc.out}, &vdt2)
+			require.NoError(t, err)
+		})
+	}
+}
