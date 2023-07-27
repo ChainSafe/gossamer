@@ -1,6 +1,7 @@
 package dispute
 
 import (
+	"github.com/ChainSafe/gossamer/internal/log"
 	"sync"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/btree"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
 
 // Backend is the backend for the dispute coordinator module.
 type Backend interface {
@@ -142,11 +145,17 @@ func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
 	recentDisputes.Ascend(func(i btree.Item) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
-			panic("invalid dispute type")
+			logger.Errorf("cast to dispute. Expected *types.Dispute, got %T", i)
+			return true
 		}
 
 		concludedAt, err := dispute.DisputeStatus.ConcludedAt()
-		if err == nil && concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > uint64(now) {
+		if err != nil {
+			logger.Errorf("failed to get concluded at: %s", err)
+			return true
+		}
+
+		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > uint64(now) {
 			activeDisputes.ReplaceOrInsert(dispute)
 		}
 
