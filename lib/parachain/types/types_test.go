@@ -393,24 +393,40 @@ func TestPersistedValidationData(t *testing.T) {
 }
 
 func TestOccupiedCoreAssumption(t *testing.T) {
-	included := NewOccupiedCoreAssumption()
-	err := included.Set(IncludedOccupiedCoreAssumption{})
-	require.NoError(t, err)
-	res, err := scale.Marshal(included)
-	require.NoError(t, err)
-	require.Equal(t, []byte{0}, res)
 
-	timeout := NewOccupiedCoreAssumption()
-	err = timeout.Set(TimedOutOccupiedCoreAssumption{})
-	require.NoError(t, err)
-	res, err = scale.Marshal(timeout)
-	require.NoError(t, err)
-	require.Equal(t, []byte{1}, res)
+	for _, tc := range []struct {
+		name string
+		in   scale.VaryingDataTypeValue
+		out  byte
+	}{
+		{
+			name: "included",
+			in:   IncludedOccupiedCoreAssumption{},
+			out:  0,
+		},
+		{
+			name: "timeout",
+			in:   TimedOutOccupiedCoreAssumption{},
+			out:  1,
+		},
+		{
+			name: "free",
+			in:   FreeOccupiedCoreAssumption{},
+			out:  2,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			vdt := NewOccupiedCoreAssumption()
+			err := vdt.Set(tc.in)
+			require.NoError(t, err)
+			res, err := scale.Marshal(vdt)
+			require.NoError(t, err)
+			require.Equal(t, []byte{tc.out}, res)
 
-	free := NewOccupiedCoreAssumption()
-	err = free.Set(FreeOccupiedCoreAssumption{})
-	require.NoError(t, err)
-	res, err = scale.Marshal(free)
-	require.NoError(t, err)
-	require.Equal(t, []byte{2}, res)
+			vdt2 := NewOccupiedCoreAssumption()
+			err = scale.Unmarshal([]byte{tc.out}, &vdt2)
+			require.NoError(t, err)
+			require.Equal(t, tc.in.Index(), uint(tc.out))
+		})
+	}
 }

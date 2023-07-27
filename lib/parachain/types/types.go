@@ -459,13 +459,10 @@ func (FreeOccupiedCoreAssumption) String() string {
 
 // NewOccupiedCoreAssumption creates a OccupiedCoreAssumption varying data type.
 func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
-	vdt, err := scale.NewVaryingDataType(
+	vdt := scale.MustNewVaryingDataType(
 		IncludedOccupiedCoreAssumption{},
 		FreeOccupiedCoreAssumption{},
 		TimedOutOccupiedCoreAssumption{})
-	if err != nil {
-		panic(err)
-	}
 
 	return OccupiedCoreAssumption(vdt)
 }
