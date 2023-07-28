@@ -146,7 +146,7 @@ func decodeLeaf(reader io.Reader, variant node.Variant, nibbleCount uint16) (*No
 
 	if variant == node.LeafVariant {
 		sd := scale.NewDecoder(reader)
-		sd.Decode(nodeValue.Data)
+		err := sd.Decode(nodeValue.Data)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}

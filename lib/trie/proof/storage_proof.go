@@ -19,7 +19,7 @@ func (sp *StorageProof) toMemoryDB() hashdb.HashDB {
 	db := memorydb.NewMemoryDB()
 
 	for _, proof := range sp.trieNodes {
-		db.Insert(EmptyPrefix, proof)
+		db.Insert(proof)
 	}
 
 	return db

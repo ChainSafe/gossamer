@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -51,17 +50,17 @@ func (mdb *MemoryDB) Get(key []byte) (value []byte, err error) {
 	return nil, nil
 }
 
-func (mdb *MemoryDB) Insert(prefix hashdb.Prefix, value []byte) common.Hash {
+func (mdb *MemoryDB) Insert(value []byte) common.Hash {
 	if bytes.Equal(value, mdb.nullNodeData) {
 		return mdb.hashedNullNode
 	}
 
 	key := common.MustBlake2bHash(value)
-	mdb.emplace(key, prefix, value)
+	mdb.emplace(key, value)
 	return key
 }
 
-func (mdb *MemoryDB) emplace(key common.Hash, prefix hashdb.Prefix, value []byte) {
+func (mdb *MemoryDB) emplace(key common.Hash, value []byte) {
 	if bytes.Equal(value, mdb.nullNodeData) {
 		return
 	}

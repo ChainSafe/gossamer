@@ -57,7 +57,7 @@ func (ns *NibbleSlice) At(i uint) byte {
 }
 
 func (ns *NibbleSlice) OriginalDataAsPrefix() hashdb.Prefix {
-	return hashdb.Prefix{ns.data, nil}
+	return hashdb.Prefix{Data: ns.data, Padded: nil}
 }
 
 func (ns *NibbleSlice) StartsWith(other *NibbleSlice) bool {

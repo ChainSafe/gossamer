@@ -79,7 +79,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 				logger.Errorf("Leaf")
 				//If leaf and matches return value
 				if bytes.Equal(decodedNode.Slice.Data(), partial.Data()) {
-					return l.loadValue(decodedNode.Value, nibbleKey.OriginalDataAsPrefix())
+					return l.loadValue(decodedNode.Value)
 				}
 				return EmptyValue, nil
 			//Nibbled branch
@@ -95,7 +95,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 
 				if partial.Len() == slice.Len() {
 					if decodedNode.Value != nil {
-						return l.loadValue(decodedNode.Value, nibbleKey.OriginalDataAsPrefix())
+						return l.loadValue(decodedNode.Value)
 					}
 				}
 
@@ -120,7 +120,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 	}
 }
 
-func (l Lookup) loadValue(value *NodeValue, prefix hashdb.Prefix) ([]byte, error) {
+func (l Lookup) loadValue(value *NodeValue) ([]byte, error) {
 	if value != nil {
 		return nil, fmt.Errorf("trying to load value from nil node")
 	}

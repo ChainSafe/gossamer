@@ -12,5 +12,5 @@ type Prefix struct {
 
 type HashDB interface {
 	Get(key []byte) (value []byte, err error)
-	Insert(prefix Prefix, value []byte) common.Hash
+	Insert(value []byte) common.Hash
 }
