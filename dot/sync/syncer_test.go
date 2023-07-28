@@ -282,7 +282,7 @@ func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	chainSync := NewMockChainSync(ctrl)
-	chainSync.EXPECT().setPeerHead(peer.ID("peer"), common.Hash{1}, uint(2))
+	chainSync.EXPECT().onBlockAnnounceHandshake(peer.ID("peer"), common.Hash{1}, uint(2))
 
 	service := Service{
 		chainSync: chainSync,

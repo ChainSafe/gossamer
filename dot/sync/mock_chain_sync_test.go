@@ -78,16 +78,18 @@ func (mr *MockChainSyncMockRecorder) onBlockAnnounce(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounce", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounce), arg0)
 }
 
-// setPeerHead mocks base method.
-func (m *MockChainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) {
+// onBlockAnnounceHandshake mocks base method.
+func (m *MockChainSync) onBlockAnnounceHandshake(p peer.ID, hash common.Hash, number uint) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setPeerHead", p, hash, number)
+	ret := m.ctrl.Call(m, "onBlockAnnounceHandshake", p, hash, number)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// setPeerHead indicates an expected call of setPeerHead.
-func (mr *MockChainSyncMockRecorder) setPeerHead(p, hash, number interface{}) *gomock.Call {
+// onBlockAnnounceHandshake indicates an expected call of onBlockAnnounceHandshake.
+func (mr *MockChainSyncMockRecorder) onBlockAnnounceHandshake(p, hash, number interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setPeerHead", reflect.TypeOf((*MockChainSync)(nil).setPeerHead), p, hash, number)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounceHandshake", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounceHandshake), p, hash, number)
 }
 
 // start mocks base method.

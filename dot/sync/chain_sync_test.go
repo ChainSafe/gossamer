@@ -434,7 +434,7 @@ func Test_chainSync_onBlockAnnounce_tipModeNeedToCatchup(t *testing.T) {
 	wg.Wait()
 }
 
-func TestChainSync_setPeerHead(t *testing.T) {
+func TestChainSync_onBlockAnnounceHandshake(t *testing.T) {
 	const randomHashString = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
 	randomHash := common.MustHexToHash(randomHashString)
 
@@ -527,7 +527,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			cs := tt.newChainSync(t, ctrl)
-			cs.setPeerHead(tt.peerID, tt.bestHash, tt.bestNumber)
+			cs.onBlockAnnounceHandshake(tt.peerID, tt.bestHash, tt.bestNumber)
 
 			view, exists := cs.peerView[tt.peerID]
 			require.True(t, exists)
