@@ -1,29 +1,24 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package triedb
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import (
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
+	"github.com/ChainSafe/gossamer/internal/trie/triedb/nibble"
+)
 
-type Prefix struct {
-	data   []byte
-	padded *byte
-}
-
-type HashDB interface {
-	DBGetter
-	GetWithPrefix(key []byte, prefix Prefix) (value []byte, err error)
-	Insert(prefix Prefix, value []byte) common.Hash
-}
+var logger = log.NewFromGlobal(log.AddContext("pkg", "trie"))
 
 type TrieDBBuilder struct {
-	db     HashDB
+	db     hashdb.HashDB
 	root   []byte
 	layout TrieLayout
 	//TODO: implement cache and recorder
 }
 
-func NewTrieDBBuilder(db HashDB, root []byte, layout TrieLayout) *TrieDBBuilder {
+func NewTrieDBBuilder(db hashdb.HashDB, root []byte, layout TrieLayout) *TrieDBBuilder {
 	return &TrieDBBuilder{db, root, layout}
 }
 
@@ -32,12 +27,12 @@ func (tdbb TrieDBBuilder) Build() *TrieDB {
 }
 
 type TrieDB struct {
-	db     HashDB
+	db     hashdb.HashDB
 	root   []byte
 	Layout TrieLayout
 	//TODO: implement cache and recorder
 }
 
 func (tdb TrieDB) GetValue(key []byte) ([]byte, error) {
-	return NewLookup(tdb.db, tdb.root).Lookup(key, NewNibbleSlice(key))
+	return NewLookup(tdb.db, tdb.root).Lookup(key, nibble.NewNibbleSlice(key))
 }

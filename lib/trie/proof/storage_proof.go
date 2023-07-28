@@ -4,19 +4,19 @@
 package proof
 
 import (
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
+	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
+	"github.com/ChainSafe/gossamer/internal/trie/memorydb"
 )
 
-var EmptyPrefix = trie.Prefix{}
+var EmptyPrefix = hashdb.Prefix{}
 
 type StorageProof struct {
 	//TODO: Improve it using sets
 	trieNodes [][]byte
 }
 
-func (sp *StorageProof) toMemoryDB() trie.HashDB {
-	db := db.NewMemoryDB()
+func (sp *StorageProof) toMemoryDB() hashdb.HashDB {
+	db := memorydb.NewMemoryDB()
 
 	for _, proof := range sp.trieNodes {
 		db.Insert(EmptyPrefix, proof)

@@ -12,7 +12,7 @@ import (
 // encodeHeader writes the encoded header for the node.
 func encodeHeader(node *Node, writer io.Writer) (err error) {
 	if node == nil {
-		_, err = writer.Write([]byte{emptyVariant.bits})
+		_, err = writer.Write([]byte{EmptyVariant.bits})
 		return err
 	}
 
@@ -22,19 +22,19 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 	}
 
 	// Merge variant byte and partial key length together
-	var nodeVariant variant
+	var nodeVariant Variant
 	if node.Kind() == Leaf {
 		if node.HashedValue {
-			nodeVariant = leafWithHashedValueVariant
+			nodeVariant = LeafWithHashedValueVariant
 		} else {
-			nodeVariant = leafVariant
+			nodeVariant = LeafVariant
 		}
 	} else if node.StorageValue == nil {
-		nodeVariant = branchVariant
+		nodeVariant = BranchVariant
 	} else if node.HashedValue {
-		nodeVariant = branchWithHashedValueVariant
+		nodeVariant = BranchWithHashedValueVariant
 	} else {
-		nodeVariant = branchWithValueVariant
+		nodeVariant = BranchWithValueVariant
 	}
 
 	buffer := make([]byte, 1)
@@ -81,7 +81,7 @@ var (
 	ErrPartialKeyTooBig = errors.New("partial key length cannot be larger than 2^16")
 )
 
-func decodeHeader(reader io.Reader) (nodeVariant variant,
+func DecodeHeader(reader io.Reader) (nodeVariant Variant,
 	partialKeyLength uint16, err error) {
 	buffer := make([]byte, 1)
 	_, err = reader.Read(buffer)
@@ -91,11 +91,11 @@ func decodeHeader(reader io.Reader) (nodeVariant variant,
 
 	nodeVariant, partialKeyLengthHeader, err := decodeHeaderByte(buffer[0])
 	if err != nil {
-		return variant{}, 0, fmt.Errorf("decoding header byte: %w", err)
+		return Variant{}, 0, fmt.Errorf("decoding header byte: %w", err)
 	}
 
 	partialKeyLengthHeaderMask := nodeVariant.partialKeyLengthHeaderMask()
-	if partialKeyLengthHeaderMask == emptyVariant.bits {
+	if partialKeyLengthHeaderMask == EmptyVariant.bits {
 		// empty node or compact encoding which have no
 		// partial key. The partial key length mask is
 		// 0b0000_0000 since the variant mask is
@@ -119,7 +119,7 @@ func decodeHeader(reader io.Reader) (nodeVariant variant,
 	for {
 		_, err = reader.Read(buffer)
 		if err != nil {
-			return variant{}, 0, fmt.Errorf("reading key length: %w", err)
+			return Variant{}, 0, fmt.Errorf("reading key length: %w", err)
 		}
 
 		previousKeyLength = partialKeyLength
@@ -130,7 +130,7 @@ func decodeHeader(reader io.Reader) (nodeVariant variant,
 			// maximum uint16 value; therefore if we overflowed, we went over
 			// this maximum.
 			overflowed := maxPartialKeyLength - previousKeyLength + partialKeyLength
-			return variant{}, 0, fmt.Errorf("%w: overflowed by %d", ErrPartialKeyTooBig, overflowed)
+			return Variant{}, 0, fmt.Errorf("%w: overflowed by %d", ErrPartialKeyTooBig, overflowed)
 		}
 
 		if buffer[0] < 255 {
@@ -150,17 +150,17 @@ var ErrVariantUnknown = errors.New("node variant is unknown")
 // reasons only, instead of having it locally defined in
 // the decodeHeaderByte function below.
 // For 7 variants, the performance is improved by ~20%.
-var variantsOrderedByBitMask = [...]variant{
-	leafVariant,                  // mask 1100_0000
-	branchVariant,                // mask 1100_0000
-	branchWithValueVariant,       // mask 1100_0000
-	leafWithHashedValueVariant,   // mask 1110_0000
-	branchWithHashedValueVariant, // mask 1111_0000
-	emptyVariant,                 // mask 1111_1111
+var variantsOrderedByBitMask = [...]Variant{
+	LeafVariant,                  // mask 1100_0000
+	BranchVariant,                // mask 1100_0000
+	BranchWithValueVariant,       // mask 1100_0000
+	LeafWithHashedValueVariant,   // mask 1110_0000
+	BranchWithHashedValueVariant, // mask 1111_0000
+	EmptyVariant,                 // mask 1111_1111
 	compactEncodingVariant,       // mask 1111_1111
 }
 
-func decodeHeaderByte(header byte) (nodeVariant variant,
+func decodeHeaderByte(header byte) (nodeVariant Variant,
 	partialKeyLengthHeader byte, err error) {
 	var partialKeyLengthHeaderMask byte
 	for i := len(variantsOrderedByBitMask) - 1; i >= 0; i-- {

@@ -37,7 +37,7 @@ func Test_Node_Encode(t *testing.T) {
 			node: nil,
 			writes: []writeCall{
 				{
-					written: []byte{emptyVariant.bits},
+					written: []byte{EmptyVariant.bits},
 				},
 			},
 		},
@@ -47,7 +47,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 1},
+					written: []byte{LeafVariant.bits | 1},
 					err:     errTest,
 				},
 			},
@@ -61,7 +61,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 3}, // partial key length 3
+					written: []byte{LeafVariant.bits | 3}, // partial key length 3
 				},
 				{
 					written: []byte{0x01, 0x23},
@@ -78,7 +78,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 3}, // partial key length 3
+					written: []byte{LeafVariant.bits | 3}, // partial key length 3
 				},
 				{
 					written: []byte{0x01, 0x23},
@@ -98,7 +98,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 3}, // partial key length 3
+					written: []byte{LeafVariant.bits | 3}, // partial key length 3
 				},
 				{written: []byte{0x01, 0x23}},
 				{written: []byte{12}},
@@ -111,7 +111,7 @@ func Test_Node_Encode(t *testing.T) {
 				StorageValue: []byte{},
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
+				{written: []byte{LeafVariant.bits | 3}}, // partial key length 3
 				{written: []byte{0x01, 0x23}},           // partial key
 				{written: []byte{0}},                    // node storage value encoded length
 				{written: []byte{}},                     // node storage value
@@ -125,7 +125,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafWithHashedValueVariant.bits | 3},
+					written: []byte{LeafWithHashedValueVariant.bits | 3},
 				},
 				{written: []byte{0x01, 0x23}},
 				{written: hashedValue.ToBytes()},
@@ -139,7 +139,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafWithHashedValueVariant.bits | 3},
+					written: []byte{LeafWithHashedValueVariant.bits | 3},
 				},
 				{
 					written: []byte{0x01, 0x23},
@@ -160,7 +160,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafWithHashedValueVariant.bits | 3},
+					written: []byte{LeafWithHashedValueVariant.bits | 3},
 				},
 				{written: []byte{0x01, 0x23}},
 			},
@@ -174,7 +174,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchVariant.bits | 1}, // partial key length 1
+					written: []byte{BranchVariant.bits | 1}, // partial key length 1
 					err:     errTest,
 				},
 			},
@@ -189,7 +189,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -210,7 +210,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -234,7 +234,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -261,7 +261,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -293,7 +293,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -322,7 +322,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -350,7 +350,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithHashedValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithHashedValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},
@@ -381,7 +381,7 @@ func Test_Node_Encode(t *testing.T) {
 			},
 			writes: []writeCall{
 				{ // header
-					written: []byte{branchWithHashedValueVariant.bits | 3}, // partial key length 3
+					written: []byte{BranchWithHashedValueVariant.bits | 3}, // partial key length 3
 				},
 				{ // key LE
 					written: []byte{0x01, 0x23},

@@ -36,21 +36,21 @@ const hashLength = common.HashLength
 // For branch decoding, see the comments on decodeBranch.
 // For leaf decoding, see the comments on decodeLeaf.
 func Decode(reader io.Reader) (n *Node, err error) {
-	variant, partialKeyLength, err := decodeHeader(reader)
+	variant, partialKeyLength, err := DecodeHeader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("decoding header: %w", err)
 	}
 
 	switch variant {
-	case emptyVariant:
+	case EmptyVariant:
 		return EmptyNode, nil
-	case leafVariant, leafWithHashedValueVariant:
+	case LeafVariant, LeafWithHashedValueVariant:
 		n, err = decodeLeaf(reader, variant, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
-	case branchVariant, branchWithValueVariant, branchWithHashedValueVariant:
+	case BranchVariant, BranchWithValueVariant, BranchWithHashedValueVariant:
 		n, err = decodeBranch(reader, variant, partialKeyLength)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
@@ -67,13 +67,13 @@ func Decode(reader io.Reader) (n *Node, err error) {
 // reconstructing the child nodes from the encoding. This function instead stubs where the
 // children are known to be with an empty leaf. The children nodes hashes are then used to
 // find other storage values using the persistent database.
-func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
+func decodeBranch(reader io.Reader, variant Variant, partialKeyLength uint16) (
 	node *Node, err error) {
 	node = &Node{
 		Children: make([]*Node, ChildrenCapacity),
 	}
 
-	node.PartialKey, err = decodeKey(reader, partialKeyLength)
+	node.PartialKey, err = DecodeKey(reader, partialKeyLength)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}
@@ -87,12 +87,12 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 	sd := scale.NewDecoder(reader)
 
 	switch variant {
-	case branchWithValueVariant:
+	case BranchWithValueVariant:
 		err := sd.Decode(&node.StorageValue)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
-	case branchWithHashedValueVariant:
+	case BranchWithHashedValueVariant:
 		hashedValue, err := decodeHashedValue(reader)
 		if err != nil {
 			return nil, err
@@ -136,17 +136,17 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 }
 
 // decodeLeaf reads from a reader and decodes to a leaf node.
-func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (node *Node, err error) {
+func decodeLeaf(reader io.Reader, variant Variant, partialKeyLength uint16) (node *Node, err error) {
 	node = &Node{}
 
-	node.PartialKey, err = decodeKey(reader, partialKeyLength)
+	node.PartialKey, err = DecodeKey(reader, partialKeyLength)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
 	}
 
 	sd := scale.NewDecoder(reader)
 
-	if variant == leafWithHashedValueVariant {
+	if variant == LeafWithHashedValueVariant {
 		hashedValue, err := decodeHashedValue(reader)
 		if err != nil {
 			return nil, err

@@ -121,7 +121,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 			err := testCase.branchToEncode.Encode(buffer)
 			require.NoError(t, err)
 
-			nodeVariant, partialKeyLength, err := decodeHeader(buffer)
+			nodeVariant, partialKeyLength, err := DecodeHeader(buffer)
 			require.NoError(t, err)
 
 			resultBranch, err := decodeBranch(buffer, nodeVariant, partialKeyLength)

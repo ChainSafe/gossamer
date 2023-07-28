@@ -33,7 +33,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children: make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchVariant.bits}},
+				{written: []byte{BranchVariant.bits}},
 			},
 		},
 		"branch_with_value": {
@@ -42,7 +42,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children:     make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchWithValueVariant.bits}},
+				{written: []byte{BranchWithValueVariant.bits}},
 			},
 		},
 		"branch_with_hashed_value": {
@@ -52,7 +52,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children:     make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchWithHashedValueVariant.bits}},
+				{written: []byte{BranchWithHashedValueVariant.bits}},
 			},
 		},
 		"branch_with_key_of_length_30": {
@@ -61,7 +61,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchVariant.bits | 30}},
+				{written: []byte{BranchVariant.bits | 30}},
 			},
 		},
 		"branch_with_key_of_length_62": {
@@ -70,7 +70,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchVariant.bits | 62}},
+				{written: []byte{BranchVariant.bits | 62}},
 			},
 		},
 		"branch_with_key_of_length_63": {
@@ -79,7 +79,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchVariant.bits | 63}},
+				{written: []byte{BranchVariant.bits | 63}},
 				{written: []byte{0x00}}, // trailing 0 to indicate the partial
 				// key length is done here.
 			},
@@ -90,7 +90,7 @@ func Test_encodeHeader(t *testing.T) {
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
-				{written: []byte{branchVariant.bits | 63}},
+				{written: []byte{BranchVariant.bits | 63}},
 				{written: []byte{0x01}},
 			},
 		},
@@ -100,7 +100,7 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{branchVariant.bits},
+					written: []byte{BranchVariant.bits},
 					err:     errTest,
 				},
 			},
@@ -109,12 +109,12 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch_with_long_key_length_write_error": {
 			node: &Node{
-				PartialKey: make([]byte, int(^branchVariant.mask)+1),
+				PartialKey: make([]byte, int(^BranchVariant.mask)+1),
 				Children:   make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{
-					written: []byte{branchVariant.bits | ^branchVariant.mask},
+					written: []byte{BranchVariant.bits | ^BranchVariant.mask},
 				},
 				{
 					written: []byte{0x01},
@@ -130,13 +130,13 @@ func Test_encodeHeader(t *testing.T) {
 				HashedValue:  true,
 			},
 			writes: []writeCall{
-				{written: []byte{leafWithHashedValueVariant.bits}},
+				{written: []byte{LeafWithHashedValueVariant.bits}},
 			},
 		},
 		"leaf_with_no_key": {
 			node: &Node{StorageValue: []byte{1}},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits}},
+				{written: []byte{LeafVariant.bits}},
 			},
 		},
 		"leaf_with_key_of_length_30": {
@@ -144,7 +144,7 @@ func Test_encodeHeader(t *testing.T) {
 				PartialKey: make([]byte, 30),
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | 30}},
+				{written: []byte{LeafVariant.bits | 30}},
 			},
 		},
 		"leaf_with_short_key_write_error": {
@@ -153,7 +153,7 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 30},
+					written: []byte{LeafVariant.bits | 30},
 					err:     errTest,
 				},
 			},
@@ -165,7 +165,7 @@ func Test_encodeHeader(t *testing.T) {
 				PartialKey: make([]byte, 62),
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | 62}},
+				{written: []byte{LeafVariant.bits | 62}},
 			},
 		},
 		"leaf_with_key_of_length_63": {
@@ -173,7 +173,7 @@ func Test_encodeHeader(t *testing.T) {
 				PartialKey: make([]byte, 63),
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | 63}},
+				{written: []byte{LeafVariant.bits | 63}},
 				{written: []byte{0x0}},
 			},
 		},
@@ -182,7 +182,7 @@ func Test_encodeHeader(t *testing.T) {
 				PartialKey: make([]byte, 64),
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | 63}},
+				{written: []byte{LeafVariant.bits | 63}},
 				{written: []byte{0x1}},
 			},
 		},
@@ -192,7 +192,7 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{
-					written: []byte{leafVariant.bits | 63},
+					written: []byte{LeafVariant.bits | 63},
 					err:     errTest,
 				},
 			},
@@ -201,20 +201,20 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf_with_key_length_over_3_bytes": {
 			node: &Node{
-				PartialKey: make([]byte, int(^leafVariant.mask)+0b1111_1111+0b0000_0001),
+				PartialKey: make([]byte, int(^LeafVariant.mask)+0b1111_1111+0b0000_0001),
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | ^leafVariant.mask}},
+				{written: []byte{LeafVariant.bits | ^LeafVariant.mask}},
 				{written: []byte{0b1111_1111}},
 				{written: []byte{0b0000_0001}},
 			},
 		},
 		"leaf_with_key_length_over_3_bytes_and_last_byte_zero": {
 			node: &Node{
-				PartialKey: make([]byte, int(^leafVariant.mask)+0b1111_1111),
+				PartialKey: make([]byte, int(^LeafVariant.mask)+0b1111_1111),
 			},
 			writes: []writeCall{
-				{written: []byte{leafVariant.bits | ^leafVariant.mask}},
+				{written: []byte{LeafVariant.bits | ^LeafVariant.mask}},
 				{written: []byte{0b1111_1111}},
 				{written: []byte{0x00}},
 			},
@@ -270,7 +270,7 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 	// mock writer since it's too slow, so we use
 	// an actual buffer.
 
-	variant := leafVariant.bits
+	Variant := LeafVariant.bits
 	const partialKeyLengthHeaderMask = 0b0011_1111
 	const keyLength = uint(maxPartialKeyLength)
 	extraKeyBytesNeeded := math.Ceil(float64(maxPartialKeyLength-partialKeyLengthHeaderMask) / 255.0)
@@ -278,7 +278,7 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 
 	lengthLeft := maxPartialKeyLength
 	expectedBytes := make([]byte, expectedEncodingLength)
-	expectedBytes[0] = variant | partialKeyLengthHeaderMask
+	expectedBytes[0] = Variant | partialKeyLengthHeaderMask
 	lengthLeft -= partialKeyLengthHeaderMask
 	for i := 1; i < len(expectedBytes)-1; i++ {
 		expectedBytes[i] = 255
@@ -304,7 +304,7 @@ func Test_decodeHeader(t *testing.T) {
 
 	testCases := map[string]struct {
 		reads            []readCall
-		nodeVariant      variant
+		nodeVariant      Variant
 		partialKeyLength uint16
 		errWrapped       error
 		errMessage       string
@@ -325,14 +325,14 @@ func Test_decodeHeader(t *testing.T) {
 		},
 		"partial_key_length_contained_in_first_byte": {
 			reads: []readCall{
-				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1110}},
+				{buffArgCap: 1, read: []byte{LeafVariant.bits | 0b0011_1110}},
 			},
-			nodeVariant:      leafVariant,
+			nodeVariant:      LeafVariant,
 			partialKeyLength: uint16(0b0011_1110),
 		},
 		"long_partial_key_length_and_second_byte_read_error": {
 			reads: []readCall{
-				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1111}},
+				{buffArgCap: 1, read: []byte{LeafVariant.bits | 0b0011_1111}},
 				{buffArgCap: 1, err: errTest},
 			},
 			errWrapped: errTest,
@@ -340,11 +340,11 @@ func Test_decodeHeader(t *testing.T) {
 		},
 		"partial_key_length_spread_on_multiple_bytes": {
 			reads: []readCall{
-				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1111}},
+				{buffArgCap: 1, read: []byte{LeafVariant.bits | 0b0011_1111}},
 				{buffArgCap: 1, read: []byte{0b1111_1111}},
 				{buffArgCap: 1, read: []byte{0b1111_0000}},
 			},
-			nodeVariant:      leafVariant,
+			nodeVariant:      LeafVariant,
 			partialKeyLength: uint16(0b0011_1111 + 0b1111_1111 + 0b1111_0000),
 		},
 		"partial_key_length_too_long": {
@@ -380,7 +380,7 @@ func Test_decodeHeader(t *testing.T) {
 				previousCall = call
 			}
 
-			nodeVariant, partialKeyLength, err := decodeHeader(reader)
+			nodeVariant, partialKeyLength, err := DecodeHeader(reader)
 
 			assert.Equal(t, testCase.nodeVariant, nodeVariant)
 			assert.Equal(t, int(testCase.partialKeyLength), int(partialKeyLength))
@@ -397,39 +397,39 @@ func Test_decodeHeaderByte(t *testing.T) {
 
 	testCases := map[string]struct {
 		header                 byte
-		nodeVariant            variant
+		nodeVariant            Variant
 		partialKeyLengthHeader byte
 		errWrapped             error
 		errMessage             string
 	}{
 		"empty_variant_header": {
 			header:                 0b0000_0000,
-			nodeVariant:            emptyVariant,
+			nodeVariant:            EmptyVariant,
 			partialKeyLengthHeader: 0b0000_0000,
 		},
 		"branch_with_value_header": {
 			header:                 0b1110_1001,
-			nodeVariant:            branchWithValueVariant,
+			nodeVariant:            BranchWithValueVariant,
 			partialKeyLengthHeader: 0b0010_1001,
 		},
 		"branch_header": {
 			header:                 0b1010_1001,
-			nodeVariant:            branchVariant,
+			nodeVariant:            BranchVariant,
 			partialKeyLengthHeader: 0b0010_1001,
 		},
 		"leaf_header": {
 			header:                 0b0110_1001,
-			nodeVariant:            leafVariant,
+			nodeVariant:            LeafVariant,
 			partialKeyLengthHeader: 0b0010_1001,
 		},
 		"leaf_containing_hashes_header": {
 			header:                 0b0011_1001,
-			nodeVariant:            leafWithHashedValueVariant,
+			nodeVariant:            LeafWithHashedValueVariant,
 			partialKeyLengthHeader: 0b0001_1001,
 		},
 		"branch_containing_hashes_header": {
 			header:                 0b0001_1001,
-			nodeVariant:            branchWithHashedValueVariant,
+			nodeVariant:            BranchWithHashedValueVariant,
 			partialKeyLengthHeader: 0b0000_1001,
 		},
 		"compact_encoding_header": {
@@ -465,8 +465,8 @@ func Test_decodeHeaderByte(t *testing.T) {
 func Test_variantsOrderedByBitMask(t *testing.T) {
 	t.Parallel()
 
-	slice := make([]variant, len(variantsOrderedByBitMask))
-	sortedSlice := make([]variant, len(variantsOrderedByBitMask))
+	slice := make([]Variant, len(variantsOrderedByBitMask))
+	sortedSlice := make([]Variant, len(variantsOrderedByBitMask))
 	copy(slice, variantsOrderedByBitMask[:])
 	copy(sortedSlice, variantsOrderedByBitMask[:])
 
@@ -483,7 +483,7 @@ func Benchmark_decodeHeaderByte(b *testing.B) {
 	// 2.987 ns/op	       0 B/op	       0 allocs/op
 	// With locally scoped variants slice:
 	// 3.873 ns/op	       0 B/op	       0 allocs/op
-	header := leafVariant.bits | 0b0000_0001
+	header := LeafVariant.bits | 0b0000_0001
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = decodeHeaderByte(header)

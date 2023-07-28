@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/qdm12/gotree"
 )
@@ -57,6 +58,7 @@ func (n *Node) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
 	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
+	stringNode.Appendf("Hashed value: " + strconv.FormatBool(n.HashedValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}

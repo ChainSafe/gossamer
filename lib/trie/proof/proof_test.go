@@ -86,12 +86,19 @@ func TestParachainHeaderStateProof(t *testing.T) {
 	storageProof := NewStorageProof(proof)
 
 	proofDB := storageProof.toMemoryDB()
-	require.NoError(t, err)
+	//trieDB := triedb.NewTrieDBBuilder(proofDB, stateRoot, triedb.TrieLayoutV1{}).Build()
+	//require.NoError(t, err)
 
 	trie, err := buildTrie(proof, stateRoot, proofDB)
 	require.NoError(t, err)
-	value := trie.Get(encodeStorageKey)
-	require.Equal(t, expectedValue, value)
+	value1 := trie.Get(encodeStorageKey)
+
+	require.Equal(t, expectedValue, value1)
+
+	//value, err := trieDB.GetValue(encodeStorageKey)
+	//require.NoError(t, err)
+
+	//require.Equal(t, expectedValue, value)
 
 	// Also check that we can verify the proof
 	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue)

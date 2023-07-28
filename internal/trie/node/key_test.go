@@ -134,7 +134,7 @@ func Test_decodeKey(t *testing.T) {
 				previousCall = call
 			}
 
-			b, err := decodeKey(reader, testCase.partialKeyLength)
+			b, err := DecodeKey(reader, testCase.partialKeyLength)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {

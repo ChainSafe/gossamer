@@ -1,17 +1,15 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package db
+package memorydb
 
 import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 )
-
-type KeyFunction func(key common.Hash, prefix trie.Prefix) common.Hash
 
 type MemoryDBItem struct {
 	data []byte
@@ -23,7 +21,6 @@ type MemoryDB struct {
 	data           map[common.Hash]MemoryDBItem
 	hashedNullNode common.Hash
 	nullNodeData   []byte
-	keyFunction    KeyFunction
 }
 
 func NewMemoryDB() *MemoryDB {
@@ -37,7 +34,6 @@ func newMemoryDBFromNullNode(nullKey []byte, nullNodeData []byte) *MemoryDB {
 		data:           make(map[common.Hash]MemoryDBItem),
 		hashedNullNode: hashedKey,
 		nullNodeData:   nullNodeData,
-		keyFunction:    hashKey,
 	}
 }
 
@@ -55,16 +51,7 @@ func (mdb *MemoryDB) Get(key []byte) (value []byte, err error) {
 	return nil, nil
 }
 
-func (mdb *MemoryDB) GetWithPrefix(key []byte, prefix trie.Prefix) (value []byte, err error) {
-	if bytes.Equal(key, mdb.hashedNullNode[:]) {
-		return mdb.nullNodeData, nil
-	}
-
-	computatedKey := mdb.keyFunction(common.Hash(key[:]), prefix)
-	return mdb.Get(computatedKey[:])
-}
-
-func (mdb *MemoryDB) Insert(prefix trie.Prefix, value []byte) common.Hash {
+func (mdb *MemoryDB) Insert(prefix hashdb.Prefix, value []byte) common.Hash {
 	if bytes.Equal(value, mdb.nullNodeData) {
 		return mdb.hashedNullNode
 	}
@@ -74,12 +61,11 @@ func (mdb *MemoryDB) Insert(prefix trie.Prefix, value []byte) common.Hash {
 	return key
 }
 
-func (mdb *MemoryDB) emplace(key common.Hash, prefix trie.Prefix, value []byte) {
+func (mdb *MemoryDB) emplace(key common.Hash, prefix hashdb.Prefix, value []byte) {
 	if bytes.Equal(value, mdb.nullNodeData) {
 		return
 	}
 
-	key = mdb.keyFunction(key, prefix)
 	data, ok := mdb.data[key]
 	if !ok {
 		mdb.data[key] = MemoryDBItem{value, 0}
@@ -90,8 +76,4 @@ func (mdb *MemoryDB) emplace(key common.Hash, prefix trie.Prefix, value []byte) 
 		data.data = value
 	}
 	data.rc++
-}
-
-func hashKey(key common.Hash, prefix trie.Prefix) common.Hash {
-	return key
 }
