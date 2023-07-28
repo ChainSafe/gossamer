@@ -144,8 +144,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	pruned := bs.bt.Prune(hash)
-	for _, hash := range pruned {
-		blockHeader := bs.unfinalisedBlocks.delete(hash)
+	for _, prunedHash := range pruned {
+		blockHeader := bs.unfinalisedBlocks.delete(prunedHash)
 		if blockHeader == nil {
 			continue
 		}

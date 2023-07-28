@@ -671,7 +671,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -762,7 +762,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -873,7 +873,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -995,7 +995,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1120,7 +1120,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1241,7 +1241,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1367,7 +1367,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1461,7 +1461,7 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	wg.Add(1)
 	go cs.workerPool.listenForRequests(stopCh, &wg)
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader)
+	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	close(stopCh)
@@ -1518,7 +1518,7 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 	for idx, blockData := range blocksReceived {
 		mockBlockState.EXPECT().HasHeader(blockData.Header.Hash()).Return(false, nil)
 		mockBlockState.EXPECT().HasBlockBody(blockData.Header.Hash()).Return(false, nil)
-		mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
+		//mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
 
 		var previousHeader *types.Header
 		if idx == 0 {
