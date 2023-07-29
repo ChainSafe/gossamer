@@ -40,12 +40,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 
 	for {
 		//Get node from DB
-		logger.Errorf("Hash: %x", hash)
-		logger.Errorf("Partial: %v", partial)
-
 		nodeData, err := l.db.Get(hash)
-
-		logger.Errorf("Node data: %x", nodeData)
 
 		if err != nil {
 			if depth == 0 {
@@ -63,10 +58,6 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 				return nil, fmt.Errorf("decoding node error %s", err.Error())
 			}
 
-			logger.Errorf("Slice: %v", decodedNode.Slice)
-
-			//logger.Errorf("Decoded node: %v", decodedNode)
-
 			//Empty Node
 			if decodedNode.Type == Empty {
 				return EmptyValue, nil
@@ -76,20 +67,17 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 
 			switch decodedNode.Type {
 			case Leaf:
-				logger.Errorf("Leaf")
 				//If leaf and matches return value
-				if bytes.Equal(decodedNode.Slice.Data(), partial.Data()) {
+				if partial.Eq(&decodedNode.Partial) {
 					return l.loadValue(decodedNode.Value)
 				}
 				return EmptyValue, nil
 			//Nibbled branch
 			case NibbledBranch:
-				logger.Errorf("NibbledBranch")
 				//Get next node
-				slice := decodedNode.Slice
+				slice := decodedNode.Partial
 
 				if !partial.StartsWith(&slice) {
-					logger.Errorf("!partial.StartsWith(&slice)")
 					return EmptyValue, nil
 				}
 
@@ -98,8 +86,6 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 						return l.loadValue(decodedNode.Value)
 					}
 				}
-
-				logger.Errorf("idx: %d", partial.At(slice.Len()))
 
 				nextNode = decodedNode.Children[partial.At(slice.Len())]
 				if nextNode == nil {
@@ -117,11 +103,12 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 				nodeData = nextNode.Data
 			}
 		}
+		depth++
 	}
 }
 
 func (l Lookup) loadValue(value *NodeValue) ([]byte, error) {
-	if value != nil {
+	if value == nil {
 		return nil, fmt.Errorf("trying to load value from nil node")
 	}
 	if !value.Hashed {

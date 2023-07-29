@@ -21,7 +21,7 @@ const (
 
 type Node struct {
 	Type     NodeType
-	Slice    nibble.NibbleSlice
+	Partial  nibble.NibbleSlice
 	Value    *NodeValue
 	Children []*NodeHandle
 }
@@ -37,7 +37,7 @@ func (n *Node) String() string {
 // StringNode returns a gotree compatible node for String methods.
 func (n *Node) StringNode() (stringNode *gotree.Node) {
 	stringNode = gotree.New(fmt.Sprintf("%d", n.Type))
-	stringNode.Appendf("Slice: %s", bytesToString(n.Slice.Data()))
+	stringNode.Appendf("Partial: %s", bytesToString(n.Partial.Data()))
 	if n.Value != nil {
 		stringNode.Appendf("Value: %s", bytesToString(n.Value.Data))
 	} else {

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/trie/triedb"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -83,22 +84,14 @@ func TestParachainHeaderStateProof(t *testing.T) {
 	proof := [][]byte{proof1, proof2, proof3, proof4, proof5, proof6, proof7}
 	expectedValue := proof7
 
-	storageProof := NewStorageProof(proof)
-
-	proofDB := storageProof.toMemoryDB()
-	//trieDB := triedb.NewTrieDBBuilder(proofDB, stateRoot, triedb.TrieLayoutV1{}).Build()
-	//require.NoError(t, err)
-
-	trie, err := buildTrie(proof, stateRoot, proofDB)
+	db := NewStorageProof(proof).toMemoryDB()
+	trieDB := triedb.NewTrieDBBuilder(db, stateRoot, triedb.TrieLayoutV1{}).Build()
 	require.NoError(t, err)
-	value1 := trie.Get(encodeStorageKey)
 
-	require.Equal(t, expectedValue, value1)
+	value, err := trieDB.GetValue(encodeStorageKey)
+	require.NoError(t, err)
 
-	//value, err := trieDB.GetValue(encodeStorageKey)
-	//require.NoError(t, err)
-
-	//require.Equal(t, expectedValue, value)
+	require.Equal(t, expectedValue, value)
 
 	// Also check that we can verify the proof
 	err = Verify(proof, stateRoot, encodeStorageKey, expectedValue)

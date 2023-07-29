@@ -4,12 +4,9 @@
 package triedb
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
 	"github.com/ChainSafe/gossamer/internal/trie/triedb/nibble"
 )
-
-var logger = log.NewFromGlobal(log.AddContext("pkg", "trie"))
 
 type TrieDBBuilder struct {
 	db     hashdb.HashDB

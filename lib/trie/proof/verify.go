@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -20,8 +19,6 @@ var (
 	ErrKeyNotFoundInProofTrie = errors.New("key not found in proof trie")
 	ErrValueMismatchProofTrie = errors.New("value found in proof trie does not match")
 )
-
-var logger = log.NewFromGlobal(log.AddContext("pkg", "proof"))
 
 // Verify verifies a given key and value belongs to the trie by creating
 // a proof trie based on the encoded proof nodes given. The order of proofs is ignored.
@@ -148,8 +145,6 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 		merkleValue := child.MerkleValue
 		encoding, ok := digestToEncoding[string(merkleValue)]
 
-		logger.Infof("Node: %x", encoding)
-
 		if !ok {
 			inlinedChild := len(child.StorageValue) > 0 || child.HasChild()
 			if inlinedChild {
@@ -170,7 +165,6 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 			continue
 		}
 
-		logger.Info("loading proof DECODING...")
 		child, err := node.Decode(bytes.NewReader(encoding))
 		if err != nil {
 			return fmt.Errorf("decoding child node for hash digest 0x%x: %w",

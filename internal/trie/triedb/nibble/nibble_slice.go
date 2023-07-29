@@ -64,6 +64,10 @@ func (ns *NibbleSlice) StartsWith(other *NibbleSlice) bool {
 	return ns.commonPrefix(other) == other.Len()
 }
 
+func (ns *NibbleSlice) Eq(other *NibbleSlice) bool {
+	return ns.Len() == other.Len() && ns.StartsWith(other)
+}
+
 func (ns *NibbleSlice) commonPrefix(other *NibbleSlice) uint {
 	selfAlign := ns.offset % NibblePerByte
 	otherAlign := other.offset % NibblePerByte

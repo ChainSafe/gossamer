@@ -21,12 +21,11 @@ var (
 	ErrDecodeHashedValueTooShort = errors.New("hashed storage value too short")
 	ErrReadChildrenBitmap        = errors.New("cannot read children bitmap")
 	ErrDecodeChildHash           = errors.New("cannot decode child hash")
+	ErrReaderMismatchCount       = errors.New("read unexpected number of bytes from reader")
 )
 
 func Decode(reader io.Reader) (n *Node, err error) {
 	variant, nibbleCount, err := node.DecodeHeader(reader)
-
-	logger.Errorf("Nibble count %d", nibbleCount)
 
 	if err != nil {
 		return nil, fmt.Errorf("decoding header: %w", err)
@@ -53,19 +52,20 @@ func Decode(reader io.Reader) (n *Node, err error) {
 }
 
 func decodeBranch(reader io.Reader, variant node.Variant, nibbleCount uint16) (*Node, error) {
-	//padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
+	//TODO: find a way to solve this
+	/*padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
 
-	/*buffer := make([]byte, 1)
+	buffer := make([]byte, 1)
 	_, err := reader.Read(buffer)
 	if err != nil {
 		return nil, fmt.Errorf("reading header byte: %w", err)
-	}*/
+	}
 
-	/*if padding && nibble.PadLeft(buffer[0]) != 0 {
+	if padding && nibble.PadLeft(buffer[0]) != 0 {
 		return nil, fmt.Errorf("bad format")
 	}*/
 
-	partial, err := node.DecodeKey(reader, nibbleCount)
+	partial, err := decodePartialKey(reader, nibbleCount)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrReadChildrenBitmap, err)
 	}
@@ -122,7 +122,8 @@ func decodeBranch(reader io.Reader, variant node.Variant, nibbleCount uint16) (*
 }
 
 func decodeLeaf(reader io.Reader, variant node.Variant, nibbleCount uint16) (*Node, error) {
-	padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
+	//TODO: find a way to solve this
+	/*padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
 
 	buffer := make([]byte, 1)
 	_, err := reader.Read(buffer)
@@ -132,9 +133,9 @@ func decodeLeaf(reader io.Reader, variant node.Variant, nibbleCount uint16) (*No
 
 	if padding && nibble.PadLeft(buffer[0]) != 0 {
 		return nil, fmt.Errorf("bad format")
-	}
+	}*/
 
-	partial, err := node.DecodeKey(reader, nibbleCount)
+	partial, err := decodePartialKey(reader, nibbleCount)
 
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode key: %w", err)
@@ -173,4 +174,21 @@ func decodeHashedValue(reader io.Reader) (*NodeValue, error) {
 	}
 
 	return &NodeValue{buffer, true}, nil
+}
+
+func decodePartialKey(reader io.Reader, partialKeyLength uint16) (b []byte, err error) {
+	if partialKeyLength == 0 {
+		return []byte{}, nil
+	}
+
+	key := make([]byte, partialKeyLength/2+partialKeyLength%2)
+	n, err := reader.Read(key)
+	if err != nil {
+		return nil, fmt.Errorf("reading from reader: %w", err)
+	} else if n != len(key) {
+		return nil, fmt.Errorf("%w: read %d bytes instead of expected %d bytes",
+			ErrReaderMismatchCount, n, len(key))
+	}
+
+	return key, nil
 }
