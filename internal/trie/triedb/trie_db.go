@@ -31,5 +31,5 @@ type TrieDB struct {
 }
 
 func (tdb TrieDB) GetValue(key []byte) ([]byte, error) {
-	return NewLookup(tdb.db, tdb.root).Lookup(key, nibble.NewNibbleSlice(key))
+	return NewLookup(tdb.db, tdb.root).Lookup(nibble.NewNibbleSlice(key))
 }

@@ -52,7 +52,7 @@ func Decode(reader io.Reader) (n *Node, err error) {
 }
 
 func decodeBranch(reader io.Reader, variant node.Variant, nibbleCount uint16) (*Node, error) {
-	//TODO: find a way to solve this
+	// TODO: find a way to solve this
 	/*padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
 
 	buffer := make([]byte, 1)
@@ -122,7 +122,7 @@ func decodeBranch(reader io.Reader, variant node.Variant, nibbleCount uint16) (*
 }
 
 func decodeLeaf(reader io.Reader, variant node.Variant, nibbleCount uint16) (*Node, error) {
-	//TODO: find a way to solve this
+	// TODO: find a way to solve this
 	/*padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
 
 	buffer := make([]byte, 1)

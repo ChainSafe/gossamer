@@ -12,7 +12,7 @@ import (
 
 type MemoryDBItem struct {
 	data []byte
-	//Reference count
+	// Reference count
 	rc int32
 }
 

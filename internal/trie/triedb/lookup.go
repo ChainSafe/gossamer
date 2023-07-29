@@ -27,7 +27,7 @@ func NewLookup(db hashdb.HashDB, hash []byte) *Lookup {
 	return &Lookup{db, hash}
 }
 
-func (l Lookup) Lookup(key []byte, nibbleKey *nibble.NibbleSlice) ([]byte, error) {
+func (l Lookup) Lookup(nibbleKey *nibble.NibbleSlice) ([]byte, error) {
 	return l.lookupWithoutCache(nibbleKey)
 }
 
@@ -39,7 +39,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 	depth := 0
 
 	for {
-		//Get node from DB
+		// Get node from DB
 		nodeData, err := l.db.Get(hash)
 
 		if err != nil {
@@ -49,16 +49,16 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 			return nil, ErrIncompleteDB
 		}
 
-		//Iterates children
+		// Iterates children
 		for {
-			//Decode node
+			// Decode node
 			reader := bytes.NewReader(nodeData)
 			decodedNode, err := Decode(reader)
 			if err != nil {
 				return nil, fmt.Errorf("decoding node error %s", err.Error())
 			}
 
-			//Empty Node
+			// Empty Node
 			if decodedNode.Type == Empty {
 				return EmptyValue, nil
 			}
@@ -67,14 +67,14 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 
 			switch decodedNode.Type {
 			case Leaf:
-				//If leaf and matches return value
+				// If leaf and matches return value
 				if partial.Eq(&decodedNode.Partial) {
 					return l.loadValue(decodedNode.Value)
 				}
 				return EmptyValue, nil
-			//Nibbled branch
+			// Nibbled branch
 			case NibbledBranch:
-				//Get next node
+				// Get next node
 				slice := decodedNode.Partial
 
 				if !partial.StartsWith(&slice) {
@@ -99,9 +99,9 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 			if nextNode.Hashed {
 				hash = nextNode.Data
 				break
-			} else {
-				nodeData = nextNode.Data
 			}
+
+			nodeData = nextNode.Data
 		}
 		depth++
 	}
