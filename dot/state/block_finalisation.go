@@ -151,7 +151,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 
 		bs.tries.delete(blockHeader.StateRoot)
-
 		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
 
@@ -176,12 +175,10 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	)
 
 	if bs.lastFinalised != hash {
-		defer func(lastFinalised common.Hash) {
-			err := bs.deleteFromTries(lastFinalised)
-			if err != nil {
-				logger.Debugf("%v", err)
-			}
-		}(bs.lastFinalised)
+		err := bs.deleteFromTries(bs.lastFinalised)
+		if err != nil {
+			logger.Debugf("%v", err)
+		}
 	}
 
 	bs.lastFinalised = hash
@@ -202,60 +199,68 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 	return nil
 }
 
-func (bs *BlockState) handleFinalisedBlock(curr common.Hash) error {
-	if curr == bs.lastFinalised {
+func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) error {
+	if currentFinalizedHash == bs.lastFinalised {
 		return nil
 	}
 
-	subchain, err := bs.RangeInMemory(bs.lastFinalised, curr)
+	subchain, err := bs.RangeInMemory(bs.lastFinalised, currentFinalizedHash)
 	if err != nil {
 		return err
 	}
 
 	batch := bs.db.NewBatch()
 
+	subchainExcludingLatestFinalized := subchain[1:]
+
 	// root of subchain is previously finalised block, which has already been stored in the db
-	for _, hash := range subchain[1:] {
-		if hash == bs.genesisHash {
+	for _, subchainHash := range subchainExcludingLatestFinalized {
+		if subchainHash == bs.genesisHash {
 			continue
 		}
 
-		block := bs.unfinalisedBlocks.getBlock(hash)
+		block := bs.unfinalisedBlocks.getBlock(subchainHash)
 		if block == nil {
-			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", hash)
+			return fmt.Errorf("failed to find block in unfinalised block map, block=%s", subchainHash)
 		}
 
 		if err = bs.SetHeader(&block.Header); err != nil {
 			return err
 		}
 
-		if err = bs.SetBlockBody(hash, &block.Body); err != nil {
+		if err = bs.SetBlockBody(subchainHash, &block.Body); err != nil {
 			return err
 		}
 
-		arrivalTime, err := bs.bt.GetArrivalTime(hash)
+		arrivalTime, err := bs.bt.GetArrivalTime(subchainHash)
 		if err != nil {
 			return err
 		}
 
-		if err = bs.setArrivalTime(hash, arrivalTime); err != nil {
+		if err = bs.setArrivalTime(subchainHash, arrivalTime); err != nil {
 			return err
 		}
 
-		if err = batch.Put(headerHashKey(uint64(block.Header.Number)), hash.ToBytes()); err != nil {
+		if err = batch.Put(headerHashKey(uint64(block.Header.Number)), subchainHash.ToBytes()); err != nil {
 			return err
 		}
 
 		// delete from the unfinalisedBlockMap and delete reference to in-memory trie
-		blockHeader := bs.unfinalisedBlocks.delete(hash)
+		blockHeader := bs.unfinalisedBlocks.delete(subchainHash)
 		if blockHeader == nil {
 			continue
 		}
 
-		bs.tries.delete(blockHeader.StateRoot)
+		// prune all the subchain hashes state tries from memory
+		// but keep the state trie from the current finalized block
+		if currentFinalizedHash != subchainHash {
+			bs.tries.delete(blockHeader.StateRoot)
+		}
 
-		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s", blockHeader.Number, hash)
+		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s",
+			blockHeader.Number, subchainHash)
 	}
+
 	return batch.Flush()
 }
 

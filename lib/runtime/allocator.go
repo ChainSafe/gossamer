@@ -19,11 +19,11 @@ const DefaultHeapBase = uint32(1469576)
 // The pointers need to be aligned to 8 bytes
 const alignment uint32 = 8
 
-// HeadsQty 22
-const HeadsQty = 22
+// HeadsQty 23
+const HeadsQty = 23
 
-// MaxPossibleAllocation 2^24 bytes
-const MaxPossibleAllocation = (1 << 24)
+// MaxPossibleAllocation 2^25 bytes, 32 MiB
+const MaxPossibleAllocation = (1 << 25)
 
 // FreeingBumpHeapAllocator struct
 type FreeingBumpHeapAllocator struct {

@@ -35,6 +35,7 @@ import (
 var parachainTestDataRaw string
 
 type Storage struct {
+	Name  string `yaml:"name"`
 	Key   string `yaml:"key"`
 	Value string `yaml:"value"`
 }
@@ -73,7 +74,7 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				genesisPath := utils.GetKusamaGenesisPath(t)
 				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
-				genesisTrie, err := NewTrieFromGenesis(kusamaGenesis)
+				genesisTrie, err := runtime.NewTrieFromGenesis(kusamaGenesis)
 				require.NoError(t, err)
 
 				cfg := Config{
@@ -197,7 +198,7 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -499,7 +500,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
@@ -556,7 +557,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
@@ -606,7 +607,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genesisPath := utils.GetKusamaGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := NewTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
@@ -1214,6 +1215,117 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	require.NoError(t, err)
 }
 
+func loadEntries(t *testing.T, filename string) *trie.Trie {
+	data, err := os.ReadFile(filename)
+	require.NoError(t, err)
+
+	entries := make([][2][]byte, 0)
+	err = json.Unmarshal(data, &entries)
+	require.NoError(t, err)
+
+	tr, err := trie.LoadFromEntries(entries)
+	require.NoError(t, err)
+	return tr
+}
+
+func TestInstance_ExecuteBlock_WestendBlock1097836(t *testing.T) {
+	trie := loadEntries(t, "../test_data/westend/entrieslist-1097836.json")
+	expectedRoot := common.MustHexToHash("0x97d68d4c5a01571cf4beea9b058d53dfd6d6ce5382d0657a185041d736880e03")
+	require.Equal(t, expectedRoot, trie.MustHash())
+
+	// set state to genesis state
+	state := storage.NewTrieState(trie)
+
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+	}
+
+	instance, err := NewInstanceFromTrie(trie, cfg)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	digest.Add(
+		*types.NewBABEPreRuntimeDigest(common.MustHexToBytes("0x02020000006522d30f00000000")),
+		types.SealDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0xa06e4a23ae347c7edd24f84153c007563895d64a06b8781b1e21bf2c8bc426676bfd4bf20c08f276e54598aff3b64541d84c4b5da7bfa39479d0a45585a75388"), //nolint:lll
+		},
+	)
+
+	exts := make([]types.Extrinsic, 0)
+	ext, err := common.HexToBytes("0x0402000b301f76e47201")
+	require.NoError(t, err)
+	exts = append(exts, ext)
+	ext, err = common.HexToBytes("0x040d0000")
+	require.NoError(t, err)
+	exts = append(exts, ext)
+	ext, err = common.HexToBytes("0x84c2c9676ac7a4e56bcb861cf443899114a17baa817ae5c295b9bb6f947fc427fd02db25d6a66498b5e81ac3a52ae4025eef7bb36eee31195c60c7ebdb6f0bac4177baf32e73719fe3e5fdce1059e9e16bb85bad0a0c4e34c4b0e680fb7a132cc4f7018502000004000c60f6d9b5a5ee5a0c0428d1940936a1b91cd29924578f7ac9e793db6dab0cd70700e40b5402") //nolint:lll
+	require.NoError(t, err)
+	exts = append(exts, ext)
+
+	header := types.NewHeader(
+		common.MustHexToHash("0x805b7d8f50e4f30b014a25460c3a4057072ed902058d1f49fbbd99d3d6925ba3"),
+		common.MustHexToHash("0xb4df4c5bbceb56923f77d003e5064a839d3a319c0c930b955159637fdd74c393"),
+		common.MustHexToHash("0x2b0ee636bae60b595392d330a57e20524a13614605d3b3665433b7875f7a06fc"),
+		1097836,
+		digest,
+	)
+	require.Equal(t, "0x32ad1878e447c67f12395cef8d3f9e1c7871170711ba61350f40766e00998f89", header.Hash().String())
+
+	block := &types.Block{
+		Header: *header,
+		Body:   types.Body(exts),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
+	t.Parallel()
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
+
+	parachainID := uint32(1000)
+	assumption := parachaintypes.NewOccupiedCoreAssumption()
+	err := assumption.Set(parachaintypes.IncludedOccupiedCoreAssumption{})
+	require.NoError(t, err)
+
+	expectedPVD := parachaintypes.PersistedValidationData{
+		ParentHead:             parachaintypes.HeadData{Data: common.MustHexToBytes("0xd91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e")}, //nolint:lll
+		RelayParentNumber:      uint32(15946390),
+		RelayParentStorageRoot: common.MustHexToHash("0xdf650f4c6b9bfcc8f768c4d3037fafbd6831ff23473e090d443684fb5e305bd6"),
+		MaxPovSize:             1024 * 1024 * 5,
+	}
+
+	actualPVD, err := rt.ParachainHostPersistedValidationData(parachainID, assumption)
+	require.NoError(t, err)
+	require.Equal(t, expectedPVD.ParentHead, actualPVD.ParentHead)
+	require.Equal(t, expectedPVD.RelayParentNumber, actualPVD.RelayParentNumber)
+	require.Equal(t, expectedPVD.RelayParentStorageRoot, actualPVD.RelayParentStorageRoot)
+	require.Equal(t, expectedPVD.MaxPovSize, actualPVD.MaxPovSize)
+
+}
+
+func TestInstance_ParachainHostValidationCode(t *testing.T) {
+	t.Parallel()
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
+
+	parachainID := uint32(1000)
+	assumption := parachaintypes.NewOccupiedCoreAssumption()
+	err := assumption.Set(parachaintypes.IncludedOccupiedCoreAssumption{})
+	require.NoError(t, err)
+
+	validationCode, err := rt.ParachainHostValidationCode(parachainID, assumption)
+	require.NoError(t, err)
+	require.NotEmpty(t, validationCode)
+
+	expected := []byte(parachainTestData.Expected["validationCode"])
+	require.Equal(t, expected[4:], []byte(*validationCode))
+}
+
 func TestInstance_ParachainHostValidators(t *testing.T) {
 	t.Parallel()
 
@@ -1441,6 +1553,13 @@ func getParachainHostTrie(t *testing.T) *trie.Trie {
 		value := common.MustHexToBytes(s.Value)
 		err := tt.Put(key, value)
 		require.NoError(t, err)
+
+		// TODO: We currently have to manually set the storage expected values for the exports tests.
+		// We could avoid this if we can lookup the value from the `storage` section of the test data easily.
+		// https://github.com/ChainSafe/gossamer/issues/3405
+		if s.Name == "validationCode" {
+			parachainTestData.Expected["validationCode"] = string(value)
+		}
 	}
 
 	return tt

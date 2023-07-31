@@ -110,6 +110,37 @@ func Test_Node_Copy(t *testing.T) {
 				MerkleValue: []byte{5},
 			},
 		},
+		"deep_copy_branch_with_hashed_values": {
+			node: &Node{
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				HashedValue:  true,
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
+						HashedValue:  true,
+					},
+				}),
+				Dirty:       true,
+				MerkleValue: []byte{5},
+			},
+			settings: DeepCopySettings,
+			expectedNode: &Node{
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				HashedValue:  true,
+				Children: padRightChildren([]*Node{
+					nil, nil, {
+						PartialKey:   []byte{9},
+						StorageValue: []byte{1},
+						HashedValue:  true,
+					},
+				}),
+				Dirty:       true,
+				MerkleValue: []byte{5},
+			},
+		},
 		"non_empty_leaf": {
 			node: &Node{
 				PartialKey:   []byte{1, 2},
@@ -135,6 +166,23 @@ func Test_Node_Copy(t *testing.T) {
 			expectedNode: &Node{
 				PartialKey:   []byte{1, 2},
 				StorageValue: []byte{3, 4},
+				Dirty:        true,
+				MerkleValue:  []byte{5},
+			},
+		},
+		"deep_copy_leaf_with_hashed_value": {
+			node: &Node{
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				HashedValue:  true,
+				Dirty:        true,
+				MerkleValue:  []byte{5},
+			},
+			settings: DeepCopySettings,
+			expectedNode: &Node{
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{3, 4},
+				HashedValue:  true,
 				Dirty:        true,
 				MerkleValue:  []byte{5},
 			},
