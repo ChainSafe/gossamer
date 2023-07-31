@@ -1540,7 +1540,7 @@ func ext_hashing_twox_128_version_1(ctx context.Context, m api.Module, dataSpan 
 		"data 0x%x hash hash 0x%x",
 		data, hash)
 
-	out, err := write(m, rtCtx.Allocator, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1567,7 +1567,7 @@ func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan u
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := write(m, rtCtx.Allocator, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0

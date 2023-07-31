@@ -473,7 +473,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	require.NotNil(t, val)
 
 	value := make([]byte, 64)
-	copy(value[:], val[:])
+	copy(value, val[:])
 
 	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
@@ -1184,7 +1184,7 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 
 	expected, err := common.Blake2b128(data)
 	require.NoError(t, err)
-	require.Equal(t, expected[:], hash)
+	require.Equal(t, expected, hash)
 }
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
@@ -1260,7 +1260,7 @@ func Test_ext_hashing_twox_64_version_1(t *testing.T) {
 
 	expected, err := common.Twox64(data)
 	require.NoError(t, err)
-	require.Equal(t, expected[:], hash)
+	require.Equal(t, expected, hash)
 }
 
 func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
@@ -1302,7 +1302,7 @@ func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
 	enc, err := scale.Marshal(input)
 	require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) //auto conversion to i64
+	_, err = inst.Exec("rtm_ext_offchain_sleep_until_version_1", enc) // auto conversion to i64
 	require.NoError(t, err)
 }
 
