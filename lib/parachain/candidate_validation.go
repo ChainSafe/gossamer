@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachains
+package parachain
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachains/types"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -30,11 +30,12 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 	var mergedError error
 
 	for _, assumptionValue := range []scale.VaryingDataTypeValue{
-		parachaintypes.Included{},
-		parachaintypes.TimedOut{},
+		parachaintypes.IncludedOccupiedCoreAssumption{},
+		parachaintypes.TimedOutOccupiedCoreAssumption{},
 		parachaintypes.Free{},
 	} {
-		assumption := parachaintypes.NewOccupiedCoreAssumption(assumptionValue)
+		assumption := parachaintypes.NewOccupiedCoreAssumption()
+		assumption.Set(assumptionValue)
 		PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
 		if err != nil {
 			mergedError = fmt.Errorf("%s; %w", mergedError, err)
@@ -54,16 +55,16 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 
 // ValidateFromChainState validates a candidate parachain block with provided parameters using relay-chain
 // state and using the parachain runtime.
-func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c CandidateReceipt,
+func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c parachaintypes.CandidateReceipt,
 ) (*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
 
-	PersistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.descriptor.ParaID)
+	PersistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.Descriptor.ParaID)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("getting validation data: %w", err)
 	}
 
 	// check that the candidate does not exceed any parameters in the persisted validation data
-	pov := povRequestor.RequestPoV(c.descriptor.PoVHash)
+	pov := povRequestor.RequestPoV(c.Descriptor.PovHash)
 
 	// basic checks
 
@@ -84,12 +85,12 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("hashing validation code: %w", err)
 	}
 
-	if validationCodeHash != common.Hash(c.descriptor.ValidationCodeHash) {
+	if validationCodeHash != common.Hash(c.Descriptor.ValidationCodeHash) {
 		return nil, nil, false, errors.New("validation code hash does not match")
 	}
 
 	// check candidate signature
-	err = c.descriptor.checkCollatorSignature()
+	err = c.Descriptor.CheckCollatorSignature()
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
 	}
@@ -120,7 +121,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		HrmpWatermark:             validationResults.HrmpWatermark,
 	}
 
-	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(c.descriptor.ParaID, candidateCommitments)
+	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(c.Descriptor.ParaID, candidateCommitments)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
 	}

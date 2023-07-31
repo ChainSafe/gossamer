@@ -2,7 +2,7 @@
 // Source: github.com/ChainSafe/gossamer/lib/parachains (interfaces: RuntimeInstance,PoVRequestor)
 
 // Package parachains is a generated GoMock package.
-package parachains
+package parachain
 
 import (
 	reflect "reflect"
@@ -11,7 +11,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
-	types0 "github.com/ChainSafe/gossamer/lib/parachains/types"
+	types0 "github.com/ChainSafe/gossamer/lib/parachain/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "github.com/golang/mock/gomock"

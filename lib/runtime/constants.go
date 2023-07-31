@@ -72,14 +72,14 @@ const (
 	ParachainHostPersistedValidationData = "ParachainHost_persisted_validation_data"
 	// ParachainHostValidationCode returns parachain host's validation code
 	ParachainHostValidationCode = "ParachainHost_validation_code"
-	// ParachainHostCheckValidationOutputs is the runtime API call ParachainHost_check_validation_outputs
-	ParachainHostCheckValidationOutputs = "ParachainHost_check_validation_outputs"
 	// ParachainHostValidators is the runtime API call ParachainHost_validators
 	ParachainHostValidators = "ParachainHost_validators"
 	// ParachainHostValidatorGroups is the runtime API call ParachainHost_validator_groups
 	ParachainHostValidatorGroups = "ParachainHost_validator_groups"
 	// ParachainHostAvailabilityCores is the runtime API call ParachainHost_availability_cores
 	ParachainHostAvailabilityCores = "ParachainHost_availability_cores"
+	// ParachainHostCheckValidationOutputs is the runtime API call ParachainHost_check_validation_outputs
+	ParachainHostCheckValidationOutputs = "ParachainHost_check_validation_outputs"
 	// ParachainHostSessionIndexForChild is the runtime API call ParachainHost_session_index_for_child
 	ParachainHostSessionIndexForChild = "ParachainHost_session_index_for_child"
 	// ParachainHostCandidatePendingAvailability is the runtime API call ParachainHost_candidate_pending_availability

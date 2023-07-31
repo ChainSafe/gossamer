@@ -1,14 +1,14 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachains
+package parachain
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
 
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachains/types"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	runtimewasmer "github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
