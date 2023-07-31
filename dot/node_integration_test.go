@@ -121,7 +121,10 @@ func TestNewNode(t *testing.T) {
 		return stateSrvc, nil
 	})
 
-	phs, err := parachain.NewService(testNetworkService, common.Hash{})
+	parachainLogLevel, err := log.ParseLevel(initConfig.Log.Parachain)
+	require.NoError(t, err)
+	parachainConfig := &parachain.Config{LogLvl: parachainLogLevel}
+	phs, err := parachain.NewService(parachainConfig, testNetworkService, common.Hash{})
 	require.NoError(t, err)
 
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
@@ -154,7 +157,7 @@ func TestNewNode(t *testing.T) {
 		})
 	m.EXPECT().createNetworkService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetworkService, nil)
-	m.EXPECT().createParachainHostService(gomock.AssignableToTypeOf(&network.Service{}),
+	m.EXPECT().createParachainHostService(parachainConfig, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(common.Hash{})).Return(phs, nil)
 
 	got, err := newNode(initConfig, ks, m, mockServiceRegistry)

@@ -23,9 +23,15 @@ type Service struct {
 	Network Network
 }
 
+type Config struct {
+	LogLvl log.Level
+}
+
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
-func NewService(net Network, genesisHash common.Hash) (*Service, error) {
+func NewService(config *Config, net Network, genesisHash common.Hash) (*Service, error) {
+	logger.Patch(log.SetLevel(config.LogLvl))
+
 	// TODO: Use actual fork id from chain spec #3373
 	forkID := ""
 

@@ -148,16 +148,17 @@ type SystemConfig struct {
 
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
-	Core    string `mapstructure:"core,omitempty"`
-	Digest  string `mapstructure:"digest,omitempty"`
-	Sync    string `mapstructure:"sync,omitempty"`
-	Network string `mapstructure:"network,omitempty"`
-	RPC     string `mapstructure:"rpc,omitempty"`
-	State   string `mapstructure:"state,omitempty"`
-	Runtime string `mapstructure:"runtime,omitempty"`
-	Babe    string `mapstructure:"babe,omitempty"`
-	Grandpa string `mapstructure:"grandpa,omitempty"`
-	Wasmer  string `mapstructure:"wasmer,omitempty"`
+	Core      string `mapstructure:"core,omitempty"`
+	Digest    string `mapstructure:"digest,omitempty"`
+	Sync      string `mapstructure:"sync,omitempty"`
+	Network   string `mapstructure:"network,omitempty"`
+	RPC       string `mapstructure:"rpc,omitempty"`
+	State     string `mapstructure:"state,omitempty"`
+	Runtime   string `mapstructure:"runtime,omitempty"`
+	Babe      string `mapstructure:"babe,omitempty"`
+	Grandpa   string `mapstructure:"grandpa,omitempty"`
+	Wasmer    string `mapstructure:"wasmer,omitempty"`
+	Parachain string `mapstructure:"parachain,omitempty"`
 }
 
 // AccountConfig is to marshal/unmarshal account config vars
