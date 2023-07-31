@@ -15,7 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestCandidateReceiptAndValidationCode(t *testing.T) (parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
+func createTestCandidateReceiptAndValidationCode(t *testing.T) (
+	parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
 	// this wasm was achieved by building polkadot's adder test parachain
 	runtimeFilePath := "./testdata/test_parachain_adder.wasm"
 	validationCodeBytes, err := os.ReadFile(runtimeFilePath)

@@ -35,7 +35,10 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 		parachaintypes.Free{},
 	} {
 		assumption := parachaintypes.NewOccupiedCoreAssumption()
-		assumption.Set(assumptionValue)
+		err := assumption.Set(assumptionValue)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting assumption: %w", err)
+		}
 		PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
 		if err != nil {
 			mergedError = fmt.Errorf("%s; %w", mergedError, err)
@@ -55,8 +58,9 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 
 // ValidateFromChainState validates a candidate parachain block with provided parameters using relay-chain
 // state and using the parachain runtime.
-func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor, c parachaintypes.CandidateReceipt,
-) (*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
+func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor,
+	c parachaintypes.CandidateReceipt) (
+	*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
 
 	PersistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.Descriptor.ParaID)
 	if err != nil {
