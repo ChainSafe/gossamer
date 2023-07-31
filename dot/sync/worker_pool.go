@@ -164,7 +164,7 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) {
 	defer s.mtx.Unlock()
 
 	syncWorker, has := s.workers[who]
-	if !has {
+	if !has || syncWorker.status == punished {
 		return
 	}
 
