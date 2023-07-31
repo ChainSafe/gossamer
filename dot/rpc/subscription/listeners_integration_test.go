@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
@@ -189,8 +189,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	wsconn.BlockAPI = BlockAPI
 
 	TxStateAPI := NewMockTransactionStateAPI(ctrl)
-	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
-	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any())
 	wsconn.TxStateAPI = TxStateAPI
 
 	esl := ExtrinsicSubmitListener{
@@ -244,7 +243,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 }
 
 func TestGrandpaJustification_Listen(t *testing.T) {
-	t.Run("When justification doesnt returns error", func(t *testing.T) {
+	t.Run("When_justification_doesnt_returns_error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		wsconn, ws, cancel := setupWSConn(t)
@@ -320,7 +319,7 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := wasmer.GetRuntimeVersion(code)
+	version, err := wazero_runtime.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{

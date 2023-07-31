@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/config/toml"
+	cfg "github.com/ChainSafe/gossamer/config"
 )
 
 // Nodes is a slice of nodes.
@@ -19,7 +19,7 @@ type Nodes []Node
 // MakeNodes creates `num` nodes using the `tomlConfig`
 // as a base config for each node. It overrides some of configuration:
 // - the index of each node is incremented per node (overrides the SetIndex option, if set)
-func MakeNodes(t *testing.T, num int, tomlConfig toml.Config,
+func MakeNodes(t *testing.T, num int, tomlConfig cfg.Config,
 	options ...Option) (nodes Nodes) {
 	nodes = make(Nodes, num)
 	for i := range nodes {
@@ -31,11 +31,11 @@ func MakeNodes(t *testing.T, num int, tomlConfig toml.Config,
 
 // Init initialises all nodes and returns an error if any
 // init operation failed.
-func (nodes Nodes) Init(ctx context.Context) (err error) {
+func (nodes Nodes) Init() (err error) {
 	initErrors := make(chan error)
 	for _, node := range nodes {
 		go func(node Node) {
-			err := node.Init(ctx) // takes 2 seconds
+			err := node.Init() // takes 2 seconds
 			if err != nil {
 				err = fmt.Errorf("node %s failed to initialise: %w", node, err)
 			}
@@ -93,7 +93,7 @@ func (nodes Nodes) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	err := nodes.Init(ctx)
+	err := nodes.Init()
 	if err != nil {
 		t.Fatal(err)
 	}

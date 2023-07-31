@@ -10,4 +10,6 @@ scrape_configs:
   - job_name: gossamer
     metrics_path: /metrics
     static_configs:
+      # for mac users, change to host.docker.internal:9876 if you want to
+      # communicate prometheus container with gossamer running locally
       - targets: ["gossamer:9876"]

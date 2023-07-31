@@ -60,7 +60,7 @@ type Config struct {
 	// BasePath the data directory for the node
 	BasePath string
 	// Roles a bitmap value that represents the different roles for the sender node (see Table D.2)
-	Roles common.Roles
+	Roles common.NetworkRole
 
 	// Service interfaces
 	BlockState         BlockState

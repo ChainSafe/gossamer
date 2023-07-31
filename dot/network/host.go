@@ -26,7 +26,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
+	rm "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	rmObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func newPrivateIPFilters() (privateIPs *ma.Filters, err error) {
@@ -136,13 +139,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse bootnodes: %w", err)
 	}
 
 	// format persistent peers
 	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse persistent peers: %w", err)
 	}
 
 	// We have tried to set maxInPeers and maxOutPeers such that number of peer
@@ -158,7 +161,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create connection manager
 	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create connection manager: %w", err)
 	}
 
 	for _, pp := range pps {
@@ -170,16 +173,35 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}
 
 	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create peerstore: %w", err)
+	}
+
+	limiter := rm.NewFixedLimiter(rm.DefaultLimits.AutoScale())
+	var managerOptions []rm.Option
+
+	if cfg.Metrics.Publish {
+		rmObs.MustRegisterWith(prometheus.DefaultRegisterer)
+		reporter, err := rmObs.NewStatsTraceReporter()
+		if err != nil {
+			return nil, fmt.Errorf("while creating resource manager stats trace reporter: %w", err)
+		}
+
+		managerOptions = append(managerOptions, rm.WithTraceReporter(reporter))
+	}
+
+	manager, err := rm.NewResourceManager(limiter, managerOptions...)
+	if err != nil {
+		return nil, fmt.Errorf("while creating the resource manager: %w", err)
 	}
 
 	// set libp2p host options
 	opts := []libp2p.Option{
+		libp2p.ResourceManager(manager),
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(cfg.privateKey),

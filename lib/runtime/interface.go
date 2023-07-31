@@ -8,7 +8,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Instance for runtime methods
@@ -48,4 +50,23 @@ type Instance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
+	ParachainHostPersistedValidationData(
+		parachaidID uint32,
+		assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
+	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
+	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
+	ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error)
+	ParachainHostCheckValidationOutputs(
+		parachainID parachaintypes.ParaID,
+		outputs parachaintypes.CandidateCommitments,
+	) (bool, error)
+	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
+	ParachainHostCandidatePendingAvailability(
+		parachainID parachaintypes.ParaID,
+	) (*parachaintypes.CommittedCandidateReceipt, error)
+	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
+	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 }

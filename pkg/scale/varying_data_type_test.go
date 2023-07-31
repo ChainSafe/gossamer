@@ -32,6 +32,12 @@ func mustNewVaryingDataTypeAndSet(value VaryingDataTypeValue, values ...VaryingD
 
 type customVDT VaryingDataType
 
+type customVDTWithNew VaryingDataType
+
+func (customVDTWithNew) New() customVDTWithNew {
+	return customVDTWithNew(mustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0)))
+}
+
 type VDTValue struct {
 	A *big.Int
 	B int
@@ -400,6 +406,39 @@ func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
 			}
 			if reflect.TypeOf(dst) != reflect.TypeOf(customVDT{}) {
+				t.Errorf("types mismatch dst: %v expected: %v", reflect.TypeOf(dst), reflect.TypeOf(customVDT{}))
+			}
+		})
+	}
+}
+
+func Test_decodeState_decodeCustomVaryingDataTypeWithNew(t *testing.T) {
+	for _, tt := range varyingDataTypeTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := customVDTWithNew{}
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			dstVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
+			inVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
+			dstVDTVal, err := dstVDT.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			inVDTVal, err := inVDT.Value()
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			diff := cmp.Diff(dstVDTVal, inVDTVal,
+				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+			if diff != "" {
+				t.Errorf("decodeState.unmarshal() = %s", diff)
+			}
+			if reflect.TypeOf(dst) != reflect.TypeOf(customVDTWithNew{}) {
 				t.Errorf("types mismatch dst: %v expected: %v", reflect.TypeOf(dst), reflect.TypeOf(customVDT{}))
 			}
 		})

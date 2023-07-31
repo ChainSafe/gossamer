@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/config/toml"
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	scribble "github.com/nanobox-io/golang-scribble"
@@ -29,12 +30,12 @@ func NewFramework() (framework *Framework) {
 
 // InitFramework creates given quantity of nodes
 func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
-	tomlConfig toml.Config) (*Framework, error) {
+	tomlConfig cfg.Config) (*Framework, error) {
 	f := &Framework{}
 
 	f.nodes = node.MakeNodes(t, qtyNodes, tomlConfig)
 
-	err := f.nodes.Init(ctx)
+	err := f.nodes.Init()
 	if err != nil {
 		return nil, fmt.Errorf("cannot init nodes: %w", err)
 	}
@@ -48,7 +49,7 @@ func InitFramework(ctx context.Context, t *testing.T, qtyNodes int,
 	return f, nil
 }
 
-// StartNodes calls RestartGossamor for all nodes
+// StartNodes calls RestartGossamer for all nodes
 func (fw *Framework) StartNodes(ctx context.Context, t *testing.T) (
 	runtimeErrors []<-chan error, startErr error) {
 	return fw.nodes.Start(ctx)

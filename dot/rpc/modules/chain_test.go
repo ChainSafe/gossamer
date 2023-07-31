@@ -126,7 +126,7 @@ func TestChainModule_GetBlockHash(t *testing.T) {
 	mockBlockAPI := mocks.NewMockBlockAPI(ctrl)
 	mockBlockAPI.EXPECT().BestBlockHash().Return(testHash)
 	mockBlockAPI.EXPECT().GetHashByNumber(uint(21)).
-		Return(testHash, nil).AnyTimes()
+		Return(testHash, nil).Times(2)
 
 	mockBlockAPIErr := mocks.NewMockBlockAPI(ctrl)
 	mockBlockAPIErr.EXPECT().GetHashByNumber(uint(21)).

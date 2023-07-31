@@ -8,59 +8,66 @@ permalink: /usage/command-line/
 
 The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initialises the node if the node has not already been initialised). 
 
-### Accepted Formats
+### Flags
+
+These are the flags that can be used with the `gossamer` command
 
 ```
-gossamer [--global-flags] [--local-flags]
+--babe-authority  Enable BABE authorship
+--base-path       Working directory for the node
+--bootnodes       Comma separated enode URLs for network discovery bootstrap
+--chain           chain-spec-raw.json used to load node configuration. It can also be a chain name (eg. kusama, polkadot, westend, westend-dev and westend-local)
+--discovery-interval Interval between network discovery lookups (in duration format) 
+--grandpa-authority Runs as a GRANDPA authority node
+--grandpa-interval GRANDPA voting period in duration (default 10s)
+--help help for gossamer
+--id Identifier used to identify this node in the network
+--key Key to use for the node
+--listen-addr  Overrides the listen address used for peer to peer networking
+--log:  Set a logging filter.
+	    Syntax is a list of 'module=logLevel' (comma separated)
+	    e.g. --log sync=debug,core=trace
+	    Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa, wasmer.
+	    Log levels (least to most verbose) are error, warn, info, debug, and trace.
+	    By default, all modules log 'info'.
+	    The global log level can be set with --log global=debug
+--max-peers Maximum number of peers to connect to (default 50)
+--min-peers Minimum number of peers to connect to (default 5)
+--name Name of the node
+--no-bootstrap Disables network bootstrapping (mdns still enabled)
+--no-mdns Disables network mdns discovery
+--no-telemetry Disables telemetry
+--node-key Overrides the secret Ed25519 key to use for libp2p networking
+--password Password used to encrypt the keystore
+--persistent-peers Comma separated list of peers to always keep connected to
+--port Network port to use (default 7001)
+--pprof.block-profile-rate The frequency at which the Go runtime samples the state of goroutines to generate block profile information.
+--pprof.enabled Enable the pprof profiler
+--pprof.listening-address The address to listen on for pprof profiling
+--pprof.mutex-profile-rate  The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.
+--prometheus-external Publish prometheus metrics to external network
+--prometheus-port Port to use for prometheus metrics (default 9876)
+--protocol-id  Protocol ID to use (default "/gossamer/gssmr/0")
+--public-dns Public DNS name of the node
+--public-ip Public IP address of the node
+--retain-blocks  Retain number of block from latest block while pruning (default 512)
+--rewind Rewind head of chain to the given block number
+--role Role of the node. Can be one of: full, light and authority
+--rpc-external Enable external HTTP-RPC connections
+--rpc-host HTTP-RPC server listening hostname
+--rpc-methods API modules to enable via HTTP-RPC, comma separated list
+--rpc-port HTTP-RPC server listening port (default 8545)
+--state-pruning Pruning strategy to use. Supported strategy: archive
+--telemetry-url URL of telemetry server to connect to
+--unlock Unlock an account. eg. --unlock=0 to unlock account 0.
+--unsafe-rpc Enable unsafe HTTP-RPC methods
+--unsafe-rpc-external Enable external unsafe HTTP-RPC connections
+--unsafe-ws-external Enable external unsafe WebSockets connections
+--validator Run as a validator node
+--wasm-interpreter WASM interpreter (default "wasmer")
+--ws-external Enable external WebSockets connections
+--ws-port WebSockets server listening port (default 8546)
 ```
-
-```
-gossamer [--local-flags] [--global-flags] 
-```
-
-### Global flags
-
-The global flags can be used in conjunction with any Gossamer command
-
-```
---basepath value   Data directory for the node 
---chain value      Node implementation id used to load default node configuration
---config value     TOML configuration file
---log value        Supports levels crit (silent) to trce (trace) (default: "info")
---name value       Node implementation name
---rewind value     Rewind head of chain by given number of blocks
---pprofserver      Enable or disable the pprof HTTP server
---pprofaddress     pprof HTTP server listening address, if it is enabled.
---pprofblockrate   pprof block rate. See https://pkg.go.dev/runtime#SetBlockProfileRate.
---pprofmutexrate   profiling mutex rate. See https://pkg.go.dev/runtime#SetMutexProfileFraction.
-```
-
-### Local flags
-
-These are the local flags that can be used with the `gossamer` command
-
-```
---bootnodes value  Comma separated enode URLs for network discovery bootstrap
---key value        Specify a test keyring account to use: eg --key=alice
---help, -h         show help
---nobootstrap      Disables network bootstrapping (mdns still enabled)
---nomdns           Disables network mdns discovery
---port value       Set network listening port (default: 0)
---protocol value   Set protocol id
---roles value      Roles of the gossamer node
---rpc-external     Enable the external HTTP-RPC server
---rpchost value    HTTP-RPC server listening hostname
---rpcport value    HTTP-RPC server listening port (default: 0)
---rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---unlock value     Unlock an account. 
-                   eg. --unlock=0,2 to unlock accounts 0 and 2. 
-                   Can be used with --password=[password] to avoid prompt. 
-                   For multiple passwords, do --password=password1,password2
---ws-external      Enable the external websockets server
---wsport value     Websockets server listening port (default: 0)
---version, -v      print the version
-```
-
 
 ## Gossamer Subcommands
 
@@ -68,112 +75,67 @@ List of available ***subcommands***:
 
 ```
 SUBCOMMANDS:
-    help, h        Shows a list of commands or help for one command
+    help, h           Shows a list of commands or help for one command
     account        Create and manage node keystore accounts
     export         Export configuration values to TOML configuration file
     init           Initialise node databases and load genesis data to state
+    build-spec     Generates chain-spec JSON data, and can convert to raw chain-spec data
+    import-runtime Imports a WASM runtime blob into the node's database
+    import-state   Imports a state dump into the node's database
+    prune-state    Prune state will prune the state trie
 ```
 
-List of ***local flags*** for `init` subcommand:
-
-```
---force            Disable all confirm prompts (the same as answering "Y" to all)
---genesis value    Path to genesis JSON file
-```
-
-List of ***local flags*** for `account` subcommand:
-
-```
---generate         Generate a new keypair. If type is not specified, defaults to sr25519
---password value   Password used to encrypt the keystore. Used with --generate or --unlock
---import value     Import encrypted keystore file generated with gossamer
---import-raw value Imports a raw private key
---list             List node keys
---ed25519          Specify account type as ed25519
---sr25519          Specify account type as sr25519
---secp256k1        Specify account type as secp256k1
-```
-
-List of ***local flag*** options for `export` subcommand:
+List of ***flags*** for `init` subcommand:
 
 ```
 --force            Disable all confirm prompts (the same as answering "Y" to all)
---genesis value    Path to genesis JSON file
---key value        Specify a test keyring account to use: eg --key=alice
---unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
---port value       Set network listening port (default: 0)
---bootnodes value  Comma separated enode URLs for network discovery bootstrap
---protocol value   Set protocol id
---roles value      Roles of the gossamer node
---nobootstrap      Disables network bootstrapping (mdns still enabled)
---nomdns           Disables network mdns discovery
---rpc              Enable the HTTP-RPC server
---rpc-external     Enable external HTTP-RPC connections
---rpchost value    HTTP-RPC server listening hostname
---rpcport value    HTTP-RPC server listening port (default: 0)
---rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---ws               Enable the websockets server
---ws-external      Enable external websockets connections
---wsport value     Websockets server listening port (default: 0)
+--chain            Path to genesis JSON file
+--base-path        Working directory for the node
 ```
 
-### Accepted Formats
+List of ***flags*** for `account` subcommand:
 
 ```
-gossamer [--global-flags] [subcommand] [--local-flags]
-```
-
-```
-gossamer [subcommand] [--global-flags] [--local-flags]
-```
-
-```
-gossamer [subcommand] [--local-flags] [--global-flags]
-```
-
-### Invalid Formats
-
-_please note that `[--local-flags]` must come after `[subcommand]`_
-
-```
-gossamer [--local-flags] [subcommand] [--global-flags] 
-```
-
-```
-gossamer [--local-flags] [--global-flags] [subcommand] 
-```
-
-```
-gossamer [--global-flags] [--local-flags] [subcommand] 
+--password      Password used to encrypt the keystore. Used with --generate or --unlock
+--scheme        Keyring scheme (sr25519, ed25519, secp256k1
+--keystore-path path to keystore
+--keystore-file keystore file name
 ```
 
 ## Running Node Roles
 
 Run an authority node:
 ```
-./bin/gossamer --key alice --roles 4
+./bin/gossamer --key alice --role authority
 ```
 
 Run a non-authority node:
 ```
-./bin/gossamer --key alice --roles 1
+./bin/gossamer --key alice --role full
 ```
 
 ## Running Multiple Nodes
 
 Two options for running another node at the same time...
 
-(1) copy the config file at `cfg/gssmr/config.toml` and manually update `port` and `base-path`:
+(1) run `gossamer init` with two different `base-path` and manually update `port` in `base-path/config/config.toml`:
 ```
-cp cfg/gssmr/config.toml cfg/gssmr/bob.toml
-# open bob.toml, set port=7002 and base-path=~/.gossamer/gssmr-bob
-# set roles=4 to also make bob an authority node, or roles=1 to make bob a non-authority node
-./bin/gossamer --key bob --config cfg/gssmr/bob.toml
+gossamer init --base-path ~/.gossamer/gssmr-alice --chain westend-local
+gossamer init --base-path ~/.gossamer/gssmr-bob --chain westend-local
+# open ~/.gossamer/gssmr-bob/config/config.toml, set port=7002
+# set role=4 to also make bob an authority node, or role=1 to make bob a non-authority node
+```
+
+(2) run with `--base-path` flag:
+```
+./bin/gossamer --base-path ~/.gossamer/gssmr-alice --key alice --roles 4
+./bin/gossamer --base-path ~/.gossamer/gssmr-bob --key bob --roles 4
 ```
 
 or run with port, base-path flags:
 ```
-./bin/gossmer --key bob --port 7002 --base-path ~/.gossamer/gssmr-bob --roles 4
+./bin/gossamer --base-path ~/.gossamer/gssmr-alice --key alice --role 4 --port 7001
+./bin/gossamer --base-path ~/.gossamer/gssmr-bob --key bob --role 4 --port 7002
 ```
 
 To run more than two nodes, repeat steps for bob with a new `port` and `base-path` replacing `bob`.
@@ -194,15 +156,11 @@ Available built-in keys:
 
 To initialise or re-initialise a node, use the init subcommand `init`:
 ```
-./bin/gossamer init
-./bin/gossamer --key alice --roles 4
+./bin/gossamer init --base-path ~/.gossamer/gssmr-alice --chain westend-local
+./bin/gossamer --base-path ~/.gossamer/gssmr-alice --key alice --roles 4
 ```
 
-`init` can be used with the `--base-path` or `--config` flag to re-initialise a custom node (ie, `bob` from the example above):
+`init` can be used with the `--base-path` or `--chain` flag to re-initialise a custom node (ie, `bob` from the example above):
 ```
-./bin/gossamer --config node/gssmr/bob.toml init
+./bin/gossamer init --base-path ~/.gossamer/gssmr-bob --chain westend-local
 ```
-
-## Export Configuration
-
-`export` can be used with the `gossamer` root command-line and `--config` as the export path to export a toml configuration file.

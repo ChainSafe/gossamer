@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
@@ -46,11 +48,14 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = libutils.GetWestendLocalRawGenesisPath(t)
-	tomlConfig.RPC.WS = true
-	tomlConfig.RPC.Unsafe = true
-	tomlConfig.RPC.WSUnsafe = true
+	tomlConfig.ChainSpec = libutils.GetWestendLocalRawGenesisPath(t)
+	tomlConfig.RPC.UnsafeRPC = true
+	tomlConfig.RPC.RPCExternal = true
+	tomlConfig.RPC.UnsafeRPCExternal = true
+	tomlConfig.RPC.WSExternal = true
+	tomlConfig.RPC.UnsafeWSExternal = true
 	tomlConfig.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc", "grandpa"}
+	tomlConfig.State = &cfg.StateConfig{}
 	n := node.New(t, tomlConfig)
 
 	ctx, cancel := context.WithCancel(context.Background())

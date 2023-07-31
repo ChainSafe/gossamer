@@ -122,10 +122,11 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 
 func TestBuildFromDB(t *testing.T) {
 	// initialise node (initialise state database and load genesis data)
-	cfg := NewWestendDevConfig(t)
-	cfg.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	config := DefaultTestWestendDevConfig(t)
+
+	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -134,7 +135,7 @@ func TestBuildFromDB(t *testing.T) {
 		want *BuildSpec
 		err  error
 	}{
-		{name: "normal_conditions", path: cfg.Global.BasePath,
+		{name: "normal_conditions", path: config.BasePath,
 			want: &BuildSpec{genesis: &genesis.Genesis{
 				Name:       "Development",
 				ID:         "westend_dev",
@@ -142,7 +143,7 @@ func TestBuildFromDB(t *testing.T) {
 				ProtocolID: "dot",
 				Genesis: genesis.Fields{
 					Raw:     map[string]map[string]string{},
-					Runtime: map[string]map[string]interface{}{},
+					Runtime: new(genesis.Runtime),
 				},
 			}}},
 		{name: "invalid_db_path", path: t.TempDir(),
@@ -159,7 +160,7 @@ func TestBuildFromDB(t *testing.T) {
 			}
 			if tt.want != nil {
 				got.genesis.Genesis.Raw = map[string]map[string]string{}
-				got.genesis.Genesis.Runtime = map[string]map[string]interface{}{}
+				got.genesis.Genesis.Runtime = new(genesis.Runtime)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -170,9 +171,10 @@ func TestBuildFromGenesis(t *testing.T) {
 	rawGenesis := genesis.Genesis{
 		Name: "test",
 		Genesis: genesis.Fields{
-			Runtime: map[string]map[string]interface{}{
-				"System": {
-					"code": "mocktestcode",
+			Raw: map[string]map[string]string{},
+			Runtime: &genesis.Runtime{
+				System: &genesis.System{
+					Code: "mocktestcode",
 				},
 			},
 		},
@@ -207,7 +209,11 @@ func TestBuildFromGenesis(t *testing.T) {
 					Raw: map[string]map[string]string{"top" +
 						"": {"0x26aa394eea5630e07c48ae0c9558cef7c21aab032aaa6e946ca50ad39ab66603": "0x01",
 						"0x3a636f6465": "mocktestcode"}},
-					Runtime: map[string]map[string]interface{}{"System": {"code": "mocktestcode"}},
+					Runtime: &genesis.Runtime{
+						System: &genesis.System{
+							Code: "mocktestcode",
+						},
+					},
 				},
 			}},
 		},

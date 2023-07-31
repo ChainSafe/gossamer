@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -58,5 +59,5 @@ func TestKeystoreDir(t *testing.T) {
 	keystoreDir, err := KeystoreDir(testDir)
 	require.NoError(t, err)
 
-	assert.Equal(t, testDir+"/keystore", keystoreDir)
+	assert.Equal(t, filepath.Join(testDir, "keystore"), keystoreDir)
 }

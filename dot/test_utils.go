@@ -9,13 +9,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
 // NewTestGenesisRawFile returns a test genesis file using "westend-dev" raw data
-func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
+func NewTestGenesisRawFile(t *testing.T, config *cfg.Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
@@ -24,10 +26,10 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) (filename string) {
 	require.NoError(t, err)
 
 	gen := &genesis.Genesis{
-		Name:       cfg.Global.Name,
-		ID:         cfg.Global.ID,
-		Bootnodes:  cfg.Network.Bootnodes,
-		ProtocolID: cfg.Network.ProtocolID,
+		Name:       config.Name,
+		ID:         config.ID,
+		Bootnodes:  config.Network.Bootnodes,
+		ProtocolID: config.Network.ProtocolID,
 		Genesis:    westendDevGenesis.GenesisFields(),
 	}
 

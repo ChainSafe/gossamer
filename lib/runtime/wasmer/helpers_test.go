@@ -6,7 +6,6 @@ package wasmer
 import (
 	"encoding/json"
 	"errors"
-	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,46 +28,6 @@ func genesisFromRawJSON(t *testing.T, jsonFilepath string) (gen genesis.Genesis)
 	require.NoError(t, err)
 
 	return gen
-}
-
-func TestMemory_safeCastInt32(t *testing.T) {
-	t.Parallel()
-	testCases := []struct {
-		name      string
-		value     uint32
-		exp       int32
-		expErr    error
-		expErrMsg string
-	}{
-		{
-			name:  "valid cast",
-			value: uint32(0),
-			exp:   int32(0),
-		},
-		{
-			name:  "max uint32",
-			value: uint32(math.MaxInt32),
-			exp:   math.MaxInt32,
-		},
-		{
-			name:      "out of bounds",
-			value:     uint32(math.MaxInt32 + 1),
-			expErr:    errMemoryValueOutOfBounds,
-			expErrMsg: errMemoryValueOutOfBounds.Error(),
-		},
-	}
-	for _, test := range testCases {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			res, err := safeCastInt32(test.value)
-			assert.ErrorIs(t, err, test.expErr)
-			if test.expErr != nil {
-				assert.EqualError(t, err, test.expErrMsg)
-			}
-			assert.Equal(t, test.exp, res)
-		})
-	}
 }
 
 func Test_pointerSize(t *testing.T) {

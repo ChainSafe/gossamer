@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
@@ -92,14 +94,18 @@ func Test_decodeState_decodeStruct(t *testing.T) {
 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			var diff string
-			if tt.out != nil {
-				diff = cmp.Diff(dst, tt.out, cmpopts.IgnoreUnexported(tt.in))
-			} else {
-				diff = cmp.Diff(dst, tt.in, cmpopts.IgnoreUnexported(big.Int{}, tt.in, VDTValue2{}, MyStructWithIgnore{}))
-			}
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
+
+			// assert response only if we aren't expecting an error
+			if !tt.wantErr {
+				var diff string
+				if tt.out != nil {
+					diff = cmp.Diff(dst, tt.out, cmpopts.IgnoreUnexported(tt.in))
+				} else {
+					diff = cmp.Diff(dst, tt.in, cmpopts.IgnoreUnexported(big.Int{}, tt.in, VDTValue2{}, MyStructWithIgnore{}))
+				}
+				if diff != "" {
+					t.Errorf("decodeState.unmarshal() = %s", diff)
+				}
 			}
 		})
 	}
@@ -247,6 +253,28 @@ func Test_decodeState_decodeMap(t *testing.T) {
 	}
 }
 
+func Test_decodeState_decodeBitVec(t *testing.T) {
+	for _, tt := range bitVecTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
+func Test_decodeState_decodeBitVecMaxLen(t *testing.T) {
+	t.Parallel()
+	bitvec := NewBitVec(nil)
+	maxLen10 := []byte{38, 0, 0, 64, 0} // maxLen + 10
+	err := Unmarshal(maxLen10, &bitvec)
+	require.Error(t, err, errBitVecTooLong)
+}
+
 func Test_unmarshal_optionality(t *testing.T) {
 	var ptrTests tests
 	for _, t := range append(tests{}, allTests...) {
@@ -294,20 +322,24 @@ func Test_unmarshal_optionality(t *testing.T) {
 					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				var diff string
-				if tt.out != nil {
-					diff = cmp.Diff(
-						reflect.ValueOf(dst).Elem().Interface(),
-						reflect.ValueOf(tt.out).Interface(),
-						cmpopts.IgnoreUnexported(tt.in))
-				} else {
-					diff = cmp.Diff(
-						reflect.ValueOf(dst).Elem().Interface(),
-						reflect.ValueOf(tt.in).Interface(),
-						cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
-				}
-				if diff != "" {
-					t.Errorf("decodeState.unmarshal() = %s", diff)
+
+				// assert response only if we aren't expecting an error
+				if !tt.wantErr {
+					var diff string
+					if tt.out != nil {
+						diff = cmp.Diff(
+							reflect.ValueOf(dst).Elem().Interface(),
+							reflect.ValueOf(tt.out).Interface(),
+							cmpopts.IgnoreUnexported(tt.in))
+					} else {
+						diff = cmp.Diff(
+							reflect.ValueOf(dst).Elem().Interface(),
+							reflect.ValueOf(tt.in).Interface(),
+							cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+					}
+					if diff != "" {
+						t.Errorf("decodeState.unmarshal() = %s", diff)
+					}
 				}
 			}
 		})
@@ -325,7 +357,11 @@ func Test_unmarshal_optionality_nil_case(t *testing.T) {
 			// ignore out, since we are testing nil case
 			// out:     t.out,
 		}
-		ptrTest.want = []byte{0x00}
+
+		// for error cases, we don't need to modify the input since we need it to fail
+		if !t.wantErr {
+			ptrTest.want = []byte{0x00}
+		}
 
 		temp := reflect.New(reflect.TypeOf(t.in))
 		// create a new pointer to type of temp

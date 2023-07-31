@@ -82,7 +82,7 @@ func Test_MustMarshal(t *testing.T) {
 		assert.Equal(t, []byte{4, 1}, b)
 	})
 
-	t.Run("panics on error", func(t *testing.T) {
+	t.Run("panics_on_error", func(t *testing.T) {
 		t.Parallel()
 
 		const expected = "unsupported type: chan struct {}"
@@ -225,7 +225,7 @@ var (
 	uintTests = tests{
 		{
 			name: "uint(1)",
-			in:   int(1),
+			in:   1,
 			want: []byte{0x04},
 		},
 		{
@@ -598,9 +598,18 @@ var (
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
+			name: "struct_{[]byte,_int32}_with_invalid_tag",
+			in: &struct {
+				Foo []byte `scale:"1,invalid"`
+			}{
+				Foo: []byte{0x01},
+			},
+			wantErr: true,
+		},
+		{
 			name: "struct_{[]byte,_int32,_bool}",
 			in: struct {
-				Baz bool   `scale:"3,enum"`
+				Baz bool   `scale:"3"`
 				Bar int32  `scale:"2"`
 				Foo []byte `scale:"1"`
 			}{
@@ -929,6 +938,29 @@ var (
 		},
 	}
 
+	bitVecTests = tests{
+		{
+			name: "BitVec{Size:__0,_Bits:__nil}",
+			in:   NewBitVec(nil),
+			want: []byte{0},
+		},
+		{
+			name: "BitVec{Size:_8}",
+			in:   NewBitVec([]bool{true, false, true, false, true, false, true, false}),
+			want: []byte{0x20, 0x55},
+		},
+		{
+			name: "BitVec{Size:_25}",
+			in: NewBitVec([]bool{
+				true, false, true, false, true, false, true, false,
+				false, true, true, false, true, true, false, false,
+				false, true, false, true, false, true, false, true,
+				true,
+			}),
+			want: []byte{0x64, 0x55, 0x36, 0xaa, 0x1},
+		},
+	}
+
 	allTests = newTests(
 		fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
 		boolTests, structTests, sliceTests, arrayTests,
@@ -1073,8 +1105,12 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
+
+			// we don't need this check for error cases
+			if !tt.wantErr {
+				if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+					t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
+				}
 			}
 		})
 	}
@@ -1159,6 +1195,37 @@ func Test_encodeState_encodeMap(t *testing.T) {
 	}
 }
 
+func Test_encodeState_encodeBitVec(t *testing.T) {
+	for _, tt := range bitVecTests {
+		t.Run(tt.name, func(t *testing.T) {
+			buffer := bytes.NewBuffer(nil)
+			es := &encodeState{
+				Writer:                 buffer,
+				fieldScaleIndicesCache: cache,
+			}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeBitVec() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeBitVec() = %v, want %v", buffer.Bytes(), tt.want)
+			}
+		})
+	}
+}
+
+func Test_encodeState_encodeBitVecMaxLen(t *testing.T) {
+	t.Parallel()
+
+	var bits []bool
+	for i := 0; i < maxLen+1; i++ {
+		bits = append(bits, true)
+	}
+
+	bitvec := NewBitVec(bits)
+	_, err := Marshal(bitvec)
+	require.Error(t, err, errBitVecTooLong)
+}
+
 func Test_marshal_optionality(t *testing.T) {
 	var ptrTests tests
 	for i := range allTests {
@@ -1182,8 +1249,12 @@ func Test_marshal_optionality(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
+
+			// if we expect an error, we do not need to check the result
+			if !tt.wantErr {
+				if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+					t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
+				}
 			}
 		})
 	}
@@ -1195,9 +1266,6 @@ func Test_marshal_optionality_nil_cases(t *testing.T) {
 		t := allTests[i]
 		ptrTest := test{
 			name: t.name,
-			// in:      t.in,
-			wantErr: t.wantErr,
-			want:    t.want,
 		}
 		// create a new pointer to new zero value of t.in
 		temp := reflect.New(reflect.TypeOf(t.in))

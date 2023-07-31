@@ -4,47 +4,52 @@
 package config
 
 import (
-	"github.com/ChainSafe/gossamer/dot/config/toml"
+	cfg "github.com/ChainSafe/gossamer/config"
+)
+
+const (
+	// AliceKey is the key for Alice.
+	AliceKey = "alice"
 )
 
 // LogGrandpa generates a grandpa config.
-func LogGrandpa() (cfg toml.Config) {
-	cfg = Default()
-	cfg.Log = toml.LogConfig{
-		CoreLvl:           "crit",
-		NetworkLvl:        "debug",
-		RuntimeLvl:        "crit",
-		BlockProducerLvl:  "info",
-		FinalityGadgetLvl: "debug",
+func LogGrandpa() (config cfg.Config) {
+	config = Default()
+	config.Log = &cfg.LogConfig{
+		Core:    "crit",
+		Network: "debug",
+		Runtime: "crit",
+		Babe:    "info",
+		Grandpa: "debug",
 	}
-	return cfg
+	return config
 }
 
 // NoBabe generates a no-babe config.
-func NoBabe() (cfg toml.Config) {
-	cfg = Default()
-	cfg.Global.LogLvl = "info"
-	cfg.Log = toml.LogConfig{
-		SyncLvl:    "debug",
-		NetworkLvl: "debug",
+func NoBabe() (config cfg.Config) {
+	config = Default()
+	config.LogLevel = "info"
+	config.Log = &cfg.LogConfig{
+		Sync:    "debug",
+		Network: "debug",
 	}
-	cfg.Core.BabeAuthority = false
-	return cfg
+	config.Core.BabeAuthority = false
+	return config
 }
 
 // NoGrandpa generates an no-grandpa config.
-func NoGrandpa() (cfg toml.Config) {
-	cfg = Default()
-	cfg.Core.GrandpaAuthority = false
-	cfg.Core.GrandpaInterval = 1
-	return cfg
+func NoGrandpa() (config cfg.Config) {
+	config = Default()
+	config.Core.GrandpaAuthority = false
+	config.Core.GrandpaInterval = 1
+	return config
 }
 
 // NotAuthority generates an non-authority config.
-func NotAuthority() (cfg toml.Config) {
-	cfg = Default()
-	cfg.Core.Roles = 1
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	return cfg
+func NotAuthority() (config cfg.Config) {
+	config = Default()
+	config.Core.Role = 1
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	return config
 }

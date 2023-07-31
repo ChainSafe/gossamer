@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -28,7 +27,12 @@ import (
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+
+	slotState := state.NewSlotState(db)
+	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -47,7 +51,12 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -93,7 +102,11 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
+
 	vm.epochInfo[testEpochIndex] = &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
@@ -122,12 +135,17 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
 		0, uint64(0), uint64(0), Randomness{})
 	babeDigest := types.NewBabeDigest()
-	err := babeDigest.Set(secondaryDigest)
+	err = babeDigest.Set(secondaryDigest)
 	require.NoError(t, err)
 
 	encodedBabeDigest, err := scale.Marshal(babeDigest)
@@ -168,7 +186,12 @@ func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
 	t.Parallel()
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -201,7 +224,12 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	}
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
-	verificationManager := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verificationManager := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -246,7 +274,12 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	}
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
-	verificationManager := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verificationManager := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -301,7 +334,12 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
-	vm := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -344,7 +382,12 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	}
 	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
 	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
-	verificationManager := NewVerificationManager(babeServiceBob.blockState, babeServiceBob.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verificationManager := NewVerificationManager(babeServiceBob.blockState, slotState, babeServiceBob.epochState)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -394,11 +437,15 @@ func TestVerifyPrimarySlotWinner(t *testing.T) {
 	digest, ok := babePreDigest.(types.BabePrimaryPreDigest)
 	require.True(t, ok)
 
-	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verifier := newVerifier(babeService.blockState, slotState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
-	})
+	}, time.Second)
 
 	ok, err = verifier.verifyPrimarySlotWinner(digest.AuthorityIndex, slotNumber, digest.VRFOutput, digest.VRFProof)
 	require.NoError(t, err)
@@ -423,11 +470,15 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	slot := getSlot(t, runtime, time.Now())
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 
-	verifier := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verifier := newVerifier(babeService.blockState, slotState, testEpochIndex, &verifierInfo{
 		authorities: epochData.authorities,
 		threshold:   epochData.threshold,
 		randomness:  epochData.randomness,
-	})
+	}, time.Second)
 
 	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
@@ -436,26 +487,39 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
-	verificationManager := NewVerificationManager(babeService.blockState, babeService.epochState)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{DataDir: t.TempDir(), InMemory: true})
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verificationManager := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
+	// bestBlockHash := babeService.blockState.BestBlockHash()
+	// runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	// require.NoError(t, err)
 
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
-	timestamp := time.Unix(6, 0)
-	slot := getSlot(t, runtime, timestamp)
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+
+	const slotDuration = 6 * time.Second
+	slotNumber := getCurrentSlot(slotDuration)
+	startTime := getSlotStartTime(slotNumber, slotDuration)
+	slot := NewSlot(startTime, slotDuration, slotNumber)
+
+	if time.Now().After(startTime) {
+		slot = NewSlot(startTime.Add(6*time.Second), slotDuration, slotNumber+1)
+	}
+
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, *slot)
 	block.Header.Hash()
 
 	// create new block for same slot
-	block2 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block2 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, *slot)
 	block2.Header.Hash()
 
 	err = babeService.blockState.AddBlock(block)
@@ -531,12 +595,14 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	epochState, err := state.NewEpochStateFromGenesis(inMemoryDB, stateService.Block, epochBABEConfig)
 	require.NoError(t, err)
 
-	digestHandler, err := digest.NewHandler(log.DoNotChange, stateService.Block, epochState, stateService.Grandpa)
+	onBlockImportDigestHandler := digest.NewBlockImportHandler(epochState, stateService.Grandpa)
+
+	digestHandler, err := digest.NewHandler(stateService.Block, epochState, stateService.Grandpa)
 	require.NoError(t, err)
 
 	digestHandler.Start()
 
-	verificationManager := NewVerificationManager(stateService.Block, epochState)
+	verificationManager := NewVerificationManager(stateService.Block, stateService.Slot, epochState)
 
 	/*
 	* lets issue different blocks starting from genesis (a fork)
@@ -550,7 +616,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots: 1,
 	}
 	aliceBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyAlice,
-		stateService, aliceBlockNextEpoch, aliceBlockNextConfigData)
+		stateService, aliceBlockNextEpoch, aliceBlockNextConfigData, onBlockImportDigestHandler)
 
 	bobBlockNextEpoch := types.NextEpochData{
 		Authorities: authorities[6:],
@@ -561,7 +627,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		SecondarySlots: 1,
 	}
 	bobBlockHeader := issueConsensusDigestsBlockFromGenesis(t, &genesisHeader, keyring.KeyBob,
-		stateService, bobBlockNextEpoch, bobBlockNextConfigData)
+		stateService, bobBlockNextEpoch, bobBlockNextConfigData, onBlockImportDigestHandler)
 
 	// wait for digest handleBlockImport goroutine gets the imported
 	// block, process its digest and store the info at epoch state
@@ -672,7 +738,8 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 // blocks that contains different consensus messages digests
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
-	nextEpoch types.NextEpochData, nextConfig types.NextConfigDataV1) *types.Header {
+	nextEpoch types.NextEpochData, nextConfig types.NextConfigDataV1,
+	onImportBlockDigestHandler *digest.BlockImportHandler) *types.Header {
 	t.Helper()
 
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(0), 0))
@@ -726,6 +793,9 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 		Header: *headerWhoOwnsNextEpochDigest,
 		Body:   *types.NewBody([]types.Extrinsic{}),
 	})
+	require.NoError(t, err)
+
+	err = onImportBlockDigestHandler.Handle(headerWhoOwnsNextEpochDigest)
 	require.NoError(t, err)
 
 	return headerWhoOwnsNextEpochDigest

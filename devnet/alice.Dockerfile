@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM golang:1.19
+FROM golang:1.20
 
 ARG DD_API_KEY=somekey
 ARG CHAIN=westend-local
@@ -22,7 +22,7 @@ RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 # use the 3 node westend local network
 RUN cp -f chain/$CHAIN/$CHAIN-spec-raw.json chain/$CHAIN/$CHAIN-spec.json
 
-RUN gossamer --key=alice init
+RUN gossamer init --key=alice --chain chain/$CHAIN/$CHAIN-spec.json --base-path ~/.gossamer/gssmr
 
 # use a hardcoded key for alice, so we can determine what the peerID is for subsequent nodes
 RUN cp devnet/alice.node.key ~/.gossamer/gssmr/node.key
@@ -35,6 +35,6 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --key=alice --publish-metrics  --metrics-address=":9876" --rpc --rpc-external=true --pubdns=alice --port 7001
+ENTRYPOINT service datadog-agent start && gossamer --base-path ~/.gossamer/gssmr --key=alice --prometheus-external  --prometheus-port=9876 --rpc-external=true --public-dns=alice --port 7001
 
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp

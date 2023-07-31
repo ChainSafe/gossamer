@@ -8,23 +8,24 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
-	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/stretchr/testify/require"
+
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/tests/utils/pathfinder"
 )
 
 // Node is a structure holding all the settings to
 // configure a Gossamer node.
 type Node struct {
 	index      *int
-	configPath string
-	tomlConfig toml.Config
+	tomlConfig cfg.Config
 	writer     io.Writer
 	logsBuffer *bytes.Buffer
 	binPath    string
@@ -32,15 +33,15 @@ type Node struct {
 
 // New returns a node configured using the
 // toml configuration and options given.
-func New(t *testing.T, tomlConfig toml.Config,
+func New(t *testing.T, tomlConfig cfg.Config,
 	options ...Option) (node Node) {
-	node.tomlConfig = tomlConfig
+	node.tomlConfig = cfg.Copy(&tomlConfig)
 	for _, option := range options {
 		option(&node)
 	}
 	node.setDefaults(t)
 	node.setWriterPrefix()
-	node.configPath = config.Write(t, node.tomlConfig)
+
 	return node
 }
 
@@ -65,16 +66,26 @@ func (n *Node) setDefaults(t *testing.T) {
 		n.index = intPtr(0)
 	}
 
-	if n.tomlConfig.Global.BasePath == "" {
-		n.tomlConfig.Global.BasePath = t.TempDir()
+	if n.tomlConfig.BasePath == "" {
+		n.tomlConfig.BasePath = t.TempDir()
 	}
 
-	if n.tomlConfig.Init.Genesis == "" {
-		n.tomlConfig.Init.Genesis = utils.GetWestendDevRawGenesisPath(t)
+	if n.tomlConfig.ChainSpec == "" {
+		n.tomlConfig.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 	}
 
 	if n.tomlConfig.Account.Key == "" {
-		keyList := []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
+		keyList := []string{
+			"alice",
+			"bob",
+			"charlie",
+			"dave",
+			"eve",
+			"ferdie",
+			"george",
+			"heather",
+			"ian",
+		}
 		if *n.index < len(keyList) {
 			n.tomlConfig.Account.Key = keyList[*n.index]
 		} else {
@@ -87,12 +98,12 @@ func (n *Node) setDefaults(t *testing.T) {
 		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
 	}
 
-	if n.tomlConfig.RPC.Enabled && n.tomlConfig.RPC.Port == 0 {
+	if n.tomlConfig.RPC.IsRPCEnabled() && n.tomlConfig.RPC.Port == 0 {
 		const basePort uint32 = 8540
 		n.tomlConfig.RPC.Port = basePort + uint32(*n.index)
 	}
 
-	if n.tomlConfig.RPC.WS && n.tomlConfig.RPC.WSPort == 0 {
+	if n.tomlConfig.RPC.IsWSEnabled() && n.tomlConfig.RPC.WSPort == 0 {
 		const basePort uint32 = 8546
 		n.tomlConfig.RPC.WSPort = basePort + uint32(*n.index)
 	}
@@ -112,26 +123,18 @@ func (n *Node) setDefaults(t *testing.T) {
 }
 
 // Init initialises the Gossamer node.
-func (n *Node) Init(ctx context.Context) (err error) {
-	cmdInit := exec.CommandContext(ctx, n.binPath, "init", //nolint:gosec
-		"--config", n.configPath,
-	)
-
-	if n.logsBuffer != nil {
-		n.logsBuffer.Reset()
-		n.writer = io.MultiWriter(n.writer, n.logsBuffer)
+func (n *Node) Init() (err error) {
+	// Ensure the base path exists.
+	if err := cfg.EnsureRoot(n.tomlConfig.BasePath); err != nil {
+		return fmt.Errorf("cannot ensure root: %w", err)
 	}
 
-	cmdInit.Stdout = n.writer
-	cmdInit.Stderr = n.writer
-
-	err = cmdInit.Start()
-	if err != nil {
-		return fmt.Errorf("cannot start command: %w", err)
+	if err := n.tomlConfig.ValidateBasic(); err != nil {
+		return fmt.Errorf("cannot validate basic config: %w", err)
 	}
 
-	err = cmdInit.Wait()
-	return n.wrapRuntimeError(ctx, cmdInit, err)
+	// Write the configuration to a file.
+	return cfg.WriteConfigFile(n.tomlConfig.BasePath, &n.tomlConfig)
 }
 
 // Start starts a Gossamer node using the node configuration of
@@ -141,7 +144,9 @@ func (n *Node) Init(ctx context.Context) (err error) {
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
-		"--config", n.configPath,
+		"--base-path", n.tomlConfig.BasePath,
+		"--chain", n.tomlConfig.ChainSpec,
+		"--role", config.ParseNetworkRole(n.tomlConfig.Core.Role),
 		"--no-telemetry")
 
 	if n.logsBuffer != nil {
@@ -196,7 +201,7 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc) {
 	t.Helper()
 
-	err := n.Init(ctx)
+	err := n.Init()
 	require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
@@ -278,12 +283,6 @@ func (n *Node) wrapRuntimeError(ctx context.Context, cmd *exec.Cmd,
 		logInformation = "\nLogs:\n" + n.logsBuffer.String()
 	}
 
-	configData, configReadErr := os.ReadFile(n.configPath)
-	configString := string(configData)
-	if configReadErr != nil {
-		configString = configReadErr.Error()
-	}
-
 	return fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s\n\n%s\n\n%s",
-		n, waitErr, cmd, configString, logInformation)
+		n, waitErr, cmd, n.tomlConfig.BasePath, logInformation)
 }

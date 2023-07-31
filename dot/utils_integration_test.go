@@ -14,9 +14,9 @@ import (
 )
 
 func TestTrieSnapshot(t *testing.T) {
-	cfg := NewWestendDevConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genRawFile := NewTestGenesisRawFile(t, cfg)
+	genRawFile := NewTestGenesisRawFile(t, config)
 
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)

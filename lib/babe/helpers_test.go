@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -107,7 +107,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	}
 
 	if cfg.Runtime == nil {
-		var rtCfg wasmer.Config
+		var rtCfg wazero_runtime.Config
 
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -126,7 +126,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 
 		rtCfg.NodeStorage = nodeStorage
 
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
@@ -154,7 +154,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
-	wasmer.DefaultTestLogLvl = log.Error
+	wazero_runtime.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -206,7 +206,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	cfg.EpochState = dbSrv.Epoch
 	cfg.TransactionState = dbSrv.Transaction
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	storageState := cfg.StorageState.(*state.StorageState)
@@ -218,7 +218,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	rtCfg.NodeStorage = nodeStorage
 	rtCfg.Transaction = dbSrv.Transaction
-	runtime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	runtime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
 
@@ -232,6 +232,9 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		mockNetwork := mocks.NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
+		digestOnBlockImportMock := mocks.NewMockBlockImportDigestHandler(ctrl)
+		digestOnBlockImportMock.EXPECT().Handle(gomock.Any()).AnyTimes()
+
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
 			StorageState:         storageState,
@@ -241,6 +244,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 			Network:              mockNetwork,
 			CodeSubstitutedState: dbSrv.Base,
 			CodeSubstitutes:      make(map[common.Hash]string),
+			OnBlockImport:        digestOnBlockImportMock,
 		}
 
 		babeService.blockImportHandler = newTestCoreService(t, &coreConfig, genesis,
@@ -276,11 +280,11 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 		_ = dbSrv.Stop()
 	})
 
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		Storage: rtstorage.NewTrieState(&genesisTrie),
 	}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	genCfg, err := rt.BabeConfiguration()
@@ -365,7 +369,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
@@ -384,7 +388,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),

@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
@@ -52,7 +52,8 @@ type Service struct {
 	codeSubstitutedState CodeSubstitutedState
 
 	// Keystore
-	keys *keystore.GlobalKeystore
+	keys          *keystore.GlobalKeystore
+	onBlockImport BlockImportDigestHandler
 }
 
 // Config holds the configuration for the core Service.
@@ -68,6 +69,7 @@ type Config struct {
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
+	OnBlockImport        BlockImportDigestHandler
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -89,6 +91,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
+		onBlockImport:        cfg.OnBlockImport,
 	}
 
 	return srv, nil
@@ -209,16 +212,22 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
+	err = s.onBlockImport.Handle(&block.Header)
+	if err != nil {
+		return fmt.Errorf("on block import handle: %w", err)
+	}
+
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	rt, err := s.blockState.GetRuntime(block.Header.ParentHash)
+	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
 		return err
 	}
 
 	// check for runtime changes
-	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+	err = s.blockState.HandleRuntimeChanges(state, parentRuntimeInstance, block.Header.Hash())
+	if err != nil {
 		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}
@@ -263,7 +272,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
@@ -274,12 +283,10 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := wazero_runtime.NewInstance(code, cfg)
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
-
-	logger.Info("instantiated runtime!!!")
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {

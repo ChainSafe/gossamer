@@ -6,137 +6,12 @@ package dot
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/chain/kusama"
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/pprof"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestConfig(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name        string
-		want        *Config
-		configMaker func() *Config
-	}{
-		{
-			name: "kusama_default",
-			want: &Config{
-				Global: GlobalConfig{
-					Name:           "Kusama",
-					ID:             "ksmcc3",
-					BasePath:       "~/.gossamer/kusama",
-					LogLvl:         log.Info,
-					MetricsAddress: "localhost:9876",
-					RetainBlocks:   512,
-					Pruning:        "archive",
-				},
-				Log: LogConfig{
-					CoreLvl:           log.Info,
-					DigestLvl:         log.Info,
-					SyncLvl:           log.Info,
-					NetworkLvl:        log.Info,
-					RPCLvl:            log.Info,
-					StateLvl:          log.Info,
-					RuntimeLvl:        log.Info,
-					BlockProducerLvl:  log.Info,
-					FinalityGadgetLvl: log.Info,
-				},
-				Init: InitConfig{
-					Genesis: "./chain/kusama/genesis.json",
-				},
-				Account: AccountConfig{},
-				Core: CoreConfig{
-					Roles:           common.FullNodeRole,
-					WasmInterpreter: "wasmer",
-					GrandpaInterval: 0,
-				},
-				Network: NetworkConfig{
-					Port:              7001,
-					Bootnodes:         nil,
-					ProtocolID:        "",
-					NoBootstrap:       false,
-					NoMDNS:            false,
-					MinPeers:          0,
-					MaxPeers:          0,
-					PersistentPeers:   nil,
-					DiscoveryInterval: 0,
-					PublicIP:          "",
-					PublicDNS:         "",
-				},
-				RPC: RPCConfig{
-					Port: 8545,
-					Host: "localhost",
-					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
-						"childstate", "syncstate", "payment"},
-					WSPort: 8546,
-				},
-				Pprof: PprofConfig{
-					Settings: pprof.Settings{
-						ListeningAddress: "localhost:6060",
-					},
-				},
-			},
-			configMaker: KusamaConfig,
-		},
-		{
-			name: "polkadot_default",
-			want: &Config{
-				Global: GlobalConfig{
-					Name:           "Polkadot",
-					ID:             "polkadot",
-					BasePath:       "~/.gossamer/polkadot",
-					LogLvl:         log.Info,
-					MetricsAddress: "localhost:9876",
-					RetainBlocks:   512,
-					Pruning:        "archive",
-				},
-				Log: LogConfig{
-					CoreLvl:           log.Info,
-					DigestLvl:         log.Info,
-					SyncLvl:           log.Info,
-					NetworkLvl:        log.Info,
-					RPCLvl:            log.Info,
-					StateLvl:          log.Info,
-					RuntimeLvl:        log.Info,
-					BlockProducerLvl:  log.Info,
-					FinalityGadgetLvl: log.Info,
-				},
-				Init: InitConfig{Genesis: "./chain/polkadot/genesis.json"},
-				Core: CoreConfig{
-					Roles:           common.FullNodeRole,
-					WasmInterpreter: "wasmer",
-				},
-				Network: NetworkConfig{
-					Port: 7001,
-				},
-				RPC: RPCConfig{
-					Port: 8545,
-					Host: "localhost",
-					Modules: []string{"system", "author", "chain", "state", "rpc", "grandpa", "offchain",
-						"childstate", "syncstate", "payment"},
-					WSPort: 8546,
-				},
-				Pprof: PprofConfig{
-					Settings: pprof.Settings{
-						ListeningAddress: "localhost:6060",
-					},
-				},
-			},
-			configMaker: PolkadotConfig,
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := tt.configMaker()
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
 
 func TestRPCConfig_isRPCEnabled(t *testing.T) {
 	t.Parallel()
@@ -233,33 +108,43 @@ func Test_networkServiceEnabled(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		config *Config
+		config *cfg.Config
 		want   bool
 	}{
 		{
-			name:   "kusama config",
-			config: KusamaConfig(),
+			name:   "kusama_config",
+			config: kusama.DefaultConfig(),
 			want:   true,
 		},
 		{
-			name:   "empty config",
-			config: &Config{},
-			want:   false,
+			name: "empty_config",
+			config: &cfg.Config{
+				BaseConfig: cfg.BaseConfig{},
+				Log:        &cfg.LogConfig{},
+				Account:    &cfg.AccountConfig{},
+				Core:       &cfg.CoreConfig{},
+				Network:    &cfg.NetworkConfig{},
+				State:      &cfg.StateConfig{},
+				RPC:        &cfg.RPCConfig{},
+				Pprof:      &cfg.PprofConfig{},
+				System:     &cfg.SystemConfig{},
+			},
+			want: false,
 		},
 		{
 			name: "core_roles_0",
-			config: &Config{
-				Core: CoreConfig{
-					Roles: 0,
+			config: &cfg.Config{
+				Core: &cfg.CoreConfig{
+					Role: 0,
 				},
 			},
 			want: false,
 		},
 		{
 			name: "core_roles_1",
-			config: &Config{
-				Core: CoreConfig{
-					Roles: 1,
+			config: &cfg.Config{
+				Core: &cfg.CoreConfig{
+					Role: 1,
 				},
 			},
 			want: true,

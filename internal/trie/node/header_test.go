@@ -10,6 +10,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,6 +18,9 @@ import (
 
 func Test_encodeHeader(t *testing.T) {
 	t.Parallel()
+
+	hashedValue, err := common.Blake2bHash([]byte("test"))
+	assert.NoError(t, err)
 
 	testCases := map[string]struct {
 		node       *Node
@@ -39,6 +43,16 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			writes: []writeCall{
 				{written: []byte{branchWithValueVariant.bits}},
+			},
+		},
+		"branch_with_hashed_value": {
+			node: &Node{
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+				Children:     make([]*Node, ChildrenCapacity),
+			},
+			writes: []writeCall{
+				{written: []byte{branchWithHashedValueVariant.bits}},
 			},
 		},
 		"branch_with_key_of_length_30": {
@@ -109,6 +123,15 @@ func Test_encodeHeader(t *testing.T) {
 			},
 			errWrapped: errTest,
 			errMessage: "test error",
+		},
+		"leaf_with_hashed_value": {
+			node: &Node{
+				StorageValue: hashedValue.ToBytes(),
+				HashedValue:  true,
+			},
+			writes: []writeCall{
+				{written: []byte{leafWithHashedValueVariant.bits}},
+			},
 		},
 		"leaf_with_no_key": {
 			node: &Node{StorageValue: []byte{1}},
@@ -226,7 +249,7 @@ func Test_encodeHeader(t *testing.T) {
 		})
 	}
 
-	t.Run("partial key length is too big", func(t *testing.T) {
+	t.Run("partial_key_length_is_too_big", func(t *testing.T) {
 		t.Parallel()
 
 		const keyLength = uint(maxPartialKeyLength) + 1
@@ -281,7 +304,7 @@ func Test_decodeHeader(t *testing.T) {
 
 	testCases := map[string]struct {
 		reads            []readCall
-		variant          byte
+		nodeVariant      variant
 		partialKeyLength uint16
 		errWrapped       error
 		errMessage       string
@@ -295,16 +318,16 @@ func Test_decodeHeader(t *testing.T) {
 		},
 		"header_byte_decoding_error": {
 			reads: []readCall{
-				{buffArgCap: 1, read: []byte{0b0011_1110}},
+				{buffArgCap: 1, read: []byte{0b0000_1000}},
 			},
 			errWrapped: ErrVariantUnknown,
-			errMessage: "decoding header byte: node variant is unknown: for header byte 00111110",
+			errMessage: "decoding header byte: node variant is unknown: for header byte 00001000",
 		},
 		"partial_key_length_contained_in_first_byte": {
 			reads: []readCall{
 				{buffArgCap: 1, read: []byte{leafVariant.bits | 0b0011_1110}},
 			},
-			variant:          leafVariant.bits,
+			nodeVariant:      leafVariant,
 			partialKeyLength: uint16(0b0011_1110),
 		},
 		"long_partial_key_length_and_second_byte_read_error": {
@@ -321,7 +344,7 @@ func Test_decodeHeader(t *testing.T) {
 				{buffArgCap: 1, read: []byte{0b1111_1111}},
 				{buffArgCap: 1, read: []byte{0b1111_0000}},
 			},
-			variant:          leafVariant.bits,
+			nodeVariant:      leafVariant,
 			partialKeyLength: uint16(0b0011_1111 + 0b1111_1111 + 0b1111_0000),
 		},
 		"partial_key_length_too_long": {
@@ -357,9 +380,9 @@ func Test_decodeHeader(t *testing.T) {
 				previousCall = call
 			}
 
-			variant, partialKeyLength, err := decodeHeader(reader)
+			nodeVariant, partialKeyLength, err := decodeHeader(reader)
 
-			assert.Equal(t, testCase.variant, variant)
+			assert.Equal(t, testCase.nodeVariant, nodeVariant)
 			assert.Equal(t, int(testCase.partialKeyLength), int(partialKeyLength))
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -373,35 +396,51 @@ func Test_decodeHeaderByte(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		header                     byte
-		variantBits                byte
-		partialKeyLengthHeader     byte
-		partialKeyLengthHeaderMask byte
-		errWrapped                 error
-		errMessage                 string
+		header                 byte
+		nodeVariant            variant
+		partialKeyLengthHeader byte
+		errWrapped             error
+		errMessage             string
 	}{
+		"empty_variant_header": {
+			header:                 0b0000_0000,
+			nodeVariant:            emptyVariant,
+			partialKeyLengthHeader: 0b0000_0000,
+		},
 		"branch_with_value_header": {
-			header:                     0b1110_1001,
-			variantBits:                0b1100_0000,
-			partialKeyLengthHeader:     0b0010_1001,
-			partialKeyLengthHeaderMask: 0b0011_1111,
+			header:                 0b1110_1001,
+			nodeVariant:            branchWithValueVariant,
+			partialKeyLengthHeader: 0b0010_1001,
 		},
 		"branch_header": {
-			header:                     0b1010_1001,
-			variantBits:                0b1000_0000,
-			partialKeyLengthHeader:     0b0010_1001,
-			partialKeyLengthHeaderMask: 0b0011_1111,
+			header:                 0b1010_1001,
+			nodeVariant:            branchVariant,
+			partialKeyLengthHeader: 0b0010_1001,
 		},
 		"leaf_header": {
-			header:                     0b0110_1001,
-			variantBits:                0b0100_0000,
-			partialKeyLengthHeader:     0b0010_1001,
-			partialKeyLengthHeaderMask: 0b0011_1111,
+			header:                 0b0110_1001,
+			nodeVariant:            leafVariant,
+			partialKeyLengthHeader: 0b0010_1001,
+		},
+		"leaf_containing_hashes_header": {
+			header:                 0b0011_1001,
+			nodeVariant:            leafWithHashedValueVariant,
+			partialKeyLengthHeader: 0b0001_1001,
+		},
+		"branch_containing_hashes_header": {
+			header:                 0b0001_1001,
+			nodeVariant:            branchWithHashedValueVariant,
+			partialKeyLengthHeader: 0b0000_1001,
+		},
+		"compact_encoding_header": {
+			header:                 0b0000_0001,
+			nodeVariant:            compactEncodingVariant,
+			partialKeyLengthHeader: 0b0000_0000,
 		},
 		"unknown_variant_header": {
-			header:     0b0000_0000,
+			header:     0b0000_1000,
 			errWrapped: ErrVariantUnknown,
-			errMessage: "node variant is unknown: for header byte 00000000",
+			errMessage: "node variant is unknown: for header byte 00001000",
 		},
 	}
 
@@ -410,12 +449,11 @@ func Test_decodeHeaderByte(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			variantBits, partialKeyLengthHeader,
-				partialKeyLengthHeaderMask, err := decodeHeaderByte(testCase.header)
+			nodeVariant, partialKeyLengthHeader,
+				err := decodeHeaderByte(testCase.header)
 
-			assert.Equal(t, testCase.variantBits, variantBits)
+			assert.Equal(t, testCase.nodeVariant, nodeVariant)
 			assert.Equal(t, testCase.partialKeyLengthHeader, partialKeyLengthHeader)
-			assert.Equal(t, testCase.partialKeyLengthHeaderMask, partialKeyLengthHeaderMask)
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
 				assert.EqualError(t, err, testCase.errMessage)
@@ -433,7 +471,7 @@ func Test_variantsOrderedByBitMask(t *testing.T) {
 	copy(sortedSlice, variantsOrderedByBitMask[:])
 
 	sort.Slice(slice, func(i, j int) bool {
-		return slice[i].mask > slice[j].mask
+		return slice[i].mask < slice[j].mask
 	})
 
 	assert.Equal(t, sortedSlice, slice)
@@ -448,6 +486,6 @@ func Benchmark_decodeHeaderByte(b *testing.B) {
 	header := leafVariant.bits | 0b0000_0001
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _, _ = decodeHeaderByte(header)
+		_, _, _ = decodeHeaderByte(header)
 	}
 }

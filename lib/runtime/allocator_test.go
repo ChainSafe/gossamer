@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -90,7 +90,7 @@ var allocateFreeTest = []testSet{
 			totalSize: 40}},
 	{test: &freeTest{ptr: 24}, // address of second allocation
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 16}},
 }
 
@@ -108,7 +108,7 @@ var allocateDeallocateReallocateWithOffset = []testSet{
 			totalSize: 40}},
 	{test: &freeTest{ptr: 40}, // address of second allocation
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 16}},
 	{test: &allocateTest{size: 9},
@@ -141,18 +141,18 @@ var allocateShouldBuildFreeList = []testSet{
 	// free second allocation
 	{test: &freeTest{ptr: 24}, // address of second allocation
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 16}},
 	// free third allocation
 	{test: &freeTest{ptr: 40}, // address of third allocation
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 0}},
 	// allocate 8 bytes
 	{test: &allocateTest{size: 8},
 		output: uint32(40),
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			totalSize: 16}},
 }
 
@@ -200,7 +200,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// second free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// third alloc
@@ -212,7 +212,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// third free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// forth alloc
@@ -224,7 +224,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// forth free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// fifth alloc
@@ -236,7 +236,7 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	// fifth free
 	{test: &freeTest{ptr: 104},
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			heads:     [HeadsQty]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 }
@@ -264,8 +264,25 @@ func TestAllocator(t *testing.T) {
 		const size = 1 << 16
 		testobj := make([]byte, size)
 
-		memmock.EXPECT().Data().Return(testobj).AnyTimes()
-		memmock.EXPECT().Length().DoAndReturn(func() uint32 {
+		memmock.EXPECT().WriteByte(gomock.Any(), gomock.Any()).DoAndReturn(func(offset uint32, v byte) bool {
+			testobj[offset] = v
+			return true
+		}).AnyTimes()
+
+		memmock.EXPECT().ReadByte(gomock.Any()).DoAndReturn(func(offset uint32) (byte, bool) {
+			return testobj[offset], true
+		}).AnyTimes()
+
+		memmock.EXPECT().Write(gomock.Any(), gomock.Any()).DoAndReturn(func(offset uint32, v []byte) bool {
+			copy(testobj[offset:offset+uint32(len(v))], v)
+			return true
+		}).AnyTimes()
+
+		memmock.EXPECT().Read(gomock.Any(), gomock.Any()).DoAndReturn(func(offset, byteCount uint32) ([]byte, bool) {
+			return testobj[offset : offset+byteCount], true
+		}).AnyTimes()
+
+		memmock.EXPECT().Size().DoAndReturn(func() uint32 {
 			return uint32(len(testobj))
 		}).Times(2)
 
@@ -319,23 +336,27 @@ func TestShouldGrowMemory(t *testing.T) {
 	mem := NewMockMemory(ctrl)
 	const size = 1 << 16
 	testobj := make([]byte, size)
-	mem.EXPECT().Data().Return(testobj).Times(9)
-	mem.EXPECT().Length().DoAndReturn(func() uint32 {
-		return uint32(len(testobj))
-	}).Times(5)
-	mem.EXPECT().Grow(gomock.Any()).DoAndReturn(func(arg uint32) error {
-		testobj = append(testobj, make([]byte, PageSize*arg)...)
-		return nil
-	})
 
-	currentSize := mem.Length()
+	mem.EXPECT().Size().DoAndReturn(func() uint32 {
+		return uint32(len(testobj))
+	}).AnyTimes()
+	mem.EXPECT().Grow(gomock.Any()).DoAndReturn(func(deltaPages uint32) (previousPages uint32, ok bool) {
+		testobj = append(testobj, make([]byte, PageSize*deltaPages)...)
+		return 0, true
+	}).AnyTimes()
+	mem.EXPECT().WriteByte(gomock.Any(), gomock.Any()).DoAndReturn(func(offset uint32, v byte) bool {
+		testobj[offset] = v
+		return true
+	}).AnyTimes()
+
+	currentSize := mem.Size()
 
 	fbha := NewAllocator(mem, 0)
 
 	// when
 	_, err := fbha.Allocate(currentSize)
 	require.NoError(t, err)
-	require.Equal(t, (1<<16)+PageSize, int(mem.Length()))
+	require.Equal(t, (1<<16)+PageSize, int(mem.Size()))
 }
 
 // test that the allocator should grow memory if it's already full
@@ -345,16 +366,20 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 	mem := NewMockMemory(ctrl)
 	const size = 1 << 16
 	testobj := make([]byte, size)
-	mem.EXPECT().Data().Return(testobj).Times(18)
-	mem.EXPECT().Length().DoAndReturn(func() uint32 {
-		return uint32(len(testobj))
-	}).Times(5)
-	mem.EXPECT().Grow(gomock.Any()).DoAndReturn(func(arg uint32) error {
-		testobj = append(testobj, make([]byte, PageSize*arg)...)
-		return nil
-	})
 
-	currentSize := mem.Length()
+	mem.EXPECT().Size().DoAndReturn(func() uint32 {
+		return uint32(len(testobj))
+	}).AnyTimes()
+	mem.EXPECT().Grow(gomock.Any()).DoAndReturn(func(deltaPages uint32) (previousPages uint32, ok bool) {
+		testobj = append(testobj, make([]byte, PageSize*deltaPages)...)
+		return 0, true
+	}).AnyTimes()
+	mem.EXPECT().WriteByte(gomock.Any(), gomock.Any()).DoAndReturn(func(offset uint32, v byte) bool {
+		testobj[offset] = v
+		return true
+	}).AnyTimes()
+
+	currentSize := mem.Size()
 	fbha := NewAllocator(mem, 0)
 
 	ptr1, err := fbha.Allocate((currentSize / 2) - 8)
@@ -367,7 +392,7 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 
 	_, err = fbha.Allocate(currentSize / 2)
 	require.NoError(t, err)
-	require.Equal(t, (1<<16)+PageSize, int(mem.Length()))
+	require.Equal(t, (1<<16)+PageSize, int(mem.Size()))
 }
 
 // test to confirm that allocator can allocate the MaxPossibleAllocation
@@ -380,8 +405,14 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	mem := NewMockMemory(ctrl)
 	const size = initialSize + pagesNeeded*65*1024
 	testobj := make([]byte, size)
-	mem.EXPECT().Data().Return(testobj).Times(9)
-	mem.EXPECT().Length().Return(uint32(size)).Times(2)
+
+	mem.EXPECT().Size().DoAndReturn(func() uint32 {
+		return uint32(len(testobj))
+	}).AnyTimes()
+	mem.EXPECT().WriteByte(gomock.Any(), gomock.Any()).DoAndReturn(func(offset uint32, v byte) bool {
+		testobj[offset] = v
+		return true
+	}).AnyTimes()
 
 	fbha := NewAllocator(mem, 0)
 
@@ -400,7 +431,7 @@ func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	memory := NewMockMemory(ctrl)
-	memory.EXPECT().Length().Return(uint32(1 << 16)).Times(2)
+	memory.EXPECT().Size().Return(uint32(1 << 16)).Times(2)
 
 	fbha := NewAllocator(memory, 0)
 
@@ -453,7 +484,7 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 // that that getItemSizeFromIndex method gets expected item size from index
 // max index position
 func TestShouldGetMaxFromIndex(t *testing.T) {
-	index := uint(21)
+	index := uint(HeadsQty - 1)
 	itemSize := getItemSizeFromIndex(index)
 	if itemSize != MaxPossibleAllocation {
 		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)

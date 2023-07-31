@@ -13,6 +13,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/dgraph-io/badger/v4/pb"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -139,6 +140,11 @@ func Test_Example(t *testing.T) {
 	// this is a working example of how to use db.Subscribe taken from
 	// https://github.com/dgraph-io/badger/blob/f50343ff404d8198df6dc83755ec2eab863d5ff2/db_test.go#L1939-L1948
 	prefix := []byte{'a'}
+	match := []pb.Match{
+		{
+			Prefix: prefix,
+		},
+	}
 
 	// This key should be printed, since it matches the prefix.
 	aKey := []byte("a-key")
@@ -166,7 +172,8 @@ func Test_Example(t *testing.T) {
 			}
 			return nil
 		}
-		if err := db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
+
+		if err := db.Subscribe(ctx, cb, match); err != nil && err != context.Canceled {
 			log.Fatal(err)
 		}
 		log.Printf("subscription closed")

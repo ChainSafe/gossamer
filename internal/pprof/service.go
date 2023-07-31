@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"runtime"
+
+	cfg "github.com/ChainSafe/gossamer/config"
 )
 
 // Service is a pprof http server service compatible with the
@@ -20,8 +22,12 @@ type Service struct {
 
 // NewService creates a pprof server service compatible with the
 // dot/service.go interface.
-func NewService(settings Settings, logger Logger) *Service {
-	settings.setDefaults()
+func NewService(config cfg.PprofConfig, logger Logger) *Service {
+	settings := Settings{
+		ListeningAddress: config.ListeningAddress,
+		BlockProfileRate: config.BlockProfileRate,
+		MutexProfileRate: config.MutexProfileRate,
+	}
 
 	return &Service{
 		settings: settings,

@@ -3,23 +3,18 @@
 
 package wasmer
 
+// #include <stdlib.h>
+import "C" //skipcq: SCC-compile
+
 import (
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/wasmerio/wasmer-go/wasmer"
+	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
-
-func safeCastInt32(value uint32) (int32, error) {
-	if value > math.MaxInt32 {
-		return 0, fmt.Errorf("%w", errMemoryValueOutOfBounds)
-	}
-	return int32(value), nil
-}
 
 // toPointerSize converts an uint32 pointer and uint32 size
 // to an int64 pointer size.
@@ -34,17 +29,17 @@ func splitPointerSize(pointerSize int64) (ptr, size uint32) {
 }
 
 // asMemorySlice converts a 64 bit pointer size to a Go byte slice.
-func asMemorySlice(context *runtime.Context, pointerSize int64) (data []byte) {
-	memory := context.Memory.Data()
-	ptr, size := splitPointerSize(pointerSize)
+func asMemorySlice(context wasmer.InstanceContext, pointerSize C.int64_t) (data []byte) {
+	memory := context.Memory().Data()
+	ptr, size := splitPointerSize(int64(pointerSize))
 	return memory[ptr : ptr+size]
 }
 
 // toWasmMemory copies a Go byte slice to wasm memory and returns the corresponding
 // 64 bit pointer size.
-func toWasmMemory(context *runtime.Context, data []byte) (
+func toWasmMemory(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
-	allocator := context.Allocator
+	allocator := context.Data().(*runtime.Context).Allocator
 	size := uint32(len(data))
 
 	ptr, err := allocator.Allocate(size)
@@ -52,7 +47,7 @@ func toWasmMemory(context *runtime.Context, data []byte) (
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
-	memory := context.Memory.Data()
+	memory := context.Memory().Data()
 
 	if uint32(len(memory)) < ptr+size {
 		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", ptr+size, len(memory)))
@@ -65,9 +60,9 @@ func toWasmMemory(context *runtime.Context, data []byte) (
 
 // toWasmMemorySized copies a Go byte slice to wasm memory and returns the corresponding
 // 32 bit pointer. Note the data must have a well known fixed length in the runtime.
-func toWasmMemorySized(context *runtime.Context, data []byte) (
+func toWasmMemorySized(context wasmer.InstanceContext, data []byte) (
 	pointer uint32, err error) {
-	allocator := context.Allocator
+	allocator := context.Data().(*runtime.Context).Allocator
 
 	size := uint32(len(data))
 	pointer, err = allocator.Allocate(size)
@@ -75,7 +70,7 @@ func toWasmMemorySized(context *runtime.Context, data []byte) (
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
-	memory := context.Memory.Data()
+	memory := context.Memory().Data()
 	copy(memory[pointer:pointer+size], data)
 
 	return pointer, nil
@@ -83,7 +78,7 @@ func toWasmMemorySized(context *runtime.Context, data []byte) (
 
 // toWasmMemoryOptional scale encodes the byte slice `data`, writes it to wasm memory
 // and returns the corresponding 64 bit pointer size.
-func toWasmMemoryOptional(context *runtime.Context, data []byte) (
+func toWasmMemoryOptional(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
 	var optionalSlice *[]byte
 	if data != nil {
@@ -97,43 +92,10 @@ func toWasmMemoryOptional(context *runtime.Context, data []byte) (
 
 	return toWasmMemory(context, encoded)
 }
-func toWasmMemoryOptionalNil(context *runtime.Context) (
-	cPointerSize []wasmer.Value, err error) {
-	pointerSize, err := toWasmMemoryOptional(context, nil)
-	if err != nil {
-		return []wasmer.Value{wasmer.NewI64(0)}, err
-	}
-
-	return []wasmer.Value{wasmer.NewI64(pointerSize)}, nil
-}
-
-func mustToWasmMemoryOptionalNil(context *runtime.Context) (
-	cPointerSize []wasmer.Value) {
-	cPointerSize, err := toWasmMemoryOptionalNil(context)
-	if err != nil {
-		panic(err)
-	}
-
-	return cPointerSize
-}
-
-// toWasmMemoryFixedSizeOptional copies the `data` byte slice to a 64B array,
-// scale encodes the pointer to the resulting array, writes it to wasm memory
-// and returns the corresponding 64 bit pointer size.
-func toWasmMemoryFixedSizeOptional(context *runtime.Context, data []byte) (
-	pointerSize int64, err error) {
-	var optionalFixedSize [64]byte
-	copy(optionalFixedSize[:], data)
-	encodedOptionalFixedSize, err := scale.Marshal(&optionalFixedSize)
-	if err != nil {
-		return 0, fmt.Errorf("scale encoding: %w", err)
-	}
-	return toWasmMemory(context, encodedOptionalFixedSize)
-}
 
 // toWasmMemoryResult wraps the data byte slice in a Result type, scale encodes it,
 // copies it to wasm memory and returns the corresponding 64 bit pointer size.
-func toWasmMemoryResult(context *runtime.Context, data []byte) (
+func toWasmMemoryResult(context wasmer.InstanceContext, data []byte) (
 	pointerSize int64, err error) {
 	var result *types.Result
 	if len(data) == 0 {
@@ -150,27 +112,9 @@ func toWasmMemoryResult(context *runtime.Context, data []byte) (
 	return toWasmMemory(context, encodedResult)
 }
 
-func toWasmMemoryResultEmpty(context *runtime.Context) (
-	cPointerSize []wasmer.Value, err error) {
-	pointerSize, err := toWasmMemoryResult(context, nil)
-	if err != nil {
-		return []wasmer.Value{wasmer.NewI64(0)}, err
-	}
-	return []wasmer.Value{wasmer.NewI64(pointerSize)}, nil
-}
-
-func mustToWasmMemoryResultEmpty(context *runtime.Context) (
-	cPointerSize []wasmer.Value) {
-	cPointerSize, err := toWasmMemoryResultEmpty(context)
-	if err != nil {
-		panic(err)
-	}
-	return cPointerSize
-}
-
 // toWasmMemoryOptional scale encodes the uint32 pointer `data`, writes it to wasm memory
 // and returns the corresponding 64 bit pointer size.
-func toWasmMemoryOptionalUint32(context *runtime.Context, data *uint32) (
+func toWasmMemoryOptionalUint32(context wasmer.InstanceContext, data *uint32) (
 	pointerSize int64, err error) {
 	enc, err := scale.Marshal(data)
 	if err != nil {
@@ -179,16 +123,53 @@ func toWasmMemoryOptionalUint32(context *runtime.Context, data *uint32) (
 	return toWasmMemory(context, enc)
 }
 
-func mustToWasmMemoryNil(context *runtime.Context) (
-	cPointerSize []wasmer.Value) {
-	allocator := context.Allocator
+func mustToWasmMemoryNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	allocator := context.Data().(*runtime.Context).Allocator
 	ptr, err := allocator.Allocate(0)
 	if err != nil {
 		// we allocate 0 byte, this should never fail
 		panic(err)
 	}
 	pointerSize := toPointerSize(ptr, 0)
-	return []wasmer.Value{wasmer.NewI64(pointerSize)}
+	return C.int64_t(pointerSize)
+}
+
+func toWasmMemoryOptionalNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryOptional(context, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	return C.int64_t(pointerSize), nil
+}
+
+func mustToWasmMemoryOptionalNil(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	cPointerSize, err := toWasmMemoryOptionalNil(context)
+	if err != nil {
+		panic(err)
+	}
+	return cPointerSize
+}
+
+func toWasmMemoryResultEmpty(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t, err error) {
+	pointerSize, err := toWasmMemoryResult(context, nil)
+	if err != nil {
+		return 0, err
+	}
+	return C.int64_t(pointerSize), nil
+}
+
+func mustToWasmMemoryResultEmpty(context wasmer.InstanceContext) (
+	cPointerSize C.int64_t) {
+	cPointerSize, err := toWasmMemoryResultEmpty(context)
+	if err != nil {
+		panic(err)
+	}
+	return cPointerSize
 }
 
 // toKillStorageResultEnum encodes the `allRemoved` flag and
@@ -213,7 +194,21 @@ func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
 	return encodedEnumValue, nil
 }
 
-func storageAppend(storage GetSetter, key, valueToAppend []byte) (err error) {
+// toWasmMemoryFixedSizeOptional copies the `data` byte slice to a 64B array,
+// scale encodes the pointer to the resulting array, writes it to wasm memory
+// and returns the corresponding 64 bit pointer size.
+func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) (
+	pointerSize int64, err error) {
+	var optionalFixedSize [64]byte
+	copy(optionalFixedSize[:], data)
+	encodedOptionalFixedSize, err := scale.Marshal(&optionalFixedSize)
+	if err != nil {
+		return 0, fmt.Errorf("scale encoding: %w", err)
+	}
+	return toWasmMemory(context, encodedOptionalFixedSize)
+}
+
+func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err error) {
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	currentValue := storage.Get(key)

@@ -14,13 +14,13 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// Getter gets a value corresponding to the given key.
-type Getter interface {
+// DBGetter gets a value corresponding to the given key.
+type DBGetter interface {
 	Get(key []byte) (value []byte, err error)
 }
 
-// Putter puts a value at the given key and returns an error.
-type Putter interface {
+// DBPutter puts a value at the given key and returns an error.
+type DBPutter interface {
 	Put(key []byte, value []byte) error
 }
 
@@ -31,7 +31,7 @@ type NewBatcher interface {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db Getter, rootHash common.Hash) error {
+func (t *Trie) Load(db DBGetter, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
@@ -55,7 +55,7 @@ func (t *Trie) Load(db Getter, rootHash common.Hash) error {
 	return t.loadNode(db, t.root)
 }
 
-func (t *Trie) loadNode(db Getter, n *Node) error {
+func (t *Trie) loadNode(db DBGetter, n *Node) error {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -197,7 +197,7 @@ func recordAllDeleted(n *Node, recorder DeltaRecorder) {
 // It recursively descends into the trie using the database starting
 // from the root node until it reaches the node with the given key.
 // It then reads the value from the database.
-func GetFromDB(db Getter, rootHash common.Hash, key []byte) (
+func GetFromDB(db DBGetter, rootHash common.Hash, key []byte) (
 	value []byte, err error) {
 	if rootHash == EmptyHash {
 		return nil, nil
@@ -223,7 +223,7 @@ func GetFromDB(db Getter, rootHash common.Hash, key []byte) (
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDBAtNode(db Getter, n *Node, key []byte) (
+func getFromDBAtNode(db DBGetter, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.PartialKey, key) {
@@ -290,7 +290,7 @@ func (t *Trie) WriteDirty(db NewBatcher) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirtyNode(db Putter, n *Node) (err error) {
+func (t *Trie) writeDirtyNode(db DBPutter, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}

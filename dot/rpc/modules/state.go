@@ -23,7 +23,7 @@ type StateGetReadProofRequest struct {
 // StateCallRequest holds json fields
 type StateCallRequest struct {
 	Method string       `json:"method"`
-	Data   []byte       `json:"data"`
+	Params string       `json:"params"`
 	Block  *common.Hash `json:"block"`
 }
 
@@ -85,8 +85,8 @@ type StateStorageQueryAtRequest struct {
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
-// StateCallResponse holds json fields
-type StateCallResponse []byte
+// StateCallResponse holds the result of the call
+type StateCallResponse string
 
 // StateKeysResponse field to store the state keys
 type StateKeysResponse [][]byte
@@ -245,10 +245,31 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	return nil
 }
 
-// Call isn't implemented properly yet.
-func (sm *StateModule) Call(_ *http.Request, _ *StateCallRequest, _ *StateCallResponse) error {
-	_ = sm.networkAPI
-	_ = sm.storageAPI
+// Call makes a call to the runtime.
+func (sm *StateModule) Call(_ *http.Request, req *StateCallRequest, res *StateCallResponse) error {
+	var blockHash common.Hash
+	if req.Block == nil {
+		blockHash = sm.blockAPI.BestBlockHash()
+	} else {
+		blockHash = *req.Block
+	}
+
+	rt, err := sm.blockAPI.GetRuntime(blockHash)
+	if err != nil {
+		return fmt.Errorf("get runtime: %w", err)
+	}
+
+	request, err := common.HexToBytes(req.Params)
+	if err != nil {
+		return fmt.Errorf("convert hex to bytes: %w", err)
+	}
+
+	response, err := rt.Exec(req.Method, request)
+	if err != nil {
+		return fmt.Errorf("runtime exec: %w", err)
+	}
+
+	*res = StateCallResponse(common.BytesToHex(response))
 	return nil
 }
 

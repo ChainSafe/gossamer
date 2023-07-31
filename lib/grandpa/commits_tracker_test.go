@@ -97,7 +97,7 @@ func Test_commitsTracker_cleanup(t *testing.T) {
 func Test_commitsTracker_overriding(t *testing.T) {
 	t.Parallel()
 
-	t.Run("override oldest", func(t *testing.T) {
+	t.Run("override_oldest", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -122,7 +122,7 @@ func Test_commitsTracker_overriding(t *testing.T) {
 		})
 	})
 
-	t.Run("override newest", func(t *testing.T) {
+	t.Run("override_newest", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -151,7 +151,7 @@ func Test_commitsTracker_overriding(t *testing.T) {
 func Test_commitsTracker_delete(t *testing.T) {
 	t.Parallel()
 
-	t.Run("non existing block hash", func(t *testing.T) {
+	t.Run("non_existing_block_hash", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2
@@ -170,7 +170,7 @@ func Test_commitsTracker_delete(t *testing.T) {
 		})
 	})
 
-	t.Run("existing block hash", func(t *testing.T) {
+	t.Run("existing_block_hash", func(t *testing.T) {
 		t.Parallel()
 
 		const capacity = 2

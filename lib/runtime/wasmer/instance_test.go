@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 // test used for ensuring runtime exec calls can be made concurrently

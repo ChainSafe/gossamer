@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
@@ -28,8 +30,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -42,7 +46,7 @@ type BlockProducer interface {
 }
 
 type rpcServiceSettings struct {
-	config        *Config
+	config        *cfg.Config
 	nodeStorage   *runtime.NodeStorage
 	state         *state.Service
 	core          *core.Service
@@ -58,26 +62,29 @@ func newInMemoryDB() (*chaindb.BadgerDB, error) {
 }
 
 // createStateService creates the state service and initialise state database
-func (nodeBuilder) createStateService(cfg *Config) (*state.Service, error) {
+func (nodeBuilder) createStateService(config *cfg.Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
 
-	config := state.Config{
-		Path:     cfg.Global.BasePath,
-		LogLevel: cfg.Log.StateLvl,
-		Metrics:  metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
+	stateLogLevel, err := log.ParseLevel(config.Log.State)
+	if err != nil {
+		return nil, err
+	}
+	stateConfig := state.Config{
+		Path:     config.BasePath,
+		LogLevel: stateLogLevel,
+		Metrics:  metrics.NewIntervalConfig(config.PrometheusExternal),
 	}
 
-	stateSrvc := state.NewService(config)
+	stateSrvc := state.NewService(stateConfig)
 
-	err := stateSrvc.SetupBase()
-	if err != nil {
+	if err := stateSrvc.SetupBase(); err != nil {
 		return nil, fmt.Errorf("cannot setup base: %w", err)
 	}
 
 	return stateSrvc, nil
 }
 
-func startStateService(cfg *Config, stateSrvc *state.Service) error {
+func startStateService(config cfg.StateConfig, stateSrvc *state.Service) error {
 	logger.Debug("starting state service...")
 
 	// start state service (initialise state database)
@@ -86,8 +93,8 @@ func startStateService(cfg *Config, stateSrvc *state.Service) error {
 		return fmt.Errorf("failed to start state service: %w", err)
 	}
 
-	if cfg.State.Rewind != 0 {
-		err = stateSrvc.Rewind(cfg.State.Rewind)
+	if config.Rewind != 0 {
+		err = stateSrvc.Rewind(config.Rewind)
 		if err != nil {
 			return fmt.Errorf("failed to rewind state: %w", err)
 		}
@@ -109,10 +116,10 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 	}, nil
 }
 
-func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
+func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service,
 	ks *keystore.GlobalKeystore, net *network.Service, code []byte) (
 	rt runtime.Instance, err error) {
-	logger.Info("creating runtime with interpreter " + cfg.Core.WasmInterpreter + "...")
+	logger.Info("creating runtime with interpreter " + config.Core.WasmInterpreter + "...")
 
 	// check if code substitute is in use, if so replace code
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
@@ -138,15 +145,19 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		return nil, err
 	}
 
-	switch cfg.Core.WasmInterpreter {
+	wasmerLogLevel, err := log.ParseLevel(config.Log.Wasmer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse wasmer log level: %w", err)
+	}
+	switch config.Core.WasmInterpreter {
 	case wasmer.Name:
 		rtCfg := wasmer.Config{
 			Storage:     ts,
 			Keystore:    ks,
-			LogLvl:      cfg.Log.RuntimeLvl,
+			LogLvl:      wasmerLogLevel,
 			NodeStorage: ns,
 			Network:     net,
-			Role:        cfg.Core.Roles,
+			Role:        config.Core.Role,
 			CodeHash:    codeHash,
 		}
 
@@ -155,9 +166,24 @@ func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service,
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
-		logger.Info("instantiated runtime!!!")
+	case wazero_runtime.Name:
+		rtCfg := wazero_runtime.Config{
+			Storage:     ts,
+			Keystore:    ks,
+			LogLvl:      wasmerLogLevel,
+			NodeStorage: ns,
+			Network:     net,
+			Role:        config.Core.Role,
+			CodeHash:    codeHash,
+		}
+
+		// create runtime executor
+		rt, err = wazero_runtime.NewInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
 	default:
-		return nil, fmt.Errorf("%w: %s", ErrWasmInterpreterName, cfg.Core.WasmInterpreter)
+		return nil, fmt.Errorf("%w: %s", ErrWasmInterpreterName, config.Core.WasmInterpreter)
 	}
 
 	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)
@@ -178,9 +204,9 @@ type ServiceBuilder interface {
 
 var _ ServiceBuilder = (*babe.Builder)(nil)
 
-func (nb nodeBuilder) createBABEService(cfg *Config, st *state.Service, ks KeyStore,
+func (nb nodeBuilder) createBABEService(config *cfg.Config, st *state.Service, ks KeyStore,
 	cs *core.Service, telemetryMailer Telemetry) (service *babe.Service, err error) {
-	return nb.createBABEServiceWithBuilder(cfg, st, ks, cs, telemetryMailer, babe.Builder{})
+	return nb.createBABEServiceWithBuilder(config, st, ks, cs, telemetryMailer, babe.Builder{})
 }
 
 // KeyStore is the keystore interface for the BABE service.
@@ -190,11 +216,11 @@ type KeyStore interface {
 	Keypairs() []keystore.KeyPair
 }
 
-func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, ks KeyStore,
+func (nodeBuilder) createBABEServiceWithBuilder(config *cfg.Config, st *state.Service, ks KeyStore,
 	cs *core.Service, telemetryMailer Telemetry, newBabeService ServiceBuilder) (
 	service *babe.Service, err error) {
 	logger.Info("creating BABE service" +
-		asAuthority(cfg.Core.BabeAuthority) + "...")
+		asAuthority(config.Core.BabeAuthority) + "...")
 
 	if ks.Name() != "babe" || ks.Type() != crypto.Sr25519Type {
 		return nil, ErrInvalidKeystoreType
@@ -202,23 +228,27 @@ func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, 
 
 	kps := ks.Keypairs()
 	logger.Infof("keystore with keys %v", kps)
-	if len(kps) == 0 && cfg.Core.BabeAuthority {
+	if len(kps) == 0 && config.Core.BabeAuthority {
 		return nil, ErrNoKeysProvided
 	}
 
+	babeLogLevel, err := log.ParseLevel(config.Log.Babe)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse babe log level: %w", err)
+	}
 	bcfg := &babe.ServiceConfig{
-		LogLvl:             cfg.Log.BlockProducerLvl,
+		LogLvl:             babeLogLevel,
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
 		TransactionState:   st.Transaction,
 		EpochState:         st.Epoch,
 		BlockImportHandler: cs,
-		Authority:          cfg.Core.BabeAuthority,
-		IsDev:              cfg.Global.ID == "dev",
+		Authority:          config.Core.BabeAuthority,
+		IsDev:              config.ID == "dev",
 		Telemetry:          telemetryMailer,
 	}
 
-	if cfg.Core.BabeAuthority {
+	if config.Core.BabeAuthority {
 		bcfg.Keypair = kps[0].(*sr25519.Keypair)
 	}
 
@@ -233,11 +263,11 @@ func (nodeBuilder) createBABEServiceWithBuilder(cfg *Config, st *state.Service, 
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
+func (nodeBuilder) createCoreService(config *cfg.Config, ks *keystore.GlobalKeystore,
 	st *state.Service, net *network.Service, dh *digest.Handler) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
-		asAuthority(cfg.Core.Roles == common.AuthorityRole) +
+		asAuthority(config.Core.Role == common.AuthorityRole) +
 		"...")
 
 	genesisData, err := st.Base.LoadGenesisData()
@@ -250,9 +280,13 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 		codeSubs[common.MustHexToHash(k)] = v
 	}
 
+	coreLogLevel, err := log.ParseLevel(config.Log.Core)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse core log level: %w", err)
+	}
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:               cfg.Log.CoreLvl,
+		LogLvl:               coreLogLevel,
 		BlockState:           st.Block,
 		StorageState:         st.Storage,
 		TransactionState:     st.Transaction,
@@ -260,6 +294,7 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 		Network:              net,
 		CodeSubstitutes:      codeSubs,
 		CodeSubstitutedState: st.Base,
+		OnBlockImport:        digest.NewBlockImportHandler(st.Epoch, st.Grandpa),
 	}
 
 	// create new core service
@@ -275,40 +310,44 @@ func (nodeBuilder) createCoreService(cfg *Config, ks *keystore.GlobalKeystore,
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
+func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Service,
 	telemetryMailer Telemetry) (*network.Service, error) {
 	logger.Debugf(
-		"creating network service with roles %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
-		cfg.Core.Roles, cfg.Network.Port, strings.Join(cfg.Network.Bootnodes, ","), cfg.Network.ProtocolID,
-		cfg.Network.NoBootstrap, cfg.Network.NoMDNS)
+		"creating network service with role %d, port %d, bootnodes %s, protocol ID %s, nobootstrap=%t and noMDNS=%t...",
+		config.Core.Role, config.Network.Port, strings.Join(config.Network.Bootnodes, ","), config.Network.ProtocolID,
+		config.Network.NoBootstrap, config.Network.NoMDNS)
 
 	slotDuration, err := stateSrvc.Epoch.GetSlotDuration()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get slot duration: %w", err)
 	}
 
+	networkLogLevel, err := log.ParseLevel(config.Log.Network)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse network log level: %w", err)
+	}
 	// network service configuation
 	networkConfig := network.Config{
-		LogLvl:            cfg.Log.NetworkLvl,
+		LogLvl:            networkLogLevel,
 		BlockState:        stateSrvc.Block,
-		BasePath:          cfg.Global.BasePath,
-		Roles:             cfg.Core.Roles,
-		Port:              cfg.Network.Port,
-		Bootnodes:         cfg.Network.Bootnodes,
-		ProtocolID:        cfg.Network.ProtocolID,
-		NoBootstrap:       cfg.Network.NoBootstrap,
-		NoMDNS:            cfg.Network.NoMDNS,
-		MinPeers:          cfg.Network.MinPeers,
-		MaxPeers:          cfg.Network.MaxPeers,
-		PersistentPeers:   cfg.Network.PersistentPeers,
-		DiscoveryInterval: cfg.Network.DiscoveryInterval,
+		BasePath:          config.BasePath,
+		Roles:             config.Core.Role,
+		Port:              config.Network.Port,
+		Bootnodes:         config.Network.Bootnodes,
+		ProtocolID:        config.Network.ProtocolID,
+		NoBootstrap:       config.Network.NoBootstrap,
+		NoMDNS:            config.Network.NoMDNS,
+		MinPeers:          config.Network.MinPeers,
+		MaxPeers:          config.Network.MaxPeers,
+		PersistentPeers:   config.Network.PersistentPeers,
+		DiscoveryInterval: config.Network.DiscoveryInterval,
 		SlotDuration:      slotDuration,
-		PublicIP:          cfg.Network.PublicIP,
+		PublicIP:          config.Network.PublicIP,
 		Telemetry:         telemetryMailer,
-		PublicDNS:         cfg.Network.PublicDNS,
-		Metrics:           metrics.NewIntervalConfig(cfg.Global.PublishMetrics),
-		NodeKey:           cfg.Network.NodeKey,
-		ListenAddress:     cfg.Network.ListenAddress,
+		PublicDNS:         config.Network.PublicDNS,
+		Metrics:           metrics.NewIntervalConfig(config.PrometheusExternal),
+		NodeKey:           config.Network.NodeKey,
+		ListenAddress:     config.Network.ListenAddress,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -325,12 +364,11 @@ func (nodeBuilder) createNetworkService(cfg *Config, stateSrvc *state.Service,
 // createRPCService creates the RPC service from the provided core configuration
 func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error) {
 	logger.Infof(
-		"creating rpc service with host %s, external=%t, port %d, modules %s, ws=%t, ws port %d and ws external=%t",
+		"creating rpc service with host %s, external=%t, port %d, modules %s, ws port %d and ws external=%t",
 		params.config.RPC.Host,
-		params.config.RPC.External,
+		params.config.RPC.RPCExternal,
 		params.config.RPC.Port,
 		strings.Join(params.config.RPC.Modules, ","),
-		params.config.RPC.WS,
 		params.config.RPC.WSPort,
 		params.config.RPC.WSExternal,
 	)
@@ -346,8 +384,12 @@ func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer,
 		return nil, fmt.Errorf("failed to create sync state service: %s", err)
 	}
 
+	rpcLogLevel, err := log.ParseLevel(params.config.Log.RPC)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse rpc log level: %w", err)
+	}
 	rpcConfig := &rpc.HTTPServerConfig{
-		LogLvl:              params.config.Log.RPCLvl,
+		LogLvl:              rpcLogLevel,
 		BlockAPI:            params.state.Block,
 		StorageAPI:          params.state.Storage,
 		NetworkAPI:          params.network,
@@ -360,16 +402,13 @@ func (nodeBuilder) createRPCService(params rpcServiceSettings) (*rpc.HTTPServer,
 		SyncStateAPI:        syncStateSrvc,
 		SyncAPI:             params.syncer,
 		SystemAPI:           params.system,
-		RPC:                 params.config.RPC.Enabled,
-		RPCExternal:         params.config.RPC.External,
-		RPCUnsafe:           params.config.RPC.Unsafe,
-		RPCUnsafeExternal:   params.config.RPC.UnsafeExternal,
+		RPCUnsafe:           params.config.RPC.UnsafeRPC,
+		RPCExternal:         params.config.RPC.RPCExternal,
+		RPCUnsafeExternal:   params.config.RPC.UnsafeRPCExternal,
 		Host:                params.config.RPC.Host,
 		RPCPort:             params.config.RPC.Port,
-		WS:                  params.config.RPC.WS,
 		WSExternal:          params.config.RPC.WSExternal,
-		WSUnsafe:            params.config.RPC.WSUnsafe,
-		WSUnsafeExternal:    params.config.RPC.WSUnsafeExternal,
+		WSUnsafeExternal:    params.config.RPC.UnsafeWSExternal,
 		WSPort:              params.config.RPC.WSPort,
 		Modules:             params.config.RPC.Modules,
 	}
@@ -388,7 +427,7 @@ func (nodeBuilder) createSystemService(cfg *types.SystemInfo, stateSrvc *state.S
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeyStore,
+func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
 	net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
 	bestBlockHash := st.Block.BestBlockHash()
 	rt, err := st.Block.GetRuntime(bestBlockHash)
@@ -408,33 +447,42 @@ func (nodeBuilder) createGRANDPAService(cfg *Config, st *state.Service, ks KeySt
 	voters := types.NewGrandpaVotersFromAuthorities(ad)
 
 	keys := ks.Keypairs()
-	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
+	if len(keys) == 0 && config.Core.GrandpaAuthority {
 		return nil, errors.New("no ed25519 keys provided for GRANDPA")
 	}
 
+	grandpaLogLevel, err := log.ParseLevel(config.Log.Grandpa)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse grandpa log level: %w", err)
+	}
 	gsCfg := &grandpa.Config{
-		LogLvl:       cfg.Log.FinalityGadgetLvl,
+		LogLvl:       grandpaLogLevel,
 		BlockState:   st.Block,
 		GrandpaState: st.Grandpa,
 		Voters:       voters,
-		Authority:    cfg.Core.GrandpaAuthority,
+		Authority:    config.Core.GrandpaAuthority,
 		Network:      net,
-		Interval:     cfg.Core.GrandpaInterval,
+		Interval:     config.Core.GrandpaInterval,
 		Telemetry:    telemetryMailer,
 	}
 
-	if cfg.Core.GrandpaAuthority {
+	if config.Core.GrandpaAuthority {
 		gsCfg.Keypair = keys[0].(*ed25519.Keypair)
 	}
 
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
-	return babe.NewVerificationManager(st.Block, st.Epoch)
+func (nodeBuilder) createParachainHostService(net *network.Service, genesisHash common.Hash) (
+	*parachain.Service, error) {
+	return parachain.NewService(net, genesisHash)
 }
 
-func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustificationVerifier,
+func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {
+	return babe.NewVerificationManager(st.Block, st.Slot, st.Epoch)
+}
+
+func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
@@ -447,8 +495,12 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		return nil, err
 	}
 
+	syncLogLevel, err := log.ParseLevel(config.Log.Sync)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
+	}
 	syncCfg := &sync.Config{
-		LogLvl:             cfg.Log.SyncLvl,
+		LogLvl:             syncLogLevel,
 		Network:            net,
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
@@ -456,21 +508,24 @@ func (nodeBuilder) newSyncService(cfg *Config, st *state.Service, fg BlockJustif
 		FinalityGadget:     fg,
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
-		MinPeers:           cfg.Network.MinPeers,
-		MaxPeers:           cfg.Network.MaxPeers,
+		MinPeers:           config.Network.MinPeers,
+		MaxPeers:           config.Network.MaxPeers,
 		SlotDuration:       slotDuration,
 		Telemetry:          telemetryMailer,
 		BadBlocks:          genesisData.BadBlocks,
 	}
 
-	return sync.NewService(syncCfg)
+	blockReqRes := net.GetRequestResponseProtocol(network.SyncID, network.BlockRequestTimeout,
+		network.MaxBlockResponseSize)
+
+	return sync.NewService(syncCfg, blockReqRes)
 }
 
-func (nodeBuilder) createDigestHandler(lvl log.Level, st *state.Service) (*digest.Handler, error) {
-	return digest.NewHandler(lvl, st.Block, st.Epoch, st.Grandpa)
+func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {
+	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
 }
 
-func createPprofService(settings pprof.Settings) (service *pprof.Service) {
+func createPprofService(config cfg.PprofConfig) (service *pprof.Service) {
 	pprofLogger := log.NewFromGlobal(log.AddContext("pkg", "pprof"))
-	return pprof.NewService(settings, pprofLogger)
+	return pprof.NewService(config, pprofLogger)
 }

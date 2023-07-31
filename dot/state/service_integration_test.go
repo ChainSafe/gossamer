@@ -172,7 +172,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	const retainBlocks uint = 2
 	config := Config{
@@ -226,7 +226,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 func TestService_PruneStorage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 	config := Config{
 		Path:      t.TempDir(),
@@ -307,7 +307,7 @@ func TestService_PruneStorage(t *testing.T) {
 func TestService_Rewind(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(3)
 
 	config := Config{
 		Path:      t.TempDir(),
@@ -365,7 +365,7 @@ func TestService_Rewind(t *testing.T) {
 func TestService_Import(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := Config{
 		Path:      t.TempDir(),

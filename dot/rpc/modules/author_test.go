@@ -44,7 +44,7 @@ func TestAuthorModule_HasSessionKeys(t *testing.T) {
 	coreMockAPIOk := mocks.NewMockCoreAPI(ctrl)
 	coreMockAPIOk.EXPECT().DecodeSessionKeys(pkeys).Return(data, nil)
 	coreMockAPIOk.EXPECT().HasKey(gomock.Any(), gomock.Any()).
-		Return(true, nil).AnyTimes()
+		Return(true, nil).Times(4)
 
 	coreMockAPIErr := mocks.NewMockCoreAPI(ctrl)
 	coreMockAPIErr.EXPECT().DecodeSessionKeys(pkeys).Return(data, nil)

@@ -46,8 +46,9 @@ func TestNewService(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			config := tt.cfgBuilder(ctrl)
+			mockReqRes := NewMockRequestMaker(ctrl)
 
-			got, err := NewService(config)
+			got, err := NewService(config, mockReqRes)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
