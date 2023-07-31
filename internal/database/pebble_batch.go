@@ -32,6 +32,7 @@ func (pb *pebbleBatch) Flush() error {
 	if err != nil {
 		return fmt.Errorf("committing batch: %w", err)
 	}
+
 	return nil
 }
 
@@ -41,4 +42,8 @@ func (pb *pebbleBatch) ValueSize() int {
 
 func (pb *pebbleBatch) Reset() {
 	pb.batch.Reset()
+}
+
+func (pb *pebbleBatch) Close() error {
+	return pb.batch.Close()
 }

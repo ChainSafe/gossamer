@@ -111,7 +111,7 @@ func (p *pebbleDB) NewBatch() Batch {
 
 func (p *pebbleDB) NewIterator() Iterator {
 	return &pebbleIterator{
-		p.db.NewIter(&pebble.IterOptions{}),
+		p.db.NewIter(nil),
 	}
 }
 

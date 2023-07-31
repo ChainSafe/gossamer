@@ -32,3 +32,7 @@ func (tb *tableBatch) ValueSize() int {
 func (tb *tableBatch) Reset() {
 	tb.batch.Reset()
 }
+
+func (tb *tableBatch) Close() error {
+	return tb.batch.Close()
+}

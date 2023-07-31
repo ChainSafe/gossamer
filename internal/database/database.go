@@ -22,14 +22,14 @@ type Iterator interface {
 	Next() bool
 	Key() []byte
 	Value() []byte
+	First() bool
 	Release()
-}
-
-type PrefixIterator interface {
+	SeekGE(key []byte) bool
 }
 
 // Batch is a write-only operation.
 type Batch interface {
+	io.Closer
 	Writer
 
 	ValueSize() int
