@@ -6,7 +6,7 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
-	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.16
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
@@ -43,7 +43,6 @@ require (
 	golang.org/x/crypto v0.11.0
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 	golang.org/x/term v0.10.0
-	golang.org/x/text v0.11.0
 	google.golang.org/protobuf v1.31.0
 )
 
@@ -188,6 +187,7 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
