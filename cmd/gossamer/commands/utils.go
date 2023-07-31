@@ -484,19 +484,19 @@ func setViperDefault(config *cfg.Config) {
 }
 
 func parseLogLevel() error {
-	// set default log level
+	// set default log level from config
 	moduleToLogLevel := map[string]string{
-		"global":  cfg.DefaultLogLevel,
-		"core":    cfg.DefaultLogLevel,
-		"digest":  cfg.DefaultLogLevel,
-		"sync":    cfg.DefaultLogLevel,
-		"network": cfg.DefaultLogLevel,
-		"rpc":     cfg.DefaultLogLevel,
-		"state":   cfg.DefaultLogLevel,
-		"runtime": cfg.DefaultLogLevel,
-		"babe":    cfg.DefaultLogLevel,
-		"grandpa": cfg.DefaultLogLevel,
-		"wasmer":  cfg.DefaultLogLevel,
+		"global":  config.LogLevel,
+		"core":    config.Log.Core,
+		"digest":  config.Log.Digest,
+		"sync":    config.Log.Sync,
+		"network": config.Log.Network,
+		"rpc":     config.Log.RPC,
+		"state":   config.Log.State,
+		"runtime": config.Log.Runtime,
+		"babe":    config.Log.Babe,
+		"grandpa": config.Log.Grandpa,
+		"wasmer":  config.Log.Wasmer,
 	}
 
 	if logLevel != "" {

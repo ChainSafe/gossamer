@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
@@ -100,6 +100,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		s.Block = blockState
 		s.Epoch = epochState
 		s.Grandpa = grandpaState
+		s.Slot = NewSlotState(db)
 	} else if err = db.Close(); err != nil {
 		return fmt.Errorf("failed to close database: %s", err)
 	}
@@ -154,12 +155,12 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runt
 	genTrie := rtstorage.NewTrieState(t)
 
 	// create genesis runtime
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		LogLvl:  s.logLvl,
 		Storage: genTrie,
 	}
 
-	r, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	r, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
 	}

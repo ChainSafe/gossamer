@@ -5,9 +5,11 @@ package runtime
 
 const (
 	// v0.9 test API wasm
+	// This wasm is generated using https://github.com/ChainSafe/polkadot-spec.
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
-	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/blob/4d190603d21d4431888bcb1ec546c4dc03b7bf93/test/runtimes/hostapi/hostapi_runtime.compact.wasm?raw=true" //nolint:lll
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/raw/master/test/" +
+		"runtimes/hostapi/hostapi_runtime.compact.wasm"
 
 	// v0.9.29 polkadot
 	POLKADOT_RUNTIME_v0929     = "polkadot_runtime-v929"
@@ -66,6 +68,10 @@ const (
 	TransactionPaymentCallAPIQueryCallInfo = "TransactionPaymentCallApi_query_call_info"
 	// TransactionPaymentCallAPIQueryCallFeeDetails returns call query call fee details
 	TransactionPaymentCallAPIQueryCallFeeDetails = "TransactionPaymentCallApi_query_call_fee_details"
+	// ParachainHostPersistedValidationData returns parachain host's persisted validation data
+	ParachainHostPersistedValidationData = "ParachainHost_persisted_validation_data"
+	// ParachainHostValidationCode returns parachain host's validation code
+	ParachainHostValidationCode = "ParachainHost_validation_code"
 	// ParachainHostValidators is the runtime API call ParachainHost_validators
 	ParachainHostValidators = "ParachainHost_validators"
 	// ParachainHostValidatorGroups is the runtime API call ParachainHost_validator_groups

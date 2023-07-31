@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/os"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
 const (
@@ -37,7 +38,7 @@ const (
 	// DefaultRole is the default node role
 	DefaultRole = common.AuthorityRole
 	// DefaultWasmInterpreter is the default wasm interpreter
-	DefaultWasmInterpreter = wasmer.Name
+	DefaultWasmInterpreter = wazero.Name
 
 	// DefaultNetworkPort is the default network port
 	DefaultNetworkPort = 7001
@@ -278,7 +279,7 @@ func (c *CoreConfig) ValidateBasic() error {
 	if c.WasmInterpreter == "" {
 		return fmt.Errorf("wasm-interpreter cannot be empty")
 	}
-	if c.WasmInterpreter != wasmer.Name {
+	if c.WasmInterpreter != wasmer.Name && c.WasmInterpreter != wazero.Name {
 		return fmt.Errorf("wasm-interpreter is invalid")
 	}
 

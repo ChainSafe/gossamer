@@ -90,6 +90,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 	if settings.CopyStorageValue && n.StorageValue != nil {
 		cpy.StorageValue = make([]byte, len(n.StorageValue))
 		copy(cpy.StorageValue, n.StorageValue)
+		cpy.HashedValue = n.HashedValue
 	}
 
 	if settings.CopyMerkleValue {

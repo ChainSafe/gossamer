@@ -6,24 +6,21 @@ package dot
 import (
 	"testing"
 
-	westend_dev "github.com/ChainSafe/gossamer/chain/westend-dev"
-
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	config.ChainSpec = NewTestGenesisRawFile(t, config)
-	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
 	err := builder.initNode(config)
@@ -56,10 +53,9 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	config := westend_dev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 
 	config.ChainSpec = NewTestGenesisRawFile(t, config)
-	config.BasePath = t.TempDir()
 
 	builder := nodeBuilder{}
 	err := builder.initNode(config)
@@ -160,7 +156,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
@@ -169,7 +165,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	rtCfg.NodeStorage = runtime.NodeStorage{}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	stateSrvc.Block.StoreRuntime(stateSrvc.Block.BestBlockHash(), rt)

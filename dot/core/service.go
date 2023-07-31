@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
@@ -272,7 +272,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
@@ -283,7 +283,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := wazero_runtime.NewInstance(code, cfg)
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
