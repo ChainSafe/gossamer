@@ -141,22 +141,23 @@ func (cp *CollationProtocolV1) Encode() ([]byte, error) {
 	return enc, nil
 }
 
-func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	collationMessage := CollationProtocolV1{}
-
-	err := scale.Unmarshal(in, &collationMessage)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decode message: %w", err)
-	}
-
-	return &collationMessage, nil
-}
-
-func handleCollationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: Add things
-	fmt.Println("We got a collation message", msg)
-	return false, nil
-}
+// TODO: determine if these should be used after wire message is decoded
+//func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
+//	collationMessage := CollationProtocolV1{}
+//
+//	err := scale.Unmarshal(in, &collationMessage)
+//	if err != nil {
+//		return nil, fmt.Errorf("cannot decode message: %w", err)
+//	}
+//
+//	return &collationMessage, nil
+//}
+//
+//func handleCollationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
+//	// TODO: Add things
+//	fmt.Println("We got a collation message", msg)
+//	return false, nil
+//}
 
 func getCollatorHandshake() (network.Handshake, error) {
 	return &collatorHandshake{}, nil

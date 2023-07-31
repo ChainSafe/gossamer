@@ -39,8 +39,8 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		getValidationHandshake,
 		decodeValidationHandshake,
 		validateValidationHandshake,
-		decodeValidationMessage,
-		handleValidationMessage,
+		decodeWireMessage,
+		handleWireMessage,
 		nil,
 		MaxValidationMessageSize,
 	)
@@ -52,8 +52,8 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 			getValidationHandshake,
 			decodeValidationHandshake,
 			validateValidationHandshake,
-			decodeValidationMessage,
-			handleValidationMessage,
+			decodeWireMessage,
+			handleWireMessage,
 			nil,
 			MaxValidationMessageSize,
 		)
@@ -73,8 +73,8 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 		getCollatorHandshake,
 		decodeCollatorHandshake,
 		validateCollatorHandshake,
-		decodeCollationMessage,
-		handleCollationMessage,
+		decodeWireMessage,
+		handleWireMessage,
 		nil,
 		MaxCollationMessageSize,
 	)
@@ -86,8 +86,8 @@ func NewService(net Network, genesisHash common.Hash) (*Service, error) {
 			getCollatorHandshake,
 			decodeCollatorHandshake,
 			validateCollatorHandshake,
-			decodeCollationMessage,
-			handleCollationMessage,
+			decodeWireMessage,
+			handleWireMessage,
 			nil,
 			MaxCollationMessageSize,
 		)
