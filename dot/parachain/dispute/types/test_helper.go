@@ -1,6 +1,7 @@
 package types
 
 import (
+	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -133,4 +134,28 @@ func GetInvalidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	err = invalidDisputeStatement.Set(inherents.InvalidDisputeStatementKind(invalidDisputeStatementKind))
 	require.NoError(t, err)
 	return invalidDisputeStatement
+}
+
+func GetRandomHash() common.Hash {
+	var hash [32]byte
+	randomBytes := make([]byte, len(hash))
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	copy(hash[:], randomBytes)
+	return hash
+}
+
+func GetRandomSignature() [64]byte {
+	var hash [64]byte
+	randomBytes := make([]byte, len(hash))
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	copy(hash[:], randomBytes)
+	return hash
 }
