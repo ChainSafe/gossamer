@@ -155,6 +155,8 @@ grandpa = "{{ .Log.Grandpa }}"
 # WASM module log level
 wasmer = "{{ .Log.Wasmer }}"
 
+# Parachain module log level
+parachain = "{{ .Log.Parachain }}"
 
 #######################################################
 ###          Account Configuration Options          ###
