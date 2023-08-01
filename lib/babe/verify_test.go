@@ -754,7 +754,9 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
 
-				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+				var expectedAuthorityId types.AuthorityID
+				copy(expectedAuthorityId[:], kp.Public().Encode())
+
 				mockSlotState := NewMockSlotState(ctrl)
 				mockSlotState.
 					EXPECT().
@@ -783,7 +785,9 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GenesisHash().Return(common.Hash([32]byte{}))
 
-				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+				var expectedAuthorityId types.AuthorityID
+				copy(expectedAuthorityId[:], kp.Public().Encode())
+
 				mockSlotState := NewMockSlotState(ctrl)
 				mockSlotState.
 					EXPECT().
@@ -814,7 +818,8 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 				secondHeader.Number = 1
 				secondHeader.Hash()
 
-				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+				var expectedAuthorityId types.AuthorityID
+				copy(expectedAuthorityId[:], kp.Public().Encode())
 
 				mockedEquivocationProof := &types.BabeEquivocationProof{
 					Offender:     expectedAuthorityId,
@@ -871,7 +876,8 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 				secondHeader.Number = 1
 				secondHeader.Hash()
 
-				expectedAuthorityId := types.AuthorityID(kp.Public().Encode())
+				var expectedAuthorityId types.AuthorityID
+				copy(expectedAuthorityId[:], kp.Public().Encode())
 
 				mockedEquivocationProof := &types.BabeEquivocationProof{
 					Offender:     expectedAuthorityId,
@@ -1040,7 +1046,8 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 			},
 			setupVerifier: func(t *testing.T, header *types.Header) *verifier {
 				const slot = uint64(1)
-				offenderPublicKey := types.AuthorityID(kp.Public().Encode())
+				var offenderPublicKey types.AuthorityID
+				copy(offenderPublicKey[:], kp.Public().Encode())
 
 				equivocationProof := &types.BabeEquivocationProof{
 					Offender:     offenderPublicKey,
@@ -1101,7 +1108,8 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 			},
 			setupVerifier: func(t *testing.T, header *types.Header) *verifier {
 				const slot = uint64(1)
-				offenderPublicKey := types.AuthorityID(kp.Public().Encode())
+				var offenderPublicKey types.AuthorityID
+				copy(offenderPublicKey[:], kp.Public().Encode())
 
 				equivocationProof := &types.BabeEquivocationProof{
 					Offender:     offenderPublicKey,
@@ -1171,7 +1179,8 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 			},
 			setupVerifier: func(t *testing.T, header *types.Header) *verifier {
 				const slot = uint64(1)
-				offenderPublicKey := types.AuthorityID(kp.Public().Encode())
+				var offenderPublicKey types.AuthorityID
+				copy(offenderPublicKey[:], kp.Public().Encode())
 
 				equivocationProof := &types.BabeEquivocationProof{
 					Offender:     offenderPublicKey,
