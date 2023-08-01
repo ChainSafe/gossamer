@@ -90,7 +90,8 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 
 	if validationCodeHash != common.Hash(candidateReceipt.Descriptor.ValidationCodeHash) {
-		return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch, candidateReceipt.Descriptor.ValidationCodeHash, validationCodeHash)
+		return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch,
+			candidateReceipt.Descriptor.ValidationCodeHash, validationCodeHash)
 	}
 
 	// check candidate signature
@@ -125,7 +126,8 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		HrmpWatermark:             validationResults.HrmpWatermark,
 	}
 
-	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(candidateReceipt.Descriptor.ParaID, candidateCommitments)
+	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(
+		candidateReceipt.Descriptor.ParaID, candidateCommitments)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
 	}
