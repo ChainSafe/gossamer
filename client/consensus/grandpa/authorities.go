@@ -6,8 +6,10 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
+	"sync"
 )
 
 var (
@@ -19,8 +21,9 @@ var (
 )
 
 // SharedAuthoritySet A shared authority set
-type SharedAuthoritySet struct {
-	inner SharedData[AuthoritySet]
+type SharedAuthoritySet[H comparable, N constraints.Unsigned] struct {
+	mtx   sync.Mutex
+	inner AuthoritySet[H, N]
 }
 
 // DelayedKinds Kinds of delays for pending changes.
