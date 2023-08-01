@@ -18,12 +18,12 @@ import (
 type ForkTree[H comparable, N constraints.Unsigned] interface {
 	Import(hash H, number N, change PendingChange[H, N], isDescendentOf IsDescendentOf[H]) (bool, error)
 	Roots() []*pendingChangeNode[H, N]
-	FinalizeAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*bool, error)
+	FinalizesAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*bool, error)
 	FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*FinalizationResult[H, N], error)
 	DrainFilter()
 
-	// GetPreOrder Implemented this as part of interface, but can remove if we want since it's not part of the substrate interface
-	GetPreOrder() []PendingChange[H, N]
+	// PendingChanges gets pending changes in PreOrder
+	PendingChanges() []PendingChange[H, N]
 }
 
 // PublicKey interface
@@ -31,6 +31,8 @@ type PublicKey interface {
 	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
-	Address() string
 	Hex() string
+}
+
+type Telemetry interface {
 }

@@ -164,7 +164,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if req == nil || req.String == "" {
 		return errors.New("account address must be valid")
 	}
-	addressPubKey := crypto.PublicAddressToByteArray(req.String)
+	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
 	// check pending transactions for extrinsics singed by addressPubKey
 	pending := sm.txStateAPI.Pending()

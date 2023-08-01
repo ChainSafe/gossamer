@@ -201,7 +201,7 @@ func (k *PublicKey) Decode(in []byte) error {
 }
 
 // Address will return PublicKey Address
-func (k *PublicKey) Address() string {
+func (k *PublicKey) Address() common.Address {
 	return crypto.PublicKeyToAddress(k)
 }
 

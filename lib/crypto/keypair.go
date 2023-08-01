@@ -4,8 +4,10 @@
 package crypto
 
 import (
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/btcsuite/btcutil/base58"
 	bip39 "github.com/cosmos/go-bip39"
+
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -29,7 +31,6 @@ type PublicKey interface {
 	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
-	Address() string
 	Hex() string
 }
 
@@ -47,12 +48,12 @@ var ss58Prefix = []byte("SS58PRE")
 // PublicKeyToAddress returns an ss58 address given a PublicKey
 // see: https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
 // also see: https://github.com/paritytech/substrate/blob/master/primitives/core/src/crypto.rs#L275
-func PublicKeyToAddress(pub PublicKey) string {
+func PublicKeyToAddress(pub PublicKey) common.Address {
 	enc := append([]byte{42}, pub.Encode()...)
 	return publicKeyBytesToAddress(enc)
 }
 
-func publicKeyBytesToAddress(b []byte) string {
+func publicKeyBytesToAddress(b []byte) common.Address {
 	hasher, err := blake2b.New(64, nil)
 	if err != nil {
 		return ""
@@ -62,12 +63,12 @@ func publicKeyBytesToAddress(b []byte) string {
 		return ""
 	}
 	checksum := hasher.Sum(nil)
-	return base58.Encode(append(b, checksum[:2]...))
+	return common.Address(base58.Encode(append(b, checksum[:2]...)))
 }
 
 // PublicAddressToByteArray returns []byte address for given PublicKey Address
-func PublicAddressToByteArray(add string) []byte {
-	k := base58.Decode(add)
+func PublicAddressToByteArray(add common.Address) []byte {
+	k := base58.Decode(string(add))
 	return k[1:33]
 }
 

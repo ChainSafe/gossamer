@@ -5,6 +5,7 @@ package keystore
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
@@ -43,7 +44,7 @@ type Keystore interface {
 
 // AddressKeypairGetter gets a keypair from an address.
 type AddressKeypairGetter interface {
-	GetKeypairFromAddress(pub string) KeyPair
+	GetKeypairFromAddress(pub common.Address) KeyPair
 }
 
 // TyperInserter has the Type and Insert methods.
