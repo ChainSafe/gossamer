@@ -5,6 +5,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// DefaultLRUObservedBlockCapacity is the default capacity of the LRU cache.
 const DefaultLRUObservedBlockCapacity = 20
 
 // LRUCache represents the LRU cache.
