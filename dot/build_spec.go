@@ -30,6 +30,7 @@ func (b *BuildSpec) ToJSON() ([]byte, error) {
 		ID:         b.genesis.ID,
 		ChainType:  b.genesis.ChainType,
 		Bootnodes:  b.genesis.Bootnodes,
+		ForkID:     b.genesis.ForkID,
 		ProtocolID: b.genesis.ProtocolID,
 		Properties: b.genesis.Properties,
 		Genesis: genesis.Fields{
@@ -46,6 +47,7 @@ func (b *BuildSpec) ToJSONRaw() ([]byte, error) {
 		ID:         b.genesis.ID,
 		ChainType:  b.genesis.ChainType,
 		Bootnodes:  b.genesis.Bootnodes,
+		ForkID:     b.genesis.ForkID,
 		ProtocolID: b.genesis.ProtocolID,
 		Properties: b.genesis.Properties,
 		Genesis: genesis.Fields{
