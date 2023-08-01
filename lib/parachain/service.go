@@ -22,10 +22,7 @@ type Service struct {
 	Network Network
 }
 
-func NewService(net Network, genesisHash common.Hash) (*Service, error) {
-	// TODO: Use actual fork id from chain spec #3373
-	forkID := ""
-
+func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
