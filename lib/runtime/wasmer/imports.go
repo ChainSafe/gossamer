@@ -48,11 +48,13 @@ package wasmer
 // extern int64_t ext_default_child_storage_next_key_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_read_version_1(void *context, int64_t a, int64_t b, int64_t c, int32_t d);
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
+// extern int64_t ext_default_child_storage_root_version_2(void *context, int64_t a, int32_t b);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
+// extern int64_t ext_default_child_storage_clear_prefix_version_2(void *context, int64_t a, int64_t b, int64_t c);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
 //
 // extern void ext_allocator_free_version_1(void *context, int32_t a);
@@ -66,6 +68,7 @@ package wasmer
 // extern int32_t ext_hashing_twox_128_version_1(void *context, int64_t a);
 // extern int32_t ext_hashing_twox_64_version_1(void *context, int64_t a);
 //
+// extern void ext_offchain_index_clear_version_1(void *context, int64_t a);
 // extern void ext_offchain_index_set_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_offchain_is_validator_version_1(void *context);
 // extern void ext_offchain_local_storage_clear_version_1(void *context, int32_t a, int64_t b);
@@ -1060,6 +1063,74 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 	}
 }
 
+// NewDigestItem returns a new VaryingDataType to represent a DigestItem
+func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType {
+	killStorageResult := scale.MustNewVaryingDataType(new(noneRemain), new(someRemain))
+
+	var err error
+	if allDeleted {
+		err = killStorageResult.Set(noneRemain(deleted))
+	} else {
+		err = killStorageResult.Set(someRemain(deleted))
+	}
+
+	if err != nil {
+		panic(err)
+	}
+	return killStorageResult
+}
+
+//export ext_default_child_storage_clear_prefix_version_2
+func ext_default_child_storage_clear_prefix_version_2(context unsafe.Pointer, childStorageKey, prefixSpan,
+	limitSpan C.int64_t) C.int64_t {
+	logger.Debug("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	prefix := asMemorySlice(instanceContext, prefixSpan)
+
+	limitBytes := asMemorySlice(instanceContext, limitSpan)
+
+	var limit []byte
+	err := scale.Unmarshal(limitBytes, &limit)
+	if err != nil {
+		logger.Warnf("failed scale decoding limit: %s", err)
+		return mustToWasmMemoryNil(instanceContext)
+	}
+
+	if len(limit) == 0 {
+		// limit is None, set limit to max
+		limit = []byte{0xff, 0xff, 0xff, 0xff}
+	}
+
+	limitUint := binary.LittleEndian.Uint32(limit)
+
+	deleted, allDeleted, err := storage.ClearPrefixInChildWithLimit(
+		keyToChild, prefix, limitUint)
+	if err != nil {
+		logger.Errorf("failed to clear prefix in child with limit: %s", err)
+	}
+
+	killStorageResult := NewKillStorageResult(deleted, allDeleted)
+
+	encodedKillStorageResult, err := scale.Marshal(killStorageResult)
+	if err != nil {
+		logger.Errorf("failed to encode result: %s", err)
+		return 0
+	}
+
+	resultSpan, err := toWasmMemoryOptional(instanceContext, encodedKillStorageResult)
+	if err != nil {
+		logger.Errorf("failed to allocate: %s", err)
+		return 0
+	}
+
+	return C.int64_t(resultSpan)
+}
+
 //export ext_default_child_storage_exists_version_1
 func ext_default_child_storage_exists_version_1(context unsafe.Pointer,
 	childStorageKey, key C.int64_t) C.int32_t {
@@ -1156,6 +1227,13 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer,
 	}
 
 	return C.int64_t(root)
+}
+
+//export ext_default_child_storage_root_version_2
+func ext_default_child_storage_root_version_2(context unsafe.Pointer,
+	childStorageKey C.int64_t, stateVersion C.int32_t) (ptrSize C.int64_t) {
+	// TODO: Implement this after we have storage trie version 1 implemented #2418
+	return ext_default_child_storage_root_version_1(context, childStorageKey)
 }
 
 //export ext_default_child_storage_set_version_1
@@ -1498,6 +1576,22 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan
 	copy(cp, newValue)
 
 	err := runtimeCtx.NodeStorage.BaseDB.Put(storageKey, cp)
+	if err != nil {
+		logger.Errorf("failed to set value in raw storage: %s", err)
+	}
+}
+
+//export ext_offchain_index_clear_version_1
+func ext_offchain_index_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
+	// Remove a key and its associated value from the Offchain DB.
+	// https://github.com/paritytech/substrate/blob/4d608f9c42e8d70d835a748fa929e59a99497e90/primitives/io/src/lib.rs#L1213
+	logger.Trace("executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	storageKey := asMemorySlice(instanceContext, keySpan)
+	err := runtimeCtx.NodeStorage.BaseDB.Del(storageKey)
 	if err != nil {
 		logger.Errorf("failed to set value in raw storage: %s", err)
 	}
@@ -2116,12 +2210,14 @@ func importsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2},
 		{"ext_crypto_start_batch_verify_version_1", ext_crypto_start_batch_verify_version_1, C.ext_crypto_start_batch_verify_version_1},
 		{"ext_default_child_storage_clear_prefix_version_1", ext_default_child_storage_clear_prefix_version_1, C.ext_default_child_storage_clear_prefix_version_1},
+		{"ext_default_child_storage_clear_prefix_version_2", ext_default_child_storage_clear_prefix_version_2, C.ext_default_child_storage_clear_prefix_version_2},
 		{"ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1},
 		{"ext_default_child_storage_exists_version_1", ext_default_child_storage_exists_version_1, C.ext_default_child_storage_exists_version_1},
 		{"ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1, C.ext_default_child_storage_get_version_1},
 		{"ext_default_child_storage_next_key_version_1", ext_default_child_storage_next_key_version_1, C.ext_default_child_storage_next_key_version_1},
 		{"ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1, C.ext_default_child_storage_read_version_1},
 		{"ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1, C.ext_default_child_storage_root_version_1},
+		{"ext_default_child_storage_root_version_2", ext_default_child_storage_root_version_2, C.ext_default_child_storage_root_version_2},
 		{"ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1, C.ext_default_child_storage_set_version_1},
 		{"ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1},
 		{"ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2, C.ext_default_child_storage_storage_kill_version_2},
@@ -2139,6 +2235,7 @@ func importsNodeRuntime() (imports *wasm.Imports, err error) {
 		{"ext_misc_print_num_version_1", ext_misc_print_num_version_1, C.ext_misc_print_num_version_1},
 		{"ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1, C.ext_misc_print_utf8_version_1},
 		{"ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1, C.ext_misc_runtime_version_version_1},
+		{"ext_offchain_index_clear_version_1", ext_offchain_index_clear_version_1, C.ext_offchain_index_clear_version_1},
 		{"ext_offchain_http_request_add_header_version_1", ext_offchain_http_request_add_header_version_1, C.ext_offchain_http_request_add_header_version_1},
 		{"ext_offchain_http_request_start_version_1", ext_offchain_http_request_start_version_1, C.ext_offchain_http_request_start_version_1},
 		{"ext_offchain_index_set_version_1", ext_offchain_index_set_version_1, C.ext_offchain_index_set_version_1},

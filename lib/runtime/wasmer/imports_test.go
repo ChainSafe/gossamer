@@ -33,6 +33,26 @@ var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
 
+func Test_ext_offchain_index_clear_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := inst.ctx.NodeStorage.BaseDB.Put(testKey, testValue)
+	require.NoError(t, err)
+
+	value, err := inst.ctx.NodeStorage.BaseDB.Get(testKey)
+	require.NoError(t, err)
+	require.Equal(t, testValue, value)
+
+	encKey, err := scale.Marshal(testKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_offchain_index_clear_version_1", encKey)
+	require.NoError(t, err)
+
+	_, err = inst.ctx.NodeStorage.BaseDB.Get(testKey)
+	require.ErrorIs(t, err, chaindb.ErrKeyNotFound)
+}
+
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 	runtimeFunc, ok := inst.vm.Exports["rtm_ext_offchain_timestamp_version_1"]
@@ -1281,6 +1301,58 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Nil(t, val)
+}
+
+func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	prefix := []byte("key")
+
+	testKeyValuePair := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("keyOne"), []byte("value1")},
+		{[]byte("keyTwo"), []byte("value2")},
+		{[]byte("keyThree"), []byte("value3")},
+	}
+
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	for _, kv := range testKeyValuePair {
+		err = inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		require.NoError(t, err)
+	}
+
+	// Confirm if value is set
+	keys, err := inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(keys))
+
+	encChildKey, err := scale.Marshal(testChildKey)
+	require.NoError(t, err)
+
+	encPrefix, err := scale.Marshal(prefix)
+	require.NoError(t, err)
+
+	testLimit := uint32(1)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	encLimit, err := scale.Marshal(&testLimitBytes)
+	require.NoError(t, err)
+
+	data := append(encChildKey, encPrefix...)
+	data = append(data, encLimit...)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_2", data)
+	require.NoError(t, err)
+
+	keys, err = inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	// since one key is removed, there will be two remaining.
+	require.Equal(t, 2, len(keys))
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
