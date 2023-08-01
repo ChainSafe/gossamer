@@ -39,7 +39,7 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 		if err != nil {
 			return nil, nil, fmt.Errorf("getting assumption: %w", err)
 		}
-		PersistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
+		persistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
 		if err != nil {
 			mergedError = fmt.Errorf("%s; %w", mergedError, err)
 			continue
@@ -50,7 +50,7 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 			return nil, nil, fmt.Errorf("getting validation code: %w", err)
 		}
 
-		return PersistedValidationData, validationCode, nil
+		return persistedValidationData, validationCode, nil
 	}
 
 	return nil, nil, fmt.Errorf("getting persisted validation data: %w", mergedError)
@@ -100,7 +100,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
 	}
 
-	ValidationParams := ValidationParameters{
+	validationParams := ValidationParameters{
 		ParentHeadData:         persistedValidationData.ParentHead,
 		BlockData:              pov.BlockData,
 		RelayParentNumber:      persistedValidationData.RelayParentNumber,
@@ -112,7 +112,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("setting up VM: %w", err)
 	}
 
-	validationResults, err := parachainRuntimeInstance.ValidateBlock(ValidationParams)
+	validationResults, err := parachainRuntimeInstance.ValidateBlock(validationParams)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
 	}
