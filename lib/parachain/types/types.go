@@ -69,7 +69,7 @@ type CandidateDescriptor struct {
 	RelayParent common.Hash `scale:"2"`
 
 	// Collator is the collator's sr25519 public key.
-	Collator CollatorID `scale:"3"` //sr25519.PublicKey `scale:"3"`
+	Collator CollatorID `scale:"3"`
 
 	// PersistedValidationDataHash is the blake2-256 hash of the persisted validation data. This is extra data derived from
 	// relay-chain state which may vary based on bitfields included before the candidate.

@@ -8,14 +8,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
+var (
+	ErrValidationCodeMismatch   = errors.New("validation code hash does not match")
+	ErrValidationInputOverLimit = errors.New("validation input is over the limit")
 )
 
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
@@ -62,7 +62,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	c parachaintypes.CandidateReceipt) (
 	*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
 
-	PersistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.Descriptor.ParaID)
+	persistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.Descriptor.ParaID)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("getting validation data: %w", err)
 	}
@@ -80,8 +80,8 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("encoding pov: %w", err)
 	}
 	encodedPoVSize := buffer.Len()
-	if encodedPoVSize > int(PersistedValidationData.MaxPovSize) {
-		return nil, nil, false, errors.New("validation input is over the limit")
+	if encodedPoVSize > int(persistedValidationData.MaxPovSize) {
+		return nil, nil, false, ErrValidationInputOverLimit
 	}
 
 	validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))
@@ -90,7 +90,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 
 	if validationCodeHash != common.Hash(c.Descriptor.ValidationCodeHash) {
-		return nil, nil, false, errors.New("validation code hash does not match")
+		return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch, c.Descriptor.ValidationCodeHash, validationCodeHash)
 	}
 
 	// check candidate signature
@@ -100,10 +100,10 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 
 	ValidationParams := ValidationParameters{
-		ParentHeadData:         PersistedValidationData.ParentHead,
+		ParentHeadData:         persistedValidationData.ParentHead,
 		BlockData:              pov.BlockData,
-		RelayParentNumber:      PersistedValidationData.RelayParentNumber,
-		RelayParentStorageRoot: PersistedValidationData.RelayParentStorageRoot,
+		RelayParentNumber:      persistedValidationData.RelayParentNumber,
+		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
 	}
 
 	parachainRuntimeInstance, err := setupVM(*validationCode)
@@ -130,7 +130,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
 	}
 
-	return &candidateCommitments, PersistedValidationData, isValid, nil
+	return &candidateCommitments, persistedValidationData, isValid, nil
 }
 
 // ValidationParameters contains parameters for evaluating the parachain validity function.
@@ -147,42 +147,6 @@ type ValidationParameters struct {
 
 // RuntimeInstance for runtime methods
 type RuntimeInstance interface {
-	UpdateRuntimeCode([]byte) error
-	Stop()
-	NodeStorage() runtime.NodeStorage
-	NetworkService() runtime.BasicNetwork
-	Keystore() *keystore.GlobalKeystore
-	Validator() bool
-	Exec(function string, data []byte) ([]byte, error)
-	SetContextStorage(s runtime.Storage)
-	GetCodeHash() common.Hash
-	Version() (version runtime.Version)
-	Metadata() ([]byte, error)
-	BabeConfiguration() (*types.BabeConfiguration, error)
-	GrandpaAuthorities() ([]types.Authority, error)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	InitializeBlock(header *types.Header) error
-	InherentExtrinsics(data []byte) ([]byte, error)
-	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlock() (*types.Header, error)
-	ExecuteBlock(block *types.Block) ([]byte, error)
-	DecodeSessionKeys(enc []byte) ([]byte, error)
-	PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error)
-	CheckInherents()
-	BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
-		types.OpaqueKeyOwnershipProof, error)
-	BabeSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.BabeEquivocationProof,
-		keyOwnershipProof types.OpaqueKeyOwnershipProof,
-	) error
-	RandomSeed()
-	OffchainWorker()
-	GenerateSessionKeys()
-	GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-		types.GrandpaOpaqueKeyOwnershipProof, error)
-	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
-	) error
 	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.PersistedValidationData, error)
 	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
