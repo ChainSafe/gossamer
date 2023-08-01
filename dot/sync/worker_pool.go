@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -23,17 +24,15 @@ const (
 )
 
 type syncTask struct {
-	boundTo  *peer.ID
 	request  *network.BlockRequestMessage
 	resultCh chan<- *syncTaskResult
 }
 
 type syncTaskResult struct {
-	isBounded bool
-	who       peer.ID
-	request   *network.BlockRequestMessage
-	response  *network.BlockResponseMessage
-	err       error
+	who      peer.ID
+	request  *network.BlockRequestMessage
+	response *network.BlockResponseMessage
+	err      error
 }
 
 type peerSyncWorker struct {
@@ -43,14 +42,16 @@ type peerSyncWorker struct {
 	worker         *worker
 }
 
+func (p *peerSyncWorker) isPunished() bool {
+	return p.punishmentTime.After(time.Now())
+}
+
 type syncWorkerPool struct {
-	wg            sync.WaitGroup
 	mtx           sync.RWMutex
 	availableCond *sync.Cond
 
 	network      Network
 	requestMaker network.RequestMaker
-	taskQueue    chan *syncTask
 	workers      map[peer.ID]*peerSyncWorker
 	ignorePeers  map[peer.ID]struct{}
 
@@ -62,7 +63,6 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 		network:      net,
 		requestMaker: requestMaker,
 		workers:      make(map[peer.ID]*peerSyncWorker),
-		taskQueue:    make(chan *syncTask, maxRequestsAllowed+1),
 		ignorePeers:  make(map[peer.ID]struct{}),
 		sharedGuard:  make(chan struct{}, maxRequestsAllowed),
 	}
@@ -102,7 +102,7 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 	syncWorker, has := s.workers[who]
 	if !has {
 		syncWorker = &peerSyncWorker{status: available}
-		syncWorker.worker = newWorker(who, s.sharedGuard, s.taskQueue, s.requestMaker)
+		syncWorker.worker = newWorker(who, s.sharedGuard, s.requestMaker)
 		syncWorker.worker.start()
 
 		s.workers[who] = syncWorker
@@ -123,8 +123,8 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 // to perform the request, the response will be dispatch in the resultCh.
 func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	who *peer.ID, resultCh chan<- *syncTaskResult) {
+
 	task := &syncTask{
-		boundTo:  who,
 		request:  request,
 		resultCh: resultCh,
 	}
@@ -133,24 +133,62 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	// request it and sent through its queue otherwise send
 	// the request in the general queue where all worker are
 	// listening on
-	if who != nil {
-		s.mtx.RLock()
-		defer s.mtx.RUnlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
+	if who != nil {
 		syncWorker := s.workers[*who]
-		syncWorker.worker.processTask(task)
-	} else {
-		s.taskQueue <- task
+		if !syncWorker.isPunished() {
+			syncWorker.worker.processTask(task)
+			return
+		}
 	}
 
+	for syncWorkerPeerID, syncWorker := range s.workers {
+		if who != nil && *who == syncWorkerPeerID {
+			continue
+		}
+
+		if syncWorker.isPunished() {
+			continue
+		}
+
+		enqueued := syncWorker.worker.processTask(task)
+		if enqueued {
+			break
+		}
+	}
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
+	logger.Debugf("[SENDING] %d requests", len(requests))
 	resultCh = make(chan *syncTaskResult, maxRequestsAllowed+1)
-	for _, request := range requests {
-		s.submitRequest(request, nil, resultCh)
+
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	idx := 0
+	allWorkers := maps.Values(s.workers)
+	for idx < len(requests) {
+		workerID := idx % len(allWorkers)
+		syncWorker := allWorkers[workerID]
+
+		if syncWorker.isPunished() {
+			continue
+		}
+
+		enqueued := syncWorker.worker.processTask(&syncTask{
+			request:  requests[idx],
+			resultCh: resultCh,
+		})
+
+		if !enqueued {
+			continue
+		}
+
+		idx++
 	}
 
 	return resultCh
@@ -206,106 +244,4 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 	}
 
 	return total
-}
-
-// getAvailablePeer returns the very first peer available, if there
-// is no peer avaible then the caller should wait for availablePeerCh
-func (s *syncWorkerPool) getAvailablePeer() peer.ID {
-	for peerID, peerSync := range s.workers {
-		switch peerSync.status {
-		case punished:
-			// if the punishedTime has passed then we can
-			// use it as an available peer
-			if peerSync.punishmentTime.Before(time.Now()) {
-				return peerID
-			}
-		case available:
-			return peerID
-		default:
-		}
-	}
-
-	return peer.ID("")
-}
-
-func (s *syncWorkerPool) getPeerByID(peerID peer.ID) *peerSyncWorker {
-	peerSync, has := s.workers[peerID]
-	if !has {
-		return nil
-	}
-
-	return peerSync
-}
-
-func (s *syncWorkerPool) listenForRequests(stopCh chan struct{}, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case <-stopCh:
-			// wait for ongoing requests to be finished before returning
-			s.wg.Wait()
-			return
-
-		case task := <-s.taskQueue:
-			// whenever a task arrives we try to find an available peer
-			// if the task is directed at some peer then we will wait for
-			// that peer to become available, same happens a normal task
-			// arrives and there is no available peer, then we should wait
-			// for someone to become free and then use it.
-
-			s.mtx.Lock()
-			for {
-				var peerID peer.ID
-				if task.boundTo != nil {
-					peerSync := s.getPeerByID(*task.boundTo)
-					if peerSync != nil && peerSync.status == available {
-						peerID = *task.boundTo
-					}
-				} else {
-					peerID = s.getAvailablePeer()
-				}
-
-				if peerID != peer.ID("") {
-					peerSync := s.workers[peerID]
-					peerSync.status = busy
-					s.workers[peerID] = peerSync
-
-					s.mtx.Unlock()
-
-					s.wg.Add(1)
-					go s.executeRequest(peerID, task)
-					break
-				}
-
-				s.availableCond.Wait()
-			}
-		}
-	}
-}
-
-func (s *syncWorkerPool) executeRequest(who peer.ID, task *syncTask) {
-	defer s.wg.Done()
-	request := task.request
-
-	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
-	response := new(network.BlockResponseMessage)
-	err := s.requestMaker.Do(who, request, response)
-	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
-
-	s.mtx.Lock()
-	worker, has := s.workers[who]
-	if has {
-		worker.status = available
-		s.workers[who] = worker
-	}
-	s.mtx.Unlock()
-	s.availableCond.Signal()
-
-	task.resultCh <- &syncTaskResult{
-		isBounded: task.boundTo != nil,
-		who:       who,
-		request:   request,
-		response:  response,
-		err:       err,
-	}
 }

@@ -14,25 +14,30 @@ type worker struct {
 	stopCh chan struct{}
 	doneCh chan struct{}
 
-	queue          <-chan *syncTask
-	exclusiveQueue chan *syncTask
-
+	queue        chan *syncTask
 	requestMaker network.RequestMaker
 }
 
-func newWorker(pID peer.ID, sharedGuard chan struct{}, queue <-chan *syncTask, network network.RequestMaker) *worker {
+func newWorker(pID peer.ID, sharedGuard chan struct{}, network network.RequestMaker) *worker {
 	return &worker{
 		peerID:       pID,
 		sharedGuard:  sharedGuard,
 		stopCh:       make(chan struct{}),
 		doneCh:       make(chan struct{}),
-		queue:        queue,
+		queue:        make(chan *syncTask, maxRequestsAllowed+1),
 		requestMaker: network,
 	}
 }
 
-func (w *worker) processTask(task *syncTask) {
-	w.exclusiveQueue <- task
+func (w *worker) processTask(task *syncTask) (enqueued bool) {
+	select {
+	case w.queue <- task:
+		logger.Debugf("[ENQUEUED] worker %s, block request: %s", w.peerID, task.request)
+		return true
+	default:
+		logger.Debugf("[NOT ENQUEUED] worker %s, block request: %s", w.peerID, task.request)
+		return false
+	}
 }
 
 func (w *worker) start() {
@@ -48,8 +53,6 @@ func (w *worker) start() {
 				logger.Debugf("[STOPPED] worker %s", w.peerID)
 				return
 			case task := <-w.queue:
-				executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
-			case task := <-w.exclusiveQueue:
 				executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
 			}
 		}

@@ -636,11 +636,6 @@ taskResultLoop:
 			request := taskResult.request
 			response := taskResult.response
 
-			var boundedTo *peer.ID
-			if taskResult.isBounded {
-				boundedTo = &taskResult.who
-			}
-
 			logger.Debugf("task result: peer(%s), with error: %v, with response: %v",
 				taskResult.who, taskResult.err != nil, taskResult.response != nil)
 
@@ -658,7 +653,7 @@ taskResultLoop:
 					cs.workerPool.punishPeer(who)
 				}
 
-				cs.workerPool.submitRequest(request, boundedTo, workersResults)
+				cs.workerPool.submitRequest(request, nil, workersResults)
 				continue
 			}
 
@@ -680,7 +675,7 @@ taskResultLoop:
 				}
 
 				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
 
@@ -688,7 +683,7 @@ taskResultLoop:
 			if !isChain {
 				logger.Criticalf("response from %s is not a chain", who)
 				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
 
@@ -697,7 +692,7 @@ taskResultLoop:
 			if !grows {
 				logger.Criticalf("response from %s does not grows the ongoing chain", who)
 				cs.workerPool.punishPeer(taskResult.who)
-				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
 
@@ -712,7 +707,7 @@ taskResultLoop:
 					}, who)
 
 					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
+					cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 					continue taskResultLoop
 				}
 
@@ -742,7 +737,7 @@ taskResultLoop:
 					Direction:     network.Ascending,
 					Max:           &difference,
 				}
-				cs.workerPool.submitRequest(taskResult.request, boundedTo, workersResults)
+				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
 		}
