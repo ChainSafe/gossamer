@@ -59,16 +59,16 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 // ValidateFromChainState validates a candidate parachain block with provided parameters using relay-chain
 // state and using the parachain runtime.
 func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor,
-	c parachaintypes.CandidateReceipt) (
+	candidateReceipt parachaintypes.CandidateReceipt) (
 	*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
 
-	persistedValidationData, validationCode, err := getValidationData(runtimeInstance, c.Descriptor.ParaID)
+	persistedValidationData, validationCode, err := getValidationData(runtimeInstance, candidateReceipt.Descriptor.ParaID)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("getting validation data: %w", err)
 	}
 
 	// check that the candidate does not exceed any parameters in the persisted validation data
-	pov := povRequestor.RequestPoV(c.Descriptor.PovHash)
+	pov := povRequestor.RequestPoV(candidateReceipt.Descriptor.PovHash)
 
 	// basic checks
 
@@ -89,12 +89,12 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("hashing validation code: %w", err)
 	}
 
-	if validationCodeHash != common.Hash(c.Descriptor.ValidationCodeHash) {
-		return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch, c.Descriptor.ValidationCodeHash, validationCodeHash)
+	if validationCodeHash != common.Hash(candidateReceipt.Descriptor.ValidationCodeHash) {
+		return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch, candidateReceipt.Descriptor.ValidationCodeHash, validationCodeHash)
 	}
 
 	// check candidate signature
-	err = c.Descriptor.CheckCollatorSignature()
+	err = candidateReceipt.Descriptor.CheckCollatorSignature()
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
 	}
@@ -125,7 +125,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		HrmpWatermark:             validationResults.HrmpWatermark,
 	}
 
-	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(c.Descriptor.ParaID, candidateCommitments)
+	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(candidateReceipt.Descriptor.ParaID, candidateCommitments)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
 	}
