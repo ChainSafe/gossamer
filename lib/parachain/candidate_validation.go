@@ -41,7 +41,7 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 		}
 		persistedValidationData, err := runtimeInstance.ParachainHostPersistedValidationData(paraID, assumption)
 		if err != nil {
-			mergedError = fmt.Errorf("%s; %w", mergedError, err)
+			mergedError = errors.Join(mergedError, err)
 			continue
 		}
 
