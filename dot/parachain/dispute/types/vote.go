@@ -5,16 +5,16 @@ import (
 
 	"github.com/google/btree"
 
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Vote is a vote from a validator for a dispute statement
 type Vote struct {
-	ValidatorIndex     parachain.ValidatorIndex   `scale:"1"`
-	DisputeStatement   inherents.DisputeStatement `scale:"2"`
-	ValidatorSignature [64]byte                   `scale:"3"`
+	ValidatorIndex     parachainTypes.ValidatorIndex `scale:"1"`
+	DisputeStatement   inherents.DisputeStatement    `scale:"2"`
+	ValidatorSignature [64]byte                      `scale:"3"`
 }
 
 // Less returns true if the validator index of the vote is less than the validator index of the
@@ -265,7 +265,7 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (*CandidateVoteStat
 }
 
 // NewCandidateVoteStateFromReceipt creates a new CandidateVoteState from a CandidateReceipt
-func NewCandidateVoteStateFromReceipt(receipt parachain.CandidateReceipt) (*CandidateVoteState, error) {
+func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (*CandidateVoteState, error) {
 	votes := NewCandidateVotesFromReceipt(receipt)
 	ownVoteState, err := NewOwnVoteState(CannotVote{})
 	if err != nil {
@@ -280,21 +280,21 @@ func NewCandidateVoteStateFromReceipt(receipt parachain.CandidateReceipt) (*Cand
 
 // CandidateVotes is a struct containing the votes for a candidate.
 type CandidateVotes struct {
-	CandidateReceipt parachain.CandidateReceipt `scale:"1"`
+	CandidateReceipt parachainTypes.CandidateReceipt `scale:"1"`
 	// TODO: check if we need to use btree for this in the future
-	Valid   map[parachain.ValidatorIndex]Vote `scale:"2"`
-	Invalid map[parachain.ValidatorIndex]Vote `scale:"3"`
+	Valid   map[parachainTypes.ValidatorIndex]Vote `scale:"2"`
+	Invalid map[parachainTypes.ValidatorIndex]Vote `scale:"3"`
 }
 
 func NewCandidateVotes() *CandidateVotes {
 	return &CandidateVotes{
-		Valid:   make(map[parachain.ValidatorIndex]Vote),
-		Invalid: make(map[parachain.ValidatorIndex]Vote),
+		Valid:   make(map[parachainTypes.ValidatorIndex]Vote),
+		Invalid: make(map[parachainTypes.ValidatorIndex]Vote),
 	}
 }
 
 // NewCandidateVotesFromReceipt creates a new CandidateVotes from a candidate receipt.
-func NewCandidateVotesFromReceipt(receipt parachain.CandidateReceipt) CandidateVotes {
+func NewCandidateVotesFromReceipt(receipt parachainTypes.CandidateReceipt) CandidateVotes {
 	return CandidateVotes{
 		CandidateReceipt: receipt,
 	}

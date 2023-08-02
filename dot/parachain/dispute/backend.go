@@ -1,34 +1,31 @@
 package dispute
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/btree"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
-
 // Backend is the backend for the dispute coordinator module.
 type Backend interface {
 	// GetEarliestSession returns the earliest session index, if any.
-	GetEarliestSession() (*parachain.SessionIndex, error)
+	GetEarliestSession() (*parachainTypes.SessionIndex, error)
 	// GetRecentDisputes returns the recent disputes, if any.
 	GetRecentDisputes() (*btree.BTree, error)
 	// GetCandidateVotes returns the votes for the given candidate for the specific session-candidate pair, if any.
-	GetCandidateVotes(session parachain.SessionIndex, candidateHash common.Hash) (*types.CandidateVotes, error)
+	GetCandidateVotes(session parachainTypes.SessionIndex, candidateHash common.Hash) (*types.CandidateVotes, error)
 
 	// SetEarliestSession sets the earliest session index.
-	SetEarliestSession(session *parachain.SessionIndex) error
+	SetEarliestSession(session *parachainTypes.SessionIndex) error
 	// SetRecentDisputes sets the recent disputes.
 	SetRecentDisputes(recentDisputes *btree.BTree) error
 	// SetCandidateVotes sets the votes for the given candidate for the specific session-candidate pair.
-	SetCandidateVotes(session parachain.SessionIndex, candidateHash common.Hash, votes *types.CandidateVotes) error
+	SetCandidateVotes(session parachainTypes.SessionIndex, candidateHash common.Hash, votes *types.CandidateVotes) error
 }
 
 // OverlayBackend is the overlay backend for the dispute coordinator module.
@@ -46,7 +43,7 @@ type DBBackend interface {
 	Backend
 
 	// Write writes the given data to the database.
-	Write(earliestSession *parachain.SessionIndex,
+	Write(earliestSession *parachainTypes.SessionIndex,
 		recentDisputes *btree.BTree,
 		candidateVotes map[types.Comparator]*types.CandidateVotes) error
 }
@@ -57,7 +54,7 @@ const DefaultBtreeDegree = 32 // TODO: determine the optimal degree during integ
 // overlayBackend implements OverlayBackend.
 type overlayBackend struct {
 	inner           DBBackend
-	earliestSession *parachain.SessionIndex
+	earliestSession *parachainTypes.SessionIndex
 	recentDisputes  *btree.BTree
 	candidateVotes  map[types.Comparator]*types.CandidateVotes
 
@@ -66,7 +63,7 @@ type overlayBackend struct {
 	candidateVotesLock  *sync.RWMutex
 }
 
-func (b *overlayBackend) GetEarliestSession() (*parachain.SessionIndex, error) {
+func (b *overlayBackend) GetEarliestSession() (*parachainTypes.SessionIndex, error) {
 	b.earliestSessionLock.RLock()
 	defer b.earliestSessionLock.RUnlock()
 	if b.earliestSession != nil {
@@ -86,7 +83,7 @@ func (b *overlayBackend) GetRecentDisputes() (*btree.BTree, error) {
 	return b.inner.GetRecentDisputes()
 }
 
-func (b *overlayBackend) GetCandidateVotes(session parachain.SessionIndex,
+func (b *overlayBackend) GetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 ) (*types.CandidateVotes, error) {
 	b.candidateVotesLock.RLock()
@@ -103,7 +100,7 @@ func (b *overlayBackend) GetCandidateVotes(session parachain.SessionIndex,
 	return b.inner.GetCandidateVotes(session, candidateHash)
 }
 
-func (b *overlayBackend) SetEarliestSession(session *parachain.SessionIndex) error {
+func (b *overlayBackend) SetEarliestSession(session *parachainTypes.SessionIndex) error {
 	b.earliestSessionLock.Lock()
 	defer b.earliestSessionLock.Unlock()
 	b.earliestSession = session
@@ -117,7 +114,7 @@ func (b *overlayBackend) SetRecentDisputes(recentDisputes *btree.BTree) error {
 	return nil
 }
 
-func (b *overlayBackend) SetCandidateVotes(session parachain.SessionIndex,
+func (b *overlayBackend) SetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 	votes *types.CandidateVotes,
 ) error {

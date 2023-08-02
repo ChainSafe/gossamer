@@ -3,15 +3,15 @@ package types
 import (
 	"bytes"
 
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/google/btree"
 )
 
 // Comparator for ordering of disputes.
 type Comparator struct {
-	SessionIndex  parachain.SessionIndex `scale:"1"`
-	CandidateHash common.Hash            `scale:"2"`
+	SessionIndex  parachainTypes.SessionIndex `scale:"1"`
+	CandidateHash common.Hash                 `scale:"2"`
 }
 
 // Dispute is a dispute for a candidate.

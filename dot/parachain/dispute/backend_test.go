@@ -6,8 +6,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/btree"
 	"github.com/stretchr/testify/require"
@@ -29,7 +29,7 @@ func TestOverlayBackend_EarliestSession(t *testing.T) {
 	earliestSession, err := backend.GetEarliestSession()
 	require.NoError(t, err)
 
-	require.Equal(t, parachain.SessionIndex(1), *earliestSession)
+	require.Equal(t, parachainTypes.SessionIndex(1), *earliestSession)
 }
 
 func TestOverlayBackend_RecentDisputes(t *testing.T) {
@@ -98,10 +98,10 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < numIterations; j++ {
-				err := backend.SetCandidateVotes(parachain.SessionIndex(j),
+				err := backend.SetCandidateVotes(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)}, types.NewTestCandidateVotes(t))
 				require.NoError(t, err)
-				_, err = backend.GetCandidateVotes(parachain.SessionIndex(j), common.Hash{byte(j)})
+				_, err = backend.GetCandidateVotes(parachainTypes.SessionIndex(j), common.Hash{byte(j)})
 				require.NoError(t, err)
 			}
 		}()
@@ -129,11 +129,14 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				disputes := btree.New(DefaultBtreeDegree)
 
-				dispute1, err := types.NewTestDispute(parachain.SessionIndex(j), common.Hash{byte(j)}, types.DisputeStatusActive)
+				dispute1, err := types.NewTestDispute(parachainTypes.SessionIndex(j),
+					common.Hash{byte(j)},
+					types.DisputeStatusActive,
+				)
 				require.NoError(t, err)
 				disputes.ReplaceOrInsert(dispute1)
 
-				dispute2, err := types.NewTestDispute(parachain.SessionIndex(j),
+				dispute2, err := types.NewTestDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)}, types.DisputeStatusConcludedFor)
 				require.NoError(t, err)
 				disputes.ReplaceOrInsert(dispute2)

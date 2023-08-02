@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/btree"
 	"github.com/stretchr/testify/require"
 )
 
-func getSessionIndex(index uint) *parachain.SessionIndex {
-	sessionIndex := parachain.SessionIndex(index)
+func getSessionIndex(index uint) *parachainTypes.SessionIndex {
+	sessionIndex := parachainTypes.SessionIndex(index)
 	return &sessionIndex
 }
 
@@ -175,7 +175,7 @@ func TestDBBackend_watermark(t *testing.T) {
 	// then
 	watermark, err := backend.getWatermark()
 	require.NoError(t, err)
-	require.Equal(t, parachain.SessionIndex(1), watermark)
+	require.Equal(t, parachainTypes.SessionIndex(1), watermark)
 }
 
 func BenchmarkBadgerBackend_SetEarliestSession(b *testing.B) {
@@ -197,7 +197,7 @@ func BenchmarkBadgerBackend_SetRecentDisputes(b *testing.B) {
 
 	disputes := btree.New(DefaultBtreeDegree)
 	for i := 0; i < 10000; i++ {
-		dispute, err := types.NewTestDispute(parachain.SessionIndex(i), common.Hash{byte(i)}, types.DisputeStatusActive)
+		dispute, err := types.NewTestDispute(parachainTypes.SessionIndex(i), common.Hash{byte(i)}, types.DisputeStatusActive)
 		require.NoError(b, err)
 		disputes.ReplaceOrInsert(dispute)
 	}
@@ -218,7 +218,7 @@ func BenchmarkBadgerBackend_SetCandidateVotes(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = backend.SetCandidateVotes(parachain.SessionIndex(i), common.Hash{1}, candidateVotes)
+		err = backend.SetCandidateVotes(parachainTypes.SessionIndex(i), common.Hash{1}, candidateVotes)
 		require.NoError(b, err)
 	}
 }
@@ -245,7 +245,7 @@ func BenchmarkBadgerBackend_GetRecentDisputes(b *testing.B) {
 
 	disputes := btree.New(DefaultBtreeDegree)
 	for i := 0; i < 1000; i++ {
-		dispute, err := types.NewTestDispute(parachain.SessionIndex(i), common.Hash{byte(1)}, types.DisputeStatusActive)
+		dispute, err := types.NewTestDispute(parachainTypes.SessionIndex(i), common.Hash{byte(1)}, types.DisputeStatusActive)
 		require.NoError(b, err)
 		disputes.ReplaceOrInsert(dispute)
 	}
@@ -267,13 +267,13 @@ func BenchmarkBadgerBackend_GetCandidateVotes(b *testing.B) {
 
 	candidateVotes := types.NewTestCandidateVotes(&testing.T{})
 	for i := 0; i < b.N; i++ {
-		err = backend.SetCandidateVotes(parachain.SessionIndex(i), common.Hash{1}, candidateVotes)
+		err = backend.SetCandidateVotes(parachainTypes.SessionIndex(i), common.Hash{1}, candidateVotes)
 		require.NoError(b, err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = backend.GetCandidateVotes(parachain.SessionIndex(i), common.Hash{1})
+		_, err = backend.GetCandidateVotes(parachainTypes.SessionIndex(i), common.Hash{1})
 		require.NoError(b, err)
 	}
 }
