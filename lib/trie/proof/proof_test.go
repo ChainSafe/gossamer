@@ -85,7 +85,7 @@ func TestParachainHeaderStateProof(t *testing.T) {
 	expectedValue := proof7
 
 	db := NewStorageProof(proof).toMemoryDB()
-	trieDB := triedb.NewTrieDBBuilder(db, stateRoot, triedb.TrieLayoutV1{}).Build()
+	trieDB := triedb.NewTrieDBBuilder(db, stateRoot).Build()
 	require.NoError(t, err)
 
 	value, err := trieDB.GetValue(encodeStorageKey)

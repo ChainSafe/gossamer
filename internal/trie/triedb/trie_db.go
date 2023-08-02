@@ -9,24 +9,22 @@ import (
 )
 
 type TrieDBBuilder struct {
-	db     hashdb.HashDB
-	root   []byte
-	layout TrieLayout
+	db   hashdb.HashDB
+	root []byte
 	//TODO: implement cache and recorder
 }
 
-func NewTrieDBBuilder(db hashdb.HashDB, root []byte, layout TrieLayout) *TrieDBBuilder {
-	return &TrieDBBuilder{db, root, layout}
+func NewTrieDBBuilder(db hashdb.HashDB, root []byte) *TrieDBBuilder {
+	return &TrieDBBuilder{db, root}
 }
 
 func (tdbb TrieDBBuilder) Build() *TrieDB {
-	return &TrieDB{tdbb.db, tdbb.root, tdbb.layout}
+	return &TrieDB{tdbb.db, tdbb.root}
 }
 
 type TrieDB struct {
-	db     hashdb.HashDB
-	root   []byte
-	Layout TrieLayout
+	db   hashdb.HashDB
+	root []byte
 	//TODO: implement cache and recorder
 }
 
