@@ -5,8 +5,8 @@ package keystore
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/lib/common"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 

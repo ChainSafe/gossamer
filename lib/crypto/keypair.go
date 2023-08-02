@@ -8,7 +8,6 @@ import (
 
 	"github.com/btcsuite/btcutil/base58"
 	bip39 "github.com/cosmos/go-bip39"
-
 	"golang.org/x/crypto/blake2b"
 )
 
