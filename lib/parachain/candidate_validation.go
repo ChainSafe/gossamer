@@ -81,7 +81,7 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 	encodedPoVSize := buffer.Len()
 	if encodedPoVSize > int(persistedValidationData.MaxPovSize) {
-		return nil, nil, false, ErrValidationInputOverLimit
+		return nil, nil, false, fmt.Errorf("%w, limit: %d, got: %d", ErrValidationInputOverLimit, persistedValidationData.MaxPovSize, encodedPoVSize)
 	}
 
 	validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))

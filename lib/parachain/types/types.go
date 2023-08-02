@@ -94,13 +94,17 @@ type CandidateDescriptor struct {
 func (cd CandidateDescriptor) CreateSignaturePayload() ([]byte, error) {
 	var payload [132]byte
 	copy(payload[0:32], cd.RelayParent.ToBytes())
+
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(cd.ParaID)
 	if err != nil {
 		return nil, fmt.Errorf("encoding parachain id: %w", err)
 	}
-	copy(payload[32:32+buffer.Len()], buffer.Bytes())
+	if len(buffer.Bytes()) != 4 {
+		return nil, fmt.Errorf("invalid length of encoded parachain id")
+	}
+	copy(payload[32:36], buffer.Bytes())
 	copy(payload[36:68], cd.PersistedValidationDataHash.ToBytes())
 	copy(payload[68:100], cd.PovHash.ToBytes())
 	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
