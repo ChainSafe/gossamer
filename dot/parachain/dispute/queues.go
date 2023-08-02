@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sync"
 
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 
 	"github.com/google/btree"
 	"github.com/pkg/errors"
