@@ -218,6 +218,26 @@ func (vp *ValidationProtocol) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
+	logger.Debugf("decode in bytes %v\n", in)
+
+	wireMessage := NewWireMessageVDT()
+
+	err := scale.Unmarshal(in, &wireMessage)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode message: %w", err)
+	}
+	logger.Debugf("decoded wire message type %v message: %v\n", wireMessage.Type(), wireMessage)
+	return &wireMessage, nil
+}
+
+func (s *Service) handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
+	// TODO: dispatch message to Network Bridge
+	logger.Debugf("received a WireMessage %v\n", msg)
+	s.chNotificationMsg <- msg
+	return false, nil
+}
+
 func getValidationHandshake() (network.Handshake, error) {
 	return &collatorHandshake{}, nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type WireMessage scale.VaryingDataType
@@ -97,24 +96,4 @@ func (wm *WireMessage) Encode() ([]byte, error) {
 		return enc, err
 	}
 	return enc, nil
-}
-
-func decodeWireMessage(in []byte) (network.NotificationsMessage, error) {
-	logger.Debugf("decode in bytes %v\n", in)
-
-	wireMessage := NewWireMessageVDT()
-
-	err := scale.Unmarshal(in, &wireMessage)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decode message: %w", err)
-	}
-	logger.Debugf("decoded wire message %v\n", wireMessage)
-	return &wireMessage, nil
-}
-
-func handleWireMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: Add things
-	logger.Debugf("received a WireMessage %v\n", msg)
-	fmt.Println("We got a wiremessage", msg)
-	return false, nil
 }

@@ -5,7 +5,6 @@ package parachain
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -20,7 +19,8 @@ const (
 )
 
 type Service struct {
-	Network Network
+	Network           Network
+	chNotificationMsg chan network.NotificationsMessage
 }
 
 type Config struct {
@@ -31,6 +31,12 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(config *Config, net Network, genesisHash common.Hash) (*Service, error) {
 	logger.Patch(log.SetLevel(config.LogLvl))
+
+	channel := make(chan network.NotificationsMessage)
+	parachainService := &Service{
+		Network:           net,
+		chNotificationMsg: channel,
+	}
 
 	// TODO: Use actual fork id from chain spec #3373
 	forkID := ""
@@ -45,8 +51,8 @@ func NewService(config *Config, net Network, genesisHash common.Hash) (*Service,
 		getValidationHandshake,
 		decodeValidationHandshake,
 		validateValidationHandshake,
-		decodeWireMessage,
-		handleWireMessage,
+		decodeValidationMessage,
+		parachainService.handleValidationMessage,
 		nil,
 		MaxValidationMessageSize,
 	)
@@ -58,8 +64,8 @@ func NewService(config *Config, net Network, genesisHash common.Hash) (*Service,
 			getValidationHandshake,
 			decodeValidationHandshake,
 			validateValidationHandshake,
-			decodeWireMessage,
-			handleWireMessage,
+			decodeValidationMessage,
+			parachainService.handleValidationMessage,
 			nil,
 			MaxValidationMessageSize,
 		)
@@ -79,8 +85,8 @@ func NewService(config *Config, net Network, genesisHash common.Hash) (*Service,
 		getCollatorHandshake,
 		decodeCollatorHandshake,
 		validateCollatorHandshake,
-		decodeWireMessage,
-		handleWireMessage,
+		decodeCollationMessage,
+		handleCollationMessage,
 		nil,
 		MaxCollationMessageSize,
 	)
@@ -92,8 +98,8 @@ func NewService(config *Config, net Network, genesisHash common.Hash) (*Service,
 			getCollatorHandshake,
 			decodeCollatorHandshake,
 			validateCollatorHandshake,
-			decodeWireMessage,
-			handleWireMessage,
+			decodeCollationMessage,
+			handleCollationMessage,
 			nil,
 			MaxCollationMessageSize,
 		)
@@ -101,10 +107,6 @@ func NewService(config *Config, net Network, genesisHash common.Hash) (*Service,
 		if err1 != nil {
 			return nil, fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
 		}
-	}
-
-	parachainService := &Service{
-		Network: net,
 	}
 
 	go parachainService.run()
@@ -124,32 +126,25 @@ func (Service) Stop() error {
 
 // main loop of parachain service
 func (s Service) run() {
-
-	// NOTE: this is a temporary test, just to show that we can send messages to peers
-	//
-	time.Sleep(time.Second * 15)
-	// let's try sending a collation message  and validation message to a peer and see what happens
-	collationMessage := CollationProtocolV1{}
-	s.Network.GossipMessage(&collationMessage)
-
-	statementDistributionLargeStatement := NewStatementDistributionVDT()
-	err := statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
-		RelayParent:   common.Hash{},
-		CandidateHash: CandidateHash{Value: common.Hash{}},
-		SignedBy:      5,
-		Signature:     ValidatorSignature{},
-	})
-	if err != nil {
-		logger.Errorf("creating test statement message: %w\n", err)
+	// TODO: add done channel to signal stopping this process
+	for {
+		select {
+		case msg := <-s.chNotificationMsg:
+			switch msg.Type() {
+			case network.ValidationMsgType:
+				validationMessage := msg.(*WireMessage)
+				logger.Debugf("RMSG: %v", validationMessage)
+				s.handleMessage(validationMessage)
+			}
+		}
 	}
+}
 
-	validationMessage := NewValidationProtocolVDT()
-	err = validationMessage.Set(&statementDistributionLargeStatement)
-	if err != nil {
-		logger.Errorf("creating test validation message: %w\n", err)
-	}
-	s.Network.GossipMessage(&validationMessage)
-
+func (s Service) handleMessage(msg *WireMessage) {
+	// todo: determine message type and do action on that message
+	// for ViewUpdate message, relay message to all peers is peer set
+	// TODO: how do we build the validators and collation peer sets?
+	logger.Debugf("In handle message %v\n", msg.Type())
 }
 
 // Network is the interface required by parachain service for the network
