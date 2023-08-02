@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/parachain"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -11,22 +11,22 @@ import (
 func Test_CandidateVotes(t *testing.T) {
 	t.Parallel()
 	// with
-	receipt := parachain.CandidateReceipt{
-		Descriptor: parachain.CandidateDescriptor{
+	receipt := parachainTypes.CandidateReceipt{
+		Descriptor: parachainTypes.CandidateDescriptor{
 			ParaID:                      100,
 			RelayParent:                 getRandomHash(),
-			Collator:                    parachain.CollatorID{2},
+			Collator:                    parachainTypes.CollatorID{2},
 			PersistedValidationDataHash: getRandomHash(),
 			PovHash:                     getRandomHash(),
 			ErasureRoot:                 getRandomHash(),
-			Signature:                   parachain.CollatorSignature{2},
+			Signature:                   parachainTypes.CollatorSignature{2},
 			ParaHead:                    getRandomHash(),
-			ValidationCodeHash:          parachain.ValidationCodeHash(getRandomHash()),
+			ValidationCodeHash:          parachainTypes.ValidationCodeHash(getRandomHash()),
 		},
 		CommitmentsHash: getRandomHash(),
 	}
 
-	validVotes := make(map[parachain.ValidatorIndex]Vote)
+	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
 	validVotes[1] = Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   GetInvalidDisputeStatement(t),
@@ -38,7 +38,7 @@ func Test_CandidateVotes(t *testing.T) {
 		ValidatorSignature: [64]byte{2},
 	}
 
-	invalidVotes := make(map[parachain.ValidatorIndex]Vote)
+	invalidVotes := make(map[parachainTypes.ValidatorIndex]Vote)
 	invalidVotes[2] = Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   GetInvalidDisputeStatement(t),
@@ -57,8 +57,8 @@ func Test_CandidateVotes(t *testing.T) {
 	require.NoError(t, err)
 
 	decoded := CandidateVotes{
-		Valid:   make(map[parachain.ValidatorIndex]Vote),
-		Invalid: make(map[parachain.ValidatorIndex]Vote),
+		Valid:   make(map[parachainTypes.ValidatorIndex]Vote),
+		Invalid: make(map[parachainTypes.ValidatorIndex]Vote),
 	}
 	err = scale.Unmarshal(encoded, &decoded)
 	require.NoError(t, err)

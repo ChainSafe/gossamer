@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/google/btree"
@@ -23,19 +23,19 @@ func newEarliestSessionKey() []byte {
 	return []byte(earliestSessionKey)
 }
 
-func newRecentDisputesKey(session parachain.SessionIndex, candidateHash common.Hash) []byte {
+func newRecentDisputesKey(session parachainTypes.SessionIndex, candidateHash common.Hash) []byte {
 	key := append([]byte(recentDisputesPrefix), session.Bytes()...)
 	key = append(key, candidateHash[:]...)
 	return key
 }
 
-func newCandidateVotesKey(session parachain.SessionIndex, candidateHash common.Hash) []byte {
+func newCandidateVotesKey(session parachainTypes.SessionIndex, candidateHash common.Hash) []byte {
 	key := append([]byte(candidateVotesPrefix), session.Bytes()...)
 	key = append(key, candidateHash[:]...)
 	return key
 }
 
-func newCandidateVotesSessionPrefix(session parachain.SessionIndex) []byte {
+func newCandidateVotesSessionPrefix(session parachainTypes.SessionIndex) []byte {
 	return append([]byte(candidateVotesPrefix), session.Bytes()...)
 }
 
@@ -49,8 +49,8 @@ type BadgerBackend struct {
 	db *badger.DB
 }
 
-func (b *BadgerBackend) GetEarliestSession() (*parachain.SessionIndex, error) {
-	var earliestSession *parachain.SessionIndex
+func (b *BadgerBackend) GetEarliestSession() (*parachainTypes.SessionIndex, error) {
+	var earliestSession *parachainTypes.SessionIndex
 	if err := b.db.View(func(txn *badger.Txn) error {
 		key := newEarliestSessionKey()
 		item, err := txn.Get(key)
@@ -101,7 +101,7 @@ func (b *BadgerBackend) GetRecentDisputes() (*btree.BTree, error) {
 	return recentDisputes, nil
 }
 
-func (b *BadgerBackend) GetCandidateVotes(session parachain.SessionIndex,
+func (b *BadgerBackend) GetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 ) (*types.CandidateVotes, error) {
 	candidateVotes := types.NewCandidateVotes()
@@ -123,7 +123,7 @@ func (b *BadgerBackend) GetCandidateVotes(session parachain.SessionIndex,
 }
 
 // setEarliestSessionTxn sets the badger txn to store the earliest session.
-func (b *BadgerBackend) setEarliestSessionTxn(txn *badger.Txn, session *parachain.SessionIndex) error {
+func (b *BadgerBackend) setEarliestSessionTxn(txn *badger.Txn, session *parachainTypes.SessionIndex) error {
 	key := newEarliestSessionKey()
 	val, err := scale.Marshal(session)
 	if err != nil {
@@ -159,7 +159,7 @@ func (b *BadgerBackend) setRecentDisputesTxn(txn *badger.Txn, recentDisputes *bt
 
 // setCandidateVotesTxn sets the badger txn to store the candidate votes.
 func (b *BadgerBackend) setCandidateVotesTxn(txn *badger.Txn,
-	session parachain.SessionIndex,
+	session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 	votes *types.CandidateVotes,
 ) error {
@@ -172,7 +172,7 @@ func (b *BadgerBackend) setCandidateVotesTxn(txn *badger.Txn,
 	return txn.Set(key, val)
 }
 
-func (b *BadgerBackend) SetEarliestSession(session *parachain.SessionIndex) error {
+func (b *BadgerBackend) SetEarliestSession(session *parachainTypes.SessionIndex) error {
 	return b.db.Update(func(txn *badger.Txn) error {
 		return b.setEarliestSessionTxn(txn, session)
 	})
@@ -184,7 +184,7 @@ func (b *BadgerBackend) SetRecentDisputes(recentDisputes *btree.BTree) error {
 	})
 }
 
-func (b *BadgerBackend) SetCandidateVotes(session parachain.SessionIndex,
+func (b *BadgerBackend) SetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 	votes *types.CandidateVotes,
 ) error {
@@ -194,7 +194,7 @@ func (b *BadgerBackend) SetCandidateVotes(session parachain.SessionIndex,
 }
 
 // setWatermarkTxn sets the badger txn to store the session watermark.
-func (b *BadgerBackend) setWatermarkTxn(txn *badger.Txn, session parachain.SessionIndex) error {
+func (b *BadgerBackend) setWatermarkTxn(txn *badger.Txn, session parachainTypes.SessionIndex) error {
 	key := newWatermarkKey()
 	val, err := scale.Marshal(session)
 	if err != nil {
@@ -206,8 +206,8 @@ func (b *BadgerBackend) setWatermarkTxn(txn *badger.Txn, session parachain.Sessi
 
 // getWatermark gets the session watermark.
 // session watermark is used to cleanup old candidate votes.
-func (b *BadgerBackend) getWatermark() (parachain.SessionIndex, error) {
-	var watermark parachain.SessionIndex
+func (b *BadgerBackend) getWatermark() (parachainTypes.SessionIndex, error) {
+	var watermark parachainTypes.SessionIndex
 	if err := b.db.View(func(txn *badger.Txn) error {
 		key := newWatermarkKey()
 		item, err := txn.Get(key)
@@ -231,7 +231,7 @@ func (b *BadgerBackend) getWatermark() (parachain.SessionIndex, error) {
 }
 
 // setVotesCleanupTxn sets the badger txn to cleanup old candidate votes.
-func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession parachain.SessionIndex) error {
+func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession parachainTypes.SessionIndex) error {
 	// Get watermark
 	watermark, err := b.getWatermark()
 	if err != nil {
@@ -267,7 +267,7 @@ func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession para
 	return nil
 }
 
-func (b *BadgerBackend) Write(earliestSession *parachain.SessionIndex,
+func (b *BadgerBackend) Write(earliestSession *parachainTypes.SessionIndex,
 	recentDisputes *btree.BTree,
 	candidateVotes map[types.Comparator]*types.CandidateVotes,
 ) error {
