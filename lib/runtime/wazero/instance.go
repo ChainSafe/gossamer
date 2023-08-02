@@ -495,7 +495,7 @@ func (in *Instance) Version() (runtime.Version, error) {
 
 // version calls runtime function Core_Version and returns the
 // decoded version structure.
-func (in *Instance) version() error {
+func (in *Instance) version() error { //skipcq: RVV-B0001
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return err
@@ -753,7 +753,7 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 
 // CheckInherents checks inherents in the block verification process.
 // TODO: use this in block verification process (#1873)
-func (in *Instance) CheckInherents() {}
+func (*Instance) CheckInherents() {}
 
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
 func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
@@ -808,13 +808,13 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-func (in *Instance) RandomSeed() {
+func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
-func (in *Instance) OffchainWorker() {
+func (*Instance) OffchainWorker() {
 	panic("unimplemented")
 }
-func (in *Instance) GenerateSessionKeys() {
+func (*Instance) GenerateSessionKeys() {
 	panic("unimplemented")
 }
 

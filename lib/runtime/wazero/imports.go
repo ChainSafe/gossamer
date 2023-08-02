@@ -1540,7 +1540,7 @@ func ext_hashing_twox_128_version_1(ctx context.Context, m api.Module, dataSpan 
 		"data 0x%x hash hash 0x%x",
 		data, hash)
 
-	out, err := write(m, rtCtx.Allocator, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1567,7 +1567,7 @@ func ext_hashing_twox_64_version_1(ctx context.Context, m api.Module, dataSpan u
 		"data 0x%x has hash 0x%x",
 		data, hash)
 
-	out, err := write(m, rtCtx.Allocator, hash[:])
+	out, err := write(m, rtCtx.Allocator, hash)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		return 0
@@ -1638,7 +1638,7 @@ func ext_offchain_local_storage_clear_version_1(ctx context.Context, m api.Modul
 	}
 }
 
-func ext_offchain_is_validator_version_1(ctx context.Context, m api.Module) uint32 {
+func ext_offchain_is_validator_version_1(ctx context.Context, _ api.Module) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1821,12 +1821,12 @@ func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module
 	return ret
 }
 
-func ext_offchain_timestamp_version_1(ctx context.Context, m api.Module) uint64 {
+func ext_offchain_timestamp_version_1(_ context.Context, _ api.Module) uint64 {
 	now := time.Now().Unix()
 	return uint64(now)
 }
 
-func ext_offchain_sleep_until_version_1(ctx context.Context, m api.Module, deadline uint64) {
+func ext_offchain_sleep_until_version_1(_ context.Context, _ api.Module, deadline uint64) {
 	dur := time.Until(time.UnixMilli(int64(deadline)))
 	if dur > 0 {
 		time.Sleep(dur)
@@ -1834,7 +1834,7 @@ func ext_offchain_sleep_until_version_1(ctx context.Context, m api.Module, deadl
 }
 
 func ext_offchain_http_request_start_version_1(
-	ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) {
+	ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1999,7 +1999,8 @@ func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, va
 }
 
 // Always returns `None`. This function exists for compatibility reasons.
-func ext_storage_changes_root_version_1(ctx context.Context, m api.Module, parentHashSpan uint64) uint64 {
+func ext_storage_changes_root_version_1(
+	ctx context.Context, m api.Module, parentHashSpan uint64) uint64 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2265,7 +2266,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	return rootSpan
 }
 
-func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 {
+func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 { //skipcq: RVV-B0012
 	// TODO: update to use state trie version 1 (#2418)
 	return ext_storage_root_version_1(ctx, m)
 }
@@ -2292,7 +2293,7 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	}
 }
 
-func ext_storage_start_transaction_version_1(ctx context.Context, m api.Module) {
+func ext_storage_start_transaction_version_1(ctx context.Context, _ api.Module) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2300,7 +2301,7 @@ func ext_storage_start_transaction_version_1(ctx context.Context, m api.Module) 
 	rtCtx.Storage.BeginStorageTransaction()
 }
 
-func ext_storage_rollback_transaction_version_1(ctx context.Context, m api.Module) {
+func ext_storage_rollback_transaction_version_1(ctx context.Context, _ api.Module) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2308,7 +2309,7 @@ func ext_storage_rollback_transaction_version_1(ctx context.Context, m api.Modul
 	rtCtx.Storage.RollbackStorageTransaction()
 }
 
-func ext_storage_commit_transaction_version_1(ctx context.Context, m api.Module) {
+func ext_storage_commit_transaction_version_1(ctx context.Context, _ api.Module) {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2316,7 +2317,7 @@ func ext_storage_commit_transaction_version_1(ctx context.Context, m api.Module)
 	rtCtx.Storage.CommitStorageTransaction()
 }
 
-func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
+func ext_allocator_free_version_1(ctx context.Context, _ api.Module, addr uint32) {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Deallocate memory
@@ -2326,7 +2327,7 @@ func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32
 	}
 }
 
-func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, size uint32) uint32 {
+func ext_allocator_malloc_version_1(ctx context.Context, _ api.Module, size uint32) uint32 {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Allocate memory
