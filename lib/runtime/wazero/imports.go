@@ -1999,7 +1999,8 @@ func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, va
 }
 
 // Always returns `None`. This function exists for compatibility reasons.
-func ext_storage_changes_root_version_1(ctx context.Context, m api.Module, parentHashSpan uint64) uint64 { //skipcq: RVV-B0012
+func ext_storage_changes_root_version_1(
+	ctx context.Context, m api.Module, parentHashSpan uint64) uint64 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
