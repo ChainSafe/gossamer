@@ -7,9 +7,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 

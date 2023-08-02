@@ -5,6 +5,7 @@ package crypto
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
+
 	"github.com/btcsuite/btcutil/base58"
 	bip39 "github.com/cosmos/go-bip39"
 
@@ -31,6 +32,7 @@ type PublicKey interface {
 	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
+	Address() common.Address
 	Hex() string
 }
 

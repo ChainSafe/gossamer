@@ -5,9 +5,9 @@ package keystore
 
 import (
 	"bytes"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
