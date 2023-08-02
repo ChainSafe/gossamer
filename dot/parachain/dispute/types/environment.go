@@ -1,14 +1,17 @@
 package types
 
-import "github.com/ChainSafe/gossamer/lib/parachain"
+import parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
 type CandidateEnvironment struct {
-	SessionIndex      parachain.SessionIndex
-	Session           parachain.SessionInfo
-	ControlledIndices map[parachain.ValidatorIndex]struct{}
+	SessionIndex      parachainTypes.SessionIndex
+	Session           parachainTypes.SessionInfo
+	ControlledIndices map[parachainTypes.ValidatorIndex]struct{}
 }
 
-func NewCandidateEnvironment(sessionIndex parachain.SessionIndex, session parachain.SessionInfo, controlledIndices map[parachain.ValidatorIndex]struct{}) CandidateEnvironment {
+func NewCandidateEnvironment(sessionIndex parachainTypes.SessionIndex,
+	session parachainTypes.SessionInfo,
+	controlledIndices map[parachainTypes.ValidatorIndex]struct{},
+) CandidateEnvironment {
 	return CandidateEnvironment{
 		SessionIndex:      sessionIndex,
 		Session:           session,

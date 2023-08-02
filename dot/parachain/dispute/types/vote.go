@@ -195,6 +195,14 @@ func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 	return c.DisputeStatus.IsConcludedAgainst()
 }
 
+func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState, error) {
+	return c.Votes, CandidateVoteState{
+		Votes:         CandidateVotes{},
+		Own:           c.Own,
+		DisputeStatus: c.DisputeStatus,
+	}, nil
+}
+
 // NewCandidateVoteState creates a new CandidateVoteState
 // TODO: implement this later since nothing is using it yet
 func NewCandidateVoteState(votes CandidateVotes, now uint64) (*CandidateVoteState, error) {
@@ -268,11 +276,40 @@ func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (
 	}, nil
 }
 
+// ValidCandidateVotes is a list of valid votes for a candidate.
+type ValidCandidateVotes map[parachainTypes.ValidatorIndex]Vote
+
+func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
+	_, ok := vcv[vote.ValidatorIndex]
+	if !ok {
+		vcv[vote.ValidatorIndex] = vote
+		return true, nil
+	}
+
+	existingVote := vcv[vote.ValidatorIndex]
+	disputeStatement, err := existingVote.DisputeStatement.Value()
+	if err != nil {
+		return false, fmt.Errorf("getting value from DisputeStatement vdt: %w", err)
+	}
+
+	switch disputeStatement.(type) {
+	case inherents.BackingValid, inherents.BackingSeconded:
+		return false, nil
+	case inherents.ExplicitValidDisputeStatementKind,
+		inherents.ExplicitInvalidDisputeStatementKind,
+		inherents.ApprovalChecking:
+		vcv[vote.ValidatorIndex] = vote
+		return true, nil
+	default:
+		return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
+	}
+}
+
 // CandidateVotes is a struct containing the votes for a candidate.
 type CandidateVotes struct {
 	CandidateReceipt parachainTypes.CandidateReceipt `scale:"1"`
 	// TODO: check if we need to use btree for this in the future
-	Valid   map[parachainTypes.ValidatorIndex]Vote `scale:"2"`
+	Valid   ValidCandidateVotes                    `scale:"2"`
 	Invalid map[parachainTypes.ValidatorIndex]Vote `scale:"3"`
 }
 

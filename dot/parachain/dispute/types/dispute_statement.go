@@ -2,9 +2,11 @@ package types
 
 import (
 	"fmt"
+
+	"github.com/ChainSafe/gossamer/dot/parachain"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -67,7 +69,7 @@ func NewCompactStatement() (CompactStatement, error) {
 type ExplicitDisputeStatement struct {
 	Valid         bool
 	CandidateHash parachain.CandidateHash
-	Session       parachain.SessionIndex
+	Session       parachainTypes.SessionIndex
 }
 
 // ApprovalVote A vote of approval on a candidate.
@@ -77,13 +79,13 @@ type ApprovalVote parachain.CandidateHash
 type SignedDisputeStatement struct {
 	DisputeStatement   inherents.DisputeStatement
 	CandidateHash      common.Hash
-	ValidatorPublic    parachain.ValidatorID
+	ValidatorPublic    parachainTypes.ValidatorID
 	ValidatorSignature parachain.ValidatorSignature
-	SessionIndex       parachain.SessionIndex
+	SessionIndex       parachainTypes.SessionIndex
 }
 
 // Statement is the statement that can be made about parachain candidates.
 type Statement struct {
 	SignedDisputeStatement SignedDisputeStatement
-	ValidatorIndex         parachain.ValidatorIndex
+	ValidatorIndex         parachainTypes.ValidatorIndex
 }
