@@ -86,7 +86,7 @@ func Test_iter1s(t *testing.T) {
 		}
 	})
 
-	t.Run("even odd", func(t *testing.T) {
+	t.Run("even_odd", func(t *testing.T) {
 		f := func(a Bitfield) bool {
 			b := NewBitfield()
 			for _, bit1 := range a.Iter1sEven() {
@@ -121,7 +121,7 @@ func Test_iter1sMerged(t *testing.T) {
 		}
 	})
 
-	t.Run("even odd", func(t *testing.T) {
+	t.Run("even_odd", func(t *testing.T) {
 		f := func(a, b Bitfield) bool {
 			c := NewBitfield()
 			for _, bit1 := range a.Iter1sMergedEven(b) {
