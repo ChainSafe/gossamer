@@ -386,8 +386,10 @@ type CatchUpProcessingOutcome struct {
 	variant any
 }
 
-func setCatchUpProcessingOutcome[T CatchUpProcessingOutcomes](cpo *CatchUpProcessingOutcome, variant T) {
-	cpo.variant = variant
+func newCatchUpProcessingOutcome[T CatchUpProcessingOutcomes](variant T) CatchUpProcessingOutcome {
+	return CatchUpProcessingOutcome{
+		variant: variant,
+	}
 }
 
 type CatchUpProcessingOutcomes interface {
@@ -622,7 +624,7 @@ finalizedNotifications:
 //
 // Otherwise, we will simply handle the commit and issue a finalisation command
 // to the environment.
-func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *Waker) error {
+func (v *Voter[Hash, Number, Signature, ID]) processIncoming() error {
 	// TODO: implement waker chans
 loop:
 	for {
@@ -700,7 +702,7 @@ loop:
 				round := validateCatchUp(catchUp, v.env, v.voters, v.inner.bestRound.RoundNumber())
 				if round == nil {
 					if processCatchUpOutcome != nil {
-						processCatchUpOutcome(CatchUpProcessingOutcome{CatchUpProcessingOutcomeBad(BadCatchUp{})})
+						processCatchUpOutcome(newCatchUpProcessingOutcome(CatchUpProcessingOutcomeBad{}))
 					}
 					return nil
 				}
@@ -747,7 +749,7 @@ loop:
 				v.inner.pastRounds.Push(v.env, oldBest)
 
 				if processCatchUpOutcome != nil {
-					processCatchUpOutcome(CatchUpProcessingOutcome{CatchUpProcessingOutcomeGood(GoodCatchUp{})})
+					processCatchUpOutcome(newCatchUpProcessingOutcome(CatchUpProcessingOutcomeGood{}))
 				}
 				v.inner.Unlock()
 			}
@@ -868,7 +870,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) poll(waker *Waker) (bool, error) {
-	err := v.processIncoming(waker)
+	err := v.processIncoming()
 	if err != nil {
 		return true, err
 	}

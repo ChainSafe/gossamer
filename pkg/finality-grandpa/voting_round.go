@@ -97,7 +97,7 @@ func NewVotingRound[
 	votes := NewRound[ID, Hash, Number, Signature](roundParams)
 
 	primaryVoterID, _ := votes.PrimaryVoter()
-	var voting voting
+	var voting voting //nolint:govet
 	if roundData.VoterID != nil && *roundData.VoterID == primaryVoterID {
 		voting = votingPrimary
 	} else if roundData.VoterID != nil && votes.Voters().Contains(*roundData.VoterID) {
@@ -236,7 +236,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (bool,
 	// the previous round estimate must be finalized
 	if !lastRoundEstimateFinalized {
 		// TODO: trace!(target: "afg", "Round {} completable but estimate not finalized.", self.round_number());
-		vr.logParticipation(nil)
+		vr.logParticipation("TRACE")
 		return false, nil
 	}
 
@@ -248,7 +248,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (bool,
 	)
 
 	// TODO: self.log_participation(log::Level::Trace);
-	vr.logParticipation(nil)
+	vr.logParticipation("TRACE")
 	return true, nil
 }
 
@@ -430,13 +430,13 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) logParticipation(level an
 
 	// TODO: log::log!(target: "afg", log_level, "Round {}: prevotes: {}/{}/{} weight, {}/{} actual",
 	// number, prevote_weight, threshold, total_weight, n_prevotes, n_voters);
-	fmt.Printf("Round %d: prevotes: %d/%d/%d weight, %d/%d actual\n",
-		number, prevoteWeight, threshold, totalWeight, nPrevotes, nVoters)
+	fmt.Printf("%s: Round %d: prevotes: %d/%d/%d weight, %d/%d actual\n",
+		level, number, prevoteWeight, threshold, totalWeight, nPrevotes, nVoters)
 
 	// TODO: log::log!(target: "afg", log_level, "Round {}: precommits: {}/{}/{} weight, {}/{} actual",
 	// number, precommit_weight, threshold, total_weight, n_precommits, n_voters);
-	fmt.Printf("Round %d: precommits: %d/%d/%d weight, %d/%d actual\n",
-		number, precommitWeight, threshold, totalWeight, nPrecommits, nVoters)
+	fmt.Printf("%s: Round %d: precommits: %d/%d/%d weight, %d/%d actual\n",
+		level, number, precommitWeight, threshold, totalWeight, nPrecommits, nVoters)
 }
 
 func (vr *VotingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *Waker) error {

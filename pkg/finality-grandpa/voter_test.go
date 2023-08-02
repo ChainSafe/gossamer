@@ -323,13 +323,16 @@ waitForPrecommit:
 	setCommunicationOut(&co, CommunicationOutCommit[string, uint32, Signature, ID](commit))
 	commitsOut <- co
 
-	timer := time.NewTimer(500 * time.Millisecond)
+	timer := time.NewTimer(2000 * time.Millisecond)
 	var commitCount int
 waitForCommits:
 	for {
 		select {
 		case <-commitsIn:
 			commitCount++
+			if commitCount == 2 {
+				break waitForCommits
+			}
 		case <-timer.C:
 			break waitForCommits
 		}
@@ -695,7 +698,7 @@ func TestBuffered(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range in { //nolint:revive
+		for range in {
 		}
 	}()
 

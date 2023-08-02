@@ -46,7 +46,7 @@ func TestVoterSet_Equality(t *testing.T) {
 	f := func(v []IDWeight[uint]) bool {
 		v1 := NewVoterSet(v)
 		if v1 != nil {
-			rand.Seed(time.Now().UnixNano())
+			rand := rand.New(rand.NewSource(time.Now().UnixNano()))
 			rand.Shuffle(len(v), func(i, j int) { v[i], v[j] = v[j], v[i] })
 			v2 := NewVoterSet(v)
 			assert.NotNil(t, v1)
