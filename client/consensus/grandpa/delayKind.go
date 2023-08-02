@@ -3,9 +3,11 @@
 
 package grandpa
 
+import "golang.org/x/exp/constraints"
+
 // DelayedKinds Kinds of delays for pending changes.
-type DelayedKinds interface {
-	Finalized | Best
+type DelayedKinds[N constraints.Unsigned] interface {
+	Finalized | Best[N]
 }
 
 // DelayKind struct to represent DelayedKinds
@@ -13,13 +15,13 @@ type DelayKind struct {
 	value interface{}
 }
 
-func setDelayKind[T DelayedKinds](delayKind *DelayKind, val T) {
+func setDelayKind[N constraints.Unsigned, T DelayedKinds[N]](delayKind *DelayKind, val T) {
 	delayKind.value = val
 }
 
-func newDelayKind[T DelayedKinds](val T) DelayKind {
+func newDelayKind[N constraints.Unsigned, T DelayedKinds[N]](val T) DelayKind {
 	delayKind := DelayKind{}
-	setDelayKind(&delayKind, val)
+	setDelayKind[N](&delayKind, val)
 	return delayKind
 }
 
@@ -28,6 +30,6 @@ type Finalized struct{}
 
 // Best Depth in best chain. The median last finalized block is calculated at the time the
 // hashNumber was signaled.
-type Best struct {
-	medianLastFinalized uint
+type Best[N constraints.Unsigned] struct {
+	medianLastFinalized N
 }

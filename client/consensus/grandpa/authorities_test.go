@@ -27,7 +27,7 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 	})
 
 	finalizedKind := Finalized{}
-	delayKind := newDelayKind(finalizedKind)
+	delayKind := newDelayKind[uint](finalizedKind)
 
 	pendingChange1 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
@@ -75,10 +75,10 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	})
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
-	bestKind := Best{}
-	delayKindBest := newDelayKind(bestKind)
+	bestKind := Best[uint]{}
+	delayKindBest := newDelayKind[uint](bestKind)
 
 	authorities := AuthoritySet[Hash, uint]{
 		currentAuthorities:     currentAuthorities,
@@ -184,7 +184,7 @@ func TestApplyChange(t *testing.T) {
 	})
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
@@ -300,7 +300,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	})
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
@@ -417,7 +417,7 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	})
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
@@ -502,11 +502,11 @@ func TestForceChanges(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKindA := Best{42}
-	delayKindFinalizedA := newDelayKind(finalizedKindA)
+	finalizedKindA := Best[uint]{42}
+	delayKindFinalizedA := newDelayKind[uint](finalizedKindA)
 
-	finalizedKindB := Best{0}
-	delayKindFinalizedB := newDelayKind(finalizedKindB)
+	finalizedKindB := Best[uint]{0}
+	delayKindFinalizedB := newDelayKind[uint](finalizedKindB)
 
 	changeA := PendingChange[Hash, uint]{
 		nextAuthorities: setA,
@@ -604,8 +604,8 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKind := Best{0}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	finalizedKind := Best[uint]{0}
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	// we create a forced hashNumber with no delay
 	changeA := PendingChange[Hash, uint]{
@@ -644,7 +644,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	})
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	// effective at #15
 	changeA := PendingChange[Hash, uint]{
@@ -683,8 +683,8 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	err = authorities.addPendingChange(changeC, staticIsDescendentOf[Hash](true))
 	require.NoError(t, err)
 
-	finalizedKind2 := Best{31}
-	delayKindFinalized2 := newDelayKind(finalizedKind2)
+	finalizedKind2 := Best[uint]{31}
+	delayKindFinalized2 := newDelayKind[uint](finalizedKind2)
 
 	// effective at #45
 	changeD := PendingChange[Hash, uint]{
@@ -768,7 +768,7 @@ func TestNextChangeWorks(t *testing.T) {
 	}
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	// We have three pending changes with 2 possible roots that are enacted
 	// immediately on finality (i.e. standard changes).
@@ -857,8 +857,8 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Nil(t, c)
 
 	// we a forced hashNumber at A10 (#8)
-	finalizedKind2 := Best{0}
-	delayKindFinalized2 := newDelayKind(finalizedKind2)
+	finalizedKind2 := Best[uint]{0}
+	delayKindFinalized2 := newDelayKind[uint](finalizedKind2)
 	changeA10 := PendingChange[Hash, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
@@ -912,7 +912,7 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	}})
 
 	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind(finalizedKind)
+	delayKindFinalized := newDelayKind[uint](finalizedKind)
 	invalidChangeEmptyAuthorities := PendingChange[Hash, uint]{
 		nextAuthorities: nil,
 		delay:           10,
@@ -925,8 +925,8 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	err = authoritySet.addPendingChange(invalidChangeEmptyAuthorities, staticIsDescendentOf[Hash](false))
 	require.ErrorIs(t, err, errInvalidAuthoritySet)
 
-	delayKind := Best{0}
-	delayKindBest := newDelayKind(delayKind)
+	delayKind := Best[uint]{0}
+	delayKindBest := newDelayKind[uint](delayKind)
 
 	invalidChangeAuthoritiesWeight := PendingChange[Hash, uint]{
 		nextAuthorities: invalidAuthoritiesWeight,
@@ -999,8 +999,8 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 	addPendingChangeFunction := func(canonHeight uint, canonHash Hash, forced bool) {
 		var change PendingChange[Hash, uint]
 		if forced {
-			delayKind := Best{0}
-			delayKindBest := newDelayKind(delayKind)
+			delayKind := Best[uint]{0}
+			delayKindBest := newDelayKind[uint](delayKind)
 			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
@@ -1010,7 +1010,7 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 			}
 		} else {
 			delayKind := Finalized{}
-			delayKindFinalized := newDelayKind(delayKind)
+			delayKindFinalized := newDelayKind[uint](delayKind)
 			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
@@ -1106,8 +1106,8 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 	addPendingChangeFunction := func(canonHeight uint, canonHash Hash, forced bool) {
 		var change PendingChange[Hash, uint]
 		if forced {
-			delayKind := Best{0}
-			delayKindBest := newDelayKind(delayKind)
+			delayKind := Best[uint]{0}
+			delayKindBest := newDelayKind[uint](delayKind)
 			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,
@@ -1117,7 +1117,7 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 			}
 		} else {
 			delayKind := Finalized{}
-			delayKindFinalized := newDelayKind(delayKind)
+			delayKindFinalized := newDelayKind[uint](delayKind)
 			change = PendingChange[Hash, uint]{
 				nextAuthorities: currentAuthorities,
 				delay:           0,

@@ -276,7 +276,7 @@ func (authSet *AuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N],
 	switch pending.delayKind.value.(type) {
 	case Finalized:
 		return authSet.addStandardChange(pending, isDescendentOf)
-	case Best:
+	case Best[N]:
 		return authSet.addForcedChange(pending, isDescendentOf)
 	default:
 		panic("delayKind is invalid type")
@@ -350,7 +350,7 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H,
 				return nil, err
 			}
 			if change.canonHash == bestHash || isDesc {
-				medianLastFinalized := change.delayKind.value.(Best).medianLastFinalized
+				medianLastFinalized := change.delayKind.value.(Best[N]).medianLastFinalized
 
 				roots := authSet.pendingStandardChanges.Roots()
 				for _, standardChangeNode := range roots {

@@ -10,14 +10,14 @@ import (
 
 func TestDelayKind(t *testing.T) {
 	finalizedKind := Finalized{}
-	delayKind := newDelayKind(finalizedKind)
+	delayKind := newDelayKind[uint](finalizedKind)
 	_, isFinalizedType := delayKind.value.(Finalized)
 	require.True(t, isFinalizedType)
 
 	medLastFinalized := uint(3)
-	bestKind := Best{medianLastFinalized: medLastFinalized}
-	delayKind = newDelayKind(bestKind)
-	best, isBestType := delayKind.value.(Best)
+	bestKind := Best[uint]{medianLastFinalized: medLastFinalized}
+	delayKind = newDelayKind[uint](bestKind)
+	best, isBestType := delayKind.value.(Best[uint])
 	require.True(t, isBestType)
 	require.Equal(t, medLastFinalized, best.medianLastFinalized)
 }
