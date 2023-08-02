@@ -70,7 +70,7 @@ func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[pendin
 		}
 	}
 
-	return nil, nil //nolint:nilnil
+	return nil, nil
 }
 
 // importChange only tracks the pending change if and only if it is the
@@ -228,7 +228,7 @@ func (ct changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNod
 		}
 	}
 
-	return nil, nil //nolint:nilnil
+	return nil, nil
 }
 
 // findApplicable try to retrieve an applicable change
