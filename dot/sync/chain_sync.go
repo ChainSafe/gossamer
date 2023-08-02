@@ -645,7 +645,10 @@ taskResultLoop:
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
-					cs.workerPool.punishPeer(who)
+
+					if err := cs.workerPool.punishPeer(who); err != nil {
+						logger.Errorf("punishing peer: %w", err)
+					}
 				}
 
 				cs.workerPool.submitRequest(request, nil, workersResults)
@@ -669,7 +672,10 @@ taskResultLoop:
 					}, who)
 				}
 
-				cs.workerPool.punishPeer(taskResult.who)
+				if err := cs.workerPool.punishPeer(who); err != nil {
+					logger.Errorf("punishing peer: %w", err)
+				}
+
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -677,7 +683,9 @@ taskResultLoop:
 			isChain := isResponseAChain(response.BlockData)
 			if !isChain {
 				logger.Criticalf("response from %s is not a chain", who)
-				cs.workerPool.punishPeer(taskResult.who)
+				if err := cs.workerPool.punishPeer(who); err != nil {
+					logger.Errorf("punishing peer: %w", err)
+				}
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -686,7 +694,9 @@ taskResultLoop:
 				startAtBlock, expectedSyncedBlocks)
 			if !grows {
 				logger.Criticalf("response from %s does not grows the ongoing chain", who)
-				cs.workerPool.punishPeer(taskResult.who)
+				if err := cs.workerPool.punishPeer(who); err != nil {
+					logger.Errorf("punishing peer: %w", err)
+				}
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -1052,13 +1062,13 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 	}
 
 	switch {
-	// if the reponse contains only one block then we should check both sides
+	// if the response contains only one block then we should check both sides
 	// for example, if the response contains only one block called X we should
 	// check if its parent hash matches with the left element as well as we should
 	// check if the right element contains X hash as its parent hash
 	// ... W <- X -> Y ...
-	// we can skip left side comparision if X is in the 0 index and we can skip
-	// right side comparision if X is in the last index
+	// we can skip left side comparison if X is in the 0 index and we can skip
+	// right side comparison if X is in the last index
 	case len(response) == 1:
 		if uint32(firstBlockExactIndex+1) < expectedTotal {
 			rightElement := ongoingChain[firstBlockExactIndex+1]
@@ -1066,7 +1076,7 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 				return false
 			}
 		}
-	// if the reponse contains more than 1 block then we need to compare
+	// if the response contains more than 1 block then we need to compare
 	// only the start and the end of the acquired response, for example
 	// let's say we receive a response [C, D, E] and we need to check
 	// if those values fits correctly:

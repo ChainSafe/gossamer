@@ -53,7 +53,6 @@ func TestWorkerAsyncStop(t *testing.T) {
 		Return(nil)
 
 	sharedGuard := make(chan struct{}, 2)
-	generalQueue := make(chan *syncTask)
 
 	w := newWorker(peerA, sharedGuard, reqMaker)
 	w.start()
@@ -63,13 +62,13 @@ func TestWorkerAsyncStop(t *testing.T) {
 	go handleResultsHelper(t, w, resultCh, doneCh)
 
 	// issue two requests in the general channel
-	generalQueue <- &syncTask{
+	w.processTask(&syncTask{
 		resultCh: resultCh,
-	}
+	})
 
-	generalQueue <- &syncTask{
+	w.processTask(&syncTask{
 		resultCh: resultCh,
-	}
+	})
 
 	close(resultCh)
 	<-doneCh

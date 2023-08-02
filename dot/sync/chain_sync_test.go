@@ -534,7 +534,7 @@ func TestChainSync_onBlockAnnounceHandshake(t *testing.T) {
 			if tt.shouldBeAWorker {
 				syncWorker, exists := cs.workerPool.workers[tt.peerID]
 				require.True(t, exists)
-				require.Equal(t, tt.workerStatus, syncWorker.status)
+				require.Equal(t, tt.workerStatus, syncWorker.worker.status)
 			} else {
 				_, exists := cs.workerPool.workers[tt.peerID]
 				require.False(t, exists)
@@ -863,7 +863,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
 	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *testing.T) {
@@ -980,7 +980,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
 	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testing.T) {
@@ -1100,7 +1100,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
 	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testing.T) {
@@ -1216,7 +1216,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	// peer should be punished
 	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
 	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.T) {

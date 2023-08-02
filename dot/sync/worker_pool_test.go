@@ -160,7 +160,9 @@ func TestSyncWorkerPool_newPeer(t *testing.T) {
 				return newSyncWorkerPool(nil, nil)
 			},
 			expectedPool: map[peer.ID]*peerSyncWorker{
-				peer.ID("peer-1"): {status: available},
+				peer.ID("peer-1"): {
+					worker: &worker{status: available},
+				},
 			},
 		},
 		"peer_to_ignore": {
@@ -270,13 +272,6 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 
 	totalWorkers := workerPool.totalWorkers()
 	require.Zero(t, totalWorkers)
-
-	workerPool.mtx.RLock()
-	peerSync, has := workerPool.workers[availablePeer]
-	require.True(t, has)
-	require.Equal(t, peerSync.status, busy)
-
-	workerPool.mtx.RUnlock()
 
 	syncTaskResult := <-resultCh
 	require.NoError(t, syncTaskResult.err)

@@ -38,14 +38,12 @@ type syncTaskResult struct {
 }
 
 type peerSyncWorker struct {
-	status         byte
-	timesPunished  int
-	punishmentTime time.Time
-	worker         *worker
+	timesPunished int
+	worker        *worker
 }
 
 func (p *peerSyncWorker) isPunished() bool {
-	return p.punishmentTime.After(time.Now())
+	return p.worker.isPunished()
 }
 
 type syncWorkerPool struct {
@@ -135,23 +133,18 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 		return
 	}
 
-	syncWorker, has := s.workers[who]
-	if !has {
-		syncWorker = &peerSyncWorker{status: available}
-		syncWorker.worker = newWorker(who, s.sharedGuard, s.requestMaker)
-		syncWorker.worker.start()
-
-		s.workers[who] = syncWorker
-		logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
+	_, has := s.workers[who]
+	if has {
+		return
 	}
 
-	// check if the punishment is not valid
-	if syncWorker.status == punished && syncWorker.punishmentTime.Before(time.Now()) {
-		syncWorker.status = available
-		syncWorker.worker.start()
-
-		s.workers[who] = syncWorker
+	syncWorker := &peerSyncWorker{
+		worker: newWorker(who, s.sharedGuard, s.requestMaker),
 	}
+
+	syncWorker.worker.start()
+	s.workers[who] = syncWorker
+	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 }
 
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
@@ -238,41 +231,37 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) error {
 	defer s.mtx.Unlock()
 
 	syncWorker, has := s.workers[who]
-	if !has || syncWorker.status == punished {
+	if !has || syncWorker.isPunished() {
 		return nil
 	}
 
 	timesPunished := syncWorker.timesPunished + 1
 	punishmentTime := time.Duration(timesPunished) * punishmentBaseTimeout
-	logger.Debugf("⏱️ punishement time for peer %s: %.2fs", who, punishmentTime.Seconds())
 
-	syncWorker.status = punished
 	syncWorker.timesPunished = timesPunished
-
-	// TODO: create a timer in the worker and disable it to receive new tasks
-	// once the timer triggers then changes the status back to available
-	syncWorker.punishmentTime = time.Now().Add(punishmentTime)
-	err := syncWorker.worker.stop()
-	if err != nil {
-		return fmt.Errorf("punishing peer: %w", err)
-	}
+	syncWorker.worker.punish(punishmentTime)
 
 	s.workers[who] = syncWorker
 	return nil
 }
 
-func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
+func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	syncWorker, has := s.workers[who]
 	if !has {
-		return
+		return nil
 	}
 
-	syncWorker.worker.stop()
+	err := syncWorker.worker.stop()
+	if err != nil {
+		return fmt.Errorf("stopping worker: %w", err)
+	}
+
 	delete(s.workers, who)
 	s.ignorePeers[who] = struct{}{}
+	return nil
 }
 
 // totalWorkers only returns available or busy workers
@@ -280,9 +269,9 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	for _, worker := range s.workers {
-		if worker.status == available {
-			total += 1
+	for _, syncWorker := range s.workers {
+		if !syncWorker.worker.isPunished() {
+			total++
 		}
 	}
 

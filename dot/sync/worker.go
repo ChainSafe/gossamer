@@ -3,6 +3,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -12,11 +13,14 @@ import (
 var ErrStopTimeout = errors.New("stop timeout")
 
 type worker struct {
+	mtx         sync.Mutex
+	status      byte
 	peerID      peer.ID
 	sharedGuard chan struct{}
 
-	stopCh chan struct{}
-	doneCh chan struct{}
+	punishment chan time.Duration
+	stopCh     chan struct{}
+	doneCh     chan struct{}
 
 	queue        chan *syncTask
 	requestMaker network.RequestMaker
@@ -26,35 +30,39 @@ func newWorker(pID peer.ID, sharedGuard chan struct{}, network network.RequestMa
 	return &worker{
 		peerID:       pID,
 		sharedGuard:  sharedGuard,
+		punishment:   make(chan time.Duration),
 		stopCh:       make(chan struct{}),
 		doneCh:       make(chan struct{}),
-		queue:        make(chan *syncTask, maxRequestsAllowed+1),
+		queue:        make(chan *syncTask, maxRequestsAllowed),
 		requestMaker: network,
-	}
-}
-
-func (w *worker) processTask(task *syncTask) (enqueued bool) {
-	select {
-	case w.queue <- task:
-		logger.Debugf("[ENQUEUED] worker %s, block request: %s", w.peerID, task.request)
-		return true
-	default:
-		logger.Debugf("[NOT ENQUEUED] worker %s, block request: %s", w.peerID, task.request)
-		return false
+		status:       available,
 	}
 }
 
 func (w *worker) start() {
 	go func() {
 		defer func() {
-			w.doneCh <- struct{}{}
+			logger.Debugf("[STOPPED] worker %s", w.peerID)
+			close(w.doneCh)
 		}()
 
 		logger.Debugf("[STARTED] worker %s", w.peerID)
 		for {
 			select {
+			case punishmentDuration := <-w.punishment:
+				logger.Debugf("⏱️ punishement time for peer %s: %.2fs", w.peerID, punishmentDuration.Seconds())
+				punishmentTimer := time.NewTimer(punishmentDuration)
+				select {
+				case <-punishmentTimer.C:
+					w.mtx.Lock()
+					w.status = available
+					w.mtx.Unlock()
+
+				case <-w.stopCh:
+					return
+				}
+
 			case <-w.stopCh:
-				logger.Debugf("[STOPPED] worker %s", w.peerID)
 				return
 			case task := <-w.queue:
 				executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
@@ -63,8 +71,36 @@ func (w *worker) start() {
 	}()
 }
 
+func (w *worker) processTask(task *syncTask) (enqueued bool) {
+	if w.isPunished() {
+		return false
+	}
+
+	select {
+	case w.queue <- task:
+		logger.Debugf("[ENQUEUED] worker %s, block request: %s", w.peerID, task.request)
+		return true
+	default:
+		return false
+	}
+}
+
+func (w *worker) punish(duration time.Duration) {
+	w.punishment <- duration
+
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	w.status = punished
+}
+
+func (w *worker) isPunished() bool {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	return w.status == punished
+}
+
 func (w *worker) stop() error {
-	w.stopCh <- struct{}{}
+	close(w.stopCh)
 
 	timeoutTimer := time.NewTimer(30 * time.Second)
 	select {
