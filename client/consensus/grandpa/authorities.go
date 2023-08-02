@@ -82,12 +82,14 @@ type appliedChanges[H comparable, N constraints.Unsigned] struct {
 	set    AuthoritySet[H, N]
 }
 
+// InvalidAuthorityList authority sets must be non-empty and all weights must be greater than 0
 func (authSet *SharedAuthoritySet) InvalidAuthorityList(authorities AuthorityList) bool {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.InvalidAuthorityList(authorities)
 }
 
+// Current Get the current set id and a reference to the current authority set.
 func (authSet *SharedAuthoritySet) Current() (uint64, *AuthorityList) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
@@ -124,12 +126,21 @@ func (authSet *SharedAuthoritySet) addPendingChange(pending PendingChange, isDes
 	return authSet.inner.addPendingChange(pending, isDescendentOf)
 }
 
+// PendingChanges Inspect pending changes. Standard pending changes are iterated first,
+// and the changes in the roots are traversed in pre-order, afterwards all
+// forced changes are iterated.
 func (authSet *SharedAuthoritySet) PendingChanges() []PendingChange {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.PendingChanges()
 }
 
+// CurrentLimit Get the earliest limit-block number, if any. If there are pending changes across
+// different forks, this method will return the earliest effective number (across the
+// different branches) that is higher or equal to the given min number.
+//
+// Only standard changes are taken into account for the current
+// limit, since any existing forced change should preclude the voter from voting.
 func (authSet *SharedAuthoritySet) CurrentLimit(min uint) (limit *uint) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
@@ -142,12 +153,32 @@ func (authSet *SharedAuthoritySet) applyForcedChanges(bestHash common.Hash, best
 	return authSet.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, initialSync, telemetry)
 }
 
+// ApplyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
+// method ensures that if there are multiple changes in the same branch,
+// finalizing this block won't finalize past multiple transitions (i.e.
+// transitions must be finalized in-order). The given function
+// `is_descendent_of` should return `true` if the second hash (target) is a
+// descendent of the first hash (base).
+//
+// When the set has changed, the return value will be a Status type where newSetBlockInfo
+// is the canonical block where the set last changed (i.e. the given
+// hash and number).
 func (authSet *SharedAuthoritySet) ApplyStandardChanges(finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf, initialSync bool, telemetry *telemetry.Client) (Status, error) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.ApplyStandardChanges(finalizedHash, finalizedNumber, isDescendentOf, initialSync, telemetry)
 }
 
+// EnactsStandardChange Check whether the given finalized block number enacts any standard
+// authority set change (without triggering it), ensuring that if there are
+// multiple changes in the same branch, finalizing this block won't
+// finalize past multiple transitions (i.e. transitions must be finalized
+// in-order). Returns *true if the block being finalized enacts a
+// change that can be immediately applied, *false if the block being
+// finalized enacts a change but it cannot be applied yet since there are
+// other dependent changes, and nil if no change is enacted. The given
+// function `is_descendent_of` should return `true` if the second hash
+// (target) is a descendent of the first hash (base).
 func (authSet *SharedAuthoritySet) EnactsStandardChange(finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf) (*bool, error) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
