@@ -15,8 +15,8 @@ func searchKey[H comparable, N constraints.Unsigned](k key[N], changes []Pending
 			effectiveNumber:   change.EffectiveNumber(),
 			signalBlockNumber: change.canonHeight,
 		}
-		if (k.effectiveNumber == k.effectiveNumber &&
-			k.signalBlockNumber == k.signalBlockNumber) || k.effectiveNumber < changeKey.effectiveNumber {
+		if (k.effectiveNumber == changeKey.effectiveNumber &&
+			k.signalBlockNumber == changeKey.signalBlockNumber) || k.effectiveNumber < changeKey.effectiveNumber {
 			return i
 		}
 	}

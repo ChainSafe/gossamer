@@ -230,13 +230,28 @@ func (authSet *AuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], 
 		}
 	}
 
-	key := key[N]{
+	k := key[N]{
 		pending.EffectiveNumber(),
 		pending.canonHeight,
 	}
 
 	// Search by effective key
-	idx := searchKey(key, authSet.pendingForcedChanges)
+	idx, _ := slices.BinarySearchFunc(
+		authSet.pendingForcedChanges,
+		k,
+		func(change PendingChange[H, N], k key[N]) int {
+			switch {
+			case change.EffectiveNumber() == k.effectiveNumber && change.canonHeight == k.signalBlockNumber:
+				return 0
+			case change.EffectiveNumber() > k.effectiveNumber && change.canonHeight > k.signalBlockNumber:
+				return 1
+			case change.EffectiveNumber() < k.effectiveNumber && change.canonHeight < k.signalBlockNumber:
+				return -1
+			default:
+				panic("huh?")
+			}
+		},
+	)
 
 	logger.Debugf(
 		"inserting potential forced set hashNumber at block number %d (delayed by %d blocks).",
