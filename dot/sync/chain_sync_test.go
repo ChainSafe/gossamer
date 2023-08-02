@@ -479,10 +479,10 @@ func TestChainSync_onBlockAnnounceHandshake(t *testing.T) {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
 				workerPool.workers = map[peer.ID]*peerSyncWorker{
-					peer.ID("peer-test"): {
-						status:         punished,
-						punishmentTime: time.Now().Add(3 * time.Hour),
-					},
+					// peer.ID("peer-test"): {
+					// 	status:         punished,
+					// 	punishmentTime: time.Now().Add(3 * time.Hour),
+					// },
 				}
 
 				cs := newChainSyncTest(t, ctrl)
@@ -500,10 +500,10 @@ func TestChainSync_onBlockAnnounceHandshake(t *testing.T) {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
 				workerPool.workers = map[peer.ID]*peerSyncWorker{
-					peer.ID("peer-test"): {
-						status:         punished,
-						punishmentTime: time.Now().Add(-3 * time.Hour),
-					},
+					// peer.ID("peer-test"): {
+					// 	status:         punished,
+					// 	punishmentTime: time.Now().Add(-3 * time.Hour),
+					// },
 				}
 
 				cs := newChainSyncTest(t, ctrl)

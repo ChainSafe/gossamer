@@ -226,13 +226,13 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 // punishPeer given a peer.ID we check increase its times punished
 // and apply the punishment time using the base timeout of 5m, so
 // each time a peer is punished its timeout will increase by 5m
-func (s *syncWorkerPool) punishPeer(who peer.ID) error {
+func (s *syncWorkerPool) punishPeer(who peer.ID) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	syncWorker, has := s.workers[who]
 	if !has || syncWorker.isPunished() {
-		return nil
+		return
 	}
 
 	timesPunished := syncWorker.timesPunished + 1
@@ -242,7 +242,6 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) error {
 	syncWorker.worker.punish(punishmentTime)
 
 	s.workers[who] = syncWorker
-	return nil
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) error {

@@ -646,9 +646,7 @@ taskResultLoop:
 						}, who)
 					}
 
-					if err := cs.workerPool.punishPeer(who); err != nil {
-						logger.Errorf("punishing peer: %w", err)
-					}
+					cs.workerPool.punishPeer(who)
 				}
 
 				cs.workerPool.submitRequest(request, nil, workersResults)
@@ -672,10 +670,7 @@ taskResultLoop:
 					}, who)
 				}
 
-				if err := cs.workerPool.punishPeer(who); err != nil {
-					logger.Errorf("punishing peer: %w", err)
-				}
-
+				cs.workerPool.punishPeer(who)
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -683,9 +678,7 @@ taskResultLoop:
 			isChain := isResponseAChain(response.BlockData)
 			if !isChain {
 				logger.Criticalf("response from %s is not a chain", who)
-				if err := cs.workerPool.punishPeer(who); err != nil {
-					logger.Errorf("punishing peer: %w", err)
-				}
+				cs.workerPool.punishPeer(who)
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -694,9 +687,7 @@ taskResultLoop:
 				startAtBlock, expectedSyncedBlocks)
 			if !grows {
 				logger.Criticalf("response from %s does not grows the ongoing chain", who)
-				if err := cs.workerPool.punishPeer(who); err != nil {
-					logger.Errorf("punishing peer: %w", err)
-				}
+				cs.workerPool.punishPeer(who)
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -711,7 +702,9 @@ taskResultLoop:
 						Reason: peerset.BadBlockAnnouncementReason,
 					}, who)
 
-					cs.workerPool.ignorePeerAsWorker(taskResult.who)
+					if err := cs.workerPool.ignorePeerAsWorker(taskResult.who); err != nil {
+						logger.Errorf("ignoring peer: %w", err)
+					}
 					cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 					continue taskResultLoop
 				}
