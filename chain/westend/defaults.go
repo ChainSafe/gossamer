@@ -29,14 +29,6 @@ func DefaultConfig() *cfg.Config {
 	config.Core.GrandpaAuthority = false
 	config.Core.Role = 1
 	config.Network.NoMDNS = false
-	config.Network.MaxPeers = 128
-	config.PrometheusExternal = true
-	config.PrometheusPort = 9876
 
-	config.Log.Sync = "trace"
-	config.Log.Digest = "trace"
-
-	config.Pprof.Enabled = true
-	config.Pprof.ListeningAddress = "0.0.0.0:6060"
 	return config
 }
