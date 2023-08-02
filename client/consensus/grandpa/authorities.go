@@ -82,6 +82,78 @@ type appliedChanges[H comparable, N constraints.Unsigned] struct {
 	set    AuthoritySet[H, N]
 }
 
+func (authSet *SharedAuthoritySet) InvalidAuthorityList(authorities AuthorityList) bool {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.InvalidAuthorityList(authorities)
+}
+
+func (authSet *SharedAuthoritySet) Current() (uint64, *AuthorityList) {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.Current()
+}
+
+func (authSet *SharedAuthoritySet) revert() {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	authSet.inner.revert()
+}
+
+func (authSet *SharedAuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsDescendentOf) (*change, error) {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.nextChange(bestHash, isDescendentOf)
+}
+
+func (authSet *SharedAuthoritySet) addStandardChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.addStandardChange(pending, isDescendentOf)
+}
+
+func (authSet *SharedAuthoritySet) addForcedChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.addForcedChange(pending, isDescendentOf)
+}
+
+func (authSet *SharedAuthoritySet) addPendingChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.addPendingChange(pending, isDescendentOf)
+}
+
+func (authSet *SharedAuthoritySet) PendingChanges() []PendingChange {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.PendingChanges()
+}
+
+func (authSet *SharedAuthoritySet) CurrentLimit(min uint) (limit *uint) {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.CurrentLimit(min)
+}
+
+func (authSet *SharedAuthoritySet) applyForcedChanges(bestHash common.Hash, bestNumber uint, isDescendentOf IsDescendentOf, initialSync bool, telemetry *telemetry.Client) (newSet *appliedChanges, err error) {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, initialSync, telemetry)
+}
+
+func (authSet *SharedAuthoritySet) ApplyStandardChanges(finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf, initialSync bool, telemetry *telemetry.Client) (Status, error) {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.ApplyStandardChanges(finalizedHash, finalizedNumber, isDescendentOf, initialSync, telemetry)
+}
+
+func (authSet *SharedAuthoritySet) EnactsStandardChange(finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf) (*bool, error) {
+	authSet.mtx.Lock()
+	defer authSet.mtx.Unlock()
+	return authSet.inner.EnactsStandardChange(finalizedHash, finalizedNumber, isDescendentOf)
+}
+
 // Status of the set after changes were applied.
 type Status[H comparable, N constraints.Unsigned] struct {
 	// Whether internal changes were made.
