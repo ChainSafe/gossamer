@@ -2,9 +2,10 @@ package dispute
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 )
 
 // ImportResult is an ongoing statement/vote import
@@ -36,7 +37,7 @@ type ImportResultHandler struct {
 	// newState the state after the importing new statements
 	newState types.CandidateVoteState
 	// newInvalidVoters the new invalid voters as of this import
-	newInvalidVoters []parachain.ValidatorIndex
+	newInvalidVoters []parachainTypes.ValidatorIndex
 	// importedInvalidVotes number of invalid voters
 	importedInvalidVotes uint32
 	// importedValidVotes number of valid voters
@@ -176,7 +177,7 @@ func NewImportResultFromStatements(env types.CandidateEnvironment,
 	}
 
 	var (
-		newInvalidVoters     []parachain.ValidatorIndex
+		newInvalidVoters     []parachainTypes.ValidatorIndex
 		importedInvalidVotes uint32
 		importedValidVotes   uint32
 	)
@@ -186,7 +187,7 @@ func NewImportResultFromStatements(env types.CandidateEnvironment,
 	}
 
 	for _, statement := range statements {
-		if statement.ValidatorIndex < parachain.ValidatorIndex(len(env.Session.Validators)) {
+		if statement.ValidatorIndex < parachainTypes.ValidatorIndex(len(env.Session.Validators)) {
 			validator := env.Session.Validators[statement.ValidatorIndex]
 			if statement.SignedDisputeStatement.ValidatorPublic != validator {
 				continue

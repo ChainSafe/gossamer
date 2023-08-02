@@ -1,9 +1,10 @@
 package types
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCompactStatement_Codec(t *testing.T) {
@@ -13,7 +14,9 @@ func TestCompactStatement_Codec(t *testing.T) {
 	compactStatement, err := NewCompactStatement()
 	require.NoError(t, err)
 	compactStatementList := scale.NewVaryingDataTypeSlice(scale.VaryingDataType(compactStatement))
-	err = compactStatementList.Add(ValidCompactStatement{CandidateHash: getRandomHash()}, SecondedCompactStatement{CandidateHash: getRandomHash()})
+	err = compactStatementList.Add(ValidCompactStatement{CandidateHash: getRandomHash()},
+		SecondedCompactStatement{CandidateHash: getRandomHash()},
+	)
 	require.NoError(t, err)
 
 	// when
