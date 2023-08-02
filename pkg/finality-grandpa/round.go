@@ -49,10 +49,12 @@ func setVoteMultiplicity[
 	vm.value = val
 }
 
-func (vm *VoteMultiplicity[Vote, Signature]) MustSet(val interface{}) {
-	err := vm.Set(val)
-	if err != nil {
-		panic(err)
+func newVoteMultiplicity[
+	Vote, Signature comparable,
+	T voteMultiplicityValue[Vote, Signature],
+](val T) (vm VoteMultiplicity[Vote, Signature]) {
+	return VoteMultiplicity[Vote, Signature]{
+		value: val,
 	}
 }
 
@@ -123,9 +125,10 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 	if !ok {
 		// TODO: figure out saturating_add stuff
 		vt.currentWeight = vt.currentWeight + VoteWeight(weight)
-		vm := VoteMultiplicity[Vote, Signature]{}
-		vm.MustSet(Single[Vote, Signature]{vote, signature})
-		_, exists := vt.votes.Set(id, vm)
+		_, exists := vt.votes.Set(id,
+			newVoteMultiplicity[Vote, Signature](
+				Single[Vote, Signature]{vote, signature},
+			))
 		if exists {
 			panic("wtf?")
 		}
@@ -146,7 +149,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 				Signature: signature,
 			},
 		}
-		vm.MustSet(eq)
+		setVoteMultiplicity(&vm, eq)
 		vt.votes.Set(id, vm)
 		return &vm, false
 	case Equivocated[Vote, Signature]:

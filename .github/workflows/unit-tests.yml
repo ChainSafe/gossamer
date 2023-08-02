@@ -29,11 +29,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-<<<<<<< HEAD
           go-version: "1.20"
-=======
-          go-version: 1.20.3
->>>>>>> 92faae99 (try again)
           stable: true
           check-latest: true
 

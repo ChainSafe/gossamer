@@ -23,13 +23,13 @@ type timer struct {
 func newTimer(in <-chan time.Time) *timer {
 	inErr := make(chan error)
 	wc := newWakerChan(inErr)
-	timer := timer{wakerChan: wc}
+	t := timer{wakerChan: wc}
 	go func() {
 		<-in
 		inErr <- nil
-		timer.expired = true
+		t.expired = true
 	}()
-	return &timer
+	return &t
 }
 
 func (t *timer) SetWaker(waker *Waker) {

@@ -48,13 +48,6 @@ type bridged[Hash, Number any] struct {
 	sync.RWMutex
 }
 
-func newBridged[Hash, Number any](inner RoundState[Hash, Number]) bridged[Hash, Number] {
-	return bridged[Hash, Number]{
-		inner: inner,
-		waker: &Waker{},
-	}
-}
-
 func (b *bridged[H, N]) update(new RoundState[H, N]) {
 	b.Lock()
 	b.inner = new
