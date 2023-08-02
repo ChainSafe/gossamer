@@ -37,7 +37,7 @@ func (ns *NibbleSlice) Left() *hashdb.Prefix {
 		return &hashdb.Prefix{Data: ns.data[:split], Padded: nil}
 	}
 
-	padding := PadLeft(ns.data[split])
+	padding := padLeft(ns.data[split])
 
 	return &hashdb.Prefix{Data: ns.data[:split], Padded: &padding}
 }
@@ -76,7 +76,7 @@ func (ns *NibbleSlice) commonPrefix(other *NibbleSlice) uint {
 		otherStart := other.offset / NibblePerByte
 		first := uint(0)
 		if selfAlign != 0 {
-			if PadRight(ns.data[selfStart]) != PadRight(other.data[otherStart]) {
+			if padRight(ns.data[selfStart]) != padRight(other.data[otherStart]) {
 				return 0
 			}
 			selfStart++

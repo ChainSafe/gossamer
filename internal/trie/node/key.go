@@ -15,7 +15,7 @@ const maxPartialKeyLength = ^uint16(0)
 
 var ErrReaderMismatchCount = errors.New("read unexpected number of bytes from reader")
 
-// decodeKey decodes a key from a reader.
+// DecodeKey decodes a key from a reader.
 func DecodeKey(reader io.Reader, partialKeyLength uint16) (b []byte, err error) {
 	if partialKeyLength == 0 {
 		return []byte{}, nil
