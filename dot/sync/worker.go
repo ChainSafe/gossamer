@@ -1,11 +1,15 @@
 package sync
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
+
+var ErrStopTimeout = errors.New("stop timeout")
 
 type worker struct {
 	peerID      peer.ID
@@ -59,7 +63,7 @@ func (w *worker) start() {
 	}()
 }
 
-func (w *worker) stop() {
+func (w *worker) stop() error {
 	w.stopCh <- struct{}{}
 
 	timeoutTimer := time.NewTimer(30 * time.Second)
@@ -69,9 +73,9 @@ func (w *worker) stop() {
 			<-timeoutTimer.C
 		}
 
-		return
+		return nil
 	case <-timeoutTimer.C:
-		logger.Criticalf("timeout while stopping worker %s", w.peerID)
+		return fmt.Errorf("%w: worker %s", ErrStopTimeout, w.peerID)
 	}
 }
 

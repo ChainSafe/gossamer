@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -232,14 +231,9 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	requestMakerMock := NewMockRequestMaker(ctrl)
 	workerPool := newSyncWorkerPool(networkMock, requestMakerMock)
 
-	stopCh := make(chan struct{})
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go workerPool.listenForRequests(stopCh, &wg)
-
 	availablePeer := peer.ID("available-peer")
 	workerPool.newPeer(availablePeer)
+	defer workerPool.stop()
 
 	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
 	blockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(blockHash),
@@ -290,8 +284,6 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	require.Equal(t, syncTaskResult.request, blockRequest)
 	require.Equal(t, syncTaskResult.response, mockedBlockResponse)
 
-	close(stopCh)
-	wg.Wait()
 }
 
 func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
@@ -301,11 +293,7 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 	networkMock := NewMockNetwork(ctrl)
 	requestMakerMock := NewMockRequestMaker(ctrl)
 	workerPool := newSyncWorkerPool(networkMock, requestMakerMock)
-
-	stopCh := make(chan struct{})
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go workerPool.listenForRequests(stopCh, &wg)
+	defer workerPool.stop()
 
 	availablePeer := peer.ID("available-peer")
 	workerPool.newPeer(availablePeer)
@@ -382,7 +370,4 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 	require.Equal(t, syncTaskResult.response, secondMockedBlockResponse)
 
 	require.Equal(t, uint(1), workerPool.totalWorkers())
-
-	close(stopCh)
-	wg.Wait()
 }

@@ -23,7 +23,7 @@ func TestWorkerStop(t *testing.T) {
 	sharedGuard := make(chan struct{}, 1)
 	generalQueue := make(chan *syncTask)
 
-	w := newWorker(peerA, sharedGuard, generalQueue, reqMaker)
+	w := newWorker(peerA, sharedGuard, reqMaker)
 	w.start()
 
 	resultCh := make(chan *syncTaskResult)
@@ -55,7 +55,7 @@ func TestWorkerAsyncStop(t *testing.T) {
 	sharedGuard := make(chan struct{}, 2)
 	generalQueue := make(chan *syncTask)
 
-	w := newWorker(peerA, sharedGuard, generalQueue, reqMaker)
+	w := newWorker(peerA, sharedGuard, reqMaker)
 	w.start()
 
 	doneCh := make(chan struct{})

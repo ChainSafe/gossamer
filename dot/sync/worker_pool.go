@@ -4,6 +4,8 @@
 package sync
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -47,8 +49,7 @@ func (p *peerSyncWorker) isPunished() bool {
 }
 
 type syncWorkerPool struct {
-	mtx           sync.RWMutex
-	availableCond *sync.Cond
+	mtx sync.RWMutex
 
 	network      Network
 	requestMaker network.RequestMaker
@@ -67,8 +68,43 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 		sharedGuard:  make(chan struct{}, maxRequestsAllowed),
 	}
 
-	swp.availableCond = sync.NewCond(&swp.mtx)
 	return swp
+}
+
+// stop will shutdown all the available workers goroutines
+func (s *syncWorkerPool) stop() error {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	wg := sync.WaitGroup{}
+	// make it buffered so the goroutines can write on it
+	// without beign blocked
+	errCh := make(chan error, len(s.workers))
+
+	for _, syncWorker := range s.workers {
+		if syncWorker.isPunished() {
+			continue
+		}
+
+		wg.Add(1)
+		go func(syncWorker *peerSyncWorker, wg *sync.WaitGroup) {
+			defer wg.Done()
+			errCh <- syncWorker.worker.stop()
+		}(syncWorker, &wg)
+	}
+
+	wg.Wait()
+	// closing the errCh then the following for loop don't
+	// panic due to "all goroutines are asleep - deadlock"
+	close(errCh)
+
+	var errs error
+	for err := range errCh {
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+	return errs
 }
 
 // useConnectedPeers will retrieve all connected peers
@@ -197,13 +233,13 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 // punishPeer given a peer.ID we check increase its times punished
 // and apply the punishment time using the base timeout of 5m, so
 // each time a peer is punished its timeout will increase by 5m
-func (s *syncWorkerPool) punishPeer(who peer.ID) {
+func (s *syncWorkerPool) punishPeer(who peer.ID) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	syncWorker, has := s.workers[who]
 	if !has || syncWorker.status == punished {
-		return
+		return nil
 	}
 
 	timesPunished := syncWorker.timesPunished + 1
@@ -212,10 +248,17 @@ func (s *syncWorkerPool) punishPeer(who peer.ID) {
 
 	syncWorker.status = punished
 	syncWorker.timesPunished = timesPunished
+
+	// TODO: create a timer in the worker and disable it to receive new tasks
+	// once the timer triggers then changes the status back to available
 	syncWorker.punishmentTime = time.Now().Add(punishmentTime)
-	syncWorker.worker.stop()
+	err := syncWorker.worker.stop()
+	if err != nil {
+		return fmt.Errorf("punishing peer: %w", err)
+	}
 
 	s.workers[who] = syncWorker
+	return nil
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {

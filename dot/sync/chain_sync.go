@@ -185,20 +185,15 @@ func (cs *chainSync) start() {
 
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
-
-	// cs.wg.Add(1)
-	// go cs.workerPool.listenForRequests(cs.stopCh, &cs.wg)
-
-	// cs.syncMode.Store(bootstrap)
-	// cs.wg.Add(1)
-	// go func() {
-	// 	cs.bootstrapSync()
-	// }()
 }
 
 func (cs *chainSync) stop() {
-	close(cs.stopCh)
+	err := cs.workerPool.stop()
+	if err != nil {
+		logger.Criticalf("while stopping worker poll: %w", err)
+	}
 
+	close(cs.stopCh)
 	allStopCh := make(chan struct{})
 	go func() {
 		defer close(allStopCh)
