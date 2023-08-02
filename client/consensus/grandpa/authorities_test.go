@@ -17,6 +17,20 @@ func isDescendentof[H comparable](f IsDescendentOf[H]) IsDescendentOf[H] {
 	return func(h1, h2 H) (bool, error) { return f(h1, h2) }
 }
 
+func TestDelayKind(t *testing.T) {
+	finalizedKind := Finalized{}
+	delayKind := newDelayKind[uint](finalizedKind)
+	_, isFinalizedType := delayKind.value.(Finalized)
+	require.True(t, isFinalizedType)
+
+	medLastFinalized := uint(3)
+	bestKind := Best[uint]{medianLastFinalized: medLastFinalized}
+	delayKind = newDelayKind[uint](bestKind)
+	best, isBestType := delayKind.value.(Best[uint])
+	require.True(t, isBestType)
+	require.Equal(t, medLastFinalized, best.medianLastFinalized)
+}
+
 func TestCurrentLimitFiltersMin(t *testing.T) {
 	var currentAuthorities AuthorityList
 	kp, err := ed25519.GenerateKeypair()

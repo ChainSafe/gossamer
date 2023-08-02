@@ -20,6 +20,35 @@ var (
 
 ////// TODO Shared Authority Set //////
 
+// DelayedKinds Kinds of delays for pending changes.
+type DelayedKinds[N constraints.Unsigned] interface {
+	Finalized | Best[N]
+}
+
+// DelayKind struct to represent DelayedKinds
+type DelayKind struct {
+	value interface{}
+}
+
+func setDelayKind[N constraints.Unsigned, T DelayedKinds[N]](delayKind *DelayKind, val T) {
+	delayKind.value = val
+}
+
+func newDelayKind[N constraints.Unsigned, T DelayedKinds[N]](val T) DelayKind {
+	delayKind := DelayKind{}
+	setDelayKind[N](&delayKind, val)
+	return delayKind
+}
+
+// Finalized Depth in finalized chain.
+type Finalized struct{}
+
+// Best Depth in best chain. The median last finalized block is calculated at the time the
+// hashNumber was signaled.
+type Best[N constraints.Unsigned] struct {
+	medianLastFinalized N
+}
+
 // IsDescendentOf is the function definition to determine if target is a descendant of base
 type IsDescendentOf[H comparable] func(base, target H) (bool, error)
 
@@ -361,46 +390,51 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H,
 			// check if the given best block is in the same branch as
 			// the block that signaled the hashNumber.
 			isDesc, err := isDescendentOf(change.canonHash, bestHash)
-			if err != nil {
+			// Avoid case where err is returned because canonHash == bestHash
+			if change.canonHash != bestHash && err != nil {
 				return nil, err
 			}
 			if change.canonHash == bestHash || isDesc {
-				medianLastFinalized := change.delayKind.value.(Best[N]).medianLastFinalized
+				switch delayKindType := change.delayKind.value.(type) {
+				case Best[N]:
+					medianLastFinalized := delayKindType.medianLastFinalized
+					roots := authSet.pendingStandardChanges.Roots()
+					for _, standardChangeNode := range roots {
+						standardChange := standardChangeNode.change
 
-				roots := authSet.pendingStandardChanges.Roots()
-				for _, standardChangeNode := range roots {
-					standardChange := standardChangeNode.change
-
-					isDescStandard, err := isDescendentOf(standardChange.canonHash, change.canonHash)
-					if err != nil {
-						return nil, err
+						isDescStandard, err := isDescendentOf(standardChange.canonHash, change.canonHash)
+						if err != nil {
+							return nil, err
+						}
+						if standardChange.EffectiveNumber() <= medianLastFinalized && isDescStandard {
+							logger.Infof(
+								"Not applying authority set hashNumber forced at block %d, due to pending standard hashNumber at block %d",
+								change.canonHeight, standardChange.EffectiveNumber())
+							return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
+						}
 					}
-					if standardChange.EffectiveNumber() <= N(medianLastFinalized) && isDescStandard {
-						logger.Infof(
-							"Not applying authority set hashNumber forced at block %d, due to pending standard hashNumber at block %d",
-							change.canonHeight, standardChange.EffectiveNumber())
-						return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
+
+					// apply this hashNumber: make the set canonical
+					logger.Infof("👴 Applying authority set hashNumber forced at block #%d", change.canonHeight)
+
+					// TODO telemetry
+
+					authSetChanges := authSet.authoritySetChanges
+					authSetChanges.append(authSet.setId, medianLastFinalized)
+					newSet = &appliedChanges[H, N]{
+						medianLastFinalized,
+						AuthoritySet[H, N]{
+							currentAuthorities:     change.nextAuthorities,
+							setId:                  authSet.setId + 1,
+							pendingStandardChanges: NewChangeTree[H, N](), // new set, new changes
+							pendingForcedChanges:   []PendingChange[H, N]{},
+							authoritySetChanges:    authSetChanges,
+						},
 					}
+					return newSet, nil
+				default:
+					panic("pending_forced_changes only contains forced changes; forced changes have delay kind Best; qed.")
 				}
-
-				// apply this hashNumber: make the set canonical
-				logger.Infof("👴 Applying authority set hashNumber forced at block #%d", change.canonHeight)
-
-				// TODO telemetry
-
-				authSetChanges := authSet.authoritySetChanges
-				authSetChanges.append(authSet.setId, N(medianLastFinalized))
-				newSet = &appliedChanges[H, N]{
-					N(medianLastFinalized),
-					AuthoritySet[H, N]{
-						currentAuthorities:     change.nextAuthorities,
-						setId:                  authSet.setId + 1,
-						pendingStandardChanges: NewChangeTree[H, N](), // new set, new changes
-						pendingForcedChanges:   []PendingChange[H, N]{},
-						authoritySetChanges:    authSetChanges,
-					},
-				}
-				return newSet, nil
 			}
 		}
 	}
