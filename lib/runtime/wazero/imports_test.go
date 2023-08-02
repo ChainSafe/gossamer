@@ -65,7 +65,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
-	params := append(idData, seedData...)
+	params := append(idData, seedData...) //skipcq: CRT-D0001
 
 	pubKeyBytes, err := inst.Exec("rtm_ext_crypto_ed25519_generate_version_1", params)
 	require.NoError(t, err)
@@ -154,7 +154,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	require.NotNil(t, val)
 
 	value := make([]byte, 64)
-	copy(value[:], val[:])
+	copy(value, val[:])
 
 	ok, err := kp.Public().Verify(msgData, value)
 	require.NoError(t, err)
@@ -384,7 +384,7 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	seedData, err := scale.Marshal(data)
 	require.NoError(t, err)
 
-	params := append(idData, seedData...)
+	params := append(idData, seedData...) //skipcq: CRT-D0001
 
 	ret, err := inst.Exec("rtm_ext_crypto_sr25519_generate_version_1", params)
 	require.NoError(t, err)
@@ -1241,7 +1241,7 @@ func Test_ext_hashing_twox_128_version_1(t *testing.T) {
 
 	expected, err := common.Twox128Hash(data)
 	require.NoError(t, err)
-	require.Equal(t, expected[:], hash)
+	require.Equal(t, expected, hash)
 }
 
 func Test_ext_hashing_twox_64_version_1(t *testing.T) {
