@@ -38,7 +38,7 @@ func TestLRUCache(t *testing.T) {
 		cache.Put(2, "Bob")
 
 		// This will evict 1 (least recently used).
-		cache.Put(4, "David")
+		cache.Put(4, "Dave")
 
 		v := cache.Get(1)
 		require.Equal(t, "", v)
@@ -47,7 +47,7 @@ func TestLRUCache(t *testing.T) {
 		require.Equal(t, "Bob", v)
 
 		v = cache.Get(4)
-		require.Equal(t, "David", v)
+		require.Equal(t, "Dave", v)
 	})
 
 	t.Run("TestRetrieveNonExistingKey", func(t *testing.T) {
