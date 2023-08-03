@@ -389,10 +389,8 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
-				workerPool.workers = map[peer.ID]*peerSyncWorker{
-					peer.ID("peer-test"): {
-						worker: &worker{status: available},
-					},
+				workerPool.workers = map[peer.ID]*worker{
+					peer.ID("peer-test"): {status: available},
 				}
 
 				cs := newChainSyncTest(t, ctrl)
@@ -424,7 +422,7 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 			if tt.shouldBeAWorker {
 				syncWorker, exists := cs.workerPool.workers[tt.peerID]
 				require.True(t, exists)
-				require.Equal(t, tt.workerStatus, syncWorker.worker.status)
+				require.Equal(t, tt.workerStatus, syncWorker.status)
 			} else {
 				_, exists := cs.workerPool.workers[tt.peerID]
 				require.False(t, exists)
@@ -750,11 +748,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 
 	err = cs.workerPool.stop()
 	require.NoError(t, err)
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *testing.T) {
@@ -867,11 +860,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 
 	err = cs.workerPool.stop()
 	require.NoError(t, err)
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testing.T) {
@@ -987,11 +975,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 
 	err = cs.workerPool.stop()
 	require.NoError(t, err)
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testing.T) {
@@ -1103,11 +1086,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 
 	err = cs.workerPool.stop()
 	require.NoError(t, err)
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.worker.status)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.T) {

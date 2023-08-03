@@ -37,21 +37,12 @@ type syncTaskResult struct {
 	err      error
 }
 
-type peerSyncWorker struct {
-	timesPunished int
-	worker        *worker
-}
-
-func (p *peerSyncWorker) isPunished() bool {
-	return p.worker.isPunished()
-}
-
 type syncWorkerPool struct {
 	mtx sync.RWMutex
 
 	network      Network
 	requestMaker network.RequestMaker
-	workers      map[peer.ID]*peerSyncWorker
+	workers      map[peer.ID]*worker
 	ignorePeers  map[peer.ID]struct{}
 
 	sharedGuard chan struct{}
@@ -61,7 +52,7 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 	swp := &syncWorkerPool{
 		network:      net,
 		requestMaker: requestMaker,
-		workers:      make(map[peer.ID]*peerSyncWorker),
+		workers:      make(map[peer.ID]*worker),
 		ignorePeers:  make(map[peer.ID]struct{}),
 		sharedGuard:  make(chan struct{}, maxRequestsAllowed),
 	}
@@ -80,14 +71,10 @@ func (s *syncWorkerPool) stop() error {
 	errCh := make(chan error, len(s.workers))
 
 	for _, syncWorker := range s.workers {
-		if syncWorker.isPunished() {
-			continue
-		}
-
 		wg.Add(1)
-		go func(syncWorker *peerSyncWorker, wg *sync.WaitGroup) {
+		go func(syncWorker *worker, wg *sync.WaitGroup) {
 			defer wg.Done()
-			errCh <- syncWorker.worker.stop()
+			errCh <- syncWorker.stop()
 		}(syncWorker, &wg)
 	}
 
@@ -138,11 +125,8 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 		return
 	}
 
-	syncWorker := &peerSyncWorker{
-		worker: newWorker(who, s.sharedGuard, s.requestMaker),
-	}
-
-	syncWorker.worker.start()
+	syncWorker := newWorker(who, s.sharedGuard, s.requestMaker)
+	syncWorker.start()
 	s.workers[who] = syncWorker
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 }
@@ -167,10 +151,8 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 	if who != nil {
 		syncWorker := s.workers[*who]
-		if !syncWorker.isPunished() {
-			syncWorker.worker.processTask(task)
-			return
-		}
+		syncWorker.processTask(task)
+		return
 	}
 
 	for syncWorkerPeerID, syncWorker := range s.workers {
@@ -178,11 +160,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 			continue
 		}
 
-		if syncWorker.isPunished() {
-			continue
-		}
-
-		enqueued := syncWorker.worker.processTask(task)
+		enqueued := syncWorker.processTask(task)
 		if enqueued {
 			break
 		}
@@ -204,11 +182,7 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 		workerID := idx % len(allWorkers)
 		syncWorker := allWorkers[workerID]
 
-		if syncWorker.isPunished() {
-			continue
-		}
-
-		enqueued := syncWorker.worker.processTask(&syncTask{
+		enqueued := syncWorker.processTask(&syncTask{
 			request:  requests[idx],
 			resultCh: resultCh,
 		})
@@ -217,43 +191,25 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 			continue
 		}
 
+		// only increases the index if a task was successfully equeued
+		// for some worker, if the task was not equeued for some worker
+		// jump to the next worker and try to enqueue there
 		idx++
 	}
 
 	return resultCh
 }
 
-// punishPeer given a peer.ID we check increase its times punished
-// and apply the punishment time using the base timeout of 5m, so
-// each time a peer is punished its timeout will increase by 5m
-func (s *syncWorkerPool) punishPeer(who peer.ID) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	syncWorker, has := s.workers[who]
-	if !has || syncWorker.isPunished() {
-		return
-	}
-
-	timesPunished := syncWorker.timesPunished + 1
-	punishmentTime := time.Duration(timesPunished) * punishmentBaseTimeout
-
-	syncWorker.timesPunished = timesPunished
-	syncWorker.worker.punish(punishmentTime)
-
-	s.workers[who] = syncWorker
-}
-
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	syncWorker, has := s.workers[who]
+	worker, has := s.workers[who]
 	if !has {
 		return nil
 	}
 
-	err := syncWorker.worker.stop()
+	err := worker.stop()
 	if err != nil {
 		return fmt.Errorf("stopping worker: %w", err)
 	}
@@ -268,10 +224,8 @@ func (s *syncWorkerPool) totalWorkers() (total uint) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	for _, syncWorker := range s.workers {
-		if !syncWorker.worker.isPunished() {
-			total++
-		}
+	for range s.workers {
+		total++
 	}
 
 	return total

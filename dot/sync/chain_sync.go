@@ -638,8 +638,6 @@ taskResultLoop:
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
-
-					cs.workerPool.punishPeer(who)
 				}
 
 				cs.workerPool.submitRequest(request, nil, workersResults)
@@ -663,7 +661,6 @@ taskResultLoop:
 					}, who)
 				}
 
-				cs.workerPool.punishPeer(who)
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -671,7 +668,6 @@ taskResultLoop:
 			isChain := isResponseAChain(response.BlockData)
 			if !isChain {
 				logger.Criticalf("response from %s is not a chain", who)
-				cs.workerPool.punishPeer(who)
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}
@@ -680,7 +676,6 @@ taskResultLoop:
 				startAtBlock, expectedSyncedBlocks)
 			if !grows {
 				logger.Criticalf("response from %s does not grows the ongoing chain", who)
-				cs.workerPool.punishPeer(who)
 				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 				continue taskResultLoop
 			}

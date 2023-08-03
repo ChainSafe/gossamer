@@ -52,19 +52,6 @@ func (w *worker) start() {
 		logger.Debugf("[STARTED] worker %s", w.peerID)
 		for {
 			select {
-			case punishmentDuration := <-w.punishment:
-				logger.Debugf("⏱️ punishement time for peer %s: %.2fs", w.peerID, punishmentDuration.Seconds())
-				punishmentTimer := time.NewTimer(punishmentDuration)
-				select {
-				case <-punishmentTimer.C:
-					w.mtx.Lock()
-					w.status = available
-					w.mtx.Unlock()
-
-				case <-w.stopCh:
-					return
-				}
-
 			case <-w.stopCh:
 				return
 			case task := <-w.queue:
@@ -75,31 +62,12 @@ func (w *worker) start() {
 }
 
 func (w *worker) processTask(task *syncTask) (enqueued bool) {
-	if w.isPunished() {
-		return false
-	}
-
 	select {
 	case w.queue <- task:
-		logger.Debugf("[ENQUEUED] worker %s, block request: %s", w.peerID, task.request)
 		return true
 	default:
 		return false
 	}
-}
-
-func (w *worker) punish(duration time.Duration) {
-	w.punishment <- duration
-
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
-	w.status = punished
-}
-
-func (w *worker) isPunished() bool {
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
-	return w.status == punished
 }
 
 func (w *worker) stop() error {

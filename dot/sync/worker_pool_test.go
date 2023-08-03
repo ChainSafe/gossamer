@@ -14,15 +14,14 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
 )
 
 func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 	t.Parallel()
-	//stablePunishmentTime := time.Now().Add(time.Minute * 2)
-
 	cases := map[string]struct {
-		setupWorkerPool func(t *testing.T) *syncWorkerPool
-		expectedPool    map[peer.ID]*peerSyncWorker
+		setupWorkerPool  func(t *testing.T) *syncWorkerPool
+		exepectedWorkers []peer.ID
 	}{
 		"no_connected_peers": {
 			setupWorkerPool: func(t *testing.T) *syncWorkerPool {
@@ -34,7 +33,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 
 				return newSyncWorkerPool(networkMock, nil)
 			},
-			expectedPool: make(map[peer.ID]*peerSyncWorker),
+			exepectedWorkers: []peer.ID{},
 		},
 		"3_available_peers": {
 			setupWorkerPool: func(t *testing.T) *syncWorkerPool {
@@ -49,10 +48,10 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 					})
 				return newSyncWorkerPool(networkMock, nil)
 			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				// peer.ID("available-1"): {status: available},
-				// peer.ID("available-2"): {status: available},
-				// peer.ID("available-3"): {status: available},
+			exepectedWorkers: []peer.ID{
+				peer.ID("available-1"),
+				peer.ID("available-2"),
+				peer.ID("available-3"),
 			},
 		},
 		"2_available_peers_1_to_ignore": {
@@ -70,12 +69,12 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 				workerPool.ignorePeers[peer.ID("available-3")] = struct{}{}
 				return workerPool
 			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				// peer.ID("available-1"): {status: available},
-				// peer.ID("available-2"): {status: available},
+			exepectedWorkers: []peer.ID{
+				peer.ID("available-1"),
+				peer.ID("available-2"),
 			},
 		},
-		"peer_punishment_not_valid_anymore": {
+		"peer_already_in_workers_set": {
 			setupWorkerPool: func(t *testing.T) *syncWorkerPool {
 				ctrl := gomock.NewController(t)
 				networkMock := NewMockNetwork(ctrl)
@@ -87,47 +86,13 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 						peer.ID("available-3"),
 					})
 				workerPool := newSyncWorkerPool(networkMock, nil)
-				workerPool.workers[peer.ID("available-3")] = &peerSyncWorker{
-					// status: punished,
-					// // arbitrary unix value
-					// punishmentTime: time.Unix(1000, 0),
-				}
+				workerPool.workers[peer.ID("available-3")] = &worker{stopCh: make(chan struct{})}
 				return workerPool
 			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				// peer.ID("available-1"): {status: available},
-				// peer.ID("available-2"): {status: available},
-				// peer.ID("available-3"): {
-				// 	status:         available,
-				// 	punishmentTime: time.Unix(1000, 0),
-				// },
-			},
-		},
-		"peer_punishment_still_valid": {
-			setupWorkerPool: func(t *testing.T) *syncWorkerPool {
-				ctrl := gomock.NewController(t)
-				networkMock := NewMockNetwork(ctrl)
-				networkMock.EXPECT().
-					AllConnectedPeersIDs().
-					Return([]peer.ID{
-						peer.ID("available-1"),
-						peer.ID("available-2"),
-						peer.ID("available-3"),
-					})
-				workerPool := newSyncWorkerPool(networkMock, nil)
-				workerPool.workers[peer.ID("available-3")] = &peerSyncWorker{
-					// status:         punished,
-					// punishmentTime: stablePunishmentTime,
-				}
-				return workerPool
-			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				// peer.ID("available-1"): {status: available},
-				// peer.ID("available-2"): {status: available},
-				// peer.ID("available-3"): {
-				// 	status:         punished,
-				// 	punishmentTime: stablePunishmentTime,
-				// },
+			exepectedWorkers: []peer.ID{
+				peer.ID("available-1"),
+				peer.ID("available-2"),
+				peer.ID("available-3"),
 			},
 		},
 	}
@@ -139,88 +104,11 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 
 			workerPool := tt.setupWorkerPool(t)
 			workerPool.useConnectedPeers()
+			defer workerPool.stop()
 
-			require.Equal(t, workerPool.workers, tt.expectedPool)
-		})
-	}
-}
-
-func TestSyncWorkerPool_newPeer(t *testing.T) {
-	t.Parallel()
-	//stablePunishmentTime := time.Now().Add(time.Minute * 2)
-
-	cases := map[string]struct {
-		peerID          peer.ID
-		setupWorkerPool func(t *testing.T) *syncWorkerPool
-		expectedPool    map[peer.ID]*peerSyncWorker
-	}{
-		"very_fist_entry": {
-			peerID: peer.ID("peer-1"),
-			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-				return newSyncWorkerPool(nil, nil)
-			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				peer.ID("peer-1"): {
-					worker: &worker{status: available},
-				},
-			},
-		},
-		"peer_to_ignore": {
-			peerID: peer.ID("to-ignore"),
-			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-				workerPool := newSyncWorkerPool(nil, nil)
-				workerPool.ignorePeers[peer.ID("to-ignore")] = struct{}{}
-				return workerPool
-			},
-			expectedPool: map[peer.ID]*peerSyncWorker{},
-		},
-		"peer_punishment_not_valid_anymore": {
-			peerID: peer.ID("free-again"),
-			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-				workerPool := newSyncWorkerPool(nil, nil)
-				workerPool.workers[peer.ID("free-again")] = &peerSyncWorker{
-					// status: punished,
-					// // arbitrary unix value
-					// punishmentTime: time.Unix(1000, 0),
-				}
-				return workerPool
-			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				peer.ID("free-again"): {
-					// status:         available,
-					// punishmentTime: time.Unix(1000, 0),
-				},
-			},
-		},
-		"peer_punishment_still_valid": {
-			peerID: peer.ID("peer_punished"),
-			setupWorkerPool: func(*testing.T) *syncWorkerPool {
-
-				workerPool := newSyncWorkerPool(nil, nil)
-				workerPool.workers[peer.ID("peer_punished")] = &peerSyncWorker{
-					// status:         punished,
-					// punishmentTime: stablePunishmentTime,
-				}
-				return workerPool
-			},
-			expectedPool: map[peer.ID]*peerSyncWorker{
-				peer.ID("peer_punished"): {
-					// status:         punished,
-					// punishmentTime: stablePunishmentTime,
-				},
-			},
-		},
-	}
-
-	for tname, tt := range cases {
-		tt := tt
-		t.Run(tname, func(t *testing.T) {
-			t.Parallel()
-
-			workerPool := tt.setupWorkerPool(t)
-			workerPool.newPeer(tt.peerID)
-
-			require.Equal(t, workerPool.workers, tt.expectedPool)
+			require.ElementsMatch(t,
+				maps.Keys(workerPool.workers),
+				tt.exepectedWorkers)
 		})
 	}
 }
@@ -257,7 +145,6 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	requestMakerMock.EXPECT().
 		Do(availablePeer, blockRequest, &network.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			time.Sleep(5 * time.Second)
 			responsePtr := response.(*network.BlockResponseMessage)
 			*responsePtr = *mockedBlockResponse
 			return nil
@@ -265,13 +152,6 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 
 	resultCh := make(chan *syncTaskResult)
 	workerPool.submitRequest(blockRequest, nil, resultCh)
-
-	// ensure the task is in the pool and was already
-	// assigned to the peer
-	time.Sleep(time.Second)
-
-	totalWorkers := workerPool.totalWorkers()
-	require.Zero(t, totalWorkers)
 
 	syncTaskResult := <-resultCh
 	require.NoError(t, syncTaskResult.err)
@@ -281,7 +161,7 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 
 }
 
-func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
+func TestSyncWorkerPool_singleWorker_multipleRequests(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -346,11 +226,6 @@ func TestSyncWorkerPool_listenForRequests_busyWorkers(t *testing.T) {
 
 	resultCh := workerPool.submitRequests(
 		[]*network.BlockRequestMessage{firstBlockRequest, secondBlockRequest})
-
-	// ensure the task is in the pool and was already
-	// assigned to the peer
-	time.Sleep(time.Second)
-	require.Zero(t, workerPool.totalWorkers())
 
 	syncTaskResult := <-resultCh
 	require.NoError(t, syncTaskResult.err)
