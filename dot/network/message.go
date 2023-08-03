@@ -376,7 +376,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 		return []*BlockRequestMessage{}
 	}
 
-	diff := targetNumber - startNumber
+	diff := targetNumber - (startNumber - 1)
 
 	// start and end block are the same, just request 1 block
 	if diff == 0 {

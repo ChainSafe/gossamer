@@ -73,7 +73,7 @@ type peerView struct {
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
 	start()
-	stop()
+	stop() error
 
 	// called upon receiving a BlockAnnounceHandshake
 	onBlockAnnounceHandshake(p peer.ID, hash common.Hash, number uint) error
@@ -187,10 +187,10 @@ func (cs *chainSync) start() {
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 }
 
-func (cs *chainSync) stop() {
+func (cs *chainSync) stop() error {
 	err := cs.workerPool.stop()
 	if err != nil {
-		logger.Criticalf("while stopping worker poll: %w", err)
+		return fmt.Errorf("stopping worker poll: %w", err)
 	}
 
 	close(cs.stopCh)
@@ -207,9 +207,9 @@ func (cs *chainSync) stop() {
 		if !timeoutTimer.Stop() {
 			<-timeoutTimer.C
 		}
-		return
+		return nil
 	case <-timeoutTimer.C:
-		logger.Critical("not all chainsync goroutines stopped successfully ")
+		return ErrStopTimeout
 	}
 }
 
@@ -231,6 +231,8 @@ func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget ui
 }
 
 func (cs *chainSync) bootstrapSync() {
+	defer cs.wg.Done()
+
 	for {
 		select {
 		case <-cs.stopCh:
@@ -309,6 +311,8 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 	cs.syncMode.Store(bootstrap)
 	isSyncedGauge.Set(0)
 	logger.Debugf("switched sync mode to %s", bootstrap.String())
+
+	cs.wg.Add(1)
 	go cs.bootstrapSync()
 	return nil
 }
@@ -337,11 +341,6 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return cs.requestAnnouncedBlock(announced)
 	}
 
-	// we are more than 128 blocks behind the head, switch to bootstrap
-	cs.syncMode.Store(bootstrap)
-	isSyncedGauge.Set(0)
-	logger.Debugf("switched sync mode to %s", bootstrap.String())
-	go cs.bootstrapSync()
 	return nil
 }
 
@@ -534,13 +533,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	}
 
 	if targetBlockNumber > realTarget {
-		// basically if our virtual target is beyond the real target
-		// that means we are only a few requests away, then we
-		// calculate the correct amount of missing requests and then
-		// change to tip sync which should take care of the rest
-		diff := targetBlockNumber - realTarget
-		numOfRequestsToDrop := (diff / 128) + 1
-		targetBlockNumber = targetBlockNumber - (numOfRequestsToDrop * 128)
+		targetBlockNumber = realTarget
 	}
 
 	requests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
@@ -1079,6 +1072,7 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 	case len(response) > 1:
 		lastBlockInResponse := response[len(response)-1]
 		lastBlockExactIndex := lastBlockInResponse.Header.Number - startAtBlock
+
 		if uint32(lastBlockExactIndex+1) < expectedTotal {
 			rightElement := ongoingChain[lastBlockExactIndex+1]
 			if rightElement != nil && !compareParentHash(lastBlockInResponse, rightElement) {

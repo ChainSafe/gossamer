@@ -82,8 +82,7 @@ func (s *Service) Start() error {
 
 // Stop stops the chainSync and chainProcessor modules
 func (s *Service) Stop() error {
-	s.chainSync.stop()
-	return nil
+	return s.chainSync.stop()
 }
 
 // HandleBlockAnnounceHandshake notifies the `chainSync` module that

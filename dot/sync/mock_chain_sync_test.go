@@ -105,9 +105,11 @@ func (mr *MockChainSyncMockRecorder) start() *gomock.Call {
 }
 
 // stop mocks base method.
-func (m *MockChainSync) stop() {
+func (m *MockChainSync) stop() error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "stop")
+	ret := m.ctrl.Call(m, "stop")
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // stop indicates an expected call of stop.
