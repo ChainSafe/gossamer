@@ -1641,7 +1641,7 @@ func TestChainSync_doResponseGrowsTheChain(t *testing.T) {
 			},
 
 			// the response contains the block number 3 which should be placed in position 2
-			// in the ongoing chain, which means that no comparision should be done to place
+			// in the ongoing chain, which means that no comparison should be done to place
 			// block number 3 in the ongoing chain
 			response: []*types.BlockData{
 				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 3, types.NewDigest())},
@@ -1649,7 +1649,7 @@ func TestChainSync_doResponseGrowsTheChain(t *testing.T) {
 			expectedOut: true,
 		},
 
-		"one_in_response_growing_ongoing_chain_by_checking_neighbors": {
+		"one_in_response_growing_ongoing_chain_by_checking_neighbours": {
 			startAt:        1,
 			exepectedTotal: 3,
 			// the ongoing chain contains 3 positions, the block number 1 is at position 0
@@ -1660,7 +1660,7 @@ func TestChainSync_doResponseGrowsTheChain(t *testing.T) {
 			},
 
 			// the response contains the block number 2 which should be placed in position 1
-			// in the ongoing chain, which means that a comparision should be made to check
+			// in the ongoing chain, which means that a comparison should be made to check
 			// if the parent hash of block 2 is the same hash of block 1
 			response: []*types.BlockData{
 				{Header: block2Header},
