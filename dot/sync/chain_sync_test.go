@@ -1610,6 +1610,121 @@ func TestChainSync_isResponseAChain(t *testing.T) {
 	}
 }
 
+func TestChainSync_doResponseGrowsTheChain(t *testing.T) {
+	block1Header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, types.NewDigest())
+	block2Header := types.NewHeader(block1Header.Hash(), common.Hash{}, common.Hash{}, 2, types.NewDigest())
+	block3Header := types.NewHeader(block2Header.Hash(), common.Hash{}, common.Hash{}, 3, types.NewDigest())
+	block4Header := types.NewHeader(block3Header.Hash(), common.Hash{}, common.Hash{}, 4, types.NewDigest())
+
+	testcases := map[string]struct {
+		response       []*types.BlockData
+		ongoingChain   []*types.BlockData
+		startAt        uint
+		exepectedTotal uint32
+		expectedOut    bool
+	}{
+		// the ongoing chain does not have any data so the response
+		// can be inserted in the ongoing chain without any problems
+		"empty_ongoing_chain": {
+			ongoingChain: []*types.BlockData{},
+			expectedOut:  true,
+		},
+
+		"one_in_response_growing_ongoing_chain_without_check": {
+			startAt:        1,
+			exepectedTotal: 3,
+			// the ongoing chain contains 3 positions, the block number 1 is at position 0
+			ongoingChain: []*types.BlockData{
+				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, types.NewDigest())},
+				nil,
+				nil,
+			},
+
+			// the response contains the block number 3 which should be placed in position 2
+			// in the ongoing chain, which means that no comparision should be done to place
+			// block number 3 in the ongoing chain
+			response: []*types.BlockData{
+				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 3, types.NewDigest())},
+			},
+			expectedOut: true,
+		},
+
+		"one_in_response_growing_ongoing_chain_by_checking_neighbors": {
+			startAt:        1,
+			exepectedTotal: 3,
+			// the ongoing chain contains 3 positions, the block number 1 is at position 0
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				{Header: block3Header},
+			},
+
+			// the response contains the block number 2 which should be placed in position 1
+			// in the ongoing chain, which means that a comparision should be made to check
+			// if the parent hash of block 2 is the same hash of block 1
+			response: []*types.BlockData{
+				{Header: block2Header},
+			},
+			expectedOut: true,
+		},
+
+		"one_in_response_failed_to_grow_ongoing_chain": {
+			startAt:        1,
+			exepectedTotal: 3,
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				nil,
+			},
+			response: []*types.BlockData{
+				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 2, types.NewDigest())},
+			},
+			expectedOut: false,
+		},
+
+		"many_in_response_grow_ongoing_chain_only_left_check": {
+			startAt:        1,
+			exepectedTotal: 3,
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				nil,
+				nil,
+			},
+			response: []*types.BlockData{
+				{Header: block2Header},
+				{Header: block3Header},
+			},
+			expectedOut: true,
+		},
+
+		"many_in_response_grow_ongoing_chain_left_right_check": {
+			startAt:        1,
+			exepectedTotal: 3,
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				nil,
+				{Header: block4Header},
+			},
+			response: []*types.BlockData{
+				{Header: block2Header},
+				{Header: block3Header},
+			},
+			expectedOut: true,
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			out := doResponseGrowsTheChain(tt.response, tt.ongoingChain, tt.startAt, tt.exepectedTotal)
+			require.Equal(t, tt.expectedOut, out)
+		})
+	}
+}
+
 func TestChainSync_getHighestBlock(t *testing.T) {
 	t.Parallel()
 
