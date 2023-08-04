@@ -3,8 +3,9 @@ package scraping
 import (
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	parachain "github.com/ChainSafe/gossamer/lib/parachain/types"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 )
 
 // DisputeCandidateLifetimeAfterFinalization How many blocks after finalization an information about
@@ -18,7 +19,7 @@ type ChainScrapper struct {
 	// All candidates we have seen backed
 	BackedCandidates ScrappedCandidates
 	// Latest relay blocks observed by the provider.
-	LastObservedBlocks LRUCache
+	LastObservedBlocks lrucache.LRUCache[common.Hash, uint32]
 	// Maps included candidate hashes to one or more relay block heights and hashes.
 	Inclusions Inclusions
 }
@@ -56,7 +57,7 @@ func (cs *ChainScrapper) ProcessFinalisedBlock(finalisedBlock uint32) {
 	cs.Inclusions.RemoveUpToHeight(removeUptoHeight, candidatesModified)
 }
 
-func (cs *ChainScrapper) ProcessCandidateEvents(sender overseer.Sender, blockNumber uint32, blockHash common.Hash) ([]parachain.CandidateReceipt, error) {
+func (cs *ChainScrapper) ProcessCandidateEvents(sender overseer.Sender, blockNumber uint32, blockHash common.Hash) ([]parachainTypes.CandidateReceipt, error) {
 
 	return nil, nil
 }
