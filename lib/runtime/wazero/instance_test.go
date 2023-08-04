@@ -991,7 +991,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {
 			// call removing encoding (first byte), polkadot.js/api v9.5.1: api.tx.system.remark("Ed")
 			// polkadot.js/api returns error:  RPC-CORE: call(method: Text, data: Bytes, at?: BlockHash):
 			// Bytes:: -32000: Client error: Execution failed: Execution aborted due to trap: wasm trap: wasm
-			//`unreachable` instruction executed
+			// `unreachable` instruction executed
 			callHex:    "0x040001084564",
 			errMessage: "running runtime function: wasm error",
 		},
@@ -1061,7 +1061,7 @@ func TestInstance_TransactionPaymentCallApi_QueryCallFeeDetails(t *testing.T) {
 		{
 			// call without removing any bytes, polkadot.js/api v9.5.1: api.tx.system.remark("Ed test")
 			// when calling polkadot (v0.9.29) with polkadot.js/api the node returns error: Error: createType(
-			//Call):: findMetaCall: Unable to find Call with index [44, 4]/[44,4]
+			// Call):: findMetaCall: Unable to find Call with index [44, 4]/[44,4]
 			callHex:    "0x18040001084564",
 			errMessage: "running runtime function: wasm error",
 		},

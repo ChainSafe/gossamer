@@ -194,7 +194,7 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	return rootHash, nil
 }
 
-// Entries returns all the key-value pairs in the trie as a slice of key value
+// EntriesList returns all the key-value pairs in the trie as a slice of key value
 // where the keys are encoded in Little Endian.  The slice starts with root node.
 func (t *Trie) EntriesList() [][2][]byte {
 	list := make([][2][]byte, 0)
