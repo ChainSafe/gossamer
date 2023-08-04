@@ -2,16 +2,15 @@ package rx
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/parachain/network/bridge"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core"
 )
-
-// Oracle is a simple type representing an oracle
-type Oracle struct{}
 
 func makeSyncOracle() (*Oracle, *sync.WaitGroup) {
 	return &Oracle{}, &sync.WaitGroup{}
@@ -37,29 +36,44 @@ func (vo *VirtualOverseer) send(signal OverseerSignal) {}
 type TestHarness struct {
 	networkHandle   NetworkHandle
 	virtualOverseer VirtualOverseer
-	shared          interface{} // TODO: determine actual shared data type
+	shared          bridge.Shared
 }
 
-func testHarness(oracle *Oracle, testFunc func(*TestHarness)) {
+type TestHarnessFn func(*TestHarness) VirtualOverseer
+
+func testHarness(oracle *Oracle, testFunc TestHarnessFn) {
 	var wg sync.WaitGroup
+	wg.Add(1)
+	shared := bridge.Shared{
+		SharedInner: bridge.SharedInner{},
+	}
 	testFunc(&TestHarness{
 		networkHandle:   NetworkHandle{},
 		virtualOverseer: VirtualOverseer{},
-		shared:          nil, // TODO: Replace with the actual shared data
+		shared:          shared,
 	})
+	bridge := NetworkBridgeRx{
+		SyncOracle: oracle,
+		Shared:     &shared,
+	}
+
+	go func() {
+		defer wg.Done()
+		runNetworkIn(bridge)
+	}()
+
 	wg.Wait()
 }
 
 func TestSendOurViewUponConnection(t *testing.T) {
 	oracle, handle := makeSyncOracle()
 
-	testHarness(oracle, func(testHarness *TestHarness) {
+	testHarness(oracle, func(testHarness *TestHarness) VirtualOverseer {
 		networkHandle := testHarness.networkHandle
 		virtualOverseer := testHarness.virtualOverseer
 
 		peer := core.PeerID("random-peer-id")
 		head := common.Hash{1, 2, 3}
-
 		virtualOverseer.send(OverseerSignal{
 			ActiveLeaves: ActiveLeavesUpdate{
 				ActivatedLeaf: ActivatedLeaf{
@@ -74,10 +88,10 @@ func TestSendOurViewUponConnection(t *testing.T) {
 
 		networkHandle.connectPeer(peer, "Validation", "Full")
 		networkHandle.connectPeer(peer, "Collation", "Full")
-
+		fmt.Printf("awaitng peer connect\n")
 		// TODO:  implementation of awaitPeerConnections
 		//awaitPeerConnections(&testHarness.shared, 1, 1)
-
+		fmt.Printf("past peer connect \n")
 		view := []common.Hash{head}
 		actions := networkHandle.nextNetworkActions(2)
 
@@ -100,6 +114,7 @@ func TestSendOurViewUponConnection(t *testing.T) {
 		)
 
 		virtualOverseer.send(OverseerSignal{})
+		return virtualOverseer
 	})
 }
 
@@ -107,6 +122,16 @@ func TestSendOurViewUponConnection(t *testing.T) {
 func EncodeViewUpdate(view []common.Hash) string {
 	// TODO: add actual encoding
 	return fmt.Sprintf("%v", view)
+}
+
+func awaitPeerConnections(shared *bridge.Shared, numValidationPeers int, numCollationPeers int) {
+	for {
+		if len(shared.SharedInner.ValidationPeers) == numValidationPeers && len(shared.SharedInner.
+			CollationPeers) == numCollationPeers {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 // assertNetworkActionsContains is a helper function to assert that a network action is present

@@ -1,9 +1,12 @@
 package rx
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/parachain/network/bridge"
 	"github.com/libp2p/go-libp2p/core"
+	"time"
 )
 
 // LeafStatus is a simple type representing a leaf status
@@ -33,4 +36,20 @@ type NetworkAction struct {
 	Peer    core.PeerID
 	PeerSet peerset.PeerSet
 	WireMsg string
+}
+
+// Oracle is a simple type representing an oracle
+type Oracle struct{}
+
+type NetworkBridgeRx struct {
+	SyncOracle *Oracle
+	Shared     *bridge.Shared
+}
+
+func runNetworkIn(bridge NetworkBridgeRx) {
+	for i := 0; i < 5; i++ {
+		fmt.Printf("In Run Network i: %v\n", i)
+		fmt.Printf("bridge syncOrcale: %v\nbridge Shared: %v\n", bridge.SyncOracle, bridge.Shared)
+		time.Sleep(time.Second)
+	}
 }
