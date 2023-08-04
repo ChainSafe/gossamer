@@ -6,7 +6,6 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -16,7 +15,6 @@ import (
 var ErrStopTimeout = errors.New("stop timeout")
 
 type worker struct {
-	mtx         sync.Mutex
 	status      byte
 	peerID      peer.ID
 	sharedGuard chan struct{}
