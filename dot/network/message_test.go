@@ -454,8 +454,9 @@ func TestAscendingBlockRequest(t *testing.T) {
 		},
 
 		"requesting_128_blocks": {
-			startNumber:  1,
-			targetNumber: 128,
+			startNumber:                    1,
+			targetNumber:                   128,
+			expectedTotalOfBlocksRequested: 128,
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
