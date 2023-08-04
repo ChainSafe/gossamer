@@ -1,13 +1,13 @@
 package types
 
 import (
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
-	parachain "github.com/ChainSafe/gossamer/lib/parachain/types"
 )
 
 type BackingValidators struct {
-	ValidatorIndex      parachain.ValidatorIndex
+	ValidatorIndex      parachainTypes.ValidatorIndex
 	ValidityAttestation inherents.ValidityAttestation
 }
 
@@ -17,7 +17,7 @@ type BackingValidatorsPerCandidate struct {
 }
 
 type ScrapedOnChainVotes struct {
-	Session           parachain.SessionIndex
+	Session           parachainTypes.SessionIndex
 	BackingValidators BackingValidatorsPerCandidate
 	Disputes          inherents.MultiDisputeStatementSet
 }
