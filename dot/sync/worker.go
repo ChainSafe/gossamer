@@ -41,22 +41,20 @@ func newWorker(pID peer.ID, sharedGuard chan struct{}, network network.RequestMa
 }
 
 func (w *worker) start() {
-	go func() {
-		defer func() {
-			logger.Debugf("[STOPPED] worker %s", w.peerID)
-			close(w.doneCh)
-		}()
-
-		logger.Debugf("[STARTED] worker %s", w.peerID)
-		for {
-			select {
-			case <-w.stopCh:
-				return
-			case task := <-w.queue:
-				executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
-			}
-		}
+	defer func() {
+		logger.Debugf("[STOPPED] worker %s", w.peerID)
+		close(w.doneCh)
 	}()
+
+	logger.Debugf("[STARTED] worker %s", w.peerID)
+	for {
+		select {
+		case <-w.stopCh:
+			return
+		case task := <-w.queue:
+			executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
+		}
+	}
 }
 
 func (w *worker) processTask(task *syncTask) (enqueued bool) {

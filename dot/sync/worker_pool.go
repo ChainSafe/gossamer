@@ -126,7 +126,8 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 	}
 
 	syncWorker := newWorker(who, s.sharedGuard, s.requestMaker)
-	syncWorker.start()
+	go syncWorker.start()
+
 	s.workers[who] = syncWorker
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 }

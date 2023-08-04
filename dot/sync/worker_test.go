@@ -30,7 +30,7 @@ func TestWorker(t *testing.T) {
 
 	sharedGuard := make(chan struct{}, 1)
 	w := newWorker(peerA, sharedGuard, reqMaker)
-	w.start()
+	go w.start()
 
 	resultCh := make(chan *syncTaskResult)
 	defer close(resultCh)
@@ -76,7 +76,7 @@ func TestWorkerAsyncStop(t *testing.T) {
 	sharedGuard := make(chan struct{}, 2)
 
 	w := newWorker(peerA, sharedGuard, reqMaker)
-	w.start()
+	go w.start()
 
 	doneCh := make(chan struct{})
 	resultCh := make(chan *syncTaskResult, 2)
