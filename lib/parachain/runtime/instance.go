@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	runtimewasmer "github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -36,7 +37,24 @@ type ValidationResult struct {
 	HrmpWatermark uint32 `scale:"6"`
 }
 
-func setupVM(code []byte) (*Instance, error) {
+// ValidationParameters contains parameters for evaluating the parachain validity function.
+type ValidationParameters struct {
+	// Previous head-data.
+	ParentHeadData parachaintypes.HeadData
+	// The collation body.
+	BlockData []byte //types.BlockData
+	// The current relay-chain block number.
+	RelayParentNumber uint32
+	// The relay-chain block's storage root.
+	RelayParentStorageRoot common.Hash
+}
+
+// Instance is a wrapper around the wasmer runtime instance.
+type Instance struct {
+	*runtimewasmer.Instance
+}
+
+func SetupVM(code []byte) (*Instance, error) {
 	cfg := runtimewasmer.Config{}
 
 	instance, err := runtimewasmer.NewInstance(code, cfg)
@@ -44,11 +62,6 @@ func setupVM(code []byte) (*Instance, error) {
 		return nil, fmt.Errorf("creating instance: %w", err)
 	}
 	return &Instance{instance}, nil
-}
-
-// Instance is a wrapper around the wasmer runtime instance.
-type Instance struct {
-	*runtimewasmer.Instance
 }
 
 // ValidateBlock validates a block by calling parachain runtime's validate_block call and returns the result.
@@ -73,4 +86,13 @@ func (in *Instance) ValidateBlock(params ValidationParameters) (
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 	return &validationResult, nil
+}
+
+// RuntimeInstance for runtime methods
+type RuntimeInstance interface {
+	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
+	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
 }

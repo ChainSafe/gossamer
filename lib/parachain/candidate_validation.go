@@ -9,7 +9,9 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	parachainruntime "github.com/ChainSafe/gossamer/lib/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -24,7 +26,7 @@ type PoVRequestor interface {
 	RequestPoV(povHash common.Hash) PoV
 }
 
-func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
+func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID uint32,
 ) (*parachaintypes.PersistedValidationData, *parachaintypes.ValidationCode, error) {
 
 	var mergedError error
@@ -58,7 +60,7 @@ func getValidationData(runtimeInstance RuntimeInstance, paraID uint32,
 
 // ValidateFromChainState validates a candidate parachain block with provided parameters using relay-chain
 // state and using the parachain runtime.
-func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVRequestor,
+func ValidateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, povRequestor PoVRequestor,
 	candidateReceipt parachaintypes.CandidateReceipt) (
 	*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
 
@@ -101,14 +103,14 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 		return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
 	}
 
-	validationParams := ValidationParameters{
+	validationParams := parachainruntime.ValidationParameters{
 		ParentHeadData:         persistedValidationData.ParentHead,
 		BlockData:              pov.BlockData,
 		RelayParentNumber:      persistedValidationData.RelayParentNumber,
 		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
 	}
 
-	parachainRuntimeInstance, err := setupVM(*validationCode)
+	parachainRuntimeInstance, err := parachainruntime.SetupVM(*validationCode)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("setting up VM: %w", err)
 	}
@@ -134,25 +136,4 @@ func ValidateFromChainState(runtimeInstance RuntimeInstance, povRequestor PoVReq
 	}
 
 	return &candidateCommitments, persistedValidationData, isValid, nil
-}
-
-// ValidationParameters contains parameters for evaluating the parachain validity function.
-type ValidationParameters struct {
-	// Previous head-data.
-	ParentHeadData parachaintypes.HeadData
-	// The collation body.
-	BlockData []byte //types.BlockData
-	// The current relay-chain block number.
-	RelayParentNumber uint32
-	// The relay-chain block's storage root.
-	RelayParentStorageRoot common.Hash
-}
-
-// RuntimeInstance for runtime methods
-type RuntimeInstance interface {
-	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
-	) (*parachaintypes.PersistedValidationData, error)
-	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
-	) (*parachaintypes.ValidationCode, error)
-	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
 }

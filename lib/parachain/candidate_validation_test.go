@@ -114,7 +114,8 @@ func TestValidateFromChainState(t *testing.T) {
 	mockPoVRequestor.EXPECT().
 		RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
 
-	candidateCommitments, persistedValidationData, isValid, err := ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
+	candidateCommitments, persistedValidationData, isValid, err := ValidateFromChainState(
+		mockInstance, mockPoVRequestor, candidateReceipt)
 	require.NoError(t, err)
 	require.True(t, isValid)
 	require.NotNil(t, candidateCommitments)
