@@ -88,7 +88,7 @@ func TestValidateFromChainState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	persistedValidationData := parachaintypes.PersistedValidationData{
+	expectedPersistedValidationData := parachaintypes.PersistedValidationData{
 		ParentHead:             parachaintypes.HeadData{Data: hd},
 		RelayParentNumber:      uint32(1),
 		RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
@@ -102,7 +102,7 @@ func TestValidateFromChainState(t *testing.T) {
 		ParachainHostPersistedValidationData(
 			uint32(1000),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&persistedValidationData, nil)
+		Return(&expectedPersistedValidationData, nil)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
 		Return(&validationCode, nil)
@@ -114,9 +114,11 @@ func TestValidateFromChainState(t *testing.T) {
 	mockPoVRequestor.EXPECT().
 		RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
 
-	_, _, _, err = ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
+	candidateCommitments, persistedValidationData, isValid, err := ValidateFromChainState(mockInstance, mockPoVRequestor, candidateReceipt)
 	require.NoError(t, err)
-
+	require.True(t, isValid)
+	require.NotNil(t, candidateCommitments)
+	require.Equal(t, expectedPersistedValidationData, *persistedValidationData)
 }
 
 type HeadDataInAdderParachain struct {
