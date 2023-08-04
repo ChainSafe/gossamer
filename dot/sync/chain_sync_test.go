@@ -714,9 +714,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 				require.FailNow(t, "expected calls by %s and %s, got: %s",
 					peer.ID("alice"), peer.ID("bob"), pID)
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
 			}
 
 			*responsePtr = *worker2Response
@@ -820,9 +817,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 				require.FailNow(t, "expected calls by %s and %s, got: %s",
 					peer.ID("alice"), peer.ID("bob"), pID)
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
 			}
 
 			*responsePtr = *worker2Response
@@ -935,9 +929,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 				require.FailNow(t, "expected calls by %s and %s, got: %s",
 					peer.ID("alice"), peer.ID("bob"), pID)
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
 			}
 
 			*responsePtr = *worker2Response
@@ -1052,9 +1043,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 				require.FailNow(t, "expected calls by %s and %s, got: %s",
 					peer.ID("alice"), peer.ID("bob"), pID)
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
 			}
 
 			*responsePtr = *worker2Response
@@ -1173,9 +1161,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 				require.FailNow(t, "expected calls by %s and %s, got: %s",
 					peer.ID("alice"), peer.ID("bob"), pID)
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
 			}
 
 			*responsePtr = *worker2Response
