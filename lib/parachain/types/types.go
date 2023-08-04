@@ -4,6 +4,7 @@
 package parachaintypes
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -88,6 +89,36 @@ type CandidateDescriptor struct {
 	ParaHead common.Hash `scale:"8"`
 	// ValidationCodeHash is the blake2-256 hash of the validation code bytes.
 	ValidationCodeHash ValidationCodeHash `scale:"9"`
+}
+
+func (cd CandidateDescriptor) CreateSignaturePayload() ([]byte, error) {
+	var payload [132]byte
+	copy(payload[0:32], cd.RelayParent.ToBytes())
+
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(cd.ParaID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain id: %w", err)
+	}
+	if len(buffer.Bytes()) != 4 {
+		return nil, fmt.Errorf("invalid length of encoded parachain id")
+	}
+	copy(payload[32:36], buffer.Bytes())
+	copy(payload[36:68], cd.PersistedValidationDataHash.ToBytes())
+	copy(payload[68:100], cd.PovHash.ToBytes())
+	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
+
+	return payload[:], nil
+}
+
+func (cd CandidateDescriptor) CheckCollatorSignature() error {
+	payload, err := cd.CreateSignaturePayload()
+	if err != nil {
+		return fmt.Errorf("creating signature payload: %w", err)
+	}
+
+	return sr25519.VerifySignature(cd.Collator[:], cd.Signature[:], payload)
 }
 
 // OccupiedCore Information about a core which is currently occupied.
@@ -203,9 +234,6 @@ type OutboundHrmpMessage struct {
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 
-// headData is Parachain head data included in the chain.
-type headData []byte
-
 // CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
 type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
@@ -215,7 +243,7 @@ type CandidateCommitments struct {
 	// New validation code.
 	NewValidationCode *ValidationCode `scale:"3"`
 	// The head-data produced as a result of execution.
-	HeadData headData `scale:"4"`
+	HeadData HeadData `scale:"4"`
 	// The number of messages processed from the DMQ.
 	ProcessedDownwardMessages uint32 `scale:"5"`
 	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
