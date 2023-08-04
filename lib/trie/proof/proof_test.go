@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/internal/trie/triedb"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/stretchr/testify/require"
 )
 

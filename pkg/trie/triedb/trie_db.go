@@ -4,8 +4,8 @@
 package triedb
 
 import (
-	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
-	"github.com/ChainSafe/gossamer/internal/trie/triedb/nibble"
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
 type TrieDBBuilder struct {

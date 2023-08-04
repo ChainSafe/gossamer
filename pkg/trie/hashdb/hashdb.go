@@ -5,11 +5,6 @@ package hashdb
 
 import "github.com/ChainSafe/gossamer/lib/common"
 
-type Prefix struct {
-	Data   []byte
-	Padded *byte
-}
-
 type HashDB interface {
 	Get(key []byte) (value []byte, err error)
 	Insert(value []byte) common.Hash

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ChainSafe/gossamer/internal/trie/triedb/nibble"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 	"github.com/qdm12/gotree"
 )
 

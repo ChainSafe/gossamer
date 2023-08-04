@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
-	"github.com/ChainSafe/gossamer/internal/trie/triedb/nibble"
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
 var ErrInvalidStateRoot = errors.New("invalid state root")
@@ -53,7 +53,7 @@ func (l Lookup) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error
 		for {
 			// Decode node
 			reader := bytes.NewReader(nodeData)
-			decodedNode, err := Decode(reader)
+			decodedNode, err := decode(reader)
 			if err != nil {
 				return nil, fmt.Errorf("decoding node error %s", err.Error())
 			}

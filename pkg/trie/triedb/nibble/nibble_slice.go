@@ -3,8 +3,9 @@
 
 package nibble
 
-import "github.com/ChainSafe/gossamer/internal/trie/hashdb"
-
+// NibbleSlice is a helper structure to store a slice of nibbles and a moving offset
+// this is helpful to use it for example while we are looking for a key, we can define the full key in the data and
+// moving the offset while we are going deep in the trie
 type NibbleSlice struct {
 	data   []byte
 	offset uint
@@ -30,18 +31,6 @@ func (ns *NibbleSlice) Mid(i uint) *NibbleSlice {
 	return &NibbleSlice{ns.data, ns.offset + i}
 }
 
-func (ns *NibbleSlice) Left() *hashdb.Prefix {
-	split := ns.offset / NibblePerByte
-	ix := uint8(ns.offset % NibblePerByte)
-	if ix == 0 {
-		return &hashdb.Prefix{Data: ns.data[:split], Padded: nil}
-	}
-
-	padding := padLeft(ns.data[split])
-
-	return &hashdb.Prefix{Data: ns.data[:split], Padded: &padding}
-}
-
 func (ns *NibbleSlice) Len() uint {
 	return uint(len(ns.data))*NibblePerByte - ns.offset
 }
@@ -54,10 +43,6 @@ func (ns *NibbleSlice) At(i uint) byte {
 		return b & PaddingBitmask
 	}
 	return b >> BitPerNibble
-}
-
-func (ns *NibbleSlice) OriginalDataAsPrefix() hashdb.Prefix {
-	return hashdb.Prefix{Data: ns.data, Padded: nil}
 }
 
 func (ns *NibbleSlice) StartsWith(other *NibbleSlice) bool {

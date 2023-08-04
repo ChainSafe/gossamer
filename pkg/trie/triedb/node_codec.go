@@ -9,9 +9,9 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/internal/trie/triedb/nibble"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
 var EmptyNode = &Node{}
@@ -24,7 +24,7 @@ var (
 	ErrReaderMismatchCount       = errors.New("read unexpected number of bytes from reader")
 )
 
-func Decode(reader io.Reader) (n *Node, err error) {
+func decode(reader io.Reader) (n *Node, err error) {
 	variant, nibbleCount, err := node.DecodeHeader(reader)
 
 	if err != nil {
@@ -52,8 +52,8 @@ func Decode(reader io.Reader) (n *Node, err error) {
 }
 
 func decodeBranch(reader io.Reader, variant node.Variant, nibbleCount uint16) (*Node, error) {
-	// TODO: find a way to solve this
-	/*padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
+	// TODO: find a way to solve this without consuming the byte from the reader
+	/*padding := nibble.NumberPadding(nibbleCount) != 0
 
 	buffer := make([]byte, 1)
 	_, err := reader.Read(buffer)
@@ -122,8 +122,8 @@ func decodeBranch(reader io.Reader, variant node.Variant, nibbleCount uint16) (*
 }
 
 func decodeLeaf(reader io.Reader, variant node.Variant, nibbleCount uint16) (*Node, error) {
-	// TODO: find a way to solve this
-	/*padding := nibbleCount%uint16(nibble.NibblePerByte) != 0
+	// TODO: find a way to solve this without consuming the byte from the reader
+	/*padding := nibble.NumberPadding(nibbleCount) != 0
 
 	buffer := make([]byte, 1)
 	_, err := reader.Read(buffer)
@@ -147,7 +147,7 @@ func decodeLeaf(reader io.Reader, variant node.Variant, nibbleCount uint16) (*No
 
 	if variant == node.LeafVariant {
 		sd := scale.NewDecoder(reader)
-		err := sd.Decode(nodeValue.Data)
+		err := sd.Decode(&nodeValue.Data)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
@@ -181,7 +181,8 @@ func decodePartialKey(reader io.Reader, partialKeyLength uint16) (b []byte, err 
 		return []byte{}, nil
 	}
 
-	key := make([]byte, partialKeyLength/2+partialKeyLength%2)
+	nibblePerByte := uint16(nibble.NibblePerByte)
+	key := make([]byte, partialKeyLength/nibblePerByte+partialKeyLength%nibblePerByte)
 	n, err := reader.Read(key)
 	if err != nil {
 		return nil, fmt.Errorf("reading from reader: %w", err)

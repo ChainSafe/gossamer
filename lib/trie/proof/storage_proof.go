@@ -4,11 +4,9 @@
 package proof
 
 import (
-	"github.com/ChainSafe/gossamer/internal/trie/hashdb"
-	"github.com/ChainSafe/gossamer/internal/trie/memorydb"
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/memorydb"
 )
-
-var EmptyPrefix = hashdb.Prefix{}
 
 type StorageProof struct {
 	//TODO: Improve it using sets
