@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachain
 
 import (
@@ -93,9 +96,11 @@ func TestStatementFetchingResponse(t *testing.T) {
 			ValidationCodeHash:          parachaintypes.ValidationCodeHash(testHash),
 		},
 		Commitments: parachaintypes.CandidateCommitments{
-			UpwardMessages:            []parachaintypes.UpwardMessage{{1, 2, 3}},
-			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
-			HeadData:                  []byte{1, 2, 3},
+			UpwardMessages:    []parachaintypes.UpwardMessage{{1, 2, 3}},
+			NewValidationCode: &parachaintypes.ValidationCode{1, 2, 3},
+			HeadData: parachaintypes.HeadData{
+				Data: []byte{1, 2, 3},
+			},
 			ProcessedDownwardMessages: uint32(5),
 			HrmpWatermark:             uint32(0),
 		},
