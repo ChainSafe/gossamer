@@ -55,7 +55,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	slotEncoded := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotEncoded, slot)
 
-	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded[:]}, nil)
+	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 	encodedHeadersWithSigners, err := s.db.Get(currentSlotKey)
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("getting key slot header map key %d: %w", slot, err)
@@ -133,7 +133,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 			slotEncoded := make([]byte, 8)
 			binary.LittleEndian.PutUint64(slotEncoded, s)
 
-			toDelete := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded[:]}, nil)
+			toDelete := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 			keysToDelete = append(keysToDelete, toDelete)
 		}
 	}
