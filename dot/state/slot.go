@@ -49,13 +49,13 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	// We don't check equivocations for old headers out of our capacity.
 	// checking slotNow is greater than slot to avoid overflow, same as saturating_sub
 	if saturatingSub(slotNow, slot) > maxSlotCapacity {
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	}
 
 	slotEncoded := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotEncoded, slot)
 
-	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded[:]}, nil)
+	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 	encodedHeadersWithSigners, err := s.db.Get(currentSlotKey)
 	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
 		return nil, fmt.Errorf("getting key slot header map key %d: %w", slot, err)
@@ -99,7 +99,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 
 	if slotNow < firstSavedSlot {
 		// The code below assumes that slots will be visited sequentially.
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	}
 
 	for _, headerAndSigner := range headersWithSigners {
@@ -118,7 +118,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 				// We don't need to continue in case of duplicated header,
 				// since it's already saved and a possible equivocation
 				// would have been detected before.
-				return nil, nil //nolint:nilnil
+				return nil, nil
 			}
 		}
 	}
@@ -133,7 +133,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 			slotEncoded := make([]byte, 8)
 			binary.LittleEndian.PutUint64(slotEncoded, s)
 
-			toDelete := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded[:]}, nil)
+			toDelete := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 			keysToDelete = append(keysToDelete, toDelete)
 		}
 	}
@@ -182,7 +182,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 		return nil, fmt.Errorf("failed to flush batch operations: %w", err)
 	}
 
-	return nil, nil //nolint:nilnil
+	return nil, nil
 }
 
 func saturatingSub(a, b uint64) uint64 {
