@@ -125,14 +125,14 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 	if !ok {
 		// TODO: figure out saturating_add stuff
 		vt.currentWeight = vt.currentWeight + VoteWeight(weight)
-		_, exists := vt.votes.Set(id,
-			newVoteMultiplicity[Vote, Signature](
-				Single[Vote, Signature]{vote, signature},
-			))
+		multiplicity := newVoteMultiplicity[Vote, Signature](
+			Single[Vote, Signature]{vote, signature},
+		)
+		_, exists := vt.votes.Set(id, multiplicity)
 		if exists {
 			panic("wtf?")
 		}
-		return &vm, false
+		return &multiplicity, false
 	}
 
 	duplicated := vm.Contains(vote, signature)
