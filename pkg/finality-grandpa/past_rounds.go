@@ -295,7 +295,7 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) VotingRounds() []VotingRoun
 
 // import the commit into the given backgrounded round. If not possible,
 // just return and process the commit.
-func (p pastRounds[Hash, Number, Signature, ID, E]) ImportCommit(
+func (p pastRounds[Hash, Number, Signature, ID, E]) ImportCommit( //skipcq: RVV-B0001
 	roundNumber uint64,
 	commit Commit[Hash, Number, Signature, ID],
 ) *Commit[Hash, Number, Signature, ID] {
