@@ -246,27 +246,27 @@ loop:
 
 // A stream for past rounds, which produces any commit messages from those
 // rounds and drives them to completion.
-type PastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
+type pastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
 	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID],
 ] struct {
 	pastRounds    []backgroundRound[Hash, Number, Signature, ID, E]
 	commitSenders map[uint64]chan Commit[Hash, Number, Signature, ID]
 }
 
-func NewPastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
-	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]]() *PastRounds[Hash, Number, Signature, ID, E] {
-	return &PastRounds[Hash, Number, Signature, ID, E]{
+func newPastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
+	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID]]() *pastRounds[Hash, Number, Signature, ID, E] {
+	return &pastRounds[Hash, Number, Signature, ID, E]{
 		commitSenders: make(map[uint64]chan Commit[Hash, Number, Signature, ID]),
 	}
 }
 
 // push an old voting round onto this stream.
-func (p *PastRounds[Hash, Number, Signature, ID, E]) Push(env E, round VotingRound[Hash, Number, Signature, ID, E]) {
+func (p *pastRounds[Hash, Number, Signature, ID, E]) Push(env E, round VotingRound[Hash, Number, Signature, ID, E]) {
 	roundNumber := round.RoundNumber()
 	ch := make(chan Commit[Hash, Number, Signature, ID])
 	background := backgroundRound[Hash, Number, Signature, ID, E]{
 		inner: round,
-		// this will get updated in a call to PastRounds.UpdateFinalized() on next poll
+		// this will get updated in a call to pastRounds.UpdateFinalized() on next poll
 		finalizedNumber: 0,
 		roundCommitter:  newRoundCommitter[Hash, Number, Signature, ID, E](env.RoundCommitTimer(), newWakerChan(ch)),
 	}
@@ -276,7 +276,7 @@ func (p *PastRounds[Hash, Number, Signature, ID, E]) Push(env E, round VotingRou
 
 // update the last finalized block. this will lead to
 // any irrelevant background rounds being pruned.
-func (p *PastRounds[Hash, Number, Signature, ID, E]) UpdateFinalized(fNum Number) {
+func (p *pastRounds[Hash, Number, Signature, ID, E]) UpdateFinalized(fNum Number) { //skipcq: RVV-B0001
 	// have the task check if it should be pruned.
 	// if so, this future will be re-polled
 	for i := range p.pastRounds {
@@ -285,7 +285,7 @@ func (p *PastRounds[Hash, Number, Signature, ID, E]) UpdateFinalized(fNum Number
 }
 
 // Get the underlying `VotingRound` items that are being run in the background.
-func (p *PastRounds[Hash, Number, Signature, ID, E]) VotingRounds() []VotingRound[Hash, Number, Signature, ID, E] {
+func (p *pastRounds[Hash, Number, Signature, ID, E]) VotingRounds() []VotingRound[Hash, Number, Signature, ID, E] {
 	var votingRounds []VotingRound[Hash, Number, Signature, ID, E]
 	for _, bg := range p.pastRounds {
 		votingRounds = append(votingRounds, bg.votingRound())
@@ -295,7 +295,7 @@ func (p *PastRounds[Hash, Number, Signature, ID, E]) VotingRounds() []VotingRoun
 
 // import the commit into the given backgrounded round. If not possible,
 // just return and process the commit.
-func (p PastRounds[Hash, Number, Signature, ID, E]) ImportCommit(
+func (p pastRounds[Hash, Number, Signature, ID, E]) ImportCommit(
 	roundNumber uint64,
 	commit Commit[Hash, Number, Signature, ID],
 ) *Commit[Hash, Number, Signature, ID] {
@@ -316,7 +316,7 @@ type numberCommit[Hash, Number, Signature, ID any] struct {
 	Commit Commit[Hash, Number, Signature, ID]
 }
 
-func (p *PastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
+func (p *pastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 	ready bool,
 	nc *numberCommit[Hash, Number, Signature, ID],
 	err error,
