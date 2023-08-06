@@ -117,8 +117,8 @@ func (vs VoterSet[ID]) Contains(id ID) bool {
 
 // Get the nth voter in the set, modulo the size of the set,
 // as per the associated total order.
-func (vs VoterSet[ID]) NthMod(n uint) idVoterInfo[ID] {
-	ivi := vs.Nth(n % uint(len(vs.voters)))
+func (vs VoterSet[ID]) nthMod(n uint) idVoterInfo[ID] {
+	ivi := vs.nth(n % uint(len(vs.voters)))
 	if ivi == nil {
 		panic("set is nonempty and n % len < len; qed")
 	}
@@ -128,7 +128,7 @@ func (vs VoterSet[ID]) NthMod(n uint) idVoterInfo[ID] {
 // Get the nth voter in the set, if any.
 //
 // Returns `None` if `n >= len`.
-func (vs VoterSet[ID]) Nth(n uint) *idVoterInfo[ID] {
+func (vs VoterSet[ID]) nth(n uint) *idVoterInfo[ID] {
 	if n >= uint(len(vs.voters)) {
 		return nil
 	}
@@ -151,7 +151,7 @@ func (vs VoterSet[ID]) TotalWeight() VoterWeight {
 
 // Get an iterator over the voters in the set, as given by
 // the associated total order.
-func (vs VoterSet[ID]) Iter() []idVoterInfo[ID] {
+func (vs VoterSet[ID]) iter() []idVoterInfo[ID] {
 	return vs.voters
 }
 

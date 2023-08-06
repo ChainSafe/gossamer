@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"log"
 	"math"
 	"math/big"
 	"math/rand"
@@ -16,18 +15,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (vs VoterSet[ID]) Generate(rand *rand.Rand, _ int) reflect.Value {
+func (VoterSet[ID]) Generate(rand *rand.Rand, _ int) reflect.Value {
 	for {
 		idsValue, ok := quick.Value(reflect.TypeOf(make([]ID, 0)), rand)
 		if !ok {
-			log.Panic("unable to generate value")
+			panic("unable to generate value")
 		}
 		ids := idsValue.Interface().([]ID)
 		weights := make([]IDWeight[ID], len(ids))
 		for i, id := range ids {
 			u64v, ok := quick.Value(reflect.TypeOf(uint64(0)), rand)
 			if !ok {
-				log.Panic("unable to generate value")
+				panic("unable to generate value")
 			}
 			weights[i] = IDWeight[ID]{
 				id,
@@ -46,7 +45,7 @@ func TestVoterSet_Equality(t *testing.T) {
 	f := func(v []IDWeight[uint]) bool {
 		v1 := NewVoterSet(v)
 		if v1 != nil {
-			rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+			rand := rand.New(rand.NewSource(time.Now().UnixNano())) //skipcq: GSC-G404
 			rand.Shuffle(len(v), func(i, j int) { v[i], v[j] = v[j], v[i] })
 			v2 := NewVoterSet(v)
 			assert.NotNil(t, v1)

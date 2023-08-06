@@ -10,7 +10,7 @@ import (
 )
 
 func TestValidateCommit(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A"})
 
 	IDWeights := make([]IDWeight[int32], 0)
@@ -79,7 +79,7 @@ func TestValidateCommit(t *testing.T) {
 }
 
 func TestValidateCommit_WithEquivocation(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 
 	IDWeights := make([]IDWeight[int32], 0)
@@ -130,7 +130,7 @@ func TestValidateCommit_WithEquivocation(t *testing.T) {
 }
 
 func TestValidateCommit_PrecommitFromUnknownVoterIsIgnored(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 
 	IDWeights := make([]IDWeight[int32], 0)

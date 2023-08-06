@@ -63,22 +63,22 @@ func (b *bridged[H, N]) get(waker *Waker) RoundState[H, N] {
 }
 
 // A prior view of a round-state.
-type PriorView[Hash, Number any] struct {
+type priorView[Hash, Number any] struct {
 	*bridged[Hash, Number]
 }
 
 // Push an update to the latter view.
-func (pv *PriorView[H, N]) Update(new RoundState[H, N]) {
+func (pv *priorView[H, N]) update(new RoundState[H, N]) {
 	pv.bridged.update(new)
 }
 
 // A latter view of a round-state.
-type LatterView[Hash, Number any] struct {
+type latterView[Hash, Number any] struct {
 	*bridged[Hash, Number]
 }
 
 // // Fetch a handle to the last round-state.
-func (lv *LatterView[H, N]) Get(waker *Waker) (state RoundState[H, N]) {
+func (lv *latterView[H, N]) get(waker *Waker) (state RoundState[H, N]) {
 	return lv.get(waker)
 }
 
@@ -90,12 +90,12 @@ func (lv *LatterView[H, N]) Get(waker *Waker) (state RoundState[H, N]) {
 // The latter view is held by the subsequent round, which blocks certain activity
 // while waiting for events on an older round.
 func BridgeState[Hash, Number any](initial RoundState[Hash, Number]) (
-	PriorView[Hash, Number],
-	LatterView[Hash, Number],
+	priorView[Hash, Number],
+	latterView[Hash, Number],
 ) {
 	br := bridged[Hash, Number]{
 		inner: initial,
 		waker: NewWaker(),
 	}
-	return PriorView[Hash, Number]{&br}, LatterView[Hash, Number]{&br}
+	return priorView[Hash, Number]{&br}, latterView[Hash, Number]{&br}
 }

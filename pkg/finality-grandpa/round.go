@@ -663,7 +663,7 @@ func (r *Round[ID, H, N, S]) Voters() VoterSet[ID] {
 
 // Return the primary voter of the round.
 func (r *Round[ID, H, N, S]) PrimaryVoter() (ID, VoterInfo) {
-	idVoterInfo := r.context.Voters().NthMod(uint(r.number))
+	idVoterInfo := r.context.Voters().nthMod(uint(r.number))
 	return idVoterInfo.ID, idVoterInfo.VoterInfo
 }
 

@@ -57,7 +57,7 @@ type environment struct {
 
 func newEnvironment(network *Network, localID ID) environment {
 	return environment{
-		chain:   NewDummyChain(),
+		chain:   newDummyChain(),
 		localID: localID,
 		network: network,
 	}
@@ -123,7 +123,7 @@ func (e *environment) RoundCommitTimer() Timer {
 
 func (e *environment) Completed(
 	round uint64,
-	state RoundState[string, uint32],
+	_ RoundState[string, uint32],
 	_ HashNumber[string, uint32],
 	_ HistoricalVotes[string, uint32, Signature, ID],
 ) error {
@@ -172,19 +172,19 @@ func (e *environment) FinalizeBlock(
 	return nil
 }
 
-func (e *environment) Proposed(_ uint64, _ PrimaryPropose[string, uint32]) error {
+func (*environment) Proposed(_ uint64, _ PrimaryPropose[string, uint32]) error {
 	return nil
 }
 
-func (e *environment) Prevoted(_ uint64, _ Prevote[string, uint32]) error {
+func (*environment) Prevoted(_ uint64, _ Prevote[string, uint32]) error {
 	return nil
 }
 
-func (e *environment) Precommitted(_ uint64, _ Precommit[string, uint32]) error {
+func (*environment) Precommitted(_ uint64, _ Precommit[string, uint32]) error {
 	return nil
 }
 
-func (e *environment) PrevoteEquivocation(
+func (*environment) PrevoteEquivocation(
 	round uint64,
 	equivocation Equivocation[ID, Prevote[string, uint32], Signature],
 ) {
@@ -192,7 +192,7 @@ func (e *environment) PrevoteEquivocation(
 }
 
 // Note that an equivocation in prevotes has occurred.
-func (e *environment) PrecommitEquivocation(
+func (*environment) PrecommitEquivocation(
 	round uint64,
 	equivocation Equivocation[ID, Precommit[string, uint32], Signature],
 ) {

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (p Phase) Generate(rand *rand.Rand, _ int) reflect.Value {
+func (Phase) Generate(rand *rand.Rand, _ int) reflect.Value {
 	index := rand.Intn(2)
 	return reflect.ValueOf([]Phase{PrevotePhase, PrecommitPhase}[index])
 }
@@ -23,7 +23,7 @@ func (c Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 	n := rand.Int() % len(vs.voters)
 	equivocators := make([]VoterInfo, n+1)
 	for i := 0; i <= n; i++ {
-		ivi := vs.NthMod(uint(rand.Uint64()))
+		ivi := vs.nthMod(uint(rand.Uint64()))
 		equivocators[i] = ivi.VoterInfo
 	}
 
@@ -38,7 +38,7 @@ func (c Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 
 func TestVote_voter(t *testing.T) {
 	f := func(vs VoterSet[uint], phase Phase) bool {
-		for _, idv := range vs.Iter() {
+		for _, idv := range vs.iter() {
 			id := idv.ID
 			v := idv.VoterInfo
 			eq := assert.Equal(t, &idVoterInfo[uint]{id, v}, NewVote[uint](v, phase).voter(vs))
@@ -69,7 +69,7 @@ func TestWeights(t *testing.T) {
 		n := VoteNode[uint]{}
 		expected := ew
 		for _, v := range voters {
-			idvi := ctx.voters.NthMod(v)
+			idvi := ctx.voters.nthMod(v)
 			vote := NewVote[uint](idvi.VoterInfo, phase)
 
 			// We only expect the weight to increase if the voter did not

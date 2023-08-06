@@ -18,7 +18,7 @@ func NewBitfield() Bitfield {
 }
 
 // Whether the bitfield is blank / empty.
-func (b Bitfield) IsBlank() bool {
+func (b *Bitfield) IsBlank() bool {
 	return len(b.bits) == 0
 }
 
@@ -57,17 +57,17 @@ func (b *Bitfield) SetBit(position uint) {
 // Get an iterator over all bits that are set (i.e. 1) in the bitfield,
 // starting at bit position `start` and moving in steps of size `2^step`
 // per word.
-func (b Bitfield) iter1s(start, step uint) (bit1s []Bit1) {
+func (b *Bitfield) iter1s(start, step uint) (bit1s []Bit1) {
 	return iter1s(b.bits, start, step)
 }
 
 // Get an iterator over all bits that are set (i.e. 1) at even bit positions.
-func (b Bitfield) Iter1sEven() []Bit1 {
+func (b *Bitfield) Iter1sEven() []Bit1 {
 	return b.iter1s(0, 1)
 }
 
 // Get an iterator over all bits that are set (i.e. 1) at odd bit positions.
-func (b Bitfield) Iter1sOdd() []Bit1 {
+func (b *Bitfield) Iter1sOdd() []Bit1 {
 	return b.iter1s(1, 1)
 }
 
@@ -75,7 +75,7 @@ func (b Bitfield) Iter1sOdd() []Bit1 {
 // this bitfield with another bitfield, without modifying either
 // bitfield, starting at bit position `start` and moving in steps
 // of size `2^step` per word.
-func (b Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 {
+func (b *Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 {
 	switch {
 	case len(b.bits) == len(other.bits):
 		zipped := make([]uint64, len(b.bits))
@@ -112,14 +112,14 @@ func (b Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 {
 // Get an iterator over all bits that are set (i.e. 1) at even bit positions
 // when merging this bitfield with another bitfield, without modifying
 // either bitfield.
-func (b Bitfield) Iter1sMergedEven(other Bitfield) []Bit1 {
+func (b *Bitfield) Iter1sMergedEven(other Bitfield) []Bit1 {
 	return b.iter1sMerged(other, 0, 1)
 }
 
 // Get an iterator over all bits that are set (i.e. 1) at odd bit positions
 // when merging this bitfield with another bitfield, without modifying
 // either bitfield.
-func (b Bitfield) Iter1sMergedOdd(other Bitfield) []Bit1 {
+func (b *Bitfield) Iter1sMergedOdd(other Bitfield) []Bit1 {
 	return b.iter1sMerged(other, 1, 1)
 }
 
