@@ -517,7 +517,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	lastFinalizedNumber := lastFinalized.Number
 
 	pastRounds := NewPastRounds[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]()
-	_, lastRoundState := BridgeState(NewRoundState(lastRoundBase))
+	_, lastRoundState := bridgeState(NewRoundState(lastRoundBase))
 
 	if lastRoundNumber > 0 {
 		maybeCompletedLastRound := instantiateLastRound(

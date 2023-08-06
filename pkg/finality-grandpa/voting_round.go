@@ -357,7 +357,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan fi
 // call this when we build on top of a given round in order to get a handle
 // to updates to the latest round-state.
 func (vr *VotingRound[Hash, Number, Signature, ID, E]) BridgeState() *latterView[Hash, Number] {
-	priorView, latterView := BridgeState(vr.votes.State())
+	priorView, latterView := bridgeState(vr.votes.State())
 	if vr.bridgedRoundState != nil {
 		// TODO:
 		// warn!(target: "afg", "Bridged state from round {} more than once.",
