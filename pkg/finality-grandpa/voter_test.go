@@ -671,7 +671,7 @@ waitForPrevote:
 	assert.NoError(t, err)
 }
 
-func TestBuffered(t *testing.T) {
+func TestBuffered(_ *testing.T) {
 	in := make(chan int32)
 	buffered := newBuffered(in)
 

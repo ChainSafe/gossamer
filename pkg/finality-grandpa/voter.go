@@ -776,10 +776,7 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *Waker) (boo
 		var precomitted bool
 		state := v.inner.bestRound.State()
 		if state != nil {
-			switch v.inner.bestRound.State().(type) {
-			case Precommitted:
-				precomitted = true
-			}
+			_, precomitted = v.inner.bestRound.State().(Precommitted)
 		}
 
 		shouldStartNext = completable && precomitted

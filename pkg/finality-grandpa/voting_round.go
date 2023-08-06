@@ -23,9 +23,11 @@ type Prevoted[T any] [1]T
 
 type Precommitted struct{}
 
-type State[T, W any] interface {
+type States[T, W any] interface {
 	Start[T] | Proposed[T] | Prevoting[T, W] | Prevoted[T] | Precommitted
 }
+
+type State any
 
 type hashBestChain[Hash comparable, Number constraints.Unsigned] struct {
 	Hash      Hash
@@ -69,9 +71,9 @@ type VotingRound[
 	votes             *Round[ID, Hash, Number, Signature]
 	incoming          *wakerChan[SignedMessageError[Hash, Number, Signature, ID]]
 	outgoing          *Buffered[Message[Hash, Number]]
-	state             any
-	bridgedRoundState *PriorView[Hash, Number]
-	lastRoundState    *LatterView[Hash, Number]
+	state             State
+	bridgedRoundState *priorView[Hash, Number]
+	lastRoundState    *latterView[Hash, Number]
 	primaryBlock      *HashNumber[Hash, Number]
 	finalizedSender   chan finalizedNotification[Hash, Number, Signature, ID]
 	bestFinalized     *Commit[Hash, Number, Signature, ID]
@@ -83,7 +85,7 @@ func NewVotingRound[
 	E Environment[Hash, Number, Signature, ID],
 ](
 	roundNumber uint64, voters VoterSet[ID], base HashNumber[Hash, Number],
-	lastRoundState *LatterView[Hash, Number],
+	lastRoundState *latterView[Hash, Number],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID], env E,
 ) VotingRound[Hash, Number, Signature, ID, E] {
 	outgoing := make(chan Message[Hash, Number])
@@ -129,7 +131,7 @@ func NewVotingRoundCompleted[
 ](
 	votes *Round[ID, Hash, Number, Signature],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID],
-	lastRoundState *LatterView[Hash, Number],
+	lastRoundState *latterView[Hash, Number],
 	env E,
 ) VotingRound[Hash, Number, Signature, ID, E] {
 	outgoing := make(chan Message[Hash, Number])
@@ -354,7 +356,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan fi
 
 // call this when we build on top of a given round in order to get a handle
 // to updates to the latest round-state.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) BridgeState() *LatterView[Hash, Number] {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) BridgeState() *latterView[Hash, Number] {
 	priorView, latterView := BridgeState(vr.votes.State())
 	if vr.bridgedRoundState != nil {
 		// TODO:
@@ -498,7 +500,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 			lastRoundEstimate := maybeEstimate
 			maybeFinalized := lastRoundState.Finalized
 
-			var shouldSendPrimary bool = true
+			var shouldSendPrimary = true
 			if maybeFinalized != nil {
 				shouldSendPrimary = lastRoundEstimate.Number > maybeFinalized.Number
 			}

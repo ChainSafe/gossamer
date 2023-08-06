@@ -118,7 +118,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 }
 
 func TestRound_EstimateIsValid(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	chain.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	chain.PushBlocks("F", []string{"FA", "FB", "FC"})
@@ -148,7 +148,7 @@ func TestRound_EstimateIsValid(t *testing.T) {
 }
 
 func TestRound_Finalisation(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	chain.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	chain.PushBlocks("F", []string{"FA", "FB", "FC"})
@@ -195,7 +195,7 @@ func TestRound_Finalisation(t *testing.T) {
 }
 
 func TestRound_EquivocateDoesNotDoubleCount(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	chain.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	chain.PushBlocks("F", []string{"FA", "FB", "FC"})
@@ -239,7 +239,7 @@ func TestRound_EquivocateDoesNotDoubleCount(t *testing.T) {
 }
 
 func TestRound_HistoricalVotesWorks(t *testing.T) {
-	chain := NewDummyChain()
+	chain := newDummyChain()
 	chain.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	chain.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	chain.PushBlocks("F", []string{"FA", "FB", "FC"})

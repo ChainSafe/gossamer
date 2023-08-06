@@ -39,7 +39,7 @@ func newUintVoteNode() *uintVoteNode {
 }
 
 func TestVoteGraph_GraphForkNotAtNode(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
@@ -70,7 +70,7 @@ func TestVoteGraph_GraphForkNotAtNode(t *testing.T) {
 }
 
 func TestVoteGraph_GraphForkNotAtNode1(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
@@ -101,7 +101,7 @@ func TestVoteGraph_GraphForkNotAtNode1(t *testing.T) {
 }
 
 func TestVoteGraph_GraphForkAtNode(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
@@ -161,7 +161,7 @@ func TestVoteGraph_GraphForkAtNode(t *testing.T) {
 }
 
 func TestVoteGraph_GhostMergeAtNode(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
@@ -181,7 +181,7 @@ func TestVoteGraph_GhostMergeAtNode(t *testing.T) {
 }
 
 func TestVoteGraph_GhostMergeNoteAtNodeOneSideWeighted(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	c.PushBlocks("F", []string{"G1", "H1", "I1"})
 	c.PushBlocks("F", []string{"G2", "H2", "I2"})
@@ -202,7 +202,7 @@ func TestVoteGraph_GhostMergeNoteAtNodeOneSideWeighted(t *testing.T) {
 }
 
 func TestVoteGraph_GhostIntroduceBranch(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	c.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	c.PushBlocks("F", []string{"FA", "FB", "FC"})
@@ -236,7 +236,7 @@ func TestVoteGraph_GhostIntroduceBranch(t *testing.T) {
 }
 
 func TestVoteGraph_WalkBackFromBlockInEdgeForkBelow(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 	c.PushBlocks("C", []string{"D1", "E1", "F1", "G1", "H1", "I1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2", "G2", "H2", "I2"})
@@ -255,7 +255,7 @@ func TestVoteGraph_WalkBackFromBlockInEdgeForkBelow(t *testing.T) {
 }
 
 func TestVoteGraph_WalkBackFromForkBlockNodeBelow(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C", "D"})
 	c.PushBlocks("D", []string{"E1", "F1", "G1", "H1", "I1"})
 	c.PushBlocks("D", []string{"E2", "F2", "G2", "H2", "I2"})
@@ -276,7 +276,7 @@ func TestVoteGraph_WalkBackFromForkBlockNodeBelow(t *testing.T) {
 }
 
 func TestVoteGraph_WalkBackAtNode(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C"})
 	c.PushBlocks("C", []string{"D1", "E1", "F1", "G1", "H1", "I1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
@@ -296,7 +296,7 @@ func TestVoteGraph_WalkBackAtNode(t *testing.T) {
 }
 
 func TestVoteGraph_AdjustBase(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E", "F"})
 	c.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	c.PushBlocks("F", []string{"FA", "FB", "FC"})
@@ -330,7 +330,7 @@ func TestVoteGraph_AdjustBase(t *testing.T) {
 }
 
 func TestVoteGraph_FindAncestorIsLargest(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{"A"})
 	c.PushBlocks(GenesisHash, []string{"B"})
 	c.PushBlocks("A", []string{"A1"})

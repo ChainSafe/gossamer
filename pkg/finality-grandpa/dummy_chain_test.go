@@ -30,7 +30,7 @@ type dummyChain struct {
 	}
 }
 
-func NewDummyChain() *dummyChain {
+func newDummyChain() *dummyChain {
 	dc := &dummyChain{
 		inner:  make(map[string]blockRecord),
 		leaves: make([]blockRecord, 0),
@@ -171,7 +171,7 @@ func (dc *dummyChain) BestChainContaining(base string) *HashNumber[string, uint3
 }
 
 func TestDummyGraphPushBlocks(t *testing.T) {
-	c := NewDummyChain()
+	c := newDummyChain()
 	c.PushBlocks(GenesisHash, []string{
 		"A", "B", "C",
 	})
