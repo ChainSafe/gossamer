@@ -342,7 +342,7 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) findContainingNodes(hash Hash
 
 // a subchain of blocks by hash.
 type SubChain[Hash comparable, Number constraints.Unsigned] struct {
-	hashes     []Hash //forward order
+	hashes     []Hash // forward order
 	bestNumber Number
 }
 

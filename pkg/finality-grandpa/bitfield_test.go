@@ -14,7 +14,7 @@ import (
 )
 
 // Generate is used by testing/quick to genereate
-func (b Bitfield) Generate(rand *rand.Rand, size int) reflect.Value {
+func (b *Bitfield) Generate(rand *rand.Rand, size int) reflect.Value {
 	n := rand.Int() % size
 	b.bits = make([]uint64, n)
 	for i := range b.bits {
@@ -31,7 +31,7 @@ func (b Bitfield) Generate(rand *rand.Rand, size int) reflect.Value {
 }
 
 // Test if the bit at the specified position is set.
-func (b Bitfield) testBit(position uint) bool {
+func (b *Bitfield) testBit(position uint) bool {
 	wordOff := position / 64
 	if wordOff >= uint(len(b.bits)) {
 		return false

@@ -17,7 +17,7 @@ func (Phase) Generate(rand *rand.Rand, _ int) reflect.Value {
 	return reflect.ValueOf([]Phase{PrevotePhase, PrecommitPhase}[index])
 }
 
-func (c Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
+func (Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 	vs := VoterSet[ID]{}.Generate(rand, size).Interface().(VoterSet[ID])
 
 	n := rand.Int() % len(vs.voters)
@@ -27,7 +27,7 @@ func (c Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 		equivocators[i] = ivi.VoterInfo
 	}
 
-	c = Context[ID]{
+	c := Context[ID]{
 		voters: vs,
 	}
 	for _, v := range equivocators {

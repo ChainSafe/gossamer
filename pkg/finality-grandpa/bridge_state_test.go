@@ -12,7 +12,7 @@ import (
 func TestBridgeState(_ *testing.T) {
 	initial := RoundState[string, int32]{}
 
-	prior, latter := BridgeState(initial)
+	prior, latter := bridgeState(initial)
 
 	barrier := make(chan any)
 	var wg sync.WaitGroup

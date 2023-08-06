@@ -115,7 +115,7 @@ func (e *environment) RoundData(
 	return rd
 }
 
-func (e *environment) RoundCommitTimer() Timer {
+func (*environment) RoundCommitTimer() Timer {
 	inner := time.NewTimer(time.Duration(rand.Int63n(1000)) * time.Millisecond).C
 	timer := newTimer(inner)
 	return timer
