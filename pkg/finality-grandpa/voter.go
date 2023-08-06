@@ -14,7 +14,7 @@ import (
 type wakerChan[Item any] struct {
 	in    chan Item
 	out   chan Item
-	waker *Waker
+	waker *waker
 }
 
 func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
@@ -36,7 +36,7 @@ func (wc *wakerChan[Item]) start() {
 	}
 }
 
-func (wc *wakerChan[Item]) SetWaker(waker *Waker) {
+func (wc *wakerChan[Item]) SetWaker(waker *waker) {
 	wc.waker = waker
 }
 
@@ -46,7 +46,7 @@ func (wc *wakerChan[Item]) Chan() chan Item {
 }
 
 type Timer interface {
-	SetWaker(waker *Waker)
+	SetWaker(waker *waker)
 	Elapsed() (bool, error)
 }
 
@@ -216,11 +216,11 @@ func (b *Buffered[I]) Push(item I) {
 	b.buffer = append(b.buffer, item)
 }
 
-func (b *Buffered[I]) Poll(waker *Waker) (bool, error) {
+func (b *Buffered[I]) Poll(waker *waker) (bool, error) {
 	return b.flush(waker)
 }
 
-func (b *Buffered[I]) flush(waker *Waker) (bool, error) {
+func (b *Buffered[I]) flush(waker *waker) (bool, error) {
 	if b.inner == nil {
 		return false, fmt.Errorf("inner channel has been closed")
 	}
@@ -562,7 +562,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	}, globalOut
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *Waker) error {
+func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
 	v.inner.Lock()
 	defer v.inner.Unlock()
 
@@ -761,7 +761,7 @@ loop:
 }
 
 // process the logic of the best round.
-func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *Waker) (bool, error) {
+func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (bool, error) {
 	// If the current `best_round` is completable and we've already precommitted,
 	// we start a new round at `best_round + 1`.
 	{
@@ -842,7 +842,7 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) Start() error {
-	waker := NewWaker()
+	waker := newWaker()
 	for {
 		ready, err := v.poll(waker)
 		if err != nil {
@@ -866,7 +866,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	return nil
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) poll(waker *Waker) (bool, error) {
+func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) {
 	err := v.processIncoming()
 	if err != nil {
 		return true, err

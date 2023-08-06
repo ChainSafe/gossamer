@@ -17,12 +17,12 @@ func TestBridgeState(_ *testing.T) {
 	barrier := make(chan any)
 	var wg sync.WaitGroup
 
-	waker := &Waker{
+	waker := &waker{
 		wakeCh: make(chan any),
 	}
 
 	var waitForFinality = func() bool {
-		return latter.Get(waker).Finalized != nil
+		return latter.get(waker).Finalized != nil
 	}
 
 	wg.Add(2)
@@ -30,7 +30,7 @@ func TestBridgeState(_ *testing.T) {
 		defer wg.Done()
 		<-barrier
 		time.Sleep(5 * time.Millisecond)
-		prior.Update(RoundState[string, int32]{
+		prior.update(RoundState[string, int32]{
 			PrevoteGHOST: &HashNumber[string, int32]{"5", 5},
 			Finalized:    &HashNumber[string, int32]{"1", 1},
 			Estimate:     &HashNumber[string, int32]{"3", 3},
