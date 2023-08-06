@@ -14,7 +14,7 @@ import (
 )
 
 // Generate is used by testing/quick to genereate
-func (Bitfield) Generate(rand *rand.Rand, size int) reflect.Value {
+func (Bitfield) Generate(rand *rand.Rand, size int) reflect.Value { //skipcq: GO-W1029
 	n := rand.Int() % size
 	bits := make([]uint64, n)
 	for i := range bits {
