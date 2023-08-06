@@ -8,16 +8,14 @@ type Bitfield struct {
 	bits []uint64
 }
 
-// Create a new empty bitfield.
-//
-// Does not allocate.
+// NewBitfield creates a new empty bitfield.
 func NewBitfield() Bitfield {
 	return Bitfield{
 		bits: make([]uint64, 0),
 	}
 }
 
-// Whether the bitfield is blank / empty.
+// IsBlank returns Whether the bitfield is blank or empty.
 func (b *Bitfield) IsBlank() bool { //skipcq: GO-W1029
 	return len(b.bits) == 0
 }
@@ -39,7 +37,7 @@ func (b *Bitfield) Merge(other Bitfield) *Bitfield { //skipcq: GO-W1029
 	return b
 }
 
-// Set a bit in the bitfield at the specified position.
+// SetBit will set a bit in the bitfield at the specified position.
 //
 // If the bitfield is not large enough to accommodate for a bit set
 // at the specified position, it is resized accordingly.
@@ -54,24 +52,24 @@ func (b *Bitfield) SetBit(position uint) { //skipcq: GO-W1029
 	b.bits[wordOff] |= 1 << (63 - bitOff)
 }
 
-// Get an iterator over all bits that are set (i.e. 1) in the bitfield,
+// iter1s will get an iterator over all bits that are set (i.e. 1) in the bitfield,
 // starting at bit position `start` and moving in steps of size `2^step`
 // per word.
 func (b *Bitfield) iter1s(start, step uint) (bit1s []Bit1) { //skipcq: GO-W1029
 	return iter1s(b.bits, start, step)
 }
 
-// Get an iterator over all bits that are set (i.e. 1) at even bit positions.
+// Iter1sEven will get an iterator over all bits that are set (i.e. 1) at even bit positions.
 func (b *Bitfield) Iter1sEven() []Bit1 { //skipcq: GO-W1029
 	return b.iter1s(0, 1)
 }
 
-// Get an iterator over all bits that are set (i.e. 1) at odd bit positions.
+// Iter1sOdd will get an iterator over all bits that are set (i.e. 1) at odd bit positions.
 func (b *Bitfield) Iter1sOdd() []Bit1 { //skipcq: GO-W1029
 	return b.iter1s(1, 1)
 }
 
-// Get an iterator over all bits that are set (i.e. 1) when merging
+// iter1sMerged will get an iterator over all bits that are set (i.e. 1) when merging
 // this bitfield with another bitfield, without modifying either
 // bitfield, starting at bit position `start` and moving in steps
 // of size `2^step` per word.
@@ -109,14 +107,14 @@ func (b *Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 { //ski
 	}
 }
 
-// Get an iterator over all bits that are set (i.e. 1) at even bit positions
+// Iter1sMergedEven will get an iterator over all bits that are set (i.e. 1) at even bit positions
 // when merging this bitfield with another bitfield, without modifying
 // either bitfield.
 func (b *Bitfield) Iter1sMergedEven(other Bitfield) []Bit1 { //skipcq: GO-W1029
 	return b.iter1sMerged(other, 0, 1)
 }
 
-// Get an iterator over all bits that are set (i.e. 1) at odd bit positions
+// Iter1sMergedOdd will get an iterator over all bits that are set (i.e. 1) at odd bit positions
 // when merging this bitfield with another bitfield, without modifying
 // either bitfield.
 func (b *Bitfield) Iter1sMergedOdd(other Bitfield) []Bit1 { //skipcq: GO-W1029
