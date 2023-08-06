@@ -214,28 +214,28 @@ type CommitValidationResult struct {
 	numInvalidVoters        uint
 }
 
-// Returns `true` if the commit is valid, which implies that the target
+// Valid returns `true` if the commit is valid, which implies that the target
 // block in the commit is finalized.
 func (cvr CommitValidationResult) Valid() bool {
 	return cvr.valid
 }
 
-// Returns the number of precommits in the commit.
+// NumPrecommits returns the number of precommits in the commit.
 func (cvr CommitValidationResult) NumPrecommits() uint {
 	return cvr.numPrecommits
 }
 
-// Returns the number of duplicate precommits in the commit.
+// NumDuplicatedPrecommits returns the number of duplicate precommits in the commit.
 func (cvr CommitValidationResult) NumDuplicatedPrecommits() uint {
 	return cvr.numDuplicatedPrecommits
 }
 
-// Returns the number of equivocated precommits in the commit.
+// NumEquiovcations returns the number of equivocated precommits in the commit.
 func (cvr CommitValidationResult) NumEquiovcations() uint {
 	return cvr.numEquivocations
 }
 
-// Returns the number of invalid voters in the commit, i.e. votes from
+// NumInvalidVoters returns the number of invalid voters in the commit, i.e. votes from
 // identities that are not part of the voter set.
 func (cvr CommitValidationResult) NumInvalidVoters() uint {
 	return cvr.numInvalidVoters

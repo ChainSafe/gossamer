@@ -13,7 +13,7 @@ type Context[ID constraints.Ordered] struct {
 	equivocations Bitfield
 }
 
-// Create a new context for a round with the given set of voters.
+// NewContext will create a new context for a round with the given set of voters.
 func NewContext[ID constraints.Ordered](voters VoterSet[ID]) Context[ID] {
 	return Context[ID]{
 		voters:        voters,
@@ -21,12 +21,12 @@ func NewContext[ID constraints.Ordered](voters VoterSet[ID]) Context[ID] {
 	}
 }
 
-// Get the set of voters.
+// Voters will return the set of voters.
 func (c Context[ID]) Voters() VoterSet[ID] {
 	return c.voters
 }
 
-// Get the weight of observed equivocations in phase `p`.
+// EquivocationWeight returns the weight of observed equivocations in phase `p`.
 func (c Context[ID]) EquivocationWeight(p Phase) VoteWeight {
 	switch p {
 	case PrevotePhase:
@@ -38,12 +38,12 @@ func (c Context[ID]) EquivocationWeight(p Phase) VoteWeight {
 	}
 }
 
-// Record voter `v` as an equivocator in phase `p`.
+// Equivocated will record voter `v` as an equivocator in phase `p`.
 func (c *Context[ID]) Equivocated(v VoterInfo, p Phase) {
 	c.equivocations.SetBit(NewVote[ID](v, p).bit.Position)
 }
 
-// Compute the vote weight on node `n` in phase `p`, taking into account
+// Weight computes the vote weight on node `n` in phase `p`, taking into account
 // equivocations.
 func (c Context[ID]) Weight(n VoteNode[ID], p Phase) VoteWeight {
 	if c.equivocations.IsBlank() {
@@ -74,7 +74,7 @@ type Vote[ID constraints.Ordered] struct {
 	bit Bit1
 }
 
-// Create a new vote cast by voter `v` in phase `p`.
+// NewVote will create a new vote cast by voter `v` in phase `p`.
 func NewVote[ID constraints.Ordered](v VoterInfo, p Phase) Vote[ID] {
 	switch p {
 	case PrevotePhase:
