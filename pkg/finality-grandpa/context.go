@@ -101,7 +101,7 @@ func (v Vote[ID]) voter(vs VoterSet[ID]) *idVoterInfo[ID] {
 	return vs.nth(v.bit.Position / 2)
 }
 
-func weight[ID constraints.Ordered](bits []Bit1, voters VoterSet[ID]) (total VoteWeight) {
+func weight[ID constraints.Ordered](bits []Bit1, voters VoterSet[ID]) (total VoteWeight) { //skipcq: RVV-B0001
 	for _, bit := range bits {
 		vote := Vote[ID]{bit}
 		ivi := vote.voter(voters)

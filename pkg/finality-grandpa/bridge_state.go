@@ -68,7 +68,7 @@ type priorView[Hash, Number any] struct {
 }
 
 // Push an update to the latter view.
-func (pv *priorView[H, N]) update(new RoundState[H, N]) {
+func (pv *priorView[H, N]) update(new RoundState[H, N]) { //skipcq: RVV-B0001
 	pv.bridged.update(new)
 }
 
@@ -78,7 +78,7 @@ type latterView[Hash, Number any] struct {
 }
 
 // // Fetch a handle to the last round-state.
-func (lv *latterView[H, N]) get(waker *waker) (state RoundState[H, N]) {
+func (lv *latterView[H, N]) get(waker *waker) (state RoundState[H, N]) { //skipcq: RVV-B0001
 	return lv.bridged.get(waker)
 }
 

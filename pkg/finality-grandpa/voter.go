@@ -316,7 +316,7 @@ type innerVoterState[
 	E Environment[Hash, Number, Signature, ID],
 ] struct {
 	bestRound  VotingRound[Hash, Number, Signature, ID, E]
-	pastRounds PastRounds[Hash, Number, Signature, ID, E]
+	pastRounds pastRounds[Hash, Number, Signature, ID, E]
 	sync.Mutex
 }
 
@@ -516,7 +516,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	finalizedNotifications := finalizedSender
 	lastFinalizedNumber := lastFinalized.Number
 
-	pastRounds := NewPastRounds[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]()
+	pastRounds := newPastRounds[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]()
 	_, lastRoundState := bridgeState(NewRoundState(lastRoundBase))
 
 	if lastRoundNumber > 0 {
@@ -841,7 +841,7 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 	return false
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) Start() error {
+func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
 	waker := newWaker()
 	for {
 		ready, err := v.poll(waker)
@@ -866,7 +866,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	return nil
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) {
+func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) { //skipcq: RVV-B0001
 	err := v.processIncoming()
 	if err != nil {
 		return true, err

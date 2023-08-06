@@ -166,7 +166,7 @@ func (vi VoterInfo) Weight() VoterWeight {
 }
 
 // Compute the threshold weight given the total voting weight.
-func threshold(totalWeight VoterWeight) VoterWeight {
+func threshold(totalWeight VoterWeight) VoterWeight { //skipcq: RVV-B0001
 	// TODO: implement saturating sub
 	// let faulty = total_weight.get().saturating_sub(1) / 3;
 	var faulty = (totalWeight - 1) / 3
