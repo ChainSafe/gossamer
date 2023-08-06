@@ -690,7 +690,7 @@ func TestBuffered(_ *testing.T) {
 	go func() {
 		defer wg.Done()
 		for run {
-			buffered.flush(NewWaker())
+			buffered.flush(newWaker())
 			time.Sleep(1 * time.Millisecond)
 		}
 	}()

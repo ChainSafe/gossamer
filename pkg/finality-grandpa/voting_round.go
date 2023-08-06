@@ -153,7 +153,7 @@ func NewVotingRoundCompleted[
 
 // Poll the round. When the round is completable and messages have been flushed, it will return `Poll::Ready` but
 // can continue to be polled.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (bool, error) {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) {
 	fmt.Printf(
 		"Polling round %d, state = %+v, step = %T\n",
 		vr.votes.Number(),
@@ -172,7 +172,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (bool,
 	// check whether the voter is lagging behind the current round.
 	var lastRoundState *RoundState[Hash, Number]
 	if vr.lastRoundState != nil {
-		lrr := vr.lastRoundState.Get(waker)
+		lrr := vr.lastRoundState.get(waker)
 		lastRoundState = &lrr
 	}
 	if lastRoundState != nil {
@@ -441,7 +441,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) logParticipation(level an
 		level, number, precommitWeight, threshold, totalWeight, nPrecommits, nVoters)
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *Waker) error {
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *waker) error {
 	vr.incoming.SetWaker(waker)
 	var (
 		msgCount  = 0
@@ -537,11 +537,11 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
 	state := vr.state
 	vr.state = nil
 
-	var startPrevoting = func(prevoteTimer Timer, precommitTimer Timer, proposed bool, waker *Waker) error {
+	var startPrevoting = func(prevoteTimer Timer, precommitTimer Timer, proposed bool, waker *waker) error {
 		prevoteTimer.SetWaker(waker)
 		var shouldPrevote bool
 		elapsed, err := prevoteTimer.Elapsed()
@@ -581,7 +581,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, las
 		return nil
 	}
 
-	var finishPrevoting = func(precommitTimer Timer, base Hash, bestChain BestChain[Hash, Number], waker *Waker) error {
+	var finishPrevoting = func(precommitTimer Timer, base Hash, bestChain BestChain[Hash, Number], waker *waker) error {
 		wakerChan := newWakerChan(bestChain)
 		wakerChan.SetWaker(waker)
 		var best *HashNumber[Hash, Number]
@@ -633,11 +633,11 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, las
 	}
 	switch state := state.(type) {
 	case Start[Timer]:
-		return startPrevoting(state[0], state[1], false, waker)
+		return startPrevoting(state[0], state[1], false, w)
 	case Proposed[Timer]:
-		return startPrevoting(state[0], state[1], true, waker)
+		return startPrevoting(state[0], state[1], true, w)
 	case Prevoting[Timer, hashBestChain[Hash, Number]]:
-		return finishPrevoting(state.T, state.W.Hash, state.W.BestChain, waker)
+		return finishPrevoting(state.T, state.W.Hash, state.W.BestChain, w)
 	default:
 		vr.state = state
 	}
@@ -645,7 +645,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(waker *Waker, las
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *Waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
+func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
 	state := vr.state
 	vr.state = nil
 	if state == nil {
@@ -805,7 +805,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) notify(
 	// so no need for deep value comparison.
 	if lastState != newState {
 		if vr.bridgedRoundState != nil {
-			vr.bridgedRoundState.Update(newState)
+			vr.bridgedRoundState.update(newState)
 		}
 	}
 

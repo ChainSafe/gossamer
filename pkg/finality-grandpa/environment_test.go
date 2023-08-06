@@ -32,7 +32,7 @@ func newTimer(in <-chan time.Time) *timer {
 	return &t
 }
 
-func (t *timer) SetWaker(waker *Waker) {
+func (t *timer) SetWaker(waker *waker) {
 	t.wakerChan.SetWaker(waker)
 }
 

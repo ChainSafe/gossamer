@@ -21,7 +21,7 @@ type backgroundRound[
 	finalizedNumber Number
 	roundCommitter  *roundCommitter[Hash, Number, Signature, ID, E]
 
-	waker *Waker
+	waker *waker
 }
 
 func (br *backgroundRound[Hash, Number, Signature, ID, E]) roundNumber() uint64 {
@@ -107,7 +107,7 @@ type backgroundRoundChanges[Hash, Number, Signature, ID any] interface {
 	concluded | committed[Hash, Number, Signature, ID]
 }
 
-func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *Waker) (
+func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (
 	bool,
 	backgroundRoundChange[Hash, Number, Signature, ID],
 	error,
@@ -195,7 +195,7 @@ func (rc *roundCommitter[Hash, Number, Signature, ID, E]) importCommit(
 }
 
 func (rc *roundCommitter[Hash, Number, Signature, ID, E]) commit(
-	waker *Waker,
+	waker *waker,
 	votingRound VotingRound[Hash, Number, Signature, ID, E],
 ) (bool, *Commit[Hash, Number, Signature, ID], error) {
 	rc.importCommits.SetWaker(waker)
@@ -316,7 +316,7 @@ type numberCommit[Hash, Number, Signature, ID any] struct {
 	Commit Commit[Hash, Number, Signature, ID]
 }
 
-func (p *PastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *Waker) (
+func (p *PastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 	ready bool,
 	nc *numberCommit[Hash, Number, Signature, ID],
 	err error,
