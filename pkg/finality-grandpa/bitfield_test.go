@@ -14,20 +14,22 @@ import (
 )
 
 // Generate is used by testing/quick to genereate
-func (b *Bitfield) Generate(rand *rand.Rand, size int) reflect.Value {
+func (Bitfield) Generate(rand *rand.Rand, size int) reflect.Value {
 	n := rand.Int() % size
-	b.bits = make([]uint64, n)
-	for i := range b.bits {
-		b.bits[i] = rand.Uint64()
+	bits := make([]uint64, n)
+	for i := range bits {
+		bits[i] = rand.Uint64()
 	}
 
 	// we need to make sure we don't add empty words at the end of the
 	// bitfield otherwise it would break equality on some of the tests
 	// below.
-	for len(b.bits) > 0 && b.bits[len(b.bits)-1] == 0 {
-		b.bits = b.bits[:len(b.bits)-2]
+	for len(bits) > 0 && bits[len(bits)-1] == 0 {
+		bits = bits[:len(bits)-2]
 	}
-	return reflect.ValueOf(b)
+	return reflect.ValueOf(Bitfield{
+		bits: bits,
+	})
 }
 
 // Test if the bit at the specified position is set.
