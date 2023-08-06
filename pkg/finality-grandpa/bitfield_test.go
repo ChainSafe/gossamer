@@ -33,7 +33,7 @@ func (Bitfield) Generate(rand *rand.Rand, size int) reflect.Value { //skipcq: GO
 }
 
 // Test if the bit at the specified position is set.
-func (b *Bitfield) testBit(position uint) bool {
+func (b *Bitfield) testBit(position uint) bool { //skipcq: GO-W1029
 	wordOff := position / 64
 	if wordOff >= uint(len(b.bits)) {
 		return false
