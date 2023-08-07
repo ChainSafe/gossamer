@@ -1167,8 +1167,6 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 			return nil
 		}).Times(3)
 
-	fmt.Printf("BAD BLOCK HASH: %s\n", fakeBadBlockHash)
-
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadBlockAnnouncementValue,
 		Reason: peerset.BadBlockAnnouncementReason,

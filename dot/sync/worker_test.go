@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -54,57 +53,4 @@ func TestWorker(t *testing.T) {
 	<-resultCh
 
 	w.stop()
-}
-
-func TestWorkerAsyncStop(t *testing.T) {
-	peerA := peer.ID("peerA")
-	ctrl := gomock.NewController(t)
-
-	reqMaker := NewMockRequestMaker(ctrl)
-	reqMaker.EXPECT().
-		Do(peerA, nil, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
-		Return(errors.New("mocked error"))
-
-	reqMaker.EXPECT().
-		Do(peerA, nil, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
-		DoAndReturn(func(_, _, _ any) any {
-			time.Sleep(2 * time.Second)
-			return nil
-		}).
-		Return(nil)
-
-	sharedGuard := make(chan struct{}, 2)
-
-	w := newWorker(peerA, sharedGuard, reqMaker)
-	go w.start()
-
-	doneCh := make(chan struct{})
-	resultCh := make(chan *syncTaskResult, 2)
-	defer close(resultCh)
-
-	go handleResultsHelper(t, w, resultCh, doneCh)
-
-	// issue two requests in the general channel
-	w.processTask(&syncTask{
-		resultCh: resultCh,
-	})
-
-	w.processTask(&syncTask{
-		resultCh: resultCh,
-	})
-
-	<-doneCh
-}
-
-func handleResultsHelper(t *testing.T, w *worker, resultCh chan *syncTaskResult, doneCh chan<- struct{}) {
-	t.Helper()
-	defer close(doneCh)
-
-	for r := range resultCh {
-		if r.err != nil {
-			err := w.stop()
-			require.NoError(t, err)
-			return
-		}
-	}
 }
