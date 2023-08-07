@@ -2,7 +2,10 @@ package rx
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/parachain/network/bridge"
+	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
@@ -41,20 +44,119 @@ type TestHarness struct {
 
 type TestHarnessFn func(*TestHarness) VirtualOverseer
 
-func testHarness(oracle *Oracle, testFunc TestHarnessFn) {
+func newTestNetwork(t *testing.T) parachain.PNetwork {
+	t.Helper()
+	//ctrl := gomock.NewController(t)
+	mockNetwork, err := parachain.NewService(nil, "", common.Hash{})
+	require.NoError(t, err)
+	//mockNetwork := parachain.NewMockPNetwork(ctrl)
+	//if cfg == nil {
+	cfg := &network.Config{
+		BasePath:    t.TempDir(),
+		Port:        7500,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		//LogLvl:       log.Warn,
+		SlotDuration: time.Second,
+	}
+	//}
+
+	if cfg.BlockState == nil {
+		//header := &types.Header{
+		//	ParentHash:     common.Hash{},
+		//	Number:         1,
+		//	StateRoot:      common.Hash{},
+		//	ExtrinsicsRoot: common.Hash{},
+		//	Digest:         types.NewDigest(),
+		//}
+		//
+		//blockstate := NewMockBlockState(ctrl)
+		//
+		//blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
+		//blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
+		//blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
+		//
+		//cfg.BlockState = blockstate
+	}
+
+	if cfg.TransactionHandler == nil {
+		//th := NewMockTransactionHandler(ctrl)
+		//th.EXPECT().
+		//	HandleTransactionMessage(
+		//		gomock.AssignableToTypeOf(peer.ID("")),
+		//		gomock.Any()).
+		//	Return(true, nil).AnyTimes()
+		//
+		//th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+		//cfg.TransactionHandler = th
+	}
+
+	cfg.SlotDuration = time.Second
+	//cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
+
+	if cfg.LogLvl == 0 {
+		cfg.LogLvl = 4
+	}
+
+	if cfg.Syncer == nil {
+		//syncer := NewMockSyncer(ctrl)
+		//syncer.EXPECT().
+		//	HandleBlockAnnounceHandshake(
+		//		gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+		//	Return(nil).AnyTimes()
+		//
+		//syncer.EXPECT().
+		//	HandleBlockAnnounce(
+		//		gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+		//	Return(nil).AnyTimes()
+		//
+		//syncer.EXPECT().
+		//	CreateBlockResponse(gomock.Any()).
+		//	Return(newTestBlockResponseMessage(t), nil).AnyTimes()
+		//
+		//syncer.EXPECT().IsSynced().Return(false).AnyTimes()
+		//cfg.Syncer = syncer
+	}
+
+	if cfg.Telemetry == nil {
+		//telemetryMock := NewMockTelemetry(ctrl)
+		//telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+		//cfg.Telemetry = telemetryMock
+	}
+
+	srvc, err := network.NewService(cfg)
+	require.NoError(t, err)
+
+	//srvc.noDiscover = true
+
+	err = srvc.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		err := srvc.Stop()
+		require.NoError(t, err)
+	})
+
+	return mockNetwork
+}
+
+func testHarness(t *testing.T, oracle *Oracle, testFunc TestHarnessFn) {
 	var wg sync.WaitGroup
 	wg.Add(1)
+	network := newTestNetwork(t)
 	shared := bridge.Shared{
 		SharedInner: bridge.SharedInner{},
 	}
+
 	testFunc(&TestHarness{
 		networkHandle:   NetworkHandle{},
 		virtualOverseer: VirtualOverseer{},
 		shared:          shared,
 	})
 	bridge := NetworkBridgeRx{
-		SyncOracle: oracle,
-		Shared:     &shared,
+		networkService: network,
+		SyncOracle:     oracle,
+		Shared:         &shared,
 	}
 
 	go func() {
@@ -68,7 +170,7 @@ func testHarness(oracle *Oracle, testFunc TestHarnessFn) {
 func TestSendOurViewUponConnection(t *testing.T) {
 	oracle, handle := makeSyncOracle()
 
-	testHarness(oracle, func(testHarness *TestHarness) VirtualOverseer {
+	testHarness(t, oracle, func(testHarness *TestHarness) VirtualOverseer {
 		networkHandle := testHarness.networkHandle
 		virtualOverseer := testHarness.virtualOverseer
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/parachain/network/bridge"
 	"github.com/libp2p/go-libp2p/core"
 	"time"
@@ -42,8 +43,9 @@ type NetworkAction struct {
 type Oracle struct{}
 
 type NetworkBridgeRx struct {
-	SyncOracle *Oracle
-	Shared     *bridge.Shared
+	networkService parachain.PNetwork
+	SyncOracle     *Oracle
+	Shared         *bridge.Shared
 }
 
 func runNetworkIn(bridge NetworkBridgeRx) {

@@ -19,10 +19,10 @@ const (
 )
 
 type Service struct {
-	Network Network
+	Network PNetwork
 }
 
-func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
+func NewService(net PNetwork, forkID string, genesisHash common.Hash) (*Service, error) {
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
@@ -126,7 +126,7 @@ func (s Service) run() {
 }
 
 // Network is the interface required by parachain service for the network
-type Network interface {
+type PNetwork interface {
 	GossipMessage(msg network.NotificationsMessage)
 	SendMessage(to peer.ID, msg network.NotificationsMessage) error
 	RegisterNotificationsProtocol(sub protocol.ID,
