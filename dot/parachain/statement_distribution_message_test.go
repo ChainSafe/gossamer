@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
