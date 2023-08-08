@@ -46,8 +46,8 @@ git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGy
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIoKjsnZuH8vjyaysT/ses3EvZeaV/1UkF2M=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ChainSafe/chaindb v0.1.5 h1:aoji9HJxZlaG0J+OZUbjbf3Jrf1iij7qAIfjTwFIWWE=
-github.com/ChainSafe/chaindb v0.1.5/go.mod h1:TVmQZ7XoN0YPiWp7dZsRS61vON9C/Igjxs1zl7Pxkxc=
+github.com/ChainSafe/chaindb v0.1.6 h1:HpR2jGoEuChu9rbU5HeQ1cKB0t+kjcCs7ni6uBF8RdQ=
+github.com/ChainSafe/chaindb v0.1.6/go.mod h1:TVmQZ7XoN0YPiWp7dZsRS61vON9C/Igjxs1zl7Pxkxc=
 github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf h1:S195ZBRu20VgXC1i5nHTR6b4BbTQaMCDuq6tzFQN5zU=
 github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf/go.mod h1:dpzHYVxLZcp8pjlV+O+UR8K0Hp/z7vcchBSbMBEhCw4=
 github.com/ChainSafe/log15 v1.0.0 h1:vRDVtWtVwIH5uSCBvgTTZh6FA58UBJ6+QiiypaZfBf8=
