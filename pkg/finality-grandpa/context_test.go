@@ -17,7 +17,7 @@ func (Phase) Generate(rand *rand.Rand, _ int) reflect.Value {
 	return reflect.ValueOf([]Phase{PrevotePhase, PrecommitPhase}[index])
 }
 
-func (Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
+func (context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 	vs := VoterSet[ID]{}.Generate(rand, size).Interface().(VoterSet[ID])
 
 	n := rand.Int() % len(vs.voters)
@@ -27,7 +27,7 @@ func (Context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 		equivocators[i] = ivi.VoterInfo
 	}
 
-	c := Context[ID]{
+	c := context[ID]{
 		voters: vs,
 	}
 	for _, v := range equivocators {
@@ -41,7 +41,7 @@ func TestVote_voter(t *testing.T) {
 		for _, idv := range vs.iter() {
 			id := idv.ID
 			v := idv.VoterInfo
-			eq := assert.Equal(t, &idVoterInfo[uint]{id, v}, NewVote[uint](v, phase).voter(vs))
+			eq := assert.Equal(t, &idVoterInfo[uint]{id, v}, newVote[uint](v, phase).voter(vs))
 			if !eq {
 				return false
 			}
@@ -54,7 +54,7 @@ func TestVote_voter(t *testing.T) {
 }
 
 func TestWeights(t *testing.T) {
-	f := func(ctx Context[uint], phase Phase, voters []uint) bool {
+	f := func(ctx context[uint], phase Phase, voters []uint) bool {
 		ew := ctx.EquivocationWeight(phase)
 		tw := ctx.voters.TotalWeight()
 
@@ -66,18 +66,18 @@ func TestWeights(t *testing.T) {
 
 		// Let a random subset of voters cast a vote, whether already
 		// an equivocator or not.
-		n := VoteNode[uint]{}
+		n := voteNode[uint]{}
 		expected := ew
 		for _, v := range voters {
 			idvi := ctx.voters.nthMod(v)
-			vote := NewVote[uint](idvi.VoterInfo, phase)
+			vote := newVote[uint](idvi.VoterInfo, phase)
 
 			// We only expect the weight to increase if the voter did not
 			// start out as an equivocator and did not yet vote.
 			if !ctx.equivocations.testBit(vote.bit.position) && !n.bits.testBit(vote.bit.position) {
 				expected = expected + VoteWeight(idvi.VoterInfo.weight)
 			}
-			n.AddVote(vote)
+			n.addVote(vote)
 		}
 
 		// Let the context compute the weight.

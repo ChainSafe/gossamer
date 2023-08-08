@@ -442,7 +442,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) logParticipation(level an
 }
 
 func (vr *VotingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *waker) error {
-	vr.incoming.SetWaker(waker)
+	vr.incoming.setWaker(waker)
 	var (
 		msgCount  = 0
 		timer     *time.Timer
@@ -451,7 +451,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *wa
 while:
 	for {
 		select {
-		case incoming := <-vr.incoming.Chan():
+		case incoming := <-vr.incoming.channel():
 			fmt.Printf("Round %d: Got incoming message\n", vr.RoundNumber())
 			if timer != nil {
 				timer.Stop()
@@ -564,7 +564,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 				// manually schedule the current task to be awoken so the
 				// `best_chain` future is then polled below after we switch the
 				// state to `Prevoting`.
-				waker.Wake()
+				waker.wake()
 
 				vr.state = Prevoting[Timer, hashBestChain[Hash, Number]]{
 					precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
@@ -583,9 +583,9 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 
 	var finishPrevoting = func(precommitTimer Timer, base Hash, bestChain BestChain[Hash, Number], waker *waker) error {
 		wakerChan := newWakerChan(bestChain)
-		wakerChan.SetWaker(waker)
+		wakerChan.setWaker(waker)
 		var best *HashNumber[Hash, Number]
-		res := <-wakerChan.Chan()
+		res := <-wakerChan.channel()
 		switch {
 		case res.Error != nil:
 			return res.Error

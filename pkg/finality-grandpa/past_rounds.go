@@ -60,7 +60,7 @@ func (br *backgroundRound[Hash, Number, Signature, ID, E]) updateFinalized(newFi
 
 	// wake up the future to be polled if done.
 	if br.isDone() {
-		br.waker.Wake()
+		br.waker.wake()
 	}
 }
 
@@ -198,11 +198,11 @@ func (rc *roundCommitter[Hash, Number, Signature, ID, E]) commit(
 	waker *waker,
 	votingRound VotingRound[Hash, Number, Signature, ID, E],
 ) (bool, *Commit[Hash, Number, Signature, ID], error) {
-	rc.importCommits.SetWaker(waker)
+	rc.importCommits.setWaker(waker)
 loop:
 	for {
 		select {
-		case commit, ok := <-rc.importCommits.Chan():
+		case commit, ok := <-rc.importCommits.channel():
 			if !ok {
 				panic("TODO: handle channel closure")
 			}
