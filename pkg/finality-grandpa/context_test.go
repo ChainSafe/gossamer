@@ -74,7 +74,7 @@ func TestWeights(t *testing.T) {
 
 			// We only expect the weight to increase if the voter did not
 			// start out as an equivocator and did not yet vote.
-			if !ctx.equivocations.testBit(vote.bit.Position) && !n.bits.testBit(vote.bit.Position) {
+			if !ctx.equivocations.testBit(vote.bit.position) && !n.bits.testBit(vote.bit.position) {
 				expected = expected + VoteWeight(idvi.VoterInfo.weight)
 			}
 			n.AddVote(vote)

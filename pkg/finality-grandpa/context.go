@@ -40,7 +40,7 @@ func (c Context[ID]) EquivocationWeight(p Phase) VoteWeight {
 
 // Equivocated will record voter `v` as an equivocator in phase `p`.
 func (c *Context[ID]) Equivocated(v VoterInfo, p Phase) {
-	c.equivocations.SetBit(NewVote[ID](v, p).bit.Position)
+	c.equivocations.SetBit(NewVote[ID](v, p).bit.position)
 }
 
 // Weight computes the vote weight on node `n` in phase `p`, taking into account
@@ -71,7 +71,7 @@ func (c Context[ID]) Weight(n VoteNode[ID], p Phase) VoteWeight {
 
 // A single vote that can be incorporated into a `VoteNode`.
 type Vote[ID constraints.Ordered] struct {
-	bit Bit1
+	bit bit1
 }
 
 // NewVote will create a new vote cast by voter `v` in phase `p`.
@@ -79,14 +79,14 @@ func NewVote[ID constraints.Ordered](v VoterInfo, p Phase) Vote[ID] {
 	switch p {
 	case PrevotePhase:
 		return Vote[ID]{
-			bit: Bit1{
-				Position: v.position * 2,
+			bit: bit1{
+				position: v.position * 2,
 			},
 		}
 	case PrecommitPhase:
 		return Vote[ID]{
-			bit: Bit1{
-				Position: v.position*2 + 1,
+			bit: bit1{
+				position: v.position*2 + 1,
 			},
 		}
 	default:
@@ -98,10 +98,10 @@ func NewVote[ID constraints.Ordered](v VoterInfo, p Phase) Vote[ID] {
 // Get the voter who cast the vote from the given voter set,
 // if it is contained in that set.
 func (v Vote[ID]) voter(vs VoterSet[ID]) *idVoterInfo[ID] {
-	return vs.nth(v.bit.Position / 2)
+	return vs.nth(v.bit.position / 2)
 }
 
-func weight[ID constraints.Ordered](bits []Bit1, voters VoterSet[ID]) (total VoteWeight) { //skipcq: RVV-B0001
+func weight[ID constraints.Ordered](bits []bit1, voters VoterSet[ID]) (total VoteWeight) { //skipcq: RVV-B0001
 	for _, bit := range bits {
 		vote := Vote[ID]{bit}
 		ivi := vote.voter(voters)
@@ -127,7 +127,7 @@ func (vn *VoteNode[ID]) Add(other *VoteNode[ID]) {
 }
 
 func (vn *VoteNode[ID]) AddVote(vote Vote[ID]) {
-	vn.bits.SetBit(vote.bit.Position)
+	vn.bits.SetBit(vote.bit.position)
 }
 
 func (vn *VoteNode[ID]) Copy() *VoteNode[ID] {

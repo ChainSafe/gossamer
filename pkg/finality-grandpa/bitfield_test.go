@@ -63,7 +63,7 @@ func Test_Merge(t *testing.T) {
 		copy(a.bits, c.bits)
 		cBits := c.iter1s(0, 0)
 		for _, bit := range cBits {
-			if !(a.testBit(bit.Position) || b.testBit(bit.Position)) {
+			if !(a.testBit(bit.position) || b.testBit(bit.position)) {
 				return false
 			}
 		}
@@ -79,7 +79,7 @@ func Test_iter1s(t *testing.T) {
 		f := func(a bitfield) bool {
 			b := newBitfield()
 			for _, bit1 := range a.iter1s(0, 0) {
-				b.SetBit(bit1.Position)
+				b.SetBit(bit1.position)
 			}
 			return assert.Equal(t, a, b)
 		}
@@ -92,14 +92,14 @@ func Test_iter1s(t *testing.T) {
 		f := func(a bitfield) bool {
 			b := newBitfield()
 			for _, bit1 := range a.Iter1sEven() {
-				assert.True(t, !b.testBit(bit1.Position))
-				assert.True(t, bit1.Position%2 == 0)
-				b.SetBit(bit1.Position)
+				assert.True(t, !b.testBit(bit1.position))
+				assert.True(t, bit1.position%2 == 0)
+				b.SetBit(bit1.position)
 			}
 			for _, bit1 := range a.Iter1sOdd() {
-				assert.True(t, !b.testBit(bit1.Position))
-				assert.True(t, bit1.Position%2 == 1)
-				b.SetBit(bit1.Position)
+				assert.True(t, !b.testBit(bit1.position))
+				assert.True(t, bit1.position%2 == 1)
+				b.SetBit(bit1.position)
 			}
 			return assert.Equal(t, a, b)
 		}
@@ -114,7 +114,7 @@ func Test_iter1sMerged(t *testing.T) {
 		f := func(a, b bitfield) bool {
 			c := newBitfield()
 			for _, bit1 := range a.iter1sMerged(b, 0, 0) {
-				c.SetBit(bit1.Position)
+				c.SetBit(bit1.position)
 			}
 			return assert.Equal(t, &c, a.Merge(b))
 		}
@@ -127,14 +127,14 @@ func Test_iter1sMerged(t *testing.T) {
 		f := func(a, b bitfield) bool {
 			c := newBitfield()
 			for _, bit1 := range a.Iter1sMergedEven(b) {
-				assert.True(t, !c.testBit(bit1.Position))
-				assert.True(t, bit1.Position%2 == 0)
-				c.SetBit(bit1.Position)
+				assert.True(t, !c.testBit(bit1.position))
+				assert.True(t, bit1.position%2 == 0)
+				c.SetBit(bit1.position)
 			}
 			for _, bit1 := range a.Iter1sMergedOdd(b) {
-				assert.True(t, !c.testBit(bit1.Position))
-				assert.True(t, bit1.Position%2 == 1)
-				c.SetBit(bit1.Position)
+				assert.True(t, !c.testBit(bit1.position))
+				assert.True(t, bit1.position%2 == 1)
+				c.SetBit(bit1.position)
 			}
 			return assert.Equal(t, &c, a.Merge(b))
 		}
