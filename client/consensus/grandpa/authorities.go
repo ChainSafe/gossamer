@@ -6,7 +6,7 @@ package grandpa
 import (
 	"errors"
 	"fmt"
-
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	"sync"
@@ -83,44 +83,44 @@ type appliedChanges[H comparable, N constraints.Unsigned] struct {
 }
 
 // InvalidAuthorityList authority sets must be non-empty and all weights must be greater than 0
-func (authSet *SharedAuthoritySet) InvalidAuthorityList(authorities AuthorityList) bool {
+func (authSet *SharedAuthoritySet[H, N]) InvalidAuthorityList(authorities AuthorityList) bool {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
-	return authSet.inner.InvalidAuthorityList(authorities)
+	return InvalidAuthorityList(authorities)
 }
 
 // Current Get the current set id and a reference to the current authority set.
-func (authSet *SharedAuthoritySet) Current() (uint64, *AuthorityList) {
+func (authSet *SharedAuthoritySet[H, N]) Current() (uint64, *AuthorityList) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.Current()
 }
 
-func (authSet *SharedAuthoritySet) revert() {
+func (authSet *SharedAuthoritySet[H, N]) revert() {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	authSet.inner.revert()
 }
 
-func (authSet *SharedAuthoritySet) nextChange(bestHash common.Hash, isDescendentOf IsDescendentOf) (*change, error) {
+func (authSet *SharedAuthoritySet[H, N]) nextChange(bestHash H, isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.nextChange(bestHash, isDescendentOf)
 }
 
-func (authSet *SharedAuthoritySet) addStandardChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
+func (authSet *SharedAuthoritySet[H, N]) addStandardChange(pending PendingChange[H, N], isDescendentOf IsDescendentOf[H]) error {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.addStandardChange(pending, isDescendentOf)
 }
 
-func (authSet *SharedAuthoritySet) addForcedChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
+func (authSet *SharedAuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], isDescendentOf IsDescendentOf[H]) error {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.addForcedChange(pending, isDescendentOf)
 }
 
-func (authSet *SharedAuthoritySet) addPendingChange(pending PendingChange, isDescendentOf IsDescendentOf) error {
+func (authSet *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], isDescendentOf IsDescendentOf[H]) error {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.addPendingChange(pending, isDescendentOf)
@@ -129,10 +129,10 @@ func (authSet *SharedAuthoritySet) addPendingChange(pending PendingChange, isDes
 // PendingChanges Inspect pending changes. Standard pending changes are iterated first,
 // and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
-func (authSet *SharedAuthoritySet) PendingChanges() []PendingChange {
+func (authSet *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
-	return authSet.inner.PendingChanges()
+	return authSet.inner.pendingChanges()
 }
 
 // CurrentLimit Get the earliest limit-block number, if any. If there are pending changes across
@@ -141,16 +141,16 @@ func (authSet *SharedAuthoritySet) PendingChanges() []PendingChange {
 //
 // Only standard changes are taken into account for the current
 // limit, since any existing forced change should preclude the voter from voting.
-func (authSet *SharedAuthoritySet) CurrentLimit(min uint) (limit *uint) {
+func (authSet *SharedAuthoritySet[H, N]) CurrentLimit(min N) (limit *N) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.CurrentLimit(min)
 }
 
-func (authSet *SharedAuthoritySet) applyForcedChanges(bestHash common.Hash, bestNumber uint, isDescendentOf IsDescendentOf, initialSync bool, telemetry *telemetry.Client) (newSet *appliedChanges, err error) {
+func (authSet *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, bestNumber N, isDescendentOf IsDescendentOf[H], telemetry *telemetry.Client) (newSet *appliedChanges[H, N], err error) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
-	return authSet.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, initialSync, telemetry)
+	return authSet.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, telemetry)
 }
 
 // ApplyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
@@ -163,10 +163,10 @@ func (authSet *SharedAuthoritySet) applyForcedChanges(bestHash common.Hash, best
 // When the set has changed, the return value will be a Status type where newSetBlockInfo
 // is the canonical block where the set last changed (i.e. the given
 // hash and number).
-func (authSet *SharedAuthoritySet) ApplyStandardChanges(finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf, initialSync bool, telemetry *telemetry.Client) (Status, error) {
+func (authSet *SharedAuthoritySet[H, N]) ApplyStandardChanges(finalizedHash H, finalizedNumber N, isDescendentOf IsDescendentOf[H], telemetry *Telemetry) (Status[H, N], error) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
-	return authSet.inner.ApplyStandardChanges(finalizedHash, finalizedNumber, isDescendentOf, initialSync, telemetry)
+	return authSet.inner.applyStandardChanges(finalizedHash, finalizedNumber, isDescendentOf, telemetry)
 }
 
 // EnactsStandardChange Check whether the given finalized block number enacts any standard
@@ -179,7 +179,7 @@ func (authSet *SharedAuthoritySet) ApplyStandardChanges(finalizedHash common.Has
 // other dependent changes, and nil if no change is enacted. The given
 // function `is_descendent_of` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
-func (authSet *SharedAuthoritySet) EnactsStandardChange(finalizedHash common.Hash, finalizedNumber uint, isDescendentOf IsDescendentOf) (*bool, error) {
+func (authSet *SharedAuthoritySet[H, N]) EnactsStandardChange(finalizedHash H, finalizedNumber N, isDescendentOf IsDescendentOf[H]) (*bool, error) {
 	authSet.mtx.Lock()
 	defer authSet.mtx.Unlock()
 	return authSet.inner.EnactsStandardChange(finalizedHash, finalizedNumber, isDescendentOf)
@@ -268,8 +268,8 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](authorities Authority
 	}
 }
 
-// current Get the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) current() (uint64, *AuthorityList) {
+// Current Get the current set id and a reference to the current authority set.
+func (authSet *AuthoritySet[H, N]) Current() (uint64, *AuthorityList) {
 	return authSet.setId, &authSet.currentAuthorities
 }
 
