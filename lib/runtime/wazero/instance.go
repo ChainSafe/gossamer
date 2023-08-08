@@ -207,6 +207,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_trie_blake2_256_root_version_1).
 		Export("ext_trie_blake2_256_root_version_1").
 		NewFunctionBuilder().
+		WithFunc(ext_trie_blake2_256_root_version_2).
+		Export("ext_trie_blake2_256_root_version_2").
+		NewFunctionBuilder().
 		WithFunc(ext_trie_blake2_256_ordered_root_version_1).
 		Export("ext_trie_blake2_256_ordered_root_version_1").
 		NewFunctionBuilder().
@@ -215,6 +218,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		NewFunctionBuilder().
 		WithFunc(ext_trie_blake2_256_verify_proof_version_1).
 		Export("ext_trie_blake2_256_verify_proof_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_trie_blake2_256_verify_proof_version_2).
+		Export("ext_trie_blake2_256_verify_proof_version_2").
 		NewFunctionBuilder().
 		WithFunc(ext_misc_print_hex_version_1).
 		Export("ext_misc_print_hex_version_1").
