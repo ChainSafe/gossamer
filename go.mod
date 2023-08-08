@@ -40,7 +40,7 @@ require (
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
-	golang.org/x/crypto v0.11.0
+	golang.org/x/crypto v0.12.0
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 	golang.org/x/term v0.11.0
 	google.golang.org/protobuf v1.31.0
@@ -188,7 +188,7 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.11.0 // indirect
+	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
