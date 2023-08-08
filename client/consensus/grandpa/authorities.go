@@ -93,7 +93,7 @@ func (sas *SharedAuthoritySet[H, N]) InvalidAuthorityList(authorities AuthorityL
 func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *AuthorityList) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
-	return sas.inner.Current()
+	return sas.inner.current()
 }
 
 func (sas *SharedAuthoritySet[H, N]) revert() {
@@ -269,7 +269,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](authorities Authority
 }
 
 // Current Get the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) Current() (uint64, *AuthorityList) {
+func (authSet *AuthoritySet[H, N]) current() (uint64, *AuthorityList) {
 	return authSet.setId, &authSet.currentAuthorities
 }
 
