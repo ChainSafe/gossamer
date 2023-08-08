@@ -10,7 +10,7 @@ require (
 	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dgraph-io/badger/v4 v4.1.0
+	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.12.0
