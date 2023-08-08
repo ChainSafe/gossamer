@@ -152,27 +152,18 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 	if who != nil {
 		syncWorker := s.workers[*who]
-
-		// if task enqueued then returns otherwise
-		// try to submit the task to other available peer
-		enqueued := syncWorker.processTask(task)
-		if enqueued {
-			return
-		}
+		syncWorker.processTask(task)
+		return
 	}
 
 	for _, syncWorker := range s.workers {
-		enqueued := syncWorker.processTask(task)
-		if enqueued {
-			break
-		}
+		syncWorker.processTask(task)
 	}
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
-	logger.Debugf("[SENDING] %d requests", len(requests))
 	resultCh = make(chan *syncTaskResult, maxRequestsAllowed+1)
 
 	s.mtx.RLock()
@@ -184,18 +175,11 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 		workerID := idx % len(allWorkers)
 		syncWorker := allWorkers[workerID]
 
-		enqueued := syncWorker.processTask(&syncTask{
+		syncWorker.processTask(&syncTask{
 			request:  requests[idx],
 			resultCh: resultCh,
 		})
 
-		if !enqueued {
-			continue
-		}
-
-		// only increases the index if a task was successfully equeued
-		// for some worker, if the task was not equeued for some worker
-		// jump to the next worker and try to enqueue there
 		idx++
 	}
 

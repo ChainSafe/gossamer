@@ -6,6 +6,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -15,6 +16,7 @@ import (
 var ErrStopTimeout = errors.New("stop timeout")
 
 type worker struct {
+	mxt         sync.Mutex
 	status      byte
 	peerID      peer.ID
 	sharedGuard chan struct{}
@@ -50,17 +52,24 @@ func (w *worker) start() {
 	}
 }
 
-func (w *worker) processTask(task *syncTask) (enqueued bool) {
-	select {
-	case w.queue <- task:
-		return true
-	default:
-		return false
+func (w *worker) processTask(task *syncTask) {
+	w.mxt.Lock()
+	defer w.mxt.Unlock()
+	if w.queue != nil {
+		select {
+		case w.queue <- task:
+		default:
+			panic(fmt.Sprintf("worker %s queue is blocked, cannot enqueue task: %s",
+				w.peerID, task.request.String()))
+		}
 	}
 }
 
 func (w *worker) stop() error {
+	w.mxt.Lock()
 	close(w.queue)
+	w.queue = nil
+	w.mxt.Unlock()
 
 	timeoutTimer := time.NewTimer(30 * time.Second)
 	select {

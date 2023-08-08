@@ -34,15 +34,13 @@ func TestWorker(t *testing.T) {
 	resultCh := make(chan *syncTaskResult)
 	defer close(resultCh)
 
-	enqueued := w.processTask(&syncTask{
+	w.processTask(&syncTask{
 		resultCh: resultCh,
 	})
-	require.True(t, enqueued)
 
-	enqueued = w.processTask(&syncTask{
+	w.processTask(&syncTask{
 		resultCh: resultCh,
 	})
-	require.True(t, enqueued)
 
 	time.Sleep(500 * time.Millisecond)
 	require.Equal(t, 1, len(sharedGuard))
