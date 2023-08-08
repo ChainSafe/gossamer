@@ -30,18 +30,18 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 func (wc *wakerChan[Item]) start() {
 	for item := range wc.in {
 		if wc.waker != nil {
-			wc.waker.Wake()
+			wc.waker.wake()
 		}
 		wc.out <- item
 	}
 }
 
-func (wc *wakerChan[Item]) SetWaker(waker *waker) {
+func (wc *wakerChan[Item]) setWaker(waker *waker) {
 	wc.waker = waker
 }
 
 // Chan returns a channel to consume `Item`.  Not thread safe, only supports one consumer
-func (wc *wakerChan[Item]) Chan() chan Item {
+func (wc *wakerChan[Item]) channel() chan Item {
 	return wc.out
 }
 
@@ -245,7 +245,7 @@ func (b *Buffered[I]) flush(waker *waker) (bool, error) {
 			b.inner <- b.buffer[0]
 			b.buffer = b.buffer[1:]
 			if waker != nil {
-				waker.Wake()
+				waker.wake()
 			}
 		}
 
@@ -852,7 +852,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
 			return nil
 		}
 		select {
-		case <-waker.Chan():
+		case <-waker.channel():
 		case <-v.stopChan:
 			return fmt.Errorf("early voter stop")
 		}

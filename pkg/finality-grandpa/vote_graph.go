@@ -14,7 +14,7 @@ import (
 type voteGraphEntry[
 	Hash constraints.Ordered,
 	Number constraints.Integer,
-	VoteNode voteNodeI[VoteNode, Vote],
+	voteNode voteNodeI[voteNode, Vote],
 	Vote any,
 ] struct {
 	number Number
@@ -22,12 +22,12 @@ type voteGraphEntry[
 	// and the last entry is the hash of the parent vote-node.
 	ancestors      []Hash
 	descendants    []Hash // descendent vote-nodes
-	cumulativeVote VoteNode
+	cumulativeVote voteNode
 }
 
 // whether the given hash, number pair is a direct ancestor of this node.
 // `None` signifies that the graph must be traversed further back.
-func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) InDirectAncestry(hash Hash, num Number) *bool {
+func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) InDirectAncestry(hash Hash, num Number) *bool {
 	h := vge.AncestorBlock(num)
 	if h == nil {
 		return nil
@@ -38,7 +38,7 @@ func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) InDirectAncestry(hash Ha
 
 // Get ancestor block by number. Returns `None` if there is no block
 // by that number in the direct ancestry.
-func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) AncestorBlock(num Number) (h *Hash) {
+func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) AncestorBlock(num Number) (h *Hash) {
 	if num >= vge.number {
 		return nil
 	}
@@ -51,7 +51,7 @@ func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) AncestorBlock(num Number
 }
 
 // get ancestor vote-node.
-func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) AncestorNode() *Hash {
+func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) AncestorNode() *Hash {
 	if len(vge.ancestors) == 0 {
 		return nil
 	}
@@ -64,30 +64,30 @@ func (vge voteGraphEntry[Hash, Number, VoteNode, Vote]) AncestorNode() *Hash {
 type VoteGraph[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
-	VoteNode voteNodeI[VoteNode, Vote],
+	voteNode voteNodeI[voteNode, Vote],
 	Vote any,
 ] struct {
-	entries            *btree.Map[Hash, voteGraphEntry[Hash, Number, VoteNode, Vote]]
+	entries            *btree.Map[Hash, voteGraphEntry[Hash, Number, voteNode, Vote]]
 	heads              *btree.Set[Hash]
 	base               Hash
 	baseNumber         Number
-	newDefaultVoteNode func() VoteNode
+	newDefaultvoteNode func() voteNode
 }
 
 // Create a new `VoteGraph` with base node as given.
 func NewVoteGraph[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
-	VoteNode voteNodeI[VoteNode, Vote],
+	voteNode voteNodeI[voteNode, Vote],
 	Vote any,
 ](
 	baseHash Hash,
 	baseNumber Number,
-	baseNode VoteNode,
-	newDefaultVoteNode func() VoteNode,
-) VoteGraph[Hash, Number, VoteNode, Vote] {
-	entries := btree.NewMap[Hash, voteGraphEntry[Hash, Number, VoteNode, Vote]](2)
-	entries.Set(baseHash, voteGraphEntry[Hash, Number, VoteNode, Vote]{
+	baseNode voteNode,
+	newDefaultvoteNode func() voteNode,
+) VoteGraph[Hash, Number, voteNode, Vote] {
+	entries := btree.NewMap[Hash, voteGraphEntry[Hash, Number, voteNode, Vote]](2)
+	entries.Set(baseHash, voteGraphEntry[Hash, Number, voteNode, Vote]{
 		number:         baseNumber,
 		ancestors:      make([]Hash, 0),
 		descendants:    make([]Hash, 0),
@@ -95,18 +95,18 @@ func NewVoteGraph[
 	})
 	heads := &btree.Set[Hash]{}
 	heads.Insert(baseHash)
-	return VoteGraph[Hash, Number, VoteNode, Vote]{
+	return VoteGraph[Hash, Number, voteNode, Vote]{
 		entries:            entries,
 		heads:              heads,
 		base:               baseHash,
 		baseNumber:         baseNumber,
-		newDefaultVoteNode: newDefaultVoteNode,
+		newDefaultvoteNode: newDefaultvoteNode,
 	}
 }
 
 // append a vote-node onto the chain-tree. This should only be called if
 // no node in the tree keeps the target anyway.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) append(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) append(
 	hash Hash,
 	num Number,
 	chain Chain[Hash, Number],
@@ -139,11 +139,11 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) append(
 	ancestorHash := ancestry[*ancestorIndex]
 	ancestry = ancestry[0 : *ancestorIndex+1]
 
-	vg.entries.Set(hash, voteGraphEntry[Hash, Number, VoteNode, Vote]{
+	vg.entries.Set(hash, voteGraphEntry[Hash, Number, voteNode, Vote]{
 		number:         num,
 		ancestors:      ancestry,
 		descendants:    make([]Hash, 0),
-		cumulativeVote: vg.newDefaultVoteNode(),
+		cumulativeVote: vg.newDefaultvoteNode(),
 	})
 
 	vg.heads.Delete(ancestorHash)
@@ -160,17 +160,17 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) append(
 // or does not have ancestor with given hash and number OR if `ancestor_hash`
 // is already a known entry.
 
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) introduceBranch(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 	descendants []Hash,
 	ancestorHash Hash,
 	ancestorNumber Number,
 ) {
 	var producedEntry *struct {
-		entry voteGraphEntry[Hash, Number, VoteNode, Vote]
+		entry voteGraphEntry[Hash, Number, voteNode, Vote]
 		hash  *Hash
 	}
 	var maybeEntry *struct {
-		entry voteGraphEntry[Hash, Number, VoteNode, Vote]
+		entry voteGraphEntry[Hash, Number, voteNode, Vote]
 		hash  *Hash
 	}
 	for _, descendant := range descendants {
@@ -204,20 +204,20 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) introduceBranch(
 
 			if maybeEntry == nil {
 				maybeEntry = &struct {
-					entry voteGraphEntry[Hash, Number, VoteNode, Vote]
+					entry voteGraphEntry[Hash, Number, voteNode, Vote]
 					hash  *Hash
 				}{
-					entry: voteGraphEntry[Hash, Number, VoteNode, Vote]{
+					entry: voteGraphEntry[Hash, Number, voteNode, Vote]{
 						number:         ancestorNumber,
 						ancestors:      newAncestors,
 						descendants:    make([]Hash, 0),
-						cumulativeVote: vg.newDefaultVoteNode(),
+						cumulativeVote: vg.newDefaultvoteNode(),
 					},
 					hash: prevAncestor,
 				}
 			}
 			maybeEntry.entry.descendants = append(maybeEntry.entry.descendants, descendant)
-			maybeEntry.entry.cumulativeVote.Add(entry.cumulativeVote)
+			maybeEntry.entry.cumulativeVote.add(entry.cumulativeVote)
 		}
 		producedEntry = maybeEntry
 	}
@@ -242,7 +242,7 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) introduceBranch(
 }
 
 // Insert a vote with given value into the graph at given hash and number.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) Insert(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) Insert(
 	hash Hash,
 	num Number,
 	vote any,
@@ -270,10 +270,10 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) Insert(
 			panic("vote-node and its ancestry always exist after initial phase; qed")
 		}
 		switch vote := vote.(type) {
-		case VoteNode:
-			activeEntry.cumulativeVote.Add(vote)
+		case voteNode:
+			activeEntry.cumulativeVote.add(vote)
 		case Vote:
-			activeEntry.cumulativeVote.AddVote(vote)
+			activeEntry.cumulativeVote.addVote(vote)
 		default:
 			panic(fmt.Errorf("unsupported type to add to cumulativeVote %T", vote))
 		}
@@ -294,7 +294,7 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) Insert(
 // returns `None` if there is a node by that key already, and a vector
 // (potentially empty) of nodes with the given block in its ancestor-edge
 // otherwise.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) findContainingNodes(hash Hash, num Number) (hashes []Hash) {
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) findContainingNodes(hash Hash, num Number) (hashes []Hash) {
 	_, ok := vg.entries.Get(hash)
 	if ok {
 		return nil
@@ -304,7 +304,7 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) findContainingNodes(hash Hash
 	visited := make(map[Hash]interface{})
 
 	for _, head := range vg.heads.Keys() {
-		var activeEntry voteGraphEntry[Hash, Number, VoteNode, Vote]
+		var activeEntry voteGraphEntry[Hash, Number, voteNode, Vote]
 
 		for {
 			e, ok := vg.entries.Get(head)
@@ -356,9 +356,9 @@ func (sc SubChain[H, N]) best() *HashNumber[H, N] {
 	}
 }
 
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) mustGetEntry(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) mustGetEntry(
 	hash Hash,
-) voteGraphEntry[Hash, Number, VoteNode, Vote] {
+) voteGraphEntry[Hash, Number, voteNode, Vote] {
 	entry, ok := vg.entries.Get(hash)
 	if !ok {
 		panic("descendents always present in node storage; qed")
@@ -366,19 +366,19 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) mustGetEntry(
 	return entry
 }
 
-type hashVote[Hash constraints.Ordered, VoteNode voteNodeI[VoteNode, Vote], Vote any] struct {
+type hashvote[Hash constraints.Ordered, voteNode voteNodeI[voteNode, Vote], Vote any] struct {
 	hash Hash
-	vote VoteNode
+	vote voteNode
 }
 
 // given a key, node pair (which must correspond), assuming this node fulfils the condition,
 // this function will find the highest point at which its descendents merge, which may be the
 // node itself.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) ghostFindMergePoint(
-	nodeKey Hash, activeNode *voteGraphEntry[Hash, Number, VoteNode, Vote], forceConstrain *HashNumber[Hash, Number],
-	condition func(VoteNode) bool) SubChain[Hash, Number] {
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
+	nodeKey Hash, activeNode *voteGraphEntry[Hash, Number, voteNode, Vote], forceConstrain *HashNumber[Hash, Number],
+	condition func(voteNode) bool) SubChain[Hash, Number] {
 
-	var descendantNodes []voteGraphEntry[Hash, Number, VoteNode, Vote]
+	var descendantNodes []voteGraphEntry[Hash, Number, voteNode, Vote]
 	for _, descendant := range activeNode.descendants {
 		switch {
 		case forceConstrain == nil:
@@ -398,7 +398,7 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) ghostFindMergePoint(
 	baseNumber := activeNode.number
 	bestNumber := activeNode.number
 
-	descendantBlocks := make([]hashVote[Hash, VoteNode, Vote], 0)
+	descendantBlocks := make([]hashvote[Hash, voteNode, Vote], 0)
 	hashes := []Hash{nodeKey}
 
 	// TODO: for long ranges of blocks this could get inefficient
@@ -414,8 +414,8 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) ghostFindMergePoint(
 			}
 			idx, ok := slices.BinarySearchFunc(
 				descendantBlocks,
-				hashVote[Hash, VoteNode, Vote]{hash: *dBlock},
-				func(a, b hashVote[Hash, VoteNode, Vote]) int {
+				hashvote[Hash, voteNode, Vote]{hash: *dBlock},
+				func(a, b hashvote[Hash, voteNode, Vote]) int {
 					switch {
 					case a.hash == b.hash:
 						return 0
@@ -429,23 +429,23 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) ghostFindMergePoint(
 				},
 			)
 			if ok {
-				descendantBlocks[idx].vote.Add(dNode.cumulativeVote)
+				descendantBlocks[idx].vote.add(dNode.cumulativeVote)
 				if condition(descendantBlocks[idx].vote) {
 					newBest = dBlock
 					break
 				}
 			} else {
 				if idx == len(descendantBlocks) {
-					descendantBlocks = append(descendantBlocks, hashVote[Hash, VoteNode, Vote]{
+					descendantBlocks = append(descendantBlocks, hashvote[Hash, voteNode, Vote]{
 						hash: *dBlock,
-						vote: dNode.cumulativeVote.Copy(),
+						vote: dNode.cumulativeVote.copy(),
 					})
 				} else if idx < len(descendantBlocks) {
 					descendantBlocks = append(
 						descendantBlocks[:idx],
-						append([]hashVote[Hash, VoteNode, Vote]{{
+						append([]hashvote[Hash, voteNode, Vote]{{
 							hash: *dBlock,
-							vote: dNode.cumulativeVote.Copy(),
+							vote: dNode.cumulativeVote.copy(),
 						}}, descendantBlocks[idx:]...)...)
 				} else {
 					panic("huh?")
@@ -455,8 +455,8 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) ghostFindMergePoint(
 
 		if newBest != nil {
 			bestNumber = bestNumber + 1
-			descendantBlocks = make([]hashVote[Hash, VoteNode, Vote], 0)
-			retained := make([]voteGraphEntry[Hash, Number, VoteNode, Vote], 0)
+			descendantBlocks = make([]hashvote[Hash, voteNode, Vote], 0)
+			retained := make([]voteGraphEntry[Hash, Number, voteNode, Vote], 0)
 			for _, descendant := range descendantNodes {
 				ida := descendant.InDirectAncestry(*newBest, bestNumber)
 				if ida != nil && *ida {
@@ -479,11 +479,11 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) ghostFindMergePoint(
 type hashVoteGraphEntry[
 	Hash constraints.Ordered,
 	Number constraints.Integer,
-	VoteNode voteNodeI[VoteNode, Vote],
+	voteNode voteNodeI[voteNode, Vote],
 	Vote any,
 ] struct {
 	hash  Hash
-	entry voteGraphEntry[Hash, Number, VoteNode, Vote]
+	entry voteGraphEntry[Hash, Number, voteNode, Vote]
 }
 
 // Find the best GHOST descendent of the given block.
@@ -497,11 +497,11 @@ type hashVoteGraphEntry[
 // enough to trigger the threshold.
 // /
 // Returns `None` when the given `current_best` does not fulfil the condition.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) FindGHOST(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindGHOST(
 	currentBest *HashNumber[Hash, Number],
-	condition func(VoteNode) bool,
+	condition func(voteNode) bool,
 ) *HashNumber[Hash, Number] {
-	var getNode = func(hash Hash) *voteGraphEntry[Hash, Number, VoteNode, Vote] {
+	var getNode = func(hash Hash) *voteGraphEntry[Hash, Number, voteNode, Vote] {
 		entry, ok := vg.entries.Get(hash)
 		if !ok {
 			panic("node either base or referenced by other in graph; qed")
@@ -543,8 +543,8 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) FindGHOST(
 	// breadth-first search starting from this node.
 loop:
 	for {
-		var nextDescendant *hashVoteGraphEntry[Hash, Number, VoteNode, Vote]
-		filteredDescendants := make([]*hashVoteGraphEntry[Hash, Number, VoteNode, Vote], 0)
+		var nextDescendant *hashVoteGraphEntry[Hash, Number, voteNode, Vote]
+		filteredDescendants := make([]*hashVoteGraphEntry[Hash, Number, voteNode, Vote], 0)
 
 		for _, descendant := range activeNode.descendants {
 			if forceConstrain && currentBest != nil {
@@ -554,14 +554,14 @@ loop:
 				case ida == nil:
 				case !*ida:
 				case *ida:
-					filteredDescendants = append(filteredDescendants, &hashVoteGraphEntry[Hash, Number, VoteNode, Vote]{
+					filteredDescendants = append(filteredDescendants, &hashVoteGraphEntry[Hash, Number, voteNode, Vote]{
 						hash:  descendant,
 						entry: *node,
 					})
 				}
 			} else {
 				node := getNode(descendant)
-				filteredDescendants = append(filteredDescendants, &hashVoteGraphEntry[Hash, Number, VoteNode, Vote]{
+				filteredDescendants = append(filteredDescendants, &hashVoteGraphEntry[Hash, Number, voteNode, Vote]{
 					hash:  descendant,
 					entry: *node,
 				})
@@ -570,7 +570,7 @@ loop:
 
 		for _, hvge := range filteredDescendants {
 			if condition(hvge.entry.cumulativeVote) {
-				nextDescendant = &hashVoteGraphEntry[Hash, Number, VoteNode, Vote]{
+				nextDescendant = &hashVoteGraphEntry[Hash, Number, voteNode, Vote]{
 					hash:  hvge.hash,
 					entry: hvge.entry,
 				}
@@ -602,10 +602,10 @@ loop:
 // /
 // Returns `None` if the given head is not in the graph or no node fulfils the
 // given condition.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) FindAncestor(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindAncestor(
 	hash Hash,
 	number Number,
-	condition func(VoteNode) bool,
+	condition func(voteNode) bool,
 ) *HashNumber[Hash, Number] {
 	for {
 		children := vg.findContainingNodes(hash, number)
@@ -631,10 +631,10 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) FindAncestor(
 			// The block is "contained" in the graph (i.e. in the ancestry-chain
 			// of at least one vote-node) but does not itself have a vote-node.
 			// Check if the accumulated weight on all child vote-nodes is sufficient.
-			v := vg.newDefaultVoteNode()
+			v := vg.newDefaultvoteNode()
 			for _, c := range children {
 				e := vg.mustGetEntry(c)
-				v.Add(e.cumulativeVote)
+				v.add(e.cumulativeVote)
 			}
 			if condition(v) {
 				return &HashNumber[Hash, Number]{hash, number}
@@ -662,7 +662,7 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) FindAncestor(
 // /
 // Provide an ancestry proof from the old base to the new. The proof
 // should be in reverse order from the old base's parent.
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) AdjustBase(ancestryProof []Hash) {
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) AdjustBase(ancestryProof []Hash) {
 	if len(ancestryProof) == 0 {
 		return // empty nothing to do
 	}
@@ -680,18 +680,18 @@ func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) AdjustBase(ancestryProof []Ha
 	oldEntry.ancestors = append(oldEntry.ancestors, ancestryProof...)
 	vg.entries.Set(vg.base, oldEntry)
 
-	entry := voteGraphEntry[Hash, Number, VoteNode, Vote]{
+	entry := voteGraphEntry[Hash, Number, voteNode, Vote]{
 		number:         newNumber,
 		ancestors:      make([]Hash, 0),
 		descendants:    []Hash{vg.base},
-		cumulativeVote: oldEntry.cumulativeVote.Copy(),
+		cumulativeVote: oldEntry.cumulativeVote.copy(),
 	}
 	vg.entries.Set(newHash, entry)
 	vg.base = newHash
 	vg.baseNumber = newNumber
 }
 
-func (vg *VoteGraph[Hash, Number, VoteNode, Vote]) Base() HashNumber[Hash, Number] {
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) Base() HashNumber[Hash, Number] {
 	return HashNumber[Hash, Number]{
 		vg.base,
 		vg.baseNumber,

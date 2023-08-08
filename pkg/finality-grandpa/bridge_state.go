@@ -16,7 +16,7 @@ func newWaker() *waker {
 	return &waker{wakeCh: make(chan any, 1000)}
 }
 
-func (w *waker) Wake() {
+func (w *waker) wake() {
 	w.mtx.RLock()
 	defer w.mtx.RUnlock()
 	if w.wakeCh == nil {
@@ -30,11 +30,11 @@ func (w *waker) Wake() {
 	}()
 }
 
-func (w *waker) Chan() chan any {
+func (w *waker) channel() chan any {
 	return w.wakeCh
 }
 
-func (w *waker) Register(waker *waker) {
+func (w *waker) register(waker *waker) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	w.wakeCh = waker.wakeCh
@@ -51,14 +51,14 @@ type bridged[Hash, Number any] struct {
 func (b *bridged[H, N]) update(new RoundState[H, N]) {
 	b.Lock()
 	b.inner = new
-	b.waker.Wake()
+	b.waker.wake()
 	b.Unlock()
 }
 
 func (b *bridged[H, N]) get(waker *waker) RoundState[H, N] {
 	b.RLock()
 	defer b.RUnlock()
-	b.waker.Register(waker)
+	b.waker.register(waker)
 	return b.inner
 }
 

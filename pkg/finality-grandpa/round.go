@@ -230,8 +230,8 @@ type RoundParams[ID constraints.Ordered, Hash comparable, Number constraints.Uns
 // Stores data for a round.
 type Round[ID constraints.Ordered, Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable] struct {
 	number          uint64
-	context         Context[ID]
-	graph           VoteGraph[Hash, Number, *VoteNode[ID], Vote[ID]]    // DAG of blocks which have been voted on.
+	context         context[ID]
+	graph           VoteGraph[Hash, Number, *voteNode[ID], vote[ID]]    // DAG of blocks which have been voted on.
 	prevotes        voteTracker[ID, Prevote[Hash, Number], Signature]   // tracks prevotes that have been counted
 	precommits      voteTracker[ID, Precommit[Hash, Number], Signature] // tracks precommits
 	historicalVotes HistoricalVotes[Hash, Number, Signature, ID]        // historical votes
@@ -254,17 +254,17 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 	roundParams RoundParams[ID, Hash, Number],
 ) *Round[ID, Hash, Number, Signature] {
 
-	var newVoteNode = func() *VoteNode[ID] {
-		return &VoteNode[ID]{newBitfield()}
+	var newvoteNode = func() *voteNode[ID] {
+		return &voteNode[ID]{newBitfield()}
 	}
 	return &Round[ID, Hash, Number, Signature]{
 		number:  roundParams.RoundNumber,
-		context: NewContext(roundParams.Voters),
-		graph: NewVoteGraph[Hash, Number, *VoteNode[ID], Vote[ID]](
+		context: newContext(roundParams.Voters),
+		graph: NewVoteGraph[Hash, Number, *voteNode[ID], vote[ID]](
 			roundParams.Base.Hash,
 			roundParams.Base.Number,
-			newVoteNode(),
-			newVoteNode,
+			newvoteNode(),
+			newvoteNode,
 		),
 		prevotes:        newVoteTracker[ID, Prevote[Hash, Number], Signature](),
 		precommits:      newVoteTracker[ID, Precommit[Hash, Number], Signature](),
@@ -307,7 +307,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 	switch val := multiplicity.Value().(type) {
 	case Single[Prevote[H, N], S]:
 		singleVote := val
-		vote := NewVote[ID](*info, PrevotePhase)
+		vote := newVote[ID](*info, PrevotePhase)
 		err := r.graph.Insert(singleVote.Vote.TargetHash, singleVote.Vote.TargetNumber, vote, chain)
 		if err != nil {
 			return nil, err
@@ -352,7 +352,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 	// update prevote-GHOST
 	threshold := r.context.voters.threshold
 	if r.prevotes.currentWeight >= VoteWeight(threshold) {
-		r.prevoteGhost = r.graph.FindGHOST(r.prevoteGhost, func(v *VoteNode[ID]) bool {
+		r.prevoteGhost = r.graph.FindGHOST(r.prevoteGhost, func(v *voteNode[ID]) bool {
 			// TODO: update Weight to pass by value
 			return r.context.Weight(*v, PrevotePhase) >= VoteWeight(threshold)
 		})
@@ -393,7 +393,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 	switch val := multiplicity.Value().(type) {
 	case Single[Precommit[H, N], S]:
 		singleVote := val
-		vote := NewVote[ID](*info, PrecommitPhase)
+		vote := newVote[ID](*info, PrecommitPhase)
 		err := r.graph.Insert(singleVote.Vote.TargetHash, singleVote.Vote.TargetNumber, vote, chain)
 		if err != nil {
 			return nil, err
@@ -456,7 +456,7 @@ func (r *Round[ID, H, N, S]) update() {
 	// 2/3+ prevote and precommit weight.
 	currentPrecommits := r.precommits.currentWeight
 	if currentPrecommits >= VoteWeight(threshold) {
-		r.finalized = r.graph.FindAncestor(r.prevoteGhost.Hash, r.prevoteGhost.Number, func(v *VoteNode[ID]) bool {
+		r.finalized = r.graph.FindAncestor(r.prevoteGhost.Hash, r.prevoteGhost.Number, func(v *voteNode[ID]) bool {
 			return r.context.Weight(*v, PrecommitPhase) >= VoteWeight(threshold)
 		})
 	}
@@ -465,7 +465,7 @@ func (r *Round[ID, H, N, S]) update() {
 	// not straightforward because we have to account for all possible future
 	// equivocations and thus cannot discount weight from validators who
 	// have already voted.
-	var possibleToPrecommit = func(node *VoteNode[ID]) bool {
+	var possibleToPrecommit = func(node *voteNode[ID]) bool {
 		// find how many more equivocations we could still get.
 		//
 		// it is only important to consider the voters whose votes
@@ -542,7 +542,7 @@ func (r *Round[ID, H, N, S]) PrecommitGHOST() *HashNumber[H, N] {
 	// update precommit-GHOST
 	var threshold = r.Threshold()
 	if r.precommits.currentWeight >= VoteWeight(threshold) {
-		r.precommitGhost = r.graph.FindGHOST(r.precommitGhost, func(v *VoteNode[ID]) bool {
+		r.precommitGhost = r.graph.FindGHOST(r.precommitGhost, func(v *voteNode[ID]) bool {
 			return r.context.Weight(*v, PrecommitPhase) >= VoteWeight(threshold)
 		})
 	}

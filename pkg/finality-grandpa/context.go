@@ -8,26 +8,26 @@ import (
 )
 
 // The context of a `Round` in which vote weights are calculated.
-type Context[ID constraints.Ordered] struct {
+type context[ID constraints.Ordered] struct {
 	voters        VoterSet[ID]
 	equivocations bitfield
 }
 
-// NewContext will create a new context for a round with the given set of voters.
-func NewContext[ID constraints.Ordered](voters VoterSet[ID]) Context[ID] {
-	return Context[ID]{
+// newContext will create a new context for a round with the given set of voters.
+func newContext[ID constraints.Ordered](voters VoterSet[ID]) context[ID] {
+	return context[ID]{
 		voters:        voters,
 		equivocations: newBitfield(),
 	}
 }
 
 // Voters will return the set of voters.
-func (c Context[ID]) Voters() VoterSet[ID] {
+func (c context[ID]) Voters() VoterSet[ID] {
 	return c.voters
 }
 
 // EquivocationWeight returns the weight of observed equivocations in phase `p`.
-func (c Context[ID]) EquivocationWeight(p Phase) VoteWeight {
+func (c context[ID]) EquivocationWeight(p Phase) VoteWeight {
 	switch p {
 	case PrevotePhase:
 		return weight(c.equivocations.Iter1sEven(), c.voters)
@@ -39,13 +39,13 @@ func (c Context[ID]) EquivocationWeight(p Phase) VoteWeight {
 }
 
 // Equivocated will record voter `v` as an equivocator in phase `p`.
-func (c *Context[ID]) Equivocated(v VoterInfo, p Phase) {
-	c.equivocations.SetBit(NewVote[ID](v, p).bit.position)
+func (c *context[ID]) Equivocated(v VoterInfo, p Phase) {
+	c.equivocations.SetBit(newVote[ID](v, p).bit.position)
 }
 
 // Weight computes the vote weight on node `n` in phase `p`, taking into account
 // equivocations.
-func (c Context[ID]) Weight(n VoteNode[ID], p Phase) VoteWeight {
+func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
 	if c.equivocations.IsBlank() {
 		switch p {
 		case PrevotePhase:
@@ -69,22 +69,22 @@ func (c Context[ID]) Weight(n VoteNode[ID], p Phase) VoteWeight {
 	}
 }
 
-// A single vote that can be incorporated into a `VoteNode`.
-type Vote[ID constraints.Ordered] struct {
+// A single vote that can be incorporated into a `voteNode`.
+type vote[ID constraints.Ordered] struct {
 	bit bit1
 }
 
 // NewVote will create a new vote cast by voter `v` in phase `p`.
-func NewVote[ID constraints.Ordered](v VoterInfo, p Phase) Vote[ID] {
+func newVote[ID constraints.Ordered](v VoterInfo, p Phase) vote[ID] {
 	switch p {
 	case PrevotePhase:
-		return Vote[ID]{
+		return vote[ID]{
 			bit: bit1{
 				position: v.position * 2,
 			},
 		}
 	case PrecommitPhase:
-		return Vote[ID]{
+		return vote[ID]{
 			bit: bit1{
 				position: v.position*2 + 1,
 			},
@@ -92,18 +92,17 @@ func NewVote[ID constraints.Ordered](v VoterInfo, p Phase) Vote[ID] {
 	default:
 		panic("wtf?")
 	}
-
 }
 
 // Get the voter who cast the vote from the given voter set,
 // if it is contained in that set.
-func (v Vote[ID]) voter(vs VoterSet[ID]) *idVoterInfo[ID] {
+func (v vote[ID]) voter(vs VoterSet[ID]) *idVoterInfo[ID] {
 	return vs.nth(v.bit.position / 2)
 }
 
 func weight[ID constraints.Ordered](bits []bit1, voters VoterSet[ID]) (total VoteWeight) { //skipcq: RVV-B0001
 	for _, bit := range bits {
-		vote := Vote[ID]{bit}
+		vote := vote[ID]{bit}
 		ivi := vote.voter(voters)
 		if ivi != nil {
 			total = total + VoteWeight(ivi.VoterInfo.weight)
@@ -112,29 +111,29 @@ func weight[ID constraints.Ordered](bits []bit1, voters VoterSet[ID]) (total Vot
 	return
 }
 
-type voteNodeI[VoteNode, Vote any] interface {
-	Add(other VoteNode)
-	AddVote(other Vote)
-	Copy() VoteNode
+type voteNodeI[voteNode, Vote any] interface {
+	add(other voteNode)
+	addVote(other Vote)
+	copy() voteNode
 }
 
-type VoteNode[ID constraints.Ordered] struct {
+type voteNode[ID constraints.Ordered] struct {
 	bits bitfield
 }
 
-func (vn *VoteNode[ID]) Add(other *VoteNode[ID]) {
+func (vn *voteNode[ID]) add(other *voteNode[ID]) {
 	vn.bits.Merge(other.bits)
 }
 
-func (vn *VoteNode[ID]) AddVote(vote Vote[ID]) {
+func (vn *voteNode[ID]) addVote(vote vote[ID]) {
 	vn.bits.SetBit(vote.bit.position)
 }
 
-func (vn *VoteNode[ID]) Copy() *VoteNode[ID] {
+func (vn *voteNode[ID]) copy() *voteNode[ID] {
 	copiedBits := newBitfield()
 	copiedBits.bits = make([]uint64, len(vn.bits.bits))
 	copy(copiedBits.bits, vn.bits.bits)
-	return &VoteNode[ID]{
+	return &voteNode[ID]{
 		bits: copiedBits,
 	}
 }

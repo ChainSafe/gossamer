@@ -33,7 +33,7 @@ func newTimer(in <-chan time.Time) *timer {
 }
 
 func (t *timer) SetWaker(waker *waker) {
-	t.wakerChan.SetWaker(waker)
+	t.wakerChan.setWaker(waker)
 }
 
 func (t *timer) Elapsed() (bool, error) {
