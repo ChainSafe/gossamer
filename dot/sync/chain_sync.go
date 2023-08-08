@@ -318,6 +318,9 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 }
 
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
+	// TODO: create issue to be spec compliat with regard block annoucement
+	cs.workerPool.fromBlockAnnounce(announced.who)
+
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
 		return fmt.Errorf("%w: block %s (#%d)",
 			errAlreadyInDisjointSet, announced.header.Hash(), announced.header.Number)
