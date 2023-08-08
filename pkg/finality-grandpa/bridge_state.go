@@ -77,7 +77,7 @@ type latterView[Hash, Number any] struct {
 	bridged *bridged[Hash, Number]
 }
 
-// // Fetch a handle to the last round-state.
+// Fetch a handle to the last round-state.
 func (lv *latterView[H, N]) get(waker *waker) (state RoundState[H, N]) { //skipcq: RVV-B0001
 	return lv.bridged.get(waker)
 }

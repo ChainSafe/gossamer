@@ -255,7 +255,7 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 ) *Round[ID, Hash, Number, Signature] {
 
 	var newVoteNode = func() *VoteNode[ID] {
-		return &VoteNode[ID]{NewBitfield()}
+		return &VoteNode[ID]{newBitfield()}
 	}
 	return &Round[ID, Hash, Number, Signature]{
 		number:  roundParams.RoundNumber,

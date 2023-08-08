@@ -4,19 +4,19 @@
 package grandpa
 
 // A dynamically sized, write-once (per bit), lazily allocating bitfield.
-type Bitfield struct {
+type bitfield struct {
 	bits []uint64
 }
 
-// NewBitfield creates a new empty bitfield.
-func NewBitfield() Bitfield {
-	return Bitfield{
+// newBitfield creates a new empty bitfield.
+func newBitfield() bitfield {
+	return bitfield{
 		bits: make([]uint64, 0),
 	}
 }
 
 // IsBlank returns Whether the bitfield is blank or empty.
-func (b *Bitfield) IsBlank() bool { //skipcq: GO-W1029
+func (b *bitfield) IsBlank() bool { //skipcq: GO-W1029
 	return len(b.bits) == 0
 }
 
@@ -27,7 +27,7 @@ func (b *Bitfield) IsBlank() bool { //skipcq: GO-W1029
 // This function only allocates if this bitfield is shorter than the other
 // bitfield, in which case it is resized accordingly to accommodate for all
 // bits of the other bitfield.
-func (b *Bitfield) Merge(other Bitfield) *Bitfield { //skipcq: GO-W1029
+func (b *bitfield) Merge(other bitfield) *bitfield { //skipcq: GO-W1029
 	if len(b.bits) < len(other.bits) {
 		b.bits = append(b.bits, make([]uint64, len(other.bits)-len(b.bits))...)
 	}
@@ -41,7 +41,7 @@ func (b *Bitfield) Merge(other Bitfield) *Bitfield { //skipcq: GO-W1029
 //
 // If the bitfield is not large enough to accommodate for a bit set
 // at the specified position, it is resized accordingly.
-func (b *Bitfield) SetBit(position uint) { //skipcq: GO-W1029
+func (b *bitfield) SetBit(position uint) { //skipcq: GO-W1029
 	wordOff := position / 64
 	bitOff := position % 64
 
@@ -55,17 +55,17 @@ func (b *Bitfield) SetBit(position uint) { //skipcq: GO-W1029
 // iter1s will get an iterator over all bits that are set (i.e. 1) in the bitfield,
 // starting at bit position `start` and moving in steps of size `2^step`
 // per word.
-func (b *Bitfield) iter1s(start, step uint) (bit1s []Bit1) { //skipcq: GO-W1029
+func (b *bitfield) iter1s(start, step uint) (bit1s []Bit1) { //skipcq: GO-W1029
 	return iter1s(b.bits, start, step)
 }
 
 // Iter1sEven will get an iterator over all bits that are set (i.e. 1) at even bit positions.
-func (b *Bitfield) Iter1sEven() []Bit1 { //skipcq: GO-W1029
+func (b *bitfield) Iter1sEven() []Bit1 { //skipcq: GO-W1029
 	return b.iter1s(0, 1)
 }
 
 // Iter1sOdd will get an iterator over all bits that are set (i.e. 1) at odd bit positions.
-func (b *Bitfield) Iter1sOdd() []Bit1 { //skipcq: GO-W1029
+func (b *bitfield) Iter1sOdd() []Bit1 { //skipcq: GO-W1029
 	return b.iter1s(1, 1)
 }
 
@@ -73,7 +73,7 @@ func (b *Bitfield) Iter1sOdd() []Bit1 { //skipcq: GO-W1029
 // this bitfield with another bitfield, without modifying either
 // bitfield, starting at bit position `start` and moving in steps
 // of size `2^step` per word.
-func (b *Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 { //skipcq: GO-W1029
+func (b *bitfield) iter1sMerged(other bitfield, start, step uint) []Bit1 { //skipcq: GO-W1029
 	switch {
 	case len(b.bits) == len(other.bits):
 		zipped := make([]uint64, len(b.bits))
@@ -110,14 +110,14 @@ func (b *Bitfield) iter1sMerged(other Bitfield, start, step uint) []Bit1 { //ski
 // Iter1sMergedEven will get an iterator over all bits that are set (i.e. 1) at even bit positions
 // when merging this bitfield with another bitfield, without modifying
 // either bitfield.
-func (b *Bitfield) Iter1sMergedEven(other Bitfield) []Bit1 { //skipcq: GO-W1029
+func (b *bitfield) Iter1sMergedEven(other bitfield) []Bit1 { //skipcq: GO-W1029
 	return b.iter1sMerged(other, 0, 1)
 }
 
 // Iter1sMergedOdd will get an iterator over all bits that are set (i.e. 1) at odd bit positions
 // when merging this bitfield with another bitfield, without modifying
 // either bitfield.
-func (b *Bitfield) Iter1sMergedOdd(other Bitfield) []Bit1 { //skipcq: GO-W1029
+func (b *bitfield) Iter1sMergedOdd(other bitfield) []Bit1 { //skipcq: GO-W1029
 	return b.iter1sMerged(other, 1, 1)
 }
 
@@ -149,7 +149,7 @@ func testBit(word uint64, position uint) bool {
 	return word&mask == mask
 }
 
-// A bit that is set (i.e. 1) in a `Bitfield`.
+// A bit that is set (i.e. 1) in a `bitfield`.
 type Bit1 struct {
 	// The position of the bit in the bitfield.
 	Position uint
