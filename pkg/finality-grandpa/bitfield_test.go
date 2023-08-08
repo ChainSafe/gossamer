@@ -14,7 +14,7 @@ import (
 )
 
 // Generate is used by testing/quick to genereate
-func (Bitfield) Generate(rand *rand.Rand, size int) reflect.Value { //skipcq: GO-W1029
+func (bitfield) Generate(rand *rand.Rand, size int) reflect.Value { //skipcq: GO-W1029
 	n := rand.Int() % size
 	bits := make([]uint64, n)
 	for i := range bits {
@@ -27,13 +27,13 @@ func (Bitfield) Generate(rand *rand.Rand, size int) reflect.Value { //skipcq: GO
 	for len(bits) > 0 && bits[len(bits)-1] == 0 {
 		bits = bits[:len(bits)-2]
 	}
-	return reflect.ValueOf(Bitfield{
+	return reflect.ValueOf(bitfield{
 		bits: bits,
 	})
 }
 
 // Test if the bit at the specified position is set.
-func (b *Bitfield) testBit(position uint) bool { //skipcq: GO-W1029
+func (b *bitfield) testBit(position uint) bool { //skipcq: GO-W1029
 	wordOff := position / 64
 	if wordOff >= uint(len(b.bits)) {
 		return false
@@ -42,7 +42,7 @@ func (b *Bitfield) testBit(position uint) bool { //skipcq: GO-W1029
 }
 
 func Test_SetBit(t *testing.T) {
-	f := func(a Bitfield, idx uint) bool {
+	f := func(a bitfield, idx uint) bool {
 		// let's bound the max bitfield index at 2^24. this is needed because when calling
 		// `set_bit` we will extend the backing vec to accommodate the given bitfield size, this
 		// way we restrict the maximum allocation size to 16MB.
@@ -58,8 +58,8 @@ func Test_SetBit(t *testing.T) {
 // translated from bitor test in
 // https://github.com/paritytech/finality-grandpa/blob/fbe2404574f74713bccddfe4104d60c2a32d1fe6/src/bitfield.rs#L243
 func Test_Merge(t *testing.T) {
-	f := func(a, b Bitfield) bool {
-		c := NewBitfield()
+	f := func(a, b bitfield) bool {
+		c := newBitfield()
 		copy(a.bits, c.bits)
 		cBits := c.iter1s(0, 0)
 		for _, bit := range cBits {
@@ -76,8 +76,8 @@ func Test_Merge(t *testing.T) {
 
 func Test_iter1s(t *testing.T) {
 	t.Run("all", func(t *testing.T) {
-		f := func(a Bitfield) bool {
-			b := NewBitfield()
+		f := func(a bitfield) bool {
+			b := newBitfield()
 			for _, bit1 := range a.iter1s(0, 0) {
 				b.SetBit(bit1.Position)
 			}
@@ -89,8 +89,8 @@ func Test_iter1s(t *testing.T) {
 	})
 
 	t.Run("even_odd", func(t *testing.T) {
-		f := func(a Bitfield) bool {
-			b := NewBitfield()
+		f := func(a bitfield) bool {
+			b := newBitfield()
 			for _, bit1 := range a.Iter1sEven() {
 				assert.True(t, !b.testBit(bit1.Position))
 				assert.True(t, bit1.Position%2 == 0)
@@ -111,8 +111,8 @@ func Test_iter1s(t *testing.T) {
 
 func Test_iter1sMerged(t *testing.T) {
 	t.Run("all", func(t *testing.T) {
-		f := func(a, b Bitfield) bool {
-			c := NewBitfield()
+		f := func(a, b bitfield) bool {
+			c := newBitfield()
 			for _, bit1 := range a.iter1sMerged(b, 0, 0) {
 				c.SetBit(bit1.Position)
 			}
@@ -124,8 +124,8 @@ func Test_iter1sMerged(t *testing.T) {
 	})
 
 	t.Run("even_odd", func(t *testing.T) {
-		f := func(a, b Bitfield) bool {
-			c := NewBitfield()
+		f := func(a, b bitfield) bool {
+			c := newBitfield()
 			for _, bit1 := range a.Iter1sMergedEven(b) {
 				assert.True(t, !c.testBit(bit1.Position))
 				assert.True(t, bit1.Position%2 == 0)

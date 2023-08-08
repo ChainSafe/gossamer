@@ -10,14 +10,14 @@ import (
 // The context of a `Round` in which vote weights are calculated.
 type Context[ID constraints.Ordered] struct {
 	voters        VoterSet[ID]
-	equivocations Bitfield
+	equivocations bitfield
 }
 
 // NewContext will create a new context for a round with the given set of voters.
 func NewContext[ID constraints.Ordered](voters VoterSet[ID]) Context[ID] {
 	return Context[ID]{
 		voters:        voters,
-		equivocations: NewBitfield(),
+		equivocations: newBitfield(),
 	}
 }
 
@@ -119,7 +119,7 @@ type voteNodeI[VoteNode, Vote any] interface {
 }
 
 type VoteNode[ID constraints.Ordered] struct {
-	bits Bitfield
+	bits bitfield
 }
 
 func (vn *VoteNode[ID]) Add(other *VoteNode[ID]) {
@@ -131,7 +131,7 @@ func (vn *VoteNode[ID]) AddVote(vote Vote[ID]) {
 }
 
 func (vn *VoteNode[ID]) Copy() *VoteNode[ID] {
-	copiedBits := NewBitfield()
+	copiedBits := newBitfield()
 	copiedBits.bits = make([]uint64, len(vn.bits.bits))
 	copy(copiedBits.bits, vn.bits.bits)
 	return &VoteNode[ID]{
