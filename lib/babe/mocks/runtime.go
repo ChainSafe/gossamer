@@ -7,11 +7,11 @@ package mocks
 import (
 	reflect "reflect"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	scale "github.com/ChainSafe/gossamer/pkg/scale"
