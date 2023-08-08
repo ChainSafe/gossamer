@@ -86,7 +86,7 @@ func TestSyncWorkerPool_useConnectedPeers(t *testing.T) {
 						peer.ID("available-3"),
 					})
 				workerPool := newSyncWorkerPool(networkMock, nil)
-				workerPool.workers[peer.ID("available-3")] = &worker{stopCh: make(chan struct{})}
+				workerPool.workers[peer.ID("available-3")] = &worker{queue: make(chan *syncTask)}
 				return workerPool
 			},
 			exepectedWorkers: []peer.ID{

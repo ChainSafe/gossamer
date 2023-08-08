@@ -152,15 +152,16 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 	if who != nil {
 		syncWorker := s.workers[*who]
-		syncWorker.processTask(task)
-		return
+
+		// if task enqueued then returns otherwise
+		// try to submit the task to other available peer
+		enqueued := syncWorker.processTask(task)
+		if enqueued {
+			return
+		}
 	}
 
-	for syncWorkerPeerID, syncWorker := range s.workers {
-		if who != nil && *who == syncWorkerPeerID {
-			continue
-		}
-
+	for _, syncWorker := range s.workers {
 		enqueued := syncWorker.processTask(task)
 		if enqueued {
 			break

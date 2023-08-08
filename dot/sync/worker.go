@@ -20,7 +20,6 @@ type worker struct {
 	sharedGuard chan struct{}
 
 	punishment chan time.Duration
-	stopCh     chan struct{}
 	doneCh     chan struct{}
 
 	queue        chan *syncTask
@@ -32,7 +31,6 @@ func newWorker(pID peer.ID, sharedGuard chan struct{}, network network.RequestMa
 		peerID:       pID,
 		sharedGuard:  sharedGuard,
 		punishment:   make(chan time.Duration),
-		stopCh:       make(chan struct{}),
 		doneCh:       make(chan struct{}),
 		queue:        make(chan *syncTask, maxRequestsAllowed),
 		requestMaker: network,
@@ -47,13 +45,8 @@ func (w *worker) start() {
 	}()
 
 	logger.Debugf("[STARTED] worker %s", w.peerID)
-	for {
-		select {
-		case <-w.stopCh:
-			return
-		case task := <-w.queue:
-			executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
-		}
+	for task := range w.queue {
+		executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
 	}
 }
 
@@ -67,7 +60,7 @@ func (w *worker) processTask(task *syncTask) (enqueued bool) {
 }
 
 func (w *worker) stop() error {
-	close(w.stopCh)
+	close(w.queue)
 
 	timeoutTimer := time.NewTimer(30 * time.Second)
 	select {

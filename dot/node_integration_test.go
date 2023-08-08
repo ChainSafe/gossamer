@@ -324,7 +324,6 @@ func TestStartStopNode(t *testing.T) {
 	config.ChainSpec = genFile
 	config.Core.GrandpaAuthority = false
 	config.Core.BabeAuthority = false
-	config.Network.MinPeers = 0
 
 	err := InitNode(config)
 	require.NoError(t, err)
