@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
 //go:embed testdata/collation_protocol.yaml
