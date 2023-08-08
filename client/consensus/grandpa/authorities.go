@@ -6,10 +6,10 @@ package grandpa
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"sync"
+
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
-	"sync"
 )
 
 var (
@@ -147,7 +147,7 @@ func (sas *SharedAuthoritySet[H, N]) CurrentLimit(min N) (limit *N) {
 	return sas.inner.CurrentLimit(min)
 }
 
-func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, bestNumber N, isDescendentOf IsDescendentOf[H], telemetry *telemetry.Client) (newSet *appliedChanges[H, N], err error) {
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, bestNumber N, isDescendentOf IsDescendentOf[H], telemetry *Telemetry) (newSet *appliedChanges[H, N], err error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, telemetry)
