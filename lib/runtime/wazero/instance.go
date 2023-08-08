@@ -1054,7 +1054,7 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	var validationCode *parachaintypes.ValidationCode
 	err = scale.Unmarshal(encodedValidationCodeHash, &validationCode)
 	if err != nil {
-		return nil, fmt.Errorf("scale decoding: %w", err)
+		return nil, fmt.Errorf("unmarshalling validation code: %w", err)
 	}
 
 	return validationCode, nil
