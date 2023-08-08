@@ -268,7 +268,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](authorities Authority
 	}
 }
 
-// Current Get the current set id and a reference to the current authority set.
+// current Get the current set id and a reference to the current authority set.
 func (authSet *AuthoritySet[H, N]) current() (uint64, *AuthorityList) {
 	return authSet.setId, &authSet.currentAuthorities
 }
