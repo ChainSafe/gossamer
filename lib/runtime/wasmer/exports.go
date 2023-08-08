@@ -6,6 +6,7 @@ package wasmer
 import (
 	"bytes"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -400,6 +401,30 @@ func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption p
 	err = scale.Unmarshal(encodedValidationCode, &validationCode)
 	if err != nil {
 		return nil, fmt.Errorf("scale decoding: %w", err)
+	}
+
+	return validationCode, nil
+}
+
+// ParachainHostValidationCodeByHash returns validation code for the given hash.
+func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (
+	*parachaintypes.ValidationCode, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(validationCodeHash)
+	if err != nil {
+		return nil, fmt.Errorf("encoding validation code hash: %w", err)
+	}
+
+	encodedValidationCodeHash, err := in.Exec(runtime.ParachainHostValidationCodeByHash, buffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	var validationCode *parachaintypes.ValidationCode
+	err = scale.Unmarshal(encodedValidationCodeHash, &validationCode)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling validation code: %w", err)
 	}
 
 	return validationCode, nil
