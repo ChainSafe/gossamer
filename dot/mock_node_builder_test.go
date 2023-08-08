@@ -16,6 +16,7 @@ import (
 	core "github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	network "github.com/ChainSafe/gossamer/dot/network"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	state "github.com/ChainSafe/gossamer/dot/state"
 	sync "github.com/ChainSafe/gossamer/dot/sync"
@@ -25,7 +26,6 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
-	parachain "github.com/ChainSafe/gossamer/lib/parachain"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "go.uber.org/mock/gomock"
 )
