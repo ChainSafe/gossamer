@@ -6,7 +6,9 @@ package sync
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+
+	"crypto/rand"
+	"math/big"
 	"sync"
 	"time"
 
@@ -159,9 +161,14 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 	// if the exact peer is not specified then
 	// randomly select a worker and assign the
-	// task to it
+	// task to it, if the amount of workers is
+	var selectedWorkerIdx int
 	workers := maps.Values(s.workers)
-	selectedWorkerIdx := rand.Intn(len(workers)) //nolint:all
+	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(workers))))
+	if err != nil {
+		panic(fmt.Errorf("fail to get a random number: %w", err))
+	}
+	selectedWorkerIdx = int(nBig.Int64())
 	selectedWorker := workers[selectedWorkerIdx]
 	selectedWorker.processTask(task)
 }
