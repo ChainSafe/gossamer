@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -82,6 +84,8 @@ type ParticipationHandler struct {
 	queue       Queue
 	sender      overseer.Sender // TODO: revisit this once we have the overseer
 	recentBlock *block
+
+	runtime parachain.RuntimeInstance
 
 	//TODO: metrics
 }
@@ -226,6 +230,9 @@ func (p *ParticipationHandler) forkParticipation(request *ParticipationRequest, 
 }
 
 func (p *ParticipationHandler) participate(blockHash common.Hash, request ParticipationRequest) error {
+	// TODO: use blockhash
+	fmt.Println(blockHash)
+
 	// get available data from the sender
 	availableDataTx := make(chan overseer.AvailabilityRecoveryResponse, 1)
 	if err := p.sender.SendMessage(overseer.AvailabilityRecoveryMessage{
@@ -251,12 +258,13 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		}
 	}
 
-	validationCode, err := getValidationCodeByHash(blockHash, request.candidateReceipt.Descriptor.ValidationCodeHash)
+	validationCode, err := p.runtime.ParachainHostValidationCodeByHash(
+		request.candidateReceipt.Descriptor.ValidationCodeHash)
 	if err != nil {
 		sendResult(p.sender, request, types.ParticipationOutcomeError)
 	}
 
-	if len(validationCode) == 0 {
+	if len(*validationCode) == 0 {
 		logger.Errorf(
 			"validation code is empty. CandidateHash: %s",
 			request.candidateHash.String(),
@@ -294,11 +302,12 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 
 var _ Participation = &ParticipationHandler{}
 
-func NewParticipation(sender overseer.Sender) *ParticipationHandler {
+func NewParticipation(sender overseer.Sender, runtime parachain.RuntimeInstance) *ParticipationHandler {
 	return &ParticipationHandler{
 		runningParticipation: sync.Map{},
 		queue:                NewQueue(),
 		sender:               sender,
+		runtime:              runtime,
 	}
 }
 
@@ -348,10 +357,4 @@ func sendResult(sender overseer.Sender, request ParticipationRequest, outcome ty
 			err,
 		)
 	}
-}
-
-func getValidationCodeByHash(relayParent common.Hash,
-	validationCodeHash parachainTypes.ValidationCodeHash,
-) ([]byte, error) {
-	panic("not implemented")
 }
