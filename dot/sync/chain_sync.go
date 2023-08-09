@@ -318,7 +318,7 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 }
 
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
-	// TODO: create issue to be spec compliat with regard block annoucement
+	// TODO: https://github.com/ChainSafe/gossamer/issues/3432
 	cs.workerPool.fromBlockAnnounce(announced.who)
 
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {

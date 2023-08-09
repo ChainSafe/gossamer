@@ -161,7 +161,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	// randomly select a worker and assign the
 	// task to it
 	workers := maps.Values(s.workers)
-	selectedWorkerIdx := rand.Intn(len(workers))
+	selectedWorkerIdx := rand.Intn(len(workers)) //nolint:all
 	selectedWorker := workers[selectedWorkerIdx]
 	selectedWorker.processTask(task)
 }
