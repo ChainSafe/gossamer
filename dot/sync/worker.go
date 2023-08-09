@@ -46,7 +46,6 @@ func (w *worker) start() {
 		close(w.doneCh)
 	}()
 
-	logger.Debugf("[STARTED] worker %s", w.peerID)
 	for task := range w.queue {
 		executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
 	}

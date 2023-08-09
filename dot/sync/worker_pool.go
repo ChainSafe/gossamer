@@ -6,6 +6,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -156,9 +157,13 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 		return
 	}
 
-	for _, syncWorker := range s.workers {
-		syncWorker.processTask(task)
-	}
+	// if the exact peer is not specified then
+	// randomly select a worker and assign the
+	// task to it
+	workers := maps.Values(s.workers)
+	selectedWorkerIdx := rand.Intn(len(workers))
+	selectedWorker := workers[selectedWorkerIdx]
+	selectedWorker.processTask(task)
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
@@ -169,18 +174,15 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	idx := 0
 	allWorkers := maps.Values(s.workers)
-	for idx < len(requests) {
+	for idx, request := range requests {
 		workerID := idx % len(allWorkers)
 		syncWorker := allWorkers[workerID]
 
 		syncWorker.processTask(&syncTask{
-			request:  requests[idx],
+			request:  request,
 			resultCh: resultCh,
 		})
-
-		idx++
 	}
 
 	return resultCh

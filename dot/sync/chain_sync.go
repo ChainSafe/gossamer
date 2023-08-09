@@ -643,6 +643,7 @@ taskResultLoop:
 					}
 				}
 
+				// TODO: avoid the same peer to get the same task
 				cs.workerPool.submitRequest(request, nil, workersResults)
 				continue
 			}
@@ -743,6 +744,7 @@ taskResultLoop:
 			return fmt.Errorf("while handling ready block: %w", err)
 		}
 	}
+
 	return nil
 }
 
