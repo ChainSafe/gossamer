@@ -69,7 +69,7 @@ func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (in
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
 
-	rtStorage.Put(common.CodeKey, bytes)
+	rtStorage.Put(common.CodeKey, bytes, trie.V0)
 
 	cfg := wazero_runtime.Config{
 		Role:     0,

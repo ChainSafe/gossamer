@@ -389,7 +389,7 @@ func TestService_Import(t *testing.T) {
 		"bnm",
 	}
 	for _, tc := range testCases {
-		tr.Put([]byte(tc), []byte(tc))
+		tr.Put([]byte(tc), []byte(tc), trie.V0)
 	}
 
 	digest := types.NewDigest()

@@ -584,7 +584,7 @@ func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRunt
 	testRuntime, err := os.ReadFile(newRuntimePath)
 	require.NoError(t, err)
 
-	trieState.Put(common.CodeKey, testRuntime)
+	trieState.Put(common.CodeKey, testRuntime, trie.V0)
 
 	primaryDigestData := types.NewBabePrimaryPreDigest(0, uint64(1), [32]byte{}, [64]byte{})
 	digest := types.NewDigest()
@@ -673,7 +673,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	ts, err = s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Put(common.CodeKey, testRuntime)
+	ts.Put(common.CodeKey, testRuntime, trie.V0)
 	rtUpdateBhash := newBlock.Header.Hash()
 
 	// update runtime for new block
