@@ -202,19 +202,19 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 	return resultCh
 }
 
-func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) error {
+func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	worker, has := s.workers[who]
 	if !has {
-		return nil
+		return
 	}
 
 	close(worker.queue)
 	delete(s.workers, who)
 	s.ignorePeers[who] = struct{}{}
-	return nil
+	return
 }
 
 // totalWorkers only returns available or busy workers

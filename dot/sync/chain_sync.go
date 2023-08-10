@@ -694,9 +694,7 @@ taskResultLoop:
 						Reason: peerset.BadBlockAnnouncementReason,
 					}, who)
 
-					if err := cs.workerPool.ignorePeerAsWorker(taskResult.who); err != nil {
-						logger.Errorf("ignoring peer: %w", err)
-					}
+					cs.workerPool.ignorePeerAsWorker(taskResult.who)
 					cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
 					continue taskResultLoop
 				}

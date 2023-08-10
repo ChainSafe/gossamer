@@ -14,7 +14,6 @@ import (
 var ErrStopTimeout = errors.New("stop timeout")
 
 type worker struct {
-	mxt          sync.Mutex
 	status       byte
 	peerID       peer.ID
 	sharedGuard  chan struct{}
