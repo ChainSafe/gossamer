@@ -214,31 +214,6 @@ func newChainSync(cfg chainSyncConfig, blockReqRes network.RequestMaker) *chainS
 	}
 }
 
-func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
-	resultCh := make(chan struct{})
-	go func() {
-		defer close(resultCh)
-		for {
-			select {
-			case <-resultCh:
-				return
-			default:
-			}
-
-			cs.workerPool.useConnectedPeers()
-			_, err := cs.getTarget()
-			totalAvailable := cs.workerPool.totalWorkers()
-			if totalAvailable >= uint(cs.minPeers) && err == nil {
-				return
-			}
-
-			time.Sleep(100 * time.Millisecond)
-		}
-	}()
-
-	return resultCh
-}
-
 func (cs *chainSync) start() {
 	// wait until we have received at least `minPeers` peer heads
 	for {

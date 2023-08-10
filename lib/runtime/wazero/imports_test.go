@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/cockroachdb/pebble"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +49,7 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = inst.Context.NodeStorage.BaseDB.Get(testKey)
-	require.ErrorIs(t, err, chaindb.ErrKeyNotFound)
+	require.ErrorIs(t, err, pebble.ErrNotFound)
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {

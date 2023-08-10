@@ -204,7 +204,7 @@ func (p *OfflinePruner) Prune() error {
 			return fmt.Errorf("checking filter database: %w", err)
 		}
 
-		writeBatch.Delete(key, &pebble.WriteOptions{})
+		err = writeBatch.Delete(key, &pebble.WriteOptions{})
 		if err != nil {
 			return fmt.Errorf("inserting in the batch delete: %w", err)
 		}
