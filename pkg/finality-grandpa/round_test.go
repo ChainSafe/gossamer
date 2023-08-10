@@ -102,7 +102,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var vm VoteMultiplicity[headerNumber, signature]
+			var vm voteMultiplicity[headerNumber, signature]
 			switch val := tt.value.(type) {
 			case Equivocated[headerNumber, signature]:
 				vm = newVoteMultiplicity[headerNumber, signature](val)
@@ -111,7 +111,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 			}
 			got := vm.Contains(tt.args.Vote, tt.args.Signature)
 			if got != tt.want {
-				t.Errorf("VoteMultiplicity.Contains() = %v, want %v", got, tt.want)
+				t.Errorf("voteMultiplicity.Contains() = %v, want %v", got, tt.want)
 			}
 		})
 	}

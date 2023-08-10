@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/tidwall/btree"
@@ -31,9 +30,8 @@ type Single[Vote, Signature comparable] voteSignature[Vote, Signature]
 
 type Equivocated[Vote, Signature comparable] [2]voteSignature[Vote, Signature]
 
-var ErrInvalidVoteMultiplicity = errors.New("invalid VoteMultiplicity")
-
-type VoteMultiplicity[Vote, Signature comparable] struct {
+// The observed vote from a single voter.
+type voteMultiplicity[Vote, Signature comparable] struct {
 	value interface{}
 }
 
@@ -42,42 +40,27 @@ type voteMultiplicityValue[Vote, Signature comparable] interface {
 	Single[Vote, Signature] | Equivocated[Vote, Signature]
 }
 
-func setVoteMultiplicity[
+func setvoteMultiplicity[
 	Vote, Signature comparable,
 	T voteMultiplicityValue[Vote, Signature],
-](vm *VoteMultiplicity[Vote, Signature], val T) {
+](vm *voteMultiplicity[Vote, Signature], val T) {
 	vm.value = val
 }
 
 func newVoteMultiplicity[
 	Vote, Signature comparable,
 	T voteMultiplicityValue[Vote, Signature],
-](val T) (vm VoteMultiplicity[Vote, Signature]) {
-	return VoteMultiplicity[Vote, Signature]{
+](val T) (vm voteMultiplicity[Vote, Signature]) {
+	return voteMultiplicity[Vote, Signature]{
 		value: val,
 	}
 }
 
-var ErrInvalidVoteMultiplicityValue = errors.New(
-	"invalid value supplied to VoteMultiplicity.Set(), constrained to Single || Equivocated")
-
-func (vm *VoteMultiplicity[Vote, Signature]) Set(val interface{}) (err error) {
-	switch val := val.(type) {
-	case Single[Vote, Signature]:
-		setVoteMultiplicity(vm, val)
-	case Equivocated[Vote, Signature]:
-		setVoteMultiplicity(vm, val)
-	default:
-		return ErrInvalidVoteMultiplicityValue
-	}
-	return
-}
-
-func (vm VoteMultiplicity[Vote, Signature]) Value() interface{} {
+func (vm voteMultiplicity[Vote, Signature]) Value() interface{} {
 	return vm.value
 }
 
-func (vm VoteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) bool {
+func (vm voteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) bool {
 	vs := voteSignature[Vote, Signature]{vote, sig}
 	switch in := vm.Value().(type) {
 	case Single[Vote, Signature]:
@@ -90,14 +73,14 @@ func (vm VoteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) b
 }
 
 type voteTracker[ID constraints.Ordered, Vote, Signature comparable] struct {
-	votes         *btree.Map[ID, VoteMultiplicity[Vote, Signature]]
+	votes         *btree.Map[ID, voteMultiplicity[Vote, Signature]]
 	currentWeight VoteWeight
 	mtx           sync.RWMutex
 }
 
 func newVoteTracker[ID constraints.Ordered, Vote, Signature comparable]() voteTracker[ID, Vote, Signature] {
 	return voteTracker[ID, Vote, Signature]{
-		votes: btree.NewMap[ID, VoteMultiplicity[Vote, Signature]](2),
+		votes: btree.NewMap[ID, voteMultiplicity[Vote, Signature]](2),
 	}
 }
 
@@ -116,7 +99,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 	vote Vote,
 	signature Signature,
 	weight VoterWeight,
-) (*VoteMultiplicity[Vote, Signature], bool) {
+) (*voteMultiplicity[Vote, Signature], bool) {
 	vt.mtx.Lock()
 	defer vt.mtx.Unlock()
 
@@ -149,7 +132,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 				Signature: signature,
 			},
 		}
-		setVoteMultiplicity(&vm, eq)
+		setvoteMultiplicity(&vm, eq)
 		vt.votes.Set(id, vm)
 		return &vm, false
 	case Equivocated[Vote, Signature]:
@@ -169,7 +152,7 @@ func (vt *voteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID,
 	vt.mtx.RLock()
 	defer vt.mtx.RUnlock()
 
-	vt.votes.Scan(func(id ID, vm VoteMultiplicity[Vote, Signature]) bool {
+	vt.votes.Scan(func(id ID, vm voteMultiplicity[Vote, Signature]) bool {
 		switch in := vm.Value().(type) {
 		case Single[Vote, Signature]:
 			votes = append(votes, idVoteSignature[ID, Vote, Signature]{
@@ -254,7 +237,7 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 	roundParams RoundParams[ID, Hash, Number],
 ) *Round[ID, Hash, Number, Signature] {
 
-	var newvoteNode = func() *voteNode[ID] {
+	var newVoteNode = func() *voteNode[ID] {
 		return &voteNode[ID]{newBitfield()}
 	}
 	return &Round[ID, Hash, Number, Signature]{
@@ -263,8 +246,8 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 		graph: NewVoteGraph[Hash, Number, *voteNode[ID], vote[ID]](
 			roundParams.Base.Hash,
 			roundParams.Base.Number,
-			newvoteNode(),
-			newvoteNode,
+			newVoteNode(),
+			newVoteNode,
 		),
 		prevotes:        newVoteTracker[ID, Prevote[Hash, Number], Signature](),
 		precommits:      newVoteTracker[ID, Precommit[Hash, Number], Signature](),
@@ -295,7 +278,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 	weight := info.weight
 
 	var equivocation *Equivocation[ID, Prevote[H, N], S]
-	var multiplicity *VoteMultiplicity[Prevote[H, N], S]
+	var multiplicity *voteMultiplicity[Prevote[H, N], S]
 	m, duplicated := r.prevotes.AddVote(signer, prevote, signature, weight)
 	if m != nil {
 		multiplicity = m
@@ -381,7 +364,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 	weight := info.weight
 
 	var equivocation *Equivocation[ID, Precommit[H, N], S]
-	var multiplicity *VoteMultiplicity[Precommit[H, N], S]
+	var multiplicity *voteMultiplicity[Precommit[H, N], S]
 	m, duplicated := r.precommits.AddVote(signer, precommit, signature, weight)
 	if m != nil {
 		multiplicity = m
@@ -551,7 +534,7 @@ func (r *Round[ID, H, N, S]) PrecommitGHOST() *HashNumber[H, N] {
 
 type yieldVotes[H constraints.Ordered, N constraints.Unsigned, S comparable] struct {
 	yielded      uint
-	multiplicity VoteMultiplicity[Precommit[H, N], S]
+	multiplicity voteMultiplicity[Precommit[H, N], S]
 }
 
 func (yv *yieldVotes[H, N, S]) voteSignature() *voteSignature[Precommit[H, N], S] {
@@ -582,35 +565,35 @@ func (yv *yieldVotes[H, N, S]) voteSignature() *voteSignature[Precommit[H, N], S
 //
 // Only returns `None` if no block has been finalized in this round.
 func (r *Round[ID, H, N, S]) FinalizingPrecommits(chain Chain[H, N]) *[]SignedPrecommit[H, N, S, ID] {
-	type idVoteMultiplicity struct {
+	type idvoteMultiplicity struct {
 		ID               ID
-		VoteMultiplicity VoteMultiplicity[Precommit[H, N], S]
+		voteMultiplicity voteMultiplicity[Precommit[H, N], S]
 	}
 
 	if r.finalized == nil {
 		return nil
 	}
 	fHash := r.finalized.Hash
-	var filtered []idVoteMultiplicity
+	var filtered []idvoteMultiplicity
 	var findValidPrecommits []SignedPrecommit[H, N, S, ID]
-	r.precommits.votes.Scan(func(id ID, multiplicity VoteMultiplicity[Precommit[H, N], S]) bool {
+	r.precommits.votes.Scan(func(id ID, multiplicity voteMultiplicity[Precommit[H, N], S]) bool {
 		switch multiplicityValue := multiplicity.Value().(type) {
 		case Single[Precommit[H, N], S]:
 			// if there is a single vote from this voter, we only include it
 			// if it branches off of the target.
 			if chain.IsEqualOrDescendantOf(fHash, multiplicityValue.Vote.TargetHash) {
-				filtered = append(filtered, idVoteMultiplicity{id, multiplicity})
+				filtered = append(filtered, idvoteMultiplicity{id, multiplicity})
 			}
 		default:
 			// equivocations count for everything, so we always include them.
-			filtered = append(filtered, idVoteMultiplicity{id, multiplicity})
+			filtered = append(filtered, idvoteMultiplicity{id, multiplicity})
 		}
 		return true
 	})
 	for _, ivm := range filtered {
 		yieldVotes := yieldVotes[H, N, S]{
 			yielded:      0,
-			multiplicity: ivm.VoteMultiplicity,
+			multiplicity: ivm.voteMultiplicity,
 		}
 		if vs := yieldVotes.voteSignature(); vs != nil {
 			findValidPrecommits = append(findValidPrecommits, SignedPrecommit[H, N, S, ID]{
