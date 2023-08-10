@@ -62,7 +62,8 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries)
+	//TODO: revisit this to use the right trie version
+	tr, err := trie.LoadFromMap(entries, trie.V0)
 	if err != nil {
 		return nil, err
 	}

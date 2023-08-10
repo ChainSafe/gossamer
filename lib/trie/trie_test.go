@@ -1115,6 +1115,7 @@ func Test_Trie_insert(t *testing.T) {
 		parent                *Node
 		key                   []byte
 		value                 []byte
+		isValueHashed         bool
 		pendingDeltas         DeltaRecorder
 		newNode               *Node
 		mutated               bool
@@ -1327,7 +1328,7 @@ func Test_Trie_insert(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, mutated, nodesCreated, err := trie.insert(
-				testCase.parent, testCase.key, testCase.value,
+				testCase.parent, testCase.key, testCase.value, testCase.isValueHashed,
 				testCase.pendingDeltas)
 
 			require.NoError(t, err)
@@ -1347,6 +1348,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		parent                *Node
 		key                   []byte
 		value                 []byte
+		isValueHashed         bool
 		pendingDeltas         DeltaRecorder
 		newNode               *Node
 		mutated               bool
@@ -1626,7 +1628,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			trie := new(Trie)
 
 			newNode, mutated, nodesCreated, err := trie.insertInBranch(
-				testCase.parent, testCase.key, testCase.value,
+				testCase.parent, testCase.key, testCase.value, testCase.isValueHashed,
 				testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
@@ -1646,10 +1648,11 @@ func Test_LoadFromMap(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		data         map[string]string
-		expectedTrie Trie
-		errWrapped   error
-		errMessage   string
+		data             map[string]string
+		stateTrieVersion Version
+		expectedTrie     Trie
+		errWrapped       error
+		errMessage       string
 	}{
 		"nil_data": {
 			expectedTrie: Trie{
@@ -1734,7 +1737,7 @@ func Test_LoadFromMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			trie, err := LoadFromMap(testCase.data)
+			trie, err := LoadFromMap(testCase.data, testCase.stateTrieVersion)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
