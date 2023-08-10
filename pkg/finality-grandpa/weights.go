@@ -9,16 +9,16 @@ import (
 	"math/big"
 )
 
-type voteWeight uint64
+type VoteWeight uint64
 
-type voterWeight uint64
+type VoterWeight uint64
 
-func (vw *voterWeight) checkedAdd(add voterWeight) (err error) {
+func (vw *VoterWeight) checkedAdd(add VoterWeight) (err error) {
 	sum := new(big.Int).SetUint64(uint64(*vw))
 	sum.Add(sum, new(big.Int).SetUint64(uint64(add)))
 	if sum.Cmp(new(big.Int).SetUint64(uint64(math.MaxUint64))) > 0 {
-		return fmt.Errorf("voterWeight overflow for CheckedAdd")
+		return fmt.Errorf("VoterWeight overflow for CheckedAdd")
 	}
-	*vw = voterWeight(sum.Uint64())
+	*vw = VoterWeight(sum.Uint64())
 	return nil
 }

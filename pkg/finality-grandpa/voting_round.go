@@ -291,13 +291,13 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) finalized() *HashNumber[H
 }
 
 // Get the current total weight of prevotes.
-func (vr *votingRound[Hash, Number, Signature, ID, E]) prevoteWeight() voteWeight {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) preVoteWeight() VoteWeight {
 	weight, _ := vr.votes.PrevoteParticipation()
 	return weight
 }
 
 // Get the current total weight of precommits.
-func (vr *votingRound[Hash, Number, Signature, ID, E]) precommitWeight() voteWeight {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) precommitWeight() VoteWeight {
 	weight, _ := vr.votes.PrecommitParticipation()
 	return weight
 }
@@ -428,13 +428,13 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) logParticipation(level an
 	nVoters := vr.voters().Len()
 	number := vr.roundNumber()
 
-	prevoteWeight, nPrevotes := vr.votes.PrevoteParticipation()
+	preVoteWeight, nPrevotes := vr.votes.PrevoteParticipation()
 	precommitWeight, nPrecommits := vr.votes.PrecommitParticipation()
 
 	// TODO: log::log!(target: "afg", log_level, "Round {}: prevotes: {}/{}/{} weight, {}/{} actual",
 	// number, prevote_weight, threshold, total_weight, n_prevotes, n_voters);
 	fmt.Printf("%s: Round %d: prevotes: %d/%d/%d weight, %d/%d actual\n",
-		level, number, prevoteWeight, threshold, totalWeight, nPrevotes, nVoters)
+		level, number, preVoteWeight, threshold, totalWeight, nPrevotes, nVoters)
 
 	// TODO: log::log!(target: "afg", log_level, "Round {}: precommits: {}/{}/{} weight, {}/{} actual",
 	// number, precommit_weight, threshold, total_weight, n_precommits, n_voters);

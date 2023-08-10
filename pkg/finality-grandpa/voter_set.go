@@ -9,7 +9,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type idVoterInfo[ID constraints.Ordered] struct {
+// IDVoterInfo is tuple for ID and VoterInfo
+type IDVoterInfo[ID constraints.Ordered] struct {
 	ID ID
 	VoterInfo
 }
@@ -20,14 +21,14 @@ type idVoterInfo[ID constraints.Ordered] struct {
 // of the protocol and their associated weights. A `VoterSet` is furthermore
 // equipped with a total order, given by the ordering of the voter's IDs.
 type VoterSet[ID constraints.Ordered] struct {
-	voters      []idVoterInfo[ID]
-	threshold   voterWeight
-	totalWeight voterWeight
+	voters      []IDVoterInfo[ID]
+	threshold   VoterWeight
+	totalWeight VoterWeight
 }
 
 type IDWeight[ID constraints.Ordered] struct {
 	ID     ID
-	Weight voterWeight
+	Weight VoterWeight
 }
 
 // Create a voter set from a weight distribution produced by the given iterator.
@@ -40,7 +41,7 @@ type IDWeight[ID constraints.Ordered] struct {
 // the case if it either produced no non-zero weights or, i.e. the voter set
 // would be empty, or if the total voter weight exceeds `u64::MAX`.
 func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
-	var totalWeight voterWeight
+	var totalWeight VoterWeight
 	var voters = btree.NewMap[ID, VoterInfo](2)
 	for _, iw := range weights {
 		if iw.Weight != 0 {
@@ -65,11 +66,11 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 		return nil
 	}
 
-	var orderedVoters = make([]idVoterInfo[ID], voters.Len())
+	var orderedVoters = make([]IDVoterInfo[ID], voters.Len())
 	var i uint
 	voters.Scan(func(id ID, info VoterInfo) bool {
 		info.position = i
-		orderedVoters[i] = idVoterInfo[ID]{id, info}
+		orderedVoters[i] = IDVoterInfo[ID]{id, info}
 		i++
 		return true
 	})
@@ -87,7 +88,7 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 
 // Get the voter info for the voter with the given ID, if any.
 func (vs VoterSet[ID]) Get(id ID) *VoterInfo {
-	idx, ok := slices.BinarySearchFunc(vs.voters, idVoterInfo[ID]{ID: id}, func(a, b idVoterInfo[ID]) int {
+	idx, ok := slices.BinarySearchFunc(vs.voters, IDVoterInfo[ID]{ID: id}, func(a, b IDVoterInfo[ID]) int {
 		switch {
 		case a.ID == b.ID:
 			return 0
@@ -117,7 +118,7 @@ func (vs VoterSet[ID]) Contains(id ID) bool {
 
 // Get the nth voter in the set, modulo the size of the set,
 // as per the associated total order.
-func (vs VoterSet[ID]) NthMod(n uint) idVoterInfo[ID] {
+func (vs VoterSet[ID]) NthMod(n uint) IDVoterInfo[ID] {
 	ivi := vs.Nth(n % uint(len(vs.voters)))
 	if ivi == nil {
 		panic("set is nonempty and n % len < len; qed")
@@ -128,11 +129,11 @@ func (vs VoterSet[ID]) NthMod(n uint) idVoterInfo[ID] {
 // Get the nth voter in the set, if any.
 //
 // Returns `None` if `n >= len`.
-func (vs VoterSet[ID]) Nth(n uint) *idVoterInfo[ID] {
+func (vs VoterSet[ID]) Nth(n uint) *IDVoterInfo[ID] {
 	if n >= uint(len(vs.voters)) {
 		return nil
 	}
-	return &idVoterInfo[ID]{
+	return &IDVoterInfo[ID]{
 		vs.voters[n].ID,
 		vs.voters[n].VoterInfo,
 	}
@@ -140,37 +141,41 @@ func (vs VoterSet[ID]) Nth(n uint) *idVoterInfo[ID] {
 
 // Get the threshold vote weight required for supermajority
 // w.r.t. this set of voters.
-func (vs VoterSet[ID]) Threshold() voterWeight {
+func (vs VoterSet[ID]) Threshold() VoterWeight {
 	return vs.threshold
 }
 
 // Get the total weight of all voters.
-func (vs VoterSet[ID]) TotalWeight() voterWeight {
+func (vs VoterSet[ID]) TotalWeight() VoterWeight {
 	return vs.totalWeight
 }
 
 // Get an iterator over the voters in the set, as given by
 // the associated total order.
-func (vs VoterSet[ID]) Iter() []idVoterInfo[ID] {
+func (vs VoterSet[ID]) Iter() []IDVoterInfo[ID] {
 	return vs.voters
 }
 
 // Information about a voter in a `VoterSet`.
 type VoterInfo struct {
 	position uint
-	weight   voterWeight
+	weight   VoterWeight
 }
 
-func (vi VoterInfo) Weight() voterWeight {
+func (vi VoterInfo) Position() uint {
+	return vi.position
+}
+
+func (vi VoterInfo) Weight() VoterWeight {
 	return vi.weight
 }
 
 // Compute the threshold weight given the total voting weight.
-func threshold(totalWeight voterWeight) voterWeight { //skipcq: RVV-B0001
+func threshold(totalWeight VoterWeight) VoterWeight { //skipcq: RVV-B0001
 	// TODO: implement saturating sub
 	// let faulty = total_weight.get().saturating_sub(1) / 3;
 	var faulty = (totalWeight - 1) / 3
 	// TODO: check that this computation is NonZero
-	// voterWeight::new(total_weight.get() - faulty).expect("subtrahend > minuend; qed")
+	// VoterWeight::new(total_weight.get() - faulty).expect("subtrahend > minuend; qed")
 	return totalWeight - faulty
 }

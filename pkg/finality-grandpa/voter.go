@@ -922,7 +922,7 @@ func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateRepo
 		return votingRound.roundNumber(), RoundStateReport[ID]{
 			TotalWeight:            votingRound.voters().TotalWeight(),
 			ThresholdWeight:        votingRound.voters().Threshold(),
-			PrevoteCurrentWeight:   votingRound.prevoteWeight(),
+			PrevoteCurrentWeight:   votingRound.preVoteWeight(),
 			PrevoteIDs:             votingRound.prevoteIDs(),
 			PrecommitCurrentWeight: votingRound.precommitWeight(),
 			PrecommitIDs:           votingRound.precommitIDs(),
@@ -1025,8 +1025,8 @@ func validateCatchUp[
 		}
 
 		var (
-			pv voteWeight
-			pc voteWeight
+			pv VoteWeight
+			pc VoteWeight
 		)
 		mapped.Scan(func(id ID, pp prevotedPrecommitted) bool {
 			prevoted := pp.prevoted
@@ -1034,18 +1034,18 @@ func validateCatchUp[
 
 			if vi := voters.Get(id); vi != nil {
 				if prevoted {
-					pv = pv + voteWeight(vi.Weight())
+					pv = pv + VoteWeight(vi.Weight())
 				}
 
 				if precommitted {
-					pc = pc + voteWeight(vi.Weight())
+					pc = pc + VoteWeight(vi.Weight())
 				}
 			}
 			return true
 		})
 
 		threshold := voters.Threshold()
-		if pv < voteWeight(threshold) || pc < voteWeight(threshold) {
+		if pv < VoteWeight(threshold) || pc < VoteWeight(threshold) {
 			fmt.Println("Ignoring invalid catch up, missing voter threshold")
 			return nil
 		}

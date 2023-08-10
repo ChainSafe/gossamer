@@ -41,7 +41,7 @@ func TestVote_voter(t *testing.T) {
 		for _, idv := range vs.Iter() {
 			id := idv.ID
 			v := idv.VoterInfo
-			eq := assert.Equal(t, &idVoterInfo[uint]{id, v}, newVote[uint](v, phase).voter(vs))
+			eq := assert.Equal(t, &IDVoterInfo[uint]{id, v}, newVote[uint](v, phase).voter(vs))
 			if !eq {
 				return false
 			}
@@ -75,7 +75,7 @@ func TestWeights(t *testing.T) {
 			// We only expect the weight to increase if the voter did not
 			// start out as an equivocator and did not yet vote.
 			if !ctx.equivocations.testBit(vote.bit.position) && !n.bits.testBit(vote.bit.position) {
-				expected = expected + voteWeight(idvi.VoterInfo.weight)
+				expected = expected + VoteWeight(idvi.VoterInfo.weight)
 			}
 			n.addVote(vote)
 		}
