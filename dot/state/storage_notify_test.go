@@ -175,20 +175,18 @@ func Test_Example(t *testing.T) {
 		}
 
 		if err := db.Subscribe(ctx, cb, match); err != nil && err != context.Canceled {
-			log.Fatal(err)
+			t.Error(err)
 		}
 		log.Printf("subscription closed")
 	}()
 
 	// Write both keys, but only one should be printed in the Output.
 	err := db.Put(aKey, aValue)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = db.Put(bKey, bValue)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	log.Printf("stopping subscription")
 	cancel()
 	log.Printf("waiting for subscription to close")

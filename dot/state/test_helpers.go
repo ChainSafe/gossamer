@@ -153,7 +153,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 // branches are provided with a map of depth -> # of branches
 func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int) {
 	bestBlockHash := blockState.BestBlockHash()
-	tb := []testBranch{}
+	var tb []testBranch
 	arrivalTime := time.Now()
 
 	rt, err := blockState.GetRuntime(bestBlockHash)
@@ -235,6 +235,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
+//lint:ignore U1000 this has a real reason
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
