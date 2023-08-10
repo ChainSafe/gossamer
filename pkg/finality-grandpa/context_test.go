@@ -77,7 +77,7 @@ func TestWeights(t *testing.T) {
 			if !ctx.equivocations.testBit(vote.bit.position) && !n.bits.testBit(vote.bit.position) {
 				expected = expected + VoteWeight(idvi.VoterInfo.weight)
 			}
-			n.addVote(vote)
+			n.AddVote(vote)
 		}
 
 		// Let the context compute the weight.

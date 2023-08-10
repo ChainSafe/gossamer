@@ -112,24 +112,24 @@ func weight[ID constraints.Ordered](bits []bit1, voters VoterSet[ID]) (total Vot
 }
 
 type voteNodeI[voteNode, Vote any] interface {
-	add(other voteNode)
-	addVote(other Vote)
-	copy() voteNode
+	Add(other voteNode)
+	AddVote(other Vote)
+	Copy() voteNode
 }
 
 type voteNode[ID constraints.Ordered] struct {
 	bits bitfield
 }
 
-func (vn *voteNode[ID]) add(other *voteNode[ID]) {
+func (vn *voteNode[ID]) Add(other *voteNode[ID]) {
 	vn.bits.Merge(other.bits)
 }
 
-func (vn *voteNode[ID]) addVote(vote vote[ID]) {
+func (vn *voteNode[ID]) AddVote(vote vote[ID]) {
 	vn.bits.SetBit(vote.bit.position)
 }
 
-func (vn *voteNode[ID]) copy() *voteNode[ID] {
+func (vn *voteNode[ID]) Copy() *voteNode[ID] {
 	copiedBits := newBitfield()
 	copiedBits.bits = make([]uint64, len(vn.bits.bits))
 	copy(copiedBits.bits, vn.bits.bits)
