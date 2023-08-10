@@ -1,6 +1,8 @@
 package scraping
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -8,7 +10,7 @@ import (
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 )
 
-// DisputeCandidateLifetimeAfterFinalization How many blocks after finalization an information about
+// DisputeCandidateLifetimeAfterFinalization How many blocks after finalisation an information about
 // backed/included candidate should be pre-loaded (when scraping onchain votes) and kept locally (when pruning).
 const DisputeCandidateLifetimeAfterFinalization = uint32(10)
 
@@ -34,13 +36,16 @@ func (cs *ChainScrapper) IsCandidateBacked(candidateHash common.Hash) bool {
 	return cs.BackedCandidates.Contains(candidateHash)
 }
 
-func (cs *ChainScrapper) getBlocksIncludingCandidate(candidateHash common.Hash) []Inclusion {
+func (cs *ChainScrapper) GetBlocksIncludingCandidate(candidateHash common.Hash) []Inclusion {
 	return cs.Inclusions.Get(candidateHash)
 }
 
-func (cs *ChainScrapper) ProcessActiveLeavesUpdate(sender overseer.Sender, update overseer.ActiveLeavesUpdate) (*types.ScrappedUpdates, error) {
+func (cs *ChainScrapper) ProcessActiveLeavesUpdate(
+	sender overseer.Sender,
+	update overseer.ActiveLeavesUpdate,
+) (*types.ScrappedUpdates, error) {
 
-	return nil, nil
+	panic("ChainScrapper.ProcessActiveLeavesUpdate not implemented")
 }
 
 // ProcessFinalisedBlock prune finalised candidates.
@@ -57,12 +62,40 @@ func (cs *ChainScrapper) ProcessFinalisedBlock(finalisedBlock uint32) {
 	cs.Inclusions.RemoveUpToHeight(removeUptoHeight, candidatesModified)
 }
 
-func (cs *ChainScrapper) ProcessCandidateEvents(sender overseer.Sender, blockNumber uint32, blockHash common.Hash) ([]parachainTypes.CandidateReceipt, error) {
+func (cs *ChainScrapper) ProcessCandidateEvents(
+	sender overseer.Sender,
+	blockNumber uint32, blockHash common.Hash,
+) ([]parachainTypes.CandidateReceipt, error) {
 
-	return nil, nil
+	panic("ChainScrapper.ProcessCandidateEvents not implemented")
 }
 
-func (cs *ChainScrapper) GetRelevantBlockAncestors(sender overseer.Sender, head common.Hash, headNumber uint32) ([]common.Hash, error) {
+func (cs *ChainScrapper) GetRelevantBlockAncestors(
+	sender overseer.Sender,
+	head common.Hash,
+	headNumber uint32,
+) ([]common.Hash, error) {
+	panic("ChainScrapper.GetRelevantBlockAncestors not implemented")
+}
 
-	return nil, nil
+func NewChainScraper(
+	sender overseer.Sender,
+	initialHead overseer.ActivatedLeaf,
+) (*ChainScrapper, *types.ScrappedUpdates, error) {
+	chainScraper := &ChainScrapper{
+		IncludedCandidates: NewScrappedCandidates(),
+		BackedCandidates:   NewScrappedCandidates(),
+		LastObservedBlocks: lrucache.LRUCache[common.Hash, uint32]{},
+		Inclusions:         NewInclusions(),
+	}
+
+	update := overseer.ActiveLeavesUpdate{
+		Activated: &initialHead,
+	}
+	updates, err := chainScraper.ProcessActiveLeavesUpdate(sender, update)
+	if err != nil {
+		return nil, nil, fmt.Errorf("processing active leaves update: %w", err)
+	}
+
+	return chainScraper, updates, nil
 }
