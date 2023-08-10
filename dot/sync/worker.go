@@ -5,9 +5,7 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -16,15 +14,10 @@ import (
 var ErrStopTimeout = errors.New("stop timeout")
 
 type worker struct {
-	mxt         sync.Mutex
-	status      byte
-	peerID      peer.ID
-	sharedGuard chan struct{}
-
-	punishment chan time.Duration
-	doneCh     chan struct{}
-
-	queue        chan *syncTask
+	mxt          sync.Mutex
+	status       byte
+	peerID       peer.ID
+	sharedGuard  chan struct{}
 	requestMaker network.RequestMaker
 }
 
@@ -32,54 +25,19 @@ func newWorker(pID peer.ID, sharedGuard chan struct{}, network network.RequestMa
 	return &worker{
 		peerID:       pID,
 		sharedGuard:  sharedGuard,
-		punishment:   make(chan time.Duration),
-		doneCh:       make(chan struct{}),
-		queue:        make(chan *syncTask, maxRequestsAllowed),
 		requestMaker: network,
 		status:       available,
 	}
 }
 
-func (w *worker) start() {
+func (w *worker) run(queue chan *syncTask, wg *sync.WaitGroup) {
 	defer func() {
 		logger.Debugf("[STOPPED] worker %s", w.peerID)
-		close(w.doneCh)
+		wg.Done()
 	}()
 
-	for task := range w.queue {
+	for task := range queue {
 		executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
-	}
-}
-
-func (w *worker) processTask(task *syncTask) {
-	w.mxt.Lock()
-	defer w.mxt.Unlock()
-	if w.queue != nil {
-		select {
-		case w.queue <- task:
-		default:
-			panic(fmt.Sprintf("worker %s queue is blocked, cannot enqueue task: %s",
-				w.peerID, task.request.String()))
-		}
-	}
-}
-
-func (w *worker) stop() error {
-	w.mxt.Lock()
-	close(w.queue)
-	w.queue = nil
-	w.mxt.Unlock()
-
-	timeoutTimer := time.NewTimer(30 * time.Second)
-	select {
-	case <-w.doneCh:
-		if !timeoutTimer.Stop() {
-			<-timeoutTimer.C
-		}
-
-		return nil
-	case <-timeoutTimer.C:
-		return fmt.Errorf("%w: worker %s", ErrStopTimeout, w.peerID)
 	}
 }
 

@@ -389,8 +389,10 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
-				workerPool.workers = map[peer.ID]*worker{
-					peer.ID("peer-test"): {status: available},
+				workerPool.workers = map[peer.ID]*syncWorker{
+					peer.ID("peer-test"): {
+						worker: &worker{status: available},
+					},
 				}
 
 				cs := newChainSyncTest(t, ctrl)
@@ -422,7 +424,7 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 			if tt.shouldBeAWorker {
 				syncWorker, exists := cs.workerPool.workers[tt.peerID]
 				require.True(t, exists)
-				require.Equal(t, tt.workerStatus, syncWorker.status)
+				require.Equal(t, tt.workerStatus, syncWorker.worker.status)
 			} else {
 				_, exists := cs.workerPool.workers[tt.peerID]
 				require.False(t, exists)

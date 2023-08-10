@@ -4,6 +4,7 @@
 package sync
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -29,18 +30,23 @@ func TestWorker(t *testing.T) {
 
 	sharedGuard := make(chan struct{}, 1)
 	w := newWorker(peerA, sharedGuard, reqMaker)
-	go w.start()
+
+	wg := sync.WaitGroup{}
+	queue := make(chan *syncTask, 2)
+
+	wg.Add(1)
+	go w.run(queue, &wg)
 
 	resultCh := make(chan *syncTaskResult)
 	defer close(resultCh)
 
-	w.processTask(&syncTask{
+	queue <- &syncTask{
 		resultCh: resultCh,
-	})
+	}
 
-	w.processTask(&syncTask{
+	queue <- &syncTask{
 		resultCh: resultCh,
-	})
+	}
 
 	time.Sleep(500 * time.Millisecond)
 	require.Equal(t, 1, len(sharedGuard))
@@ -50,5 +56,6 @@ func TestWorker(t *testing.T) {
 	require.Equal(t, 1, len(sharedGuard))
 	<-resultCh
 
-	w.stop()
+	close(queue)
+	wg.Wait()
 }

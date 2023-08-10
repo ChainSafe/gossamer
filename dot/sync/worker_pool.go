@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"errors"
 	"fmt"
 
 	"crypto/rand"
@@ -40,12 +39,18 @@ type syncTaskResult struct {
 	err      error
 }
 
+type syncWorker struct {
+	worker *worker
+	queue  chan *syncTask
+}
+
 type syncWorkerPool struct {
 	mtx sync.RWMutex
+	wg  sync.WaitGroup
 
 	network      Network
 	requestMaker network.RequestMaker
-	workers      map[peer.ID]*worker
+	workers      map[peer.ID]*syncWorker
 	ignorePeers  map[peer.ID]struct{}
 
 	sharedGuard chan struct{}
@@ -55,7 +60,7 @@ func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWork
 	swp := &syncWorkerPool{
 		network:      net,
 		requestMaker: requestMaker,
-		workers:      make(map[peer.ID]*worker),
+		workers:      make(map[peer.ID]*syncWorker),
 		ignorePeers:  make(map[peer.ID]struct{}),
 		sharedGuard:  make(chan struct{}, maxRequestsAllowed),
 	}
@@ -68,31 +73,27 @@ func (s *syncWorkerPool) stop() error {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	wg := sync.WaitGroup{}
-	// make it buffered so the goroutines can write on it
-	// without beign blocked
-	errCh := make(chan error, len(s.workers))
-
-	for _, syncWorker := range s.workers {
-		wg.Add(1)
-		go func(syncWorker *worker, wg *sync.WaitGroup) {
-			defer wg.Done()
-			errCh <- syncWorker.stop()
-		}(syncWorker, &wg)
+	for _, sw := range s.workers {
+		close(sw.queue)
 	}
 
-	wg.Wait()
-	// closing the errCh then the following for loop don't
-	// panic due to "all goroutines are asleep - deadlock"
-	close(errCh)
+	allWorkersDoneCh := make(chan struct{})
+	go func() {
+		defer close(allWorkersDoneCh)
+		s.wg.Wait()
+	}()
 
-	var errs error
-	for err := range errCh {
-		if err != nil {
-			errs = errors.Join(errs, err)
+	timeoutTimer := time.NewTimer(30 * time.Second)
+	select {
+	case <-timeoutTimer.C:
+		return fmt.Errorf("timeout reached while finishing workers")
+	case <-allWorkersDoneCh:
+		if !timeoutTimer.Stop() {
+			<-timeoutTimer.C
 		}
+
+		return nil
 	}
-	return errs
 }
 
 // useConnectedPeers will retrieve all connected peers
@@ -128,10 +129,16 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 		return
 	}
 
-	syncWorker := newWorker(who, s.sharedGuard, s.requestMaker)
-	go syncWorker.start()
+	worker := newWorker(who, s.sharedGuard, s.requestMaker)
+	workerQueue := make(chan *syncTask, maxRequestsAllowed)
 
-	s.workers[who] = syncWorker
+	s.wg.Add(1)
+	go worker.run(workerQueue, &s.wg)
+
+	s.workers[who] = &syncWorker{
+		worker: worker,
+		queue:  workerQueue,
+	}
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
 }
 
@@ -155,7 +162,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 	if who != nil {
 		syncWorker := s.workers[*who]
-		syncWorker.processTask(task)
+		syncWorker.queue <- task
 		return
 	}
 
@@ -170,7 +177,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	}
 	selectedWorkerIdx = int(nBig.Int64())
 	selectedWorker := workers[selectedWorkerIdx]
-	selectedWorker.processTask(task)
+	selectedWorker.queue <- task
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
@@ -186,10 +193,10 @@ func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage)
 		workerID := idx % len(allWorkers)
 		syncWorker := allWorkers[workerID]
 
-		syncWorker.processTask(&syncTask{
+		syncWorker.queue <- &syncTask{
 			request:  request,
 			resultCh: resultCh,
-		})
+		}
 	}
 
 	return resultCh
@@ -204,11 +211,7 @@ func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) error {
 		return nil
 	}
 
-	err := worker.stop()
-	if err != nil {
-		return fmt.Errorf("stopping worker: %w", err)
-	}
-
+	close(worker.queue)
 	delete(s.workers, who)
 	s.ignorePeers[who] = struct{}{}
 	return nil
