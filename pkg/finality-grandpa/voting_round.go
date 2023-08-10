@@ -23,9 +23,9 @@ type statePrevoted[T any] [1]T
 
 type statePrecommitted struct{}
 
-type states[T, W any] interface {
-	stateStart[T] | stateProposed[T] | statePrevoting[T, W] | statePrevoted[T] | statePrecommitted
-}
+// type states[T, W any] interface {
+// 	stateStart[T] | stateProposed[T] | statePrevoting[T, W] | statePrevoted[T] | statePrecommitted
+// }
 
 // The state of a voting round.
 type state any

@@ -217,7 +217,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 				}
 			}
 			maybeEntry.entry.descendants = append(maybeEntry.entry.descendants, descendant)
-			maybeEntry.entry.cumulativeVote.add(entry.cumulativeVote)
+			maybeEntry.entry.cumulativeVote.Add(entry.cumulativeVote)
 		}
 		producedEntry = maybeEntry
 	}
@@ -271,9 +271,9 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) Insert(
 		}
 		switch vote := vote.(type) {
 		case voteNode:
-			activeEntry.cumulativeVote.add(vote)
+			activeEntry.cumulativeVote.Add(vote)
 		case Vote:
-			activeEntry.cumulativeVote.addVote(vote)
+			activeEntry.cumulativeVote.AddVote(vote)
 		default:
 			panic(fmt.Errorf("unsupported type to add to cumulativeVote %T", vote))
 		}
@@ -429,7 +429,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 				},
 			)
 			if ok {
-				descendantBlocks[idx].vote.add(dNode.cumulativeVote)
+				descendantBlocks[idx].vote.Add(dNode.cumulativeVote)
 				if condition(descendantBlocks[idx].vote) {
 					newBest = dBlock
 					break
@@ -438,14 +438,14 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 				if idx == len(descendantBlocks) {
 					descendantBlocks = append(descendantBlocks, hashvote[Hash, voteNode, Vote]{
 						hash: *dBlock,
-						vote: dNode.cumulativeVote.copy(),
+						vote: dNode.cumulativeVote.Copy(),
 					})
 				} else if idx < len(descendantBlocks) {
 					descendantBlocks = append(
 						descendantBlocks[:idx],
 						append([]hashvote[Hash, voteNode, Vote]{{
 							hash: *dBlock,
-							vote: dNode.cumulativeVote.copy(),
+							vote: dNode.cumulativeVote.Copy(),
 						}}, descendantBlocks[idx:]...)...)
 				} else {
 					panic("huh?")
@@ -634,7 +634,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindAncestor(
 			v := vg.newDefaultvoteNode()
 			for _, c := range children {
 				e := vg.mustGetEntry(c)
-				v.add(e.cumulativeVote)
+				v.Add(e.cumulativeVote)
 			}
 			if condition(v) {
 				return &HashNumber[Hash, Number]{hash, number}
@@ -684,7 +684,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) AdjustBase(ancestryProof []Ha
 		number:         newNumber,
 		ancestors:      make([]Hash, 0),
 		descendants:    []Hash{vg.base},
-		cumulativeVote: oldEntry.cumulativeVote.copy(),
+		cumulativeVote: oldEntry.cumulativeVote.Copy(),
 	}
 	vg.entries.Set(newHash, entry)
 	vg.base = newHash
