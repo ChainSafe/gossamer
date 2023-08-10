@@ -276,11 +276,6 @@ func TestTrieDiff(t *testing.T) {
 	})
 
 	storageDB := database.NewTable(db, "storage")
-	t.Cleanup(func() {
-		err = storageDB.Close()
-		require.NoError(t, err)
-	})
-
 	trie := NewEmptyTrie()
 
 	var testKey = []byte("testKey")
