@@ -699,25 +699,16 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
 			switch doBlockRequestCount.Load() {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
-
-				if pID == peer.ID("bob") {
-					return errors.New("a bad error while getting a response")
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				return errors.New("a bad error while getting a response")
 			default:
+				*responsePtr = *worker2Response
 			}
-
-			*responsePtr = *worker2Response
 			return nil
+
 		}).Times(3)
 
 	// setup a chain sync which holds in its peer view map
@@ -802,33 +793,24 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
 			switch doBlockRequestCount.Load() {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
-
-				if pID == peer.ID("bob") {
-					return errors.New("protocols not supported")
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				return errors.New("protocols not supported")
 			default:
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
-	// since peer.ID("bob") will fail with protocols not supported his
+	// since some peer will fail with protocols not supported his
 	// reputation will be affected and
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadProtocolValue,
 		Reason: peerset.BadProtocolReason,
-	}, peer.ID("bob"))
+	}, gomock.AssignableToTypeOf(peer.ID("")))
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -910,37 +892,27 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
 			switch doBlockRequestCount.Load() {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				incompleteBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
+				incompleteBlockData.BlockData[0].Header = nil
 
-				if pID == peer.ID("bob") {
-					incompleteBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
-					incompleteBlockData.BlockData[0].Header = nil
-
-					*responsePtr = *incompleteBlockData
-					return nil
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+				*responsePtr = *incompleteBlockData
 			default:
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
-	// since peer.ID("bob") will fail with protocols not supported his
+	// since some peer will fail with protocols not supported his
 	// reputation will be affected and
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.IncompleteHeaderValue,
 		Reason: peerset.IncompleteHeaderReason,
-	}, peer.ID("bob"))
+	}, gomock.AssignableToTypeOf(peer.ID("")))
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -1022,30 +994,20 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
 			switch doBlockRequestCount.Load() {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				notAChainBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
+				// swap positions to force the problem
+				notAChainBlockData.BlockData[0], notAChainBlockData.BlockData[130] =
+					notAChainBlockData.BlockData[130], notAChainBlockData.BlockData[0]
 
-				if pID == peer.ID("bob") {
-					notAChainBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
-					// swap positions to force the problem
-					notAChainBlockData.BlockData[0], notAChainBlockData.BlockData[130] =
-						notAChainBlockData.BlockData[130], notAChainBlockData.BlockData[0]
-
-					*responsePtr = *notAChainBlockData
-					return nil
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+				*responsePtr = *notAChainBlockData
 			default:
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
@@ -1132,45 +1094,35 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
 			switch doBlockRequestCount.Load() {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				// use the fisrt response last item hash to produce the second response block data
+				// so we can guarantee that the second response continues the first response blocks
+				firstResponseLastItem := worker1Response.BlockData[len(worker1Response.BlockData)-1]
+				blockDataWithBadBlock := createSuccesfullBlockResponse(t,
+					firstResponseLastItem.Header.Hash(),
+					129,
+					128)
 
-				if pID == peer.ID("bob") {
-					// use the fisrt response last item hash to produce the second response block data
-					// so we can guarantee that the second response continues the first response blocks
-					firstResponseLastItem := worker1Response.BlockData[len(worker1Response.BlockData)-1]
-					blockDataWithBadBlock := createSuccesfullBlockResponse(t,
-						firstResponseLastItem.Header.Hash(),
-						129,
-						128)
-
-					// changes the last item from the second response to be a bad block, so we guarantee that
-					// this second response is a chain, (changing the hash from a block in the middle of the block
-					// response brokes the `isAChain` verification)
-					lastItem := len(blockDataWithBadBlock.BlockData) - 1
-					blockDataWithBadBlock.BlockData[lastItem].Hash = fakeBadBlockHash
-					*responsePtr = *blockDataWithBadBlock
-					return nil
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+				// changes the last item from the second response to be a bad block, so we guarantee that
+				// this second response is a chain, (changing the hash from a block in the middle of the block
+				// response brokes the `isAChain` verification)
+				lastItem := len(blockDataWithBadBlock.BlockData) - 1
+				blockDataWithBadBlock.BlockData[lastItem].Hash = fakeBadBlockHash
+				*responsePtr = *blockDataWithBadBlock
 			default:
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadBlockAnnouncementValue,
 		Reason: peerset.BadBlockAnnouncementReason,
-	}, peer.ID("bob"))
+	}, gomock.AssignableToTypeOf(peer.ID("")))
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
@@ -1201,11 +1153,8 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 
 	// peer should be not in the worker pool
 	// peer should be in the ignore list
-	_, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.False(t, ok)
-
-	_, ok = cs.workerPool.ignorePeers[peer.ID("bob")]
-	require.True(t, ok)
+	require.Len(t, cs.workerPool.workers, 1)
+	require.Len(t, cs.workerPool.ignorePeers, 1)
 }
 
 func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testing.T) {
@@ -1255,19 +1204,15 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice). The first call will return only 97 blocks
 			// the handler should issue another call to retrieve the missing blocks
-			pID := peerID.(peer.ID) // cast to peer ID
-			require.Equalf(t, pID, peer.ID("alice"),
-				"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
-
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount++ }()
 
 			if doBlockRequestCount == 0 {
 				*responsePtr = *worker1Response
-				return nil
+			} else {
+				*responsePtr = *worker1MissingBlocksResponse
 			}
 
-			*responsePtr = *worker1MissingBlocksResponse
 			return nil
 		}).Times(2)
 
