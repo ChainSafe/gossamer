@@ -706,7 +706,7 @@ func Test_Trie_Entries(t *testing.T) {
 		}
 
 		for k, v := range kv {
-			trie.Put([]byte(k), v)
+			trie.Put([]byte(k), v, V0)
 		}
 
 		entries := trie.Entries()
@@ -1100,7 +1100,7 @@ func Test_Trie_Put(t *testing.T) {
 			t.Parallel()
 
 			trie := testCase.trie
-			trie.Put(testCase.key, testCase.value)
+			trie.Put(testCase.key, testCase.value, V0)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})

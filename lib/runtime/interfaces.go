@@ -11,7 +11,7 @@ import (
 
 // Storage runtime interface.
 type Storage interface {
-	Put(key []byte, value []byte) (err error)
+	Put(key []byte, value []byte, version trie.Version) (err error)
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error

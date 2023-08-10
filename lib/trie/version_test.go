@@ -65,7 +65,7 @@ func Test_ParseVersion(t *testing.T) {
 		"invalid": {
 			s:          "xyz",
 			errWrapped: ErrParseVersion,
-			errMessage: "parsing version failed: \"xyz\" must be v0",
+			errMessage: "parsing version failed: \"xyz\" must be one of [v0, v1]",
 		},
 	}
 

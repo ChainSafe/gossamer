@@ -27,7 +27,7 @@ var testCases = []string{
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc))
+			ts.Put([]byte(tc), []byte(tc), trie.V0)
 		}
 
 		for _, tc := range testCases {
@@ -43,7 +43,7 @@ func TestTrieState_SetGet(t *testing.T) {
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc))
+			ts.Put([]byte(tc), []byte(tc), trie.V0)
 		}
 
 		ts.Delete([]byte(testCases[0]))
@@ -58,7 +58,7 @@ func TestTrieState_Delete(t *testing.T) {
 func TestTrieState_Root(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc))
+			ts.Put([]byte(tc), []byte(tc), trie.V0)
 		}
 
 		expected := ts.MustRoot()
@@ -79,7 +79,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		ts.Put([]byte(key), []byte{byte(i)})
+		ts.Put([]byte(key), []byte{byte(i)}, trie.V0)
 	}
 
 	ts.ClearPrefix([]byte("noo"))
@@ -105,7 +105,7 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)})
+		child.Put([]byte(key), []byte{byte(i)}, trie.V0)
 	}
 
 	keyToChild := []byte("keytochild")
@@ -131,7 +131,7 @@ func TestTrieState_NextKey(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Put([]byte(tc), []byte(tc))
+		ts.Put([]byte(tc), []byte(tc), trie.V0)
 	}
 
 	sort.Slice(testCases, func(i, j int) bool {
@@ -152,12 +152,12 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Put([]byte(tc), []byte(tc))
+		ts.Put([]byte(tc), []byte(tc), trie.V0)
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Put([]byte(testCases[0]), testValue)
+	ts.Put([]byte(testCases[0]), testValue, trie.V0)
 	ts.CommitStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -168,12 +168,12 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Put([]byte(tc), []byte(tc))
+		ts.Put([]byte(tc), []byte(tc), trie.V0)
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Put([]byte(testCases[0]), testValue)
+	ts.Put([]byte(testCases[0]), testValue, trie.V0)
 	ts.RollbackStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -191,7 +191,7 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)})
+		child.Put([]byte(key), []byte{byte(i)}, trie.V0)
 	}
 
 	keyToChild := []byte("keytochild")

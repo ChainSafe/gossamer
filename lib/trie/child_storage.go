@@ -28,7 +28,7 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
-	err = t.Put(key, childHash.ToBytes())
+	err = t.Put(key, childHash.ToBytes(), V0)
 	if err != nil {
 		return fmt.Errorf("putting child trie root hash %s in trie: %w", childHash, err)
 	}
@@ -63,7 +63,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 		return err
 	}
 
-	err = child.Put(key, value)
+	err = child.Put(key, value, V0)
 	if err != nil {
 		return fmt.Errorf("putting into child trie located at key 0x%x: %w", keyToChild, err)
 	}

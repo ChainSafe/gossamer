@@ -355,7 +355,7 @@ func findNextKeyChild(children []*Node, startIndex byte,
 
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
-func (t *Trie) Put(keyLE, value []byte) (err error) {
+func (t *Trie) Put(keyLE, value []byte, version Version) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true

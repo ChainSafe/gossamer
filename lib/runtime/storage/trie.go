@@ -70,10 +70,10 @@ func (s *TrieState) RollbackStorageTransaction() {
 }
 
 // Put puts a key-value pair in the trie
-func (s *TrieState) Put(key, value []byte) (err error) {
+func (s *TrieState) Put(key, value []byte, version trie.Version) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.Put(key, value)
+	return s.t.Put(key, value, version)
 }
 
 // Get gets a value from the trie

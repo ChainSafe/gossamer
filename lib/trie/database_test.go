@@ -54,7 +54,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
 
-		trie.Put(key, value)
+		trie.Put(key, value, V0)
 
 		err := trie.WriteDirty(db)
 		require.NoError(t, err)
@@ -75,7 +75,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	newValue := make([]byte, len(existingValue))
 	copy(newValue, existingValue)
 	newValue = append(newValue, 99)
-	trie.Put(existingKey, newValue)
+	trie.Put(existingKey, newValue, V0)
 	err = trie.WriteDirty(db)
 	require.NoError(t, err)
 
