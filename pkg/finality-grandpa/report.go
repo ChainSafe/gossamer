@@ -6,17 +6,17 @@ package grandpa
 // Basic data struct for the state of a round.
 type RoundStateReport[ID comparable] struct {
 	// Total weight of all votes.
-	TotalWeight VoterWeight
+	TotalWeight voterWeight
 	// The threshold voter weight.
-	ThresholdWeight VoterWeight
+	ThresholdWeight voterWeight
 
 	// Current weight of the prevotes.
-	PrevoteCurrentWeight VoteWeight
+	PrevoteCurrentWeight voteWeight
 	// The identities of nodes that have cast prevotes so far.
 	PrevoteIDs []ID
 
 	// Current weight of the precommits.
-	PrecommitCurrentWeight VoteWeight
+	PrecommitCurrentWeight voteWeight
 	// The identities of nodes that have cast precommits so far.
 	PrecommitIDs []ID
 }

@@ -334,8 +334,7 @@ func (n *Network) MakeGlobalComms(out chan CommunicationOut) chan globalInItem {
 		}
 		switch message := message.variant.(type) {
 		case CommunicationOutCommit[string, uint32, Signature, ID]:
-			ci := CommunicationIn{}
-			setCommunicationIn[string, uint32, Signature, ID](&ci, CommunicationInCommit[string, uint32, Signature, ID]{
+			ci := newCommunicationIn[string, uint32, Signature, ID](CommunicationInCommit[string, uint32, Signature, ID]{
 				Number:        message.Number,
 				CompactCommit: message.Commit.CompactCommit(),
 				Callback:      nil,

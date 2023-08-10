@@ -27,7 +27,7 @@ func (c context[ID]) Voters() VoterSet[ID] {
 }
 
 // EquivocationWeight returns the weight of observed equivocations in phase `p`.
-func (c context[ID]) EquivocationWeight(p Phase) VoteWeight {
+func (c context[ID]) EquivocationWeight(p Phase) voteWeight {
 	switch p {
 	case PrevotePhase:
 		return weight(c.equivocations.Iter1sEven(), c.voters)
@@ -45,7 +45,7 @@ func (c *context[ID]) Equivocated(v VoterInfo, p Phase) {
 
 // Weight computes the vote weight on node `n` in phase `p`, taking into account
 // equivocations.
-func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
+func (c context[ID]) Weight(n voteNode[ID], p Phase) voteWeight {
 	if c.equivocations.IsBlank() {
 		switch p {
 		case PrevotePhase:
@@ -97,15 +97,15 @@ func newVote[ID constraints.Ordered](v VoterInfo, p Phase) vote[ID] {
 // Get the voter who cast the vote from the given voter set,
 // if it is contained in that set.
 func (v vote[ID]) voter(vs VoterSet[ID]) *idVoterInfo[ID] {
-	return vs.nth(v.bit.position / 2)
+	return vs.Nth(v.bit.position / 2)
 }
 
-func weight[ID constraints.Ordered](bits []bit1, voters VoterSet[ID]) (total VoteWeight) { //skipcq: RVV-B0001
+func weight[ID constraints.Ordered](bits []bit1, voters VoterSet[ID]) (total voteWeight) { //skipcq: RVV-B0001
 	for _, bit := range bits {
 		vote := vote[ID]{bit}
 		ivi := vote.voter(voters)
 		if ivi != nil {
-			total = total + VoteWeight(ivi.VoterInfo.weight)
+			total = total + voteWeight(ivi.VoterInfo.weight)
 		}
 	}
 	return

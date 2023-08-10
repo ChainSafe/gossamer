@@ -10,24 +10,25 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type Start[T any] [2]T
+type stateStart[T any] [2]T
 
-type Proposed[T any] [2]T
+type stateProposed[T any] [2]T
 
-type Prevoting[T, W any] struct {
+type statePrevoting[T, W any] struct {
 	T T
 	W W
 }
 
-type Prevoted[T any] [1]T
+type statePrevoted[T any] [1]T
 
-type Precommitted struct{}
+type statePrecommitted struct{}
 
-type States[T, W any] interface {
-	Start[T] | Proposed[T] | Prevoting[T, W] | Prevoted[T] | Precommitted
+type states[T, W any] interface {
+	stateStart[T] | stateProposed[T] | statePrevoting[T, W] | statePrevoted[T] | statePrecommitted
 }
 
-type State any
+// The state of a voting round.
+type state any
 
 type hashBestChain[Hash comparable, Number constraints.Unsigned] struct {
 	Hash      Hash
@@ -58,7 +59,7 @@ func (v voting) isPrimary() bool {
 }
 
 // Logic for a voter on a specific round.
-type VotingRound[
+type votingRound[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
 	Signature comparable,
@@ -70,8 +71,8 @@ type VotingRound[
 	// this is not an Option in the rust code. Using a pointer for copylocks
 	votes             *Round[ID, Hash, Number, Signature]
 	incoming          *wakerChan[SignedMessageError[Hash, Number, Signature, ID]]
-	outgoing          *Buffered[Message[Hash, Number]]
-	state             State
+	outgoing          *buffered[Message[Hash, Number]]
+	state             state
 	bridgedRoundState *priorView[Hash, Number]
 	lastRoundState    *latterView[Hash, Number]
 	primaryBlock      *HashNumber[Hash, Number]
@@ -80,14 +81,14 @@ type VotingRound[
 }
 
 // Create a new voting round.
-func NewVotingRound[
+func newVotingRound[
 	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered,
 	E Environment[Hash, Number, Signature, ID],
 ](
 	roundNumber uint64, voters VoterSet[ID], base HashNumber[Hash, Number],
 	lastRoundState *latterView[Hash, Number],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID], env E,
-) VotingRound[Hash, Number, Signature, ID, E] {
+) votingRound[Hash, Number, Signature, ID, E] {
 	outgoing := make(chan Message[Hash, Number])
 	roundData := env.RoundData(roundNumber, outgoing)
 	roundParams := RoundParams[ID, Hash, Number]{
@@ -108,12 +109,12 @@ func NewVotingRound[
 		voting = votingNo
 	}
 
-	return VotingRound[Hash, Number, Signature, ID, E]{
+	return votingRound[Hash, Number, Signature, ID, E]{
 		votes:             votes,
 		voting:            voting,
 		incoming:          newWakerChan(roundData.Incoming),
 		outgoing:          newBuffered(outgoing),
-		state:             Start[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer},
+		state:             stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer},
 		bridgedRoundState: nil,
 		primaryBlock:      nil,
 		bestFinalized:     nil,
@@ -125,7 +126,7 @@ func NewVotingRound[
 
 // Create a voting round from a completed `Round`. We will not vote further
 // in this round.
-func NewVotingRoundCompleted[
+func newVotingRoundCompleted[
 	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered,
 	E Environment[Hash, Number, Signature, ID],
 ](
@@ -133,10 +134,10 @@ func NewVotingRoundCompleted[
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID],
 	lastRoundState *latterView[Hash, Number],
 	env E,
-) VotingRound[Hash, Number, Signature, ID, E] {
+) votingRound[Hash, Number, Signature, ID, E] {
 	outgoing := make(chan Message[Hash, Number])
 	roundData := env.RoundData(votes.Number(), outgoing)
-	return VotingRound[Hash, Number, Signature, ID, E]{
+	return votingRound[Hash, Number, Signature, ID, E]{
 		votes:             votes,
 		voting:            votingNo,
 		incoming:          newWakerChan(roundData.Incoming),
@@ -153,7 +154,7 @@ func NewVotingRoundCompleted[
 
 // Poll the round. When the round is completable and messages have been flushed, it will return `Poll::Ready` but
 // can continue to be polled.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) {
 	fmt.Printf(
 		"Polling round %d, state = %+v, step = %T\n",
 		vr.votes.Number(),
@@ -221,8 +222,8 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool,
 
 		// or it must be finalized in the current round
 		var finalizedInCurrentRound bool
-		if vr.Finalized() != nil {
-			finalizedInCurrentRound = lastRoundState.Estimate.Number <= vr.Finalized().Number
+		if vr.finalized() != nil {
+			finalizedInCurrentRound = lastRoundState.Estimate.Number <= vr.finalized().Number
 		}
 
 		lastRoundEstimateFinalized = finalizedInLastRound || finalizedInCurrentRound
@@ -255,54 +256,54 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool,
 }
 
 // Inspect the state of this round.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) State() any {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) State() any {
 	return vr.state
 }
 
 // Get access to the underlying environment.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) Env() E {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) Env() E {
 	return vr.env
 }
 
 // Get the round number.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) RoundNumber() uint64 {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) roundNumber() uint64 {
 	return vr.votes.Number()
 }
 
 // Get the round state.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) RoundState() RoundState[Hash, Number] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) roundState() RoundState[Hash, Number] {
 	return vr.votes.State()
 }
 
 // Get the base block in the dag.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) DagBase() HashNumber[Hash, Number] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) dagBase() HashNumber[Hash, Number] {
 	return vr.votes.Base()
 }
 
 // Get the base block in the dag.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) Voters() VoterSet[ID] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) voters() VoterSet[ID] {
 	return vr.votes.Voters()
 }
 
 // Get the best block finalized in this round.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) Finalized() *HashNumber[Hash, Number] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) finalized() *HashNumber[Hash, Number] {
 	return vr.votes.State().Finalized
 }
 
 // Get the current total weight of prevotes.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrevoteWeight() VoteWeight {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) prevoteWeight() voteWeight {
 	weight, _ := vr.votes.PrevoteParticipation()
 	return weight
 }
 
 // Get the current total weight of precommits.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrecommitWeight() VoteWeight {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) precommitWeight() voteWeight {
 	weight, _ := vr.votes.PrecommitParticipation()
 	return weight
 }
 
 // Get the current total weight of prevotes.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrevoteIDs() []ID {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) prevoteIDs() []ID {
 	var ids []ID
 	for _, pv := range vr.votes.Prevotes() {
 		ids = append(ids, pv.ID)
@@ -311,7 +312,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrevoteIDs() []ID {
 }
 
 // Get the current total weight of prevotes.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrecommitIDs() []ID {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) precommitIDs() []ID {
 	var ids []ID
 	for _, pv := range vr.votes.Precommits() {
 		ids = append(ids, pv.ID)
@@ -321,10 +322,10 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) PrecommitIDs() []ID {
 
 // Check a commit. If it's valid, import all the votes into the round as well.
 // Returns the finalized base if it checks out.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(
+func (vr *votingRound[Hash, Number, Signature, ID, E]) checkAndImportFromCommit(
 	commit Commit[Hash, Number, Signature, ID],
 ) (*HashNumber[Hash, Number], error) {
-	cvr, err := ValidateCommit[Hash, Number](commit, vr.Voters(), vr.env)
+	cvr, err := ValidateCommit[Hash, Number](commit, vr.voters(), vr.env)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +343,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(
 			return nil, err
 		}
 		if importResult.Equivocation != nil {
-			vr.env.PrecommitEquivocation(vr.RoundNumber(), *importResult.Equivocation)
+			vr.env.PrecommitEquivocation(vr.roundNumber(), *importResult.Equivocation)
 		}
 	}
 
@@ -350,13 +351,13 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) CheckAndImportFromCommit(
 }
 
 // Get a clone of the finalized sender.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan finalizedNotification[Hash, Number, Signature, ID] { //nolint:lll
+func (vr *votingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan finalizedNotification[Hash, Number, Signature, ID] { //nolint:lll
 	return vr.finalizedSender
 }
 
 // call this when we build on top of a given round in order to get a handle
 // to updates to the latest round-state.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) BridgeState() *latterView[Hash, Number] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) bridgeState() *latterView[Hash, Number] {
 	priorView, latterView := bridgeState(vr.votes.State())
 	if vr.bridgedRoundState != nil {
 		// TODO:
@@ -370,7 +371,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) BridgeState() *latterView
 }
 
 // Get a commit justifying the best finalized block.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizingCommit() *Commit[Hash, Number, Signature, ID] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) finalizingCommit() *Commit[Hash, Number, Signature, ID] {
 	return vr.bestFinalized
 }
 
@@ -378,12 +379,12 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) FinalizingCommit() *Commi
 // imported order and indicating the indices where we voted. At most two
 // prevotes and two precommits per voter are present, further equivocations
 // are not stored (as they are redundant).
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) HistoricalVotes() HistoricalVotes[Hash, Number, Signature, ID] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) historicalVotes() HistoricalVotes[Hash, Number, Signature, ID] {
 	return vr.votes.HistoricalVotes()
 }
 
 // Handle a vote manually.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) HandleVote(vote SignedMessage[Hash, Number, Signature, ID]) error { //nolint:lll
+func (vr *votingRound[Hash, Number, Signature, ID, E]) handleVote(vote SignedMessage[Hash, Number, Signature, ID]) error { //nolint:lll
 	message := vote.Message
 	if !vr.env.IsEqualOrDescendantOf(vr.votes.Base().Hash, message.Target().Hash) {
 		return nil
@@ -421,11 +422,11 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) HandleVote(vote SignedMes
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) logParticipation(level any) {
-	totalWeight := vr.Voters().TotalWeight()
-	threshold := vr.Voters().Threshold()
-	nVoters := vr.Voters().Len()
-	number := vr.RoundNumber()
+func (vr *votingRound[Hash, Number, Signature, ID, E]) logParticipation(level any) {
+	totalWeight := vr.voters().TotalWeight()
+	threshold := vr.voters().Threshold()
+	nVoters := vr.voters().Len()
+	number := vr.roundNumber()
 
 	prevoteWeight, nPrevotes := vr.votes.PrevoteParticipation()
 	precommitWeight, nPrecommits := vr.votes.PrecommitParticipation()
@@ -441,7 +442,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) logParticipation(level an
 		level, number, precommitWeight, threshold, totalWeight, nPrecommits, nVoters)
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *waker) error {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *waker) error {
 	vr.incoming.setWaker(waker)
 	var (
 		msgCount  = 0
@@ -452,7 +453,7 @@ while:
 	for {
 		select {
 		case incoming := <-vr.incoming.channel():
-			fmt.Printf("Round %d: Got incoming message\n", vr.RoundNumber())
+			fmt.Printf("Round %d: Got incoming message\n", vr.roundNumber())
 			if timer != nil {
 				timer.Stop()
 				timer = nil
@@ -460,7 +461,7 @@ while:
 			if incoming.Error != nil {
 				return incoming.Error
 			}
-			err := vr.HandleVote(incoming.SignedMessage)
+			err := vr.handleVote(incoming.SignedMessage)
 			if err != nil {
 				return err
 			}
@@ -481,7 +482,7 @@ while:
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundState *RoundState[Hash, Number]) error {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundState *RoundState[Hash, Number]) error {
 	// self.state.take()
 	state := vr.state
 	vr.state = nil
@@ -490,7 +491,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 		return nil
 	}
 	switch state := state.(type) {
-	case Start[Timer]:
+	case stateStart[Timer]:
 		prevoteTimer := state[0]
 		precommitTimer := state[1]
 
@@ -510,13 +511,13 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 					TargetHash:   lastRoundEstimate.Hash,
 					TargetNumber: lastRoundEstimate.Number,
 				}
-				err := vr.env.Proposed(vr.RoundNumber(), primary)
+				err := vr.env.Proposed(vr.roundNumber(), primary)
 				if err != nil {
 					return err
 				}
 				message := newMessage(primary)
 				vr.outgoing.Push(message)
-				vr.state = Proposed[Timer]{prevoteTimer, precommitTimer}
+				vr.state = stateProposed[Timer]{prevoteTimer, precommitTimer}
 
 				return nil
 			}
@@ -530,14 +531,14 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 		default:
 		}
 
-		vr.state = Start[Timer]{prevoteTimer, precommitTimer}
+		vr.state = stateStart[Timer]{prevoteTimer, precommitTimer}
 	default:
 		vr.state = state
 	}
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
+func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
 	state := vr.state
 	vr.state = nil
 
@@ -566,16 +567,16 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 				// state to `Prevoting`.
 				waker.wake()
 
-				vr.state = Prevoting[Timer, hashBestChain[Hash, Number]]{
+				vr.state = statePrevoting[Timer, hashBestChain[Hash, Number]]{
 					precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
 				}
 			} else {
-				vr.state = Prevoted[Timer]{precommitTimer}
+				vr.state = statePrevoted[Timer]{precommitTimer}
 			}
 		} else if proposed {
-			vr.state = Proposed[Timer]{prevoteTimer, precommitTimer}
+			vr.state = stateProposed[Timer]{prevoteTimer, precommitTimer}
 		} else {
-			vr.state = Start[Timer]{prevoteTimer, precommitTimer}
+			vr.state = stateStart[Timer]{prevoteTimer, precommitTimer}
 		}
 
 		return nil
@@ -592,7 +593,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		case res.Value != nil:
 			best = res.Value
 		default:
-			vr.state = Prevoting[Timer, hashBestChain[Hash, Number]]{
+			vr.state = statePrevoting[Timer, hashBestChain[Hash, Number]]{
 				precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
 			}
 			return nil
@@ -603,14 +604,14 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 
 			// TODO: debug!(target: "afg", "Casting prevote for round {}", this.votes.number());
 			fmt.Println("Casting prevote for round {}", vr.votes.Number())
-			err := vr.env.Prevoted(vr.RoundNumber(), prevote)
+			err := vr.env.Prevoted(vr.roundNumber(), prevote)
 			if err != nil {
 				return err
 			}
 			vr.votes.SetPrevotedIdx()
 			message := newMessage(prevote)
 			vr.outgoing.Push(message)
-			vr.state = Prevoted[Timer]{precommitTimer}
+			vr.state = statePrevoted[Timer]{precommitTimer}
 		} else {
 			// if this block is considered unknown, something has gone wrong.
 			// log and handle, but skip casting a vote.
@@ -632,11 +633,11 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		return nil
 	}
 	switch state := state.(type) {
-	case Start[Timer]:
+	case stateStart[Timer]:
 		return startPrevoting(state[0], state[1], false, w)
-	case Proposed[Timer]:
+	case stateProposed[Timer]:
 		return startPrevoting(state[0], state[1], true, w)
-	case Prevoting[Timer, hashBestChain[Hash, Number]]:
+	case statePrevoting[Timer, hashBestChain[Hash, Number]]:
 		return finishPrevoting(state.T, state.W.Hash, state.W.BestChain, w)
 	default:
 		vr.state = state
@@ -645,14 +646,14 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 	return nil
 }
 
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
+func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
 	state := vr.state
 	vr.state = nil
 	if state == nil {
 		return nil
 	}
 	switch state := state.(type) {
-	case Prevoted[Timer]:
+	case statePrevoted[Timer]:
 		precommitTimer := state[0]
 		precommitTimer.SetWaker(waker)
 		lastRoundEstimate := lastRoundState.Estimate
@@ -685,7 +686,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 				// TODO: debug!(target: "afg", "Casting precommit for round {}", self.votes.number());
 				fmt.Println("Casting precommit for round {}", vr.votes.Number())
 				precommit := vr.constructPrecommit()
-				err := vr.env.Precommitted(vr.RoundNumber(), precommit)
+				err := vr.env.Precommitted(vr.roundNumber(), precommit)
 				if err != nil {
 					return err
 				}
@@ -693,9 +694,9 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 				message := newMessage(precommit)
 				vr.outgoing.Push(message)
 			}
-			vr.state = Precommitted{}
+			vr.state = statePrecommitted{}
 		} else {
-			vr.state = Prevoted[Timer]{precommitTimer}
+			vr.state = statePrevoted[Timer]{precommitTimer}
 		}
 	default:
 		vr.state = state
@@ -705,7 +706,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 }
 
 // construct a prevote message based on local state.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoundState *RoundState[Hash, Number]) (h Hash, bc BestChain[Hash, Number]) { //nolint:lll
+func (vr *votingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoundState *RoundState[Hash, Number]) (h Hash, bc BestChain[Hash, Number]) { //nolint:lll
 	lastRoundEstimate := lastRoundState.Estimate
 	if lastRoundEstimate == nil {
 		panic("Rounds only started when prior round completable; qed")
@@ -783,7 +784,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 }
 
 // construct a precommit message based on local state.
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrecommit() Precommit[Hash, Number] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) constructPrecommit() Precommit[Hash, Number] {
 	var t HashNumber[Hash, Number]
 	switch target := vr.votes.State().PrevoteGHOST; target {
 	case nil:
@@ -795,7 +796,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) constructPrecommit() Prec
 }
 
 // notify when new blocks are finalized or when the round-estimate is updated
-func (vr *VotingRound[Hash, Number, Signature, ID, E]) notify(
+func (vr *votingRound[Hash, Number, Signature, ID, E]) notify(
 	lastState RoundState[Hash, Number],
 	newState RoundState[Hash, Number],
 ) {
@@ -820,7 +821,7 @@ func (vr *VotingRound[Hash, Number, Signature, ID, E]) notify(
 	sentFinalityNotifications := vr.bestFinalized != nil
 
 	if newState.Completable && (stateChanged || !sentFinalityNotifications) {
-		_, precommited := vr.state.(Precommitted)
+		_, precommited := vr.state.(statePrecommitted)
 		// we only cast votes when we have access to the previous round state,
 		// which won't be the case whenever we catch up to a later round.
 		cantVote := vr.lastRoundState == nil
