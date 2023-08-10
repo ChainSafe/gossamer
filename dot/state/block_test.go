@@ -966,7 +966,7 @@ func TestRange(t *testing.T) {
 			blocksToPersistAtDisk: 64,
 			wantErr:               database.ErrNotFound,
 			stringErr: "range start should be in database: " +
-				"querying database: Key not found",
+				"querying database: pebble: not found",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)

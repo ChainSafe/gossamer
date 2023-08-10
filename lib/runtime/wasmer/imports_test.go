@@ -238,7 +238,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "pebble: not found")
 	require.Nil(t, val)
 }
 
@@ -261,7 +261,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "pebble: not found")
 	require.Nil(t, val)
 }
 

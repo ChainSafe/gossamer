@@ -195,7 +195,7 @@ func TestGetChildStorage(t *testing.T) {
 		{params: []string{":child_storage_key", ""}, expected: nil},
 		{params: []string{":child_storage_key", ":child_first"}, expected: []byte(":child_first_value")},
 		{params: []string{":child_storage_key", ":child_first", blockHash.String()}, expected: []byte(":child_first_value")},
-		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {

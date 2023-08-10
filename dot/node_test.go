@@ -86,7 +86,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 		{
 			name:     "wrong basepath test",
 			basepath: t.TempDir(),
-			err:      errors.New("Key not found"),
+			err:      errors.New("pebble: not found"),
 		},
 	}
 	for _, tt := range tests {
