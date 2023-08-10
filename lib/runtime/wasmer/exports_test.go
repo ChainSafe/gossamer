@@ -998,7 +998,8 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries)
+	//TODO: revisit this to use the right trie version
+	tr, err := trie.LoadFromMap(entries, trie.V0)
 	require.NoError(t, err)
 	return &tr
 }
@@ -1197,7 +1198,7 @@ func loadEntries(t *testing.T, filename string) *trie.Trie {
 	err = json.Unmarshal(data, &entries)
 	require.NoError(t, err)
 
-	tr, err := trie.LoadFromEntries(entries)
+	tr, err := trie.LoadFromEntries(entries, trie.V0)
 	require.NoError(t, err)
 	return tr
 }

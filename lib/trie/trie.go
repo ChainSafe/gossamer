@@ -361,18 +361,25 @@ func (t *Trie) Put(keyLE, value []byte, version Version) (err error) {
 		const success = true
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
-	return t.insertKeyLE(keyLE, value, pendingDeltas)
+	return t.insertKeyLE(keyLE, value, pendingDeltas, version)
 }
 
 func (t *Trie) insertKeyLE(keyLE, value []byte,
-	pendingDeltas DeltaRecorder) (err error) {
+	pendingDeltas DeltaRecorder, version Version) (err error) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
 	if value == nil {
 		// Force nil value to be inserted to []byte{} since `nil` means there
 		// is no value.
 		value = []byte{}
 	}
-	root, _, _, err := t.insert(t.root, nibblesKey, value, pendingDeltas)
+
+	isValueHashed := version.ShouldHashValue(value)
+	if isValueHashed {
+		hashedValue := common.MustBlake2bHash(value)
+		copy(value, hashedValue[:])
+	}
+
+	root, _, _, err := t.insert(t.root, nibblesKey, value, isValueHashed, pendingDeltas)
 	if err != nil {
 		return err
 	}
@@ -383,7 +390,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
 func (t *Trie) insert(parent *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (newParent *Node,
+	isValueHashed bool, pendingDeltas DeltaRecorder) (newParent *Node,
 	mutated bool, nodesCreated uint32, err error) {
 	if parent == nil {
 		mutated = true
@@ -391,6 +398,7 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 		return &Node{
 			PartialKey:   key,
 			StorageValue: value,
+			HashedValue:  isValueHashed,
 			Generation:   t.generation,
 			Dirty:        true,
 		}, mutated, nodesCreated, nil
@@ -398,7 +406,7 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 
 	if parent.Kind() == node.Branch {
 		newParent, mutated, nodesCreated, err = t.insertInBranch(
-			parent, key, value, pendingDeltas)
+			parent, key, value, isValueHashed, pendingDeltas)
 		if err != nil {
 			// `insertInBranch` may call `insert` so do not wrap the
 			// error since this may be a deep recursive call.
@@ -408,7 +416,7 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 	}
 
 	newParent, mutated, nodesCreated, err = t.insertInLeaf(
-		parent, key, value, pendingDeltas)
+		parent, key, value, isValueHashed, pendingDeltas)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("inserting in leaf: %w", err)
 	}
@@ -416,7 +424,7 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 	return newParent, mutated, nodesCreated, nil
 }
 
-func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
+func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte, isValueHashed bool,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, mutated bool, nodesCreated uint32, err error) {
 	if bytes.Equal(parentLeaf.PartialKey, key) {
@@ -434,6 +442,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		}
 
 		parentLeaf.StorageValue = value
+		parentLeaf.HashedValue = isValueHashed
 		mutated = true
 		return parentLeaf, mutated, nodesCreated, nil
 	}
@@ -453,6 +462,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
 		newBranchParent.StorageValue = value
+		newBranchParent.HashedValue = isValueHashed
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
@@ -477,6 +487,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
 		newBranchParent.StorageValue = parentLeaf.StorageValue
+		newBranchParent.HashedValue = parentLeaf.HashedValue
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
@@ -497,6 +508,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	newBranchParent.Children[childIndex] = &Node{
 		PartialKey:   key[commonPrefixLength+1:],
 		StorageValue: value,
+		HashedValue:  isValueHashed,
 		Generation:   t.generation,
 		Dirty:        true,
 	}
@@ -506,7 +518,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	return newBranchParent, mutated, nodesCreated, nil
 }
 
-func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
+func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte, isValueHashed bool,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, mutated bool, nodesCreated uint32, err error) {
 	copySettings := node.DefaultCopySettings
@@ -521,6 +533,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
 		parentBranch.StorageValue = value
+		parentBranch.HashedValue = isValueHashed
 		mutated = true
 		return parentBranch, mutated, 0, nil
 	}
@@ -536,6 +549,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			child = &Node{
 				PartialKey:   remainingKey,
 				StorageValue: value,
+				HashedValue:  isValueHashed,
 				Generation:   t.generation,
 				Dirty:        true,
 			}
@@ -550,7 +564,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 			return parentBranch, mutated, nodesCreated, nil
 		}
 
-		child, mutated, nodesCreated, err = t.insert(child, remainingKey, value, pendingDeltas)
+		child, mutated, nodesCreated, err = t.insert(child, remainingKey, value, isValueHashed, pendingDeltas)
 		if err != nil {
 			// do not wrap error since `insert` may call `insertInBranch` recursively
 			return nil, false, 0, err
@@ -595,12 +609,13 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 
 	if len(key) <= commonPrefixLength {
 		newParentBranch.StorageValue = value
+		newParentBranch.HashedValue = isValueHashed
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
 		var additionalNodesCreated uint32
 		newParentBranch.Children[childIndex], _, additionalNodesCreated, err = t.insert(
-			nil, remainingKey, value, pendingDeltas)
+			nil, remainingKey, value, isValueHashed, pendingDeltas)
 		if err != nil {
 			// do not wrap error since `insert` may call `insertInBranch` recursively
 			return nil, false, 0, err
@@ -616,7 +631,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 // LoadFromMap loads the given data mapping of key to value into a new empty trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func LoadFromMap(data map[string]string) (trie Trie, err error) {
+func LoadFromMap(data map[string]string, version Version) (trie Trie, err error) {
 	trie = *NewEmptyTrie()
 
 	pendingDeltas := tracking.New()
@@ -635,7 +650,7 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 			return Trie{}, fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeltas)
+		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeltas, version)
 		if err != nil {
 			return Trie{}, fmt.Errorf("inserting key value pair in trie: %w", err)
 		}
@@ -647,7 +662,7 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 // LoadFromEntries loads the given slice of key values into a new empty trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func LoadFromEntries(entries [][2][]byte) (trie *Trie, err error) {
+func LoadFromEntries(entries [][2][]byte, version Version) (trie *Trie, err error) {
 	trie = NewEmptyTrie()
 
 	pendingDeltas := tracking.New()
@@ -658,7 +673,7 @@ func LoadFromEntries(entries [][2][]byte) (trie *Trie, err error) {
 	for _, keyValue := range entries {
 		keyLE := keyValue[0]
 		value := keyValue[1]
-		err := trie.insertKeyLE(keyLE, value, pendingDeltas)
+		err := trie.insertKeyLE(keyLE, value, pendingDeltas, version)
 		if err != nil {
 			return nil, err
 		}
