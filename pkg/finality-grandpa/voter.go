@@ -193,15 +193,15 @@ type RoundData[ID, Timer, SignedMessageError any] struct {
 	Incoming chan SignedMessageError
 }
 
-type Buffered[I any] struct {
+type buffered[I any] struct {
 	inner   chan I
 	buffer  []I
 	mtx     sync.Mutex
 	readyCh chan any
 }
 
-func newBuffered[I any](inner chan I) *Buffered[I] {
-	b := &Buffered[I]{
+func newBuffered[I any](inner chan I) *buffered[I] {
+	b := &buffered[I]{
 		inner:   inner,
 		readyCh: make(chan any, 1),
 	}
@@ -210,17 +210,17 @@ func newBuffered[I any](inner chan I) *Buffered[I] {
 	return b
 }
 
-func (b *Buffered[I]) Push(item I) {
+func (b *buffered[I]) Push(item I) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.buffer = append(b.buffer, item)
 }
 
-func (b *Buffered[I]) Poll(waker *waker) (bool, error) {
+func (b *buffered[I]) Poll(waker *waker) (bool, error) {
 	return b.flush(waker)
 }
 
-func (b *Buffered[I]) flush(waker *waker) (bool, error) {
+func (b *buffered[I]) flush(waker *waker) (bool, error) {
 	if b.inner == nil {
 		return false, fmt.Errorf("inner channel has been closed")
 	}
@@ -254,7 +254,7 @@ func (b *Buffered[I]) flush(waker *waker) (bool, error) {
 	return false, nil
 }
 
-func (b *Buffered[I]) Close() {
+func (b *buffered[I]) Close() {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	close(b.inner)
@@ -281,7 +281,7 @@ func instantiateLastRound[
 	lastRoundBase HashNumber[Hash, Number],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID],
 	env E,
-) *VotingRound[Hash, Number, Signature, ID, E] {
+) *votingRound[Hash, Number, Signature, ID, E] {
 	lastRoundTracker := NewRound[ID, Hash, Number, Signature](RoundParams[ID, Hash, Number]{
 		Voters:      voters,
 		Base:        lastRoundBase,
@@ -289,18 +289,18 @@ func instantiateLastRound[
 	})
 
 	// start as completed so we don't cast votes.
-	lastRound := NewVotingRoundCompleted(lastRoundTracker, finalizedSender, nil, env)
+	lastRound := newVotingRoundCompleted(lastRoundTracker, finalizedSender, nil, env)
 
 	for _, vote := range lastRoundVotes {
 		// bail if any votes are bad.
-		err := lastRound.HandleVote(vote)
+		err := lastRound.handleVote(vote)
 		if err != nil {
 			fmt.Printf("lastRound.Handlevote error: %v\n", err)
 			return nil
 		}
 	}
 
-	if lastRound.RoundState().Completable {
+	if lastRound.roundState().Completable {
 		return &lastRound
 	}
 	return nil
@@ -315,7 +315,7 @@ type innerVoterState[
 	Signature comparable, ID constraints.Ordered,
 	E Environment[Hash, Number, Signature, ID],
 ] struct {
-	bestRound  VotingRound[Hash, Number, Signature, ID, E]
+	bestRound  votingRound[Hash, Number, Signature, ID, E]
 	pastRounds pastRounds[Hash, Number, Signature, ID, E]
 	sync.Mutex
 }
@@ -332,6 +332,18 @@ type CommuincationOutVariants[
 	ID constraints.Ordered,
 ] interface {
 	CommunicationOutCommit[Hash, Number, Signature, ID]
+}
+
+func newCommunicationOut[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	T CommuincationOutVariants[Hash, Number, Signature, ID],
+](variant T) CommunicationOut {
+	co := CommunicationOut{}
+	setCommunicationOut[Hash, Number, Signature, ID](&co, variant)
+	return co
 }
 
 func setCommunicationOut[
@@ -424,6 +436,15 @@ func setCommunicationIn[
 	ci.variant = variant
 }
 
+func newCommunicationIn[
+	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered,
+	T CommunicationInVariants[Hash, Number, Signature, ID],
+](variant T) CommunicationIn {
+	ci := CommunicationIn{}
+	setCommunicationIn[Hash, Number, Signature, ID](&ci, variant)
+	return ci
+}
+
 type CommunicationInVariants[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
@@ -483,7 +504,7 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	finalizedNotifications chan finalizedNotification[Hash, Number, Signature, ID]
 	lastFinalizedNumber    Number
 	globalIn               chan globalInItem
-	globalOut              *Buffered[CommunicationOut]
+	globalOut              *buffered[CommunicationOut]
 	// the commit protocol might finalize further than the current round (if we're
 	// behind), we keep track of last finalized in round so we don't violate any
 	// assumptions from round-to-round.
@@ -525,7 +546,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 
 		if maybeCompletedLastRound != nil {
 			lastRound := *maybeCompletedLastRound
-			lastRoundState = *lastRound.BridgeState()
+			lastRoundState = *lastRound.bridgeState()
 			pastRounds.Push(env, lastRound)
 		}
 
@@ -535,7 +556,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		// round of a set.
 	}
 
-	bestRound := NewVotingRound(
+	bestRound := newVotingRound(
 		lastRoundNumber+1,
 		voters,
 		lastFinalized,
@@ -576,8 +597,7 @@ pastRounds:
 				return err
 			}
 			if nc != nil {
-				co := CommunicationOut{}
-				setCommunicationOut(&co, CommunicationOutCommit[Hash, Number, Signature, ID]{nc.Number, nc.Commit})
+				co := newCommunicationOut(CommunicationOutCommit[Hash, Number, Signature, ID]{nc.Number, nc.Commit})
 				v.globalOut.Push(co)
 			} else {
 				break pastRounds
@@ -699,7 +719,7 @@ loop:
 
 				v.inner.Lock()
 
-				round := validateCatchUp(catchUp, v.env, v.voters, v.inner.bestRound.RoundNumber())
+				round := validateCatchUp(catchUp, v.env, v.voters, v.inner.bestRound.roundNumber())
 				if round == nil {
 					if processCatchUpOutcome != nil {
 						processCatchUpOutcome(newCatchUpProcessingOutcome(CatchUpProcessingOutcomeBad{}))
@@ -711,13 +731,13 @@ loop:
 
 				// beyond this point, we set this round to the past and
 				// start voting in the next round.
-				justCompleted := NewVotingRoundCompleted(round, v.inner.bestRound.FinalizedSender(), nil, v.env)
+				justCompleted := newVotingRoundCompleted(round, v.inner.bestRound.FinalizedSender(), nil, v.env)
 
-				newBest := NewVotingRound(
-					justCompleted.RoundNumber()+1,
+				newBest := newVotingRound(
+					justCompleted.roundNumber()+1,
 					v.voters,
 					v.lastFinalizedInRounds,
-					justCompleted.BridgeState(),
+					justCompleted.bridgeState(),
 					v.inner.bestRound.FinalizedSender(),
 					v.env,
 				)
@@ -732,10 +752,10 @@ loop:
 				}
 
 				err := v.env.Completed(
-					justCompleted.RoundNumber(),
-					justCompleted.RoundState(),
-					justCompleted.DagBase(),
-					justCompleted.HistoricalVotes(),
+					justCompleted.roundNumber(),
+					justCompleted.roundState(),
+					justCompleted.dagBase(),
+					justCompleted.historicalVotes(),
 				)
 				if err != nil {
 					v.inner.Unlock()
@@ -776,7 +796,7 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (boo
 		var precomitted bool
 		state := v.inner.bestRound.State()
 		if state != nil {
-			_, precomitted = v.inner.bestRound.State().(Precommitted)
+			_, precomitted = v.inner.bestRound.State().(statePrecommitted)
 		}
 
 		shouldStartNext = completable && precomitted
@@ -787,8 +807,8 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (boo
 		}
 
 		fmt.Printf("Best round at %v has become completable. Starting new best round at %v\n",
-			v.inner.bestRound.RoundNumber(),
-			v.inner.bestRound.RoundNumber()+1,
+			v.inner.bestRound.roundNumber(),
+			v.inner.bestRound.roundNumber()+1,
 		)
 		v.inner.Unlock()
 	}
@@ -807,22 +827,22 @@ func (v *Voter[Hash, Number, Signature, ID]) completedBestRound() error {
 	defer v.inner.Unlock()
 
 	err := v.env.Completed(
-		v.inner.bestRound.RoundNumber(),
-		v.inner.bestRound.RoundState(),
-		v.inner.bestRound.DagBase(),
-		v.inner.bestRound.HistoricalVotes(),
+		v.inner.bestRound.roundNumber(),
+		v.inner.bestRound.roundState(),
+		v.inner.bestRound.dagBase(),
+		v.inner.bestRound.historicalVotes(),
 	)
 	if err != nil {
 		return err
 	}
 
-	oldRoundNumber := v.inner.bestRound.RoundNumber()
+	oldRoundNumber := v.inner.bestRound.roundNumber()
 
-	nextRound := NewVotingRound(
+	nextRound := newVotingRound(
 		oldRoundNumber+1,
 		v.voters,
 		v.lastFinalizedInRounds,
-		v.inner.bestRound.BridgeState(),
+		v.inner.bestRound.bridgeState(),
 		v.inner.bestRound.FinalizedSender(),
 		v.env,
 	)
@@ -898,14 +918,14 @@ type sharedVoteState[
 }
 
 func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateReport[ID] {
-	toRoundState := func(votingRound VotingRound[Hash, Number, Signature, ID, E]) (uint64, RoundStateReport[ID]) {
-		return votingRound.RoundNumber(), RoundStateReport[ID]{
-			TotalWeight:            votingRound.Voters().TotalWeight(),
-			ThresholdWeight:        votingRound.Voters().Threshold(),
-			PrevoteCurrentWeight:   votingRound.PrevoteWeight(),
-			PrevoteIDs:             votingRound.PrevoteIDs(),
-			PrecommitCurrentWeight: votingRound.PrecommitWeight(),
-			PrecommitIDs:           votingRound.PrecommitIDs(),
+	toRoundState := func(votingRound votingRound[Hash, Number, Signature, ID, E]) (uint64, RoundStateReport[ID]) {
+		return votingRound.roundNumber(), RoundStateReport[ID]{
+			TotalWeight:            votingRound.voters().TotalWeight(),
+			ThresholdWeight:        votingRound.voters().Threshold(),
+			PrevoteCurrentWeight:   votingRound.prevoteWeight(),
+			PrevoteIDs:             votingRound.prevoteIDs(),
+			PrecommitCurrentWeight: votingRound.precommitWeight(),
+			PrecommitIDs:           votingRound.precommitIDs(),
 		}
 	}
 
@@ -913,7 +933,7 @@ func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateRepo
 	defer svs.mtx.Unlock()
 
 	bestRoundNum, bestRound := toRoundState(svs.inner.bestRound)
-	backgroundRounds := svs.inner.pastRounds.VotingRounds()
+	backgroundRounds := svs.inner.pastRounds.votingRounds()
 	mappedBackgroundRounds := make(map[uint64]RoundStateReport[ID])
 	for _, backgroundRound := range backgroundRounds {
 		num, round := toRoundState(backgroundRound)
@@ -1005,8 +1025,8 @@ func validateCatchUp[
 		}
 
 		var (
-			pv VoteWeight
-			pc VoteWeight
+			pv voteWeight
+			pc voteWeight
 		)
 		mapped.Scan(func(id ID, pp prevotedPrecommitted) bool {
 			prevoted := pp.prevoted
@@ -1014,18 +1034,18 @@ func validateCatchUp[
 
 			if vi := voters.Get(id); vi != nil {
 				if prevoted {
-					pv = pv + VoteWeight(vi.Weight())
+					pv = pv + voteWeight(vi.Weight())
 				}
 
 				if precommitted {
-					pc = pc + VoteWeight(vi.Weight())
+					pc = pc + voteWeight(vi.Weight())
 				}
 			}
 			return true
 		})
 
 		threshold := voters.Threshold()
-		if pv < VoteWeight(threshold) || pc < VoteWeight(threshold) {
+		if pv < voteWeight(threshold) || pc < voteWeight(threshold) {
 			fmt.Println("Ignoring invalid catch up, missing voter threshold")
 			return nil
 		}

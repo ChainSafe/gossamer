@@ -341,12 +341,12 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) findContainingNodes(hash Hash
 }
 
 // a subchain of blocks by hash.
-type SubChain[Hash comparable, Number constraints.Unsigned] struct {
+type subChain[Hash comparable, Number constraints.Unsigned] struct {
 	hashes     []Hash // forward order
 	bestNumber Number
 }
 
-func (sc SubChain[H, N]) best() *HashNumber[H, N] {
+func (sc subChain[H, N]) best() *HashNumber[H, N] {
 	if len(sc.hashes) == 0 {
 		return nil
 	}
@@ -376,7 +376,7 @@ type hashvote[Hash constraints.Ordered, voteNode voteNodeI[voteNode, Vote], Vote
 // node itself.
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 	nodeKey Hash, activeNode *voteGraphEntry[Hash, Number, voteNode, Vote], forceConstrain *HashNumber[Hash, Number],
-	condition func(voteNode) bool) SubChain[Hash, Number] {
+	condition func(voteNode) bool) subChain[Hash, Number] {
 
 	var descendantNodes []voteGraphEntry[Hash, Number, voteNode, Vote]
 	for _, descendant := range activeNode.descendants {
@@ -470,7 +470,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 		}
 	}
 
-	return SubChain[Hash, Number]{
+	return subChain[Hash, Number]{
 		hashes:     hashes,
 		bestNumber: bestNumber,
 	}

@@ -21,13 +21,13 @@ type idVoterInfo[ID constraints.Ordered] struct {
 // equipped with a total order, given by the ordering of the voter's IDs.
 type VoterSet[ID constraints.Ordered] struct {
 	voters      []idVoterInfo[ID]
-	threshold   VoterWeight
-	totalWeight VoterWeight
+	threshold   voterWeight
+	totalWeight voterWeight
 }
 
 type IDWeight[ID constraints.Ordered] struct {
 	ID     ID
-	Weight VoterWeight
+	Weight voterWeight
 }
 
 // Create a voter set from a weight distribution produced by the given iterator.
@@ -40,11 +40,11 @@ type IDWeight[ID constraints.Ordered] struct {
 // the case if it either produced no non-zero weights or, i.e. the voter set
 // would be empty, or if the total voter weight exceeds `u64::MAX`.
 func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
-	var totalWeight VoterWeight
+	var totalWeight voterWeight
 	var voters = btree.NewMap[ID, VoterInfo](2)
 	for _, iw := range weights {
 		if iw.Weight != 0 {
-			err := totalWeight.CheckedAdd(iw.Weight)
+			err := totalWeight.checkedAdd(iw.Weight)
 			if err != nil {
 				return nil
 			}
@@ -117,8 +117,8 @@ func (vs VoterSet[ID]) Contains(id ID) bool {
 
 // Get the nth voter in the set, modulo the size of the set,
 // as per the associated total order.
-func (vs VoterSet[ID]) nthMod(n uint) idVoterInfo[ID] {
-	ivi := vs.nth(n % uint(len(vs.voters)))
+func (vs VoterSet[ID]) NthMod(n uint) idVoterInfo[ID] {
+	ivi := vs.Nth(n % uint(len(vs.voters)))
 	if ivi == nil {
 		panic("set is nonempty and n % len < len; qed")
 	}
@@ -128,7 +128,7 @@ func (vs VoterSet[ID]) nthMod(n uint) idVoterInfo[ID] {
 // Get the nth voter in the set, if any.
 //
 // Returns `None` if `n >= len`.
-func (vs VoterSet[ID]) nth(n uint) *idVoterInfo[ID] {
+func (vs VoterSet[ID]) Nth(n uint) *idVoterInfo[ID] {
 	if n >= uint(len(vs.voters)) {
 		return nil
 	}
@@ -140,37 +140,37 @@ func (vs VoterSet[ID]) nth(n uint) *idVoterInfo[ID] {
 
 // Get the threshold vote weight required for supermajority
 // w.r.t. this set of voters.
-func (vs VoterSet[ID]) Threshold() VoterWeight {
+func (vs VoterSet[ID]) Threshold() voterWeight {
 	return vs.threshold
 }
 
 // Get the total weight of all voters.
-func (vs VoterSet[ID]) TotalWeight() VoterWeight {
+func (vs VoterSet[ID]) TotalWeight() voterWeight {
 	return vs.totalWeight
 }
 
 // Get an iterator over the voters in the set, as given by
 // the associated total order.
-func (vs VoterSet[ID]) iter() []idVoterInfo[ID] {
+func (vs VoterSet[ID]) Iter() []idVoterInfo[ID] {
 	return vs.voters
 }
 
 // Information about a voter in a `VoterSet`.
 type VoterInfo struct {
 	position uint
-	weight   VoterWeight
+	weight   voterWeight
 }
 
-func (vi VoterInfo) Weight() VoterWeight {
+func (vi VoterInfo) Weight() voterWeight {
 	return vi.weight
 }
 
 // Compute the threshold weight given the total voting weight.
-func threshold(totalWeight VoterWeight) VoterWeight { //skipcq: RVV-B0001
+func threshold(totalWeight voterWeight) voterWeight { //skipcq: RVV-B0001
 	// TODO: implement saturating sub
 	// let faulty = total_weight.get().saturating_sub(1) / 3;
 	var faulty = (totalWeight - 1) / 3
 	// TODO: check that this computation is NonZero
-	// VoterWeight::new(total_weight.get() - faulty).expect("subtrahend > minuend; qed")
+	// voterWeight::new(total_weight.get() - faulty).expect("subtrahend > minuend; qed")
 	return totalWeight - faulty
 }

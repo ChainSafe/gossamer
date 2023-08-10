@@ -163,8 +163,8 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 	}
 
 	expectedRoundState := RoundStateReport[ID]{
-		TotalWeight:            VoterWeight(numVoters),
-		ThresholdWeight:        VoterWeight(votersOnline),
+		TotalWeight:            voterWeight(numVoters),
+		ThresholdWeight:        voterWeight(votersOnline),
 		PrevoteCurrentWeight:   0,
 		PrevoteIDs:             nil,
 		PrecommitCurrentWeight: 0,
@@ -319,8 +319,7 @@ waitForPrecommit:
 		}
 	}
 
-	co := CommunicationOut{}
-	setCommunicationOut(&co, CommunicationOutCommit[string, uint32, Signature, ID](commit))
+	co := newCommunicationOut(CommunicationOutCommit[string, uint32, Signature, ID](commit))
 	commitsOut <- co
 
 	timer := time.NewTimer(2000 * time.Millisecond)
@@ -392,8 +391,7 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	}()
 
 	// Send the commit message
-	co := CommunicationOut{}
-	setCommunicationOut(&co, CommunicationOutCommit[string, uint32, Signature, ID]{
+	co := newCommunicationOut(CommunicationOutCommit[string, uint32, Signature, ID]{
 		Number: 0,
 		Commit: commit,
 	})
@@ -459,17 +457,15 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	}
 
 	// send in a catch-up message for round 5.
-	ci := CommunicationIn{}
-	setCommunicationIn[string, uint32, Signature, ID](&ci,
-		CommunicationInCatchUp[string, uint32, Signature, ID]{
-			CatchUp: CatchUp[string, uint32, Signature, ID]{
-				BaseNumber:  1,
-				BaseHash:    GenesisHash,
-				RoundNumber: 5,
-				Prevotes:    []SignedPrevote[string, uint32, Signature, ID]{prevote(0), prevote(1), prevote(2)},
-				Precommits:  []SignedPrecommit[string, uint32, Signature, ID]{precommit(0), precommit(1), precommit(2)},
-			},
-		})
+	ci := newCommunicationIn[string, uint32, Signature, ID](CommunicationInCatchUp[string, uint32, Signature, ID]{
+		CatchUp: CatchUp[string, uint32, Signature, ID]{
+			BaseNumber:  1,
+			BaseHash:    GenesisHash,
+			RoundNumber: 5,
+			Prevotes:    []SignedPrevote[string, uint32, Signature, ID]{prevote(0), prevote(1), prevote(2)},
+			Precommits:  []SignedPrecommit[string, uint32, Signature, ID]{precommit(0), precommit(1), precommit(2)},
+		},
+	})
 	network.SendMessage(ci)
 
 	voterState := unsyncedVoter.VoterState()
@@ -671,7 +667,7 @@ waitForPrevote:
 	assert.NoError(t, err)
 }
 
-func TestBuffered(_ *testing.T) {
+func Testbuffered(_ *testing.T) {
 	in := make(chan int32)
 	buffered := newBuffered(in)
 

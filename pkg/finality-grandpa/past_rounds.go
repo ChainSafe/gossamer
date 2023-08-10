@@ -17,7 +17,7 @@ type backgroundRound[
 	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable,
 	ID constraints.Ordered, E Environment[Hash, Number, Signature, ID],
 ] struct {
-	inner           VotingRound[Hash, Number, Signature, ID, E]
+	inner           votingRound[Hash, Number, Signature, ID, E]
 	finalizedNumber Number
 	roundCommitter  *roundCommitter[Hash, Number, Signature, ID, E]
 
@@ -25,10 +25,10 @@ type backgroundRound[
 }
 
 func (br *backgroundRound[Hash, Number, Signature, ID, E]) roundNumber() uint64 {
-	return br.inner.RoundNumber()
+	return br.inner.roundNumber()
 }
 
-func (br *backgroundRound[Hash, Number, Signature, ID, E]) votingRound() VotingRound[Hash, Number, Signature, ID, E] {
+func (br *backgroundRound[Hash, Number, Signature, ID, E]) votingRound() votingRound[Hash, Number, Signature, ID, E] {
 	return br.inner
 }
 
@@ -44,7 +44,7 @@ func (br *backgroundRound[Hash, Number, Signature, ID, E]) isDone() bool {
 		return false
 	}
 	var rs = true
-	estimate := br.inner.RoundState().Estimate
+	estimate := br.inner.roundState().Estimate
 	if estimate != nil {
 		rs = estimate.Number <= br.finalizedNumber
 	}
@@ -174,14 +174,14 @@ func newRoundCommitter[
 }
 
 func (rc *roundCommitter[Hash, Number, Signature, ID, E]) importCommit(
-	votingRound VotingRound[Hash, Number, Signature, ID, E], commit Commit[Hash, Number, Signature, ID],
+	votingRound votingRound[Hash, Number, Signature, ID, E], commit Commit[Hash, Number, Signature, ID],
 ) (bool, error) {
 	// ignore commits for a block lower than we already finalized
-	if votingRound.Finalized() != nil && commit.TargetNumber < votingRound.Finalized().Number {
+	if votingRound.finalized() != nil && commit.TargetNumber < votingRound.finalized().Number {
 		return true, nil
 	}
 
-	base, err := votingRound.CheckAndImportFromCommit(commit)
+	base, err := votingRound.checkAndImportFromCommit(commit)
 	if err != nil {
 		return false, err
 	}
@@ -196,7 +196,7 @@ func (rc *roundCommitter[Hash, Number, Signature, ID, E]) importCommit(
 
 func (rc *roundCommitter[Hash, Number, Signature, ID, E]) commit(
 	waker *waker,
-	votingRound VotingRound[Hash, Number, Signature, ID, E],
+	votingRound votingRound[Hash, Number, Signature, ID, E],
 ) (bool, *Commit[Hash, Number, Signature, ID], error) {
 	rc.importCommits.setWaker(waker)
 loop:
@@ -232,13 +232,13 @@ loop:
 
 	lastCommit := rc.lastCommit
 	rc.lastCommit = nil
-	finalized := votingRound.Finalized()
+	finalized := votingRound.finalized()
 
 	switch {
 	case lastCommit == nil && finalized != nil:
-		return true, votingRound.FinalizingCommit(), nil
+		return true, votingRound.finalizingCommit(), nil
 	case lastCommit != nil && finalized != nil && lastCommit.TargetNumber < finalized.Number:
-		return true, votingRound.FinalizingCommit(), nil
+		return true, votingRound.finalizingCommit(), nil
 	default:
 		return true, nil, nil
 	}
@@ -261,8 +261,8 @@ func newPastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signat
 }
 
 // push an old voting round onto this stream.
-func (p *pastRounds[Hash, Number, Signature, ID, E]) Push(env E, round VotingRound[Hash, Number, Signature, ID, E]) {
-	roundNumber := round.RoundNumber()
+func (p *pastRounds[Hash, Number, Signature, ID, E]) Push(env E, round votingRound[Hash, Number, Signature, ID, E]) {
+	roundNumber := round.roundNumber()
 	ch := make(chan Commit[Hash, Number, Signature, ID])
 	background := backgroundRound[Hash, Number, Signature, ID, E]{
 		inner: round,
@@ -284,9 +284,9 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) UpdateFinalized(fNum Number
 	}
 }
 
-// Get the underlying `VotingRound` items that are being run in the background.
-func (p *pastRounds[Hash, Number, Signature, ID, E]) VotingRounds() []VotingRound[Hash, Number, Signature, ID, E] {
-	var votingRounds []VotingRound[Hash, Number, Signature, ID, E]
+// Get the underlying `votingRound` items that are being run in the background.
+func (p *pastRounds[Hash, Number, Signature, ID, E]) votingRounds() []votingRound[Hash, Number, Signature, ID, E] {
+	var votingRounds []votingRound[Hash, Number, Signature, ID, E]
 	for _, bg := range p.pastRounds {
 		votingRounds = append(votingRounds, bg.votingRound())
 	}
@@ -339,10 +339,10 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 				number := v
 				round := br.inner
 				err := round.Env().Concluded(
-					round.RoundNumber(),
-					round.RoundState(),
-					round.DagBase(),
-					round.HistoricalVotes(),
+					round.roundNumber(),
+					round.roundState(),
+					round.dagBase(),
+					round.historicalVotes(),
 				)
 				if err != nil {
 					return true, nil, err
