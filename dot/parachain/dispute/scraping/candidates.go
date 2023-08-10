@@ -68,8 +68,8 @@ func (sc *ScrappedCandidates) RemoveUptoHeight(blockNumber uint32) []common.Hash
 }
 
 // NewScrappedCandidates creates a new ScrappedCandidates.
-func NewScrappedCandidates() *ScrappedCandidates {
-	return &ScrappedCandidates{
+func NewScrappedCandidates() ScrappedCandidates {
+	return ScrappedCandidates{
 		Candidates:              make(map[common.Hash]uint32),
 		CandidatesByBlockNumber: btree.New(30),
 	}

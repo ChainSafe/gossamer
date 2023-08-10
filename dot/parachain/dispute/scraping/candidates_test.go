@@ -1,10 +1,11 @@
 package scraping
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/google/btree"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestScrappedCandidates(t *testing.T) {
