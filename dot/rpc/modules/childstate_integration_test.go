@@ -244,13 +244,13 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	tr, err := st.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	tr.Put([]byte(":first_key"), []byte(":value1"))
-	tr.Put([]byte(":second_key"), []byte(":second_value"))
+	tr.Put([]byte(":first_key"), []byte(":value1"), trie.V0)
+	tr.Put([]byte(":second_key"), []byte(":second_value"), trie.V0)
 
 	childTr := trie.NewEmptyTrie()
-	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
-	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
-	childTr.Put([]byte(":another_child"), []byte("value"))
+	childTr.Put([]byte(":child_first"), []byte(":child_first_value"), trie.V0)
+	childTr.Put([]byte(":child_second"), []byte(":child_second_value"), trie.V0)
+	childTr.Put([]byte(":another_child"), []byte("value"), trie.V0)
 
 	err = tr.SetChild([]byte(":child_storage_key"), childTr)
 	require.NoError(t, err)

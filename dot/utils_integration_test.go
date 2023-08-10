@@ -27,7 +27,7 @@ func TestTrieSnapshot(t *testing.T) {
 
 	for k, v := range genRaw.Genesis.Raw["top"] {
 		val := []byte(v)
-		tri.Put([]byte(k), val)
+		tri.Put([]byte(k), val, trie.V0)
 	}
 
 	deepCopyTrie := tri.DeepCopy()
@@ -51,7 +51,7 @@ func TestTrieSnapshot(t *testing.T) {
 
 	// Modify the current trie.
 	value[0] = 'w'
-	newTrie.Put(key, value)
+	newTrie.Put(key, value, trie.V0)
 
 	// Get the updated root hash of all tries.
 	tHash, err = tri.Hash()
