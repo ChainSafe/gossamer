@@ -242,13 +242,15 @@ func TestNodeInitializedIntegration(t *testing.T) {
 
 	config.ChainSpec = genFile
 
-	result := IsNodeInitialised(config.BasePath)
+	result, err := IsNodeInitialised(config.BasePath)
+	require.NoError(t, err)
 	require.False(t, result)
 
-	err := InitNode(config)
+	err = InitNode(config)
 	require.NoError(t, err)
 
-	result = IsNodeInitialised(config.BasePath)
+	result, err = IsNodeInitialised(config.BasePath)
+	require.NoError(t, err)
 	require.True(t, result)
 }
 

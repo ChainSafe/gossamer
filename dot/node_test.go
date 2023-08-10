@@ -161,7 +161,8 @@ func TestNodeInitialized(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := IsNodeInitialised(tt.basepath)
+			got, err := IsNodeInitialised(tt.basepath)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
 	}

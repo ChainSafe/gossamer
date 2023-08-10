@@ -49,7 +49,7 @@ type Node struct {
 }
 
 type nodeBuilderIface interface {
-	isNodeInitialised(basepath string) error
+	isNodeInitialised(basepath string) (bool, error)
 	initNode(config *cfg.Config) error
 	createStateService(config *cfg.Config) (*state.Service, error)
 	createNetworkService(config *cfg.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
@@ -78,26 +78,29 @@ type nodeBuilder struct{}
 
 // IsNodeInitialised returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data can been loaded
-func IsNodeInitialised(basepath string) bool {
+func IsNodeInitialised(basepath string) (bool, error) {
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.isNodeInitialised(basepath)
-	return err == nil
+	return nodeInstance.isNodeInitialised(basepath)
 }
 
 // isNodeInitialised returns nil if the node is successfully initialised
 // and an error otherwise.
-func (*nodeBuilder) isNodeInitialised(basepath string) error {
+func (*nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
-	registry := filepath.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+	nodeDatabaseDir := filepath.Join(basepath, utils.DefaultDatabaseDir)
 
-	_, err := os.Stat(registry)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("cannot find key registry in database directory: %w", err)
+	entries, err := os.ReadDir(nodeDatabaseDir)
+	if err != nil {
+		return false, fmt.Errorf("failed to read dir %s: %w", nodeDatabaseDir, err)
+	}
+
+	if len(entries) == 0 {
+		return false, nil
 	}
 
 	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
-		return fmt.Errorf("cannot setup database: %w", err)
+		return false, fmt.Errorf("cannot setup database: %w", err)
 	}
 
 	defer func() {
@@ -109,10 +112,10 @@ func (*nodeBuilder) isNodeInitialised(basepath string) error {
 
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
-		return fmt.Errorf("cannot load genesis data in base state: %w", err)
+		return false, fmt.Errorf("cannot load genesis data in base state: %w", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 // InitNode initialise the node with the given Config
@@ -242,7 +245,12 @@ func newNode(config *cfg.Config,
 		debug.SetGCPercent(prev)
 	}
 
-	if builder.isNodeInitialised(config.BasePath) != nil {
+	isInitialised, err := builder.isNodeInitialised(config.BasePath)
+	if err != nil {
+		return nil, fmt.Errorf("checking if node is initialised: %w", err)
+	}
+
+	if isInitialised {
 		err := builder.initNode(config)
 		if err != nil {
 			return nil, fmt.Errorf("cannot initialise node: %w", err)
