@@ -207,14 +207,11 @@ func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 	defer s.mtx.Unlock()
 
 	worker, has := s.workers[who]
-	if !has {
-		return
+	if has {
+		close(worker.queue)
+		delete(s.workers, who)
+		s.ignorePeers[who] = struct{}{}
 	}
-
-	close(worker.queue)
-	delete(s.workers, who)
-	s.ignorePeers[who] = struct{}{}
-	return
 }
 
 // totalWorkers only returns available or busy workers
