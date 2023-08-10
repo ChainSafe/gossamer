@@ -16,6 +16,7 @@ import (
 
 func Test_Generate_Verify(t *testing.T) {
 	t.Parallel()
+	stateVersion := trie.V0
 
 	keys := []string{
 		"cat",
@@ -29,7 +30,7 @@ func Test_Generate_Verify(t *testing.T) {
 
 	for i, key := range keys {
 		value := fmt.Sprintf("%x-%d", key, i)
-		trie.Put([]byte(key), []byte(value))
+		trie.Put([]byte(key), []byte(value), stateVersion)
 	}
 
 	rootHash, err := trie.Hash()

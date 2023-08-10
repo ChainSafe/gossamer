@@ -833,7 +833,7 @@ func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataS
 	}
 
 	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value)
+		err := t.Put(kv.Key, kv.Value, trie.V0)
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				kv.Key, kv.Value, err)
@@ -935,7 +935,7 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 			"put key=0x%x and value=0x%x",
 			key, value)
 
-		err = t.Put(key, value)
+		err = t.Put(key, value, trie.V0)
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				key, value, err)
@@ -2071,7 +2071,7 @@ func ext_offchain_http_request_add_header_version_1(
 	return ptr
 }
 
-func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err error) {
+func storageAppend(storage runtime.Storage, key, valueToAppend []byte, version trie.Version) (err error) {
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	currentValue := storage.Get(key)
@@ -2122,7 +2122,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err erro
 		}
 	}
 
-	err = storage.Put(key, value)
+	err = storage.Put(key, value, version)
 	if err != nil {
 		return fmt.Errorf("putting key and value in storage: %w", err)
 	}
@@ -2146,7 +2146,7 @@ func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, va
 	cp := make([]byte, len(valueAppend))
 	copy(cp, valueAppend)
 
-	err := storageAppend(storage, key, cp)
+	err := storageAppend(storage, key, cp, trie.V0)
 	if err != nil {
 		logger.Errorf("failed appending to storage: %s", err)
 	}
@@ -2460,7 +2460,7 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
-	err := storage.Put(key, cp)
+	err := storage.Put(key, cp, trie.V0)
 	if err != nil {
 		panic(err)
 	}

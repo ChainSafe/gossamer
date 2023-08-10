@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -208,7 +209,7 @@ func toWasmMemoryFixedSizeOptional(context wasmer.InstanceContext, data []byte) 
 	return toWasmMemory(context, encodedOptionalFixedSize)
 }
 
-func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err error) {
+func storageAppend(storage runtime.Storage, key, valueToAppend []byte, version trie.Version) (err error) {
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	currentValue := storage.Get(key)
@@ -259,7 +260,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err erro
 		}
 	}
 
-	err = storage.Put(key, value)
+	err = storage.Put(key, value, version)
 	if err != nil {
 		return fmt.Errorf("putting key and value in storage: %w", err)
 	}

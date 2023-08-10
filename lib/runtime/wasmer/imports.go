@@ -820,7 +820,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value)
+		err := t.Put(kv.Key, kv.Value, trie.V0)
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				kv.Key, kv.Value, err)
@@ -873,7 +873,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 			"put key=0x%x and value=0x%x",
 			key, value)
 
-		err = t.Put(key, value)
+		err = t.Put(key, value, trie.V0)
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				key, value, err)
@@ -1916,7 +1916,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	cp := make([]byte, len(valueAppend))
 	copy(cp, valueAppend)
 
-	err := storageAppend(storage, key, cp)
+	err := storageAppend(storage, key, cp, trie.V0)
 	if err != nil {
 		logger.Errorf("failed appending to storage: %s", err)
 	}
@@ -2156,7 +2156,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int6
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
-	err := storage.Put(key, cp)
+	err := storage.Put(key, cp, trie.V0)
 	panicOnError(err)
 }
 

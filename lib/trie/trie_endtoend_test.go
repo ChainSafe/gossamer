@@ -40,7 +40,7 @@ func buildSmallTrie() *Trie {
 	}
 
 	for _, test := range tests {
-		trie.Put(test.key, test.value)
+		trie.Put(test.key, test.value, V0)
 	}
 
 	return trie
@@ -50,7 +50,7 @@ func runTests(t *testing.T, trie *Trie, tests []keyValues) {
 	for _, test := range tests {
 		switch test.op {
 		case put:
-			trie.Put(test.key, test.value)
+			trie.Put(test.key, test.value, V0)
 		case get:
 			val := trie.Get(test.key)
 			assert.Equal(t, test.value, val)
@@ -104,7 +104,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 	f.Fuzz(func(t *testing.T, key, value []byte) {
 		trie := NewEmptyTrie()
-		trie.Put(key, value)
+		trie.Put(key, value, V0)
 		retrievedValue := trie.Get(key)
 		assert.Equal(t, value, retrievedValue)
 	})
@@ -119,7 +119,7 @@ func Test_Trie_PutAndGet_Multiple(t *testing.T) {
 	keyValues := generateKeyValues(t, generator, numberOfKeyValuePairs)
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		trie.Put(key, value, V0)
 
 		// Check value is inserted correctly.
 		retrievedValue := trie.Get(key)
@@ -296,7 +296,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		trie.Put(test.key, test.value)
+		trie.Put(test.key, test.value, V0)
 	}
 
 	newTrie := trie.Snapshot()
@@ -312,7 +312,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		newTrie.Put(test.key, test.value)
+		newTrie.Put(test.key, test.value, V0)
 	}
 
 	deletedNodeHashes := newTrie.deltas.Deleted()
@@ -349,7 +349,7 @@ func TestDelete(t *testing.T) {
 
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		trie.Put(key, value, V0)
 	}
 
 	dcTrie := trie.DeepCopy()
@@ -432,7 +432,7 @@ func TestClearPrefix(t *testing.T) {
 		trie := NewEmptyTrie()
 
 		for _, test := range tests {
-			trie.Put(test.key, test.value)
+			trie.Put(test.key, test.value, V0)
 		}
 
 		dcTrie := trie.DeepCopy()
@@ -517,7 +517,7 @@ func TestClearPrefix_Small(t *testing.T) {
 		"other",
 	}
 	for _, key := range keys {
-		ssTrie.Put([]byte(key), []byte(key))
+		ssTrie.Put([]byte(key), []byte(key), V0)
 	}
 
 	ssTrie.ClearPrefix([]byte("noo"))
@@ -598,8 +598,8 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 			trieClearPrefix := NewEmptyTrie()
 
 			for _, test := range testCase {
-				trieDelete.Put(test.key, test.value)
-				trieClearPrefix.Put(test.key, test.value)
+				trieDelete.Put(test.key, test.value, V0)
+				trieClearPrefix.Put(test.key, test.value, V0)
 			}
 
 			prefixedKeys := trieDelete.GetKeysWithPrefix(prefix)
@@ -627,7 +627,7 @@ func TestSnapshot(t *testing.T) {
 
 	expectedTrie := NewEmptyTrie()
 	for _, test := range tests {
-		expectedTrie.Put(test.key, test.value)
+		expectedTrie.Put(test.key, test.value, V0)
 	}
 
 	// put all keys except first
@@ -636,11 +636,11 @@ func TestSnapshot(t *testing.T) {
 		if i == 0 {
 			continue
 		}
-		parentTrie.Put(test.key, test.value)
+		parentTrie.Put(test.key, test.value, V0)
 	}
 
 	newTrie := parentTrie.Snapshot()
-	newTrie.Put(tests[0].key, tests[0].value)
+	newTrie.Put(tests[0].key, tests[0].value, V0)
 
 	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
 	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
@@ -667,7 +667,7 @@ func Test_Trie_NextKey_Random(t *testing.T) {
 
 	for _, key := range sortedKeys {
 		value := []byte{1}
-		trie.Put(key, value)
+		trie.Put(key, value, V0)
 	}
 
 	for i, key := range sortedKeys {
@@ -691,7 +691,7 @@ func Benchmark_Trie_Hash(b *testing.B) {
 	trie := NewEmptyTrie()
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		trie.Put(key, value, V0)
 	}
 
 	b.StartTimer()
@@ -732,7 +732,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 
 			switch op {
 			case put:
-				expectedTries[i].Put(k, k)
+				expectedTries[i].Put(k, k, V0)
 			case del:
 				expectedTries[i].Delete(k)
 			case clearPrefix:
@@ -763,7 +763,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 			for _, operation := range operations {
 				switch operation.op {
 				case put:
-					trie.Put(operation.key, operation.key)
+					trie.Put(operation.key, operation.key, V0)
 				case del:
 					trie.Delete(operation.key)
 				case clearPrefix:
@@ -844,7 +844,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 			trieClearPrefix := NewEmptyTrie()
 
 			for _, test := range testCase {
-				trieClearPrefix.Put(test.key, test.value)
+				trieClearPrefix.Put(test.key, test.value, V0)
 			}
 
 			num, allDeleted, err := trieClearPrefix.ClearPrefixLimit(prefix, uint32(lim))
@@ -950,7 +950,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				trieClearPrefix := NewEmptyTrie()
 
 				for _, test := range testCase {
-					trieClearPrefix.Put(test.key, test.value)
+					trieClearPrefix.Put(test.key, test.value, V0)
 				}
 
 				dcTrie := trieClearPrefix.DeepCopy()
@@ -1036,7 +1036,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 		kv := generateKeyValues(t, generator, kvSize)
 		for keyString, value := range kv {
 			key := []byte(keyString)
-			trie.Put(key, value)
+			trie.Put(key, value, V0)
 
 			retrievedValue := trie.Get(key)
 			assert.Equal(t, value, retrievedValue)
@@ -1091,7 +1091,7 @@ func Test_Trie_Descendants_Fuzz(t *testing.T) {
 	})
 
 	for _, key := range keys {
-		trie.Put(key, kv[string(key)])
+		trie.Put(key, kv[string(key)], V0)
 	}
 
 	testDescendants(t, trie.root)
