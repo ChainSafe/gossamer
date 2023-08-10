@@ -1,8 +1,9 @@
 package scraping
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
 	"sort"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 type Inclusion struct {
@@ -73,4 +74,10 @@ func (i *Inclusions) Get(candidateHash common.Hash) []Inclusion {
 	}
 
 	return inclusionsAsSlice
+}
+
+func NewInclusions() Inclusions {
+	return Inclusions{
+		inner: make(map[common.Hash]map[uint32][]common.Hash),
+	}
 }
