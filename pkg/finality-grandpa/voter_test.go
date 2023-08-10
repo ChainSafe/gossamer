@@ -163,8 +163,8 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 	}
 
 	expectedRoundState := RoundStateReport[ID]{
-		TotalWeight:            voterWeight(numVoters),
-		ThresholdWeight:        voterWeight(votersOnline),
+		TotalWeight:            VoterWeight(numVoters),
+		ThresholdWeight:        VoterWeight(votersOnline),
 		PrevoteCurrentWeight:   0,
 		PrevoteIDs:             nil,
 		PrecommitCurrentWeight: 0,
@@ -667,7 +667,7 @@ waitForPrevote:
 	assert.NoError(t, err)
 }
 
-func Testbuffered(_ *testing.T) {
+func TestBuffered(_ *testing.T) {
 	in := make(chan int32)
 	buffered := newBuffered(in)
 

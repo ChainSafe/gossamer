@@ -30,7 +30,7 @@ func (VoterSet[ID]) Generate(rand *rand.Rand, _ int) reflect.Value {
 			}
 			weights[i] = IDWeight[ID]{
 				id,
-				voterWeight(u64v.Interface().(uint64)),
+				VoterWeight(u64v.Interface().(uint64)),
 			}
 		}
 		set := NewVoterSet(weights)
@@ -86,12 +86,12 @@ func TestVoterSet_TotalWeight(t *testing.T) {
 			return true
 		}
 
-		expected := voterWeight(totalWeight.Uint64())
+		expected := VoterWeight(totalWeight.Uint64())
 		v1 := NewVoterSet(v)
 		if v1 != nil {
 			return assert.Equal(t, expected, v1.totalWeight)
 		}
-		return assert.Equal(t, expected, voterWeight(0))
+		return assert.Equal(t, expected, VoterWeight(0))
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)

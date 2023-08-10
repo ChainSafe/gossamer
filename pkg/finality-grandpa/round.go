@@ -74,7 +74,7 @@ func (vm voteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) b
 
 type voteTracker[ID constraints.Ordered, Vote, Signature comparable] struct {
 	votes         *btree.Map[ID, voteMultiplicity[Vote, Signature]]
-	currentWeight voteWeight
+	currentWeight VoteWeight
 	mtx           sync.RWMutex
 }
 
@@ -98,7 +98,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 	id ID,
 	vote Vote,
 	signature Signature,
-	weight voterWeight,
+	weight VoterWeight,
 ) (*voteMultiplicity[Vote, Signature], bool) {
 	vt.mtx.Lock()
 	defer vt.mtx.Unlock()
@@ -107,7 +107,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 	vm, ok := vt.votes.Get(id)
 	if !ok {
 		// TODO: figure out saturating_add stuff
-		vt.currentWeight = vt.currentWeight + voteWeight(weight)
+		vt.currentWeight = vt.currentWeight + VoteWeight(weight)
 		multiplicity := newVoteMultiplicity[Vote, Signature](
 			Single[Vote, Signature]{vote, signature},
 		)
@@ -174,7 +174,7 @@ func (vt *voteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID,
 	return
 }
 
-func (vt *voteTracker[ID, Vote, Signature]) Participation() (weight voteWeight, numParticipants int) {
+func (vt *voteTracker[ID, Vote, Signature]) Participation() (weight VoteWeight, numParticipants int) {
 	return vt.currentWeight, vt.votes.Len()
 }
 
@@ -334,10 +334,10 @@ func (r *Round[ID, H, N, S]) importPrevote(
 
 	// update prevote-GHOST
 	threshold := r.context.voters.threshold
-	if r.prevotes.currentWeight >= voteWeight(threshold) {
+	if r.prevotes.currentWeight >= VoteWeight(threshold) {
 		r.prevoteGhost = r.graph.FindGHOST(r.prevoteGhost, func(v *voteNode[ID]) bool {
 			// TODO: update Weight to pass by value
-			return r.context.Weight(*v, PrevotePhase) >= voteWeight(threshold)
+			return r.context.Weight(*v, PrevotePhase) >= VoteWeight(threshold)
 		})
 	}
 
@@ -427,7 +427,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 func (r *Round[ID, H, N, S]) update() {
 	threshold := r.context.voters.threshold
 
-	if r.prevotes.currentWeight < voteWeight(threshold) {
+	if r.prevotes.currentWeight < VoteWeight(threshold) {
 		return
 	}
 
@@ -438,9 +438,9 @@ func (r *Round[ID, H, N, S]) update() {
 	// anything new finalized? finalized blocks are those which have both
 	// 2/3+ prevote and precommit weight.
 	currentPrecommits := r.precommits.currentWeight
-	if currentPrecommits >= voteWeight(threshold) {
+	if currentPrecommits >= VoteWeight(threshold) {
 		r.finalized = r.graph.FindAncestor(r.prevoteGhost.Hash, r.prevoteGhost.Number, func(v *voteNode[ID]) bool {
-			return r.context.Weight(*v, PrecommitPhase) >= voteWeight(threshold)
+			return r.context.Weight(*v, PrecommitPhase) >= VoteWeight(threshold)
 		})
 	}
 
@@ -454,17 +454,17 @@ func (r *Round[ID, H, N, S]) update() {
 		// it is only important to consider the voters whose votes
 		// we have already seen, because we are assuming any votes we
 		// haven't seen will target this block.
-		toleratedEquivocations := voteWeight(r.context.voters.totalWeight - threshold)
+		toleratedEquivocations := VoteWeight(r.context.voters.totalWeight - threshold)
 		currentEquivocations := r.context.EquivocationWeight(PrecommitPhase)
 		additionalEquiv := toleratedEquivocations - currentEquivocations
-		remainingCommitVotes := voteWeight(r.context.voters.totalWeight) - r.precommits.currentWeight
+		remainingCommitVotes := VoteWeight(r.context.voters.totalWeight) - r.precommits.currentWeight
 
 		// total precommits for this block, including equivocations.
 		precommitedFor := r.context.Weight(*node, PrecommitPhase)
 
 		// equivocations we could still get are out of those who
 		// have already voted, but not on this block.
-		var possibleEquivocations voteWeight
+		var possibleEquivocations VoteWeight
 		if currentPrecommits-precommitedFor <= additionalEquiv {
 			possibleEquivocations = currentPrecommits - precommitedFor
 		} else {
@@ -475,7 +475,7 @@ func (r *Round[ID, H, N, S]) update() {
 		// assuming all remaining actors commit to this block,
 		// and that we get further equivocations
 		fullPossibleWeight := precommitedFor + remainingCommitVotes + possibleEquivocations
-		return fullPossibleWeight >= voteWeight(threshold)
+		return fullPossibleWeight >= VoteWeight(threshold)
 	}
 
 	// until we have threshold precommits, any new block could get supermajority
@@ -488,7 +488,7 @@ func (r *Round[ID, H, N, S]) update() {
 	//
 	// the round-estimate is the highest block in the chain with head
 	// `prevote_ghost` that could have supermajority-commits.
-	if r.precommits.currentWeight >= voteWeight(threshold) {
+	if r.precommits.currentWeight >= VoteWeight(threshold) {
 		r.estimate = r.graph.FindAncestor(r.prevoteGhost.Hash, r.prevoteGhost.Number, possibleToPrecommit)
 	} else {
 		r.estimate = &HashNumber[H, N]{r.prevoteGhost.Hash, r.prevoteGhost.Number}
@@ -524,9 +524,9 @@ func (r *Round[ID, H, N, S]) State() RoundState[H, N] {
 func (r *Round[ID, H, N, S]) PrecommitGHOST() *HashNumber[H, N] {
 	// update precommit-GHOST
 	var threshold = r.Threshold()
-	if r.precommits.currentWeight >= voteWeight(threshold) {
+	if r.precommits.currentWeight >= VoteWeight(threshold) {
 		r.precommitGhost = r.graph.FindGHOST(r.precommitGhost, func(v *voteNode[ID]) bool {
-			return r.context.Weight(*v, PrecommitPhase) >= voteWeight(threshold)
+			return r.context.Weight(*v, PrecommitPhase) >= VoteWeight(threshold)
 		})
 	}
 	return r.precommitGhost
@@ -630,7 +630,7 @@ func (r *Round[ID, H, N, S]) Completable() bool {
 }
 
 // Threshold weight for supermajority.
-func (r *Round[ID, H, N, S]) Threshold() voterWeight {
+func (r *Round[ID, H, N, S]) Threshold() VoterWeight {
 	return r.context.voters.threshold
 }
 
@@ -646,17 +646,17 @@ func (r *Round[ID, H, N, S]) Voters() VoterSet[ID] {
 
 // Return the primary voter of the round.
 func (r *Round[ID, H, N, S]) PrimaryVoter() (ID, VoterInfo) {
-	idVoterInfo := r.context.Voters().NthMod(uint(r.number))
-	return idVoterInfo.ID, idVoterInfo.VoterInfo
+	IDVoterInfo := r.context.Voters().NthMod(uint(r.number))
+	return IDVoterInfo.ID, IDVoterInfo.VoterInfo
 }
 
 // Get the current weight and number of voters who have participated in prevoting.
-func (r *Round[ID, H, N, S]) PrevoteParticipation() (weight voteWeight, numParticipants int) {
+func (r *Round[ID, H, N, S]) PrevoteParticipation() (weight VoteWeight, numParticipants int) {
 	return r.prevotes.Participation()
 }
 
 // Get the current weight and number of voters who have participated in precommitting.
-func (r *Round[ID, H, N, S]) PrecommitParticipation() (weight voteWeight, numParticipants int) {
+func (r *Round[ID, H, N, S]) PrecommitParticipation() (weight VoteWeight, numParticipants int) {
 	return r.precommits.Participation()
 }
 
