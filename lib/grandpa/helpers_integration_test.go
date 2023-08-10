@@ -136,7 +136,10 @@ func newTestState(t *testing.T) *state.Service {
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() {
+		closeErr := db.Close()
+		require.NoError(t, closeErr)
+	})
 
 	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()

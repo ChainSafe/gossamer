@@ -52,9 +52,13 @@ func TestInitNode(t *testing.T) {
 			err := InitNode(tt.config)
 			assert.ErrorIs(t, err, tt.err)
 			// confirm InitNode has created database dir
-			registry := filepath.Join(tt.config.BasePath, utils.DefaultDatabaseDir, "KEYREGISTRY")
-			_, err = os.Stat(registry)
+			nodeDatabaseDir := filepath.Join(tt.config.BasePath, utils.DefaultDatabaseDir)
+			_, err = os.Stat(nodeDatabaseDir)
 			require.NoError(t, err)
+
+			entries, err := os.ReadDir(nodeDatabaseDir)
+			require.NoError(t, err)
+			require.Greater(t, len(entries), 0)
 		})
 	}
 }

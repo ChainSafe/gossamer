@@ -89,7 +89,7 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
+	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(false, nil)
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
 		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
@@ -218,6 +218,8 @@ func TestInitNode_Integration(t *testing.T) {
 	db, err := utils.SetupDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
@@ -233,6 +235,9 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	db, err := utils.SetupDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
+
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {

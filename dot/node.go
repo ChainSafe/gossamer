@@ -89,6 +89,14 @@ func (*nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
 	nodeDatabaseDir := filepath.Join(basepath, utils.DefaultDatabaseDir)
 
+	_, err := os.Stat(nodeDatabaseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
 	entries, err := os.ReadDir(nodeDatabaseDir)
 	if err != nil {
 		return false, fmt.Errorf("failed to read dir %s: %w", nodeDatabaseDir, err)
