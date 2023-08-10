@@ -57,7 +57,7 @@ func (p *pebbleDB) Put(key, value []byte) error {
 func (p *pebbleDB) Get(key []byte) (value []byte, err error) {
 	value, closer, err := p.db.Get(key)
 	if err != nil {
-		return nil, fmt.Errorf("getting 0x%x from database: %w", key, err)
+		return nil, err
 	}
 
 	if err := closer.Close(); err != nil {
@@ -89,7 +89,7 @@ func (p *pebbleDB) Has(key []byte) (exists bool, err error) {
 func (p *pebbleDB) Del(key []byte) error {
 	err := p.db.Delete(key, &pebble.WriteOptions{})
 	if err != nil {
-		return fmt.Errorf("deleting 0x%x from database: %w", key, err)
+		return err
 	}
 
 	return nil
