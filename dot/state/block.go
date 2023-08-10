@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/cockroachdb/pebble"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/exp/slices"
@@ -212,7 +211,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if has, _ := bs.HasHeader(hash); !has {
-		return nil, pebble.ErrNotFound
+		return nil, database.ErrNotFound
 	}
 
 	data, err := bs.db.Get(headerKey(hash))
@@ -227,7 +226,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if result.Empty() {
-		return nil, pebble.ErrNotFound
+		return nil, database.ErrNotFound
 	}
 
 	result.Hash()
@@ -645,7 +644,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 	}
 
 	endHeader, err := bs.loadHeaderFromDatabase(endHash)
-	if errors.Is(err, pebble.ErrNotFound) ||
+	if errors.Is(err, database.ErrNotFound) ||
 		errors.Is(err, ErrEmptyHeader) {
 		// end hash is not in the database so we should lookup the
 		// block that could be in memory and in the database as well

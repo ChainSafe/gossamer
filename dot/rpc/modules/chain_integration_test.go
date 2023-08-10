@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -18,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/cockroachdb/pebble"
 	"github.com/golang/mock/gomock"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -113,7 +113,7 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetHeader(nil, req, res)
-	require.EqualError(t, err, pebble.ErrNotFound.Error())
+	require.EqualError(t, err, database.ErrNotFound.Error())
 }
 
 func TestChainGetBlock_Genesis(t *testing.T) {
@@ -212,7 +212,7 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetBlock(nil, req, res)
-	require.EqualError(t, err, pebble.ErrNotFound.Error())
+	require.EqualError(t, err, database.ErrNotFound.Error())
 }
 
 func TestChainGetBlockHash_Latest(t *testing.T) {

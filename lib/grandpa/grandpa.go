@@ -16,12 +16,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/cockroachdb/pebble"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -1171,7 +1171,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))
 	if err != nil {
-		if errors.Is(err, pebble.ErrNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			s.tracker.addCommit(commitMessage)
 		}
 

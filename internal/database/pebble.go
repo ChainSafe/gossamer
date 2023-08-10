@@ -13,6 +13,8 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("internal", "database"))
 var _ Database = (*pebbleDB)(nil)
 
+var ErrNotFound = pebble.ErrNotFound
+
 type pebbleDB struct {
 	path string
 	db   *pebble.DB

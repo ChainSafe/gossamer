@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/cockroachdb/pebble"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,7 +97,7 @@ func TestChildStateGetStorageSize(t *testing.T) {
 			keyChild: []byte(":not_exist"),
 		},
 		{
-			err:  pebble.ErrNotFound,
+			err:  database.ErrNotFound,
 			hash: &invalidHash,
 		},
 	}
@@ -155,7 +155,7 @@ func TestGetStorageHash(t *testing.T) {
 			keyChild: []byte(":not_exist"),
 		},
 		{
-			err:  pebble.ErrNotFound,
+			err:  database.ErrNotFound,
 			hash: &invalidBlockHash,
 		},
 	}

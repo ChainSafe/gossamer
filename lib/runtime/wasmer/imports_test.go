@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/cockroachdb/pebble"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wasmerio/go-ext-wasm/wasmer"
@@ -51,7 +50,7 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = inst.ctx.NodeStorage.BaseDB.Get(testKey)
-	require.ErrorIs(t, err, pebble.ErrNotFound)
+	require.ErrorIs(t, err, database.ErrNotFound)
 }
 
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {

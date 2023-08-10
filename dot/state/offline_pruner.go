@@ -197,7 +197,7 @@ func (p *OfflinePruner) Prune() error {
 		nodeHash := bytes.TrimPrefix(key, storagePrefixBytes)
 		_, err := p.filterDatabase.Get(nodeHash)
 		if err != nil {
-			if errors.Is(err, pebble.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) {
 				continue
 			}
 

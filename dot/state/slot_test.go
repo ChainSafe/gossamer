@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/cockroachdb/pebble"
 	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +51,7 @@ func checkSlotToMapKeyExists(t *testing.T, db database.Table, slotNumber uint64)
 
 	_, err := db.Get(slotToHeaderKey)
 	if err != nil {
-		if errors.Is(err, pebble.ErrNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			return false
 		}
 

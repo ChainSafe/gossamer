@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/cockroachdb/pebble"
 )
 
 const slotTablePrefix = "slot"
@@ -58,7 +57,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 
 	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 	encodedHeadersWithSigners, err := s.db.Get(currentSlotKey)
-	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("getting key slot header map key %d: %w", slot, err)
 	}
 
@@ -90,7 +89,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 
 	firstSavedSlot := slot
 	firstSavedSlotEncoded, err := s.db.Get(slotHeaderStartKey)
-	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("getting key slot header start key: %w", err)
 	}
 

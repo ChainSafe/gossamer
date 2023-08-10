@@ -13,11 +13,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/cockroachdb/pebble"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 
@@ -65,7 +65,7 @@ func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 
 				blockStateMock.EXPECT().
 					GetHeader(testHash).
-					Return(nil, pebble.ErrNotFound)
+					Return(nil, database.ErrNotFound)
 
 				grandpaService := &Service{
 					telemetry: nil,

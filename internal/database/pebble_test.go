@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cockroachdb/pebble"
 	"github.com/stretchr/testify/require"
 )
 
@@ -138,7 +137,7 @@ func testBatchPutAndDelete(t *testing.T, db Database) {
 	testFlushAndClose(t, deleteBatch, 1)
 
 	_, err = db.Get(key)
-	require.ErrorIs(t, err, pebble.ErrNotFound)
+	require.ErrorIs(t, err, ErrNotFound)
 }
 
 func testFlushAndClose(t *testing.T, batch Batch, expectedSize int) {
