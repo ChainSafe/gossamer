@@ -78,6 +78,18 @@ func (cs *ChainScrapper) GetRelevantBlockAncestors(
 	panic("ChainScrapper.GetRelevantBlockAncestors not implemented")
 }
 
+func (cs *ChainScrapper) IsPotentialSpam(voteState types.CandidateVoteState, candidateHash common.Hash) (bool, error) {
+	isDisputed := voteState.IsDisputed()
+	isIncluded := cs.IsCandidateIncluded(candidateHash)
+	isBacked := cs.IsCandidateBacked(candidateHash)
+	isConfirmed, err := voteState.IsConfirmed()
+	if err != nil {
+		return false, fmt.Errorf("is confirmed: %w", err)
+	}
+
+	return isDisputed && !isIncluded && !isBacked && !isConfirmed, nil
+}
+
 func NewChainScraper(
 	sender overseer.Sender,
 	initialHead overseer.ActivatedLeaf,

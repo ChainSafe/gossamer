@@ -2,7 +2,7 @@ package scraping
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/google/btree"
+	"github.com/tidwall/btree"
 )
 
 // ScrappedCandidate is an item in the CandidatesByBlockNumber btree.
@@ -11,10 +11,9 @@ type ScrappedCandidate struct {
 	Hash        common.Hash
 }
 
-// Less returns true if the block number of the ScrappedCandidate is less than the block number
-// of the other ScrappedCandidate.
-func (s ScrappedCandidate) Less(than btree.Item) bool {
-	return s.BlockNumber < than.(*ScrappedCandidate).BlockNumber
+// ScrappedCandidateComparator compares two ScrappedCandidates.
+func ScrappedCandidateComparator(a, b any) bool {
+	return a.(ScrappedCandidate).BlockNumber < b.(ScrappedCandidate).BlockNumber
 }
 
 // ScrappedCandidates keeps track of the scrapped candidates.
@@ -32,7 +31,7 @@ func (sc *ScrappedCandidates) Contains(hash common.Hash) bool {
 // Insert inserts a new candidate into the ScrappedCandidates.
 func (sc *ScrappedCandidates) Insert(blockNumber uint32, hash common.Hash) {
 	sc.Candidates[hash] = blockNumber
-	sc.CandidatesByBlockNumber.ReplaceOrInsert(&ScrappedCandidate{
+	sc.CandidatesByBlockNumber.Set(&ScrappedCandidate{
 		BlockNumber: blockNumber,
 		Hash:        hash,
 	})
@@ -42,22 +41,22 @@ func (sc *ScrappedCandidates) Insert(blockNumber uint32, hash common.Hash) {
 func (sc *ScrappedCandidates) RemoveUptoHeight(blockNumber uint32) []common.Hash {
 	var modifiedCandidates []common.Hash
 
-	notStale := btree.New(30)
-	stale := btree.New(30)
+	notStale := btree.New(ScrappedCandidateComparator)
+	stale := btree.New(ScrappedCandidateComparator)
 
-	sc.CandidatesByBlockNumber.Descend(func(i btree.Item) bool {
+	sc.CandidatesByBlockNumber.Descend(nil, func(i interface{}) bool {
 		candidate := i.(*ScrappedCandidate)
 
 		if candidate.BlockNumber <= blockNumber {
-			stale.ReplaceOrInsert(i)
+			stale.Set(i)
 		} else {
-			notStale.ReplaceOrInsert(i)
+			notStale.Set(i)
 		}
 		return true
 	})
 	sc.CandidatesByBlockNumber = notStale
 
-	stale.Ascend(func(i btree.Item) bool {
+	stale.Ascend(nil, func(i interface{}) bool {
 		candidate := i.(*ScrappedCandidate)
 		delete(sc.Candidates, candidate.Hash)
 		modifiedCandidates = append(modifiedCandidates, candidate.Hash)
@@ -71,6 +70,6 @@ func (sc *ScrappedCandidates) RemoveUptoHeight(blockNumber uint32) []common.Hash
 func NewScrappedCandidates() ScrappedCandidates {
 	return ScrappedCandidates{
 		Candidates:              make(map[common.Hash]uint32),
-		CandidatesByBlockNumber: btree.New(30),
+		CandidatesByBlockNumber: btree.New(ScrappedCandidateComparator),
 	}
 }
