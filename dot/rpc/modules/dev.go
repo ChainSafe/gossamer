@@ -31,7 +31,7 @@ func NewDevModule(bp BlockProducerAPI, net NetworkAPI) *DevModule {
 }
 
 // Control to send start and stop messages to services
-func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
+func (m *DevModule) Control(_ *http.Request, req *[]string, res *string) error {
 	reqA := *req
 	var err error
 	switch reqA[0] {
@@ -63,14 +63,14 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 }
 
 // SlotDuration Dev RPC to return slot duration
-func (m *DevModule) SlotDuration(r *http.Request, req *EmptyRequest, res *string) error {
+func (m *DevModule) SlotDuration(_ *http.Request, _ *EmptyRequest, res *string) error {
 	var err error
 	*res = uint64ToHex(m.blockProducerAPI.SlotDuration())
 	return err
 }
 
 // EpochLength Dev RPC to return epoch length
-func (m *DevModule) EpochLength(r *http.Request, req *EmptyRequest, res *string) error {
+func (m *DevModule) EpochLength(_ *http.Request, _ *EmptyRequest, res *string) error {
 	var err error
 	*res = uint64ToHex(m.blockProducerAPI.EpochLength())
 	return err
