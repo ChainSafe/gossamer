@@ -76,7 +76,9 @@ func TestSetupAndClearDatabase(t *testing.T) {
 	value, err := db.Get([]byte("key"))
 	require.NoError(t, err)
 	require.Equal(t, []byte("value"), value)
-	db.Close()
+
+	err = db.Close()
+	require.NoError(t, err)
 
 	shouldExists := true
 	checkDatbaseDirectory(t, tmpDir, shouldExists)
@@ -88,11 +90,14 @@ func TestSetupAndClearDatabase(t *testing.T) {
 
 	// Setup database after an clear operation
 	// should be okay
-	_, err = SetupDatabase(tmpDir, false)
+	db, err = SetupDatabase(tmpDir, false)
 	require.NoError(t, err)
 
 	shouldExists = true
 	checkDatbaseDirectory(t, tmpDir, shouldExists)
+
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func checkDatbaseDirectory(t *testing.T, dir string, shouldExists bool) {
