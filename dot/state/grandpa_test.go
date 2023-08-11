@@ -218,7 +218,10 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparal
 	}
 
 	for tname, tt := range tests {
+		tt := tt
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
 			// clear the scheduledChangeRoots after the test ends
 			// this does not cause race condition because t.Run without
 			// t.Parallel() blocks until this function returns
