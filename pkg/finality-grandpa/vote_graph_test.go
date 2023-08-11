@@ -62,10 +62,10 @@ func TestVoteGraph_GraphForkNotAtNode(t *testing.T) {
 	assert.Equal(t, []string{"E1", "F2"}, getEntry("A").descendants)
 	assert.Equal(t, createUintVoteNode(300), getEntry("A").cumulativeVote)
 
-	assert.Equal(t, "A", *getEntry("E1").AncestorNode())
+	assert.Equal(t, "A", *getEntry("E1").ancestorNode())
 	assert.Equal(t, createUintVoteNode(100), getEntry("E1").cumulativeVote)
 
-	assert.Equal(t, "A", *getEntry("F2").AncestorNode())
+	assert.Equal(t, "A", *getEntry("F2").ancestorNode())
 	assert.Equal(t, createUintVoteNode(100), getEntry("F2").cumulativeVote)
 }
 
@@ -93,10 +93,10 @@ func TestVoteGraph_GraphForkNotAtNode1(t *testing.T) {
 	assert.Equal(t, []string{"E1", "F2"}, getEntry("A").descendants)
 	assert.Equal(t, createUintVoteNode(300), getEntry("A").cumulativeVote)
 
-	assert.Equal(t, "A", *getEntry("E1").AncestorNode())
+	assert.Equal(t, "A", *getEntry("E1").ancestorNode())
 	assert.Equal(t, createUintVoteNode(100), getEntry("E1").cumulativeVote)
 
-	assert.Equal(t, "A", *getEntry("F2").AncestorNode())
+	assert.Equal(t, "A", *getEntry("F2").ancestorNode())
 	assert.Equal(t, createUintVoteNode(100), getEntry("F2").cumulativeVote)
 }
 
@@ -146,15 +146,15 @@ func TestVoteGraph_GraphForkAtNode(t *testing.T) {
 			assert.Contains(t, vg.entries.Keys(), "C")
 			assert.Contains(t, getEntry("C").descendants, "E1")
 			assert.Contains(t, getEntry("C").descendants, "F2")
-			assert.Equal(t, GenesisHash, *getEntry("C").AncestorNode())
+			assert.Equal(t, GenesisHash, *getEntry("C").ancestorNode())
 			assert.Equal(t, createUintVoteNode(300), getEntry("C").cumulativeVote)
 
 			assert.Contains(t, vg.entries.Keys(), "E1")
-			assert.Equal(t, "C", *getEntry("E1").AncestorNode())
+			assert.Equal(t, "C", *getEntry("E1").ancestorNode())
 			assert.Equal(t, createUintVoteNode(100), getEntry("E1").cumulativeVote)
 
 			assert.Contains(t, vg.entries.Keys(), "F2")
-			assert.Equal(t, "C", *getEntry("F2").AncestorNode())
+			assert.Equal(t, "C", *getEntry("F2").ancestorNode())
 			assert.Equal(t, createUintVoteNode(100), getEntry("F2").cumulativeVote)
 		})
 	}

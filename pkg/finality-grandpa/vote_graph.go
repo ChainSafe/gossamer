@@ -27,8 +27,8 @@ type voteGraphEntry[
 
 // whether the given hash, number pair is a direct ancestor of this node.
 // `None` signifies that the graph must be traversed further back.
-func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) InDirectAncestry(hash Hash, num Number) *bool {
-	h := vge.AncestorBlock(num)
+func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) inDirectAncestry(hash Hash, num Number) *bool {
+	h := vge.ancestorBlock(num)
 	if h == nil {
 		return nil
 	}
@@ -38,7 +38,7 @@ func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) InDirectAncestry(hash Ha
 
 // Get ancestor block by number. Returns `None` if there is no block
 // by that number in the direct ancestry.
-func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) AncestorBlock(num Number) (h *Hash) {
+func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) ancestorBlock(num Number) (h *Hash) {
 	if num >= vge.number {
 		return nil
 	}
@@ -51,7 +51,7 @@ func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) AncestorBlock(num Number
 }
 
 // get ancestor vote-node.
-func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) AncestorNode() *Hash {
+func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) ancestorNode() *Hash {
 	if len(vge.ancestors) == 0 {
 		return nil
 	}
@@ -180,7 +180,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 			panic("this function only invoked with keys of vote-nodes; qed")
 		}
 
-		ida := entry.InDirectAncestry(ancestorHash, ancestorNumber)
+		ida := entry.inDirectAncestry(ancestorHash, ancestorNumber)
 		if ida == nil || !*ida {
 			panic("entry is supposed to be in direct ancestry")
 		}
@@ -191,7 +191,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 		// we ensure the `entry.ancestors` is drained regardless of whether
 		// the `new_entry` has already been constructed.
 		{
-			prevAncestor := entry.AncestorNode()
+			prevAncestor := entry.ancestorNode()
 			var offset uint
 			if ancestorNumber > entry.number {
 				panic("this function only invoked with direct ancestors; qed")
@@ -226,16 +226,16 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 		newEntry := producedEntry.entry
 		prevAncestor := producedEntry.hash
 		if prevAncestor != nil {
-			prevAncestorNode, _ := vg.entries.Get(*prevAncestor)
-			prevAncestorNodeDescendants := make([]Hash, 0)
-			for _, d := range prevAncestorNode.descendants {
+			prevancestorNode, _ := vg.entries.Get(*prevAncestor)
+			prevancestorNodeDescendants := make([]Hash, 0)
+			for _, d := range prevancestorNode.descendants {
 				if !slices.Contains(newEntry.descendants, d) {
-					prevAncestorNodeDescendants = append(prevAncestorNodeDescendants, d)
+					prevancestorNodeDescendants = append(prevancestorNodeDescendants, d)
 				}
 			}
-			prevAncestorNodeDescendants = append(prevAncestorNodeDescendants, ancestorHash)
-			prevAncestorNode.descendants = prevAncestorNodeDescendants
-			vg.entries.Set(*producedEntry.hash, prevAncestorNode)
+			prevancestorNodeDescendants = append(prevancestorNodeDescendants, ancestorHash)
+			prevancestorNode.descendants = prevancestorNodeDescendants
+			vg.entries.Set(*producedEntry.hash, prevancestorNode)
 		}
 		vg.entries.Set(ancestorHash, producedEntry.entry)
 	}
@@ -279,7 +279,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) Insert(
 		}
 		vg.entries.Set(inspectingHash, activeEntry)
 
-		parent := activeEntry.AncestorNode()
+		parent := activeEntry.ancestorNode()
 		if parent != nil {
 			inspectingHash = *parent
 		} else {
@@ -320,10 +320,10 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) findContainingNodes(hash Hash
 			}
 			visited[head] = nil
 
-			da := activeEntry.InDirectAncestry(hash, num)
+			da := activeEntry.inDirectAncestry(hash, num)
 			switch {
 			case da == nil:
-				prev := activeEntry.AncestorNode()
+				prev := activeEntry.ancestorNode()
 				if prev != nil {
 					head = *prev
 					continue // iterate backwards
@@ -384,7 +384,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 		case forceConstrain == nil:
 			descendantNodes = append(descendantNodes, vg.mustGetEntry(descendant))
 		default:
-			ida := vg.mustGetEntry(descendant).InDirectAncestry(forceConstrain.Hash, forceConstrain.Number)
+			ida := vg.mustGetEntry(descendant).inDirectAncestry(forceConstrain.Hash, forceConstrain.Number)
 			switch {
 			case ida == nil:
 			case !*ida:
@@ -408,7 +408,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 
 		var newBest *Hash
 		for _, dNode := range descendantNodes {
-			dBlock := dNode.AncestorBlock(baseNumber + offset)
+			dBlock := dNode.ancestorBlock(baseNumber + offset)
 			if dBlock == nil {
 				continue
 			}
@@ -458,7 +458,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 			descendantBlocks = make([]hashvote[Hash, voteNode, Vote], 0)
 			retained := make([]voteGraphEntry[Hash, Number, voteNode, Vote], 0)
 			for _, descendant := range descendantNodes {
-				ida := descendant.InDirectAncestry(*newBest, bestNumber)
+				ida := descendant.inDirectAncestry(*newBest, bestNumber)
 				if ida != nil && *ida {
 					retained = append(retained, descendant)
 				}
@@ -486,17 +486,17 @@ type hashVoteGraphEntry[
 	entry voteGraphEntry[Hash, Number, voteNode, Vote]
 }
 
-// Find the best GHOST descendent of the given block.
+// FindGHOST will find the best GHOST descendent of the given block.
 // Pass a closure used to evaluate the cumulative vote value.
-// /
+//
 // The GHOST (hash, number) returned will be the block with highest number for which the
 // cumulative votes of descendents and itself causes the closure to evaluate to true.
-// /
+//
 // This assumes that the evaluation closure is one which returns true for at most a single
 // descendent of a block, in that only one fork of a block can be "heavy"
 // enough to trigger the threshold.
-// /
-// Returns `None` when the given `current_best` does not fulfil the condition.
+//
+// Returns `nil` when the given `currentBest` does not fulfil the condition.
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindGHOST(
 	currentBest *HashNumber[Hash, Number],
 	condition func(voteNode) bool,
@@ -522,7 +522,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindGHOST(
 			nodeKey = currentBest.Hash
 			forceConstrain = false
 		case len(containing) > 0:
-			ancestor := getNode(containing[0]).AncestorNode()
+			ancestor := getNode(containing[0]).ancestorNode()
 			if ancestor == nil {
 				panic("node containing non-node in history always has ancestor; qed")
 			}
@@ -549,7 +549,7 @@ loop:
 		for _, descendant := range activeNode.descendants {
 			if forceConstrain && currentBest != nil {
 				node := getNode(descendant)
-				ida := node.InDirectAncestry(currentBest.Hash, currentBest.Number)
+				ida := node.inDirectAncestry(currentBest.Hash, currentBest.Number)
 				switch {
 				case ida == nil:
 				case !*ida:
@@ -597,10 +597,10 @@ loop:
 	return vg.ghostFindMergePoint(nodeKey, activeNode, hn, condition).best()
 }
 
-// Find the block with the highest block number in the chain with the given head
+// FindAncestor will find the block with the highest block number in the chain with the given head
 // which fulfils the given condition.
-// /
-// Returns `None` if the given head is not in the graph or no node fulfils the
+//
+// Returns `nil` if the given head is not in the graph or no node fulfils the
 // given condition.
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindAncestor(
 	hash Hash,
@@ -657,9 +657,9 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindAncestor(
 	}
 }
 
-// Adjust the base of the graph. The new base must be an ancestor of the
+// AdjustBase will adjust the base of the graph. The new base must be an ancestor of the
 // old base.
-// /
+//
 // Provide an ancestry proof from the old base to the new. The proof
 // should be in reverse order from the old base's parent.
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) AdjustBase(ancestryProof []Hash) {
@@ -691,6 +691,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) AdjustBase(ancestryProof []Ha
 	vg.baseNumber = newNumber
 }
 
+// Base returns the base block.
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) Base() HashNumber[Hash, Number] {
 	return HashNumber[Hash, Number]{
 		vg.base,

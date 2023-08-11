@@ -29,7 +29,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 	}{
 		{
 			name: "Single",
-			value: Single[headerNumber, signature]{
+			value: single[headerNumber, signature]{
 				headerNumber1,
 				signature1,
 			},
@@ -41,7 +41,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 		},
 		{
 			name: "Single",
-			value: Single[headerNumber, signature]{
+			value: single[headerNumber, signature]{
 				headerNumber1,
 				signature1,
 			},
@@ -53,7 +53,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 		},
 		{
 			name: "Equivocated",
-			value: Equivocated[headerNumber, signature]{
+			value: equivocated[headerNumber, signature]{
 				{headerNumber1, signature1},
 				{headerNumber2, signature2},
 			},
@@ -65,7 +65,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 		},
 		{
 			name: "Equivocated",
-			value: Equivocated[headerNumber, signature]{
+			value: equivocated[headerNumber, signature]{
 				{headerNumber1, signature1},
 				{headerNumber2, signature2},
 			},
@@ -77,7 +77,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 		},
 		{
 			name: "Equivocated",
-			value: Equivocated[headerNumber, signature]{
+			value: equivocated[headerNumber, signature]{
 				{headerNumber1, signature1},
 				{headerNumber2, signature2},
 			},
@@ -89,7 +89,7 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 		},
 		{
 			name: "Equivocated",
-			value: Equivocated[headerNumber, signature]{
+			value: equivocated[headerNumber, signature]{
 				{headerNumber1, signature1},
 				{headerNumber2, signature2},
 			},
@@ -104,9 +104,9 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var vm voteMultiplicity[headerNumber, signature]
 			switch val := tt.value.(type) {
-			case Equivocated[headerNumber, signature]:
+			case equivocated[headerNumber, signature]:
 				vm = newVoteMultiplicity[headerNumber, signature](val)
-			case Single[headerNumber, signature]:
+			case single[headerNumber, signature]:
 				vm = newVoteMultiplicity[headerNumber, signature](val)
 			}
 			got := vm.Contains(tt.args.Vote, tt.args.Signature)

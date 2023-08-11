@@ -322,7 +322,7 @@ waitForPrecommit:
 	co := newCommunicationOut(CommunicationOutCommit[string, uint32, Signature, ID](commit))
 	commitsOut <- co
 
-	timer := time.NewTimer(2000 * time.Millisecond)
+	timer := time.NewTimer(5000 * time.Millisecond)
 	var commitCount int
 waitForCommits:
 	for {
