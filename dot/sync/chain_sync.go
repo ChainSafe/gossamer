@@ -438,7 +438,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		bestBlockHeader.Hash(), bestBlockHeader.Number, highestFinalizedHeader.Hash(), highestFinalizedHeader.Number)
 
 	parentExists, err := cs.blockState.HasHeader(announcedHeader.ParentHash)
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return fmt.Errorf("while checking header exists: %w", err)
 	}
 

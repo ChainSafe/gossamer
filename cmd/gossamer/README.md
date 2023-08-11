@@ -185,9 +185,8 @@ What follows is a list that describes the services and capabilities that inform 
 
 #### State
 
-This service is a wrapper around an instance of [`chaindb`](https://github.com/ChainSafe/chaindb), a key-value database
-that is built on top of [BadgerDB](https://github.com/dgraph-io/badger) from [Dgraph](https://dgraph.io/). The state
-service provides storage capabilities for the other Gossamer services - each service is assigned a prefix that is added
+This service is a wrapper around an instance of [`pebble`](https://github.com/cockroachdb/pebble), a LevelDB/RocksDB inspired key-value. 
+The state service provides storage capabilities for the other Gossamer services - each service is assigned a prefix that is added
 to its storage keys. The state service is defined in [dot/state/service.go](../../dot/state/service.go).
 
 #### Network

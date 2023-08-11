@@ -255,14 +255,3 @@ func GetProjectRootPath() (rootPath string, err error) {
 
 	return rootPath, nil
 }
-
-// LoadChainDB load the db at the given path.
-func LoadChainDB(basePath string) (database.Database, error) {
-	// Open already existing DB
-	db, err := database.NewPebble(basePath, false)
-	if err != nil {
-		return nil, fmt.Errorf("opening database: %w", err)
-	}
-
-	return db, nil
-}

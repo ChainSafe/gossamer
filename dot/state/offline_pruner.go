@@ -33,7 +33,7 @@ type OfflinePruner struct {
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath string,
 	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
-	db, err := utils.LoadChainDB(inputDBPath)
+	db, err := utils.SetupDatabase(inputDBPath, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
