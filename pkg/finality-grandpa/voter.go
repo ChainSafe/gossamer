@@ -79,11 +79,11 @@ type BestChainOutput[Hash comparable, Number constraints.Unsigned] struct {
 	Error error
 }
 
-// Associated future type for the environment used when asynchronously computing the
+// BestChain is Associated channel for the environment used when asynchronously computing the
 // best chain to vote on. See also `Environment.BestChainContaining`.
 type BestChain[Hash comparable, Number constraints.Unsigned] chan BestChainOutput[Hash, Number]
 
-// Necessary environment for a voter.
+// Environment is the necessary environment for a voter.
 //
 // This encapsulates the database and networking layers of the chain.
 type Environment[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] interface {
@@ -334,6 +334,7 @@ type CommunicationOut struct {
 	variant any
 }
 
+// CommuincationOutVariants is interface constraint of `CommunicationOut`
 type CommuincationOutVariants[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
@@ -365,6 +366,7 @@ func setCommunicationOut[
 	co.variant = variant
 }
 
+// CommunicationOutCommit is a commit message.
 type CommunicationOutCommit[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
@@ -372,20 +374,21 @@ type CommunicationOutCommit[
 	ID constraints.Ordered,
 ] numberCommit[Hash, Number, Signature, ID]
 
+// CommitProcessingOutcome is the outcome of processing a commit.
 type CommitProcessingOutcome struct {
 	variant any
 }
 
-// It was beneficial to process this commit.
+// CommitProcessingOutcomeGood means it was beneficial to process this commit.
 type CommitProcessingOutcomeGood GoodCommit
 
-// It wasn't beneficial to process this commit. We wasted resources.
+// CommitProcessingOutcomeBad means it wasn't beneficial to process this commit. We wasted resources.
 type CommitProcessingOutcomeBad BadCommit
 
-// The result of processing for a good commit.
+// GoodCommit is the result of processing for a good commit.
 type GoodCommit struct{}
 
-// The result of processing for a bad commit
+// BadCommit is the result of processing for a bad commit
 type BadCommit struct {
 	numPrecommits           uint
 	numDuplicatedPrecommits uint
@@ -522,7 +525,7 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	stopChan chan any
 }
 
-// Create new `Voter` tracker with given round number and base block.
+// NewVoter creates a new `Voter` tracker with given round number and base block.
 //
 // Provide data about the last completed round. If there is no
 // known last completed round, the genesis state (round number 0, no votes, genesis base),
@@ -960,14 +963,14 @@ func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateRepo
 	}
 }
 
-// Returns an object allowing to query the voter state.
+// VoterState returns an object allowing to query the voter state.
 func (v *Voter[Hash, Number, Signature, ID]) VoterState() VoterState[ID] {
 	return &sharedVoteState[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]{
 		inner: v.inner,
 	}
 }
 
-// Trait for querying the state of the voter. Used by `Voter` to return a queryable object
+// VoterState interface for querying the state of the voter. Used by `Voter` to return a queryable object
 // without exposing too many data types.
 type VoterState[ID comparable] interface {
 	// Returns a plain data type, `report::VoterState`, describing the current state

@@ -15,7 +15,7 @@ type IDVoterInfo[ID constraints.Ordered] struct {
 	VoterInfo
 }
 
-// A (non-empty) set of voters and associated weights.
+// VoterSet is a (non-empty) set of voters and associated weights.
 //
 // A `VoterSet` identifies all voters that are permitted to vote in a round
 // of the protocol and their associated weights. A `VoterSet` is furthermore
@@ -26,12 +26,13 @@ type VoterSet[ID constraints.Ordered] struct {
 	totalWeight VoterWeight
 }
 
+// IDWeight is tuple for ID and Weight
 type IDWeight[ID constraints.Ordered] struct {
 	ID     ID
 	Weight VoterWeight
 }
 
-// Create a voter set from a weight distribution produced by the given iterator.
+// NewVoterSet creates a voter set from a weight distribution produced by the given iterator.
 //
 // If the distribution contains multiple weights for the same voter ID, they are
 // understood to be partial weights and are accumulated. As a result, the
@@ -106,17 +107,17 @@ func (vs VoterSet[ID]) Get(id ID) *VoterInfo {
 	return nil
 }
 
-// Get the size of the set.
+// Len returns the size of the set.
 func (vs VoterSet[ID]) Len() int {
 	return len(vs.voters)
 }
 
-// Whether the set contains a voter with the given ID.
+// Contains returns whether the set contains a voter with the given ID.
 func (vs VoterSet[ID]) Contains(id ID) bool {
 	return vs.Get(id) != nil
 }
 
-// Get the nth voter in the set, modulo the size of the set,
+// NthMod gets the nth voter in the set, modulo the size of the set,
 // as per the associated total order.
 func (vs VoterSet[ID]) NthMod(n uint) IDVoterInfo[ID] {
 	ivi := vs.Nth(n % uint(len(vs.voters)))
@@ -126,7 +127,7 @@ func (vs VoterSet[ID]) NthMod(n uint) IDVoterInfo[ID] {
 	return *ivi
 }
 
-// Get the nth voter in the set, if any.
+// Nth gets the nth voter in the set, if any.
 //
 // Returns `None` if `n >= len`.
 func (vs VoterSet[ID]) Nth(n uint) *IDVoterInfo[ID] {
@@ -139,24 +140,24 @@ func (vs VoterSet[ID]) Nth(n uint) *IDVoterInfo[ID] {
 	}
 }
 
-// Get the threshold vote weight required for supermajority
+// Threshold returns the threshold vote weight required for supermajority
 // w.r.t. this set of voters.
 func (vs VoterSet[ID]) Threshold() VoterWeight {
 	return vs.threshold
 }
 
-// Get the total weight of all voters.
+// TotalWeight returns the total weight of all voters.
 func (vs VoterSet[ID]) TotalWeight() VoterWeight {
 	return vs.totalWeight
 }
 
-// Get an iterator over the voters in the set, as given by
+// Iter returns the voters in the set, as given by
 // the associated total order.
 func (vs VoterSet[ID]) Iter() []IDVoterInfo[ID] {
 	return vs.voters
 }
 
-// Information about a voter in a `VoterSet`.
+// VoterInfo is the information about a voter in a `VoterSet`.
 type VoterInfo struct {
 	position uint
 	weight   VoterWeight
