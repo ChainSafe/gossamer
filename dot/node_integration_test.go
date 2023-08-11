@@ -57,7 +57,6 @@ func TestNewNode(t *testing.T) {
 	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
 	initConfig.Core.WasmInterpreter = wazero_runtime.Name
-
 	initConfig.Log.Digest = "critical"
 
 	networkConfig := &network.Config{
