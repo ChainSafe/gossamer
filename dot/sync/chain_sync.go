@@ -170,7 +170,8 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 }
 
 func (cs *chainSync) start() {
-	isSyncedGauge.Set(0)
+	// since the default status from sync mode is syncMode(tip)
+	isSyncedGauge.Set(1)
 
 	// wait until we have a minimal workers in the sync worker pool
 	for {
