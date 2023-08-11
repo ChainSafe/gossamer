@@ -8,7 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/google/btree"
+	"github.com/tidwall/btree"
 )
 
 const (
@@ -36,6 +36,10 @@ func newCandidateVotesKey(session parachainTypes.SessionIndex, candidateHash com
 }
 
 func newCandidateVotesSessionPrefix(session parachainTypes.SessionIndex) []byte {
+	if session == 0 {
+		return append([]byte(candidateVotesPrefix), 0, 0)
+	}
+
 	return append([]byte(candidateVotesPrefix), session.Bytes()...)
 }
 
@@ -69,7 +73,7 @@ func (b *BadgerBackend) GetEarliestSession() (*parachainTypes.SessionIndex, erro
 }
 
 func (b *BadgerBackend) GetRecentDisputes() (*btree.BTree, error) {
-	recentDisputes := btree.New(DefaultBtreeDegree)
+	recentDisputes := btree.New(types.DisputeComparator)
 
 	if err := b.db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
@@ -90,7 +94,7 @@ func (b *BadgerBackend) GetRecentDisputes() (*btree.BTree, error) {
 			}); err != nil {
 				return err
 			}
-			recentDisputes.ReplaceOrInsert(dispute)
+			recentDisputes.Set(dispute)
 		}
 
 		return nil
@@ -139,7 +143,7 @@ func (b *BadgerBackend) setRecentDisputesTxn(txn *badger.Txn, recentDisputes *bt
 		val []byte
 		err error
 	)
-	recentDisputes.Descend(func(item btree.Item) bool {
+	recentDisputes.Descend(nil, func(item interface{}) bool {
 		dispute := item.(*types.Dispute)
 		key := newRecentDisputesKey(dispute.Comparator.SessionIndex, dispute.Comparator.CandidateHash)
 		val, err = scale.Marshal(dispute)

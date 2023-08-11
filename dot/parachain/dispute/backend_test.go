@@ -9,8 +9,8 @@ import (
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/google/btree"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/btree"
 )
 
 func TestOverlayBackend_EarliestSession(t *testing.T) {
@@ -38,15 +38,15 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(DefaultBtreeDegree)
+	disputes := btree.New(types.DisputeComparator)
 
 	dispute1, err := types.NewTestDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.ReplaceOrInsert(dispute1)
+	disputes.Set(dispute1)
 
 	dispute2, err := types.NewTestDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
-	disputes.ReplaceOrInsert(dispute2)
+	disputes.Set(dispute2)
 
 	// when
 	backend := newOverlayBackend(db)
@@ -127,19 +127,19 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < numIterations; j++ {
-				disputes := btree.New(DefaultBtreeDegree)
+				disputes := btree.New(types.DisputeComparator)
 
 				dispute1, err := types.NewTestDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)},
 					types.DisputeStatusActive,
 				)
 				require.NoError(t, err)
-				disputes.ReplaceOrInsert(dispute1)
+				disputes.Set(dispute1)
 
 				dispute2, err := types.NewTestDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)}, types.DisputeStatusConcludedFor)
 				require.NoError(t, err)
-				disputes.ReplaceOrInsert(dispute2)
+				disputes.Set(dispute2)
 
 				err = backend.SetRecentDisputes(disputes)
 				require.NoError(t, err)

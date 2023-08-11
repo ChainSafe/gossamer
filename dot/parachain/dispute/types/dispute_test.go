@@ -63,7 +63,7 @@ func TestDispute_Codec(t *testing.T) {
 	require.Equal(t, &dispute, decoded)
 }
 
-func TestDispute_Less(t *testing.T) {
+func TestDispute_Comparator(t *testing.T) {
 	t.Parallel()
 
 	status, err := NewDisputeStatus()
@@ -97,8 +97,8 @@ func TestDispute_Less(t *testing.T) {
 	}
 
 	// when
-	less12 := dispute1.Less(&dispute2)
-	less23 := dispute2.Less(&dispute3)
+	less12 := DisputeComparator(&dispute1, &dispute2)
+	less23 := DisputeComparator(&dispute2, &dispute3)
 
 	// then
 	require.True(t, less12)
