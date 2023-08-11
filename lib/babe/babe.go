@@ -43,7 +43,8 @@ type Service struct {
 
 	// State variables
 	sync.RWMutex
-	pause chan struct{}
+	pauseCh chan struct{}
+	doneCh  chan struct{}
 
 	telemetry Telemetry
 }
@@ -103,7 +104,8 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		epochState:         cfg.EpochState,
 		keypair:            cfg.Keypair,
 		transactionState:   cfg.TransactionState,
-		pause:              make(chan struct{}),
+		pauseCh:            make(chan struct{}),
+		doneCh:             make(chan struct{}),
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
@@ -150,7 +152,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		epochState:         cfg.EpochState,
 		keypair:            cfg.Keypair,
 		transactionState:   cfg.TransactionState,
-		pause:              make(chan struct{}),
+		pauseCh:            make(chan struct{}),
+		doneCh:             make(chan struct{}),
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
@@ -190,37 +193,38 @@ func (b *Service) EpochLength() uint64 {
 }
 
 // Pause pauses the service ie. halts block production
-func (b *Service) Pause() error {
+func (b *Service) Pause() {
 	b.Lock()
 	defer b.Unlock()
 
 	if b.IsPaused() {
-		return nil
+		return
 	}
 
-	close(b.pause)
-	return nil
+	close(b.pauseCh)
+	<-b.doneCh
 }
 
 // Resume resumes the service ie. resumes block production
-func (b *Service) Resume() error {
+func (b *Service) Resume() {
 	b.Lock()
 	defer b.Unlock()
 
 	if !b.IsPaused() {
-		return nil
+		return
 	}
 
-	b.pause = make(chan struct{})
+	b.pauseCh = make(chan struct{})
+	b.doneCh = make(chan struct{})
 	go b.initiate()
+
 	logger.Debug("service resumed")
-	return nil
 }
 
 // IsPaused returns if the service is paused or not (ie. producing blocks)
 func (b *Service) IsPaused() bool {
 	select {
-	case <-b.pause:
+	case <-b.pauseCh:
 		return true
 	default:
 		return false
@@ -244,6 +248,8 @@ func (b *Service) Stop() error {
 	ethmetrics.Unregister(buildBlockErrors)
 
 	b.cancel()
+	<-b.doneCh
+
 	return nil
 }
 
@@ -278,6 +284,7 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 }
 
 func (b *Service) initiate() {
+	defer close(b.doneCh)
 	// we should consider better error handling for this - we should
 	// retry to run the engine at some point (maybe the next epoch) if
 	// there's an error.
@@ -351,7 +358,7 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	case <-b.ctx.Done():
 		epochTimer.Stop()
 		return 0, b.ctx.Err()
-	case <-b.pause:
+	case <-b.pauseCh:
 		epochTimer.Stop()
 		return 0, errServicePaused
 	case <-epochTimer.C:

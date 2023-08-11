@@ -6,6 +6,7 @@
 package babe
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -106,24 +107,17 @@ func TestService_PauseAndResume(t *testing.T) {
 	require.NoError(t, err)
 	time.Sleep(time.Second)
 
-	go func() {
-		_ = babeService.Pause()
-	}()
+	wg := sync.WaitGroup{}
+	wg.Add(4)
 
-	go func() {
-		_ = babeService.Pause()
-	}()
+	babeService.Pause()
+	_, ok := <-babeService.pauseCh
+	require.False(t, ok)
 
-	go func() {
-		err := babeService.Resume()
-		require.NoError(t, err)
-	}()
+	_, ok = <-babeService.doneCh
+	require.False(t, ok)
 
-	go func() {
-		err := babeService.Resume()
-		require.NoError(t, err)
-	}()
-
+	babeService.Resume()
 	err = babeService.Stop()
 	require.NoError(t, err)
 }
