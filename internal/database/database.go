@@ -54,7 +54,6 @@ type Database interface {
 type Table interface {
 	Reader
 	Writer
-	io.Closer
 	Path() string
 	NewBatch() Batch
 	NewIterator() Iterator

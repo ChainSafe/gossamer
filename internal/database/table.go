@@ -49,10 +49,6 @@ func (t *table) Flush() error {
 	return t.db.Flush()
 }
 
-func (t *table) Close() error {
-	return t.db.Close()
-}
-
 func (t *table) NewBatch() Batch {
 	return &tableBatch{
 		batch:  t.db.NewBatch(),
