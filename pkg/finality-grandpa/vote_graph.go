@@ -59,7 +59,7 @@ func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) ancestorNode() *Hash {
 	return &h
 }
 
-// Maintains a DAG of blocks in the chain which have votes attached to them,
+// VoteGraph maintains a DAG of blocks in the chain which have votes attached to them,
 // and vote data which is accumulated along edges.
 type VoteGraph[
 	Hash constraints.Ordered,
@@ -74,7 +74,7 @@ type VoteGraph[
 	newDefaultvoteNode func() voteNode
 }
 
-// Create a new `VoteGraph` with base node as given.
+// NewVoteGraph creates a new `VoteGraph` with base node as given.
 func NewVoteGraph[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,

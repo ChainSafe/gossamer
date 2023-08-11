@@ -57,7 +57,7 @@ type Message[Hash, Number any] struct {
 	value any
 }
 
-// Get the target block of the vote.
+// Target returns the target block of the vote.
 func (m Message[H, N]) Target() HashNumber[H, N] {
 	switch message := m.value.(type) {
 	case Prevote[H, N]:
@@ -80,6 +80,7 @@ func (m Message[H, N]) Target() HashNumber[H, N] {
 	}
 }
 
+// Value returns the message constrained by `Messages`
 func (m Message[H, N]) Value() any {
 	return m.value
 }
@@ -243,7 +244,7 @@ func (cvr CommitValidationResult) NumInvalidVoters() uint {
 	return cvr.numInvalidVoters
 }
 
-// Validates a GRANDPA commit message.
+// ValidateCommit validates a GRANDPA commit message.
 //
 // For a commit to be valid the round ghost is calculated using the precommits
 // in the commit message, making sure that it exists and that it is the same
