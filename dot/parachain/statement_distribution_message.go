@@ -70,13 +70,13 @@ func (SecondedStatementWithLargePayload) Index() uint {
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
-	Payload Statement `scale:"1"`
+	Payload parachaintypes.Statement `scale:"1"`
 
 	// The index of the validator signing this statement.
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
 
 	// The signature by the validator of the signed payload.
-	Signature ValidatorSignature `scale:"3"`
+	Signature parachaintypes.ValidatorSignature `scale:"3"`
 }
 
 // StatementMetadata represents the data that makes a statement unique.
@@ -85,17 +85,11 @@ type StatementMetadata struct {
 	RelayParent common.Hash `scale:"1"`
 
 	// Hash of the candidate that got validated.
-	CandidateHash CandidateHash `scale:"2"`
+	CandidateHash parachaintypes.CandidateHash `scale:"2"`
 
 	// Validator that attested the validity.
 	SignedBy parachaintypes.ValidatorIndex `scale:"3"`
 
 	// Signature of seconding validator.
-	Signature ValidatorSignature `scale:"4"`
+	Signature parachaintypes.ValidatorSignature `scale:"4"`
 }
-
-// ValidatorSignature represents the signature with which parachain validators sign blocks.
-type ValidatorSignature Signature
-
-// Signature represents a cryptographic signature.
-type Signature [64]byte

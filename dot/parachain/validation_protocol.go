@@ -60,7 +60,7 @@ func handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool,
 }
 
 func getValidationHandshake() (network.Handshake, error) {
-	return &collatorHandshake{}, nil
+	return &validationHandshake{}, nil
 }
 
 func decodeValidationHandshake(_ []byte) (network.Handshake, error) {

@@ -12,7 +12,6 @@ import (
 
 const (
 	LEGACY_VALIDATION_PROTOCOL_V1 = "/polkadot/validation/1"
-	LEGACY_COLLATION_PROTOCOL_V1  = "/polkadot/collation/1"
 )
 
 type ReqProtocolName uint

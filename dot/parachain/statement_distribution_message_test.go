@@ -28,6 +28,14 @@ func init() {
 	}
 }
 
+func getDummyHash(num byte) common.Hash {
+	hash := common.Hash{}
+	for i := 0; i < 32; i++ {
+		hash[i] = num
+	}
+	return hash
+}
+
 func TestStatementDistributionMessage(t *testing.T) {
 	t.Parallel()
 
@@ -35,7 +43,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
-	var validatorSignature ValidatorSignature
+	var validatorSignature parachaintypes.ValidatorSignature
 	copy(validatorSignature[:], tempSignature)
 
 	var collatorID parachaintypes.CollatorID
@@ -44,11 +52,11 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	hash5 := getDummyHash(5)
 
-	statementWithValid := NewStatement()
-	err := statementWithValid.Set(Valid{hash5})
+	statementWithValid := parachaintypes.NewStatement()
+	err := statementWithValid.Set(parachaintypes.Valid{Value: hash5})
 	require.NoError(t, err)
 
-	secondedEnumValue := Seconded{
+	secondedEnumValue := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 hash5,
@@ -71,7 +79,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 	}
 
-	statementWithSeconded := NewStatement()
+	statementWithSeconded := parachaintypes.NewStatement()
 	err = statementWithSeconded.Set(secondedEnumValue)
 	require.NoError(t, err)
 
@@ -95,7 +103,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	secondedStatementWithLargePayload := SecondedStatementWithLargePayload{
 		RelayParent:   hash5,
-		CandidateHash: CandidateHash{hash5},
+		CandidateHash: parachaintypes.CandidateHash{Value: hash5},
 		SignedBy:      parachaintypes.ValidatorIndex(5),
 		Signature:     validatorSignature,
 	}
