@@ -9,12 +9,14 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewService(t *testing.T) {
@@ -46,9 +48,8 @@ func TestNewService(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			config := tt.cfgBuilder(ctrl)
-			mockReqRes := NewMockRequestMaker(ctrl)
 
-			got, err := NewService(config, mockReqRes)
+			got, err := NewService(config)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -64,131 +65,236 @@ func TestNewService(t *testing.T) {
 func TestService_HandleBlockAnnounce(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
+	errTest := errors.New("test error")
+	const somePeer = peer.ID("abc")
 
-	type fields struct {
-		chainSync ChainSync
-	}
-	type args struct {
-		from peer.ID
-		msg  *network.BlockAnnounceMessage
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+	block1AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
+		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+	block2AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
+		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
+
+	testCases := map[string]struct {
+		serviceBuilder      func(ctrl *gomock.Controller) *Service
+		peerID              peer.ID
+		blockAnnounceHeader *types.Header
+		errWrapped          error
+		errMessage          string
 	}{
-		{
-			name: "working_example",
-			fields: fields{
-				chainSync: newMockChainSync(ctrl),
+		"best_block_header_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().BestBlockHeader().Return(nil, errTest)
+				return &Service{
+					blockState: blockState,
+				}
 			},
-			args: args{
-				from: peer.ID("1"),
-				msg: &network.BlockAnnounceMessage{
-					ParentHash:     common.Hash{},
-					Number:         1,
-					StateRoot:      common.Hash{},
-					ExtrinsicsRoot: common.Hash{},
-					Digest:         scale.VaryingDataTypeSlice{},
-					BestBlock:      false,
-				},
+			peerID:              somePeer,
+			blockAnnounceHeader: block1AnnounceHeader,
+			errWrapped:          errTest,
+			errMessage:          "best block header: test error",
+		},
+		"number_smaller_than_best_block_number_get_hash_by_number_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, errTest)
+
+				return &Service{
+					blockState: blockState,
+				}
 			},
-			wantErr: false,
+			peerID:              somePeer,
+			blockAnnounceHeader: block1AnnounceHeader,
+			errWrapped:          errTest,
+			errMessage:          "get block hash by number: test error",
+		},
+		"number_smaller_than_best_block_number_and_same_hash": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).Return(block1AnnounceHeader.Hash(), nil)
+				return &Service{
+					blockState: blockState,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block1AnnounceHeader,
+		},
+		"number_smaller_than_best_block_number_get_highest_finalised_header_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{2}, nil)
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(nil, errTest)
+				return &Service{
+					blockState: blockState,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block1AnnounceHeader,
+			errWrapped:          errTest,
+			errMessage:          "get highest finalised header: test error",
+		},
+		"number_smaller_than_best_block_announced_number_equaks_finalised_number": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				network := NewMockNetwork(ctrl)
+				network.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadBlockAnnouncementValue,
+					Reason: peerset.BadBlockAnnouncementReason,
+				}, somePeer)
+				return &Service{
+					blockState: blockState,
+					network:    network,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block1AnnounceHeader,
+			errWrapped:          errPeerOnInvalidFork,
+			errMessage:          "peer is on an invalid fork: for peer ZiCa and block number 1",
+		},
+		"number_smaller_than_best_block_number_and_finalised_number_bigger_than_number": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(1)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 2}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				network := NewMockNetwork(ctrl)
+				network.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BadBlockAnnouncementValue,
+					Reason: peerset.BadBlockAnnouncementReason,
+				}, somePeer)
+				return &Service{
+					blockState: blockState,
+					network:    network,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block1AnnounceHeader,
+			errWrapped:          errPeerOnInvalidFork,
+			errMessage:          "peer is on an invalid fork: for peer ZiCa and block number 1",
+		},
+		"number_smaller_than_best_block_number_and_" +
+			"finalised_number_smaller_than_number_and_" +
+			"has_header_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 3}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(2)).
+					Return(common.Hash{5, 1, 2}, nil) // other hash than block2AnnounceHeader hash
+				finalisedBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				blockState.EXPECT().HasHeader(block2AnnounceHeader.Hash()).Return(false, errTest)
+				return &Service{
+					blockState: blockState,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block2AnnounceHeader,
+			errWrapped:          errTest,
+			errMessage:          "while checking if header exists: test error",
+		},
+		"number_smaller_than_best_block_number_and_" +
+			"finalised_number_smaller_than_number_and_" +
+			"has_the_hash": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 3}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				blockState.EXPECT().GetHashByNumber(uint(2)).
+					Return(common.Hash{2}, nil) // other hash than someHash
+				finalisedBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().GetHighestFinalisedHeader().Return(finalisedBlockHeader, nil)
+				blockState.EXPECT().HasHeader(block2AnnounceHeader.Hash()).Return(true, nil)
+				return &Service{
+					blockState: blockState,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block2AnnounceHeader,
+		},
+		"number_bigger_than_best_block_number_added_in_disjoint_set_with_success": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+
+				blockState := NewMockBlockState(ctrl)
+				bestBlockHeader := &types.Header{Number: 1}
+				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
+				chainSyncMock := NewMockChainSync(ctrl)
+
+				expectedAnnouncedBlock := announcedBlock{
+					who:    somePeer,
+					header: block2AnnounceHeader,
+				}
+
+				chainSyncMock.EXPECT().onBlockAnnounce(expectedAnnouncedBlock).Return(nil)
+
+				return &Service{
+					blockState: blockState,
+					chainSync:  chainSyncMock,
+				}
+			},
+			peerID:              somePeer,
+			blockAnnounceHeader: block2AnnounceHeader,
 		},
 	}
-	for _, tt := range tests {
+
+	for name, tt := range testCases {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			s := &Service{
-				chainSync: tt.fields.chainSync,
+			ctrl := gomock.NewController(t)
+
+			service := tt.serviceBuilder(ctrl)
+
+			blockAnnounceMessage := &network.BlockAnnounceMessage{
+				ParentHash:     tt.blockAnnounceHeader.ParentHash,
+				Number:         tt.blockAnnounceHeader.Number,
+				StateRoot:      tt.blockAnnounceHeader.StateRoot,
+				ExtrinsicsRoot: tt.blockAnnounceHeader.ExtrinsicsRoot,
+				Digest:         tt.blockAnnounceHeader.Digest,
+				BestBlock:      true,
 			}
-			if err := s.HandleBlockAnnounce(tt.args.from, tt.args.msg); (err != nil) != tt.wantErr {
-				t.Errorf("HandleBlockAnnounce() error = %v, wantErr %v", err, tt.wantErr)
+			err := service.HandleBlockAnnounce(tt.peerID, blockAnnounceMessage)
+			assert.ErrorIs(t, err, tt.errWrapped)
+			if tt.errWrapped != nil {
+				assert.EqualError(t, err, tt.errMessage)
 			}
 		})
 	}
-}
-
-func newMockChainSync(ctrl *gomock.Controller) ChainSync {
-	mock := NewMockChainSync(ctrl)
-	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1,
-		scale.VaryingDataTypeSlice{})
-
-	mock.EXPECT().setBlockAnnounce(peer.ID("1"), header).Return(nil).AnyTimes()
-	mock.EXPECT().setPeerHead(peer.ID("1"), common.Hash{}, uint(0)).Return(nil).AnyTimes()
-	mock.EXPECT().syncState().Return(bootstrap).AnyTimes()
-	mock.EXPECT().start().AnyTimes()
-	mock.EXPECT().stop().AnyTimes()
-	mock.EXPECT().getHighestBlock().Return(uint(2), nil).AnyTimes()
-
-	return mock
 }
 
 func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	t.Parallel()
 
-	errTest := errors.New("test error")
+	ctrl := gomock.NewController(t)
+	chainSync := NewMockChainSync(ctrl)
+	chainSync.EXPECT().onBlockAnnounceHandshake(peer.ID("peer"), common.Hash{1}, uint(2))
 
-	testCases := map[string]struct {
-		serviceBuilder func(ctrl *gomock.Controller) Service
-		from           peer.ID
-		message        *network.BlockAnnounceHandshake
-		errWrapped     error
-		errMessage     string
-	}{
-		"success": {
-			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().setPeerHead(peer.ID("abc"), common.Hash{1}, uint(2)).
-					Return(nil)
-				return Service{
-					chainSync: chainSync,
-				}
-			},
-			from: peer.ID("abc"),
-			message: &network.BlockAnnounceHandshake{
-				BestBlockHash:   common.Hash{1},
-				BestBlockNumber: 2,
-			},
-		},
-		"failure": {
-			serviceBuilder: func(ctrl *gomock.Controller) Service {
-				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().setPeerHead(peer.ID("abc"), common.Hash{1}, uint(2)).
-					Return(errTest)
-				return Service{
-					chainSync: chainSync,
-				}
-			},
-			from: peer.ID("abc"),
-			message: &network.BlockAnnounceHandshake{
-				BestBlockHash:   common.Hash{1},
-				BestBlockNumber: 2,
-			},
-			errWrapped: errTest,
-			errMessage: "test error",
-		},
+	service := Service{
+		chainSync: chainSync,
 	}
 
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			service := testCase.serviceBuilder(ctrl)
-
-			err := service.HandleBlockAnnounceHandshake(testCase.from, testCase.message)
-
-			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
-				assert.EqualError(t, err, testCase.errMessage)
-			}
-		})
+	message := &network.BlockAnnounceHandshake{
+		BestBlockHash:   common.Hash{1},
+		BestBlockNumber: 2,
 	}
+
+	err := service.HandleBlockAnnounceHandshake(peer.ID("peer"), message)
+	require.Nil(t, err)
 }
 
 func TestService_IsSynced(t *testing.T) {
@@ -201,7 +307,7 @@ func TestService_IsSynced(t *testing.T) {
 		"tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
 				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().syncState().Return(tip)
+				chainSync.EXPECT().getSyncMode().Return(tip)
 				return Service{
 					chainSync: chainSync,
 				}
@@ -211,7 +317,7 @@ func TestService_IsSynced(t *testing.T) {
 		"not_tip": {
 			serviceBuilder: func(ctrl *gomock.Controller) Service {
 				chainSync := NewMockChainSync(ctrl)
-				chainSync.EXPECT().syncState().Return(bootstrap)
+				chainSync.EXPECT().getSyncMode().Return(bootstrap)
 				return Service{
 					chainSync: chainSync,
 				}
@@ -246,15 +352,8 @@ func TestService_Start(t *testing.T) {
 		allCalled.Done()
 	})
 
-	chainProcessor := NewMockChainProcessor(ctrl)
-	allCalled.Add(1)
-	chainProcessor.EXPECT().processReadyBlocks().DoAndReturn(func() {
-		allCalled.Done()
-	})
-
 	service := Service{
-		chainSync:      chainSync,
-		chainProcessor: chainProcessor,
+		chainSync: chainSync,
 	}
 
 	err := service.Start()
@@ -268,12 +367,8 @@ func TestService_Stop(t *testing.T) {
 
 	chainSync := NewMockChainSync(ctrl)
 	chainSync.EXPECT().stop()
-	chainProcessor := NewMockChainProcessor(ctrl)
-	chainProcessor.EXPECT().stop()
-
 	service := &Service{
-		chainSync:      chainSync,
-		chainProcessor: chainProcessor,
+		chainSync: chainSync,
 	}
 
 	err := service.Stop()

@@ -605,6 +605,11 @@ func (s *Service) NetworkState() common.NetworkState {
 	}
 }
 
+// AllConnectedPeersIDs returns all the connected to the node instance
+func (s *Service) AllConnectedPeersIDs() []peer.ID {
+	return s.host.p2pHost.Network().Peers()
+}
+
 // Peers returns information about connected peers needed for the rpc server
 func (s *Service) Peers() []common.PeerInfo {
 	var peers []common.PeerInfo

@@ -70,7 +70,7 @@ func (rrp *RequestResponseProtocol) receiveResponse(stream libp2pnetwork.Stream,
 	}
 
 	if n == 0 {
-		return fmt.Errorf("received empty message")
+		return ErrReceivedEmptyMessage
 	}
 
 	err = msg.Decode(buf[:n])
