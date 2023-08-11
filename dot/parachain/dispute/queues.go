@@ -7,8 +7,8 @@ import (
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
-	"github.com/google/btree"
 	"github.com/pkg/errors"
+	"github.com/tidwall/btree"
 )
 
 // This file contains the types and methods for the queues used by the dispute coordinator
@@ -41,28 +41,26 @@ type ParticipationItem struct {
 	request    *ParticipationRequest
 }
 
-// Less returns true if the current item is less than the other item
-// it uses the CandidateComparator to determine the order
-func (q ParticipationItem) Less(than btree.Item) bool {
-	other := than.(*ParticipationItem)
+func participationItemComparator(a, b any) bool {
+	pi1, pi2 := a.(*ParticipationItem), b.(*ParticipationItem)
 
-	if q.comparator.relayParentBlockNumber == nil && other.comparator.relayParentBlockNumber == nil {
-		return bytes.Compare(q.comparator.candidateHash[:], other.comparator.candidateHash[:]) < 0
+	if pi1.comparator.relayParentBlockNumber == nil && pi2.comparator.relayParentBlockNumber == nil {
+		return bytes.Compare(pi1.comparator.candidateHash[:], pi2.comparator.candidateHash[:]) < 0
 	}
 
-	if other.comparator.relayParentBlockNumber == nil {
+	if pi1.comparator.relayParentBlockNumber == nil {
 		return false
 	}
 
-	if q.comparator.relayParentBlockNumber == nil {
+	if pi2.comparator.relayParentBlockNumber == nil {
 		return true
 	}
 
-	if isEqual := *q.comparator.relayParentBlockNumber == *other.comparator.relayParentBlockNumber; isEqual {
-		return bytes.Compare(q.comparator.candidateHash[:], other.comparator.candidateHash[:]) < 0
+	if isEqual := *pi1.comparator.relayParentBlockNumber == *pi2.comparator.relayParentBlockNumber; isEqual {
+		return bytes.Compare(pi1.comparator.candidateHash[:], pi2.comparator.candidateHash[:]) < 0
 	}
 
-	return *q.comparator.relayParentBlockNumber < *other.comparator.relayParentBlockNumber
+	return *pi1.comparator.relayParentBlockNumber < *pi2.comparator.relayParentBlockNumber
 }
 
 func newParticipationItem(comparator CandidateComparator, request *ParticipationRequest) *ParticipationItem {
@@ -116,7 +114,7 @@ type Queue interface {
 }
 
 // QueueHandler implements Queue
-// It uses two btree's to store the requests. One for best effort and one for priority.
+// It uses two btrees to store the requests. One for best effort and one for priority.
 // The queues store participationItem's.
 // The btree is ordered by the CandidateComparator of participationItem.
 type QueueHandler struct {
@@ -149,16 +147,26 @@ func (q *QueueHandler) Queue(
 			return errorPriorityQueueFull
 		}
 
+		// remove the item from the best effort queue if it exists
+		q.bestEffortLock.Lock()
+		q.bestEffort.Delete(newParticipationItem(comparator, request))
+		q.bestEffortLock.Unlock()
+
 		q.priorityLock.Lock()
-		q.priority.ReplaceOrInsert(newParticipationItem(comparator, request))
+		q.priority.Set(newParticipationItem(comparator, request))
 		q.priorityLock.Unlock()
 	} else {
+		// if the item is already in priority queue, do nothing
+		if item := q.priority.Get(newParticipationItem(comparator, request)); item != nil {
+			return nil
+		}
+
 		if q.Len(ParticipationPriorityBestEffort) >= q.bestEffortMaxSize {
 			return errorBestEffortQueueFull
 		}
 
 		q.bestEffortLock.Lock()
-		q.bestEffort.ReplaceOrInsert(newParticipationItem(comparator, request))
+		q.bestEffort.Set(newParticipationItem(comparator, request))
 		q.bestEffortLock.Unlock()
 	}
 
@@ -182,7 +190,7 @@ func (q *QueueHandler) PrioritiseIfPresent(comparator CandidateComparator) error
 	// We remove the item from the best effort queue and add it to the priority queue if it exists
 	if item := q.bestEffort.Delete(newParticipationItem(comparator, nil)); item != nil {
 		q.priorityLock.Lock()
-		q.priority.ReplaceOrInsert(item)
+		q.priority.Set(item)
 		q.priorityLock.Unlock()
 	}
 	q.bestEffortLock.Unlock()
@@ -191,23 +199,23 @@ func (q *QueueHandler) PrioritiseIfPresent(comparator CandidateComparator) error
 }
 
 func (q *QueueHandler) PopBestEffort() *ParticipationItem {
-	q.bestEffortLock.Lock()
-	defer q.bestEffortLock.Unlock()
-	if item := q.bestEffort.DeleteMin(); item != nil {
-		return item.(*ParticipationItem)
+	if q.bestEffort.Len() == 0 {
+		return nil
 	}
 
-	return nil
+	q.bestEffortLock.Lock()
+	defer q.bestEffortLock.Unlock()
+	return q.bestEffort.PopMin().(*ParticipationItem)
 }
 
 func (q *QueueHandler) PopPriority() *ParticipationItem {
-	q.priorityLock.Lock()
-	defer q.priorityLock.Unlock()
-	if item := q.priority.DeleteMin(); item != nil {
-		return item.(*ParticipationItem)
+	if q.priority.Len() == 0 {
+		return nil
 	}
 
-	return nil
+	q.priorityLock.Lock()
+	defer q.priorityLock.Unlock()
+	return q.priority.PopMin().(*ParticipationItem)
 }
 
 func (q *QueueHandler) Len(queueType ParticipationPriority) int {
@@ -226,8 +234,8 @@ var _ Queue = (*QueueHandler)(nil)
 
 func NewQueue() *QueueHandler {
 	return &QueueHandler{
-		bestEffort:        btree.New(bestEffortQueueSize / 2),
-		priority:          btree.New(priorityQueueSize / 2),
+		bestEffort:        btree.New(participationItemComparator),
+		priority:          btree.New(participationItemComparator),
 		bestEffortMaxSize: bestEffortQueueSize,
 		priorityMaxSize:   priorityQueueSize,
 	}
