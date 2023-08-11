@@ -171,6 +171,8 @@ func (p *OfflinePruner) Prune() error {
 	storagePrefixBytes := []byte(storagePrefix)
 	// Ignore non-storage keys
 	inputDBIter := inputDB.NewPrefixIterator(storagePrefixBytes)
+	defer inputDBIter.Release()
+
 	writeBatch := inputDB.NewBatch()
 
 	for inputDBIter.First(); inputDBIter.Valid(); inputDBIter.Next() {

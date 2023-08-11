@@ -28,6 +28,7 @@ type Iterator interface {
 	First() bool
 	Release()
 	SeekGE(key []byte) bool
+	io.Closer
 }
 
 // Batch is a write-only operation.
