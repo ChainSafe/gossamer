@@ -3,7 +3,7 @@
 
 package grandpa
 
-// Basic data struct for the state of a round.
+// RoundStateReport is a basic data struct for the state of a round.
 type RoundStateReport[ID comparable] struct {
 	// Total weight of all votes.
 	TotalWeight VoterWeight
@@ -21,8 +21,8 @@ type RoundStateReport[ID comparable] struct {
 	PrecommitIDs []ID
 }
 
-// Basic data struct for the current state of the voter in a form suitable
-// for passing on to other systems.
+// VoterStateReport is a basic data struct for the current state of
+// the voter in a form suitable for passing on to other systems.
 type VoterStateReport[ID comparable] struct {
 	// Voting rounds running in the background.
 	BackgroundRounds map[uint64]RoundStateReport[ID]

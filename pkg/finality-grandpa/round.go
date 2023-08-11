@@ -10,14 +10,14 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-// The (voting) phases of a round, each corresponding to the type of
+// Phase is the (voting) phases of a round, each corresponding to the type of
 // votes cast in that phase.
 type Phase uint
 
 const (
-	// The prevote phase in which [`Prevote`]s are cast.
+	// The prevote phase in which `Prevote`s are cast.
 	PrevotePhase Phase = iota
-	// The precommit phase in which [`Precommit`]s are cast.
+	// The precommit phase in which `Precommit`s are cast.
 	PrecommitPhase
 )
 
@@ -26,9 +26,9 @@ type voteSignature[Vote, Signature comparable] struct {
 	Signature Signature
 }
 
-type Single[Vote, Signature comparable] voteSignature[Vote, Signature]
+type single[Vote, Signature comparable] voteSignature[Vote, Signature]
 
-type Equivocated[Vote, Signature comparable] [2]voteSignature[Vote, Signature]
+type equivocated[Vote, Signature comparable] [2]voteSignature[Vote, Signature]
 
 // The observed vote from a single voter.
 type voteMultiplicity[Vote, Signature comparable] struct {
@@ -37,7 +37,7 @@ type voteMultiplicity[Vote, Signature comparable] struct {
 
 // can only use type constraint interfaces as function parameters
 type voteMultiplicityValue[Vote, Signature comparable] interface {
-	Single[Vote, Signature] | Equivocated[Vote, Signature]
+	single[Vote, Signature] | equivocated[Vote, Signature]
 }
 
 func setvoteMultiplicity[
@@ -63,9 +63,9 @@ func (vm voteMultiplicity[Vote, Signature]) Value() interface{} {
 func (vm voteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) bool {
 	vs := voteSignature[Vote, Signature]{vote, sig}
 	switch in := vm.Value().(type) {
-	case Single[Vote, Signature]:
+	case single[Vote, Signature]:
 		return voteSignature[Vote, Signature](in) == vs
-	case Equivocated[Vote, Signature]:
+	case equivocated[Vote, Signature]:
 		return in[0] == vs || in[1] == vs
 	default:
 		panic("should never happen")
@@ -94,7 +94,7 @@ func newVoteTracker[ID constraints.Ordered, Vote, Signature comparable]() voteTr
 //
 // since this struct doesn't track the round-number of votes, that must be set
 // by the caller.
-func (vt *voteTracker[ID, Vote, Signature]) AddVote(
+func (vt *voteTracker[ID, Vote, Signature]) addVote(
 	id ID,
 	vote Vote,
 	signature Signature,
@@ -109,7 +109,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 		// TODO: figure out saturating_add stuff
 		vt.currentWeight = vt.currentWeight + VoteWeight(weight)
 		multiplicity := newVoteMultiplicity[Vote, Signature](
-			Single[Vote, Signature]{vote, signature},
+			single[Vote, Signature]{vote, signature},
 		)
 		_, exists := vt.votes.Set(id, multiplicity)
 		if exists {
@@ -124,8 +124,8 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 	}
 
 	switch in := vm.Value().(type) {
-	case Single[Vote, Signature]:
-		var eq = Equivocated[Vote, Signature]{
+	case single[Vote, Signature]:
+		var eq = equivocated[Vote, Signature]{
 			voteSignature[Vote, Signature](in),
 			{
 				Vote:      vote,
@@ -135,7 +135,7 @@ func (vt *voteTracker[ID, Vote, Signature]) AddVote(
 		setvoteMultiplicity(&vm, eq)
 		vt.votes.Set(id, vm)
 		return &vm, false
-	case Equivocated[Vote, Signature]:
+	case equivocated[Vote, Signature]:
 		// ignore further equivocations
 		return nil, duplicated
 	default:
@@ -154,12 +154,12 @@ func (vt *voteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID,
 
 	vt.votes.Scan(func(id ID, vm voteMultiplicity[Vote, Signature]) bool {
 		switch in := vm.Value().(type) {
-		case Single[Vote, Signature]:
+		case single[Vote, Signature]:
 			votes = append(votes, idVoteSignature[ID, Vote, Signature]{
 				ID:            id,
 				voteSignature: voteSignature[Vote, Signature](in),
 			})
-		case Equivocated[Vote, Signature]:
+		case equivocated[Vote, Signature]:
 			for _, vs := range in {
 				votes = append(votes, idVoteSignature[ID, Vote, Signature]{
 					ID:            id,
@@ -174,11 +174,11 @@ func (vt *voteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID,
 	return
 }
 
-func (vt *voteTracker[ID, Vote, Signature]) Participation() (weight VoteWeight, numParticipants int) {
+func (vt *voteTracker[ID, Vote, Signature]) participation() (weight VoteWeight, numParticipants int) {
 	return vt.currentWeight, vt.votes.Len()
 }
 
-// State of the round.
+// RoundState is the state of the round.
 type RoundState[Hash, Number any] struct {
 	// The prevote-GHOST block.
 	PrevoteGHOST *HashNumber[Hash, Number]
@@ -190,7 +190,7 @@ type RoundState[Hash, Number any] struct {
 	Completable bool
 }
 
-// Genesis state.
+// NewRoundState is constructor of `RoundState` from a given genesis state.
 func NewRoundState[Hash, Number any](genesis HashNumber[Hash, Number]) RoundState[Hash, Number] {
 	return RoundState[Hash, Number]{
 		PrevoteGHOST: &genesis,
@@ -200,7 +200,7 @@ func NewRoundState[Hash, Number any](genesis HashNumber[Hash, Number]) RoundStat
 	}
 }
 
-// Parameters for starting a round.
+// RoundParams are the parameters for starting a round.
 type RoundParams[ID constraints.Ordered, Hash comparable, Number constraints.Unsigned] struct {
 	// The round number for votes.
 	RoundNumber uint64
@@ -210,7 +210,7 @@ type RoundParams[ID constraints.Ordered, Hash comparable, Number constraints.Uns
 	Base HashNumber[Hash, Number]
 }
 
-// Stores data for a round.
+// Round stores data for a round.
 type Round[ID constraints.Ordered, Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable] struct {
 	number          uint64
 	context         context[ID]
@@ -232,7 +232,7 @@ type importResult[ID constraints.Ordered, P, Signature comparable] struct {
 	Equivocation *Equivocation[ID, P, Signature]
 }
 
-// Create a new round accumulator for given round number and with given weight.
+// NewRound creates a new round accumulator for given round number and with given weight.
 func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable](
 	roundParams RoundParams[ID, Hash, Number],
 ) *Round[ID, Hash, Number, Signature] {
@@ -255,7 +255,7 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 	}
 }
 
-// Return the round number.
+// Number returns the round number.
 func (r *Round[ID, H, N, S]) Number() uint64 {
 	return r.number
 }
@@ -279,7 +279,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 
 	var equivocation *Equivocation[ID, Prevote[H, N], S]
 	var multiplicity *voteMultiplicity[Prevote[H, N], S]
-	m, duplicated := r.prevotes.AddVote(signer, prevote, signature, weight)
+	m, duplicated := r.prevotes.addVote(signer, prevote, signature, weight)
 	if m != nil {
 		multiplicity = m
 	} else {
@@ -288,7 +288,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 	}
 
 	switch val := multiplicity.Value().(type) {
-	case Single[Prevote[H, N], S]:
+	case single[Prevote[H, N], S]:
 		singleVote := val
 		vote := newVote[ID](*info, PrevotePhase)
 		err := r.graph.Insert(singleVote.Vote.TargetHash, singleVote.Vote.TargetNumber, vote, chain)
@@ -306,7 +306,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 		}
 		r.historicalVotes.PushVote(signedMessage)
 
-	case Equivocated[Prevote[H, N], S]:
+	case equivocated[Prevote[H, N], S]:
 		first := val[0]
 		second := val[1]
 
@@ -365,7 +365,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 
 	var equivocation *Equivocation[ID, Precommit[H, N], S]
 	var multiplicity *voteMultiplicity[Precommit[H, N], S]
-	m, duplicated := r.precommits.AddVote(signer, precommit, signature, weight)
+	m, duplicated := r.precommits.addVote(signer, precommit, signature, weight)
 	if m != nil {
 		multiplicity = m
 	} else {
@@ -374,7 +374,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 	}
 
 	switch val := multiplicity.Value().(type) {
-	case Single[Precommit[H, N], S]:
+	case single[Precommit[H, N], S]:
 		singleVote := val
 		vote := newVote[ID](*info, PrecommitPhase)
 		err := r.graph.Insert(singleVote.Vote.TargetHash, singleVote.Vote.TargetNumber, vote, chain)
@@ -392,7 +392,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 		}
 		r.historicalVotes.PushVote(signedMessage)
 
-	case Equivocated[Precommit[H, N], S]:
+	case equivocated[Precommit[H, N], S]:
 		first := val[0]
 		second := val[1]
 
@@ -510,7 +510,7 @@ func (r *Round[ID, H, N, S]) update() {
 	}
 }
 
-// Return the current state.
+// State returns the current state.
 func (r *Round[ID, H, N, S]) State() RoundState[H, N] {
 	return RoundState[H, N]{
 		PrevoteGHOST: r.prevoteGhost,
@@ -520,7 +520,7 @@ func (r *Round[ID, H, N, S]) State() RoundState[H, N] {
 	}
 }
 
-// Compute and cache the precommit-GHOST.
+// PrecommitGHOST will compute and cache the precommit-GHOST.
 func (r *Round[ID, H, N, S]) PrecommitGHOST() *HashNumber[H, N] {
 	// update precommit-GHOST
 	var threshold = r.Threshold()
@@ -539,13 +539,13 @@ type yieldVotes[H constraints.Ordered, N constraints.Unsigned, S comparable] str
 
 func (yv *yieldVotes[H, N, S]) voteSignature() *voteSignature[Precommit[H, N], S] {
 	switch vm := yv.multiplicity.Value().(type) {
-	case Single[Precommit[H, N], S]:
+	case single[Precommit[H, N], S]:
 		if yv.yielded == 0 {
 			yv.yielded++
 			return &voteSignature[Precommit[H, N], S]{vm.Vote, vm.Signature}
 		}
 		return nil
-	case Equivocated[Precommit[H, N], S]:
+	case equivocated[Precommit[H, N], S]:
 		a := vm[0]
 		b := vm[1]
 		switch yv.yielded {
@@ -561,9 +561,9 @@ func (yv *yieldVotes[H, N, S]) voteSignature() *voteSignature[Precommit[H, N], S
 	}
 }
 
-// Returns an iterator of all precommits targeting the finalized hash.
+// FinalizingPrecommits returns all precommits targeting the finalized hash.
 //
-// Only returns `None` if no block has been finalized in this round.
+// Only returns `nil` if no block has been finalized in this round.
 func (r *Round[ID, H, N, S]) FinalizingPrecommits(chain Chain[H, N]) *[]SignedPrecommit[H, N, S, ID] {
 	type idvoteMultiplicity struct {
 		ID               ID
@@ -578,7 +578,7 @@ func (r *Round[ID, H, N, S]) FinalizingPrecommits(chain Chain[H, N]) *[]SignedPr
 	var findValidPrecommits []SignedPrecommit[H, N, S, ID]
 	r.precommits.votes.Scan(func(id ID, multiplicity voteMultiplicity[Precommit[H, N], S]) bool {
 		switch multiplicityValue := multiplicity.Value().(type) {
-		case Single[Precommit[H, N], S]:
+		case single[Precommit[H, N], S]:
 			// if there is a single vote from this voter, we only include it
 			// if it branches off of the target.
 			if chain.IsEqualOrDescendantOf(fHash, multiplicityValue.Vote.TargetHash) {
@@ -606,21 +606,21 @@ func (r *Round[ID, H, N, S]) FinalizingPrecommits(chain Chain[H, N]) *[]SignedPr
 	return &findValidPrecommits
 }
 
-// Fetch the "round-estimate": the best block which might have been finalized
+// Estimate will fetch the "round-estimate": the best block which might have been finalized
 // in this round.
 //
-// Returns `None` when new new blocks could have been finalized in this round,
+// Returns `nil` when new new blocks could have been finalized in this round,
 // according to our estimate.
 func (r *Round[ID, H, N, S]) Estimate() *HashNumber[H, N] {
 	return r.estimate
 }
 
-// Fetch the most recently finalized block.
+// Finalized fetches the most recently finalized block.
 func (r *Round[ID, H, N, S]) Finalized() *HashNumber[H, N] {
 	return r.finalized
 }
 
-// Returns `true` when the round is completable.
+// Completable returns `true` when the round is completable.
 //
 // This is the case when the round-estimate is an ancestor of the prevote-ghost head,
 // or when they are the same block _and_ none of its children could possibly have
@@ -634,43 +634,43 @@ func (r *Round[ID, H, N, S]) Threshold() VoterWeight {
 	return r.context.voters.threshold
 }
 
-// Threshold weight for supermajority.
+// Base returns the round base.
 func (r *Round[ID, H, N, S]) Base() HashNumber[H, N] {
 	return r.graph.Base()
 }
 
-// Return the round voters and weights.
+// Voters returns the round voters and weights.
 func (r *Round[ID, H, N, S]) Voters() VoterSet[ID] {
 	return r.context.voters
 }
 
-// Return the primary voter of the round.
+// PrimaryVoter returns the primary voter of the round.
 func (r *Round[ID, H, N, S]) PrimaryVoter() (ID, VoterInfo) {
 	IDVoterInfo := r.context.Voters().NthMod(uint(r.number))
 	return IDVoterInfo.ID, IDVoterInfo.VoterInfo
 }
 
-// Get the current weight and number of voters who have participated in prevoting.
+// PrevoteParticipation returns the current weight and number of voters who have participated in prevoting.
 func (r *Round[ID, H, N, S]) PrevoteParticipation() (weight VoteWeight, numParticipants int) {
-	return r.prevotes.Participation()
+	return r.prevotes.participation()
 }
 
-// Get the current weight and number of voters who have participated in precommitting.
+// PrecommitParticipation returns the current weight and number of voters who have participated in precommitting.
 func (r *Round[ID, H, N, S]) PrecommitParticipation() (weight VoteWeight, numParticipants int) {
-	return r.precommits.Participation()
+	return r.precommits.participation()
 }
 
-// Return all imported prevotes.
+// Prevotes returns all imported prevotes.
 func (r *Round[ID, H, N, S]) Prevotes() []idVoteSignature[ID, Prevote[H, N], S] {
 	return r.prevotes.Votes()
 }
 
-// Return all imported precommits.
+// Precommits returns all imported precommits.
 func (r *Round[ID, H, N, S]) Precommits() []idVoteSignature[ID, Precommit[H, N], S] {
 	return r.precommits.Votes()
 }
 
-// Return all votes for the round (prevotes and precommits), sorted by
+// HistoricalVotes returns all votes for the round (prevotes and precommits), sorted by
 // imported order and indicating the indices where we voted. At most two
 // prevotes and two precommits per voter are present, further equivocations
 // are not stored (as they are redundant).
@@ -678,13 +678,13 @@ func (r *Round[ID, H, N, S]) HistoricalVotes() HistoricalVotes[H, N, S, ID] {
 	return r.historicalVotes
 }
 
-// Set the number of prevotes and precommits received at the moment of prevoting.
+// SetPrevotedIdx will set the number of prevotes and precommits received at the moment of prevoting.
 // It should be called inmediatly after prevoting.
 func (r *Round[ID, H, N, S]) SetPrevotedIdx() {
 	r.historicalVotes.SetPrevotedIdx()
 }
 
-// Set the number of prevotes and precommits received at the moment of precommiting.
+// SetPrecommittedIdx will set the number of prevotes and precommits received at the moment of precommiting.
 // It should be called inmediatly after precommiting.
 func (r *Round[ID, H, N, S]) SetPrecommittedIdx() {
 	r.historicalVotes.SetPrecommittedIdx()

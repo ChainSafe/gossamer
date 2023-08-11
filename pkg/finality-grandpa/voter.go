@@ -45,14 +45,16 @@ func (wc *wakerChan[Item]) channel() chan Item {
 	return wc.out
 }
 
+// Timer is the associated timer type for the environment
 type Timer interface {
 	SetWaker(waker *waker)
 	Elapsed() (bool, error)
 }
 
+// Output is the output stream used to communicate with the outside world.
 type Output[Hash comparable, Number constraints.Unsigned] chan Message[Hash, Number]
 
-// The input stream used to communicate with the outside world.
+// Input is the input stream used to communicate with the outside world.
 type Input[
 	Hash comparable,
 	Number constraints.Unsigned,
@@ -60,6 +62,7 @@ type Input[
 	ID constraints.Ordered,
 ] chan SignedMessageError[Hash, Number, Signature, ID]
 
+// SignedMessageError contains a `SignedMessage“ and error
 type SignedMessageError[
 	Hash comparable,
 	Number constraints.Unsigned,
@@ -69,13 +72,15 @@ type SignedMessageError[
 	SignedMessage SignedMessage[Hash, Number, Signature, ID]
 	Error         error
 }
+
+// BestChainOutput is the item type for `BestChain`
 type BestChainOutput[Hash comparable, Number constraints.Unsigned] struct {
 	Value *HashNumber[Hash, Number]
 	Error error
 }
 
 // Associated future type for the environment used when asynchronously computing the
-// best chain to vote on. See also [`Self::best_chain_containing`].
+// best chain to vote on. See also `Environment.BestChainContaining`.
 type BestChain[Hash comparable, Number constraints.Unsigned] chan BestChainOutput[Hash, Number]
 
 // Necessary environment for a voter.
@@ -83,10 +88,10 @@ type BestChain[Hash comparable, Number constraints.Unsigned] chan BestChainOutpu
 // This encapsulates the database and networking layers of the chain.
 type Environment[Hash comparable, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] interface {
 	Chain[Hash, Number]
-	// Return a future that will resolve to the hash of the best block whose chain
+	// Return a channel that will produce the hash of the best block whose chain
 	// contains the given block hash, even if that block is `base` itself.
 	//
-	// If `base` is unknown the future outputs `None`.
+	// If `base` is unknown the future outputs `nil`.
 	BestChainContaining(base Hash) BestChain[Hash, Number]
 
 	// Produce data necessary to start a round of voting. This may also be called
@@ -110,8 +115,8 @@ type Environment[Hash comparable, Number constraints.Unsigned, Signature compara
 	// signatures is flexible and can be maintained outside this crate.
 	RoundData(
 		round uint64,
-		outgoing chan Message[Hash, Number],
-	) RoundData[ID, Timer, SignedMessageError[Hash, Number, Signature, ID]]
+		outgoing Output[Hash, Number],
+	) RoundData[Hash, Number, Signature, ID]
 
 	// Return a timer that will be used to delay the broadcast of a commit
 	// message. This delay should not be static to minimise the amount of
@@ -181,7 +186,10 @@ type finalizedNotification[Hash, Number, Signature, ID any] struct {
 }
 
 // Data necessary to participate in a round.
-type RoundData[ID, Timer, SignedMessageError any] struct {
+type RoundData[Hash comparable,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered] struct {
 	// Local voter id (if any.)
 	VoterID *ID
 	// Timer before prevotes can be cast. This should be Start + 2T
@@ -190,7 +198,8 @@ type RoundData[ID, Timer, SignedMessageError any] struct {
 	// Timer before precommits can be cast. This should be Start + 4T
 	PrecommitTimer Timer
 	// Incoming messages.
-	Incoming chan SignedMessageError
+	// Incoming chan SignedMessageError
+	Incoming Input[Hash, Number, Signature, ID]
 }
 
 type buffered[I any] struct {

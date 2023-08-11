@@ -9,6 +9,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// HashNumber contains a block hash and block number
 type HashNumber[Hash, Number any] struct {
 	Hash   Hash
 	Number Number
@@ -19,13 +20,13 @@ type targetHashTargetNumber[Hash, Number any] struct {
 	TargetNumber Number
 }
 
-// A prevote for a block and its ancestors.
+// Prevote is a prevote for a block and its ancestors.
 type Prevote[Hash, Number any] targetHashTargetNumber[Hash, Number]
 
-// A precommit for a block and its ancestors.
+// Precommit is a precommit for a block and its ancestors.
 type Precommit[Hash, Number any] targetHashTargetNumber[Hash, Number]
 
-// A primary proposed block, this is a broadcast of the last round's estimate.
+// PrimaryPropose is a primary proposed block, this is a broadcast of the last round's estimate.
 type PrimaryPropose[Hash, Number any] targetHashTargetNumber[Hash, Number]
 
 // Chain context necessary for implementation of the finality gadget.
@@ -39,7 +40,7 @@ type Chain[Hash, Number comparable] interface {
 	IsEqualOrDescendantOf(base, block Hash) bool
 }
 
-// An equivocation (double-vote) in a given round.
+// Equivocation is an equivocation (double-vote) in a given round.
 type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
 	// The round number equivocated in.
 	RoundNumber uint64
@@ -51,7 +52,7 @@ type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
 	Second voteSignature[Vote, Signature]
 }
 
-// A protocol message or vote.
+// Message is a protocol message or vote.
 type Message[Hash, Number any] struct {
 	value any
 }
@@ -83,6 +84,7 @@ func (m Message[H, N]) Value() any {
 	return m.value
 }
 
+// Messages is the interface constraint for `Message`
 type Messages[Hash, Number any] interface {
 	Prevote[Hash, Number] | Precommit[Hash, Number] | PrimaryPropose[Hash, Number]
 }
@@ -97,7 +99,7 @@ func newMessage[Hash, Number any, T Messages[Hash, Number]](val T) (m Message[Ha
 	return msg
 }
 
-// A signed message.
+// SignedMessage is a signed message.
 type SignedMessage[Hash, Number, Signature, ID any] struct {
 	// The internal message which has been signed.
 	Message Message[Hash, Number]
@@ -107,7 +109,7 @@ type SignedMessage[Hash, Number, Signature, ID any] struct {
 	ID ID
 }
 
-// A commit message which is an aggregate of precommits.
+// Commit is a commit message which is an aggregate of precommits.
 type Commit[Hash, Number, Signature, ID any] struct {
 	// The target block's hash.
 	TargetHash Hash
@@ -135,7 +137,7 @@ func (c Commit[Hash, Number, Signature, ID]) CompactCommit() CompactCommit[Hash,
 	}
 }
 
-// A signed prevote message.
+// SignedPrevote is a signed prevote message.
 type SignedPrevote[Hash, Number, Signature, ID any] struct {
 	// The prevote message which has been signed.
 	Prevote Prevote[Hash, Number]
@@ -145,7 +147,7 @@ type SignedPrevote[Hash, Number, Signature, ID any] struct {
 	ID ID
 }
 
-// A signed precommit message.
+// SignedPrecommit is a signed precommit message.
 type SignedPrecommit[Hash, Number, Signature, ID any] struct {
 	// The precommit message which has been signed.
 	Precommit Precommit[Hash, Number]
@@ -155,7 +157,7 @@ type SignedPrecommit[Hash, Number, Signature, ID any] struct {
 	ID ID
 }
 
-// A commit message with compact representation of authentication data.
+// CompactCommit is a commit message with compact representation of authentication data.
 type CompactCommit[Hash, Number, Signature, ID any] struct {
 	TargetHash   Hash
 	TargetNumber Number
@@ -179,7 +181,7 @@ func (cc CompactCommit[Hash, Number, Signature, ID]) Commit() Commit[Hash, Numbe
 	}
 }
 
-// A catch-up message, which is an aggregate of prevotes and precommits necessary
+// CatchUp is a catch-up message, which is an aggregate of prevotes and precommits necessary
 // to complete a round.
 //
 // This message contains a "base", which is a block all of the vote-targets are
@@ -197,14 +199,14 @@ type CatchUp[Hash, Number, Signature, ID any] struct {
 	BaseNumber Number
 }
 
-// Authentication data for a set of many messages, currently a set of precommit signatures but
+// MultiAuthData contains authentication data for a set of many messages, currently a set of precommit signatures but
 // in the future could be optimised with BLS signature aggregation.
 type MultiAuthData[Signature, ID any] []struct {
 	Signature Signature
 	ID        ID
 }
 
-// Struct returned from `validate_commit` function with information
+// CommitValidationResult is type returned from `ValidateCommit` with information
 // about the validation result.
 type CommitValidationResult struct {
 	valid                   bool
@@ -363,14 +365,14 @@ func ValidateCommit[
 	return validationResult, nil
 }
 
-// Historical votes seen in a round.
+// HistoricalVotes are the historical votes seen in a round.
 type HistoricalVotes[Hash, Number, Signature, ID any] struct {
 	seen         []SignedMessage[Hash, Number, Signature, ID]
 	prevoteIdx   *uint64
 	precommitIdx *uint64
 }
 
-// Create a new HistoricalVotes.
+// NewHistoricalVotes creates a new HistoricalVotes.
 func NewHistoricalVotes[Hash, Number, Signature, ID any]() HistoricalVotes[Hash, Number, Signature, ID] {
 	return HistoricalVotes[Hash, Number, Signature, ID]{
 		seen:         make([]SignedMessage[Hash, Number, Signature, ID], 0),
@@ -379,19 +381,18 @@ func NewHistoricalVotes[Hash, Number, Signature, ID any]() HistoricalVotes[Hash,
 	}
 }
 
-// Push a vote into the list. The value of `self` before this call
-// is considered to be a prefix of the value post-call.
+// PushVote pushes a vote into the list.
 func (hv *HistoricalVotes[Hash, Number, Signature, ID]) PushVote(msg SignedMessage[Hash, Number, Signature, ID]) {
 	hv.seen = append(hv.seen, msg)
 }
 
-// Set the number of messages seen before prevoting.
+// SetPrevotedIdx sets the number of messages seen before prevoting.
 func (hv *HistoricalVotes[Hash, Number, Signature, ID]) SetPrevotedIdx() {
 	pi := uint64(len(hv.seen))
 	hv.prevoteIdx = &pi
 }
 
-// Set the number of messages seen before precommiting.
+// SetPrecommittedIdx sets the number of messages seen before precommiting.
 func (hv *HistoricalVotes[Hash, Number, Signature, ID]) SetPrecommittedIdx() {
 	pi := uint64(len(hv.seen))
 	hv.precommitIdx = &pi

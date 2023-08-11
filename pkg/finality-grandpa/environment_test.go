@@ -102,11 +102,11 @@ func (e *environment) BestChainContaining(base string) BestChain[string, uint32]
 
 func (e *environment) RoundData(
 	round uint64,
-	outgoing chan Message[string, uint32],
-) RoundData[ID, Timer, SignedMessageError[string, uint32, Signature, ID]] {
+	outgoing Output[string, uint32],
+) RoundData[string, uint32, Signature, ID] {
 	incoming := e.network.MakeRoundComms(round, e.localID, outgoing)
 
-	rd := RoundData[ID, Timer, SignedMessageError[string, uint32, Signature, ID]]{
+	rd := RoundData[string, uint32, Signature, ID]{
 		VoterID:        &e.localID,
 		PrevoteTimer:   newTimer(time.NewTimer(500 * time.Millisecond).C),
 		PrecommitTimer: newTimer(time.NewTimer(1000 * time.Millisecond).C),
