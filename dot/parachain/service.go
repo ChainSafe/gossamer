@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -64,34 +67,9 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
-	err = net.RegisterNotificationsProtocol(
-		protocol.ID(collationProtocolID),
-		network.CollationMsgType,
-		getCollatorHandshake,
-		decodeCollatorHandshake,
-		validateCollatorHandshake,
-		decodeCollationMessage,
-		handleCollationMessage,
-		nil,
-		MaxCollationMessageSize,
-	)
+	err = collatorprotocol.Register(net, protocol.ID(collationProtocolID))
 	if err != nil {
-		// try with legacy protocol id
-		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(LEGACY_COLLATION_PROTOCOL_V1),
-			network.CollationMsgType,
-			getCollatorHandshake,
-			decodeCollatorHandshake,
-			validateCollatorHandshake,
-			decodeCollationMessage,
-			handleCollationMessage,
-			nil,
-			MaxCollationMessageSize,
-		)
-
-		if err1 != nil {
-			return nil, fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
-		}
+		return nil, err
 	}
 
 	parachainService := &Service{
@@ -120,15 +98,20 @@ func (s Service) run() {
 	//
 	time.Sleep(time.Second * 15)
 	// let's try sending a collation message  and validation message to a peer and see what happens
-	collationMessage := CollationProtocolV1{}
+	collatorProtocolMessage := collatorprotocol.NewCollatorProtocolMessage()
+	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
+	collatorProtocolMessage.Set(collatorprotocol.Declare{})
+	collationMessage := collatorprotocol.NewCollationProtocol()
+	collationMessage.Set(collatorProtocolMessage)
+
 	s.Network.GossipMessage(&collationMessage)
 
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
 	err := statementDistributionLargeStatement.Set(LargePayload{
 		RelayParent:   common.Hash{},
-		CandidateHash: CandidateHash{Value: common.Hash{}},
+		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
-		Signature:     ValidatorSignature{},
+		Signature:     parachaintypes.ValidatorSignature{},
 	})
 	if err != nil {
 		logger.Errorf("creating test statement message: %w\n", err)
@@ -157,4 +140,5 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }

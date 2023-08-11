@@ -1,12 +1,11 @@
+package parachaintypes
+
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
-
-package parachain
 
 import (
 	"fmt"
 
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -44,7 +43,7 @@ func (s *StatementVDT) Value() (scale.VaryingDataTypeValue, error) {
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
-type Seconded parachaintypes.CommittedCandidateReceipt
+type Seconded CommittedCandidateReceipt
 
 // Index returns the index of varying data type
 func (Seconded) Index() uint {
@@ -63,3 +62,22 @@ func (Valid) Index() uint {
 type CandidateHash struct {
 	Value common.Hash `scale:"1"`
 }
+
+// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
+type UncheckedSignedFullStatement struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload StatementVDT `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
+
+// ValidatorSignature represents the signature with which parachain validators sign blocks.
+type ValidatorSignature Signature
+
+// Signature represents a cryptographic signature.
+type Signature [64]byte

@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package collatorprotocol
 
 import (
 	"fmt"
@@ -22,8 +22,8 @@ type CollationFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the CollationFetchingRequest
-func (c *CollationFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(*c)
+func (c CollationFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(c)
 }
 
 // CollationFetchingResponse represents a response sent by collator

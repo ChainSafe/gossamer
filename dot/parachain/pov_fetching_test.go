@@ -6,6 +6,7 @@ package parachain
 import (
 	"testing"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -13,8 +14,8 @@ import (
 
 func TestEncodePoVFetchingRequest(t *testing.T) {
 	poVFetchingRequest := PoVFetchingRequest{
-		CandidateHash: CandidateHash{
-			common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
+		CandidateHash: parachaintypes.CandidateHash{
+			Value: common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 		},
 	}
 
@@ -37,12 +38,12 @@ func TestPoVFetchingResponse(t *testing.T) {
 	}{
 		{
 			name:        "PoV",
-			value:       PoV{BlockData: testBytes},
+			value:       PoVVDT{BlockData: testBytes},
 			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 		},
 		{
 			name:        "NoSuchPoV",
-			value:       NoSuchPoV{},
+			value:       NoSuchPoVVDT{},
 			encodeValue: []byte{1},
 		},
 	}

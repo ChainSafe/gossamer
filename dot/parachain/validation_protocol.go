@@ -25,7 +25,7 @@ type UncheckedSignedAvailabilityBitfield struct {
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
 
 	// The signature by the validator of the signed payload.
-	Signature ValidatorSignature `scale:"3"`
+	Signature parachaintypes.ValidatorSignature `scale:"3"`
 }
 
 // Bitfield avalibility bitfield for given relay-parent hash
@@ -179,7 +179,7 @@ func handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool,
 }
 
 func getValidationHandshake() (network.Handshake, error) {
-	return &collatorHandshake{}, nil
+	return &validationHandshake{}, nil
 }
 
 func decodeValidationHandshake(_ []byte) (network.Handshake, error) {

@@ -6,13 +6,14 @@ package parachain
 import (
 	"fmt"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // PoVFetchingRequest represents a request to fetch the advertised collation at the relay-parent.
 type PoVFetchingRequest struct {
 	// Hash of the candidate for which we want to retrieve a Proof-of-Validity (PoV).
-	CandidateHash CandidateHash
+	CandidateHash parachaintypes.CandidateHash
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingRequest
@@ -25,7 +26,7 @@ type PoVFetchingResponse scale.VaryingDataType
 
 // NewPoVFetchingResponse returns a new PoV fetching response varying data type
 func NewPoVFetchingResponse() PoVFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(PoV{}, NoSuchPoV{})
+	vdt := scale.MustNewVaryingDataType(PoVVDT{}, NoSuchPoVVDT{})
 	return PoVFetchingResponse(vdt)
 }
 
@@ -46,16 +47,18 @@ func (p *PoVFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error
 	return vdt.Value()
 }
 
+type PoVVDT parachaintypes.PoV
+
 // Index returns the index of varying data type
-func (PoV) Index() uint {
+func (PoVVDT) Index() uint {
 	return 0
 }
 
-// NoSuchPoV indicates that the requested PoV was not found in the store.
-type NoSuchPoV struct{}
+// NoSuchPoVVDT indicates that the requested PoV was not found in the store.
+type NoSuchPoVVDT struct{}
 
 // Index returns the index of varying data type
-func (NoSuchPoV) Index() uint {
+func (NoSuchPoVVDT) Index() uint {
 	return 1
 }
 
@@ -76,7 +79,7 @@ func (p *PoVFetchingResponse) String() string {
 	}
 
 	v, _ := p.Value()
-	pov, ok := v.(PoV)
+	pov, ok := v.(PoVVDT)
 	if !ok {
 		return "PoVFetchingResponse=NoSuchPoV"
 	}

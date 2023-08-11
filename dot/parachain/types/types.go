@@ -496,3 +496,19 @@ func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
 
 	return OccupiedCoreAssumption(vdt)
 }
+
+// PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
+// It contains the necessary data for the parachain specific state transition logic.
+type PoV struct {
+	BlockData BlockData `scale:"1"`
+}
+
+// BlockData represents parachain block data.
+// It contains everything required to validate para-block, may contain block and witness data.
+type BlockData []byte
+
+// Collation represents a requested collation to be delivered
+type Collation struct {
+	CandidateReceipt CandidateReceipt `scale:"1"`
+	PoV              PoV              `scale:"2"`
+}

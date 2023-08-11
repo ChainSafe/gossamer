@@ -134,7 +134,7 @@ type IndirectSignedApprovalVote struct {
 	// ValidatorIndex the validator index.
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"3"`
 	// Signature the signature of the validator.
-	Signature ValidatorSignature `scale:"4"`
+	Signature parachaintypes.ValidatorSignature `scale:"4"`
 }
 
 // Approvals for candidates in some recent, unfinalized block.
