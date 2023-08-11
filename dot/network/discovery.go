@@ -28,7 +28,7 @@ var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
-	connectToPeersTimeout       = time.Minute * 5
+	connectToPeersTimeout       = time.Minute
 	findPeersTimeout            = time.Minute
 )
 
@@ -183,7 +183,7 @@ func (d *discovery) checkPeerCount() {
 		case <-d.ctx.Done():
 			return
 		case <-ticker.C:
-			if len(d.h.Network().Peers()) > d.minPeers {
+			if len(d.h.Network().Peers()) >= d.maxPeers {
 				continue
 			}
 
