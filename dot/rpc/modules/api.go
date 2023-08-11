@@ -64,8 +64,8 @@ type NetworkAPI interface {
 
 // BlockProducerAPI is the interface for BlockProducer methods
 type BlockProducerAPI interface {
-	Pause() error
-	Resume() error
+	Pause()
+	Resume()
 	EpochLength() uint64
 	SlotDuration() uint64
 }

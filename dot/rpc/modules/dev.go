@@ -42,10 +42,10 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 
 		switch reqA[1] {
 		case "stop":
-			err = m.blockProducerAPI.Pause()
+			m.blockProducerAPI.Pause()
 			*res = blockProducerStoppedMsg
 		case "start":
-			err = m.blockProducerAPI.Resume()
+			m.blockProducerAPI.Resume()
 			*res = blockProducerStartedMsg
 		}
 

@@ -619,11 +619,9 @@ func (mr *MockBlockProducerAPIMockRecorder) EpochLength() *gomock.Call {
 }
 
 // Pause mocks base method.
-func (m *MockBlockProducerAPI) Pause() error {
+func (m *MockBlockProducerAPI) Pause() {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pause")
-	ret0, _ := ret[0].(error)
-	return ret0
+	m.ctrl.Call(m, "Pause")
 }
 
 // Pause indicates an expected call of Pause.
@@ -633,11 +631,9 @@ func (mr *MockBlockProducerAPIMockRecorder) Pause() *gomock.Call {
 }
 
 // Resume mocks base method.
-func (m *MockBlockProducerAPI) Resume() error {
+func (m *MockBlockProducerAPI) Resume() {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Resume")
-	ret0, _ := ret[0].(error)
-	return ret0
+	m.ctrl.Call(m, "Resume")
 }
 
 // Resume indicates an expected call of Resume.

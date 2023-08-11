@@ -39,8 +39,8 @@ import (
 
 // BlockProducer to produce blocks
 type BlockProducer interface {
-	Pause() error
-	Resume() error
+	Pause()
+	Resume()
 	EpochLength() uint64
 	SlotDuration() uint64
 }
