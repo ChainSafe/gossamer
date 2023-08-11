@@ -1049,32 +1049,6 @@ func (s *Service) getVotes(stage Subround) []Vote {
 	return maps.Keys(votes)
 }
 
-// findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
-	if v.Number <= n {
-		return v, nil
-	}
-
-	b, err := s.blockState.GetHeader(v.Hash)
-	if err != nil {
-		return nil, err
-	}
-
-	// # of iterations
-	l := int(v.Number - n)
-
-	for i := 0; i < l; i++ {
-		p, err := s.blockState.GetHeader(b.ParentHash)
-		if err != nil {
-			return nil, err
-		}
-
-		b = p
-	}
-
-	return NewVoteFromHeader(b), nil
-}
-
 // GetSetID returns the current setID
 func (s *Service) GetSetID() uint64 {
 	return s.state.setID
