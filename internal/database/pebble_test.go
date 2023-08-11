@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cockroachdb/pebble"
 	"github.com/stretchr/testify/require"
 )
 
@@ -107,8 +108,9 @@ func testDelGetter(t *testing.T, db Database) {
 		err := db.Del([]byte(v.input))
 		require.NoError(t, err)
 
-		d, _ := db.Get([]byte(v.input))
-		require.Greater(t, len(d), 1)
+		d, err := db.Get([]byte(v.input))
+		require.ErrorIs(t, err, pebble.ErrNotFound)
+		require.Zero(t, len(d))
 	}
 }
 
