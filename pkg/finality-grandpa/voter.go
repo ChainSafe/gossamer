@@ -185,7 +185,7 @@ type finalizedNotification[Hash, Number, Signature, ID any] struct {
 	Commit Commit[Hash, Number, Signature, ID]
 }
 
-// Data necessary to participate in a round.
+// RoundData is the data necessary to participate in a round.
 type RoundData[Hash comparable,
 	Number constraints.Unsigned,
 	Signature comparable,
@@ -329,7 +329,7 @@ type innerVoterState[
 	sync.Mutex
 }
 
-// Communication between nodes that is not round-localised.
+// CommunicationOut is communication between nodes that is not round-localised.
 type CommunicationOut struct {
 	variant any
 }
@@ -396,7 +396,27 @@ type BadCommit struct {
 	numInvalidVoters        uint
 }
 
-func NewBadCommit(cvr CommitValidationResult) BadCommit {
+// NumPrecommits returns the number of precommits.
+func (bc BadCommit) NumPrecommits() uint {
+	return bc.numPrecommits
+}
+
+// NumDuplicatedPrecommits returns the number of duplicated precommits.
+func (bc BadCommit) NumDuplicatedPrecommits() uint {
+	return bc.numDuplicatedPrecommits
+}
+
+// NumEquiovcations returns the number of equivocations in the precommits
+func (bc BadCommit) NumEquiovcations() uint {
+	return bc.numEquivocations
+}
+
+// NumInvalidVoters returns the number of invalid voters in the precommits
+func (bc BadCommit) NumInvalidVoters() uint {
+	return bc.numInvalidVoters
+}
+
+func newBadCommit(cvr CommitValidationResult) BadCommit {
 	return BadCommit{
 		numPrecommits:           cvr.NumPrecommits(),
 		numDuplicatedPrecommits: cvr.NumDuplicatedPrecommits(),
@@ -405,7 +425,7 @@ func NewBadCommit(cvr CommitValidationResult) BadCommit {
 	}
 }
 
-// The outcome of processing a catch up.
+// CatchUpProcessingOutcome is the outcome of processing a catch up.
 type CatchUpProcessingOutcome struct {
 	variant any
 }
@@ -416,25 +436,26 @@ func newCatchUpProcessingOutcome[T CatchUpProcessingOutcomes](variant T) CatchUp
 	}
 }
 
+// CatchUpProcessingOutcomes is the interface constraint for `CatchUpProcessingOutcome`
 type CatchUpProcessingOutcomes interface {
 	CatchUpProcessingOutcomeGood | CatchUpProcessingOutcomeBad | CatchUpProcessingOutcomeUseless
 }
 
-// It was beneficial to process this catch up.
+// CatchUpProcessingOutcomeGood means it was beneficial to process this catch up.
 type CatchUpProcessingOutcomeGood GoodCatchUp
 
-// It wasn't beneficial to process this catch up, it is invalid and we
+// CatchUpProcessingOutcomeBad means it wasn't beneficial to process this catch up, it is invalid and we
 // wasted resources.
 type CatchUpProcessingOutcomeBad BadCatchUp
 
-// The catch up wasn't processed because it is useless, e.g. it is for a
+// CatchUpProcessingOutcomeUseless mean the catch up wasn't processed because it is useless, e.g. it is for a
 // round lower than we're currently in.
 type CatchUpProcessingOutcomeUseless struct{}
 
-// The result of processing for a good catch up.
+// GoodCatchUp is the result of processing for a good catch up.
 type GoodCatchUp struct{}
 
-// The result of processing for a bad catch up.
+// BadCatchUp is the result of processing for a bad catch up.
 type BadCatchUp struct{}
 
 type CommunicationIn struct {
@@ -491,7 +512,7 @@ type globalInItem struct {
 	Error error
 }
 
-// A future that maintains and multiplexes between different rounds,
+// Voter maintains and multiplexes between different rounds,
 // and caches votes.
 //
 // This voter also implements the commit protocol.
@@ -710,7 +731,7 @@ loop:
 						}
 					} else {
 						// Failing validation of a commit is bad.
-						outcome := CommitProcessingOutcome{CommitProcessingOutcomeBad(NewBadCommit(validationResult))}
+						outcome := CommitProcessingOutcome{CommitProcessingOutcomeBad(newBadCommit(validationResult))}
 						if processCommitOutcome != nil {
 							processCommitOutcome(outcome)
 						}
