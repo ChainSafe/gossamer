@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/google/btree"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/btree"
 )
 
 func TestScrappedCandidates(t *testing.T) {
@@ -52,7 +52,7 @@ func TestScrappedCandidates(t *testing.T) {
 	// Test edge case: RemoveUptoHeight with blockNumber greater than all candidates.
 	sc3 := &ScrappedCandidates{
 		Candidates:              make(map[common.Hash]uint32),
-		CandidatesByBlockNumber: btree.New(30),
+		CandidatesByBlockNumber: btree.New(ScrappedCandidateComparator),
 	}
 	sc3.Insert(1, common.NewHash([]byte{1}))
 	modifiedCandidates = sc3.RemoveUptoHeight(100)
