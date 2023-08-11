@@ -8,7 +8,7 @@ import (
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/google/btree"
+	"github.com/tidwall/btree"
 )
 
 // Backend is the backend for the dispute coordinator module.
@@ -47,9 +47,6 @@ type DBBackend interface {
 		recentDisputes *btree.BTree,
 		candidateVotes map[types.Comparator]*types.CandidateVotes) error
 }
-
-// DefaultBtreeDegree is the degree of the btree.
-const DefaultBtreeDegree = 32 // TODO: determine the optimal degree during integration testing
 
 // overlayBackend implements OverlayBackend.
 type overlayBackend struct {
@@ -135,11 +132,11 @@ const ActiveDuration = 180 * time.Second
 // GetActiveDisputes returns the active disputes, if any.
 func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
 	b.recentDisputesLock.RLock()
-	recentDisputes := b.recentDisputes.Clone()
+	recentDisputes := b.recentDisputes.Copy()
 	b.recentDisputesLock.RUnlock()
 
-	activeDisputes := btree.New(DefaultBtreeDegree)
-	recentDisputes.Ascend(func(i btree.Item) bool {
+	activeDisputes := btree.New(types.DisputeComparator)
+	recentDisputes.Ascend(nil, func(i interface{}) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
 			logger.Errorf("cast to dispute. Expected *types.Dispute, got %T", i)
@@ -153,7 +150,7 @@ func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
 		}
 
 		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > uint64(now) {
-			activeDisputes.ReplaceOrInsert(dispute)
+			activeDisputes.Set(dispute)
 		}
 
 		return true
@@ -172,7 +169,7 @@ var _ OverlayBackend = (*overlayBackend)(nil)
 func newOverlayBackend(db *badger.DB) *overlayBackend {
 	return &overlayBackend{
 		inner:               NewDBBackend(db),
-		recentDisputes:      btree.New(DefaultBtreeDegree),
+		recentDisputes:      btree.New(types.DisputeComparator),
 		candidateVotes:      make(map[types.Comparator]*types.CandidateVotes),
 		earliestSessionLock: new(sync.RWMutex),
 		recentDisputesLock:  new(sync.RWMutex),

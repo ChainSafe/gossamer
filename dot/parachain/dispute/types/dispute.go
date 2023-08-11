@@ -5,7 +5,6 @@ import (
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/google/btree"
 )
 
 // Comparator for ordering of disputes.
@@ -34,14 +33,13 @@ func NewDispute() (*Dispute, error) {
 	}, nil
 }
 
-// Less returns true if the current dispute item is less than the other item
-// it uses the Comparator to determine the order
-func (d *Dispute) Less(than btree.Item) bool {
-	other := than.(*Dispute)
+// DisputeComparator compares two disputes.
+func DisputeComparator(a, b any) bool {
+	d1, d2 := a.(*Dispute), b.(*Dispute)
 
-	if d.Comparator.SessionIndex == other.Comparator.SessionIndex {
-		return bytes.Compare(d.Comparator.CandidateHash[:], other.Comparator.CandidateHash[:]) < 0
+	if d1.Comparator.SessionIndex == d2.Comparator.SessionIndex {
+		return bytes.Compare(d1.Comparator.CandidateHash[:], d2.Comparator.CandidateHash[:]) < 0
 	}
 
-	return d.Comparator.SessionIndex < other.Comparator.SessionIndex
+	return d1.Comparator.SessionIndex < d2.Comparator.SessionIndex
 }
