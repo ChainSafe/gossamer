@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -60,4 +61,52 @@ func TestKeystoreDir(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, filepath.Join(testDir, "keystore"), keystoreDir)
+}
+
+func TestSetupAndClearDatabase(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup database and execute some operations
+	db, err := SetupDatabase(tmpDir, false)
+	require.NoError(t, err)
+
+	err = db.Put([]byte("key"), []byte("value"))
+	require.NoError(t, err)
+
+	value, err := db.Get([]byte("key"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("value"), value)
+	db.Close()
+
+	shouldExists := true
+	checkDatbaseDirectory(t, tmpDir, shouldExists)
+
+	ClearDatabase(tmpDir)
+
+	shouldExists = false
+	checkDatbaseDirectory(t, tmpDir, shouldExists)
+
+	// Setup database after an clear operation
+	// should be okay
+	_, err = SetupDatabase(tmpDir, false)
+	require.NoError(t, err)
+
+	shouldExists = true
+	checkDatbaseDirectory(t, tmpDir, shouldExists)
+}
+
+func checkDatbaseDirectory(t *testing.T, dir string, shouldExists bool) {
+	t.Helper()
+
+	databaseDir := filepath.Join(dir, DefaultDatabaseDir)
+	entries, err := os.ReadDir(databaseDir)
+	if !shouldExists {
+		require.True(t, os.IsNotExist(err))
+		return
+	}
+
+	require.NoError(t, err)
+	if shouldExists {
+		require.Greater(t, len(entries), 0)
+	}
 }

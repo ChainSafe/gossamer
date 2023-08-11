@@ -29,6 +29,10 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to read basepath: %s", err)
 	}
 
+	if err := utils.ClearDatabase(basepath); err != nil {
+		return fmt.Errorf("while cleaning database: %w", err)
+	}
+
 	// initialise database using data directory
 	db, err := utils.SetupDatabase(basepath, s.isMemDB)
 	if err != nil {

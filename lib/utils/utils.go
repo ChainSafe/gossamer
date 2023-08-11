@@ -23,8 +23,13 @@ const DefaultDatabaseDir = "db"
 
 // SetupDatabase will return an instance of database based on basepath
 func SetupDatabase(basepath string, inMemory bool) (database.Database, error) {
-	basepath = filepath.Join(basepath, DefaultDatabaseDir)
-	return database.NewPebble(basepath, inMemory)
+	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
+	return database.NewPebble(nodeDatabaseDir, inMemory)
+}
+
+func ClearDatabase(basepath string) error {
+	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
+	return os.RemoveAll(nodeDatabaseDir)
 }
 
 // PathExists returns true if the named file or directory exists, otherwise false
