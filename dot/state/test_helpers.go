@@ -151,7 +151,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 // branches are provided with a map of depth -> # of branches
 func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int) {
 	bestBlockHash := blockState.BestBlockHash()
-	tb := []testBranch{}
+	var tb []testBranch
 	arrivalTime := time.Now()
 
 	rt, err := blockState.GetRuntime(bestBlockHash)
