@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/cockroachdb/pebble"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
@@ -152,10 +151,11 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 // Prune starts streaming the data from input db to the pruned db.
 func (p *OfflinePruner) Prune() error {
-	inputDB, err := pebble.Open(p.inputDBPath, &pebble.Options{})
+	inputDB, err := utils.SetupDatabase(p.inputDBPath, false)
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
+
 	defer func() {
 		closeErr := inputDB.Close()
 		switch {
@@ -169,27 +169,10 @@ func (p *OfflinePruner) Prune() error {
 	}()
 
 	storagePrefixBytes := []byte(storagePrefix)
-
-	keyUpperBound := func(b []byte) []byte {
-		end := make([]byte, len(b))
-		copy(end, b)
-		for i := len(end) - 1; i >= 0; i-- {
-			end[i] = end[i] + 1
-			if end[i] != 0 {
-				return end[:i+1]
-			}
-		}
-		return nil // no upper-bound
-	}
-
-	prefixIterOptions := &pebble.IterOptions{
-		LowerBound: storagePrefixBytes,
-		UpperBound: keyUpperBound(storagePrefixBytes),
-	}
-
 	// Ignore non-storage keys
-	inputDBIter := inputDB.NewIter(prefixIterOptions)
+	inputDBIter := inputDB.NewPrefixIterator(storagePrefixBytes)
 	writeBatch := inputDB.NewBatch()
+
 	for inputDBIter.First(); inputDBIter.Valid(); inputDBIter.Next() {
 		key := inputDBIter.Key()
 
@@ -204,13 +187,13 @@ func (p *OfflinePruner) Prune() error {
 			return fmt.Errorf("checking filter database: %w", err)
 		}
 
-		err = writeBatch.Delete(key, &pebble.WriteOptions{})
+		err = writeBatch.Del(key)
 		if err != nil {
 			return fmt.Errorf("inserting in the batch delete: %w", err)
 		}
 	}
 
-	err = writeBatch.Commit(pebble.Sync)
+	err = writeBatch.Flush()
 	if err != nil {
 		return fmt.Errorf("flushing write batch: %w", err)
 	}
