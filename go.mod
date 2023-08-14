@@ -28,7 +28,7 @@ require (
 	github.com/libp2p/go-libp2p v0.27.7
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/minio/sha256-simd v1.0.1
-	github.com/multiformats/go-multiaddr v0.10.1
+	github.com/multiformats/go-multiaddr v0.11.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/client_model v0.4.0
@@ -40,7 +40,7 @@ require (
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.12.0
-	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
+	golang.org/x/exp v0.0.0-20230725012225-302865e7556b
 	golang.org/x/term v0.11.0
 	google.golang.org/protobuf v1.31.0
 )
