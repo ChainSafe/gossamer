@@ -14,23 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/stretchr/testify/require"
 )
-
-// DefaultDatabaseDir directory inside basepath where database contents are stored
-const DefaultDatabaseDir = "db"
-
-// SetupDatabase will return an instance of database based on basepath
-func SetupDatabase(basepath string, inMemory bool) (database.Database, error) {
-	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
-	return database.NewPebble(nodeDatabaseDir, inMemory)
-}
-
-func ClearDatabase(basepath string) error {
-	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
-	return os.RemoveAll(nodeDatabaseDir)
-}
 
 // PathExists returns true if the named file or directory exists, otherwise false
 func PathExists(p string) bool {

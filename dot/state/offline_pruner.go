@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
@@ -33,7 +32,7 @@ type OfflinePruner struct {
 // NewOfflinePruner creates an instance of OfflinePruner.
 func NewOfflinePruner(inputDBPath string,
 	retainBlockNum uint32) (pruner *OfflinePruner, err error) {
-	db, err := utils.SetupDatabase(inputDBPath, false)
+	db, err := database.LoadDatabase(inputDBPath, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
@@ -151,7 +150,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 // Prune starts streaming the data from input db to the pruned db.
 func (p *OfflinePruner) Prune() error {
-	inputDB, err := utils.SetupDatabase(p.inputDBPath, false)
+	inputDB, err := database.LoadDatabase(p.inputDBPath, false)
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}

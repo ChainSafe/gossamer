@@ -25,6 +25,7 @@ import (
 	system "github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,7 +36,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -214,7 +214,8 @@ func TestInitNode_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// confirm database was setup
-	db, err := utils.SetupDatabase(config.BasePath, false)
+
+	db, err := database.LoadDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()
@@ -231,7 +232,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(config)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := utils.SetupDatabase(config.BasePath, false)
+	db, err := database.LoadDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 

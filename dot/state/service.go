@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var logger = log.NewFromGlobal(
@@ -95,7 +94,7 @@ func (s *Service) SetupBase() error {
 	}
 
 	// initialise database
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return err
 	}
@@ -261,7 +260,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
-		s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
+		s.db, err = database.LoadDatabase(s.dbPath, s.isMemDB)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}

@@ -34,7 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // BlockProducer to produce blocks
@@ -58,7 +57,7 @@ type rpcServiceSettings struct {
 }
 
 func newInMemoryDB() (database.Database, error) {
-	return utils.SetupDatabase("", true)
+	return database.LoadDatabase("", true)
 }
 
 // createStateService creates the state service and initialise state database

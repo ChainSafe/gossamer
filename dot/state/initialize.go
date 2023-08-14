@@ -15,7 +15,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // Initialise initialises the genesis state of the DB using the given storage trie.
@@ -29,12 +28,12 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to read basepath: %s", err)
 	}
 
-	if err := utils.ClearDatabase(basepath); err != nil {
+	if err := database.ClearDatabase(basepath); err != nil {
 		return fmt.Errorf("while cleaning database: %w", err)
 	}
 
 	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, s.isMemDB)
+	db, err := database.LoadDatabase(basepath, s.isMemDB)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}

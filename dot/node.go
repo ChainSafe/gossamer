@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -34,7 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
@@ -87,7 +87,7 @@ func IsNodeInitialised(basepath string) (bool, error) {
 // and an error otherwise.
 func (*nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
-	nodeDatabaseDir := filepath.Join(basepath, utils.DefaultDatabaseDir)
+	nodeDatabaseDir := filepath.Join(basepath, database.DefaultDatabaseDir)
 
 	_, err := os.Stat(nodeDatabaseDir)
 	if err != nil {
@@ -106,7 +106,7 @@ func (*nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 		return false, nil
 	}
 
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return false, fmt.Errorf("cannot setup database: %w", err)
 	}
@@ -215,7 +215,7 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return "", err
 	}
@@ -466,7 +466,7 @@ func setupTelemetry(config *cfg.Config, genesisData *genesis.Data) (mailer Telem
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
@@ -27,7 +26,7 @@ var inc, _ = time.ParseDuration("1s")
 func NewInMemoryDB(t *testing.T) database.Database {
 	testDatadirPath := t.TempDir()
 
-	db, err := utils.SetupDatabase(testDatadirPath, true)
+	db, err := database.LoadDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()

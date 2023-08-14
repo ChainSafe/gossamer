@@ -16,12 +16,12 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +52,7 @@ func TestInitNode(t *testing.T) {
 			err := InitNode(tt.config)
 			assert.ErrorIs(t, err, tt.err)
 			// confirm InitNode has created database dir
-			nodeDatabaseDir := filepath.Join(tt.config.BasePath, utils.DefaultDatabaseDir)
+			nodeDatabaseDir := filepath.Join(tt.config.BasePath, database.DefaultDatabaseDir)
 			_, err = os.Stat(nodeDatabaseDir)
 			require.NoError(t, err)
 
@@ -67,7 +67,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	t.Parallel()
 
 	basePath := t.TempDir()
-	db, err := utils.SetupDatabase(basePath, false)
+	db, err := database.LoadDatabase(basePath, false)
 	require.NoError(t, err)
 
 	basestate := state.NewBaseState(db)

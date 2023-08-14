@@ -16,7 +16,7 @@ type pebbleBatch struct {
 }
 
 func (pb *pebbleBatch) Put(key, value []byte) error {
-	err := pb.batch.Set(key, value, &pebble.WriteOptions{})
+	err := pb.batch.Set(key, value, nil)
 	if err != nil {
 		return fmt.Errorf("setting to batch writer: %w", err)
 	}

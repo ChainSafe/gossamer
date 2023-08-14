@@ -5,6 +5,8 @@ package database
 
 import (
 	"io"
+	"os"
+	"path/filepath"
 )
 
 type Reader interface {
@@ -58,4 +60,17 @@ type Table interface {
 	Path() string
 	NewBatch() Batch
 	NewIterator() Iterator
+}
+
+const DefaultDatabaseDir = "db"
+
+// SetupDatabase will return an instance of database based on basepath
+func LoadDatabase(basepath string, inMemory bool) (Database, error) {
+	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
+	return NewPebble(nodeDatabaseDir, inMemory)
+}
+
+func ClearDatabase(basepath string) error {
+	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
+	return os.RemoveAll(nodeDatabaseDir)
 }
