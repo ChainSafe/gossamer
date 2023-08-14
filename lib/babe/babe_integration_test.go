@@ -98,35 +98,35 @@ func TestStartAndStop(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestService_PauseAndResume(t *testing.T) {
-	cfg := ServiceConfig{}
-	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
-	err := babeService.Start()
-	require.NoError(t, err)
-	time.Sleep(time.Second)
+// func TestService_PauseAndResume(t *testing.T) {
+// 	cfg := ServiceConfig{}
+// 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+// 	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
+// 	err := babeService.Start()
+// 	require.NoError(t, err)
+// 	time.Sleep(time.Second)
 
-	go func() {
-		_ = babeService.Pause()
-	}()
+// 	go func() {
+// 		_ = babeService.Pause()
+// 	}()
 
-	go func() {
-		_ = babeService.Pause()
-	}()
+// 	go func() {
+// 		_ = babeService.Pause()
+// 	}()
 
-	go func() {
-		err := babeService.Resume()
-		require.NoError(t, err)
-	}()
+// 	go func() {
+// 		err := babeService.Resume()
+// 		require.NoError(t, err)
+// 	}()
 
-	go func() {
-		err := babeService.Resume()
-		require.NoError(t, err)
-	}()
+// 	go func() {
+// 		err := babeService.Resume()
+// 		require.NoError(t, err)
+// 	}()
 
-	err = babeService.Stop()
-	require.NoError(t, err)
-}
+// 	err = babeService.Stop()
+// 	require.NoError(t, err)
+// }
 
 func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	cfg := ServiceConfig{

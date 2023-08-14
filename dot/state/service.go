@@ -251,7 +251,6 @@ func (s *Service) Stop() error {
 	if err = s.db.Flush(); err != nil {
 		return err
 	}
-
 	return s.db.Close()
 }
 
