@@ -160,15 +160,11 @@ func TestDevModule_Control(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	mockBlockProducerAPI := mocks.NewMockBlockProducerAPI(ctrl)
-	mockErrorBlockProducerAPI := mocks.NewMockBlockProducerAPI(ctrl)
 	mockNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
 	mockErrorNetworkAPI := mocks.NewMockNetworkAPI(ctrl)
 
-	mockErrorBlockProducerAPI.EXPECT().Pause().Return(errors.New("babe pause error"))
-	mockBlockProducerAPI.EXPECT().Pause().Return(nil)
-
-	mockErrorBlockProducerAPI.EXPECT().Resume().Return(errors.New("babe resume error"))
-	mockBlockProducerAPI.EXPECT().Resume().Return(nil)
+	mockBlockProducerAPI.EXPECT().Pause()
+	mockBlockProducerAPI.EXPECT().Resume()
 
 	mockErrorNetworkAPI.EXPECT().Stop().Return(errors.New("network stop error"))
 	mockNetworkAPI.EXPECT().Stop().Return(nil)
@@ -203,18 +199,6 @@ func TestDevModule_Control(t *testing.T) {
 			expErr: errors.New("not a block producer"),
 		},
 		{
-			name: "Babe_Stop_Error",
-			fields: fields{
-				mockNetworkAPI,
-				mockErrorBlockProducerAPI,
-			},
-			args: args{
-				req: &[]string{"babe", "stop"},
-			},
-			exp:    "babe service stopped",
-			expErr: errors.New("babe pause error"),
-		},
-		{
 			name: "Babe_Stop_OK",
 			fields: fields{
 				mockNetworkAPI,
@@ -224,18 +208,6 @@ func TestDevModule_Control(t *testing.T) {
 				req: &[]string{"babe", "stop"},
 			},
 			exp: "babe service stopped",
-		},
-		{
-			name: "Babe_Start_Error",
-			fields: fields{
-				mockNetworkAPI,
-				mockErrorBlockProducerAPI,
-			},
-			args: args{
-				req: &[]string{"babe", "start"},
-			},
-			exp:    "babe service started",
-			expErr: errors.New("babe resume error"),
 		},
 		{
 			name: "Babe_Start_OK",
