@@ -49,7 +49,7 @@ func (nh *TestNetworkHandle) nextNetworkActions(count int) []NetworkAction {
 }
 
 // VirtualOverseer is a simple type representing a virtual overseer
-type VirtualOverseer struct{}
+type VirtualOverseer TestSubsystemContextHandle
 
 func (vo *VirtualOverseer) send(signal OverseerSignal) {
 	fmt.Printf("Got overseer signal: %v\n", signal)
@@ -97,14 +97,15 @@ func testHarness(t *testing.T, oracle *Oracle, testFunc TestHarnessFn) {
 	}()
 	time.Sleep(time.Second)
 	networkHandle := TestNetworkHandle{networkStream: networkStream}
-	virtualOverseer := VirtualOverseer{}
+	context, virtualOverseer := makeSubsystemContext(nil)
+	fmt.Printf("context %v\n", context) // TODO: do something with context
 	testHarness := &TestHarness{
 		networkHandle:   networkHandle,
-		virtualOverseer: virtualOverseer,
+		virtualOverseer: VirtualOverseer(*virtualOverseer),
 		shared:          *shared,
 	}
 
-	virtualOverseer = testFunc(testHarness)
+	testFunc(testHarness)
 	wg.Wait()
 }
 
@@ -162,7 +163,6 @@ func TestSendOurViewUponConnection(t *testing.T) {
 			},
 		)
 
-		virtualOverseer.send(OverseerSignal{})
 		return virtualOverseer
 	})
 }
