@@ -4,14 +4,8 @@
 package network
 
 import (
-	"time"
-
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-)
-
-var (
-	BlockRequestTimeout = time.Second * 20
 )
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
