@@ -690,7 +690,7 @@ func Test_Trie_Entries(t *testing.T) {
 		entriesMatch(t, expectedEntries, entries)
 	})
 
-	t.Run("end_to_end", func(t *testing.T) {
+	t.Run("end_to_end_v0", func(t *testing.T) {
 		t.Parallel()
 
 		trie := Trie{
@@ -707,6 +707,30 @@ func Test_Trie_Entries(t *testing.T) {
 
 		for k, v := range kv {
 			trie.Put([]byte(k), v, V0)
+		}
+
+		entries := trie.Entries()
+
+		assert.Equal(t, kv, entries)
+	})
+
+	t.Run("end_to_end_v1", func(t *testing.T) {
+		t.Parallel()
+
+		trie := Trie{
+			root:       nil,
+			childTries: make(map[common.Hash]*Trie),
+		}
+
+		kv := map[string][]byte{
+			"ab":   []byte("pen"),
+			"abc":  []byte("penguin"),
+			"hy":   []byte("feather"),
+			"long": []byte("newvaluewithmorethan32byteslength"),
+		}
+
+		for k, v := range kv {
+			trie.Put([]byte(k), v, V1)
 		}
 
 		entries := trie.Entries()
@@ -1050,13 +1074,16 @@ func Test_nextKey(t *testing.T) {
 func Test_Trie_Put(t *testing.T) {
 	t.Parallel()
 
+	longValue := []byte("newvaluewithmorethan32byteslength")
+
 	testCases := map[string]struct {
 		trie         Trie
+		stateVersion Version
 		key          []byte
 		value        []byte
 		expectedTrie Trie
 	}{
-		"trie_with_key_and_value": {
+		"trie_v0_with_key_and_value": {
 			trie: Trie{
 				generation: 1,
 				deltas:     newDeltas(),
@@ -1092,6 +1119,44 @@ func Test_Trie_Put(t *testing.T) {
 				},
 			},
 		},
+		"trie_v1_with_key_and_value": {
+			trie: Trie{
+				generation: 1,
+				deltas:     newDeltas(),
+				root: &Node{
+					PartialKey:   []byte{1, 2, 0, 5},
+					StorageValue: []byte{1},
+				},
+			},
+			stateVersion: V1,
+			key:          []byte{0x12, 0x16},
+			value:        longValue,
+			expectedTrie: Trie{
+				generation: 1,
+				deltas:     newDeltas("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9"),
+				root: &Node{
+					PartialKey:  []byte{1, 2},
+					Generation:  1,
+					Dirty:       true,
+					Descendants: 2,
+					Children: padRightChildren([]*Node{
+						{
+							PartialKey:   []byte{5},
+							StorageValue: []byte{1},
+							Generation:   1,
+							Dirty:        true,
+						},
+						{
+							PartialKey:   []byte{6},
+							StorageValue: common.MustBlake2bHash(longValue).ToBytes(),
+							HashedValue:  true,
+							Generation:   1,
+							Dirty:        true,
+						},
+					}),
+				},
+			},
+		},
 	}
 
 	for name, testCase := range testCases {
@@ -1100,7 +1165,7 @@ func Test_Trie_Put(t *testing.T) {
 			t.Parallel()
 
 			trie := testCase.trie
-			trie.Put(testCase.key, testCase.value, V0)
+			trie.Put(testCase.key, testCase.value, testCase.stateVersion)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
