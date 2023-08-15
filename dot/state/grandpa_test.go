@@ -143,7 +143,7 @@ func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	return bs
 }
 
-func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	t.Parallel()
 
 	keyring, err := keystore.NewSr25519Keyring()
@@ -218,7 +218,10 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparal
 	}
 
 	for tname, tt := range tests {
+		tt := tt
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
 			// clear the scheduledChangeRoots after the test ends
 			// this does not cause race condition because t.Run without
 			// t.Parallel() blocks until this function returns
