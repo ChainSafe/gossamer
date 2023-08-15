@@ -14,16 +14,17 @@ import (
 )
 
 var logger = log.NewFromGlobal(log.AddContext("internal", "database"))
-var _ Database = (*pebbleDB)(nil)
+var _ Database = (*PebbleDB)(nil)
 
 var ErrNotFound = pebble.ErrNotFound
 
-type pebbleDB struct {
+type PebbleDB struct {
 	path string
 	db   *pebble.DB
 }
 
-func NewPebble(path string, inMemory bool) (*pebbleDB, error) {
+// NewPebble return an pebble db implementation of Database interface
+func NewPebble(path string, inMemory bool) (*PebbleDB, error) {
 	opts := &pebble.Options{}
 	if inMemory {
 		opts = &pebble.Options{FS: vfs.NewMem()}
@@ -38,14 +39,14 @@ func NewPebble(path string, inMemory bool) (*pebbleDB, error) {
 		return nil, fmt.Errorf("oppening pebble db: %w", err)
 	}
 
-	return &pebbleDB{path, db}, nil
+	return &PebbleDB{path, db}, nil
 }
 
-func (p *pebbleDB) Path() string {
+func (p *PebbleDB) Path() string {
 	return p.path
 }
 
-func (p *pebbleDB) Put(key, value []byte) error {
+func (p *PebbleDB) Put(key, value []byte) error {
 	err := p.db.Set(key, value, &pebble.WriteOptions{})
 	if err != nil {
 		return fmt.Errorf("writing 0x%x with value 0x%x to database: %w",
@@ -54,7 +55,7 @@ func (p *pebbleDB) Put(key, value []byte) error {
 	return nil
 }
 
-func (p *pebbleDB) Get(key []byte) (value []byte, err error) {
+func (p *PebbleDB) Get(key []byte) (value []byte, err error) {
 	value, closer, err := p.db.Get(key)
 	if err != nil {
 		return nil, err
@@ -65,11 +66,11 @@ func (p *pebbleDB) Get(key []byte) (value []byte, err error) {
 	}
 
 	valueCpy := make([]byte, len(value))
-	copy(valueCpy[:], value[:])
+	copy(valueCpy[:], value)
 	return valueCpy, err
 }
 
-func (p *pebbleDB) Has(key []byte) (exists bool, err error) {
+func (p *PebbleDB) Has(key []byte) (exists bool, err error) {
 	value, closer, err := p.db.Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
@@ -86,7 +87,7 @@ func (p *pebbleDB) Has(key []byte) (exists bool, err error) {
 	return value != nil, err
 }
 
-func (p *pebbleDB) Del(key []byte) error {
+func (p *PebbleDB) Del(key []byte) error {
 	err := p.db.Delete(key, &pebble.WriteOptions{})
 	if err != nil {
 		return err
@@ -95,11 +96,11 @@ func (p *pebbleDB) Del(key []byte) error {
 	return nil
 }
 
-func (p *pebbleDB) Close() error {
+func (p *PebbleDB) Close() error {
 	return p.db.Close()
 }
 
-func (p *pebbleDB) Flush() error {
+func (p *PebbleDB) Flush() error {
 	err := p.db.Flush()
 	if err != nil {
 		return fmt.Errorf("flushing database: %w", err)
@@ -108,19 +109,26 @@ func (p *pebbleDB) Flush() error {
 	return nil
 }
 
-func (p *pebbleDB) NewBatch() Batch {
+// NewBatch returns an implementation of Batch interface using the
+// internal database
+func (p *PebbleDB) NewBatch() Batch {
 	return &pebbleBatch{
 		batch: p.db.NewBatch(),
 	}
 }
 
-func (p *pebbleDB) NewIterator() Iterator {
+// NewBatch returns an implementation of Iterator interface using the
+// internal database
+func (p *PebbleDB) NewIterator() Iterator {
 	return &pebbleIterator{
 		p.db.NewIter(nil),
 	}
 }
 
-func (p *pebbleDB) NewPrefixIterator(prefix []byte) Iterator {
+// NewBatch returns an implementation of Iterator over a specific
+// keys that contains the prefix
+// more info: https://github.com/ChainSafe/gossamer/pull/3434#discussion_r1291503323
+func (p *PebbleDB) NewPrefixIterator(prefix []byte) Iterator {
 	keyUpperBound := func(b []byte) []byte {
 		end := make([]byte, len(b))
 		copy(end, b)

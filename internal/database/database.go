@@ -64,7 +64,7 @@ type Table interface {
 
 const DefaultDatabaseDir = "db"
 
-// SetupDatabase will return an instance of database based on basepath
+// LoadDatabase will return an instance of database based on basepath
 func LoadDatabase(basepath string, inMemory bool) (Database, error) {
 	nodeDatabaseDir := filepath.Join(basepath, DefaultDatabaseDir)
 	return NewPebble(nodeDatabaseDir, inMemory)
