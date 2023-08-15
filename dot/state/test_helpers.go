@@ -5,7 +5,6 @@ package state
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -152,7 +150,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 // branches are provided with a map of depth -> # of branches
 func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int) {
 	bestBlockHash := blockState.BestBlockHash()
-	tb := []testBranch{}
+	var tb []testBranch
 	arrivalTime := time.Now()
 
 	rt, err := blockState.GetRuntime(bestBlockHash)
@@ -232,39 +230,4 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			arrivalTime = arrivalTime.Add(inc)
 		}
 	}
-}
-
-func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
-	trieState, err := serv.Storage.TrieState(nil)
-	require.NoError(t, err)
-
-	// Generate random data for trie state.
-	rand := time.Now().UnixNano()
-	key := []byte("testKey" + fmt.Sprint(rand))
-	value := []byte("testValue" + fmt.Sprint(rand))
-	err = trieState.Put(key, value)
-	require.NoError(t, err)
-
-	trieStateRoot, err := trieState.Root()
-	require.NoError(t, err)
-
-	if parent == nil {
-		bb := serv.Block.BestBlockHash()
-		parent = &bb
-	}
-
-	body, err := types.NewBodyFromBytes([]byte{})
-	require.NoError(t, err)
-
-	block := &types.Block{
-		Header: types.Header{
-			ParentHash: *parent,
-			Number:     bNum,
-			StateRoot:  trieStateRoot,
-			Digest:     createPrimaryBABEDigest(t),
-		},
-		Body: *body,
-	}
-	return block, trieState
 }
