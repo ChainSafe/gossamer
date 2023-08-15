@@ -20,8 +20,8 @@ import (
 )
 
 // ImportState imports the state in the given files to the database with the given path.
-func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
-	tr, err := newTrieFromPairs(stateFP)
+func ImportState(basepath, stateFP, headerFP string, firstSlot uint64, stateVersion trie.Version) error {
+	tr, err := newTrieFromPairs(stateFP, stateVersion)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 	return srv.Import(header, tr, firstSlot)
 }
 
-func newTrieFromPairs(filename string) (*trie.Trie, error) {
+func newTrieFromPairs(filename string, stateVersion trie.Version) (*trie.Trie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 	}
 
 	//TODO: revisit this to use the right trie version
-	tr, err := trie.LoadFromMap(entries, trie.V0)
+	tr, err := trie.LoadFromMap(entries, stateVersion)
 	if err != nil {
 		return nil, err
 	}

@@ -627,7 +627,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
-	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out", trie.V0)
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
 	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
 
@@ -673,7 +673,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
-	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
+	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out", trie.V0)
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
 	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
 
@@ -719,7 +719,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out", trie.V0)
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -765,7 +765,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out", trie.V0)
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -813,7 +813,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	t.Skip("skip for now as block4939773 is too large")
-	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out", trie.V0)
 	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -856,7 +856,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
-	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
+	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json", trie.V0)
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
 	require.Equal(t, expectedRoot, dotTrie.MustHash())
 
@@ -983,7 +983,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 	}
 }
 
-func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
+func newTrieFromPairs(t *testing.T, filename string, version trie.Version) *trie.Trie {
 	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
@@ -998,8 +998,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	//TODO: revisit this to use the right trie version
-	tr, err := trie.LoadFromMap(entries, trie.V0)
+	tr, err := trie.LoadFromMap(entries, version)
 	require.NoError(t, err)
 	return &tr
 }

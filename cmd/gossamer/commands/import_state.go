@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
 )
@@ -54,6 +55,18 @@ func execImportState(cmd *cobra.Command) error {
 		return fmt.Errorf("state-file must be specified")
 	}
 
+	stateVersionFlag, err := cmd.Flags().GetString("state-version")
+	if err != nil {
+		return fmt.Errorf("failed to get state-version: %s", err)
+	}
+	if stateVersionFlag == "" {
+		return fmt.Errorf("state-version must be specified")
+	}
+	stateVersion, err := trie.ParseVersion(stateVersionFlag)
+	if err != nil {
+		return fmt.Errorf("failed to parse state-version: %s", err)
+	}
+
 	headerFile, err := cmd.Flags().GetString("header-file")
 	if err != nil {
 		return fmt.Errorf("failed to get header-file: %s", err)
@@ -64,5 +77,5 @@ func execImportState(cmd *cobra.Command) error {
 
 	basePath = utils.ExpandDir(basePath)
 
-	return dot.ImportState(basePath, stateFile, headerFile, firstSlot)
+	return dot.ImportState(basePath, stateFile, headerFile, firstSlot, stateVersion)
 }
