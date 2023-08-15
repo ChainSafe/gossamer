@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string
+		version  trie.Version
 		want     common.Hash
 		err      error
 	}{
@@ -35,6 +37,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		{
 			name:     "working example",
 			filename: setupStateFile(t),
+			version:  trie.V0,
 			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
 		},
 	}
@@ -43,7 +46,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := newTrieFromPairs(tt.filename)
+			got, err := newTrieFromPairs(tt.filename, tt.version)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -93,7 +96,7 @@ func TestImportState_Integration(t *testing.T) {
 	headerFP := setupHeaderFile(t)
 
 	const firstSlot = uint64(262493679)
-	err = ImportState(config.BasePath, stateFP, headerFP, firstSlot)
+	err = ImportState(config.BasePath, stateFP, headerFP, firstSlot, trie.V0)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
@@ -126,6 +129,7 @@ func TestImportState(t *testing.T) {
 	type args struct {
 		basepath  string
 		stateFP   string
+		version   trie.Version
 		headerFP  string
 		firstSlot uint64
 	}
@@ -153,7 +157,7 @@ func TestImportState(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.firstSlot)
+			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.firstSlot, tt.args.version)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
