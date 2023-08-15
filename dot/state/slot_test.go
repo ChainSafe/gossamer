@@ -47,7 +47,7 @@ func checkSlotToMapKeyExists(t *testing.T, db database.Table, slotNumber uint64)
 	slotEncoded := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotEncoded, slotNumber)
 
-	slotToHeaderKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded[:]}, nil)
+	slotToHeaderKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 
 	_, err := db.Get(slotToHeaderKey)
 	if err != nil {

@@ -568,7 +568,7 @@ func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVo
 		return nil, err
 	}
 
-	pvs := []types.GrandpaSignedVote{}
+	var pvs []types.GrandpaSignedVote
 	err = scale.Unmarshal(data, &pvs)
 	if err != nil {
 		return nil, err
@@ -594,7 +594,7 @@ func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSigned
 		return nil, err
 	}
 
-	pcs := []types.GrandpaSignedVote{}
+	var pcs []types.GrandpaSignedVote
 	err = scale.Unmarshal(data, &pcs)
 	if err != nil {
 		return nil, err
