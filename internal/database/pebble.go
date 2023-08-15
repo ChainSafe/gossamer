@@ -66,7 +66,7 @@ func (p *PebbleDB) Get(key []byte) (value []byte, err error) {
 	}
 
 	valueCpy := make([]byte, len(value))
-	copy(valueCpy[:], value)
+	copy(valueCpy, value)
 	return valueCpy, err
 }
 
@@ -117,7 +117,7 @@ func (p *PebbleDB) NewBatch() Batch {
 	}
 }
 
-// NewBatch returns an implementation of Iterator interface using the
+// NewIterator returns an implementation of Iterator interface using the
 // internal database
 func (p *PebbleDB) NewIterator() Iterator {
 	return &pebbleIterator{
@@ -125,7 +125,7 @@ func (p *PebbleDB) NewIterator() Iterator {
 	}
 }
 
-// NewBatch returns an implementation of Iterator over a specific
+// NewPrefixIterator returns an implementation of Iterator over a specific
 // keys that contains the prefix
 // more info: https://github.com/ChainSafe/gossamer/pull/3434#discussion_r1291503323
 func (p *PebbleDB) NewPrefixIterator(prefix []byte) Iterator {
