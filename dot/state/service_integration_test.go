@@ -437,7 +437,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	rand := time.Now().UnixNano()
 	key := []byte("testKey" + fmt.Sprint(rand))
 	value := []byte("testValue" + fmt.Sprint(rand))
-	err = trieState.Put(key, value)
+	err = trieState.Put(key, value, trie.V0)
 	require.NoError(t, err)
 
 	trieStateRoot, err := trieState.Root()
