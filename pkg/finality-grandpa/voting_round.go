@@ -742,8 +742,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 			ancestry, err := vr.env.Ancestry(lastRoundEstimate.Hash, lastPrevoteG.Hash)
 			if err != nil {
 				// This is only possible in case of massive equivocation
-				// TODO: check for error type Err(crate::Error::NotDescendent)
-				// TODO: warn!(target: "afg",
+				// warn!(target: "afg",
 				// 	"Possible case of massive equivocation:
 				// 	last round prevote GHOST: {:?} is not a descendant of last round estimate: {:?}",
 				// 	last_prevote_g,
@@ -755,7 +754,6 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 					lastPrevoteG,
 					lastRoundEstimate,
 				)
-
 				findDescendentOf = lastRoundEstimate.Hash
 			} else {
 				toSub := pNum + 1

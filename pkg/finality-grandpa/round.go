@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/tidwall/btree"
@@ -68,7 +69,7 @@ func (vm voteMultiplicity[Vote, Signature]) Contains(vote Vote, sig Signature) b
 	case equivocated[Vote, Signature]:
 		return in[0] == vs || in[1] == vs
 	default:
-		panic("should never happen")
+		panic("invalid voteMultiplicityValue")
 	}
 }
 
@@ -113,7 +114,7 @@ func (vt *voteTracker[ID, Vote, Signature]) addVote(
 		)
 		_, exists := vt.votes.Set(id, multiplicity)
 		if exists {
-			panic("wtf?")
+			panic(fmt.Errorf("id %v should not exist in votes", id))
 		}
 		return &multiplicity, false
 	}
@@ -139,7 +140,7 @@ func (vt *voteTracker[ID, Vote, Signature]) addVote(
 		// ignore further equivocations
 		return nil, duplicated
 	default:
-		panic("wtf?")
+		panic("invalid voteMultiplicity value")
 	}
 }
 
@@ -167,7 +168,7 @@ func (vt *voteTracker[ID, Vote, Signature]) Votes() (votes []idVoteSignature[ID,
 				})
 			}
 		default:
-			panic("huh?")
+			panic("invalid voteMultiplicity value")
 		}
 		return true
 	})
@@ -329,14 +330,13 @@ func (r *Round[ID, H, N, S]) importPrevote(
 			Second:      second,
 		}
 	default:
-		panic("wtf?")
+		panic("invalid voteMultiplicity value")
 	}
 
 	// update prevote-GHOST
 	threshold := r.context.voters.threshold
 	if r.prevotes.currentWeight >= VoteWeight(threshold) {
 		r.prevoteGhost = r.graph.FindGHOST(r.prevoteGhost, func(v *voteNode[ID]) bool {
-			// TODO: update Weight to pass by value
 			return r.context.Weight(*v, PrevotePhase) >= VoteWeight(threshold)
 		})
 	}
@@ -415,7 +415,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 			Second:      second,
 		}
 	default:
-		panic("wtf?")
+		panic("invalid voteMultiplicity value")
 	}
 
 	r.update()
@@ -557,7 +557,7 @@ func (yv *yieldVotes[H, N, S]) voteSignature() *voteSignature[Precommit[H, N], S
 			return nil
 		}
 	default:
-		panic("wtf?")
+		panic("invalid voteMultiplicity value")
 	}
 }
 

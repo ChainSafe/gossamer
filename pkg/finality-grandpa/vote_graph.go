@@ -424,7 +424,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 					case a.hash < b.hash:
 						return -1
 					default:
-						panic("huh?")
+						panic("unreachable")
 					}
 				},
 			)
@@ -448,7 +448,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 							vote: dNode.cumulativeVote.Copy(),
 						}}, descendantBlocks[idx:]...)...)
 				} else {
-					panic("huh?")
+					panic("unreachable")
 				}
 			}
 		}

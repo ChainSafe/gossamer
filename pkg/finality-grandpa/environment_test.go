@@ -330,7 +330,7 @@ func (n *Network) MakeGlobalComms(out chan CommunicationOut) chan globalInItem {
 
 	return n.globalMessages.AddNode(func(message CommunicationOut) globalInItem {
 		if message.variant == nil {
-			panic("wtf?")
+			panic("nil message variant")
 		}
 		switch message := message.variant.(type) {
 		case CommunicationOutCommit[string, uint32, Signature, ID]:
@@ -343,7 +343,7 @@ func (n *Network) MakeGlobalComms(out chan CommunicationOut) chan globalInItem {
 				CommunicationIn: ci,
 			}
 		default:
-			panic("wtf")
+			panic("invalid CommunicationOut variant")
 		}
 	}, out)
 }

@@ -52,7 +52,6 @@ loop:
 	for {
 		br, ok := dc.inner[block]
 		if !ok {
-			// TODO: make this sentinel error on entire package
 			return nil, fmt.Errorf("Block not descendent of base")
 		}
 		block = br.parent

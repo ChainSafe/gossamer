@@ -34,7 +34,7 @@ func (c context[ID]) EquivocationWeight(p Phase) VoteWeight {
 	case PrecommitPhase:
 		return weight(c.equivocations.Iter1sOdd(), c.voters)
 	default:
-		panic("wtf?")
+		panic("invalid Phase")
 	}
 }
 
@@ -53,7 +53,7 @@ func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
 		case PrecommitPhase:
 			return weight(n.bits.Iter1sOdd(), c.voters)
 		default:
-			panic("wtf?")
+			panic("invalid Phase")
 		}
 	} else {
 		switch p {
@@ -64,7 +64,7 @@ func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
 			bits := n.bits.Iter1sMergedOdd(c.equivocations)
 			return weight(bits, c.voters)
 		default:
-			panic("wtf?")
+			panic("invalid Phase")
 		}
 	}
 }
@@ -90,7 +90,7 @@ func newVote[ID constraints.Ordered](v VoterInfo, p Phase) vote[ID] {
 			},
 		}
 	default:
-		panic("wtf?")
+		panic("invalid Phase")
 	}
 }
 

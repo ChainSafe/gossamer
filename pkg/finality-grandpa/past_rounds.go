@@ -80,27 +80,16 @@ func (brc backgroundRoundChange[Hash, Number, Signature, ID]) Variant() any {
 	return brc.variant
 }
 
-func (brc *backgroundRoundChange[Hash, Number, Signature, ID]) SetVariant(variant any) {
-	switch variant := variant.(type) {
-	case concluded:
-		setBackgroundRoundChangeVariant(brc, variant)
-	case committed[Hash, Number, Signature, ID]:
-		setBackgroundRoundChangeVariant(brc, variant)
-	default:
-		panic("unsupported type")
-	}
-}
-
-func setBackgroundRoundChangeVariant[
+func newBackgroundRoundChange[
 	Hash,
 	Number,
 	Signature,
 	ID any,
 	V backgroundRoundChanges[Hash, Number, Signature, ID],
-](
-	change *backgroundRoundChange[Hash, Number, Signature, ID], variant V,
-) {
+](variant V) backgroundRoundChange[Hash, Number, Signature, ID] {
+	change := backgroundRoundChange[Hash, Number, Signature, ID]{}
 	change.variant = variant
+	return change
 }
 
 type backgroundRoundChanges[Hash, Number, Signature, ID any] interface {
@@ -129,21 +118,23 @@ func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (
 		case ready && commit == nil && err == nil:
 			br.roundCommitter = nil
 		case ready && commit != nil && err == nil:
-			change := backgroundRoundChange[Hash, Number, Signature, ID]{}
-			change.SetVariant(committed[Hash, Number, Signature, ID](*commit))
+			change := newBackgroundRoundChange[Hash, Number, Signature, ID](
+				committed[Hash, Number, Signature, ID](*commit),
+			)
 			return true, change, nil
 		case !ready:
 			br.roundCommitter = committer
 		default:
-			panic("wtf")
+			panic("unreachable")
 		}
 	}
 
 	if br.isDone() {
 		// if this is fully concluded (has committed _and_ estimate finalized)
 		// we bail for real.
-		change := backgroundRoundChange[Hash, Number, Signature, ID]{}
-		change.SetVariant(concluded(br.roundNumber()))
+		change := newBackgroundRoundChange[Hash, Number, Signature, ID](
+			concluded(br.roundNumber()),
+		)
 		return true, change, nil
 	}
 	return false, backgroundRoundChange[Hash, Number, Signature, ID]{}, nil
