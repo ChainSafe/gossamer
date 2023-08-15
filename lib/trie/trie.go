@@ -375,8 +375,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 
 	isValueHashed := version.ShouldHashValue(value)
 	if isValueHashed {
-		hashedValue := common.MustBlake2bHash(value)
-		copy(value, hashedValue[:])
+		value = common.MustBlake2bHash(value).ToBytes()
 	}
 
 	root, _, _, err := t.insert(t.root, nibblesKey, value, isValueHashed, pendingDeltas)
