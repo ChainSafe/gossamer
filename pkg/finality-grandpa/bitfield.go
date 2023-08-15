@@ -126,15 +126,14 @@ func (b *bitfield) Iter1sMergedOdd(other bitfield) []bit1 { //skipcq: GO-W1029
 // and moving in steps of size `2^step` per word.
 func iter1s(iter []uint64, start, step uint) (bit1s []bit1) {
 	if !(start < 64 && step < 7) {
-		panic("wtf?")
+		panic("invalid start and step")
 	}
 	steps := (64 >> step) - (start >> step)
 	for i, word := range iter {
-		n := steps
 		if word == 0 {
-			n = 0
+			continue
 		}
-		for j := uint(0); j < n; j++ {
+		for j := uint(0); j < steps; j++ {
 			bitPos := start + (j << step)
 			if testBit(word, bitPos) {
 				bit1s = append(bit1s, bit1{uint(i)*64 + bitPos})

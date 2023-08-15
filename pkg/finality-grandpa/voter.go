@@ -241,7 +241,6 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 	}
 	select {
 	case <-b.readyCh:
-		// b.mtx.Lock()
 		defer func() {
 			b.readyCh <- nil
 			// if waker != nil {

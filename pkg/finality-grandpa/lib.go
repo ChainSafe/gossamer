@@ -76,7 +76,7 @@ func (m Message[H, N]) Target() HashNumber[H, N] {
 			message.TargetNumber,
 		}
 	default:
-		panic("unsupported type")
+		panic("unsupported Message type")
 	}
 }
 
@@ -321,7 +321,7 @@ func ValidateCommit[
 	// add all precommits to the round with correct counting logic
 	round := NewRound[ID, Hash, Number, Signature](
 		RoundParams[ID, Hash, Number]{
-			RoundNumber: 0,
+			RoundNumber: 0, // doesn't matter here
 			Voters:      voters,
 			Base:        base,
 		},

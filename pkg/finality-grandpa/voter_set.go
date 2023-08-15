@@ -77,7 +77,7 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 	})
 
 	if totalWeight == 0 {
-		panic("huh?")
+		panic("weight can not be zero")
 	}
 
 	return &VoterSet[ID]{
@@ -98,7 +98,7 @@ func (vs VoterSet[ID]) Get(id ID) *VoterInfo {
 		case b.ID > a.ID:
 			return -1
 		default:
-			panic("huh?")
+			panic("unreachable")
 		}
 	})
 	if ok {
