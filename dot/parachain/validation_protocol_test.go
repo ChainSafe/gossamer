@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	parachaintypes "github.com/ChainSafe/gossamer/lib/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -90,7 +90,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	require.NoError(t, err)
 
 	/* ValidationProtocol with StatementDistribution with Statement rust code:
-	 fn try_validation_protocol_statement_distribution_full_statement() {
+	fn try_validation_protocol_statement_distribution_full_statement() {
 		let hash1 = Hash::repeat_byte(170);
 		let val_sign = ValidatorSignature::from(
 			Signature([198, 124, 185, 59, 240, 163, 111, 206, 227, 210, 157, 232, 166, 166, 154, 117, 150, 89,
@@ -161,7 +161,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			UpwardMessages:            []parachaintypes.UpwardMessage{[]byte{1, 2, 3}},
 			HorizontalMessages:        nil,
 			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
-			HeadData:                  []byte{1, 2, 3},
+			HeadData:                  parachaintypes.HeadData{[]byte{1, 2, 3}},
 			ProcessedDownwardMessages: 5,
 			HrmpWatermark:             0,
 		},

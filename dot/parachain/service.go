@@ -120,7 +120,7 @@ func (s Service) run() {
 	collationMessage := CollationProtocolV1{}
 	s.Network.GossipMessage(&collationMessage)
 
-	statementDistributionLargeStatement := NewStatementDistributionVDT()
+	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
 	statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
 		RelayParent:   common.Hash{},
 		CandidateHash: CandidateHash{Value: common.Hash{}},
