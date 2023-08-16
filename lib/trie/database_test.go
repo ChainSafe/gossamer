@@ -6,19 +6,16 @@ package trie
 import (
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDB(t *testing.T) chaindb.Database {
-	chainDBConfig := &chaindb.Config{
-		InMemory: true,
-	}
-	database, err := chaindb.NewBadgerDB(chainDBConfig)
+func newTestDB(t *testing.T) database.Table {
+	db, err := database.NewPebble("", true)
 	require.NoError(t, err)
-	return chaindb.NewTable(database, "trie")
+	return database.NewTable(db, "trie")
 }
 
 func Test_Trie_Store_Load(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
@@ -97,7 +97,7 @@ func TestChildStateGetStorageSize(t *testing.T) {
 			keyChild: []byte(":not_exist"),
 		},
 		{
-			err:  chaindb.ErrKeyNotFound,
+			err:  database.ErrNotFound,
 			hash: &invalidHash,
 		},
 	}
@@ -155,7 +155,7 @@ func TestGetStorageHash(t *testing.T) {
 			keyChild: []byte(":not_exist"),
 		},
 		{
-			err:  chaindb.ErrKeyNotFound,
+			err:  database.ErrNotFound,
 			hash: &invalidBlockHash,
 		},
 	}
@@ -195,7 +195,7 @@ func TestGetChildStorage(t *testing.T) {
 		{params: []string{":child_storage_key", ""}, expected: nil},
 		{params: []string{":child_storage_key", ":child_first"}, expected: []byte(":child_first_value")},
 		{params: []string{":child_storage_key", ":child_first", blockHash.String()}, expected: []byte(":child_first_value")},
-		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{":child_storage_key", ":child_first", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {

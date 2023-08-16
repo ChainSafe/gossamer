@@ -433,6 +433,9 @@ func TestCreateStateService(t *testing.T) {
 	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 	require.NotNil(t, stateSrvc)
+
+	err = stateSrvc.DB().Close()
+	require.NoError(t, err)
 }
 
 func newStateServiceWithoutMock(t *testing.T) *state.Service {
@@ -529,6 +532,8 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc.Epoch = &state.EpochState{}
 
 	_ = builder.createBlockVerifier(stateSrvc)
+	err = stateSrvc.DB().Close()
+	require.NoError(t, err)
 }
 
 func TestCreateSyncService(t *testing.T) {

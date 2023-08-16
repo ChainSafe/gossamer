@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -31,13 +31,10 @@ import (
 )
 
 // NewInMemoryDB creates a new in-memory database
-func NewInMemoryDB(t *testing.T) *chaindb.BadgerDB {
+func NewInMemoryDB(t *testing.T) database.Database {
 	testDatadirPath := t.TempDir()
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	})
+	db, err := database.NewPebble(testDatadirPath, true)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()

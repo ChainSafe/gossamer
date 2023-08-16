@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -50,7 +50,7 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = inst.ctx.NodeStorage.BaseDB.Get(testKey)
-	require.ErrorIs(t, err, chaindb.ErrKeyNotFound)
+	require.ErrorIs(t, err, database.ErrNotFound)
 }
 
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
@@ -238,7 +238,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.NodeStorage().PersistentStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "pebble: not found")
 	require.Nil(t, val)
 }
 
@@ -261,7 +261,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.NodeStorage().LocalStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "pebble: not found")
 	require.Nil(t, val)
 }
 
@@ -1868,10 +1868,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 
 	tmp := t.TempDir()
 
-	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-		DataDir:  tmp,
-	})
+	memdb, err := database.NewPebble(tmp, true)
 	require.NoError(t, err)
 
 	otherTrie := trie.NewEmptyTrie()
