@@ -26,6 +26,7 @@ const (
 	V1
 )
 
+// DefaultStateVersion sets the state version we should use as default
 // See https://github.com/paritytech/substrate/blob/5e76587825b9a9d52d8cb02ba38828adf606157b/primitives/storage/src/lib.rs#L435-L439
 const DefaultStateVersion = V1
 
