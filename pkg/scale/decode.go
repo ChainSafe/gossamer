@@ -344,7 +344,6 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 
 func (ds *decodeState) decodeCustomVaryingDataType(dstv reflect.Value) (err error) {
 	initialType := dstv.Type()
-<<<<<<< HEAD
 
 	methodVal := dstv.MethodByName("New")
 	if methodVal.IsValid() && !methodVal.IsZero() {
@@ -362,19 +361,6 @@ func (ds *decodeState) decodeCustomVaryingDataType(dstv reflect.Value) (err erro
 	}
 
 	converted := dstv.Convert(reflect.TypeOf(VaryingDataType{}))
-=======
-	var converted reflect.Value
-	_, ok := initialType.MethodByName("New")
-	if ok {
-		tempVal := reflect.New(initialType).Elem()
-		tempVal = tempVal.MethodByName("New").Call([]reflect.Value{})[0]
-		tempVal = tempVal.Elem()
-		converted = tempVal.Convert(reflect.TypeOf(VaryingDataType{}))
-	} else {
-		converted = dstv.Convert(reflect.TypeOf(VaryingDataType{}))
-	}
-
->>>>>>> 066b3ed6 (reset jimmy/grandpaDbInterface)
 	tempVal := reflect.New(converted.Type())
 	tempVal.Elem().Set(converted)
 	err = ds.decodeVaryingDataType(tempVal.Elem())

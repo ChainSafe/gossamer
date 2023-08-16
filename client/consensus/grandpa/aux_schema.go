@@ -35,7 +35,7 @@ type persistentData[H comparable, N constraints.Unsigned] struct {
 	setState     SharedVoterSetState[H, N]
 }
 
-func loadPersistent[H comparable, N constraints.Unsigned](store AuxStore, genesisHash H, genesisNumber N, genesisAuthorities AuthorityList) (*persistentData[H, N], error) {
+func loadPersistent[H comparable, N constraints.Unsigned](store AuxStore, genesisHash H, genesisNumber N, genesisAuthorities []Authority) (*persistentData[H, N], error) {
 	genesis := finalityGrandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
 	makeGenesisRound := finalityGrandpa.NewRoundState[H, N]
 
