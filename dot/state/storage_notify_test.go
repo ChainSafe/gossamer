@@ -9,11 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-<<<<<<< HEAD
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/dgraph-io/badger/v4/pb"
-=======
->>>>>>> 344461dfca4d7cc341379cc778f4eeabd411e4cb
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
