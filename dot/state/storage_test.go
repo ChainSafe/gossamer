@@ -9,11 +9,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -45,8 +45,8 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
 	ts2 := runtime.NewTrieState(trie)
-	new := ts2.Snapshot()
-	require.Equal(t, ts.Trie(), new)
+	newSnapshot := ts2.Snapshot()
+	require.Equal(t, ts.Trie(), newSnapshot)
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -167,7 +167,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	// initialise database using data directory
 	basepath := t.TempDir()
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	require.NoError(t, err)
 
 	_, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)

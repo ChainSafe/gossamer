@@ -428,6 +428,12 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 
 func (s *Service) sentBlockIntervalTelemetry() {
 	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		default:
+		}
+
 		best, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			continue

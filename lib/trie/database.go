@@ -7,11 +7,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 // DBGetter gets a value corresponding to the given key.
@@ -26,7 +25,7 @@ type DBPutter interface {
 
 // NewBatcher creates a new database batch.
 type NewBatcher interface {
-	NewBatch() chaindb.Batch
+	NewBatch() database.Batch
 }
 
 // Load reconstructs the trie from the database from the given root hash.
