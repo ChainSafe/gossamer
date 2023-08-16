@@ -11,17 +11,23 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 // EmptyHash is the empty trie hash.
 var EmptyHash = common.MustBlake2bHash([]byte{0})
+
+type Database interface {
+	DBGetter
+	DBPutter
+}
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
 	generation uint64
 	root       *Node
 	childTries map[common.Hash]*Trie
-	db         DBGetter
+	db         Database
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -32,11 +38,11 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	return NewTrie(nil, nil)
+	return NewTrie(nil, db.NewEmptyMemoryDB())
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node, db DBGetter) *Trie {
+func NewTrie(root *Node, db Database) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
@@ -232,33 +238,33 @@ func entriesList(parent *Node, prefix []byte, list *[][2][]byte) {
 // where the keys are encoded in Little Endian.
 func (t *Trie) Entries() (keyValueMap map[string][]byte) {
 	keyValueMap = make(map[string][]byte)
-	entries(t.root, nil, keyValueMap)
+	t.buildEntriesMap(t.root, nil, keyValueMap)
 	return keyValueMap
 }
 
-func entries(parent *Node, prefix []byte, kv map[string][]byte) {
-	if parent == nil {
+func (t *Trie) buildEntriesMap(currentNode *Node, prefix []byte, kv map[string][]byte) {
+	if currentNode == nil {
 		return
 	}
 
-	if parent.Kind() == node.Leaf {
-		parentKey := parent.PartialKey
-		fullKeyNibbles := concatenateSlices(prefix, parentKey)
-		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = parent.StorageValue
+	if currentNode.Kind() == node.Leaf {
+		key := currentNode.PartialKey
+		fullKeyNibbles := concatenateSlices(prefix, key)
+		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
+		kv[string(keyLE)] = t.Get(keyLE)
 		return
 	}
 
-	branch := parent
+	branch := currentNode
 	if branch.StorageValue != nil {
 		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
-		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = branch.StorageValue
+		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
+		kv[string(keyLE)] = t.Get(keyLE)
 	}
 
 	for i, child := range branch.Children {
 		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
-		entries(child, childPrefix, kv)
+		t.buildEntriesMap(child, childPrefix, kv)
 	}
 }
 
@@ -375,7 +381,12 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 
 	isValueHashed := version.ShouldHashValue(value)
 	if isValueHashed {
-		value = common.MustBlake2bHash(value).ToBytes()
+		hashedValue, err := common.Blake2bHash(value)
+		if err != nil {
+			return err
+		}
+		t.db.Put(hashedValue.ToBytes(), value)
+		value = hashedValue.ToBytes()
 	}
 
 	root, _, _, err := t.insert(t.root, nibblesKey, value, isValueHashed, pendingDeltas)

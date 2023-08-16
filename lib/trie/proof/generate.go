@@ -22,7 +22,8 @@ var (
 // Database defines a key value Get method used
 // for proof generation.
 type Database interface {
-	Get(key []byte) (value []byte, err error)
+	trie.DBGetter
+	trie.DBPutter
 }
 
 // Generate generates and deduplicates the encoded proof nodes

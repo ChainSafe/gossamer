@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,7 @@ func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
 		childTries: make(map[common.Hash]*Trie),
 		deltas:     tracking.New(),
+		db:         db.NewEmptyMemoryDB(),
 	}
 	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
@@ -604,12 +606,12 @@ func Test_Trie_Entries(t *testing.T) {
 		t.Parallel()
 
 		root := &Node{
-			PartialKey:   []byte{0xa},
+			PartialKey:   []byte{0x0, 0xa},
 			StorageValue: []byte("root"),
 			Descendants:  2,
 			Children: padRightChildren([]*Node{
 				{ // index 0
-					PartialKey:   []byte{2, 0xb},
+					PartialKey:   []byte{0xb},
 					StorageValue: []byte("leaf"),
 				},
 				nil,
@@ -626,7 +628,7 @@ func Test_Trie_Entries(t *testing.T) {
 
 		expectedEntries := map[string][]byte{
 			string([]byte{0x0a}):       []byte("root"),
-			string([]byte{0xa0, 0x2b}): []byte("leaf"),
+			string([]byte{0x0a, 0x0b}): []byte("leaf"),
 			string([]byte{0x0a, 0x2b}): []byte("leaf"),
 		}
 
@@ -696,6 +698,7 @@ func Test_Trie_Entries(t *testing.T) {
 		trie := Trie{
 			root:       nil,
 			childTries: make(map[common.Hash]*Trie),
+			db:         db.NewEmptyMemoryDB(),
 		}
 
 		kv := map[string][]byte{
@@ -720,6 +723,7 @@ func Test_Trie_Entries(t *testing.T) {
 		trie := Trie{
 			root:       nil,
 			childTries: make(map[common.Hash]*Trie),
+			db:         db.NewEmptyMemoryDB(),
 		}
 
 		kv := map[string][]byte{
@@ -1075,6 +1079,7 @@ func Test_Trie_Put(t *testing.T) {
 	t.Parallel()
 
 	longValue := []byte("newvaluewithmorethan32byteslength")
+	longValueHash := common.MustBlake2bHash(longValue).ToBytes()
 
 	testCases := map[string]struct {
 		trie         Trie
@@ -1127,6 +1132,7 @@ func Test_Trie_Put(t *testing.T) {
 					PartialKey:   []byte{1, 2, 0, 5},
 					StorageValue: []byte{1},
 				},
+				db: db.NewEmptyMemoryDB(),
 			},
 			stateVersion: V1,
 			key:          []byte{0x12, 0x16},
@@ -1148,13 +1154,18 @@ func Test_Trie_Put(t *testing.T) {
 						},
 						{
 							PartialKey:   []byte{6},
-							StorageValue: common.MustBlake2bHash(longValue).ToBytes(),
+							StorageValue: longValueHash,
 							HashedValue:  true,
 							Generation:   1,
 							Dirty:        true,
 						},
 					}),
 				},
+				db: func() Database {
+					db := db.NewEmptyMemoryDB()
+					db.Put(longValueHash, longValue)
+					return db
+				}(),
 			},
 		},
 	}
@@ -1723,6 +1734,7 @@ func Test_LoadFromMap(t *testing.T) {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 		"empty_data": {
@@ -1730,6 +1742,7 @@ func Test_LoadFromMap(t *testing.T) {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 		"bad_key": {
@@ -1763,6 +1776,7 @@ func Test_LoadFromMap(t *testing.T) {
 				},
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 		"load_key_values": {
@@ -1793,6 +1807,7 @@ func Test_LoadFromMap(t *testing.T) {
 				},
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 	}

@@ -33,7 +33,7 @@ type StorageState struct {
 	blockState *BlockState
 	tries      *Tries
 
-	db GetNewBatcher
+	db Batcher
 	sync.RWMutex
 
 	// change notifiers
