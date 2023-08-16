@@ -161,7 +161,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			UpwardMessages:            []parachaintypes.UpwardMessage{[]byte{1, 2, 3}},
 			HorizontalMessages:        nil,
 			NewValidationCode:         &parachaintypes.ValidationCode{1, 2, 3},
-			HeadData:                  parachaintypes.HeadData{[]byte{1, 2, 3}},
+			HeadData:                  parachaintypes.HeadData{Data: []byte{1, 2, 3}},
 			ProcessedDownwardMessages: 5,
 			HrmpWatermark:             0,
 		},
