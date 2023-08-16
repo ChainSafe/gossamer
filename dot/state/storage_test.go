@@ -178,15 +178,15 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		genHeader.Hash(),
 		"0",
 	))
-	dbGetter := NewMockDBGetter(ctrl)
-	dbGetter.EXPECT().Get(gomock.Any()).Times(0)
+	trieDB := NewMockDatabase(ctrl)
+	trieDB.EXPECT().Get(gomock.Any()).Times(0)
 
 	trieRoot := &node.Node{
 		PartialKey:   []byte{1, 2},
 		StorageValue: []byte{3, 4},
 		Dirty:        true,
 	}
-	testChildTrie := trie.NewTrie(trieRoot, dbGetter)
+	testChildTrie := trie.NewTrie(trieRoot, trieDB)
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"), trie.V0)
 
