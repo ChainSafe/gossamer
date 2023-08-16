@@ -4,13 +4,14 @@ package db
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 type MemoryDB struct {
 	data map[common.Hash][]byte
-	// TODO: add lock
+	l    sync.RWMutex
 }
 
 func NewEmptyMemoryDB() *MemoryDB {
@@ -44,6 +45,9 @@ func (mdb *MemoryDB) Get(key []byte) ([]byte, error) {
 	var hash common.Hash
 	copy(hash[:], key)
 
+	mdb.l.RLock()
+	defer mdb.l.RUnlock()
+
 	if value, found := mdb.data[hash]; found {
 		return value, nil
 	}
@@ -58,6 +62,9 @@ func (mdb *MemoryDB) Put(key []byte, value []byte) error {
 
 	var hash common.Hash
 	copy(hash[:], key)
+
+	mdb.l.Lock()
+	defer mdb.l.Unlock()
 
 	mdb.data[hash] = value
 	return nil
