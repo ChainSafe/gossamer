@@ -9,13 +9,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 var logger = log.NewFromGlobal(
@@ -26,7 +24,7 @@ var logger = log.NewFromGlobal(
 type Service struct {
 	dbPath      string
 	logLvl      log.Level
-	db          *chaindb.BadgerDB
+	db          database.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Base        *BaseState
 	Storage     *StorageState
@@ -79,7 +77,7 @@ func (s *Service) UseMemDB() {
 }
 
 // DB returns the Service's database
-func (s *Service) DB() *chaindb.BadgerDB {
+func (s *Service) DB() database.Database {
 	return s.db
 }
 
@@ -96,7 +94,7 @@ func (s *Service) SetupBase() error {
 	}
 
 	// initialise database
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return err
 	}
@@ -262,18 +260,18 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
-		s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
+		s.db, err = database.LoadDatabase(s.dbPath, s.isMemDB)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
 	}
 
 	block := &BlockState{
-		db: chaindb.NewTable(s.db, blockPrefix),
+		db: database.NewTable(s.db, blockPrefix),
 	}
 
 	storage := &StorageState{
-		db: chaindb.NewTable(s.db, storagePrefix),
+		db: database.NewTable(s.db, storagePrefix),
 	}
 
 	epoch, err := NewEpochState(s.db, block)

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -67,7 +67,7 @@ type EpochState struct {
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db *chaindb.BadgerDB, blockState *BlockState,
+func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
@@ -76,7 +76,7 @@ func NewEpochStateFromGenesis(db *chaindb.BadgerDB, blockState *BlockState,
 		return nil, err
 	}
 
-	epochDB := chaindb.NewTable(db, epochPrefix)
+	epochDB := database.NewTable(db, epochPrefix)
 	err = epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func NewEpochStateFromGenesis(db *chaindb.BadgerDB, blockState *BlockState,
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db *chaindb.BadgerDB, blockState *BlockState) (*EpochState, error) {
+func NewEpochState(db database.Database, blockState *BlockState) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
 	epochLength, err := baseState.loadEpochLength()
@@ -149,7 +149,7 @@ func NewEpochState(db *chaindb.BadgerDB, blockState *BlockState) (*EpochState, e
 	return &EpochState{
 		baseState:      baseState,
 		blockState:     blockState,
-		db:             chaindb.NewTable(db, epochPrefix),
+		db:             database.NewTable(db, epochPrefix),
 		epochLength:    epochLength,
 		skipToEpoch:    skipToEpoch,
 		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
@@ -252,7 +252,7 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error) {
 	epochData, err := s.getEpochDataFromDatabase(epoch)
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
 	}
 
@@ -335,7 +335,7 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
 	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
 		configData, err = s.getConfigDataFromDatabase(uint64(tryEpoch))
-		if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return nil, fmt.Errorf("failed to retrieve config epoch from database: %w", err)
 		}
 
@@ -445,7 +445,7 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			parentHeader, err := blockState.GetHeader(header.ParentHash)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get parent header: %w", err)
@@ -588,9 +588,9 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 
 	epochInDatabase, err := s.getEpochDataFromDatabase(nextEpoch)
 
-	// if an error occurs and the error is chaindb.ErrKeyNotFound we ignore
+	// if an error occurs and the error is database.ErrNotFound we ignore
 	// since this error is what we will handle in the next lines
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return fmt.Errorf("cannot check if next epoch data is already defined for epoch %d: %w", nextEpoch, err)
 	}
 
@@ -649,9 +649,9 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 
 	configInDatabase, err := s.getConfigDataFromDatabase(nextEpoch)
 
-	// if an error occurs and the error is chaindb.ErrKeyNotFound we ignore
+	// if an error occurs and the error is database.ErrNotFound we ignore
 	// since this error is what we will handle in the next lines
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return fmt.Errorf("cannot check if next epoch config is already defined for epoch %d: %w", nextEpoch, err)
 	}
 
