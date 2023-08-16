@@ -385,7 +385,12 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 		if err != nil {
 			return err
 		}
-		t.db.Put(hashedValue.ToBytes(), value)
+
+		// Add original value in memory db
+		err = t.db.Put(hashedValue.ToBytes(), value)
+		if err != nil {
+			return err
+		}
 		value = hashedValue.ToBytes()
 	}
 
