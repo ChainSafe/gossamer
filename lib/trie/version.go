@@ -66,3 +66,14 @@ func ParseVersion(s string) (version Version, err error) {
 			ErrParseVersion, s, V0, V1)
 	}
 }
+
+func EnforceValidVersion(version uint8) {
+	v := Version(version)
+
+	switch v {
+	case V0, V1:
+		return
+	default:
+		panic("Invalid state version")
+	}
+}

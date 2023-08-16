@@ -865,6 +865,10 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
+	stateVersion := uint8(version)
+
+	trie.EnforceValidVersion(stateVersion)
+
 	data := read(m, dataSpan)
 
 	t := trie.NewEmptyTrie()
@@ -882,7 +886,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 
 	for _, kv := range kvs {
 		//TODO: use version parameter here
-		err := t.Put(kv.Key, kv.Value)
+		err := t.Put(kv.Key, kv.Value, trie.Version(stateVersion))
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				kv.Key, kv.Value, err)
@@ -968,6 +972,9 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		panic("nil runtime context")
 	}
 
+	stateVersion := uint8(version)
+	trie.EnforceValidVersion(stateVersion)
+
 	data := read(m, dataSpan)
 
 	t := trie.NewEmptyTrie()
@@ -989,7 +996,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 			key, value)
 
 		//TODO: use version parameter here
-		err = t.Put(key, value)
+		err = t.Put(key, value, trie.Version(stateVersion))
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				key, value, err)
