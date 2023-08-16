@@ -628,7 +628,7 @@ func Test_Trie_Entries(t *testing.T) {
 
 		expectedEntries := map[string][]byte{
 			string([]byte{0x0a}):       []byte("root"),
-			string([]byte{0x0a, 0x0b}): []byte("leaf"),
+			string([]byte{0x0a, 0xb}):  []byte("leaf"),
 			string([]byte{0x0a, 0x2b}): []byte("leaf"),
 		}
 
