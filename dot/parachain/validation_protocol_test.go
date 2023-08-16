@@ -42,7 +42,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		println!("encode validation proto => {:?}\n\n", val_proto.encode());
 	}
 	*/
-	approvalDistribution := NewApprovalDistributionVDT()
+	approvalDistribution := ApprovalDistribution{NewApprovalDistributionMessageVDT()}
 	approvalDistribution.Set(Assignments{
 		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(1), false),
@@ -74,7 +74,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	tempSignature := common.MustHexToBytes(testValidationProtocolHex["validatorSignature"])
 	copy(validatorSignature[:], tempSignature)
 
-	approvalDistributionApprovals := NewApprovalDistributionVDT()
+	approvalDistributionApprovals := ApprovalDistribution{NewApprovalDistributionMessageVDT()}
 	approvalDistributionApprovals.Set(Approvals{
 		IndirectSignedApprovalVote{
 			BlockHash:      hashA,
@@ -169,7 +169,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	statement := NewStatement()
 	statement.Set(statementSecond)
 
-	statementDistributionStatement := NewStatementDistributionVDT()
+	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}
 	statementDistributionStatement.Set(SignedFullStatement{
 		Hash: hashA,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
@@ -202,7 +202,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		println!("encode validation SecondedStatementWithLargePayload => {:?}\n\n", validation_sdm_large_statement.encode());
 	}
 	*/
-	statementDistributionLargeStatement := NewStatementDistributionVDT()
+	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
 	statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
 		RelayParent:   hashA,
 		CandidateHash: CandidateHash{Value: hashA},
@@ -241,7 +241,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		println!("encode validation proto => {:?}\n\n", val_proto.encode());
 	}
 	*/
-	bitfieldDistribution := NewBitfieldDistributionVDT()
+	bitfieldDistribution := BitfieldDistribution{NewBitfieldDistributionMessageVDT()}
 	bitfieldDistribution.Set(Bitfield{
 		Hash: hashA,
 		UncheckedSignedAvailabilityBitfield: UncheckedSignedAvailabilityBitfield{

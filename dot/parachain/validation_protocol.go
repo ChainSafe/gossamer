@@ -15,6 +15,7 @@ import (
 
 const MaxValidationMessageSize uint64 = 100 * 1024
 
+// UncheckedSignedAvailabilityBitfield a signed bitfield with signature not yet checked
 type UncheckedSignedAvailabilityBitfield struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
@@ -27,6 +28,7 @@ type UncheckedSignedAvailabilityBitfield struct {
 	Signature ValidatorSignature `scale:"3"`
 }
 
+// Bitfield avalibility bitfield for given relay-parent hash
 type Bitfield struct {
 	Hash                                common.Hash                         `scale:"1"`
 	UncheckedSignedAvailabilityBitfield UncheckedSignedAvailabilityBitfield `scale:"2"`
@@ -37,13 +39,16 @@ func (Bitfield) Index() uint {
 	return 0
 }
 
+// BitfieldDistributionMessage Network messages used by bitfield distribution subsystem
 type BitfieldDistributionMessage scale.VaryingDataType
 
+// NewBitfieldDistributionMessageVDT returns a new BitfieldDistributionMessage VaryingDataType
 func NewBitfieldDistributionMessageVDT() BitfieldDistributionMessage {
 	vdt := scale.MustNewVaryingDataType(Bitfield{})
 	return BitfieldDistributionMessage(vdt)
 }
 
+// New creates new BitfieldDistributionMessage
 func (BitfieldDistributionMessage) New() BitfieldDistributionMessage {
 	return NewBitfieldDistributionMessageVDT()
 }
@@ -66,102 +71,40 @@ func (bdm *BitfieldDistributionMessage) Value() (scale.VaryingDataTypeValue, err
 	return vdt.Value()
 }
 
-type BitfieldDistribution BitfieldDistributionMessage
-
-func NewBitfieldDistributionVDT() BitfieldDistribution {
-	vdt := scale.MustNewVaryingDataType(Bitfield{})
-	return BitfieldDistribution(vdt)
+// BitfieldDistribution struct holding BitfieldDistributionMessage
+type BitfieldDistribution struct {
+	BitfieldDistributionMessage
 }
 
+// Index VaryingDataType index of Bitfield Distribution
 func (BitfieldDistribution) Index() uint {
 	return 1
 }
-func (BitfieldDistribution) New() BitfieldDistribution {
-	return NewBitfieldDistributionVDT()
+
+// ApprovalDistribution struct holding ApprovalDistributionMessage
+type ApprovalDistribution struct {
+	ApprovalDistributionMessage
 }
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (bd *BitfieldDistribution) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*bd)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*bd = BitfieldDistribution(vdt)
-	return nil
-}
-
-type ApprovalDistribution ApprovalDistributionMessage
-
-// NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
-func NewApprovalDistributionVDT() ApprovalDistribution {
-	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
-	if err != nil {
-		panic(err)
-	}
-	return ApprovalDistribution(vdt)
-}
-
-// New returns new ApprovalDistributionMessage VDT
-func (ApprovalDistribution) New() ApprovalDistribution {
-	return NewApprovalDistributionVDT()
-}
-
+// Index VaryingDataType index of ApprovalDistribution
 func (ApprovalDistribution) Index() uint {
 	return 4
 }
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (ad *ApprovalDistribution) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*ad)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*ad = ApprovalDistribution(vdt)
-	return nil
+// StatementDistribution struct holding StatementDistributionMessage
+type StatementDistribution struct {
+	StatementDistributionMessage
 }
 
-type StatementDistribution StatementDistributionMessage
-
-func NewStatementDistributionVDT() StatementDistribution {
-	vdt, err := scale.NewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
-	if err != nil {
-		panic(err)
-	}
-	return StatementDistribution(vdt)
-}
-
-func (StatementDistribution) New() StatementDistribution {
-	return NewStatementDistributionVDT()
-}
-
-// Value returns the value from the underlying VaryingDataType
-func (sd *StatementDistribution) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*sd)
-	return vdt.Value()
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (sd *StatementDistribution) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*sd)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*sd = StatementDistribution(vdt)
-	return nil
-}
-
+// Index VaryingDataType index for StatementDistribution
 func (StatementDistribution) Index() uint {
 	return 3
 }
 
+// ValidationProtocol VaryingDataType for ValidationProtocol
 type ValidationProtocol scale.VaryingDataType
 
+// NewValidationProtocolVDT constructor or ValidationProtocol VaryingDataType
 func NewValidationProtocolVDT() ValidationProtocol {
 	vdt, err := scale.NewVaryingDataType(BitfieldDistribution{}, StatementDistribution{}, ApprovalDistribution{})
 	if err != nil {
