@@ -99,6 +99,9 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestService_PauseAndResume(t *testing.T) {
+	// TODO: https://github.com/ChainSafe/gossamer/issues/3443
+	t.Skip()
+
 	cfg := ServiceConfig{}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)

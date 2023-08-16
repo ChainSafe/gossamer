@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/require"
@@ -36,16 +36,14 @@ func Test_Generate_Verify(t *testing.T) {
 	rootHash, err := trie.Hash()
 	require.NoError(t, err)
 
-	database, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-	})
+	db, err := database.NewPebble("", true)
 	require.NoError(t, err)
-	err = trie.WriteDirty(database)
+	err = trie.WriteDirty(db)
 	require.NoError(t, err)
 
 	for i, key := range keys {
 		fullKeys := [][]byte{[]byte(key)}
-		proof, err := Generate(rootHash.ToBytes(), fullKeys, database)
+		proof, err := Generate(rootHash.ToBytes(), fullKeys, db)
 		require.NoError(t, err)
 
 		expectedValue := fmt.Sprintf("%x-%d", key, i)
