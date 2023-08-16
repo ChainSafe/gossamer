@@ -11,16 +11,15 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 
-	database "github.com/ChainSafe/chaindb"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -113,7 +112,7 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetHeader(nil, req, res)
-	require.EqualError(t, err, database.ErrKeyNotFound.Error())
+	require.EqualError(t, err, database.ErrNotFound.Error())
 }
 
 func TestChainGetBlock_Genesis(t *testing.T) {
@@ -212,7 +211,7 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetBlock(nil, req, res)
-	require.EqualError(t, err, database.ErrKeyNotFound.Error())
+	require.EqualError(t, err, database.ErrNotFound.Error())
 }
 
 func TestChainGetBlockHash_Latest(t *testing.T) {
@@ -367,7 +366,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		rtCfg.NodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
 	}
 

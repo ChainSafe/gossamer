@@ -13,10 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -1144,7 +1144,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))
 	if err != nil {
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			s.tracker.addCommit(commitMessage)
 		}
 
