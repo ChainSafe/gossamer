@@ -17,7 +17,7 @@ import (
 // when interacting with the roots to establish a node's ancestry.
 type ForkTree[H comparable, N constraints.Unsigned] interface {
 	Import(hash H, number N, change PendingChange[H, N], isDescendentOf IsDescendentOf[H]) (bool, error)
-	Roots() []*pendingChangeNode[H, N]
+	Roots() []*PendingChangeNode[H, N]
 	FinalizesAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*bool, error)
 	FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*FinalizationResult[H, N], error)
 	DrainFilter()
@@ -26,13 +26,19 @@ type ForkTree[H comparable, N constraints.Unsigned] interface {
 	PendingChanges() []PendingChange[H, N]
 }
 
-// PublicKey interface
-type PublicKey interface {
-	Verify(msg, sig []byte) (bool, error)
-	Encode() []byte
-	Decode([]byte) error
-	Hex() string
-}
+type Telemetry interface{}
 
-type Telemetry interface {
+// AuxStore is part of the substrate backend.
+// Provides access to an auxiliary database.
+//
+// This is a simple global database not aware of forks. Can be used for storing auxiliary
+// information like total block weight/difficulty for fork resolution purposes as a common use
+// case.
+type AuxStore interface {
+	// Insert auxiliary data into key-Value store.
+	//
+	// Deletions occur after insertions.
+	Insert(insert []KeyValue, deleted [][]byte) error
+	// Get Query auxiliary data from key-Value store.
+	Get(key []byte) (*[]byte, error)
 }

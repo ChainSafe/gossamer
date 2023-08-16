@@ -20,23 +20,23 @@ func isDescendentof[H comparable](f IsDescendentOf[H]) IsDescendentOf[H] {
 func TestDelayKind(t *testing.T) {
 	finalizedKind := Finalized{}
 	delayKind := newDelayKind[uint](finalizedKind)
-	_, isFinalizedType := delayKind.value.(Finalized)
+	_, isFinalizedType := delayKind.Value.(Finalized)
 	require.True(t, isFinalizedType)
 
 	medLastFinalized := uint(3)
 	bestKind := Best[uint]{medianLastFinalized: medLastFinalized}
 	delayKind = newDelayKind[uint](bestKind)
-	best, isBestType := delayKind.value.(Best[uint])
+	best, isBestType := delayKind.Value.(Best[uint])
 	require.True(t, isBestType)
 	require.Equal(t, medLastFinalized, best.medianLastFinalized)
 }
 
 func TestCurrentLimitFiltersMin(t *testing.T) {
 	var currentAuthorities []Authority
-	kp, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kp.Public(),
+		Key:    *pub,
 		Weight: 1,
 	})
 
@@ -44,27 +44,27 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 	delayKind := newDelayKind[uint](finalizedKind)
 
 	pendingChange1 := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     1,
-		canonHash:       "a",
-		delayKind:       delayKind,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     1,
+		CanonHash:       "a",
+		DelayKind:       delayKind,
 	}
 
 	pendingChange2 := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     2,
-		canonHash:       "b",
-		delayKind:       delayKind,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     2,
+		CanonHash:       "b",
+		DelayKind:       delayKind,
 	}
 
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     currentAuthorities,
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     currentAuthorities,
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	err = authorities.addPendingChange(pendingChange1, staticIsDescendentOf[string](false))
@@ -81,10 +81,10 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 
 func TestChangesIteratedInPreOrder(t *testing.T) {
 	var currentAuthorities []Authority
-	kp, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kp.Public(),
+		Key:    *pub,
 		Weight: 1,
 	})
 
@@ -95,35 +95,35 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	delayKindBest := newDelayKind[uint](bestKind)
 
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     currentAuthorities,
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     currentAuthorities,
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: currentAuthorities,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     5,
-		canonHash:       "hash_b",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     5,
+		CanonHash:       "hash_b",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeC := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           5,
-		canonHeight:     10,
-		canonHash:       "hash_c",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: currentAuthorities,
+		Delay:           5,
+		CanonHeight:     10,
+		CanonHash:       "hash_c",
+		DelayKind:       delayKindFinalized,
 	}
 
 	err = authorities.addPendingChange(changeA, staticIsDescendentOf[string](false))
@@ -144,19 +144,19 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	changeD := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           2,
-		canonHeight:     1,
-		canonHash:       "hash_d",
-		delayKind:       delayKindBest,
+		NextAuthorities: currentAuthorities,
+		Delay:           2,
+		CanonHeight:     1,
+		CanonHash:       "hash_d",
+		DelayKind:       delayKindBest,
 	}
 
 	changeE := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           2,
-		canonHeight:     0,
-		canonHash:       "hash_e",
-		delayKind:       delayKindBest,
+		NextAuthorities: currentAuthorities,
+		Delay:           2,
+		CanonHeight:     0,
+		CanonHash:       "hash_e",
+		DelayKind:       delayKindBest,
 	}
 
 	err = authorities.addPendingChange(changeD, staticIsDescendentOf[string](false))
@@ -174,26 +174,26 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 
 func TestApplyChange(t *testing.T) {
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     []Authority{},
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     []Authority{},
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	var setA []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pubA, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubA,
 		Weight: 5,
 	})
 
 	var setB []Authority
-	kpB, err := ed25519.GenerateKeypair()
+	pubB, err := ed25519.NewPublicKey([]byte{0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setB = append(setB, Authority{
-		Key:    kpB.Public(),
+		Key:    *pubB,
 		Weight: 5,
 	})
 
@@ -201,19 +201,19 @@ func TestApplyChange(t *testing.T) {
 	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: setB,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_b",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setB,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_b",
+		DelayKind:       delayKindFinalized,
 	}
 
 	err = authorities.addPendingChange(changeA, staticIsDescendentOf[string](true))
@@ -246,15 +246,15 @@ func TestApplyChange(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	require.True(t, status.changed)
-	require.Nil(t, status.newSetBlock)
+	require.True(t, status.Changed)
+	require.Nil(t, status.NewSetBlock)
 
 	expectedChanges = []PendingChange[string, uint]{
 		changeA,
 	}
 	pendingChanges = authorities.pendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
-	require.True(t, len(authorities.authoritySetChanges) == 0)
+	require.True(t, len(authorities.AuthoritySetChanges) == 0)
 
 	status, err = authorities.applyStandardChanges(
 		"hash_d",
@@ -274,42 +274,42 @@ func TestApplyChange(t *testing.T) {
 		number: 15,
 	}
 
-	require.True(t, status.changed)
-	require.Equal(t, status.newSetBlock, expectedBlockInfo)
-	require.Equal(t, authorities.currentAuthorities, setA)
-	require.Equal(t, authorities.setId, uint64(1))
+	require.True(t, status.Changed)
+	require.Equal(t, status.NewSetBlock, expectedBlockInfo)
+	require.Equal(t, authorities.CurrentAuthorities, setA)
+	require.Equal(t, authorities.SetID, uint64(1))
 
 	pendingChanges = authorities.pendingChanges()
 	require.Equal(t, 0, len(pendingChanges))
 	expChange := setIDNumber[uint]{
-		setId:       0,
-		blockNumber: 15,
+		SetID:       0,
+		BlockNumber: 15,
 	}
-	require.Equal(t, authorities.authoritySetChanges, AuthoritySetChanges[uint]{expChange})
+	require.Equal(t, authorities.AuthoritySetChanges, AuthoritySetChanges[uint]{expChange})
 }
 
 func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     []Authority{},
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     []Authority{},
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	var setA []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pubA, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubA,
 		Weight: 5,
 	})
 
 	var setC []Authority
-	kpC, err := ed25519.GenerateKeypair()
+	pubB, err := ed25519.NewPublicKey([]byte{0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setC = append(setC, Authority{
-		Key:    kpC.Public(),
+		Key:    *pubB,
 		Weight: 5,
 	})
 
@@ -317,19 +317,19 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeC := PendingChange[string, uint]{
-		nextAuthorities: setC,
-		delay:           10,
-		canonHeight:     30,
-		canonHash:       "hash_c",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setC,
+		Delay:           10,
+		CanonHeight:     30,
+		CanonHash:       "hash_c",
+		DelayKind:       delayKindFinalized,
 	}
 
 	err = authorities.addPendingChange(changeA, staticIsDescendentOf[string](true))
@@ -361,7 +361,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	)
 
 	require.ErrorIs(t, err, errUnfinalizedAncestor)
-	require.Equal(t, AuthoritySetChanges[uint]{}, authorities.authoritySetChanges)
+	require.Equal(t, AuthoritySetChanges[uint]{}, authorities.AuthoritySetChanges)
 
 	status, err := authorities.applyStandardChanges(
 		"hash_b",
@@ -369,20 +369,20 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		isDescOf,
 		nil,
 	)
-	require.True(t, status.changed)
+	require.True(t, status.Changed)
 
 	expectedBlockInfo := &hashNumber[string, uint]{
 		hash:   "hash_b",
 		number: 15,
 	}
 	expAuthSetChange := AuthoritySetChanges[uint]{setIDNumber[uint]{
-		setId:       0,
-		blockNumber: 15,
+		SetID:       0,
+		BlockNumber: 15,
 	}}
-	require.Equal(t, expectedBlockInfo, status.newSetBlock)
-	require.Equal(t, setA, authorities.currentAuthorities)
-	require.Equal(t, uint64(1), authorities.setId)
-	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
+	require.Equal(t, expectedBlockInfo, status.NewSetBlock)
+	require.Equal(t, setA, authorities.CurrentAuthorities)
+	require.Equal(t, uint64(1), authorities.SetID)
+	require.Equal(t, expAuthSetChange, authorities.AuthoritySetChanges)
 
 	status, err = authorities.applyStandardChanges(
 		"hash_d",
@@ -390,7 +390,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		isDescOf,
 		nil,
 	)
-	require.True(t, status.changed)
+	require.True(t, status.Changed)
 
 	expectedBlockInfo = &hashNumber[string, uint]{
 		hash:   "hash_d",
@@ -398,35 +398,35 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	}
 	expAuthSetChange = AuthoritySetChanges[uint]{
 		setIDNumber[uint]{
-			setId:       0,
-			blockNumber: 15,
+			SetID:       0,
+			BlockNumber: 15,
 		},
 		setIDNumber[uint]{
-			setId:       1,
-			blockNumber: 40,
+			SetID:       1,
+			BlockNumber: 40,
 		},
 	}
 
-	require.Equal(t, expectedBlockInfo, status.newSetBlock)
-	require.Equal(t, setC, authorities.currentAuthorities)
-	require.Equal(t, uint64(2), authorities.setId)
-	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
+	require.Equal(t, expectedBlockInfo, status.NewSetBlock)
+	require.Equal(t, setC, authorities.CurrentAuthorities)
+	require.Equal(t, uint64(2), authorities.SetID)
+	require.Equal(t, expAuthSetChange, authorities.AuthoritySetChanges)
 }
 
 func TestEnactsStandardChangeWorks(t *testing.T) {
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     []Authority{},
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     []Authority{},
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	var setA []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pub,
 		Weight: 5,
 	})
 
@@ -434,19 +434,19 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           10,
-		canonHeight:     20,
-		canonHash:       "hash_b",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           10,
+		CanonHeight:     20,
+		CanonHash:       "hash_b",
+		DelayKind:       delayKindFinalized,
 	}
 
 	err = authorities.addPendingChange(changeA, staticIsDescendentOf[string](false))
@@ -493,26 +493,26 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 
 func TestForceChanges(t *testing.T) {
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     []Authority{},
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     []Authority{},
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	var setA []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pubA, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pubA,
 		Weight: 5,
 	})
 
 	var setB []Authority
-	kpB, err := ed25519.GenerateKeypair()
+	pubB, err := ed25519.NewPublicKey([]byte{0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setB = append(setB, Authority{
-		Key:    kpB.Public(),
+		Key:    *pubB,
 		Weight: 5,
 	})
 
@@ -523,19 +523,19 @@ func TestForceChanges(t *testing.T) {
 	delayKindFinalizedB := newDelayKind[uint](finalizedKindB)
 
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalizedA,
+		NextAuthorities: setA,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalizedA,
 	}
 
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "hash_b",
-		delayKind:       delayKindFinalizedB,
+		NextAuthorities: setA,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "hash_b",
+		DelayKind:       delayKindFinalizedB,
 	}
 
 	err = authorities.addPendingChange(changeA, staticIsDescendentOf[string](false))
@@ -553,11 +553,11 @@ func TestForceChanges(t *testing.T) {
 	require.Nil(t, res)
 
 	changeC := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           3,
-		canonHeight:     8,
-		canonHash:       "hash_a8",
-		delayKind:       delayKindFinalizedB,
+		NextAuthorities: setA,
+		Delay:           3,
+		CanonHeight:     8,
+		CanonHash:       "hash_a8",
+		DelayKind:       delayKindFinalizedB,
 	}
 
 	isDescOfA := isDescendentof(func(h1 string, _ string) (bool, error) {
@@ -582,14 +582,14 @@ func TestForceChanges(t *testing.T) {
 	exp := appliedChanges[string, uint]{
 		median: 42,
 		set: AuthoritySet[string, uint]{
-			currentAuthorities:     setA,
-			setId:                  1,
-			pendingStandardChanges: NewChangeTree[string, uint](),
-			pendingForcedChanges:   []PendingChange[string, uint]{},
-			authoritySetChanges: AuthoritySetChanges[uint]{
+			CurrentAuthorities:     setA,
+			SetID:                  1,
+			PendingStandardChanges: NewChangeTree[string, uint](),
+			PendingForcedChanges:   []PendingChange[string, uint]{},
+			AuthoritySetChanges: AuthoritySetChanges[uint]{
 				setIDNumber[uint]{
-					setId:       0,
-					blockNumber: 42,
+					SetID:       0,
+					BlockNumber: 42,
 				},
 			},
 		},
@@ -603,31 +603,31 @@ func TestForceChanges(t *testing.T) {
 func TestForceChangesWithNoDelay(t *testing.T) {
 	// NOTE: this is a regression test
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     []Authority{},
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     []Authority{},
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	var setA []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pub,
 		Weight: 5,
 	})
 
 	finalizedKind := Best[uint]{0}
 	delayKindFinalized := newDelayKind[uint](finalizedKind)
 
-	// we create a forced hashNumber with no delay
+	// we create a forced hashNumber with no Delay
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           0,
-		canonHeight:     5,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           0,
+		CanonHeight:     5,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalized,
 	}
 
 	// and import it
@@ -642,18 +642,18 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 
 func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     []Authority{},
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     []Authority{},
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	var setA []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	setA = append(setA, Authority{
-		Key:    kpA.Public(),
+		Key:    *pub,
 		Weight: 5,
 	})
 
@@ -662,29 +662,29 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 	// effective at #15
 	changeA := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           5,
-		canonHeight:     10,
-		canonHash:       "hash_a",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           5,
+		CanonHeight:     10,
+		CanonHash:       "hash_a",
+		DelayKind:       delayKindFinalized,
 	}
 
 	// effective #20
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           0,
-		canonHeight:     20,
-		canonHash:       "hash_b",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           0,
+		CanonHeight:     20,
+		CanonHash:       "hash_b",
+		DelayKind:       delayKindFinalized,
 	}
 
 	// effective at #35
 	changeC := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           5,
-		canonHeight:     30,
-		canonHash:       "hash_c",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: setA,
+		Delay:           5,
+		CanonHeight:     30,
+		CanonHash:       "hash_c",
+		DelayKind:       delayKindFinalized,
 	}
 
 	// add some pending standard changes all on the same fork
@@ -702,11 +702,11 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 	// effective at #45
 	changeD := PendingChange[string, uint]{
-		nextAuthorities: setA,
-		delay:           5,
-		canonHeight:     40,
-		canonHash:       "hash_d",
-		delayKind:       delayKindFinalized2,
+		NextAuthorities: setA,
+		Delay:           5,
+		CanonHeight:     40,
+		CanonHash:       "hash_d",
+		DelayKind:       delayKindFinalized2,
 	}
 
 	err = authorities.addPendingChange(changeD, staticIsDescendentOf[string](true))
@@ -716,46 +716,46 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	// have not been applied yet.
 	_, err = authorities.applyForcedChanges("hash_d45", 45, staticIsDescendentOf[string](true), nil)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
-	require.Equal(t, 0, len(authorities.authoritySetChanges))
+	require.Equal(t, 0, len(authorities.AuthoritySetChanges))
 
 	// we apply the first pending standard hashNumber at #15
 	expChanges := AuthoritySetChanges[uint]{
 		setIDNumber[uint]{
-			setId:       0,
-			blockNumber: 15,
+			SetID:       0,
+			BlockNumber: 15,
 		},
 	}
 	_, err = authorities.applyStandardChanges("hash_a15", 15, staticIsDescendentOf[string](true), nil)
-	require.Equal(t, expChanges, authorities.authoritySetChanges)
+	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
 
 	// but the forced hashNumber still depends on the next standard hashNumber
 	_, err = authorities.applyForcedChanges("hash_d45", 45, staticIsDescendentOf[string](true), nil)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
-	require.Equal(t, expChanges, authorities.authoritySetChanges)
+	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
 
 	// we apply the pending standard hashNumber at #20
 	expChanges = append(expChanges, setIDNumber[uint]{
-		setId:       1,
-		blockNumber: 20,
+		SetID:       1,
+		BlockNumber: 20,
 	})
 	_, err = authorities.applyStandardChanges("hash_b", 20, staticIsDescendentOf[string](true), nil)
-	require.Equal(t, expChanges, authorities.authoritySetChanges)
+	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
 
 	// afterwards the forced hashNumber at #45 can already be applied since it signals
 	// that finality stalled at #31, and the next pending standard hashNumber is effective
 	// at #35. subsequent forced changes on the same branch must be kept
 	expChanges = append(expChanges, setIDNumber[uint]{
-		setId:       2,
-		blockNumber: 31,
+		SetID:       2,
+		BlockNumber: 31,
 	})
 	exp := appliedChanges[string, uint]{
 		median: 31,
 		set: AuthoritySet[string, uint]{
-			currentAuthorities:     setA,
-			setId:                  3,
-			pendingStandardChanges: NewChangeTree[string, uint](),
-			pendingForcedChanges:   []PendingChange[string, uint]{},
-			authoritySetChanges:    expChanges,
+			CurrentAuthorities:     setA,
+			SetID:                  3,
+			PendingStandardChanges: NewChangeTree[string, uint](),
+			PendingForcedChanges:   []PendingChange[string, uint]{},
+			AuthoritySetChanges:    expChanges,
 		},
 	}
 	resForced, err := authorities.applyForcedChanges("hash_d", 45, staticIsDescendentOf[string](true), nil)
@@ -766,19 +766,19 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 func TestNextChangeWorks(t *testing.T) {
 	var currentAuthorities []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pub,
 		Weight: 1,
 	})
 
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     currentAuthorities,
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     currentAuthorities,
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	finalizedKind := Finalized{}
@@ -787,27 +787,27 @@ func TestNextChangeWorks(t *testing.T) {
 	// We have three pending changes with 2 possible roots that are enacted
 	// immediately on finality (i.e. standard changes).
 	changeA0 := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     5,
-		canonHash:       "hash_a0",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     5,
+		CanonHash:       "hash_a0",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeA1 := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     10,
-		canonHash:       "hash_a1",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     10,
+		CanonHash:       "hash_a1",
+		DelayKind:       delayKindFinalized,
 	}
 
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     4,
-		canonHash:       "hash_b",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     4,
+		CanonHash:       "hash_b",
+		DelayKind:       delayKindFinalized,
 	}
 
 	// A0 (#5) <- A10 (#8) <- A1 (#10) <- best_a
@@ -874,11 +874,11 @@ func TestNextChangeWorks(t *testing.T) {
 	finalizedKind2 := Best[uint]{0}
 	delayKindFinalized2 := newDelayKind[uint](finalizedKind2)
 	changeA10 := PendingChange[string, uint]{
-		nextAuthorities: currentAuthorities,
-		delay:           0,
-		canonHeight:     8,
-		canonHash:       "hash_a10",
-		delayKind:       delayKindFinalized2,
+		NextAuthorities: currentAuthorities,
+		Delay:           0,
+		CanonHeight:     8,
+		CanonHash:       "hash_a10",
+		DelayKind:       delayKindFinalized2,
 	}
 
 	err = authorities.addPendingChange(changeA10, staticIsDescendentOf[string](false))
@@ -899,19 +899,19 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	require.Nil(t, NewGenesisAuthoritySet[string, uint]([]Authority{}))
 	require.Nil(t, NewAuthoritySet[string, uint]([]Authority{}, 0, NewChangeTree[string, uint](), nil, nil))
 
-	kpA, err := ed25519.GenerateKeypair()
+	pubA, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 
-	kpB, err := ed25519.GenerateKeypair()
+	pubB, err := ed25519.NewPublicKey([]byte{0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 
 	invalidAuthoritiesWeight := []Authority{
 		{
-			Key:    kpA.Public(),
+			Key:    *pubA,
 			Weight: 5,
 		},
 		{
-			Key:    kpB.Public(),
+			Key:    *pubB,
 			Weight: 0,
 		},
 	}
@@ -921,18 +921,18 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	require.Nil(t, NewAuthoritySet[string, uint](invalidAuthoritiesWeight, 0, NewChangeTree[string, uint](), nil, nil))
 
 	authoritySet := NewGenesisAuthoritySet[string, uint]([]Authority{Authority{
-		Key:    kpA.Public(),
+		Key:    *pubA,
 		Weight: 5,
 	}})
 
 	finalizedKind := Finalized{}
 	delayKindFinalized := newDelayKind[uint](finalizedKind)
 	invalidChangeEmptyAuthorities := PendingChange[string, uint]{
-		nextAuthorities: nil,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "",
-		delayKind:       delayKindFinalized,
+		NextAuthorities: nil,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "",
+		DelayKind:       delayKindFinalized,
 	}
 
 	// pending hashNumber contains an empty authority set
@@ -943,11 +943,11 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	delayKindBest := newDelayKind[uint](delayKind)
 
 	invalidChangeAuthoritiesWeight := PendingChange[string, uint]{
-		nextAuthorities: invalidAuthoritiesWeight,
-		delay:           10,
-		canonHeight:     5,
-		canonHash:       "",
-		delayKind:       delayKindBest,
+		NextAuthorities: invalidAuthoritiesWeight,
+		Delay:           10,
+		CanonHeight:     5,
+		CanonHash:       "",
+		DelayKind:       delayKindBest,
 	}
 
 	// pending hashNumber contains an authority set
@@ -958,19 +958,19 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 
 func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 	var currentAuthorities []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pub,
 		Weight: 1,
 	})
 
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     currentAuthorities,
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     currentAuthorities,
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	// Create the following pending changes tree:
@@ -1016,21 +1016,21 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 			delayKind := Best[uint]{0}
 			delayKindBest := newDelayKind[uint](delayKind)
 			change = PendingChange[string, uint]{
-				nextAuthorities: currentAuthorities,
-				delay:           0,
-				canonHeight:     canonHeight,
-				canonHash:       canonHash,
-				delayKind:       delayKindBest,
+				NextAuthorities: currentAuthorities,
+				Delay:           0,
+				CanonHeight:     canonHeight,
+				CanonHash:       canonHash,
+				DelayKind:       delayKindBest,
 			}
 		} else {
 			delayKind := Finalized{}
 			delayKindFinalized := newDelayKind[uint](delayKind)
 			change = PendingChange[string, uint]{
-				nextAuthorities: currentAuthorities,
-				delay:           0,
-				canonHeight:     canonHeight,
-				canonHash:       canonHash,
-				delayKind:       delayKindFinalized,
+				NextAuthorities: currentAuthorities,
+				Delay:           0,
+				CanonHeight:     canonHeight,
+				CanonHash:       canonHash,
+				DelayKind:       delayKindFinalized,
 			}
 		}
 
@@ -1060,24 +1060,24 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 	// finalizing C2 should clear all forced changes
 	_, err = authorities.applyStandardChanges("C2", 15, isDescOf, nil)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(authorities.pendingForcedChanges))
+	require.Equal(t, 0, len(authorities.PendingForcedChanges))
 }
 
 func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *testing.T) {
 	var currentAuthorities []Authority
-	kpA, err := ed25519.GenerateKeypair()
+	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
 	require.NoError(t, err)
 	currentAuthorities = append(currentAuthorities, Authority{
-		Key:    kpA.Public(),
+		Key:    *pub,
 		Weight: 1,
 	})
 
 	authorities := AuthoritySet[string, uint]{
-		currentAuthorities:     currentAuthorities,
-		setId:                  0,
-		pendingStandardChanges: NewChangeTree[string, uint](),
-		pendingForcedChanges:   []PendingChange[string, uint]{},
-		authoritySetChanges:    AuthoritySetChanges[uint]{},
+		CurrentAuthorities:     currentAuthorities,
+		SetID:                  0,
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
+		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
 	// Create the following pending changes tree:
@@ -1123,21 +1123,21 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 			delayKind := Best[uint]{0}
 			delayKindBest := newDelayKind[uint](delayKind)
 			change = PendingChange[string, uint]{
-				nextAuthorities: currentAuthorities,
-				delay:           0,
-				canonHeight:     canonHeight,
-				canonHash:       canonHash,
-				delayKind:       delayKindBest,
+				NextAuthorities: currentAuthorities,
+				Delay:           0,
+				CanonHeight:     canonHeight,
+				CanonHash:       canonHash,
+				DelayKind:       delayKindBest,
 			}
 		} else {
 			delayKind := Finalized{}
 			delayKindFinalized := newDelayKind[uint](delayKind)
 			change = PendingChange[string, uint]{
-				nextAuthorities: currentAuthorities,
-				delay:           0,
-				canonHeight:     canonHeight,
-				canonHash:       canonHash,
-				delayKind:       delayKindFinalized,
+				NextAuthorities: currentAuthorities,
+				Delay:           0,
+				CanonHeight:     canonHeight,
+				CanonHash:       canonHash,
+				DelayKind:       delayKindFinalized,
 			}
 		}
 
@@ -1167,8 +1167,8 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 	// finalizing C0 should clear all forced changes but D
 	_, err = authorities.applyStandardChanges("C0", 15, isDescOf, nil)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(authorities.pendingForcedChanges))
-	require.Equal(t, "D", authorities.pendingForcedChanges[0].canonHash)
+	require.Equal(t, 1, len(authorities.PendingForcedChanges))
+	require.Equal(t, "D", authorities.PendingForcedChanges[0].CanonHash)
 }
 
 func TestAuthoritySetChangesInsert(t *testing.T) {
@@ -1180,8 +1180,8 @@ func TestAuthoritySetChangesInsert(t *testing.T) {
 	authoritySetChanges.insert(101)
 
 	expChange := setIDNumber[uint]{
-		setId:       2,
-		blockNumber: 101,
+		SetID:       2,
+		BlockNumber: 101,
 	}
 	_, set, err := authoritySetChanges.getSetID(100)
 	require.NoError(t, err)
@@ -1199,13 +1199,13 @@ func TestAuthoritySetChangesForCompleteData(t *testing.T) {
 	authoritySetChanges.append(2, 121)
 
 	expChange0 := setIDNumber[uint]{
-		setId:       0,
-		blockNumber: 41,
+		SetID:       0,
+		BlockNumber: 41,
 	}
 
 	expChange1 := setIDNumber[uint]{
-		setId:       1,
-		blockNumber: 81,
+		SetID:       1,
+		BlockNumber: 81,
 	}
 
 	_, set, err := authoritySetChanges.getSetID(20)
@@ -1236,8 +1236,8 @@ func TestAuthoritySetChangesForIncompleteData(t *testing.T) {
 	authoritySetChanges.append(4, 121)
 
 	expChange := setIDNumber[uint]{
-		setId:       3,
-		blockNumber: 81,
+		SetID:       3,
+		BlockNumber: 81,
 	}
 
 	_, set, err := authoritySetChanges.getSetID(20)
@@ -1279,16 +1279,16 @@ func TestIterFromWorks(t *testing.T) {
 
 	expectedChanges := &AuthoritySetChanges[uint]{
 		setIDNumber[uint]{
-			setId:       1,
-			blockNumber: 41,
+			SetID:       1,
+			BlockNumber: 41,
 		},
 		setIDNumber[uint]{
-			setId:       2,
-			blockNumber: 81,
+			SetID:       2,
+			BlockNumber: 81,
 		},
 		setIDNumber[uint]{
-			setId:       3,
-			blockNumber: 121,
+			SetID:       3,
+			BlockNumber: 121,
 		},
 	}
 
@@ -1297,12 +1297,12 @@ func TestIterFromWorks(t *testing.T) {
 
 	expectedChanges = &AuthoritySetChanges[uint]{
 		setIDNumber[uint]{
-			setId:       2,
-			blockNumber: 81,
+			SetID:       2,
+			BlockNumber: 81,
 		},
 		setIDNumber[uint]{
-			setId:       3,
-			blockNumber: 121,
+			SetID:       3,
+			BlockNumber: 121,
 		},
 	}
 
