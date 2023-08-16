@@ -130,7 +130,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 
 func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
 	if !h.grandpa.authority {
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	}
 
 	logger.Debugf("received catch up request for round %d and set id %d",

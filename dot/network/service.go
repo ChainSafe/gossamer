@@ -608,8 +608,8 @@ func (s *Service) NetworkState() common.NetworkState {
 	}
 }
 
-// AllConnectedPeersID returns all the connected to the node instance
-func (s *Service) AllConnectedPeersID() []peer.ID {
+// AllConnectedPeersIDs returns all the connected to the node instance
+func (s *Service) AllConnectedPeersIDs() []peer.ID {
 	return s.host.p2pHost.Network().Peers()
 }
 

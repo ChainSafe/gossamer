@@ -428,13 +428,15 @@ func TestAscendingBlockRequest(t *testing.T) {
 	three := uint32(3)
 	maxResponseSize := uint32(MaxBlocksInResponse)
 	cases := map[string]struct {
-		startNumber, targetNumber   uint
-		expectedBlockRequestMessage []*BlockRequestMessage
+		startNumber, targetNumber      uint
+		expectedBlockRequestMessage    []*BlockRequestMessage
+		expectedTotalOfBlocksRequested uint32
 	}{
 		"start_greater_than_target": {
-			startNumber:                 10,
-			targetNumber:                0,
-			expectedBlockRequestMessage: []*BlockRequestMessage{},
+			startNumber:                    10,
+			targetNumber:                   0,
+			expectedBlockRequestMessage:    []*BlockRequestMessage{},
+			expectedTotalOfBlocksRequested: 0,
 		},
 
 		"no_difference_between_start_and_target": {
@@ -448,15 +450,17 @@ func TestAscendingBlockRequest(t *testing.T) {
 					Max:           &one,
 				},
 			},
+			expectedTotalOfBlocksRequested: 1,
 		},
 
 		"requesting_128_blocks": {
-			startNumber:  0,
-			targetNumber: 128,
+			startNumber:                    1,
+			targetNumber:                   128,
+			expectedTotalOfBlocksRequested: 128,
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(0)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
@@ -464,30 +468,31 @@ func TestAscendingBlockRequest(t *testing.T) {
 		},
 
 		"requesting_4_chunks_of_128_blocks": {
-			startNumber:  0,
-			targetNumber: 512, // 128 * 4
+			startNumber:                    1,
+			targetNumber:                   128 * 4, // 512
+			expectedTotalOfBlocksRequested: 512,
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(0)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(128)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(256)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(384)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
@@ -495,36 +500,37 @@ func TestAscendingBlockRequest(t *testing.T) {
 		},
 
 		"requesting_4_chunks_of_128_plus_3_blocks": {
-			startNumber:  0,
-			targetNumber: (128 * 4) + 3,
+			startNumber:                    1,
+			targetNumber:                   (128 * 4) + 3,
+			expectedTotalOfBlocksRequested: 515,
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(0)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(128)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(256)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(384)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(512)),
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(513)),
 					Direction:     Ascending,
 					Max:           &three,
 				},
@@ -536,8 +542,14 @@ func TestAscendingBlockRequest(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
-			requests := NewAscedingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
+			requests := NewAscendingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
 			require.Equal(t, tt.expectedBlockRequestMessage, requests)
+
+			acc := uint32(0)
+			for _, r := range requests {
+				acc += *r.Max
+			}
+			require.Equal(t, tt.expectedTotalOfBlocksRequested, acc)
 		})
 	}
 }

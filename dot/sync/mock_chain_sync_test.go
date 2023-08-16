@@ -50,6 +50,20 @@ func (mr *MockChainSyncMockRecorder) getHighestBlock() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getHighestBlock", reflect.TypeOf((*MockChainSync)(nil).getHighestBlock))
 }
 
+// getSyncMode mocks base method.
+func (m *MockChainSync) getSyncMode() chainSyncState {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "getSyncMode")
+	ret0, _ := ret[0].(chainSyncState)
+	return ret0
+}
+
+// getSyncMode indicates an expected call of getSyncMode.
+func (mr *MockChainSyncMockRecorder) getSyncMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getSyncMode", reflect.TypeOf((*MockChainSync)(nil).getSyncMode))
+}
+
 // onBlockAnnounce mocks base method.
 func (m *MockChainSync) onBlockAnnounce(arg0 announcedBlock) error {
 	m.ctrl.T.Helper()
@@ -64,16 +78,18 @@ func (mr *MockChainSyncMockRecorder) onBlockAnnounce(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounce", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounce), arg0)
 }
 
-// setPeerHead mocks base method.
-func (m *MockChainSync) setPeerHead(p peer.ID, hash common.Hash, number uint) {
+// onBlockAnnounceHandshake mocks base method.
+func (m *MockChainSync) onBlockAnnounceHandshake(p peer.ID, hash common.Hash, number uint) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setPeerHead", p, hash, number)
+	ret := m.ctrl.Call(m, "onBlockAnnounceHandshake", p, hash, number)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// setPeerHead indicates an expected call of setPeerHead.
-func (mr *MockChainSyncMockRecorder) setPeerHead(p, hash, number interface{}) *gomock.Call {
+// onBlockAnnounceHandshake indicates an expected call of onBlockAnnounceHandshake.
+func (mr *MockChainSyncMockRecorder) onBlockAnnounceHandshake(p, hash, number interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setPeerHead", reflect.TypeOf((*MockChainSync)(nil).setPeerHead), p, hash, number)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounceHandshake", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounceHandshake), p, hash, number)
 }
 
 // start mocks base method.
@@ -89,27 +105,15 @@ func (mr *MockChainSyncMockRecorder) start() *gomock.Call {
 }
 
 // stop mocks base method.
-func (m *MockChainSync) stop() {
+func (m *MockChainSync) stop() error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "stop")
+	ret := m.ctrl.Call(m, "stop")
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // stop indicates an expected call of stop.
 func (mr *MockChainSyncMockRecorder) stop() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "stop", reflect.TypeOf((*MockChainSync)(nil).stop))
-}
-
-// syncState mocks base method.
-func (m *MockChainSync) syncState() chainSyncState {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "syncState")
-	ret0, _ := ret[0].(chainSyncState)
-	return ret0
-}
-
-// syncState indicates an expected call of syncState.
-func (mr *MockChainSyncMockRecorder) syncState() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncState", reflect.TypeOf((*MockChainSync)(nil).syncState))
 }

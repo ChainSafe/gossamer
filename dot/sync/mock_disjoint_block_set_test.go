@@ -6,6 +6,7 @@ package sync
 
 import (
 	reflect "reflect"
+	sync0 "sync"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
@@ -158,15 +159,15 @@ func (mr *MockDisjointBlockSetMockRecorder) removeLowerBlocks(arg0 interface{}) 
 }
 
 // run mocks base method.
-func (m *MockDisjointBlockSet) run(arg0 <-chan *types.FinalisationInfo, arg1 <-chan struct{}) {
+func (m *MockDisjointBlockSet) run(arg0 <-chan *types.FinalisationInfo, arg1 <-chan struct{}, arg2 *sync0.WaitGroup) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "run", arg0, arg1)
+	m.ctrl.Call(m, "run", arg0, arg1, arg2)
 }
 
 // run indicates an expected call of run.
-func (mr *MockDisjointBlockSetMockRecorder) run(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) run(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), arg0, arg1, arg2)
 }
 
 // size mocks base method.

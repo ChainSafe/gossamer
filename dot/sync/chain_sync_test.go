@@ -59,7 +59,7 @@ func Test_chainSyncState_String(t *testing.T) {
 	}
 }
 
-func Test_chainSync_onImportBlock(t *testing.T) {
+func Test_chainSync_onBlockAnnounce(t *testing.T) {
 	t.Parallel()
 	const somePeer = peer.ID("abc")
 
@@ -71,19 +71,22 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
 
 	testCases := map[string]struct {
-		listenForRequests   bool
+		waitBootstrapSync   bool
 		chainSyncBuilder    func(ctrl *gomock.Controller) *chainSync
 		peerID              peer.ID
 		blockAnnounceHeader *types.Header
 		errWrapped          error
 		errMessage          string
+		expectedSyncMode    chainSyncState
 	}{
 		"announced_block_already_exists_in_disjoint_set": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				pendingBlocks := NewMockDisjointBlockSet(ctrl)
 				pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(true)
 				return &chainSync{
+					stopCh:        make(chan struct{}),
 					pendingBlocks: pendingBlocks,
+					workerPool:    newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
 				}
 			},
 			peerID:              somePeer,
@@ -99,7 +102,9 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 				pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(errTest)
 
 				return &chainSync{
+					stopCh:        make(chan struct{}),
 					pendingBlocks: pendingBlocks,
+					workerPool:    newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
 				}
 			},
 			peerID:              somePeer,
@@ -117,8 +122,10 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 				state.Store(bootstrap)
 
 				return &chainSync{
+					stopCh:        make(chan struct{}),
 					pendingBlocks: pendingBlocks,
-					state:         state,
+					syncMode:      state,
+					workerPool:    newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
 				}
 			},
 			peerID:              somePeer,
@@ -145,8 +152,8 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 					GetHighestFinalisedHeader().
 					Return(block2AnnounceHeader, nil)
 
-				expectedRequest := network.NewSingleBlockRequestMessage(block2AnnounceHeader.Hash(),
-					network.BootstrapRequestData)
+				expectedRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
+					1, network.BootstrapRequestData, network.Descending)
 
 				fakeBlockBody := types.Body([]types.Extrinsic{})
 				mockedBlockResponse := &network.BlockResponseMessage{
@@ -187,8 +194,9 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 				state.Store(tip)
 
 				return &chainSync{
+					stopCh:             make(chan struct{}),
 					pendingBlocks:      pendingBlocksMock,
-					state:              state,
+					syncMode:           state,
 					workerPool:         workerPool,
 					network:            networkMock,
 					blockState:         blockStateMock,
@@ -198,7 +206,6 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 					blockImportHandler: importHandlerMock,
 				}
 			},
-			listenForRequests:   true,
 			peerID:              somePeer,
 			blockAnnounceHeader: block2AnnounceHeader,
 		},
@@ -211,12 +218,6 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			chainSync := tt.chainSyncBuilder(ctrl)
-			if tt.listenForRequests {
-				stopCh := make(chan struct{})
-				defer close(stopCh)
-				go chainSync.workerPool.listenForRequests(stopCh)
-			}
-
 			err := chainSync.onBlockAnnounce(announcedBlock{
 				who:    tt.peerID,
 				header: tt.blockAnnounceHeader,
@@ -226,11 +227,119 @@ func Test_chainSync_onImportBlock(t *testing.T) {
 			if tt.errWrapped != nil {
 				assert.EqualError(t, err, tt.errMessage)
 			}
+
+			if tt.waitBootstrapSync {
+				chainSync.wg.Wait()
+				err = chainSync.workerPool.stop()
+				require.NoError(t, err)
+			}
 		})
 	}
 }
 
-func TestChainSync_setPeerHead(t *testing.T) {
+func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	const somePeer = peer.ID("abc")
+
+	emptyTrieState := storage.NewTrieState(nil)
+	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
+		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(), emptyTrieState.MustRoot(),
+		common.Hash{}, 130, scale.VaryingDataTypeSlice{})
+
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		BestBlockHeader().
+		Return(block1AnnounceHeader, nil).
+		Times(2)
+
+	blockStateMock.EXPECT().
+		BestBlockHeader().
+		Return(block2AnnounceHeader, nil).
+		Times(1)
+
+	blockStateMock.EXPECT().
+		GetHighestFinalisedHeader().
+		Return(block1AnnounceHeader, nil).
+		Times(2)
+
+	expectedRequest := network.NewAscendingBlockRequests(
+		block1AnnounceHeader.Number+1,
+		block2AnnounceHeader.Number, network.BootstrapRequestData)
+
+	networkMock := NewMockNetwork(ctrl)
+	networkMock.EXPECT().Peers().Return([]common.PeerInfo{}).
+		Times(2)
+	networkMock.EXPECT().AllConnectedPeersIDs().Return([]peer.ID{})
+
+	firstMockedResponse := createSuccesfullBlockResponse(t, block1AnnounceHeader.Hash(), 2, 128)
+	latestItemFromMockedResponse := firstMockedResponse.BlockData[len(firstMockedResponse.BlockData)-1]
+
+	secondMockedResponse := createSuccesfullBlockResponse(t, latestItemFromMockedResponse.Hash,
+		int(latestItemFromMockedResponse.Header.Number+1), 1)
+
+	requestMaker := NewMockRequestMaker(ctrl)
+	requestMaker.EXPECT().
+		Do(somePeer, expectedRequest[0], &network.BlockResponseMessage{}).
+		DoAndReturn(func(_, _, response any) any {
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *firstMockedResponse
+			return nil
+		})
+
+	requestMaker.EXPECT().
+		Do(somePeer, expectedRequest[1], &network.BlockResponseMessage{}).
+		DoAndReturn(func(_, _, response any) any {
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *secondMockedResponse
+			return nil
+		})
+
+	babeVerifierMock := NewMockBabeVerifier(ctrl)
+	storageStateMock := NewMockStorageState(ctrl)
+	importHandlerMock := NewMockBlockImportHandler(ctrl)
+	telemetryMock := NewMockTelemetry(ctrl)
+
+	const announceBlock = false
+
+	ensureSuccessfulBlockImportFlow(t, block1AnnounceHeader, firstMockedResponse.BlockData,
+		blockStateMock, babeVerifierMock, storageStateMock, importHandlerMock, telemetryMock,
+		announceBlock)
+	ensureSuccessfulBlockImportFlow(t, latestItemFromMockedResponse.Header, secondMockedResponse.BlockData,
+		blockStateMock, babeVerifierMock, storageStateMock, importHandlerMock, telemetryMock,
+		announceBlock)
+
+	state := atomic.Value{}
+	state.Store(tip)
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	chainSync := &chainSync{
+		stopCh:             stopCh,
+		peerView:           make(map[peer.ID]peerView),
+		syncMode:           state,
+		pendingBlocks:      newDisjointBlockSet(0),
+		workerPool:         newSyncWorkerPool(networkMock, requestMaker),
+		network:            networkMock,
+		blockState:         blockStateMock,
+		babeVerifier:       babeVerifierMock,
+		telemetry:          telemetryMock,
+		storageState:       storageStateMock,
+		blockImportHandler: importHandlerMock,
+	}
+
+	err := chainSync.onBlockAnnounceHandshake(somePeer, block2AnnounceHeader.Hash(), block2AnnounceHeader.Number)
+	require.NoError(t, err)
+
+	chainSync.wg.Wait()
+	err = chainSync.workerPool.stop()
+	require.NoError(t, err)
+
+	require.Equal(t, chainSync.getSyncMode(), tip)
+}
+
+func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 	const randomHashString = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
 	randomHash := common.MustHexToHash(randomHashString)
 
@@ -242,12 +351,13 @@ func TestChainSync_setPeerHead(t *testing.T) {
 		shouldBeAWorker bool
 		workerStatus    byte
 	}{
-		"set_peer_head_with_new_peer": {
+		"new_peer": {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
 
 				cs := newChainSyncTest(t, ctrl)
+				cs.syncMode.Store(bootstrap)
 				cs.workerPool = workerPool
 				return cs
 			},
@@ -257,7 +367,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 			shouldBeAWorker: true,
 			workerStatus:    available,
 		},
-		"set_peer_head_with_a_to_ignore_peer_should_not_be_included_in_the_workerpoll": {
+		"ignore_peer_should_not_be_included_in_the_workerpoll": {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
@@ -266,6 +376,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 				}
 
 				cs := newChainSyncTest(t, ctrl)
+				cs.syncMode.Store(bootstrap)
 				cs.workerPool = workerPool
 				return cs
 			},
@@ -274,39 +385,18 @@ func TestChainSync_setPeerHead(t *testing.T) {
 			bestNumber:      uint(20),
 			shouldBeAWorker: false,
 		},
-		"set_peer_head_that_stills_punished_in_the_worker_poll": {
+		"peer_already_exists_in_the_pool": {
 			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
 				networkMock := NewMockNetwork(ctrl)
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
-				workerPool.workers = map[peer.ID]*peerSyncWorker{
+				workerPool.workers = map[peer.ID]*syncWorker{
 					peer.ID("peer-test"): {
-						status:         punished,
-						punishmentTime: time.Now().Add(3 * time.Hour),
+						worker: &worker{status: available},
 					},
 				}
 
 				cs := newChainSyncTest(t, ctrl)
-				cs.workerPool = workerPool
-				return cs
-			},
-			peerID:          peer.ID("peer-test"),
-			bestHash:        randomHash,
-			bestNumber:      uint(20),
-			shouldBeAWorker: true,
-			workerStatus:    punished,
-		},
-		"set_peer_head_that_punishment_isnot_valid_in_the_worker_poll": {
-			newChainSync: func(t *testing.T, ctrl *gomock.Controller) *chainSync {
-				networkMock := NewMockNetwork(ctrl)
-				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
-				workerPool.workers = map[peer.ID]*peerSyncWorker{
-					peer.ID("peer-test"): {
-						status:         punished,
-						punishmentTime: time.Now().Add(-3 * time.Hour),
-					},
-				}
-
-				cs := newChainSyncTest(t, ctrl)
+				cs.syncMode.Store(bootstrap)
 				cs.workerPool = workerPool
 				return cs
 			},
@@ -323,7 +413,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			cs := tt.newChainSync(t, ctrl)
-			cs.setPeerHead(tt.peerID, tt.bestHash, tt.bestNumber)
+			cs.onBlockAnnounceHandshake(tt.peerID, tt.bestHash, tt.bestNumber)
 
 			view, exists := cs.peerView[tt.peerID]
 			require.True(t, exists)
@@ -334,7 +424,7 @@ func TestChainSync_setPeerHead(t *testing.T) {
 			if tt.shouldBeAWorker {
 				syncWorker, exists := cs.workerPool.workers[tt.peerID]
 				require.True(t, exists)
-				require.Equal(t, tt.workerStatus, syncWorker.status)
+				require.Equal(t, tt.workerStatus, syncWorker.worker.status)
 			} else {
 				_, exists := cs.workerPool.workers[tt.peerID]
 				require.False(t, exists)
@@ -370,9 +460,9 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 		peer.ID("some_peer_3"),
 	}
 
-	peerViewMap := map[peer.ID]*peerView{}
+	peerViewMap := map[peer.ID]peerView{}
 	for _, p := range mockedPeerID {
-		peerViewMap[p] = &peerView{
+		peerViewMap[p] = peerView{
 			who:    p,
 			hash:   common.Hash{1, 2, 3},
 			number: blocksAhead,
@@ -395,7 +485,7 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 
 	chainSync := newChainSync(cfg)
 	chainSync.peerView = peerViewMap
-	chainSync.state.Store(bootstrap)
+	chainSync.syncMode.Store(bootstrap)
 
 	return chainSync
 }
@@ -407,8 +497,8 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
 		trie.EmptyHash, 0, types.NewDigest())
 
-	const blocksAhead = 129
-	totalBlockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, int(blocksAhead)-1)
+	const blocksAhead = 128
+	totalBlockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, blocksAhead)
 	mockedNetwork := NewMockNetwork(ctrl)
 
 	workerPeerID := peer.ID("noot")
@@ -455,21 +545,18 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 
 	target, err := cs.getTarget()
 	require.NoError(t, err)
-	require.Equal(t, uint(129), target)
+	require.Equal(t, uint(128), target)
 
 	// include a new worker in the worker pool set, this worker
 	// should be an available peer that will receive a block request
 	// the worker pool executes the workers management
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
@@ -508,7 +595,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
 	// will setup the expectations starting from block 128, from previous worker, until block 256
-	parent := worker1Response.BlockData[127]
+	parent := worker1Response.BlockData[len(worker1Response.BlockData)-1]
 	ensureSuccessfulBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
@@ -536,7 +623,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	// We start this test with genesis block being our best block, so
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
-	const blocksAhead = 257
+	const blocksAhead = 256
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -551,14 +638,11 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot2"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.T) {
@@ -598,14 +682,14 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
 	// will setup the expectations starting from block 128, from previous worker, until block 256
-	parent := worker1Response.BlockData[127]
+	parent := worker1Response.BlockData[len(worker1Response.BlockData)-1]
 	ensureSuccessfulBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -614,30 +698,18 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
-
-				if pID == peer.ID("bob") {
-					return errors.New("a bad error while getting a response")
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+			switch doBlockRequestCount.Load() {
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				return errors.New("a bad error while getting a response")
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
+				*responsePtr = *worker2Response
 			}
-
-			*responsePtr = *worker2Response
 			return nil
+
 		}).Times(3)
 
 	// setup a chain sync which holds in its peer view map
@@ -645,7 +717,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	// We start this test with genesis block being our best block, so
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
-	const blocksAhead = 257
+	const blocksAhead = 256
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -660,19 +732,11 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *testing.T) {
@@ -712,14 +776,14 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
 	// will setup the expectations starting from block 128, from previous worker, until block 256
-	parent := worker1Response.BlockData[127]
+	parent := worker1Response.BlockData[len(worker1Response.BlockData)-1]
 	ensureSuccessfulBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -728,44 +792,32 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
-
-				if pID == peer.ID("bob") {
-					return errors.New("protocols not supported")
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+			switch doBlockRequestCount.Load() {
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				return errors.New("protocols not supported")
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
-	// since peer.ID("bob") will fail with protocols not supported his
+	// since some peer will fail with protocols not supported his
 	// reputation will be affected and
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadProtocolValue,
 		Reason: peerset.BadProtocolReason,
-	}, peer.ID("bob"))
+	}, gomock.AssignableToTypeOf(peer.ID("")))
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
-	const blocksAhead = 257
+	const blocksAhead = 256
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -780,19 +832,11 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testing.T) {
@@ -839,7 +883,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -847,48 +891,35 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response item but without header as was requested
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
+			switch doBlockRequestCount.Load() {
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				incompleteBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
+				incompleteBlockData.BlockData[0].Header = nil
 
-				if pID == peer.ID("bob") {
-					incompleteBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
-					incompleteBlockData.BlockData[0].Header = nil
-
-					*responsePtr = *incompleteBlockData
-					return nil
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+				*responsePtr = *incompleteBlockData
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
-	// since peer.ID("bob") will fail with protocols not supported his
+	// since some peer will fail with protocols not supported his
 	// reputation will be affected and
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.IncompleteHeaderValue,
 		Reason: peerset.IncompleteHeaderReason,
-	}, peer.ID("bob"))
+	}, gomock.AssignableToTypeOf(peer.ID("")))
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
-	const blocksAhead = 257
+	const blocksAhead = 256
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -903,19 +934,11 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testing.T) {
@@ -962,7 +985,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -970,36 +993,22 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response that does not form an chain
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
+			switch doBlockRequestCount.Load() {
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				notAChainBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
+				// swap positions to force the problem
+				notAChainBlockData.BlockData[0], notAChainBlockData.BlockData[130] =
+					notAChainBlockData.BlockData[130], notAChainBlockData.BlockData[0]
 
-				if pID == peer.ID("bob") {
-					notAChainBlockData := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 128, 256)
-					// swap positions to force the problem
-					firstItem := notAChainBlockData.BlockData[0]
-					notAChainBlockData.BlockData[0] = notAChainBlockData.BlockData[130]
-					notAChainBlockData.BlockData[130] = firstItem
-
-					*responsePtr = *notAChainBlockData
-					return nil
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+				*responsePtr = *notAChainBlockData
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
@@ -1008,7 +1017,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	// We start this test with genesis block being our best block, so
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
-	const blocksAhead = 257
+	const blocksAhead = 256
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -1023,19 +1032,11 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
-
-	// peer should be punished
-	syncWorker, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.True(t, ok)
-	require.Equal(t, punished, syncWorker.status)
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 }
 
 func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.T) {
@@ -1075,7 +1076,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
 	// will setup the expectations starting from block 128, from previous worker, until block 256
-	parent := worker1Response.BlockData[127]
+	parent := worker1Response.BlockData[len(worker1Response.BlockData)-1]
 	ensureSuccessfulBlockImportFlow(t, parent.Header, worker2Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, announceBlock)
 
@@ -1084,7 +1085,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	// we use gomock.Any since I cannot guarantee which peer picks which request
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
-	doBlockRequestCount := 0
+	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
 		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
@@ -1092,45 +1093,43 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response that contains a know bad block
 			responsePtr := response.(*network.BlockResponseMessage)
-			defer func() { doBlockRequestCount++ }()
+			defer func() { doBlockRequestCount.Add(1) }()
 
-			pID := peerID.(peer.ID) // cast to peer ID
-			switch doBlockRequestCount {
-			case 0, 1:
-				if pID == peer.ID("alice") {
-					*responsePtr = *worker1Response
-					return nil
-				}
+			switch doBlockRequestCount.Load() {
+			case 0:
+				*responsePtr = *worker1Response
+			case 1:
+				// use the fisrt response last item hash to produce the second response block data
+				// so we can guarantee that the second response continues the first response blocks
+				firstResponseLastItem := worker1Response.BlockData[len(worker1Response.BlockData)-1]
+				blockDataWithBadBlock := createSuccesfullBlockResponse(t,
+					firstResponseLastItem.Header.Hash(),
+					129,
+					128)
 
-				if pID == peer.ID("bob") {
-					blockDataWithBadBlock := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 129, 256)
-					blockDataWithBadBlock.BlockData[4].Hash = fakeBadBlockHash
-					*responsePtr = *blockDataWithBadBlock
-					return nil
-				}
-
-				require.FailNow(t, "expected calls by %s and %s, got: %s",
-					peer.ID("alice"), peer.ID("bob"), pID)
+				// changes the last item from the second response to be a bad block, so we guarantee that
+				// this second response is a chain, (changing the hash from a block in the middle of the block
+				// response brokes the `isAChain` verification)
+				lastItem := len(blockDataWithBadBlock.BlockData) - 1
+				blockDataWithBadBlock.BlockData[lastItem].Hash = fakeBadBlockHash
+				*responsePtr = *blockDataWithBadBlock
 			default:
-				// ensure the the third call will be made by peer.ID("alice")
-				require.Equalf(t, pID, peer.ID("alice"),
-					"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
+				*responsePtr = *worker2Response
 			}
 
-			*responsePtr = *worker2Response
 			return nil
 		}).Times(3)
 
 	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
 		Value:  peerset.BadBlockAnnouncementValue,
 		Reason: peerset.BadBlockAnnouncementReason,
-	}, peer.ID("bob"))
+	}, gomock.AssignableToTypeOf(peer.ID("")))
 	// setup a chain sync which holds in its peer view map
 	// 3 peers, each one announce block 129 as its best block number.
 	// We start this test with genesis block being our best block, so
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
-	const blocksAhead = 257
+	const blocksAhead = 256
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -1147,22 +1146,16 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 
 	// peer should be not in the worker pool
 	// peer should be in the ignore list
-	_, ok := cs.workerPool.workers[peer.ID("bob")]
-	require.False(t, ok)
-
-	_, ok = cs.workerPool.ignorePeers[peer.ID("bob")]
-	require.True(t, ok)
+	require.Len(t, cs.workerPool.workers, 1)
+	require.Len(t, cs.workerPool.ignorePeers, 1)
 }
 
 func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testing.T) {
@@ -1212,23 +1205,19 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice). The first call will return only 97 blocks
 			// the handler should issue another call to retrieve the missing blocks
-			pID := peerID.(peer.ID) // cast to peer ID
-			require.Equalf(t, pID, peer.ID("alice"),
-				"expect third call be made by %s, got: %s", peer.ID("alice"), pID)
-
 			responsePtr := response.(*network.BlockResponseMessage)
 			defer func() { doBlockRequestCount++ }()
 
 			if doBlockRequestCount == 0 {
 				*responsePtr = *worker1Response
-				return nil
+			} else {
+				*responsePtr = *worker1MissingBlocksResponse
 			}
 
-			*responsePtr = *worker1MissingBlocksResponse
 			return nil
 		}).Times(2)
 
-	const blocksAhead = 256
+	const blocksAhead = 128
 	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
@@ -1239,14 +1228,11 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 
-	stopCh := make(chan struct{})
-	go cs.workerPool.listenForRequests(stopCh)
-
-	err = cs.requestBlocks(mockedGenesisHeader, networkInitialSync)
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
-	close(stopCh)
-	<-cs.workerPool.doneCh
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
 
 	require.Len(t, cs.workerPool.workers, 1)
 
@@ -1254,15 +1240,17 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	require.True(t, ok)
 }
 
-func createSuccesfullBlockResponse(_ *testing.T, genesisHash common.Hash,
+func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
 	startingAt, numBlocks int) *network.BlockResponseMessage {
+	t.Helper()
+
 	response := new(network.BlockResponseMessage)
 	response.BlockData = make([]*types.BlockData, numBlocks)
 
 	emptyTrieState := storage.NewTrieState(nil)
 	tsRoot := emptyTrieState.MustRoot()
 
-	firstHeader := types.NewHeader(genesisHash, tsRoot, common.Hash{},
+	firstHeader := types.NewHeader(parentHeader, tsRoot, common.Hash{},
 		uint(startingAt), scale.VaryingDataTypeSlice{})
 	response.BlockData[0] = &types.BlockData{
 		Hash:          firstHeader.Hash(),
@@ -1299,7 +1287,7 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 	for idx, blockData := range blocksReceived {
 		mockBlockState.EXPECT().HasHeader(blockData.Header.Hash()).Return(false, nil)
 		mockBlockState.EXPECT().HasBlockBody(blockData.Header.Hash()).Return(false, nil)
-		//mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
+		mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
 
 		var previousHeader *types.Header
 		if idx == 0 {
@@ -1529,22 +1517,137 @@ func TestChainSync_isResponseAChain(t *testing.T) {
 	}
 }
 
+func TestChainSync_doResponseGrowsTheChain(t *testing.T) {
+	block1Header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, types.NewDigest())
+	block2Header := types.NewHeader(block1Header.Hash(), common.Hash{}, common.Hash{}, 2, types.NewDigest())
+	block3Header := types.NewHeader(block2Header.Hash(), common.Hash{}, common.Hash{}, 3, types.NewDigest())
+	block4Header := types.NewHeader(block3Header.Hash(), common.Hash{}, common.Hash{}, 4, types.NewDigest())
+
+	testcases := map[string]struct {
+		response       []*types.BlockData
+		ongoingChain   []*types.BlockData
+		startAt        uint
+		exepectedTotal uint32
+		expectedOut    bool
+	}{
+		// the ongoing chain does not have any data so the response
+		// can be inserted in the ongoing chain without any problems
+		"empty_ongoing_chain": {
+			ongoingChain: []*types.BlockData{},
+			expectedOut:  true,
+		},
+
+		"one_in_response_growing_ongoing_chain_without_check": {
+			startAt:        1,
+			exepectedTotal: 3,
+			// the ongoing chain contains 3 positions, the block number 1 is at position 0
+			ongoingChain: []*types.BlockData{
+				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 1, types.NewDigest())},
+				nil,
+				nil,
+			},
+
+			// the response contains the block number 3 which should be placed in position 2
+			// in the ongoing chain, which means that no comparison should be done to place
+			// block number 3 in the ongoing chain
+			response: []*types.BlockData{
+				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 3, types.NewDigest())},
+			},
+			expectedOut: true,
+		},
+
+		"one_in_response_growing_ongoing_chain_by_checking_neighbours": {
+			startAt:        1,
+			exepectedTotal: 3,
+			// the ongoing chain contains 3 positions, the block number 1 is at position 0
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				{Header: block3Header},
+			},
+
+			// the response contains the block number 2 which should be placed in position 1
+			// in the ongoing chain, which means that a comparison should be made to check
+			// if the parent hash of block 2 is the same hash of block 1
+			response: []*types.BlockData{
+				{Header: block2Header},
+			},
+			expectedOut: true,
+		},
+
+		"one_in_response_failed_to_grow_ongoing_chain": {
+			startAt:        1,
+			exepectedTotal: 3,
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				nil,
+			},
+			response: []*types.BlockData{
+				{Header: types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, 2, types.NewDigest())},
+			},
+			expectedOut: false,
+		},
+
+		"many_in_response_grow_ongoing_chain_only_left_check": {
+			startAt:        1,
+			exepectedTotal: 3,
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				nil,
+				nil,
+			},
+			response: []*types.BlockData{
+				{Header: block2Header},
+				{Header: block3Header},
+			},
+			expectedOut: true,
+		},
+
+		"many_in_response_grow_ongoing_chain_left_right_check": {
+			startAt:        1,
+			exepectedTotal: 3,
+			ongoingChain: []*types.BlockData{
+				{Header: block1Header},
+				nil,
+				nil,
+				{Header: block4Header},
+			},
+			response: []*types.BlockData{
+				{Header: block2Header},
+				{Header: block3Header},
+			},
+			expectedOut: true,
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			out := doResponseGrowsTheChain(tt.response, tt.ongoingChain, tt.startAt, tt.exepectedTotal)
+			require.Equal(t, tt.expectedOut, out)
+		})
+	}
+}
+
 func TestChainSync_getHighestBlock(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]struct {
 		expectedHighestBlock uint
 		wantErr              error
-		chainSyncPeerView    map[peer.ID]*peerView
+		chainSyncPeerView    map[peer.ID]peerView
 	}{
 		"no_peer_view": {
 			wantErr:              errNoPeers,
 			expectedHighestBlock: 0,
-			chainSyncPeerView:    make(map[peer.ID]*peerView),
+			chainSyncPeerView:    make(map[peer.ID]peerView),
 		},
 		"highest_block": {
 			expectedHighestBlock: 500,
-			chainSyncPeerView: map[peer.ID]*peerView{
+			chainSyncPeerView: map[peer.ID]peerView{
 				peer.ID("peer-A"): {
 					number: 100,
 				},

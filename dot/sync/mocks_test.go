@@ -608,18 +608,18 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 	return m.recorder
 }
 
-// AllConnectedPeersID mocks base method.
-func (m *MockNetwork) AllConnectedPeersID() []peer.ID {
+// AllConnectedPeersIDs mocks base method.
+func (m *MockNetwork) AllConnectedPeersIDs() []peer.ID {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AllConnectedPeersID")
+	ret := m.ctrl.Call(m, "AllConnectedPeersIDs")
 	ret0, _ := ret[0].([]peer.ID)
 	return ret0
 }
 
-// AllConnectedPeersID indicates an expected call of AllConnectedPeersID.
-func (mr *MockNetworkMockRecorder) AllConnectedPeersID() *gomock.Call {
+// AllConnectedPeersIDs indicates an expected call of AllConnectedPeersIDs.
+func (mr *MockNetworkMockRecorder) AllConnectedPeersIDs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllConnectedPeersID", reflect.TypeOf((*MockNetwork)(nil).AllConnectedPeersID))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllConnectedPeersIDs", reflect.TypeOf((*MockNetwork)(nil).AllConnectedPeersIDs))
 }
 
 // Peers mocks base method.

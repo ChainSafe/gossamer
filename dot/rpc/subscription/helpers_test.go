@@ -22,6 +22,9 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
+	// Use a channel to notify when the WebSocket connection is ready
+	connReady := make(chan struct{})
+
 	h := func(w http.ResponseWriter, r *http.Request) {
 		c, err := up.Upgrade(w, r, nil)
 		if err != nil {
@@ -30,6 +33,9 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 		}
 
 		wskt.Wsconn = c
+
+		// Notify that the WebSocket connection is ready
+		close(connReady)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(h))
@@ -37,9 +43,13 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
 	ws, r, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	defer r.Body.Close()
+	r.Body.Close()
 
 	require.NoError(t, err)
+
+	// Wait for the WebSocket connection to be ready before proceeding
+	<-connReady
+	require.NotNil(t, wskt.Wsconn)
 
 	cancel := func() {
 		server.Close()

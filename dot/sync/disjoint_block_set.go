@@ -27,7 +27,7 @@ var (
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
-	run(finalisedCh <-chan *types.FinalisationInfo, stop <-chan struct{})
+	run(finalisedCh <-chan *types.FinalisationInfo, stop <-chan struct{}, wg *sync.WaitGroup)
 	addHashAndNumber(hash common.Hash, number uint) error
 	addHeader(*types.Header) error
 	addBlock(*types.Block) error
@@ -114,9 +114,12 @@ func newDisjointBlockSet(limit int) *disjointBlockSet {
 	}
 }
 
-func (s *disjointBlockSet) run(finalisedCh <-chan *types.FinalisationInfo, stop <-chan struct{}) {
+func (s *disjointBlockSet) run(finalisedCh <-chan *types.FinalisationInfo, stop <-chan struct{}, wg *sync.WaitGroup) {
 	ticker := time.NewTicker(clearBlocksInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		wg.Done()
+	}()
 
 	for {
 		select {

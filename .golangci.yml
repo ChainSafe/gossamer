@@ -25,6 +25,13 @@ linters-settings:
     line-length: 120
     # tab width in spaces. Default to 1.
     tab-width: 1
+  
+  nilnil:
+    checked-types:
+      - func
+      - iface
+      - map
+      - chan
 
   misspell:
     locale: UK
