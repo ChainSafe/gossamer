@@ -189,11 +189,13 @@ func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
 
 			cs.workerPool.useConnectedPeers()
 			_, err := cs.getTarget()
+
 			totalAvailable := cs.workerPool.totalWorkers()
 			if totalAvailable >= uint(cs.minPeers) && err == nil {
 				return
 			}
 
+			// TODO: https://github.com/ChainSafe/gossamer/issues/3402
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()

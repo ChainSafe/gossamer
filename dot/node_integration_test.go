@@ -85,7 +85,7 @@ func TestNewNode(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockServiceRegistry := NewMockServiceRegisterer(ctrl)
-	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(9)
+	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
@@ -324,7 +324,6 @@ func TestStartStopNode(t *testing.T) {
 	config.ChainSpec = genFile
 	config.Core.GrandpaAuthority = false
 	config.Core.BabeAuthority = false
-	config.Network.MinPeers = 0
 
 	err := InitNode(config)
 	require.NoError(t, err)

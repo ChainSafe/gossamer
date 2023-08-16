@@ -79,10 +79,6 @@ func (t *Trie) loadNode(db DBGetter, n *Node) error {
 		}
 
 		nodeHash := merkleValue
-		if len(nodeHash) < 1 {
-			fmt.Printf(">>>>>>>>>> trie loadNode, empty node hash\n")
-		}
-
 		encodedNode, err := db.Get(nodeHash)
 		if err != nil {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", nodeHash, err)

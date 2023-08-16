@@ -529,6 +529,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	mockStorageState := NewMockStorageState(ctrl)
 	mockImportHandler := NewMockBlockImportHandler(ctrl)
 	mockTelemetry := NewMockTelemetry(ctrl)
+
 	const announceBlock = false
 	// setup mocks for new synced blocks that doesn't exists in our local database
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, totalBlockResponse.BlockData, mockedBlockState,

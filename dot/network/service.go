@@ -252,12 +252,9 @@ func (s *Service) Start() error {
 	s.host.registerStreamHandler(s.host.protocolID+SyncID, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
-	//blockAnnounceNetwork := s.host.protocolID+blockAnnounceID
-	blockAnnounceNetwork := fmt.Sprintf("/%s%s",
-		strings.TrimLeft(s.blockState.GenesisHash().String(), "0x"), blockAnnounceID)
 	// register block announce protocol
 	err := s.RegisterNotificationsProtocol(
-		protocol.ID(blockAnnounceNetwork),
+		s.host.protocolID+blockAnnounceID,
 		blockAnnounceMsgType,
 		s.getBlockAnnounceHandshake,
 		decodeBlockAnnounceHandshake,
