@@ -41,7 +41,7 @@ require (
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	golang.org/x/crypto v0.12.0
-	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
+	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
 	golang.org/x/term v0.11.0
 	google.golang.org/protobuf v1.31.0
 )

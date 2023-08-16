@@ -291,8 +291,8 @@ func ValidateCommit[
 			Number: signed.Precommit.TargetNumber,
 		})
 	}
-	slices.SortFunc(targets, func(a HashNumber[Hash, Number], b HashNumber[Hash, Number]) bool {
-		return a.Number < b.Number
+	slices.SortFunc(targets, func(a HashNumber[Hash, Number], b HashNumber[Hash, Number]) int {
+		return int(a.Number - b.Number)
 	})
 	if len(targets) == 0 {
 		return validationResult, nil
