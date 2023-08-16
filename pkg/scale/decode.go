@@ -452,13 +452,6 @@ func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
 
 		tempElemType := reflect.TypeOf(in).Elem()
 		tempElem := reflect.New(tempElemType).Elem()
-
-		_, ok := tempElemType.MethodByName("New")
-		if ok {
-			tempElem = tempElem.MethodByName("New").Call([]reflect.Value{})[0]
-			tempElem = tempElem.Elem()
-		}
-
 		err = ds.unmarshal(tempElem)
 		if err != nil {
 			return fmt.Errorf("decoding value %d of %d: %w", i+1, numberOfTuples, err)
