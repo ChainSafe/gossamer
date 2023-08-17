@@ -59,6 +59,7 @@ func runTests(t *testing.T, tests []test, queue Queue) {
 				err := queue.Queue(tt.comparator, tt.request, tt.priority)
 				if tt.mustError {
 					require.Error(t, err)
+					require.Equal(t, err, tt.expected)
 					return
 				}
 				require.NoError(t, err)
@@ -326,6 +327,7 @@ func TestQueue_OverflowPriority(t *testing.T) {
 			request:    dummyParticipationRequest(),
 			priority:   ParticipationPriorityHigh,
 			mustError:  true,
+			expected:   errorPriorityQueueFull,
 		},
 	}
 
@@ -372,6 +374,7 @@ func TestQueue_OverflowBestEffort(t *testing.T) {
 			request:    dummyParticipationRequest(),
 			priority:   ParticipationPriorityBestEffort,
 			mustError:  true,
+			expected:   errorBestEffortQueueFull,
 		},
 	}
 

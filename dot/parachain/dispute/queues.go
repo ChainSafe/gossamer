@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
-	"github.com/pkg/errors"
 	"github.com/tidwall/btree"
 )
 
@@ -20,6 +21,13 @@ import (
 // TODO: Parity's implementation captures metrics for the queue. We should do the same.
 // However, I will not be implementing it right away. It will be picked up as a single task for the
 // entire dispute module https://github.com/ChainSafe/gossamer/issues/3313.
+
+var (
+	// errorBestEffortQueueFull is returned when the best effort queue is full and the request could not be processed
+	errorBestEffortQueueFull = errors.New("best effort queue is full")
+	// errorPriorityQueueFull is returned when the priority queue is full and the request could not be processed
+	errorPriorityQueueFull = errors.New("priority queue is full")
+)
 
 // CandidateComparator comparator for ordering of disputes for candidate.
 type CandidateComparator struct {
@@ -84,13 +92,6 @@ const (
 func (p ParticipationPriority) IsPriority() bool {
 	return p == ParticipationPriorityHigh
 }
-
-var (
-	// errorBestEffortQueueFull is returned when the best effort queue is full and the request could not be processed
-	errorBestEffortQueueFull = errors.New("best effort queue is full")
-	// errorPriorityQueueFull is returned when the priority queue is full and the request could not be processed
-	errorPriorityQueueFull = errors.New("priority queue is full")
-)
 
 // Queue the dispute participation queue
 type Queue interface {
