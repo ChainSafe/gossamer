@@ -19,13 +19,16 @@ const (
 )
 
 type Service struct {
-	Network Network
+	Network  Network
+	Overseer Overseer
 }
 
 func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
+	// TODO: init Overseer
+	// Todo: need chan between overseer and subsystem, think about where to creat chans
 	// register validation protocol
 	err := net.RegisterNotificationsProtocol(
 		protocol.ID(validationProtocolID),
