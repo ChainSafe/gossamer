@@ -114,16 +114,24 @@ type Queue interface {
 	Len(queueType ParticipationPriority) int
 }
 
+type syncedBTree struct {
+	*btree.BTree
+	sync.RWMutex
+}
+
+func newSyncedBTree(comparator func(a, b any) bool) *syncedBTree {
+	return &syncedBTree{
+		BTree: btree.New(comparator),
+	}
+}
+
 // QueueHandler implements Queue
 // It uses two btrees to store the requests. One for best effort and one for priority.
 // The queues store participationItem's.
 // The btree is ordered by the CandidateComparator of participationItem.
 type QueueHandler struct {
-	bestEffort *btree.BTree
-	priority   *btree.BTree
-
-	bestEffortLock sync.RWMutex
-	priorityLock   sync.RWMutex
+	bestEffort *syncedBTree
+	priority   *syncedBTree
 
 	bestEffortMaxSize int
 	priorityMaxSize   int
@@ -149,13 +157,13 @@ func (q *QueueHandler) Queue(
 		}
 
 		// remove the item from the best effort queue if it exists
-		q.bestEffortLock.Lock()
+		q.bestEffort.Lock()
 		q.bestEffort.Delete(newParticipationItem(comparator, request))
-		q.bestEffortLock.Unlock()
+		q.bestEffort.Unlock()
 
-		q.priorityLock.Lock()
+		q.priority.Lock()
 		q.priority.Set(newParticipationItem(comparator, request))
-		q.priorityLock.Unlock()
+		q.priority.Unlock()
 	} else {
 		// if the item is already in priority queue, do nothing
 		if item := q.priority.Get(newParticipationItem(comparator, request)); item != nil {
@@ -166,9 +174,9 @@ func (q *QueueHandler) Queue(
 			return errorBestEffortQueueFull
 		}
 
-		q.bestEffortLock.Lock()
+		q.bestEffort.Lock()
 		q.bestEffort.Set(newParticipationItem(comparator, request))
-		q.bestEffortLock.Unlock()
+		q.bestEffort.Unlock()
 	}
 
 	return nil
@@ -187,14 +195,14 @@ func (q *QueueHandler) PrioritiseIfPresent(comparator CandidateComparator) error
 		return errorPriorityQueueFull
 	}
 
-	q.bestEffortLock.Lock()
+	q.bestEffort.Lock()
 	// We remove the item from the best effort queue and add it to the priority queue if it exists
 	if item := q.bestEffort.Delete(newParticipationItem(comparator, nil)); item != nil {
-		q.priorityLock.Lock()
+		q.priority.Lock()
 		q.priority.Set(item)
-		q.priorityLock.Unlock()
+		q.priority.Unlock()
 	}
-	q.bestEffortLock.Unlock()
+	q.bestEffort.Unlock()
 
 	return nil
 }
@@ -204,8 +212,8 @@ func (q *QueueHandler) PopBestEffort() *ParticipationItem {
 		return nil
 	}
 
-	q.bestEffortLock.Lock()
-	defer q.bestEffortLock.Unlock()
+	q.bestEffort.Lock()
+	defer q.bestEffort.Unlock()
 	return q.bestEffort.PopMin().(*ParticipationItem)
 }
 
@@ -214,20 +222,20 @@ func (q *QueueHandler) PopPriority() *ParticipationItem {
 		return nil
 	}
 
-	q.priorityLock.Lock()
-	defer q.priorityLock.Unlock()
+	q.priority.Lock()
+	defer q.priority.Unlock()
 	return q.priority.PopMin().(*ParticipationItem)
 }
 
 func (q *QueueHandler) Len(queueType ParticipationPriority) int {
 	if queueType.IsPriority() {
-		q.priorityLock.RLock()
-		defer q.priorityLock.RUnlock()
+		q.priority.RLock()
+		defer q.priority.RUnlock()
 		return q.priority.Len()
 	}
 
-	q.bestEffortLock.RLock()
-	defer q.bestEffortLock.RUnlock()
+	q.bestEffort.RLock()
+	defer q.bestEffort.RUnlock()
 	return q.bestEffort.Len()
 }
 
@@ -235,8 +243,8 @@ var _ Queue = (*QueueHandler)(nil)
 
 func NewQueue() *QueueHandler {
 	return &QueueHandler{
-		bestEffort:        btree.New(participationItemComparator),
-		priority:          btree.New(participationItemComparator),
+		bestEffort:        newSyncedBTree(participationItemComparator),
+		priority:          newSyncedBTree(participationItemComparator),
 		bestEffortMaxSize: bestEffortQueueSize,
 		priorityMaxSize:   priorityQueueSize,
 	}

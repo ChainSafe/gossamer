@@ -8,13 +8,12 @@ import (
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
 )
 
 func newTestQueue(size int) *QueueHandler {
 	return &QueueHandler{
-		bestEffort:        btree.New(participationItemComparator),
-		priority:          btree.New(participationItemComparator),
+		bestEffort:        newSyncedBTree(participationItemComparator),
+		priority:          newSyncedBTree(participationItemComparator),
 		bestEffortMaxSize: size,
 		priorityMaxSize:   size,
 	}
