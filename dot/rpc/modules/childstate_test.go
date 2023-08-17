@@ -32,7 +32,7 @@ func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"), trie.V0)
 	childTr.Put([]byte(":another_child"), []byte("value"), trie.V0)
 
-	err := tr.SetChild([]byte(":child_storage_key"), childTr)
+	err := tr.SetChild([]byte(":child_storage_key"), childTr, trie.V0)
 	require.NoError(t, err)
 
 	stateRoot, err := tr.Root()

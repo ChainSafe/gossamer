@@ -14,8 +14,8 @@ type Storage interface {
 	Put(key []byte, value []byte, version trie.Version) (err error)
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
-	SetChild(keyToChild []byte, child *trie.Trie) error
-	SetChildStorage(keyToChild, key, value []byte) error
+	SetChild(keyToChild []byte, child *trie.Trie, version trie.Version) error
+	SetChildStorage(keyToChild, key, value []byte, version trie.Version) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte) (err error)
 	DeleteChild(keyToChild []byte) (err error)

@@ -146,17 +146,17 @@ func (s *TrieState) TrieEntries() map[string][]byte {
 }
 
 // SetChild sets the child trie at the given key
-func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
+func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie, version trie.Version) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.SetChild(keyToChild, child)
+	return s.t.SetChild(keyToChild, child, version)
 }
 
 // SetChildStorage sets a key-value pair in a child trie
-func (s *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
+func (s *TrieState) SetChildStorage(keyToChild, key, value []byte, version trie.Version) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.PutIntoChild(keyToChild, key, value)
+	return s.t.PutIntoChild(keyToChild, key, value, version)
 }
 
 // GetChild returns the child trie at the given key

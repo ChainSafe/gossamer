@@ -1071,7 +1071,7 @@ func ext_default_child_storage_set_version_1(
 	cp := make([]byte, len(value))
 	copy(cp, value)
 
-	err := storage.SetChildStorage(childStorageKey, key, cp)
+	err := storage.SetChildStorage(childStorageKey, key, cp, trie.V0)
 	if err != nil {
 		logger.Errorf("failed to set value in child storage: %s", err)
 		panic(err)

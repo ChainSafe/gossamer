@@ -190,7 +190,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"), trie.V0)
 
-	err = genTrie.SetChild([]byte("keyToChild"), testChildTrie)
+	err = genTrie.SetChild([]byte("keyToChild"), testChildTrie, trie.V0)
 	require.NoError(t, err)
 
 	tries := newTriesEmpty()

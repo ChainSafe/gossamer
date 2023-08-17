@@ -110,7 +110,7 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child)
+	err := ts.SetChild(keyToChild, child, trie.V0)
 	require.NoError(t, err)
 
 	err = ts.ClearPrefixInChild(keyToChild, []byte("noo"))
@@ -196,7 +196,7 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child)
+	err := ts.SetChild(keyToChild, child, trie.V0)
 	require.NoError(t, err)
 
 	testLimitBytes := make([]byte, 4)
