@@ -45,7 +45,7 @@ type Storage struct {
 type Data struct {
 	Storage  []Storage         `yaml:"storage"`
 	Expected map[string]string `yaml:"expected"`
-	Lookups  map[string]string `yaml:"-"`
+	Lookups  map[string]any    `yaml:"-"`
 }
 
 var parachainTestData Data
@@ -56,7 +56,13 @@ func init() {
 		fmt.Println("Error unmarshalling test data:", err)
 		return
 	}
-	parachainTestData.Lookups = make(map[string]string)
+	parachainTestData.Lookups = make(map[string]any)
+
+	for _, s := range parachainTestData.Storage {
+		if s.Name != "" {
+			parachainTestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
 }
 
 func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
@@ -1216,7 +1222,7 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, validationCode)
 
-	expected := []byte(parachainTestData.Lookups["validationCode"])
+	expected := parachainTestData.Lookups["validationCode"].([]byte)
 	require.Equal(t, expected[4:], []byte(*validationCode))
 }
 
@@ -1226,13 +1232,13 @@ func TestInstance_ParachainHostValidationCodeByHash(t *testing.T) {
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	codeHash := parachainTestData.Lookups["currentCodeHash"]
-	hash := common.MustHexToHash(codeHash)
+	hash := common.MustHexToHash(common.BytesToHex(codeHash.([]byte)))
 
 	validationCode, err := rt.ParachainHostValidationCodeByHash(hash)
 	require.NoError(t, err)
 	require.NotEmpty(t, validationCode)
 
-	expected := []byte(parachainTestData.Lookups["validationCode"])
+	expected := parachainTestData.Lookups["validationCode"].([]byte)
 	require.Equal(t, expected[4:], []byte(*validationCode))
 }
 
@@ -1463,18 +1469,6 @@ func getParachainHostTrie(t *testing.T) *trie.Trie {
 		value := common.MustHexToBytes(s.Value)
 		err := tt.Put(key, value)
 		require.NoError(t, err)
-
-		// TODO: We currently have to manually set the storage lookup values for the exports tests.
-		// We could avoid this if we can lookup the value from the `storage` section of the test data easily.
-		// If we use ma[string]Storage as the type for the storage section, the tests fail for some reason.
-		// https://github.com/ChainSafe/gossamer/issues/3405
-		if s.Name == "validationCode" {
-			parachainTestData.Lookups["validationCode"] = string(value)
-		}
-
-		if s.Name == "currentCodeHash" {
-			parachainTestData.Lookups["currentCodeHash"] = s.Value
-		}
 	}
 
 	return tt
