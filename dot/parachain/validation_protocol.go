@@ -113,7 +113,7 @@ func NewValidationProtocolVDT() ValidationProtocol {
 	return ValidationProtocol(vdt)
 }
 
-// New returns new ApprovalDistributionMessage VDT
+// New returns new ValidationProtocol VDT
 func (ValidationProtocol) New() ValidationProtocol {
 	return NewValidationProtocolVDT()
 }
@@ -138,7 +138,7 @@ func (vp *ValidationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
 }
 
 // Type returns ValidationMsgType
-func (ValidationProtocol) Type() network.MessageType {
+func (*ValidationProtocol) Type() network.MessageType {
 	return network.ValidationMsgType
 }
 

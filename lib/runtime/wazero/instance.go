@@ -1036,13 +1036,13 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachaintypes.Session
 	return sessionInfo, nil
 }
 
-func (in *Instance) RandomSeed() {
+func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
-func (in *Instance) OffchainWorker() {
+func (*Instance) OffchainWorker() {
 	panic("unimplemented")
 }
-func (in *Instance) GenerateSessionKeys() {
+func (*Instance) GenerateSessionKeys() {
 	panic("unimplemented")
 }
 
