@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -21,6 +22,8 @@ const (
 type Service struct {
 	Network Network
 }
+
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
 	validationProtocolID := GeneratePeersetProtocolName(
@@ -120,7 +123,22 @@ func (s Service) run() {
 	collationMessage := CollationProtocolV1{}
 	s.Network.GossipMessage(&collationMessage)
 
-	validationMessage := ValidationProtocolV1{}
+	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
+	err := statementDistributionLargeStatement.SetValue(SecondedStatementWithLargePayload{
+		RelayParent:   common.Hash{},
+		CandidateHash: CandidateHash{Value: common.Hash{}},
+		SignedBy:      5,
+		Signature:     ValidatorSignature{},
+	})
+	if err != nil {
+		logger.Errorf("creating test statement message: %w\n", err)
+	}
+
+	validationMessage := NewValidationProtocolVDT()
+	err = validationMessage.SetValue(statementDistributionLargeStatement)
+	if err != nil {
+		logger.Errorf("creating test validation message: %w\n", err)
+	}
 	s.Network.GossipMessage(&validationMessage)
 
 }
