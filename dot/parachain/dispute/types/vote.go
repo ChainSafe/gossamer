@@ -3,8 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/google/btree"
-
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -17,15 +15,7 @@ type Vote struct {
 	ValidatorSignature [64]byte                      `scale:"3"`
 }
 
-// Less returns true if the validator index of the vote is less than the validator index of the
-// vote it is being compared to.
-// TODO: currently, we aren't using btree to store Votes, so this isn't being used.
-// Keeping it here till we take a decision on this
-func (v Vote) Less(than btree.Item) bool {
-	return v.ValidatorIndex < than.(*Vote).ValidatorIndex
-}
-
-// Voted represents the votes state with the votes for a dispute statement
+// Voted represents the voted state with the votes for a dispute statement
 type Voted struct {
 	Votes []Vote
 }
