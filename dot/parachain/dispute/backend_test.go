@@ -56,7 +56,7 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	// then
 	recentDisputes, err := backend.GetRecentDisputes()
 	require.NoError(t, err)
-	require.Equal(t, disputes, recentDisputes)
+	require.True(t, compareBTrees(disputes, recentDisputes))
 }
 
 func TestOverlayBackend_CandidateVotes(t *testing.T) {
