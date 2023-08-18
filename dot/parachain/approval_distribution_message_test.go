@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var hash = common.MustHexToHash("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+var hashA = common.MustHexToHash("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 func TestEncodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 	approvalDistributionMessage := NewApprovalDistributionMessageVDT()
@@ -37,7 +37,7 @@ func TestEncodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 
 	approvalDistributionMessage.Set(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(1), false),
+			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(1), false),
 			CandidateIndex:         4,
 		},
 	})
@@ -64,7 +64,7 @@ func TestEncodeApprovalDistributionMessageAssignmentDelay(t *testing.T) {
 
 	approvalDistributionMessage.Set(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(2), true),
+			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(2), true),
 			CandidateIndex:         2,
 		},
 	})
@@ -113,7 +113,7 @@ func TestEncodeApprovalDistributionMessageApprovals(t *testing.T) {
 
 	approvalDistributionMessage.Set(Approvals{
 		IndirectSignedApprovalVote{
-			BlockHash:      hash,
+			BlockHash:      hashA,
 			CandidateIndex: CandidateIndex(2),
 			ValidatorIndex: parachaintypes.ValidatorIndex(3),
 			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -141,7 +141,7 @@ func TestDecodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
 	expectedApprovalDistributionMessage.Set(Assignments{
 		Assignment{
-			IndirectAssignmentCert: fakeAssignmentCert(hash, parachaintypes.ValidatorIndex(2), false),
+			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(2), false),
 			CandidateIndex:         4,
 		},
 	})
@@ -161,7 +161,7 @@ func TestDecodeApprovalDistributionMessageApprovals(t *testing.T) {
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
 	expectedApprovalDistributionMessage.Set(Approvals{
 		IndirectSignedApprovalVote{
-			BlockHash:      hash,
+			BlockHash:      hashA,
 			CandidateIndex: CandidateIndex(2),
 			ValidatorIndex: parachaintypes.ValidatorIndex(3),
 			Signature: ValidatorSignature{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
