@@ -48,33 +48,64 @@ type DBBackend interface {
 		candidateVotes map[types.Comparator]*types.CandidateVotes) error
 }
 
+type syncedEarliestSession struct {
+	*sync.RWMutex
+	*parachainTypes.SessionIndex
+}
+
+func newSyncedEarliestSession() syncedEarliestSession {
+	return syncedEarliestSession{
+		RWMutex: new(sync.RWMutex),
+	}
+}
+
+type syncedRecentDisputes struct {
+	*sync.RWMutex
+	*btree.BTree
+}
+
+func newSyncedRecentDisputes() syncedRecentDisputes {
+	return syncedRecentDisputes{
+		RWMutex: new(sync.RWMutex),
+		BTree:   btree.New(types.DisputeComparator),
+	}
+}
+
+type syncedCandidateVotes struct {
+	*sync.RWMutex
+	votes map[types.Comparator]*types.CandidateVotes
+}
+
+func newSyncedCandidateVotes() syncedCandidateVotes {
+	return syncedCandidateVotes{
+		RWMutex: new(sync.RWMutex),
+		votes:   make(map[types.Comparator]*types.CandidateVotes),
+	}
+}
+
 // overlayBackend implements OverlayBackend.
 type overlayBackend struct {
 	inner           DBBackend
-	earliestSession *parachainTypes.SessionIndex
-	recentDisputes  *btree.BTree
-	candidateVotes  map[types.Comparator]*types.CandidateVotes
-
-	earliestSessionLock *sync.RWMutex
-	recentDisputesLock  *sync.RWMutex
-	candidateVotesLock  *sync.RWMutex
+	earliestSession syncedEarliestSession
+	recentDisputes  syncedRecentDisputes
+	candidateVotes  syncedCandidateVotes
 }
 
 func (b *overlayBackend) GetEarliestSession() (*parachainTypes.SessionIndex, error) {
-	b.earliestSessionLock.RLock()
-	defer b.earliestSessionLock.RUnlock()
-	if b.earliestSession != nil {
-		return b.earliestSession, nil
+	b.earliestSession.RLock()
+	defer b.earliestSession.RUnlock()
+	if b.earliestSession.SessionIndex != nil {
+		return b.earliestSession.SessionIndex, nil
 	}
 
 	return b.inner.GetEarliestSession()
 }
 
 func (b *overlayBackend) GetRecentDisputes() (*btree.BTree, error) {
-	b.recentDisputesLock.RLock()
-	defer b.recentDisputesLock.RUnlock()
+	b.recentDisputes.RLock()
+	defer b.recentDisputes.RUnlock()
 	if b.recentDisputes.Len() > 0 {
-		return b.recentDisputes, nil
+		return b.recentDisputes.BTree.Copy(), nil
 	}
 
 	return b.inner.GetRecentDisputes()
@@ -83,14 +114,14 @@ func (b *overlayBackend) GetRecentDisputes() (*btree.BTree, error) {
 func (b *overlayBackend) GetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 ) (*types.CandidateVotes, error) {
-	b.candidateVotesLock.RLock()
-	defer b.candidateVotesLock.RUnlock()
+	b.candidateVotes.RLock()
+	defer b.candidateVotes.RUnlock()
 
 	key := types.Comparator{
 		SessionIndex:  session,
 		CandidateHash: candidateHash,
 	}
-	if v, ok := b.candidateVotes[key]; ok {
+	if v, ok := b.candidateVotes.votes[key]; ok {
 		return v, nil
 	}
 
@@ -98,16 +129,16 @@ func (b *overlayBackend) GetCandidateVotes(session parachainTypes.SessionIndex,
 }
 
 func (b *overlayBackend) SetEarliestSession(session *parachainTypes.SessionIndex) error {
-	b.earliestSessionLock.Lock()
-	defer b.earliestSessionLock.Unlock()
-	b.earliestSession = session
+	b.earliestSession.Lock()
+	defer b.earliestSession.Unlock()
+	b.earliestSession.SessionIndex = session
 	return nil
 }
 
 func (b *overlayBackend) SetRecentDisputes(recentDisputes *btree.BTree) error {
-	b.recentDisputesLock.Lock()
-	defer b.recentDisputesLock.Unlock()
-	b.recentDisputes = recentDisputes
+	b.recentDisputes.Lock()
+	defer b.recentDisputes.Unlock()
+	b.recentDisputes.BTree = recentDisputes
 	return nil
 }
 
@@ -115,14 +146,14 @@ func (b *overlayBackend) SetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 	votes *types.CandidateVotes,
 ) error {
-	b.candidateVotesLock.Lock()
-	defer b.candidateVotesLock.Unlock()
+	b.candidateVotes.Lock()
+	defer b.candidateVotes.Unlock()
 
 	key := types.Comparator{
 		SessionIndex:  session,
 		CandidateHash: candidateHash,
 	}
-	b.candidateVotes[key] = votes
+	b.candidateVotes.votes[key] = votes
 	return nil
 }
 
@@ -131,9 +162,9 @@ const ActiveDuration = 180 * time.Second
 
 // GetActiveDisputes returns the active disputes, if any.
 func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
-	b.recentDisputesLock.RLock()
+	b.recentDisputes.RLock()
 	recentDisputes := b.recentDisputes.Copy()
-	b.recentDisputesLock.RUnlock()
+	b.recentDisputes.RUnlock()
 
 	activeDisputes := btree.New(types.DisputeComparator)
 	recentDisputes.Ascend(nil, func(i interface{}) bool {
@@ -160,7 +191,7 @@ func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
 }
 
 func (b *overlayBackend) WriteToDB() error {
-	return b.inner.Write(b.earliestSession, b.recentDisputes, b.candidateVotes)
+	return b.inner.Write(b.earliestSession.SessionIndex, b.recentDisputes.BTree.Copy(), b.candidateVotes.votes)
 }
 
 var _ OverlayBackend = (*overlayBackend)(nil)
@@ -168,11 +199,9 @@ var _ OverlayBackend = (*overlayBackend)(nil)
 // newOverlayBackend creates a new overlayBackend.
 func newOverlayBackend(db *badger.DB) *overlayBackend {
 	return &overlayBackend{
-		inner:               NewDBBackend(db),
-		recentDisputes:      btree.New(types.DisputeComparator),
-		candidateVotes:      make(map[types.Comparator]*types.CandidateVotes),
-		earliestSessionLock: new(sync.RWMutex),
-		recentDisputesLock:  new(sync.RWMutex),
-		candidateVotesLock:  new(sync.RWMutex),
+		inner:           NewDBBackend(db),
+		earliestSession: newSyncedEarliestSession(),
+		recentDisputes:  newSyncedRecentDisputes(),
+		candidateVotes:  newSyncedCandidateVotes(),
 	}
 }
