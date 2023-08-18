@@ -12,9 +12,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"gopkg.in/yaml.v3"
-
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -22,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer/testdata"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -29,6 +27,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 //go:embed testdata/parachain.yaml

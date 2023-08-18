@@ -1036,7 +1036,7 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachaintypes.Session
 	return sessionInfo, nil
 }
 
-func (in *Instance) RandomSeed() {
+func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
 func (*Instance) OffchainWorker() {
