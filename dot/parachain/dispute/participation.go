@@ -1,9 +1,11 @@
 package dispute
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 
@@ -230,9 +232,6 @@ func (p *ParticipationHandler) forkParticipation(request *ParticipationRequest, 
 }
 
 func (p *ParticipationHandler) participate(blockHash common.Hash, request ParticipationRequest) error {
-	// TODO: use blockhash
-	fmt.Println(blockHash)
-
 	// get available data from the sender
 	availableDataTx := make(chan overseer.AvailabilityRecoveryResponse, 1)
 	if err := p.sender.SendMessage(overseer.AvailabilityRecoveryMessage{
@@ -259,6 +258,7 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 	}
 
 	validationCode, err := p.runtime.ParachainHostValidationCodeByHash(
+		blockHash,
 		request.candidateReceipt.Descriptor.ValidationCodeHash)
 	if err != nil {
 		sendResult(p.sender, request, types.ParticipationOutcomeError)
@@ -312,6 +312,9 @@ func NewParticipation(sender overseer.Sender, runtime parachain.RuntimeInstance)
 }
 
 func getBlockNumber(sender overseer.Sender, receipt parachainTypes.CandidateReceipt) (uint32, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	tx := make(chan *uint32, 1)
 	relayParent, err := receipt.Hash()
 	if err != nil {
@@ -325,12 +328,15 @@ func getBlockNumber(sender overseer.Sender, receipt parachainTypes.CandidateRece
 		return 0, fmt.Errorf("send message: %w", err)
 	}
 
-	result := <-tx
-	if result == nil {
-		return 0, fmt.Errorf("failed to get block number")
+	select {
+	case result := <-tx:
+		if result == nil {
+			return 0, fmt.Errorf("failed to get block number")
+		}
+		return *result, nil
+	case <-ctx.Done():
+		return 0, ctx.Err() // Return the context error if timeout exceeded
 	}
-
-	return *result, nil
 }
 
 func sendResult(sender overseer.Sender, request ParticipationRequest, outcome types.ParticipationOutcomeType) {
