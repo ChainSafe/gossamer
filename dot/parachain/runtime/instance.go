@@ -96,6 +96,7 @@ type RuntimeInstance interface {
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
 	ParachainHostValidationCodeByHash(
+		blockHash common.Hash,
 		validationCodeHash parachaintypes.ValidationCodeHash,
 	) (*parachaintypes.ValidationCode, error)
 }
