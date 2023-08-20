@@ -1,0 +1,15 @@
+[package]
+name = "erasure-coding-gorust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+thiserror = "1.0.31"
+parity-scale-codec = { version = "3.4.0", default-features = false, features = ["std", "derive"] }
+reed-solomon-novelpoly =  { package = "reed-solomon-novelpoly", git = "https://github.com/paritytech/reed-solomon-novelpoly", branch = "master" }
+polkadot-node-primitives = { package = "polkadot-node-primitives", git = "https://github.com/paritytech/polkadot", branch = "master" }
