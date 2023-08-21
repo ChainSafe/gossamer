@@ -1,6 +1,3 @@
-// Copyright 2023 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package erasure_test
 
 import (
@@ -19,7 +16,22 @@ func TestObtainChunks(t *testing.T) {
 		validators        uint
 		dataHex           string
 		expectedChunksHex []string
+		expectedError     error
 	}{
+		{
+			name:              "1_validators",
+			validators:        1,
+			dataHex:           "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+			expectedChunksHex: []string{},
+			expectedError:     fmt.Errorf("Expected at least 2 validators"),
+		},
+		{
+			name:              "2_validators",
+			validators:        2,
+			dataHex:           "0x",
+			expectedChunksHex: []string{},
+			expectedError:     fmt.Errorf("Data can't be zero sized"),
+		},
 		{
 			name:       "2_validators",
 			validators: 2,
@@ -96,13 +108,12 @@ func TestObtainChunks(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			res, err := erasure.ObtainChunks(c.validators, common.MustHexToBytes(c.dataHex))
-			require.NoError(t, err)
+			require.Equal(t, c.expectedError, err)
 
 			var expectedChunks [][]byte
 			for _, chunk := range c.expectedChunksHex {
 				expectedChunks = append(expectedChunks, common.MustHexToBytes(chunk))
 			}
-
 			require.Equal(t, expectedChunks, res)
 		})
 	}

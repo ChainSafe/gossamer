@@ -20,6 +20,10 @@ import (
 //
 // Accepts number of validators and scale encoded data.
 func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("Data can't be zero sized")
+	}
+
 	var cFlattenedChunks *C.uchar
 	var cFlattenedChunksLen C.size_t
 

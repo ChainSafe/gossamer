@@ -88,7 +88,13 @@ pub extern "C" fn obtain_chunks(
 	if data_slice.is_empty() {
 		return str_to_i8ptr(Error::BadPayload.to_string())
 	}
-	let params = code_params(n_validators).unwrap();
+	
+	let params_res = code_params(n_validators);
+	if params_res.is_err() {
+		return str_to_i8ptr(params_res.unwrap_err().to_string());
+	}
+	let params = params_res.unwrap();
+
 
 	let shards_res = params
     .make_encoder()
