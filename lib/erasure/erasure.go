@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package erasure
 
 // #cgo CFLAGS: -I.
@@ -71,7 +74,12 @@ func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	cFlattenedChunks := (*C.uchar)(unsafe.Pointer(&flattenedChunks[0]))
 	cFlattenedChunksLen := C.size_t(len(flattenedChunks))
 
-	cErr := C.reconstruct(C.size_t(nValidators), cFlattenedChunks, cFlattenedChunksLen, cChunkSize, &cReconstructedData, &cReconstructedDataLen)
+	cErr := C.reconstruct(
+		C.size_t(nValidators),
+		cFlattenedChunks, cFlattenedChunksLen,
+		cChunkSize,
+		&cReconstructedData, &cReconstructedDataLen,
+	)
 	errStr := C.GoString(cErr)
 	C.free(unsafe.Pointer(cErr))
 
@@ -83,7 +91,4 @@ func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	C.free(unsafe.Pointer(cReconstructedData))
 
 	return res, nil
-}
-
-func main() {
 }

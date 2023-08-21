@@ -155,10 +155,3 @@ compile-erasure:
 	cd ..	&&	\
 	cp ./rustlib/target/x86_64-unknown-linux-gnu/release/liberasure_coding_gorust.so liberasure.so	&&	\
 	cd ../../
-
-# clean-erasure:
-#     cd lib/erasure/rustlib	&&	\
-#     cargo clean	&&	\
-#     cd ..	&&	\
-#     rm -f liberasure_coding_gorust.so	&&	\
-#     cd ../../
