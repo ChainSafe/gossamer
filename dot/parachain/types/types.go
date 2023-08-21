@@ -26,6 +26,10 @@ type ValidatorID [sr25519.PublicKeyLength]byte
 // BlockNumber The block number type.
 type BlockNumber uint32
 
+func (b BlockNumber) Encode() ([]byte, error) {
+	return scale.Marshal(&b)
+}
+
 // GroupRotationInfo A helper data-type for tracking validator-group rotations.
 type GroupRotationInfo struct {
 	// SessionStartBlock is the block number at which the session started
@@ -225,6 +229,15 @@ type OutboundHrmpMessage struct {
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 
+func (vc ValidationCode) Hash() (ValidationCodeHash, error) {
+	hash, err := common.Blake2bHash(vc)
+	if err != nil {
+		return ValidationCodeHash{}, fmt.Errorf("hashing validation code: %w", err)
+	}
+
+	return ValidationCodeHash(hash), nil
+}
+
 // CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
 type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
@@ -239,6 +252,15 @@ type CandidateCommitments struct {
 	ProcessedDownwardMessages uint32 `scale:"5"`
 	// The mark which specifies the block number up to which all inbound HRMP messages are processed.
 	HrmpWatermark uint32 `scale:"6"`
+}
+
+func (c CandidateCommitments) Hash() (common.Hash, error) {
+	encoded, err := scale.Marshal(c)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("encoding candidate commitments: %w", err)
+	}
+
+	return common.Blake2bHash(encoded)
 }
 
 // SessionIndex is a session index.
