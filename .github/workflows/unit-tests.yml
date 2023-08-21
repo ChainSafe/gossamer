@@ -81,7 +81,7 @@ jobs:
         run: make compile-erasure
 
       - name: Run unit tests
-        run: LD_LIBRARY_PATH=${PWD}/lib/erasure go test ./lib/erasure/... #-coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
+        run: LD_LIBRARY_PATH=${PWD}/lib/erasure go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
 
       - name: Trie memory test
         run: |
