@@ -10,7 +10,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtimewasmer "github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazeroRuntime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -51,13 +51,13 @@ type ValidationParameters struct {
 
 // Instance is a wrapper around the wasmer runtime instance.
 type Instance struct {
-	*runtimewasmer.Instance
+	*wazeroRuntime.Instance
 }
 
 func SetupVM(code []byte) (*Instance, error) {
-	cfg := runtimewasmer.Config{}
+	cfg := wazeroRuntime.Config{}
 
-	instance, err := runtimewasmer.NewInstance(code, cfg)
+	instance, err := wazeroRuntime.NewInstance(code, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("creating instance: %w", err)
 	}

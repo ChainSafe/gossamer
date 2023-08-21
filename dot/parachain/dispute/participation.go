@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // CandidateComparator comparator for ordering of disputes for candidate.
@@ -26,12 +25,8 @@ type CandidateComparator struct {
 func NewCandidateComparator(relayParentBlockNumber *uint32,
 	receipt parachainTypes.CandidateReceipt,
 ) (CandidateComparator, error) {
-	encodedReceipt, err := scale.Marshal(receipt)
-	if err != nil {
-		return CandidateComparator{}, fmt.Errorf("encode candidate receipt: %w", err)
-	}
 
-	candidateHash, err := common.Blake2bHash(encodedReceipt)
+	candidateHash, err := receipt.Hash()
 	if err != nil {
 		return CandidateComparator{}, fmt.Errorf("hash candidate receipt: %w", err)
 	}
@@ -199,11 +194,7 @@ func (p *ParticipationHandler) numberOfWorkers() int {
 }
 
 func (p *ParticipationHandler) dequeueUntilCapacity(recentHead common.Hash) {
-	for {
-		if p.numberOfWorkers() >= MaxParallelParticipation {
-			break
-		}
-
+	for p.numberOfWorkers() < MaxParallelParticipation {
 		request := p.queue.Dequeue()
 		if request == nil {
 			break
@@ -243,25 +234,33 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		return fmt.Errorf("send availability recovery message: %w", err)
 	}
 
-	availableData := <-availableDataTx
-	if availableData.Error != nil {
-		switch *availableData.Error {
-		case overseer.RecoveryErrorInvalid:
-			sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
-			return fmt.Errorf("invalid available data: %s", availableData.Error.String())
-		case overseer.RecoveryErrorUnavailable:
-			sendResult(p.sender, request, types.ParticipationOutcomeUnAvailable)
-			return fmt.Errorf("unavailable data: %s", availableData.Error.String())
-		default:
-			return fmt.Errorf("unexpected recovery error: %d", availableData.Error)
+	recoverDataCtx, recoverDataCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer recoverDataCancel()
+	var availableData overseer.AvailabilityRecoveryResponse
+	select {
+	case <-recoverDataCtx.Done():
+		return recoverDataCtx.Err() // Return the context error if timeout exceeded
+	case availableData = <-availableDataTx:
+		if availableData.Error != nil {
+			switch *availableData.Error {
+			case overseer.RecoveryErrorInvalid:
+				sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
+				return fmt.Errorf("invalid available data: %s", availableData.Error.String())
+			case overseer.RecoveryErrorUnavailable:
+				sendResult(p.sender, request, types.ParticipationOutcomeUnAvailable)
+				return fmt.Errorf("unavailable data: %s", availableData.Error.String())
+			default:
+				return fmt.Errorf("unexpected recovery error: %d", availableData.Error)
+			}
 		}
 	}
 
 	validationCode, err := p.runtime.ParachainHostValidationCodeByHash(
 		blockHash,
 		request.candidateReceipt.Descriptor.ValidationCodeHash)
-	if err != nil {
+	if err != nil || validationCode == nil {
 		sendResult(p.sender, request, types.ParticipationOutcomeError)
+		return fmt.Errorf("failed to get validation code: %w", err)
 	}
 
 	if len(*validationCode) == 0 {
@@ -272,6 +271,9 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		sendResult(p.sender, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("validation code is empty")
 	}
+
+	validateCtx, validateCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer validateCancel()
 
 	// validate the request and send the result
 	tx := make(chan overseer.ValidationResult, 1)
@@ -284,19 +286,23 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		sendResult(p.sender, request, types.ParticipationOutcomeError)
 	}
 
-	result := <-tx
-	if result.Error != nil {
-		// validation failed
-		sendResult(p.sender, request, types.ParticipationOutcomeError)
-		return fmt.Errorf("validation failed: %s", result.Error)
-	}
+	select {
+	case <-validateCtx.Done():
+		return validateCtx.Err()
+	case result := <-tx:
+		if result.Error != nil {
+			// validation failed
+			sendResult(p.sender, request, types.ParticipationOutcomeError)
+			return fmt.Errorf("validation failed: %s", result.Error)
+		}
 
-	if !result.IsValid {
-		sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
-		return fmt.Errorf("validation failed: %s", result.Error)
-	} else {
-		sendResult(p.sender, request, types.ParticipationOutcomeValid)
-		return nil
+		if !result.IsValid {
+			sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
+			return fmt.Errorf("validation failed: %s", result.Error)
+		} else {
+			sendResult(p.sender, request, types.ParticipationOutcomeValid)
+			return nil
+		}
 	}
 }
 

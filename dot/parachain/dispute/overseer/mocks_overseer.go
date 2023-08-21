@@ -5,8 +5,8 @@
 package overseer
 
 import (
-	reflect "reflect"
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockSender is a mock of Sender interface.
@@ -50,11 +50,6 @@ func (mr *MockSenderMockRecorder) Feed(arg0 interface{}) *gomock.Call {
 func (m *MockSender) SendMessage(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessage", arg0)
-
-	message := arg0.(ChainAPIMessage)
-	res := uint32(1)
-	message.ResponseChannel <- &res
-
 	ret0, _ := ret[0].(error)
 	return ret0
 }
