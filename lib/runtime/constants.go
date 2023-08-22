@@ -72,6 +72,8 @@ const (
 	ParachainHostPersistedValidationData = "ParachainHost_persisted_validation_data"
 	// ParachainHostValidationCode returns parachain host's validation code
 	ParachainHostValidationCode = "ParachainHost_validation_code"
+	// ParachainHostValidationCodeByHash returns parachain host's validation code by hash
+	ParachainHostValidationCodeByHash = "ParachainHost_validation_code_by_hash"
 	// ParachainHostValidators is the runtime API call ParachainHost_validators
 	ParachainHostValidators = "ParachainHost_validators"
 	// ParachainHostValidatorGroups is the runtime API call ParachainHost_validator_groups
