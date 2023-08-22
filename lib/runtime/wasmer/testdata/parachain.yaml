@@ -64,7 +64,8 @@ storage:
   - key: "0x6a0da05ca59913bc38a8630590f2627c1d3719f5b0b12c7105c073c507445948b6ff6f7d467b87a9e8030000"
     value: "0x08d007000049080000"
 # paras.currentCodeHash[paraId=1000]
-  - key: 0xcd710b30bd2eab0352ddcc26417aa194e2d1c22ba0a888147714a3487bd51c63b6ff6f7d467b87a9e8030000
+  - name: currentCodeHash
+    key: "0xcd710b30bd2eab0352ddcc26417aa194e2d1c22ba0a888147714a3487bd51c63b6ff6f7d467b87a9e8030000"
     value: "0xcafdc44448ed62f5f67e5c340b420c51fe3bee7c1577f9fa0e819383b5145337"
 # paras.codeByHash
   - name: "validationCode"
