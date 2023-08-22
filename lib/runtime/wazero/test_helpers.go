@@ -77,3 +77,9 @@ func NewTestInstance(t *testing.T, targetRuntime string, opts ...TestInstanceOpt
 	require.NoError(t, err)
 	return r
 }
+
+func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [32]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
