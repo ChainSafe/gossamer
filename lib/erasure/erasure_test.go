@@ -13,7 +13,7 @@ import (
 )
 
 func TestObtainChunks(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		validators        uint
