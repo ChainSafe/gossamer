@@ -95,7 +95,6 @@ pub extern "C" fn obtain_chunks(
 	}
 	let params = params_res.unwrap();
 
-
 	let shards_res = params
     .make_encoder()
     .encode::<WrappedShard>(&data_slice[..]);

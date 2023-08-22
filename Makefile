@@ -149,7 +149,6 @@ zombienet-test: install install-zombienet
 	zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl
 
 compile-erasure:
-	export LD_LIBRARY_PATH=${PWD}/lib/erasure	&&	\
 	cd lib/erasure/rustlib/	&&	\
 	cargo build --release --target x86_64-unknown-linux-gnu	&&	\
 	cd ..	&&	\

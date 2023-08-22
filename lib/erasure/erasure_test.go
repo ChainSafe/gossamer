@@ -4,7 +4,7 @@
 package erasure_test
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,7 +13,7 @@ import (
 )
 
 func TestObtainChunks(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	testCases := []struct {
 		name              string
 		validators        uint
@@ -26,14 +26,14 @@ func TestObtainChunks(t *testing.T) {
 			validators:        1,
 			dataHex:           "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			expectedChunksHex: []string{},
-			expectedError:     fmt.Errorf("Expected at least 2 validators"),
+			expectedError:     errors.New("Expected at least 2 validators"),
 		},
 		{
-			name:              "2_validators",
+			name:              "2_validators with zero sized data",
 			validators:        2,
 			dataHex:           "0x",
 			expectedChunksHex: []string{},
-			expectedError:     fmt.Errorf("Data can't be zero sized"),
+			expectedError:     erasure.ZeroSizedData,
 		},
 		{
 			name:       "2_validators",
@@ -113,11 +113,14 @@ func TestObtainChunks(t *testing.T) {
 			res, err := erasure.ObtainChunks(c.validators, common.MustHexToBytes(c.dataHex))
 			require.Equal(t, c.expectedError, err)
 
-			var expectedChunks [][]byte
-			for _, chunk := range c.expectedChunksHex {
-				expectedChunks = append(expectedChunks, common.MustHexToBytes(chunk))
+			if err == nil {
+				var expectedChunks [][]byte
+				for _, chunk := range c.expectedChunksHex {
+					expectedChunks = append(expectedChunks, common.MustHexToBytes(chunk))
+				}
+				require.Equal(t, c.validators, uint(len(res)))
+				require.Equal(t, expectedChunks, res)
 			}
-			require.Equal(t, expectedChunks, res)
 		})
 	}
 
@@ -137,7 +140,7 @@ func TestReconstruct(t *testing.T) {
 			validators:      1,
 			expectedDataHex: "0x",
 			chunksHex:       []string{},
-			expectedError:   fmt.Errorf("Chunks can't be zero sized"),
+			expectedError:   erasure.ZeroSizedChunks,
 		},
 		{
 			name:            "1_validators",
@@ -146,7 +149,7 @@ func TestReconstruct(t *testing.T) {
 			chunksHex: []string{
 				"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			},
-			expectedError: fmt.Errorf("Expected at least 2 validators"),
+			expectedError: errors.New("Expected at least 2 validators"),
 		},
 		{
 			name:            "2_validators",

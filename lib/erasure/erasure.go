@@ -10,18 +10,21 @@ import (
 	"C"
 )
 import (
-	"fmt"
+	"errors"
 	"unsafe"
 )
 
-// Obtain erasure-coded chunks, one for each validator.
-//
-// Works only up to 65536 validators, and `n_validators` must be non-zero.
-//
-// Accepts number of validators and scale encoded data.
+var (
+	ZeroSizedData   = errors.New("Data can't be zero sized")
+	ZeroSizedChunks = errors.New("Chunks can't be zero sized")
+)
+
+// ObtainChunks obtains erasure-coded chunks, one for each validator.
+// This works only up to 65536 validators, and `n_validators` must be non-zero and accepts
+// number of validators and scale encoded data.
 func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
 	if len(data) == 0 {
-		return nil, fmt.Errorf("Data can't be zero sized")
+		return nil, ZeroSizedData
 	}
 
 	var cFlattenedChunks *C.uchar
@@ -32,11 +35,11 @@ func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
 	cLen := C.size_t(len(data))
 
 	cErr := C.obtain_chunks(cnValidators, cData, cLen, &cFlattenedChunks, &cFlattenedChunksLen)
-	var errStr string = C.GoString(cErr)
+	errStr := C.GoString(cErr)
 	C.free(unsafe.Pointer(cErr))
 
 	if len(errStr) > 0 {
-		return nil, fmt.Errorf(errStr)
+		return nil, errors.New(errStr)
 	}
 
 	resData := C.GoBytes(unsafe.Pointer(cFlattenedChunks), C.int(cFlattenedChunksLen))
@@ -45,10 +48,11 @@ func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
 	chunkSize := uint(len(resData)) / nValidators
 	chunks := make([][]byte, nValidators)
 
-	for i := uint(0); i < nValidators; i++ {
-		start := i * chunkSize
+	start := uint(0)
+	for i := start; i < nValidators; i++ {
 		end := start + chunkSize
 		chunks[i] = resData[start:end]
+		start = end
 	}
 
 	return chunks, nil
@@ -63,7 +67,7 @@ func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
 // Works only up to 65536 validators, and `n_validators` must be non-zero
 func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	if len(chunks) == 0 {
-		return nil, fmt.Errorf("Chunks can't be zero sized")
+		return nil, ZeroSizedChunks
 	}
 
 	var cReconstructedData *C.uchar
@@ -88,7 +92,7 @@ func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	C.free(unsafe.Pointer(cErr))
 
 	if len(errStr) > 0 {
-		return nil, fmt.Errorf(errStr)
+		return nil, errors.New(errStr)
 	}
 
 	res := C.GoBytes(unsafe.Pointer(cReconstructedData), C.int(cReconstructedDataLen))
