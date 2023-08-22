@@ -21,6 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [32]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
+
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	t.Helper()
