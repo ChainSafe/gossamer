@@ -1210,7 +1210,14 @@ func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, 
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child from child storage: %s", err)
-		return 0
+
+		var emptyOptionalBytes []byte = []byte{0x01, 0x00}
+		ret, err := write(m, rtCtx.Allocator, emptyOptionalBytes)
+		if err != nil {
+			panic(err)
+		}
+
+		return ret
 	}
 
 	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&child))
