@@ -31,6 +31,8 @@ var (
 		log.AddContext("pkg", "runtime"),
 		log.AddContext("module", "wazero"),
 	)
+
+	noneEncoded []byte = []byte{0x00}
 )
 
 const (
@@ -229,13 +231,17 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Errorf("failed to get public keys: %s", err)
-		return 0
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	ks, err := rtCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -245,7 +251,7 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -255,25 +261,18 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	sig, err := signingKey.Sign(read(m, msg))
 	if err != nil {
 		logger.Error("could not sign message")
-	}
-
-	var fixedSize [64]byte
-	copy(fixedSize[:], sig)
-
-	encoded, err := scale.Marshal(&fixedSize)
-	if err != nil {
-		logger.Error(fmt.Sprintf("scale encoding: %s", err))
-		ret, err := write(m, rtCtx.Allocator, []byte{0})
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
 		return ret
 	}
 
-	ret, err := write(m, rtCtx.Allocator, encoded)
+	var fixedSize [64]byte
+	copy(fixedSize[:], sig)
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&fixedSize))
 	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
-		return 0
+		panic(err)
 	}
 
 	return ret
@@ -629,12 +628,10 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 		panic("read overflow")
 	}
 
-	var optionSig *[64]byte
-
 	ks, err := rtCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -649,7 +646,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	pubKey, err := sr25519.NewPublicKey(kb)
 	if err != nil {
 		logger.Errorf("failed to get public key: %s", err)
-		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -659,7 +656,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -670,7 +667,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Errorf("could not sign message: %s", err)
-		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -679,16 +676,10 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 
 	var fixedSig [64]byte
 	copy(fixedSig[:], sig)
-	optionSig = &fixedSig
 
-	keysPtr, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
+	keysPtr, err := write(m, rtCtx.Allocator, scale.MustMarshal(&fixedSig))
 	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
-		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(optionSig))
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		panic(err)
 	}
 	return keysPtr
 }
@@ -990,11 +981,10 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	}
 	code := read(m, dataSpan)
 
-	var option *[]byte
 	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
-		ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			panic(err)
 		}
@@ -1011,12 +1001,14 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
-		return 0
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
-	option = &encodedData
-
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&encodedData))
 	if err != nil {
 		panic(err)
 	}
@@ -1035,7 +1027,11 @@ func ext_default_child_storage_read_version_1(
 	value, err := rtCtx.Storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child storage: %s", err)
-		return 0
+		ret, err := write(m, rtCtx.Allocator, noneEncoded)
+		if err != nil {
+			panic(err)
+		}
+		return ret
 	}
 
 	valueBuf, _ := splitPointerSize(valueOut)
@@ -1208,22 +1204,20 @@ func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, 
 	keyToChild := read(m, childStorageKey)
 	keyBytes := read(m, key)
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
-	if err != nil {
-		logger.Errorf("failed to get child from child storage: %s", err)
+	var encodedChildOptional []byte
 
-		var emptyOptionalBytes []byte = []byte{0x01, 0x00}
-		ret, err := write(m, rtCtx.Allocator, emptyOptionalBytes)
-		if err != nil {
-			panic(err)
-		}
-
-		return ret
+	if err != nil || len(child) == 0 {
+		logger.Warnf("child storage not found: %s", err)
+		encodedChildOptional = noneEncoded
+	} else {
+		encodedChildOptional = scale.MustMarshal(&child)
 	}
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&child))
+	ret, err := write(m, rtCtx.Allocator, encodedChildOptional)
 	if err != nil {
 		panic(err)
 	}
+
 	return ret
 }
 
@@ -1714,11 +1708,15 @@ func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module,
 		res, err = rtCtx.NodeStorage.LocalStorage.Get(storageKey)
 	}
 
-	if err != nil {
+	var encodedOption []byte
+	if err != nil || len(res) == 0 {
 		logger.Errorf("failed to get value from storage: %s", err)
+		encodedOption = noneEncoded
+	} else {
+		encodedOption = res
 	}
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&res))
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&encodedOption))
 	if err != nil {
 		panic(err)
 	}
@@ -2153,12 +2151,14 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 	value := storage.Get(key)
 	logger.Debugf("value: 0x%x", value)
 
-	var option *[]byte
-	if value != nil {
-		option = &value
+	var encodedOption []byte
+	if len(value) == 0 {
+		encodedOption = noneEncoded
+	} else {
+		encodedOption = scale.MustMarshal(&value)
 	}
 
-	valueSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+	valueSpan, err := write(m, rtCtx.Allocator, encodedOption)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		panic(err)
@@ -2180,12 +2180,14 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 		"key: 0x%x; next key 0x%x",
 		key, next)
 
-	var option *[]byte
-	if len(next) > 0 {
-		option = &next
+	var encodedOption []byte
+	if len(next) == 0 {
+		encodedOption = noneEncoded
+	} else {
+		encodedOption = scale.MustMarshal(&next)
 	}
 
-	nextSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+	nextSpan, err := write(m, rtCtx.Allocator, encodedOption)
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		panic(err)
@@ -2200,17 +2202,14 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 	}
 	storage := rtCtx.Storage
 
-	// memory := instanceContext.Memory().Data()
-	var option *uint32 = nil
-
 	key := read(m, keySpan)
 	value := storage.Get(key)
 	logger.Debugf(
 		"key 0x%x has value 0x%x",
 		key, value)
 
-	if value == nil {
-		res, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+	if len(value) == 0 {
+		res, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			logger.Errorf("failed to allocate: %s", err)
 			panic(err)
@@ -2240,9 +2239,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 	}
 
 	size := uint32(len(data))
-	option = &size
-
-	sizeSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(option))
+	sizeSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(&size))
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)
 		panic(err)
