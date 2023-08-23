@@ -76,10 +76,6 @@ func dummyCandidateReceiptBadSignature(
 	}, nil
 }
 
-func dummyHash() common.Hash {
-	return common.Hash{}
-}
-
 func activateLeaf(
 	participation Participation,
 	blockNumber parachainTypes.BlockNumber,
@@ -96,8 +92,8 @@ func activateLeaf(
 	blockHeader := types.Header{
 		ParentHash:     parentHash,
 		Number:         uint(blockNumber),
-		StateRoot:      dummyHash(),
-		ExtrinsicsRoot: dummyHash(),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
 		Digest:         scale.VaryingDataTypeSlice{},
 	}
 	blockHash := blockHeader.Hash()
