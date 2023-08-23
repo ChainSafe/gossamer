@@ -26,7 +26,7 @@ func TestObtainChunks(t *testing.T) {
 			validators:        1,
 			dataHex:           "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			expectedChunksHex: []string{},
-			expectedError:     errors.New("Expected at least 2 validators"),
+			expectedError:     errors.New("expected at least 2 validators"),
 		},
 		{
 			name:              "2_validators with zero sized data",
@@ -151,7 +151,7 @@ func TestReconstruct(t *testing.T) {
 			chunksHex: []string{
 				"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			},
-			expectedError: errors.New("Expected at least 2 validators"),
+			expectedError: errors.New("expected at least 2 validators"),
 		},
 		{
 			name:            "2_validators",

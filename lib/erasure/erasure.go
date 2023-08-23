@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	ZeroSizedData   = errors.New("Data can't be zero sized")
-	ZeroSizedChunks = errors.New("Chunks can't be zero sized")
+	ZeroSizedData   = errors.New("data can't be zero sized")
+	ZeroSizedChunks = errors.New("chunks can't be zero sized")
 )
 
 // ObtainChunks obtains erasure-coded chunks, one for each validator.
