@@ -554,7 +554,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	ts.Put([]byte(`:key2`), []byte(`value2`), trie.V0)
 	ts.Put([]byte(`:key1`), []byte(`value1`), trie.V0)
-	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`), trie.V0)
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)

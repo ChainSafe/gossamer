@@ -381,10 +381,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 
 	isValueHashed := version.ShouldHashValue(value)
 	if isValueHashed {
-		hashedValue, err := common.Blake2bHash(value)
-		if err != nil {
-			return err
-		}
+		hashedValue := common.MustBlake2bHash(value)
 
 		// Add original value in db using the hashed value as key
 		err = t.db.Put(hashedValue.ToBytes(), value)
@@ -668,29 +665,6 @@ func LoadFromMap(data map[string]string, version Version) (trie Trie, err error)
 		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeltas, version)
 		if err != nil {
 			return Trie{}, fmt.Errorf("inserting key value pair in trie: %w", err)
-		}
-	}
-
-	return trie, nil
-}
-
-// LoadFromEntries loads the given slice of key values into a new empty trie.
-// The keys are in hexadecimal little Endian encoding and the values
-// are hexadecimal encoded.
-func LoadFromEntries(entries [][2][]byte, version Version) (trie *Trie, err error) {
-	trie = NewEmptyTrie()
-
-	pendingDeltas := tracking.New()
-	defer func() {
-		trie.handleTrackedDeltas(err == nil, pendingDeltas)
-	}()
-
-	for _, keyValue := range entries {
-		keyLE := keyValue[0]
-		value := keyValue[1]
-		err := trie.insertKeyLE(keyLE, value, pendingDeltas, version)
-		if err != nil {
-			return nil, err
 		}
 	}
 

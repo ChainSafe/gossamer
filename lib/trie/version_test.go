@@ -62,6 +62,14 @@ func Test_ParseVersion(t *testing.T) {
 			s:       "V0",
 			version: V0,
 		},
+		"v1": {
+			s:       "v1",
+			version: V1,
+		},
+		"V1": {
+			s:       "V1",
+			version: V1,
+		},
 		"invalid": {
 			s:          "xyz",
 			errWrapped: ErrParseVersion,
@@ -81,6 +89,59 @@ func Test_ParseVersion(t *testing.T) {
 			if testCase.errWrapped != nil {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
+		})
+	}
+}
+
+func Test_ShouldHashValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		version      Version
+		value        []byte
+		shouldHash   bool
+		panicMessage string
+	}{
+		"v0_small_value": {
+			version:    V0,
+			value:      []byte("smallvalue"),
+			shouldHash: false,
+		},
+		"v0_large_value": {
+			version:    V0,
+			value:      []byte("newvaluewithmorethan32byteslength"),
+			shouldHash: false,
+		},
+		"v1_small_value": {
+			version:    V1,
+			value:      []byte("smallvalue"),
+			shouldHash: false,
+		},
+		"v1_large_value": {
+			version:    V1,
+			value:      []byte("newvaluewithmorethan32byteslength"),
+			shouldHash: true,
+		},
+		"invalid": {
+			version:      Version(99),
+			panicMessage: "unknown version 99",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if testCase.panicMessage != "" {
+				assert.PanicsWithValue(t, testCase.panicMessage, func() {
+					_ = testCase.version.ShouldHashValue(testCase.value)
+				})
+				return
+			}
+
+			shouldHash := testCase.version.ShouldHashValue(testCase.value)
+			assert.Equal(t, testCase.shouldHash, shouldHash)
 		})
 	}
 }

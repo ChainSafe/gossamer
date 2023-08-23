@@ -19,48 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_newTrieFromPairs(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		filename string
-		version  trie.Version
-		want     common.Hash
-		err      error
-	}{
-		{
-			name: "no_arguments",
-			err:  errors.New("read .: is a directory"),
-			want: common.Hash{},
-		},
-		{
-			name:     "working example",
-			filename: setupStateFile(t),
-			version:  trie.V0,
-			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, err := newTrieFromPairs(tt.filename, tt.version)
-			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
-			if tt.want.IsEmpty() {
-				assert.Nil(t, got)
-			} else {
-				assert.Equal(t, tt.want, got.MustHash())
-			}
-		})
-	}
-}
-
 func TestNewHeaderFromFile(t *testing.T) {
 	fp := setupHeaderFile(t)
 	header, err := newHeaderFromFile(fp)
