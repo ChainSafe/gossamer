@@ -62,6 +62,31 @@ func TestTrieState_SetGetChildStorage(t *testing.T) {
 	testFunc(ts)
 }
 
+func TestTrieState_SetAndClearFromChild(t *testing.T) {
+	testFunc := func(ts *TrieState) {
+		for _, tc := range testCases {
+			childTrie := trie.NewEmptyTrie()
+			err := ts.SetChild([]byte(tc), childTrie, trie.V0)
+			require.NoError(t, err)
+
+			err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc), trie.V0)
+			require.NoError(t, err)
+		}
+
+		for _, tc := range testCases {
+			err := ts.ClearChildStorage([]byte(tc), []byte(tc))
+			require.NoError(t, err)
+
+			res, err := ts.GetChildStorage([]byte(tc), []byte(tc))
+			require.NoError(t, err)
+			require.Equal(t, []uint8(nil), res)
+		}
+	}
+
+	ts := &TrieState{t: trie.NewEmptyTrie()}
+	testFunc(ts)
+}
+
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
