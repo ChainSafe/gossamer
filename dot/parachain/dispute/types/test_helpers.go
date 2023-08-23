@@ -1,6 +1,7 @@
 package types
 
 import (
+	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -19,8 +20,8 @@ const (
 	DisputeStatusConfirmed
 )
 
-// NewTestDispute returns a new dispute with the given session index, candidate hash, and status
-func NewTestDispute(session parachainTypes.SessionIndex,
+// DummyDispute returns a new dummy dispute with the given session index, candidate hash, and status
+func DummyDispute(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 	status disputeStatusEnum,
 ) (*Dispute, error) {
@@ -63,8 +64,8 @@ func NewTestDispute(session parachainTypes.SessionIndex,
 	}, nil
 }
 
-// NewTestCandidateVotes returns a new candidate votes with valid and invalid votes
-func NewTestCandidateVotes(t *testing.T) *CandidateVotes {
+// DummyCandidateVotes returns a new candidate votes with valid and invalid votes
+func DummyCandidateVotes(t *testing.T) *CandidateVotes {
 	receipt := parachainTypes.CandidateReceipt{
 		Descriptor: parachainTypes.CandidateDescriptor{
 			ParaID:                      1,
@@ -83,24 +84,24 @@ func NewTestCandidateVotes(t *testing.T) *CandidateVotes {
 	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
 	validVotes[1] = Vote{
 		ValidatorIndex:     1,
-		DisputeStatement:   GetValidDisputeStatement(t),
+		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{1},
 	}
 	validVotes[2] = Vote{
 		ValidatorIndex:     2,
-		DisputeStatement:   GetValidDisputeStatement(t),
+		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	}
 
 	invalidVotes := make(map[parachainTypes.ValidatorIndex]Vote)
 	invalidVotes[2] = Vote{
 		ValidatorIndex:     2,
-		DisputeStatement:   GetInvalidDisputeStatement(t),
+		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	}
 	invalidVotes[3] = Vote{
 		ValidatorIndex:     3,
-		DisputeStatement:   GetInvalidDisputeStatement(t),
+		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{3},
 	}
 
@@ -111,8 +112,8 @@ func NewTestCandidateVotes(t *testing.T) *CandidateVotes {
 	}
 }
 
-// GetValidDisputeStatement returns a valid dispute statement
-func GetValidDisputeStatement(t *testing.T) inherents.DisputeStatement {
+// DummyValidDisputeStatement returns a dummy valid dispute statement
+func DummyValidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	validDisputeStatement := inherents.NewDisputeStatement()
 	disputeStatementKind := inherents.NewValidDisputeStatementKind()
 	err := disputeStatementKind.Set(inherents.ExplicitValidDisputeStatementKind{})
@@ -123,8 +124,8 @@ func GetValidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	return validDisputeStatement
 }
 
-// GetInvalidDisputeStatement returns an invalid dispute statement
-func GetInvalidDisputeStatement(t *testing.T) inherents.DisputeStatement {
+// DummyInvalidDisputeStatement returns an invalid dispute statement
+func DummyInvalidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	invalidDisputeStatement := inherents.NewDisputeStatement()
 	invalidDisputeStatementKind := inherents.NewInvalidDisputeStatementKind()
 	err := invalidDisputeStatementKind.Set(inherents.ExplicitInvalidDisputeStatementKind{})
@@ -133,4 +134,28 @@ func GetInvalidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	err = invalidDisputeStatement.Set(inherents.InvalidDisputeStatementKind(invalidDisputeStatementKind))
 	require.NoError(t, err)
 	return invalidDisputeStatement
+}
+
+func getRandomHash() common.Hash {
+	var hash [32]byte
+	randomBytes := make([]byte, len(hash))
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	copy(hash[:], randomBytes)
+	return hash
+}
+
+func getRandomSignature() [64]byte {
+	var hash [64]byte
+	randomBytes := make([]byte, len(hash))
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	copy(hash[:], randomBytes)
+	return hash
 }

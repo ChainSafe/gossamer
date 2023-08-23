@@ -29,24 +29,24 @@ func Test_CandidateVotes(t *testing.T) {
 	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
 	validVotes[1] = Vote{
 		ValidatorIndex:     1,
-		DisputeStatement:   GetInvalidDisputeStatement(t),
+		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{1},
 	}
 	validVotes[2] = Vote{
 		ValidatorIndex:     2,
-		DisputeStatement:   GetValidDisputeStatement(t),
+		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	}
 
 	invalidVotes := make(map[parachainTypes.ValidatorIndex]Vote)
 	invalidVotes[2] = Vote{
 		ValidatorIndex:     2,
-		DisputeStatement:   GetInvalidDisputeStatement(t),
+		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	}
 	invalidVotes[3] = Vote{
 		ValidatorIndex:     3,
-		DisputeStatement:   GetInvalidDisputeStatement(t),
+		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{3},
 	}
 
@@ -71,7 +71,7 @@ func Test_Vote(t *testing.T) {
 	t.Parallel()
 	validVote := Vote{
 		ValidatorIndex:     1,
-		DisputeStatement:   GetValidDisputeStatement(t),
+		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: getRandomSignature(),
 	}
 
@@ -86,7 +86,7 @@ func Test_Vote(t *testing.T) {
 
 	invalidVote := Vote{
 		ValidatorIndex:     1,
-		DisputeStatement:   GetInvalidDisputeStatement(t),
+		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: getRandomSignature(),
 	}
 
@@ -124,12 +124,12 @@ func TestOwnVoteState_Voted(t *testing.T) {
 	votes := []Vote{
 		{
 			ValidatorIndex:     1,
-			DisputeStatement:   GetValidDisputeStatement(t),
+			DisputeStatement:   DummyValidDisputeStatement(t),
 			ValidatorSignature: getRandomSignature(),
 		},
 		{
 			ValidatorIndex:     2,
-			DisputeStatement:   GetInvalidDisputeStatement(t),
+			DisputeStatement:   DummyInvalidDisputeStatement(t),
 			ValidatorSignature: getRandomSignature(),
 		},
 	}
