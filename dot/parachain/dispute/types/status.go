@@ -2,10 +2,12 @@ package types
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/pkg/errors"
 )
+
+var ErrDisputeNotConcluded = errors.New("dispute not concluded")
 
 // ActiveStatus is the status when the dispute is active.
 type ActiveStatus struct{}
@@ -132,8 +134,6 @@ func (ds *DisputeStatus) ConcludeAgainst(since uint64) error {
 
 	return nil
 }
-
-var ErrDisputeNotConcluded = errors.New("dispute not concluded")
 
 // ConcludedAt returns the time the dispute was concluded, if it is concluded.
 func (ds *DisputeStatus) ConcludedAt() (*uint64, error) {
