@@ -200,40 +200,6 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	return rootHash, nil
 }
 
-// EntriesList returns all the key-value pairs in the trie as a slice of key value
-// where the keys are encoded in Little Endian.  The slice starts with root node.
-func (t *Trie) EntriesList() [][2][]byte {
-	list := make([][2][]byte, 0)
-	entriesList(t.root, nil, &list)
-	return list
-}
-
-func entriesList(parent *Node, prefix []byte, list *[][2][]byte) {
-	if parent == nil {
-		return
-	}
-
-	if parent.Kind() == node.Leaf {
-		parentKey := parent.PartialKey
-		fullKeyNibbles := concatenateSlices(prefix, parentKey)
-		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
-		*list = append(*list, [2][]byte{keyLE, parent.StorageValue})
-		return
-	}
-
-	branch := parent
-	if branch.StorageValue != nil {
-		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
-		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
-		*list = append(*list, [2][]byte{keyLE, parent.StorageValue})
-	}
-
-	for i, child := range branch.Children {
-		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
-		entriesList(child, childPrefix, list)
-	}
-}
-
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 // where the keys are encoded in Little Endian.
 func (t *Trie) Entries() (keyValueMap map[string][]byte) {
