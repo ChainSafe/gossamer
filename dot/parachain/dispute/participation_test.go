@@ -2,12 +2,12 @@ package dispute
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain"
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -58,6 +58,168 @@ func TestNewParticipation(t *testing.T) {
 
 	participation := NewParticipation(mockSender, mockRuntime)
 	require.NotNil(t, participation, "should not be nil")
+}
+
+func TestNewParticipationEd(t *testing.T) {
+	t.Parallel()
+	sender := overseer.NewExampleSender()
+
+	ctrl := gomock.NewController(t)
+	mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+	//mockSender := overseer.NewMockSender(ctrl)
+
+	participation := NewParticipation(sender, mockRuntime)
+	require.NotNil(t, participation, "should not be nil")
+}
+
+func TestParticipationHandler_QueueEd(t *testing.T) {
+	t.Parallel()
+	t.Run("should_not_queue_the_same_request_if_the_participation_is_already_running", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		overseer := overseer.NewOverseer()
+		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+
+		ctx := overseer.GetContext()
+
+		participationHandler := NewParticipation(ctx.Sender, mockRuntime)
+		overseer.RegisterSubSystem(participationHandler)
+		overseer.Start()
+
+		err := participate(participationHandler, *ctx)
+		require.NoError(t, err)
+
+		for i := 0; i < MaxParallelParticipation; i++ {
+			err = participate(participationHandler, *ctx)
+			require.NoError(t, err)
+		}
+
+		// sleep for a while to ensure we don't have any further results nor recovery requests
+		time.Sleep(5 * time.Second)
+	})
+
+	t.Run("requests_get_queued_when_out_of_capacity", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		overseer := overseer.NewOverseer()
+		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+
+		var wg sync.WaitGroup
+		participationTest := func() {
+			defer wg.Done()
+			ctx := overseer.GetContext()
+			participationHandler := NewParticipation(ctx.Sender, mockRuntime)
+			overseer.RegisterSubSystem(participationHandler)
+			overseer.Start()
+
+			err := participate(participationHandler, *ctx)
+			require.NoError(t, err)
+
+			for i := 0; i < MaxParallelParticipation; i++ {
+				err = participateWithCommitmentsHash(participationHandler, *ctx, common.Hash{byte(i)})
+				require.NoError(t, err)
+			}
+
+			for i := 0; i < MaxParallelParticipation+1; i++ {
+				err = participationHandler.Clear(common.Hash{byte(i)})
+				require.NoError(t, err)
+			}
+		}
+
+		go participationTest()
+		wg.Add(1)
+		wg.Wait()
+	})
+
+	t.Run("requests_get_queued_on_no_recent_block", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		overseer := overseer.NewOverseer()
+		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+
+		var wg sync.WaitGroup
+
+		waitTx := make(chan bool, 100)
+		participationTest := func() {
+			defer wg.Done()
+			ctx := overseer.GetContext()
+			participationHandler := NewParticipation(ctx.Sender, mockRuntime)
+
+			overseer.RegisterSubSystem(participationHandler)
+			overseer.Start()
+
+			go func() {
+				err := participate(participationHandler, *ctx)
+				require.NoError(t, err)
+			}()
+
+			// We have initiated participation, but we'll block `activeLeaf` so that we can check that
+			// the participation is queued in race-free way
+			<-waitTx
+
+			time.Sleep(2 * time.Second)
+		}
+
+		// Responds to messages from the test and verifies its behaviour
+		requestHandler := func() {
+			defer wg.Done()
+			// this now does nothing, but wait for 5 seconds
+			time.Sleep(5 * time.Second)
+			waitTx <- true
+		}
+
+		go participationTest()
+		go requestHandler()
+		wg.Add(2)
+		wg.Wait()
+	})
+
+	t.Run("cannot_participate_if_cannot_recover_the_available_data", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		overseer := overseer.NewOverseer()
+		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		ctx := overseer.GetContext()
+
+		participationHandler := NewParticipation(ctx.Sender, mockRuntime)
+
+		overseer.RegisterSubSystem(participationHandler)
+		overseer.Start()
+
+		err := participate(participationHandler, *ctx)
+		require.NoError(t, err)
+
+		// sleep for a while to ensure we don't have any further results nor recovery requests
+		time.Sleep(5 * time.Second)
+	})
+
+	t.Run("cannot_participate_if_cannot_recover_validation_code", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		overseer := overseer.NewOverseer()
+		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		ctx := overseer.GetContext()
+
+		participationHandler := NewParticipation(ctx.Sender, mockRuntime)
+		overseer.RegisterSubSystem(participationHandler)
+		overseer.Start()
+
+		err := participate(participationHandler, *ctx)
+		require.NoError(t, err)
+
+		// sleep for a while to ensure we don't have any further results nor recovery requests
+		time.Sleep(5 * time.Second)
+	})
+
 }
 
 func TestParticipationHandler_Queue(t *testing.T) {

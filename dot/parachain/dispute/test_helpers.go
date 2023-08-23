@@ -3,7 +3,7 @@ package dispute
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"

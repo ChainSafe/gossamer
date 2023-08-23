@@ -9,8 +9,8 @@ import (
 
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -133,6 +133,7 @@ func (p *ParticipationHandler) Clear(candidateHash common.Hash) error {
 }
 
 func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate) error {
+	fmt.Printf("ParticipationHandler received active leaves update %v\n", update)
 	if update.Activated == nil {
 		return nil
 	}

@@ -1,4 +1,4 @@
-package parachain
+package overseer
 
 import (
 	"fmt"
@@ -59,7 +59,7 @@ func TestStartSubsystems(t *testing.T) {
 	}
 	overseer.RegisterSubSystem(ss1)
 	overseer.RegisterSubSystem(ss2)
-	overseer.start()
+	overseer.Start()
 	time.Sleep(time.Millisecond * 500)
 	overseer.sendActiveLeaf()
 

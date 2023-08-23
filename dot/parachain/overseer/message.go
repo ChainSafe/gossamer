@@ -10,20 +10,6 @@ type ChainAPIMessage struct {
 	ResponseChannel chan *uint32
 }
 
-type PersistedValidationData struct {
-	ParentHead             []byte
-	RelayParentNumber      uint32
-	RelayParentStorageRoot common.Hash
-	MaxPOVSize             uint32
-}
-
-type AvailableData struct {
-	POV            []byte
-	ValidationData PersistedValidationData
-}
-
-type RecoveryError uint32
-
 const (
 	RecoveryErrorInvalid RecoveryError = iota
 	RecoveryErrorUnavailable
@@ -39,6 +25,20 @@ func (e RecoveryError) String() string {
 		return "unknown"
 	}
 }
+
+type PersistedValidationData struct {
+	ParentHead             []byte
+	RelayParentNumber      uint32
+	RelayParentStorageRoot common.Hash
+	MaxPOVSize             uint32
+}
+
+type AvailableData struct {
+	POV            []byte
+	ValidationData PersistedValidationData
+}
+
+type RecoveryError uint32
 
 type AvailabilityRecoveryResponse struct {
 	AvailableData *AvailableData

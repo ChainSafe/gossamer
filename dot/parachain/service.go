@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -20,7 +21,7 @@ const (
 
 type Service struct {
 	Network  Network
-	Overseer Overseer
+	Overseer overseer.Overseer
 }
 
 func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
