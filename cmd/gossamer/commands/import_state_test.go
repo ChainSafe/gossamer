@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package commands
 
 import (
@@ -42,7 +45,7 @@ func TestImportStateEmptyHeaderFile(t *testing.T) {
 	require.NoError(t, err)
 	rootCmd.AddCommand(ImportStateCmd)
 
-	rootCmd.SetArgs([]string{ImportStateCmd.Name(), "--state-version", "v0", "--state-file", "test", "--header-file", ""})
+	rootCmd.SetArgs([]string{ImportStateCmd.Name(), "--state-version", "v0", "--state-file", "test", "--header-file", ""}) //nolint:lll
 	err = rootCmd.Execute()
 	assert.ErrorContains(t, err, "header-file must be specified")
 }
@@ -52,7 +55,7 @@ func TestImportStateInvalidStateVersion(t *testing.T) {
 	require.NoError(t, err)
 	rootCmd.AddCommand(ImportStateCmd)
 
-	rootCmd.SetArgs([]string{ImportStateCmd.Name(), "--state-version", "v999", "--state-file", "test", "--header-file", "test"})
+	rootCmd.SetArgs([]string{ImportStateCmd.Name(), "--state-version", "v999", "--state-file", "test", "--header-file", "test"}) //nolint:lll
 	err = rootCmd.Execute()
 	assert.ErrorContains(t, err, "failed to parse state-version: parsing version failed: \"v999\" must be one of [v0, v1]")
 }
@@ -62,7 +65,7 @@ func TestImportStateErrorImportingState(t *testing.T) {
 	require.NoError(t, err)
 	rootCmd.AddCommand(ImportStateCmd)
 
-	rootCmd.SetArgs([]string{ImportStateCmd.Name(), "--state-version", "v0", "--state-file", "test", "--header-file", "test"})
+	rootCmd.SetArgs([]string{ImportStateCmd.Name(), "--state-version", "v0", "--state-file", "test", "--header-file", "test"}) //nolint:lll
 	err = rootCmd.Execute()
 	assert.ErrorContains(t, err, "no such file or directory")
 }
