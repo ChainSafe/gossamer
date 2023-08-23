@@ -148,7 +148,7 @@ func GetRandomHash() common.Hash {
 	return hash
 }
 
-func getRandomSignature() [64]byte {
+func GetRandomSignature() [64]byte {
 	var hash [64]byte
 	randomBytes := make([]byte, len(hash))
 	_, err := rand.Read(randomBytes)
