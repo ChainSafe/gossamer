@@ -66,10 +66,10 @@ func TestDBBackend_SetRecentDisputes(t *testing.T) {
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
 	disputes := btree.New(types.DisputeComparator)
-	dispute1, err := types.NewTestDispute(1, common.Hash{1}, types.DisputeStatusActive)
+	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
 	disputes.Set(dispute1)
-	dispute2, err := types.NewTestDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
+	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
 	disputes.Set(dispute2)
 
@@ -90,7 +90,7 @@ func TestDBBackend_SetCandidateVotes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	candidateVotes := types.NewTestCandidateVotes(t)
+	candidateVotes := types.DummyCandidateVotes(t)
 
 	// when
 	backend := NewDBBackend(db)
@@ -111,21 +111,21 @@ func TestDBBackend_Write(t *testing.T) {
 	require.NoError(t, err)
 	earliestSession := getSessionIndex(1)
 	disputes := btree.New(types.DisputeComparator)
-	dispute1, err := types.NewTestDispute(1, common.Hash{1}, types.DisputeStatusActive)
+	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
 	disputes.Set(dispute1)
-	dispute2, err := types.NewTestDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
+	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
 	disputes.Set(dispute2)
 	candidateVotes := make(map[types.Comparator]*types.CandidateVotes)
 	candidateVotes[types.Comparator{
 		SessionIndex:  1,
 		CandidateHash: common.Hash{1},
-	}] = types.NewTestCandidateVotes(t)
+	}] = types.DummyCandidateVotes(t)
 	candidateVotes[types.Comparator{
 		SessionIndex:  2,
 		CandidateHash: common.Hash{2},
-	}] = types.NewTestCandidateVotes(t)
+	}] = types.DummyCandidateVotes(t)
 
 	// when
 	backend := NewDBBackend(db)
@@ -155,7 +155,7 @@ func TestDBBackend_setVotesCleanupTxn(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	candidateVotes := types.NewTestCandidateVotes(t)
+	candidateVotes := types.DummyCandidateVotes(t)
 
 	// when
 	backend := NewDBBackend(db)
@@ -221,7 +221,7 @@ func BenchmarkBadgerBackend_SetRecentDisputes(b *testing.B) {
 
 	disputes := btree.New(types.DisputeComparator)
 	for i := 0; i < 10000; i++ {
-		dispute, err := types.NewTestDispute(parachainTypes.SessionIndex(i), common.Hash{byte(i)}, types.DisputeStatusActive)
+		dispute, err := types.DummyDispute(parachainTypes.SessionIndex(i), common.Hash{byte(i)}, types.DisputeStatusActive)
 		require.NoError(b, err)
 		disputes.Set(dispute)
 	}
@@ -238,7 +238,7 @@ func BenchmarkBadgerBackend_SetCandidateVotes(b *testing.B) {
 	require.NoError(b, err)
 	backend := NewDBBackend(db)
 
-	candidateVotes := types.NewTestCandidateVotes(&testing.T{})
+	candidateVotes := types.DummyCandidateVotes(&testing.T{})
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -269,7 +269,7 @@ func BenchmarkBadgerBackend_GetRecentDisputes(b *testing.B) {
 
 	disputes := btree.New(types.DisputeComparator)
 	for i := 0; i < 1000; i++ {
-		dispute, err := types.NewTestDispute(parachainTypes.SessionIndex(i), common.Hash{byte(1)}, types.DisputeStatusActive)
+		dispute, err := types.DummyDispute(parachainTypes.SessionIndex(i), common.Hash{byte(1)}, types.DisputeStatusActive)
 		require.NoError(b, err)
 		disputes.Set(dispute)
 	}
@@ -289,7 +289,7 @@ func BenchmarkBadgerBackend_GetCandidateVotes(b *testing.B) {
 	require.NoError(b, err)
 	backend := NewDBBackend(db)
 
-	candidateVotes := types.NewTestCandidateVotes(&testing.T{})
+	candidateVotes := types.DummyCandidateVotes(&testing.T{})
 	for i := 0; i < b.N; i++ {
 		err = backend.SetCandidateVotes(parachainTypes.SessionIndex(i), common.Hash{1}, candidateVotes)
 		require.NoError(b, err)

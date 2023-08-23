@@ -1,37 +1,12 @@
 package types
 
 import (
-	"crypto/rand"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
-
-func getRandomHash() common.Hash {
-	var hash [32]byte
-	randomBytes := make([]byte, len(hash))
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	copy(hash[:], randomBytes)
-	return hash
-}
-
-func getRandomSignature() [64]byte {
-	var hash [64]byte
-	randomBytes := make([]byte, len(hash))
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	copy(hash[:], randomBytes)
-	return hash
-}
 
 func TestDispute_Codec(t *testing.T) {
 	t.Parallel()

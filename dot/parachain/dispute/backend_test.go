@@ -40,11 +40,11 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	require.NoError(t, err)
 	disputes := btree.New(types.DisputeComparator)
 
-	dispute1, err := types.NewTestDispute(1, common.Hash{1}, types.DisputeStatusActive)
+	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
 	disputes.Set(dispute1)
 
-	dispute2, err := types.NewTestDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
+	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
 	disputes.Set(dispute2)
 
@@ -65,7 +65,7 @@ func TestOverlayBackend_CandidateVotes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	candidateVotes1 := types.NewTestCandidateVotes(t)
+	candidateVotes1 := types.DummyCandidateVotes(t)
 
 	// when
 	backend := newOverlayBackend(db)
@@ -99,7 +99,7 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 
 			for j := 0; j < numIterations; j++ {
 				err := backend.SetCandidateVotes(parachainTypes.SessionIndex(j),
-					common.Hash{byte(j)}, types.NewTestCandidateVotes(t))
+					common.Hash{byte(j)}, types.DummyCandidateVotes(t))
 				require.NoError(t, err)
 				_, err = backend.GetCandidateVotes(parachainTypes.SessionIndex(j), common.Hash{byte(j)})
 				require.NoError(t, err)
@@ -129,14 +129,14 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				disputes := btree.New(types.DisputeComparator)
 
-				dispute1, err := types.NewTestDispute(parachainTypes.SessionIndex(j),
+				dispute1, err := types.DummyDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)},
 					types.DisputeStatusActive,
 				)
 				require.NoError(t, err)
 				disputes.Set(dispute1)
 
-				dispute2, err := types.NewTestDispute(parachainTypes.SessionIndex(j),
+				dispute2, err := types.DummyDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)}, types.DisputeStatusConcludedFor)
 				require.NoError(t, err)
 				disputes.Set(dispute2)
