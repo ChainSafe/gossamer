@@ -135,6 +135,8 @@ func TestReconstruct(t *testing.T) {
 		expectedDataHex string
 		expectedError   error
 	}{
+		// generated all these values using `roundtrip_proof_encoding()` function from polkadot.
+		// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/erasure-coding/src/lib.rs#L413-L418
 		{
 			name:            "1_validator_with_zero_sized_chunks",
 			validators:      1,
