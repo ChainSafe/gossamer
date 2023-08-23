@@ -33,7 +33,7 @@ func TestObtainChunks(t *testing.T) {
 			validators:        2,
 			dataHex:           "0x",
 			expectedChunksHex: []string{},
-			expectedError:     erasure.ZeroSizedData,
+			expectedError:     erasure.ErrZeroSizedData,
 		},
 		{
 			name:       "2_validators",
@@ -142,7 +142,7 @@ func TestReconstruct(t *testing.T) {
 			validators:      1,
 			expectedDataHex: "0x",
 			chunksHex:       []string{},
-			expectedError:   erasure.ZeroSizedChunks,
+			expectedError:   erasure.ErrZeroSizedChunks,
 		},
 		{
 			name:            "1_validators",

@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	ZeroSizedData   = errors.New("data can't be zero sized")
-	ZeroSizedChunks = errors.New("chunks can't be zero sized")
+	ErrZeroSizedData   = errors.New("data can't be zero sized")
+	ErrZeroSizedChunks = errors.New("chunks can't be zero sized")
 )
 
 // ObtainChunks obtains erasure-coded chunks, one for each validator.
@@ -24,7 +24,7 @@ var (
 // number of validators and scale encoded data.
 func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
 	if len(data) == 0 {
-		return nil, ZeroSizedData
+		return nil, ErrZeroSizedData
 	}
 
 	var cFlattenedChunks *C.uchar
@@ -67,7 +67,7 @@ func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
 // Works only up to 65536 validators, and `n_validators` must be non-zero
 func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	if len(chunks) == 0 {
-		return nil, ZeroSizedChunks
+		return nil, ErrZeroSizedChunks
 	}
 
 	var cReconstructedData *C.uchar
