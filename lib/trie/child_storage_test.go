@@ -4,9 +4,9 @@
 package trie
 
 import (
-	"bytes"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPutAndGetChild(t *testing.T) {
@@ -15,18 +15,46 @@ func TestPutAndGetChild(t *testing.T) {
 	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie, V0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	childTrieRes, err := parentTrie.GetChild(childKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	if !reflect.DeepEqual(childTrie, childTrieRes) {
-		t.Fatalf("Fail: got %v expected %v", childTrieRes, childTrie)
-	}
+	assert.Equal(t, childTrie, childTrieRes)
+}
+
+func TestPutAndDeleteChild(t *testing.T) {
+	childKey := []byte("default")
+	childTrie := buildSmallTrie()
+	parentTrie := NewEmptyTrie()
+
+	err := parentTrie.SetChild(childKey, childTrie, V0)
+	assert.NoError(t, err)
+
+	err = parentTrie.DeleteChild(childKey)
+	assert.NoError(t, err)
+
+	_, err = parentTrie.GetChild(childKey)
+	assert.ErrorContains(t, err, "child trie does not exist at key")
+}
+
+func TestPutAndClearFromChild(t *testing.T) {
+	childKey := []byte("default")
+	keyInChild := []byte{0x01, 0x35}
+	childTrie := buildSmallTrie()
+	parentTrie := NewEmptyTrie()
+
+	err := parentTrie.SetChild(childKey, childTrie, V0)
+	assert.NoError(t, err)
+
+	err = parentTrie.ClearFromChild(childKey, keyInChild)
+	assert.NoError(t, err)
+
+	childTrie, err = parentTrie.GetChild(childKey)
+	assert.NoError(t, err)
+
+	value := childTrie.Get(keyInChild)
+	assert.Equal(t, []uint8(nil), value)
 }
 
 func TestPutAndGetFromChild(t *testing.T) {
@@ -35,39 +63,25 @@ func TestPutAndGetFromChild(t *testing.T) {
 	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie, V0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	testKey := []byte("child_key")
 	testValue := []byte("child_value")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue, V0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	valueRes, err := parentTrie.GetFromChild(childKey, testKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	if !bytes.Equal(valueRes, testValue) {
-		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)
-	}
+	assert.Equal(t, valueRes, testValue)
 
 	testKey = []byte("child_key_again")
 	testValue = []byte("child_value_again")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue, V0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	valueRes, err = parentTrie.GetFromChild(childKey, testKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	if !bytes.Equal(valueRes, testValue) {
-		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)
-	}
+	assert.Equal(t, valueRes, testValue)
 }
