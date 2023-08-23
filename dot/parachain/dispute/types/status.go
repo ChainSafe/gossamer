@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"

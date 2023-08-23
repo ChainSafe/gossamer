@@ -14,16 +14,16 @@ func Test_CandidateVotes(t *testing.T) {
 	receipt := parachainTypes.CandidateReceipt{
 		Descriptor: parachainTypes.CandidateDescriptor{
 			ParaID:                      100,
-			RelayParent:                 getRandomHash(),
+			RelayParent:                 GetRandomHash(),
 			Collator:                    parachainTypes.CollatorID{2},
-			PersistedValidationDataHash: getRandomHash(),
-			PovHash:                     getRandomHash(),
-			ErasureRoot:                 getRandomHash(),
+			PersistedValidationDataHash: GetRandomHash(),
+			PovHash:                     GetRandomHash(),
+			ErasureRoot:                 GetRandomHash(),
 			Signature:                   parachainTypes.CollatorSignature{2},
-			ParaHead:                    getRandomHash(),
-			ValidationCodeHash:          parachainTypes.ValidationCodeHash(getRandomHash()),
+			ParaHead:                    GetRandomHash(),
+			ValidationCodeHash:          parachainTypes.ValidationCodeHash(GetRandomHash()),
 		},
-		CommitmentsHash: getRandomHash(),
+		CommitmentsHash: GetRandomHash(),
 	}
 
 	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
@@ -72,7 +72,7 @@ func Test_Vote(t *testing.T) {
 	validVote := Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyValidDisputeStatement(t),
-		ValidatorSignature: getRandomSignature(),
+		ValidatorSignature: GetRandomSignature(),
 	}
 
 	encoded, err := scale.Marshal(validVote)
@@ -87,7 +87,7 @@ func Test_Vote(t *testing.T) {
 	invalidVote := Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
-		ValidatorSignature: getRandomSignature(),
+		ValidatorSignature: GetRandomSignature(),
 	}
 
 	encoded, err = scale.Marshal(invalidVote)
@@ -125,12 +125,12 @@ func TestOwnVoteState_Voted(t *testing.T) {
 		{
 			ValidatorIndex:     1,
 			DisputeStatement:   DummyValidDisputeStatement(t),
-			ValidatorSignature: getRandomSignature(),
+			ValidatorSignature: GetRandomSignature(),
 		},
 		{
 			ValidatorIndex:     2,
 			DisputeStatement:   DummyInvalidDisputeStatement(t),
-			ValidatorSignature: getRandomSignature(),
+			ValidatorSignature: GetRandomSignature(),
 		},
 	}
 
