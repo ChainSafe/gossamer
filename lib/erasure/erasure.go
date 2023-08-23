@@ -105,12 +105,23 @@ func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	return res, nil
 }
 
-func ChunksToTrie(chunks [][]byte) *trie.Trie {
+func ChunksToTrie(chunks [][]byte) (*trie.Trie, error) {
 	chunkTrie := trie.NewEmptyTrie()
 	for i, chunk := range chunks {
-		encodedI := scale.MustMarshal(uint32(i))
-		chunkHash := common.MustBlake2bHash(chunk)
-		chunkTrie.Put(encodedI, chunkHash[:])
+		encodedI, err := scale.Marshal(uint32(i))
+		if err != nil {
+			return nil, err
+		}
+
+		chunkHash, err := common.Blake2bHash(chunk)
+		if err != nil {
+			return nil, err
+		}
+
+		err = chunkTrie.Put(encodedI, chunkHash[:])
+		if err != nil {
+			return nil, err
+		}
 	}
-	return chunkTrie
+	return chunkTrie, nil
 }

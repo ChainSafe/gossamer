@@ -291,9 +291,12 @@ func TestChunksToTrie(t *testing.T) {
 					chunks = append(chunks, common.MustHexToBytes(chunk))
 				}
 
-				trie := erasure.ChunksToTrie(chunks)
+				trie, err := erasure.ChunksToTrie(chunks)
+				require.NoError(t, err)
+
 				root, err := trie.Hash()
 				require.NoError(t, err)
+
 				require.Equal(t, c.rootHex, root.String())
 			})
 		}
