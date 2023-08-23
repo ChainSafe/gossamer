@@ -14,8 +14,8 @@ func TestCompactStatement_Codec(t *testing.T) {
 	compactStatement, err := NewCompactStatement()
 	require.NoError(t, err)
 	compactStatementList := scale.NewVaryingDataTypeSlice(scale.VaryingDataType(compactStatement))
-	err = compactStatementList.Add(ValidCompactStatement{CandidateHash: GetRandomHash()},
-		SecondedCompactStatement{CandidateHash: GetRandomHash()},
+	err = compactStatementList.Add(ValidCompactStatement{CandidateHash: getRandomHash()},
+		SecondedCompactStatement{CandidateHash: getRandomHash()},
 	)
 	require.NoError(t, err)
 
