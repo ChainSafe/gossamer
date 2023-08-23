@@ -31,7 +31,7 @@ type GetPutter interface {
 
 // Batcher has methods to get values and create a
 // new batch.
-type Batcher interface {
+type GetterPutterNewBatcher interface {
 	Getter
 	Putter
 	NewBatcher
