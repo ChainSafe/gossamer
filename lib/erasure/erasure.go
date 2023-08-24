@@ -3,7 +3,6 @@
 
 package erasure
 
-// #cgo CFLAGS: -I.
 // #cgo LDFLAGS: -Wl,-rpath,${SRCDIR}/rustlib/target/release -L${SRCDIR}/rustlib/target/release -lerasure
 // #include "./erasure.h"
 import (

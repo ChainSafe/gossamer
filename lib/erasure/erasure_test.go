@@ -25,7 +25,7 @@ var testCases = []struct {
 		validators:    1,
 		dataHex:       "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		chunksHex:     []string{},
-		expectedError: errors.New("Expected at least 2 validators"),
+		expectedError: errors.New("expected at least 2 validators"),
 	},
 	{
 		name:          "2_validators with zero sized data",
