@@ -150,7 +150,4 @@ zombienet-test: install install-zombienet
 
 compile-erasure:
 	cd lib/erasure/rustlib/	&&	\
-	cargo build --release --target x86_64-unknown-linux-gnu	&&	\
-	cd ..	&&	\
-	cp ./rustlib/target/x86_64-unknown-linux-gnu/release/liberasure_coding_gorust.so ./liberasure.so	&&	\
-	cd ../../
+	cargo build --release	&&	cd ../../../
