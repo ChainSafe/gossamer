@@ -1,70 +1,101 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package erasure
 
+// #cgo LDFLAGS: -Wl,-rpath,${SRCDIR}/rustlib/target/release -L${SRCDIR}/rustlib/target/release -lerasure
+// #include "./erasure.h"
 import (
-	"bytes"
+	"C"
+)
+import (
 	"errors"
-	"fmt"
-
-	"github.com/klauspost/reedsolomon"
+	"unsafe"
 )
 
-// ErrNotEnoughValidators cannot encode something for zero or one validator
-var ErrNotEnoughValidators = errors.New("expected at least 2 validators")
+var (
+	ErrZeroSizedData   = errors.New("data can't be zero sized")
+	ErrZeroSizedChunks = errors.New("chunks can't be zero sized")
+)
 
-// ObtainChunks obtains erasure-coded chunks, divides data into number of validatorsQty chunks and
-// creates parity chunks for reconstruction
-func ObtainChunks(validatorsQty int, data []byte) ([][]byte, error) {
-	recoveryThres, err := recoveryThreshold(validatorsQty)
-	if err != nil {
-		return nil, err
-	}
-	enc, err := reedsolomon.New(validatorsQty, recoveryThres)
-	if err != nil {
-		return nil, fmt.Errorf("creating new reed solomon failed: %w", err)
-	}
-	shards, err := enc.Split(data)
-	if err != nil {
-		return nil, err
-	}
-	err = enc.Encode(shards)
-	if err != nil {
-		return nil, err
+// ObtainChunks obtains erasure-coded chunks, one for each validator.
+// This works only up to 65536 validators, and `n_validators` must be non-zero and accepts
+// number of validators and scale encoded data.
+func ObtainChunks(nValidators uint, data []byte) ([][]byte, error) {
+	if len(data) == 0 {
+		return nil, ErrZeroSizedData
 	}
 
-	return shards, nil
+	var cFlattenedChunks *C.uchar
+	var cFlattenedChunksLen C.size_t
+
+	cnValidators := C.size_t(nValidators)
+	cData := (*C.uchar)(unsafe.Pointer(&data[0]))
+	cLen := C.size_t(len(data))
+
+	cErr := C.obtain_chunks(cnValidators, cData, cLen, &cFlattenedChunks, &cFlattenedChunksLen)
+	errStr := C.GoString(cErr)
+	C.free(unsafe.Pointer(cErr))
+
+	if len(errStr) > 0 {
+		return nil, errors.New(errStr)
+	}
+
+	resData := C.GoBytes(unsafe.Pointer(cFlattenedChunks), C.int(cFlattenedChunksLen))
+	C.free(unsafe.Pointer(cFlattenedChunks))
+
+	chunkSize := uint(len(resData)) / nValidators
+	chunks := make([][]byte, nValidators)
+
+	start := uint(0)
+	for i := start; i < nValidators; i++ {
+		end := start + chunkSize
+		chunks[i] = resData[start:end]
+		start = end
+	}
+
+	return chunks, nil
 }
 
-// Reconstruct the missing data from a set of chunks
-func Reconstruct(validatorsQty, originalDataLen int, chunks [][]byte) ([]byte, error) {
-	recoveryThres, err := recoveryThreshold(validatorsQty)
-	if err != nil {
-		return nil, err
+// Reconstruct decodable data from a set of chunks.
+//
+// Provide an iterator containing chunk data and the corresponding index.
+// The indices of the present chunks must be indicated. If too few chunks
+// are provided, recovery is not possible.
+//
+// Works only up to 65536 validators, and `n_validators` must be non-zero
+func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
+	if len(chunks) == 0 {
+		return nil, ErrZeroSizedChunks
 	}
 
-	enc, err := reedsolomon.New(validatorsQty, recoveryThres)
-	if err != nil {
-		return nil, err
-	}
-	err = enc.Reconstruct(chunks)
-	if err != nil {
-		return nil, err
-	}
-	buf := new(bytes.Buffer)
-	err = enc.Join(buf, chunks, originalDataLen)
-	return buf.Bytes(), err
-}
+	var cReconstructedData *C.uchar
+	var cReconstructedDataLen C.size_t
+	var flattenedChunks []byte
 
-// recoveryThreshold gives the max number of shards/chunks that we can afford to lose and still construct
-// the full initial data.  Total number of chunks will be validatorQty + recoveryThreshold
-func recoveryThreshold(validators int) (int, error) {
-	if validators <= 1 {
-		return 0, ErrNotEnoughValidators
+	for _, chunk := range chunks {
+		flattenedChunks = append(flattenedChunks, chunk...)
 	}
 
-	needed := (validators - 1) / 3
+	cChunkSize := C.size_t(len(chunks[0]))
+	cFlattenedChunks := (*C.uchar)(unsafe.Pointer(&flattenedChunks[0]))
+	cFlattenedChunksLen := C.size_t(len(flattenedChunks))
 
-	return needed + 1, nil
+	cErr := C.reconstruct(
+		C.size_t(nValidators),
+		cFlattenedChunks, cFlattenedChunksLen,
+		cChunkSize,
+		&cReconstructedData, &cReconstructedDataLen,
+	)
+	errStr := C.GoString(cErr)
+	C.free(unsafe.Pointer(cErr))
+
+	if len(errStr) > 0 {
+		return nil, errors.New(errStr)
+	}
+
+	res := C.GoBytes(unsafe.Pointer(cReconstructedData), C.int(cReconstructedDataLen))
+	C.free(unsafe.Pointer(cReconstructedData))
+
+	return res, nil
 }
