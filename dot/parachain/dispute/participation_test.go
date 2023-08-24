@@ -264,9 +264,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			waitTx <- true
 		}
 
+		wg.Add(2)
 		go participationTest()
 		go requestHandler()
-		wg.Add(2)
 		wg.Wait()
 	})
 
