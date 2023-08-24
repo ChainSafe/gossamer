@@ -90,7 +90,7 @@ func TestValidateFromChainState(t *testing.T) {
 
 	expectedPersistedValidationData := parachaintypes.PersistedValidationData{
 		ParentHead:             parachaintypes.HeadData{Data: hd},
-		RelayParentNumber:      uint32(1),
+		RelayParentNumber:      parachaintypes.BlockNumber(1),
 		RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
 		MaxPovSize:             uint32(2048),
 	}

@@ -106,7 +106,7 @@ func ValidateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, po
 	validationParams := parachainruntime.ValidationParameters{
 		ParentHeadData:         persistedValidationData.ParentHead,
 		BlockData:              pov.BlockData,
-		RelayParentNumber:      persistedValidationData.RelayParentNumber,
+		RelayParentNumber:      uint32(persistedValidationData.RelayParentNumber),
 		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
 	}
 

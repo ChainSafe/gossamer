@@ -377,7 +377,7 @@ func TestPersistedValidationData(t *testing.T) {
 
 	pvd := PersistedValidationData{
 		ParentHead:             HeadData{Data: []byte{7, 8, 9}},
-		RelayParentNumber:      uint32(10),
+		RelayParentNumber:      10,
 		RelayParentStorageRoot: common.Hash{},
 		MaxPovSize:             uint32(1024),
 	}

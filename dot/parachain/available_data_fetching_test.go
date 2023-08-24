@@ -33,8 +33,8 @@ func TestAvailableDataFetchingResponse(t *testing.T) {
 	testBytes := testHash.ToBytes()
 	availableData := AvailableData{
 		PoV: PoV{BlockData: testBytes},
-		ValidationData: PersistedValidationData{
-			ParentHead:             testBytes,
+		ValidationData: parachaintypes.PersistedValidationData{
+			ParentHead:             parachaintypes.HeadData{Data: testBytes},
 			RelayParentNumber:      parachaintypes.BlockNumber(4),
 			RelayParentStorageRoot: testHash,
 			MaxPovSize:             6,

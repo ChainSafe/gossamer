@@ -418,13 +418,22 @@ func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
 	return scale.NewVaryingDataTypeSlice(vdt), nil
 }
 
-// PersistedValidationData should be relatively lightweight primarily because it is constructed
-// during inclusion for each candidate and therefore lies on the critical path of inclusion.
+// PersistedValidationData provides information about how to create the inputs for the validation
+// of a candidate by calling the Runtime.
+// This information is derived from the parachain state and will vary from parachain to parachain,
+// although some of the fields may be the same for every parachain.
 type PersistedValidationData struct {
-	ParentHead             HeadData    `scale:"1"`
-	RelayParentNumber      uint32      `scale:"2"`
+	// The parent head-data
+	ParentHead HeadData `scale:"1"`
+
+	// The relay-chain block number this is in the context of
+	RelayParentNumber BlockNumber `scale:"2"`
+
+	// The relay-chain block storage root this is in the context of
 	RelayParentStorageRoot common.Hash `scale:"3"`
-	MaxPovSize             uint32      `scale:"4"`
+
+	// The maximum legal size of a POV block, in bytes
+	MaxPovSize uint32 `scale:"4"`
 }
 
 // OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
