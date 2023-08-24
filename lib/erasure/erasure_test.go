@@ -32,7 +32,7 @@ var testCases = []struct {
 		validators:    2,
 		dataHex:       "0x",
 		chunksHex:     []string{},
-		expectedError: erasure.ZeroSizedData,
+		expectedError: erasure.ErrZeroSizedData,
 	},
 	{
 		name:       "2_validators",
@@ -155,7 +155,7 @@ func TestReconstruct(t *testing.T) {
 			validators:      1,
 			expectedDataHex: "0x",
 			chunksHex:       []string{},
-			expectedError:   erasure.ZeroSizedChunks,
+			expectedError:   erasure.ErrZeroSizedChunks,
 		},
 		{
 			name:            "1_validators",
@@ -164,7 +164,7 @@ func TestReconstruct(t *testing.T) {
 			chunksHex: []string{
 				"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			},
-			expectedError: errors.New("Expected at least 2 validators"),
+			expectedError: errors.New("expected at least 2 validators"),
 		},
 		{
 			name:            "2_validators",
