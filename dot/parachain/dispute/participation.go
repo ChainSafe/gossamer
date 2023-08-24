@@ -299,10 +299,10 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		if !result.IsValid {
 			sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
 			return fmt.Errorf("validation failed: %s", result.Error)
-		} else {
-			sendResult(p.sender, request, types.ParticipationOutcomeValid)
-			return nil
 		}
+		
+		sendResult(p.sender, request, types.ParticipationOutcomeValid)
+		return nil
 	}
 }
 
