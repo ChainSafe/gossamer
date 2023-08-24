@@ -149,5 +149,4 @@ zombienet-test: install install-zombienet
 	zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl
 
 compile-erasure:
-	cd lib/erasure/rustlib/	&&	\
-	cargo build --release	&&	cd ../../../
+	cargo build --release --manifest-path=lib/erasure/rustlib/Cargo.toml

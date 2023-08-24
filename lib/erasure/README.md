@@ -2,5 +2,5 @@
 
 - Generate rust binary
     ```
-    cd lib/erasure/rustlib/ && cargo build --release && cd ../../../
+    cargo build --release --manifest-path=lib/erasure/rustlib/Cargo.toml
     ```
