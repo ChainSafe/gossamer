@@ -26,7 +26,7 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.16.7
 	github.com/libp2p/go-libp2p v0.27.7
-	github.com/libp2p/go-libp2p-kad-dht v0.24.2
+	github.com/libp2p/go-libp2p-kad-dht v0.25.0
 	github.com/minio/sha256-simd v1.0.1
 	github.com/multiformats/go-multiaddr v0.11.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
