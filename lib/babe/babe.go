@@ -46,6 +46,7 @@ type Service struct {
 	pause chan struct{}
 
 	telemetry Telemetry
+	wg        sync.WaitGroup
 }
 
 // ServiceConfig represents a BABE configuration
@@ -175,7 +176,11 @@ func (b *Service) Start() error {
 		return nil
 	}
 
-	go b.initiate()
+	b.wg.Add(1)
+	go func() {
+		b.initiate()
+		b.wg.Done()
+	}()
 	return nil
 }
 
@@ -212,7 +217,11 @@ func (b *Service) Resume() error {
 	}
 
 	b.pause = make(chan struct{})
-	go b.initiate()
+	b.wg.Add(1)
+	go func() {
+		b.initiate()
+		b.wg.Done()
+	}()
 	logger.Debug("service resumed")
 	return nil
 }
@@ -244,6 +253,7 @@ func (b *Service) Stop() error {
 	ethmetrics.Unregister(buildBlockErrors)
 
 	b.cancel()
+	b.wg.Wait()
 	return nil
 }
 
@@ -328,8 +338,14 @@ func (b *Service) runEngine() error {
 }
 
 func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
+	wg := sync.WaitGroup{}
+
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+
 	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
 	if err != nil {
 		return 0, fmt.Errorf("cannot initiate and get epoch handler: %w", err)
@@ -344,8 +360,12 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
 
-	errCh := make(chan error)
-	go b.epochHandler.run(ctx, errCh)
+	errCh := make(chan error, 1)
+	wg.Add(1)
+	go func() {
+		b.epochHandler.run(ctx, errCh)
+		wg.Done()
+	}()
 
 	select {
 	case <-b.ctx.Done():

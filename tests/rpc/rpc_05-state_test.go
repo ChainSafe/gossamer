@@ -188,7 +188,7 @@ func TestStateRPCAPI(t *testing.T) {
 
 	const (
 		randomHash        = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
-		ErrKeyNotFound    = "Key not found"
+		ErrKeyNotFound    = "pebble: not found"
 		InvalidHashFormat = "invalid hash format"
 		// `:grandpa_authorities` key
 		GrandpaAuthorityKey   = "0x3a6772616e6470615f617574686f726974696573"
