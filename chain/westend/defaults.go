@@ -30,9 +30,5 @@ func DefaultConfig() *cfg.Config {
 	config.Core.Role = 1
 	config.Network.NoMDNS = false
 
-	config.Log.Sync = "trace"
-	config.Pprof.Enabled = true
-	config.Pprof.ListeningAddress = "0.0.0.0:6060"
-
 	return config
 }
