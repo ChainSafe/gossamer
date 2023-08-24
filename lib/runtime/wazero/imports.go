@@ -866,7 +866,6 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 	}
 
 	stateVersion := uint8(version)
-
 	trie.EnforceValidVersion(stateVersion)
 
 	data := read(m, dataSpan)
@@ -885,7 +884,6 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 	}
 
 	for _, kv := range kvs {
-		//TODO: use version parameter here
 		err := t.Put(kv.Key, kv.Value, trie.Version(stateVersion))
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
@@ -901,7 +899,6 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		return 0
 	}
 
-	//TODO: use version parameter here
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
@@ -995,7 +992,6 @@ func ext_trie_blake2_256_ordered_root_version_2(
 			"put key=0x%x and value=0x%x",
 			key, value)
 
-		//TODO: use version parameter here
 		err = t.Put(key, value, trie.Version(stateVersion))
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
@@ -1011,7 +1007,6 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	//TODO: use version parameter here
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
@@ -1056,7 +1051,7 @@ func ext_trie_blake2_256_verify_proof_version_1(
 }
 
 func ext_trie_blake2_256_verify_proof_version_2(
-	ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64, version uint32) uint32 {
+	ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64, version uint32) uint32 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1078,7 +1073,6 @@ func ext_trie_blake2_256_verify_proof_version_2(
 		panic("read overflow")
 	}
 
-	//TODO: use trie version parameter here
 	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
 	if err != nil {
 		logger.Errorf("failed proof verification: %s", err)
@@ -1411,7 +1405,7 @@ func ext_default_child_storage_root_version_1(
 
 //export ext_default_child_storage_root_version_2
 func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module, childStorageKey uint64,
-	stateVersion uint32) (ptrSize uint64) {
+	stateVersion uint32) (ptrSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1423,7 +1417,6 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 		return 0
 	}
 
-	//TODO: version this call
 	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
@@ -2434,7 +2427,6 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	}
 	storage := rtCtx.Storage
 
-	//TODO: user version parameter
 	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
