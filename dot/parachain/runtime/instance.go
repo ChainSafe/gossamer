@@ -10,7 +10,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtimewasmer "github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	runtimewasmer "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
