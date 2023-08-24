@@ -77,6 +77,9 @@ jobs:
           go test -timeout=10m ./... && \
           cd ..
 
+      - name: generate a shared library file for erasure 
+        run: make compile-erasure
+
       - name: Run unit tests
         run: go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
 
