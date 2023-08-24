@@ -3,7 +3,7 @@
 
 package erasure
 
-// #cgo CFLAGS: -I.
+// #cgo darwin CFLAGS: -Du_char="unsigned char"
 // #cgo LDFLAGS: -Wl,-rpath,${SRCDIR}/rustlib/target/release -L${SRCDIR}/rustlib/target/release -lerasure
 // #include "./erasure.h"
 import (
