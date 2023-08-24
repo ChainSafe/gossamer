@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -28,11 +28,11 @@ var (
 )
 
 type SlotState struct {
-	db chaindb.Database
+	db database.Table
 }
 
-func NewSlotState(db *chaindb.BadgerDB) *SlotState {
-	slotStateDB := chaindb.NewTable(db, slotTablePrefix)
+func NewSlotState(db database.Database) *SlotState {
+	slotStateDB := database.NewTable(db, slotTablePrefix)
 
 	return &SlotState{
 		db: slotStateDB,
@@ -57,7 +57,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 
 	currentSlotKey := bytes.Join([][]byte{slotHeaderMapKey, slotEncoded}, nil)
 	encodedHeadersWithSigners, err := s.db.Get(currentSlotKey)
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("getting key slot header map key %d: %w", slot, err)
 	}
 
@@ -89,7 +89,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 
 	firstSavedSlot := slot
 	firstSavedSlotEncoded, err := s.db.Get(slotHeaderStartKey)
-	if err != nil && !errors.Is(err, chaindb.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("getting key slot header start key: %w", err)
 	}
 

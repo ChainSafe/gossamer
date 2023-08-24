@@ -11,7 +11,6 @@ import (
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -21,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/internal/pprof"
@@ -32,9 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // BlockProducer to produce blocks
@@ -57,8 +55,8 @@ type rpcServiceSettings struct {
 	syncer        *sync.Service
 }
 
-func newInMemoryDB() (*chaindb.BadgerDB, error) {
-	return utils.SetupDatabase("", true)
+func newInMemoryDB() (database.Database, error) {
+	return database.LoadDatabase("", true)
 }
 
 // createStateService creates the state service and initialise state database
@@ -111,7 +109,7 @@ func (nodeBuilder) createRuntimeStorage(st *state.Service) (*runtime.NodeStorage
 
 	return &runtime.NodeStorage{
 		LocalStorage:      localStorage,
-		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
+		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 		BaseDB:            st.Base,
 	}, nil
 }
@@ -150,22 +148,6 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 		return nil, fmt.Errorf("failed to parse wasmer log level: %w", err)
 	}
 	switch config.Core.WasmInterpreter {
-	case wasmer.Name:
-		rtCfg := wasmer.Config{
-			Storage:     ts,
-			Keystore:    ks,
-			LogLvl:      wasmerLogLevel,
-			NodeStorage: ns,
-			Network:     net,
-			Role:        config.Core.Role,
-			CodeHash:    codeHash,
-		}
-
-		// create runtime executor
-		rt, err = wasmer.NewInstance(code, rtCfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
-		}
 	case wazero_runtime.Name:
 		rtCfg := wazero_runtime.Config{
 			Storage:     ts,

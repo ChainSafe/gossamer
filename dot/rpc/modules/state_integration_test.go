@@ -24,7 +24,7 @@ import (
 
 const (
 	RandomHash     = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
-	ErrKeyNotFound = "Key not found"
+	ErrKeyNotFound = "pebble: not found"
 )
 
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
@@ -118,7 +118,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 			[]string{":key1", "value1"},
 			[]string{":key2", "value2"}}},
 		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
-		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -182,7 +182,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 		{params: []string{""}, expected: nil},
 		{params: []string{":key1"}, expected: []byte("value1")},
 		{params: []string{":key1", hash.String()}, expected: []byte("value1")},
-		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -235,7 +235,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 		{params: []string{""}, expected: hashOfNil},
 		{params: []string{":key1"}, expected: hash1},
 		{params: []string{":key1", hash.String()}, expected: hash1},
-		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"0x", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -280,7 +280,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 		{params: []string{""}},
 		{params: []string{":key1"}, expected: 6},
 		{params: []string{":key1", hash.String()}, expected: 6},
-		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"0x", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
