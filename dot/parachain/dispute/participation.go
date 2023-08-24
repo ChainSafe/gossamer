@@ -306,7 +306,7 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 	}
 }
 
-var _ Participation = &ParticipationHandler{}
+var _ Participation = (*ParticipationHandler)(nil)
 
 func NewParticipation(sender overseer.Sender, runtime parachain.RuntimeInstance) *ParticipationHandler {
 	return &ParticipationHandler{
