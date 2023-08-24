@@ -187,9 +187,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			time.Sleep(2 * time.Second)
 		}
 
+		wg.Add(2)
 		go participationTest()
 		go requestHandler()
-		wg.Add(2)
 		wg.Wait()
 	})
 
