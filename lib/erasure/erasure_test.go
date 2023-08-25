@@ -14,7 +14,7 @@ import (
 
 var testCases = []struct {
 	name          string
-	validators    uint
+	nValidators   uint
 	dataHex       string
 	chunksHex     []string
 	rootHex       string
@@ -22,22 +22,22 @@ var testCases = []struct {
 }{
 	{
 		name:          "1_validators",
-		validators:    1,
+		nValidators:   1,
 		dataHex:       "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		chunksHex:     []string{},
 		expectedError: errors.New("expected at least 2 validators"),
 	},
 	{
 		name:          "2_validators with zero sized data",
-		validators:    2,
+		nValidators:   2,
 		dataHex:       "0x",
 		chunksHex:     []string{},
 		expectedError: erasure.ErrZeroSizedData,
 	},
 	{
-		name:       "2_validators",
-		validators: 2,
-		dataHex:    "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		name:        "2_validators",
+		nValidators: 2,
+		dataHex:     "0x04020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		chunksHex: []string{
 			"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -46,9 +46,9 @@ var testCases = []struct {
 		expectedError: nil,
 	},
 	{
-		name:       "3_validators",
-		validators: 3,
-		dataHex:    "0x0802020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		name:        "3_validators",
+		nValidators: 3,
+		dataHex:     "0x0802020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		chunksHex: []string{
 			"0x0802020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			"0x0802020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -58,9 +58,9 @@ var testCases = []struct {
 		expectedError: nil,
 	},
 	{
-		name:       "4_validators",
-		validators: 4,
-		dataHex:    "0x10020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		name:        "4_validators",
+		nValidators: 4,
+		dataHex:     "0x10020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		chunksHex: []string{
 			"0x100202000000000000000000000000000000000000000000",
 			"0x020200000000000000000000000000000000000000000000",
@@ -71,9 +71,9 @@ var testCases = []struct {
 		expectedError: nil,
 	},
 	{
-		name:       "5_validators",
-		validators: 5,
-		dataHex:    "0x2002020202020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		name:        "5_validators",
+		nValidators: 5,
+		dataHex:     "0x2002020202020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 		chunksHex: []string{
 			"0x2002020202000000000000000000000000000000000000000000",
 			"0x0202020200000000000000000000000000000000000000000000",
@@ -85,9 +85,9 @@ var testCases = []struct {
 		expectedError: nil,
 	},
 	{
-		name:       "6_validators",
-		validators: 6,
-		dataHex:    "0x40020202020202020202020202020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
+		name:        "6_validators",
+		nValidators: 6,
+		dataHex:     "0x40020202020202020202020202020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 		chunksHex: []string{
 			"0x400202020202020202000000000000000000000000000000000000000000",
 			"0x020202020202020200000000000000000000000000000000000000000000",
@@ -100,9 +100,9 @@ var testCases = []struct {
 		expectedError: nil,
 	},
 	{
-		name:       "7_validators",
-		validators: 7,
-		dataHex:    "0x8002020202020202020202020202020202020202020202020202020202020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
+		name:        "7_validators",
+		nValidators: 7,
+		dataHex:     "0x8002020202020202020202020202020202020202020202020202020202020202020000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 		chunksHex: []string{
 			"0x8002020202020202020202020202020202000000000000000000000000000000000000000000",
 			"0x0202020202020202020202020202020200000000000000000000000000000000000000000000",
@@ -123,7 +123,7 @@ func TestObtainChunks(t *testing.T) {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := erasure.ObtainChunks(c.validators, common.MustHexToBytes(c.dataHex))
+			res, err := erasure.ObtainChunks(c.nValidators, common.MustHexToBytes(c.dataHex))
 			require.Equal(t, c.expectedError, err)
 
 			if err == nil {
@@ -131,7 +131,7 @@ func TestObtainChunks(t *testing.T) {
 				for _, chunk := range c.chunksHex {
 					expectedChunks = append(expectedChunks, common.MustHexToBytes(chunk))
 				}
-				require.Equal(t, c.validators, uint(len(res)))
+				require.Equal(t, c.nValidators, uint(len(res)))
 				require.Equal(t, expectedChunks, res)
 			}
 		})
@@ -143,7 +143,7 @@ func TestReconstruct(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
 		name            string
-		validators      uint
+		nValidators     uint
 		chunksHex       []string
 		expectedDataHex string
 		expectedError   error
@@ -152,14 +152,14 @@ func TestReconstruct(t *testing.T) {
 		// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/erasure-coding/src/lib.rs#L413-L418
 		{
 			name:            "1_validator_with_zero_sized_chunks",
-			validators:      1,
+			nValidators:     1,
 			expectedDataHex: "0x",
 			chunksHex:       []string{},
 			expectedError:   erasure.ErrZeroSizedChunks,
 		},
 		{
 			name:            "1_validators",
-			validators:      1,
+			nValidators:     1,
 			expectedDataHex: "0x",
 			chunksHex: []string{
 				"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -168,7 +168,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "2_validators",
-			validators:      2,
+			nValidators:     2,
 			expectedDataHex: "0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			chunksHex: []string{
 				"0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -178,7 +178,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "3_validators",
-			validators:      3,
+			nValidators:     3,
 			expectedDataHex: "0x0802020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 			chunksHex: []string{
 				"0x0802020000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -189,7 +189,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "4_validators",
-			validators:      4,
+			nValidators:     4,
 			expectedDataHex: "0x100202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 			chunksHex: []string{
 				"0x100202000000000000000000000000000000000000000000",
@@ -201,7 +201,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "5_validators",
-			validators:      5,
+			nValidators:     5,
 			expectedDataHex: "0x20020202020202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 			chunksHex: []string{
 				"0x2002020202000000000000000000000000000000000000000000",
@@ -214,7 +214,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "6_validators",
-			validators:      6,
+			nValidators:     6,
 			expectedDataHex: "0x400202020202020202020202020202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 			chunksHex: []string{
 				"0x400202020202020202000000000000000000000000000000000000000000",
@@ -228,7 +228,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "7_validators",
-			validators:      7,
+			nValidators:     7,
 			expectedDataHex: "0x80020202020202020202020202020202020202020202020202020202020202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 			chunksHex: []string{
 				"0x8002020202020202020202020202020202000000000000000000000000000000000000000000",
@@ -243,7 +243,7 @@ func TestReconstruct(t *testing.T) {
 		},
 		{
 			name:            "7_validators_with_missing_chunks",
-			validators:      7,
+			nValidators:     7,
 			expectedDataHex: "0x80020202020202020202020202020202020202020202020202020202020202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 			chunksHex: []string{
 				"0x8002020202020202020202020202020202000000000000000000000000000000000000000000",
@@ -266,7 +266,7 @@ func TestReconstruct(t *testing.T) {
 				chunks = append(chunks, common.MustHexToBytes(chunk))
 			}
 
-			actualData, err := erasure.Reconstruct(d.validators, chunks)
+			actualData, err := erasure.Reconstruct(d.nValidators, chunks)
 			require.Equal(t, err, d.expectedError)
 
 			if actualData == nil {
