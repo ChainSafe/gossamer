@@ -2152,10 +2152,10 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 	logger.Debugf("value: 0x%x", value)
 
 	var encodedOption []byte
-	if len(value) == 0 {
-		encodedOption = noneEncoded
-	} else {
+	if value != nil {
 		encodedOption = scale.MustMarshal(&value)
+	} else {
+		encodedOption = noneEncoded
 	}
 
 	valueSpan, err := write(m, rtCtx.Allocator, encodedOption)
@@ -2208,7 +2208,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 		"key 0x%x has value 0x%x",
 		key, value)
 
-	if len(value) == 0 {
+	if value == nil {
 		res, err := write(m, rtCtx.Allocator, noneEncoded)
 		if err != nil {
 			logger.Errorf("failed to allocate: %s", err)
