@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -99,4 +100,6 @@ type RuntimeInstance interface {
 		blockHash common.Hash,
 		validationCodeHash parachaintypes.ValidationCodeHash,
 	) (*parachaintypes.ValidationCode, error)
+	ParachainHostOnChainVotes(blockHash common.Hash) (types.ScrapedOnChainVotes, error)
+	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
 }
