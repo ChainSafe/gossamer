@@ -10,7 +10,13 @@ import (
 )
 import (
 	"errors"
+	"fmt"
 	"unsafe"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var (
@@ -98,4 +104,25 @@ func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	C.free(unsafe.Pointer(cReconstructedData))
 
 	return res, nil
+}
+
+func ChunksToTrie(chunks [][]byte) (trie.Trie, error) {
+	chunkTrie := inmemory.NewEmptyTrie()
+	for i, chunk := range chunks {
+		encodedI, err := scale.Marshal(uint32(i))
+		if err != nil {
+			return nil, fmt.Errorf("marshalling chunk index: %w", err)
+		}
+
+		chunkHash, err := common.Blake2bHash(chunk)
+		if err != nil {
+			return nil, fmt.Errorf("hashing chunk: %w", err)
+		}
+
+		err = chunkTrie.Put(encodedI, chunkHash[:])
+		if err != nil {
+			return nil, fmt.Errorf("putting chunk into trie: %w", err)
+		}
+	}
+	return chunkTrie, nil
 }

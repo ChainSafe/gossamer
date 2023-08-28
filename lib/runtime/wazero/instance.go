@@ -704,7 +704,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	if cfg.DefaultVersion == nil {
 		err = instance.version()
 		if err != nil {
-			return nil, fmt.Errorf("while getting runtime version: %w", err)
+			logger.Tracef("error while getting runtime version: %w", err)
 		}
 	} else {
 		instance.Context.Version = cfg.DefaultVersion
