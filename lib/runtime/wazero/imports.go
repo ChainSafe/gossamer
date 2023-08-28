@@ -77,6 +77,14 @@ func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byt
 	return newPointerSize(pointer, size), nil
 }
 
+func mustWrite(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointerSize uint64) {
+	pointerSize, err := write(m, allocator, data)
+	if err != nil {
+		panic(err)
+	}
+	return pointerSize
+}
+
 func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
@@ -231,51 +239,30 @@ func ext_crypto_ed25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Errorf("failed to get public keys: %s", err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	ks, err := rtCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	sig, err := signingKey.Sign(read(m, msg))
 	if err != nil {
 		logger.Error("could not sign message")
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	var fixedSize [64]byte
 	copy(fixedSize[:], sig)
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&fixedSize))
-	if err != nil {
-		panic(err)
-	}
-
-	return ret
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&fixedSize))
 }
 
 func ext_crypto_ed25519_verify_version_1(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
@@ -631,11 +618,7 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	ks, err := rtCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warnf("error for id 0x%x: %s", id, err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	kb, ok := m.Memory().Read(key, 32)
@@ -646,42 +629,25 @@ func ext_crypto_sr25519_sign_version_1(ctx context.Context, m api.Module, keyTyp
 	pubKey, err := sr25519.NewPublicKey(kb)
 	if err != nil {
 		logger.Errorf("failed to get public key: %s", err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("could not find public key " + pubKey.Hex() + " in keystore")
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	msgData := read(m, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Errorf("could not sign message: %s", err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	var fixedSig [64]byte
 	copy(fixedSig[:], sig)
-
-	keysPtr, err := write(m, rtCtx.Allocator, scale.MustMarshal(&fixedSig))
-	if err != nil {
-		panic(err)
-	}
-	return keysPtr
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&fixedSig))
 }
 
 func ext_crypto_sr25519_verify_version_1(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
@@ -984,11 +950,7 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	version, err := GetRuntimeVersion(code)
 	if err != nil {
 		logger.Errorf("failed to get runtime version: %s", err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	// Note the encoding contains all the latest Core_version fields as defined in
@@ -1001,18 +963,10 @@ func ext_misc_runtime_version_version_1(ctx context.Context, m api.Module, dataS
 	encodedData, err := scale.Marshal(version)
 	if err != nil {
 		logger.Errorf("failed to encode result: %s", err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&encodedData))
-	if err != nil {
-		panic(err)
-	}
-	return ret
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&encodedData))
 }
 
 func ext_default_child_storage_read_version_1(
@@ -1027,11 +981,7 @@ func ext_default_child_storage_read_version_1(
 	value, err := rtCtx.Storage.GetChildStorage(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child storage: %s", err)
-		ret, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			panic(err)
-		}
-		return ret
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	valueBuf, _ := splitPointerSize(valueOut)
@@ -1045,11 +995,7 @@ func ext_default_child_storage_read_version_1(
 	binary.LittleEndian.PutUint32(sizeBuf, size)
 
 	// this is expected to be Option(Vec<u8>)
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&sizeBuf))
-	if err != nil {
-		panic(err)
-	}
-	return ret
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&sizeBuf))
 }
 
 func ext_default_child_storage_set_version_1(
@@ -1188,7 +1134,6 @@ func ext_default_child_storage_exists_version_1(ctx context.Context, m api.Modul
 		logger.Errorf("failed to get child from child storage: %s", err)
 		return 0
 	}
-
 	if child != nil {
 		return 1
 	}
@@ -1214,12 +1159,7 @@ func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, 
 		encodedChildOptional = scale.MustMarshal(&child)
 	}
 
-	ret, err := write(m, rtCtx.Allocator, encodedChildOptional)
-	if err != nil {
-		panic(err)
-	}
-
-	return ret
+	return mustWrite(m, rtCtx.Allocator, encodedChildOptional)
 }
 
 func ext_default_child_storage_next_key_version_1(
@@ -1717,11 +1657,7 @@ func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module,
 		encodedOption = res
 	}
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&encodedOption))
-	if err != nil {
-		panic(err)
-	}
-	return ret
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&encodedOption))
 }
 
 func ext_offchain_local_storage_set_version_1(ctx context.Context, m api.Module, kind uint32, key, value uint64) {
@@ -2159,12 +2095,7 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 		encodedOption = noneEncoded
 	}
 
-	valueSpan, err := write(m, rtCtx.Allocator, encodedOption)
-	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		panic(err)
-	}
-	return valueSpan
+	return mustWrite(m, rtCtx.Allocator, encodedOption)
 }
 
 func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan uint64) uint64 {
@@ -2188,12 +2119,7 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 		encodedOption = scale.MustMarshal(&next)
 	}
 
-	nextSpan, err := write(m, rtCtx.Allocator, encodedOption)
-	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		panic(err)
-	}
-	return nextSpan
+	return mustWrite(m, rtCtx.Allocator, encodedOption)
 }
 
 func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valueOut uint64, offset uint32) uint64 {
@@ -2210,12 +2136,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 		key, value)
 
 	if value == nil {
-		res, err := write(m, rtCtx.Allocator, noneEncoded)
-		if err != nil {
-			logger.Errorf("failed to allocate: %s", err)
-			panic(err)
-		}
-		return res
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
 	var data []byte
@@ -2240,12 +2161,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 	}
 
 	size := uint32(len(data))
-	sizeSpan, err := write(m, rtCtx.Allocator, scale.MustMarshal(&size))
-	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		panic(err)
-	}
-	return sizeSpan
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&size))
 }
 
 func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
