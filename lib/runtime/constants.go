@@ -6,9 +6,10 @@ package runtime
 const (
 	// v0.9 test API wasm
 	// This wasm is generated using https://github.com/ChainSafe/polkadot-spec.
-	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
-	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
-	HOST_API_TEST_RUNTIME_URL = "https://github.com/ChainSafe/polkadot-spec/raw/master/test/" +
+	HOST_API_TEST_RUNTIME    = "hostapi_runtime"
+	HOST_API_TEST_RUNTIME_FP = "hostapi_runtime.compact.wasm"
+	// TODO: change this when https://github.com/ChainSafe/polkadot-spec/pull/17 is merged
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/dimartiro/polkadot-spec/raw/add-triev1-functions/test/" +
 		"runtimes/hostapi/hostapi_runtime.compact.wasm"
 
 	// v0.9.29 polkadot
