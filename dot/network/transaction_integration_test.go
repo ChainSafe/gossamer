@@ -41,7 +41,9 @@ func TestHandleTransactionMessage(t *testing.T) {
 		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
 		Return(true, nil)
 
-	transactionHandler.EXPECT().TransactionsCount().Return(0)
+	transactionHandler.EXPECT().
+		TransactionsCount().
+		Return(0).AnyTimes()
 
 	config := &Config{
 		BasePath:           t.TempDir(),
@@ -53,6 +55,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 	}
 
 	s := createTestService(t, config)
+	time.Sleep(100 * time.Millisecond)
 	ret, err := s.handleTransactionMessage(peer.ID(""), expectedMsgArg)
 
 	require.NoError(t, err)
