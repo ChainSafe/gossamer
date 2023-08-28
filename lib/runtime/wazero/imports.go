@@ -1710,7 +1710,7 @@ func ext_offchain_local_storage_get_version_1(ctx context.Context, m api.Module,
 	}
 
 	var encodedOption []byte
-	if err != nil || len(res) == 0 {
+	if err != nil || res == nil {
 		logger.Errorf("failed to get value from storage: %s", err)
 		encodedOption = noneEncoded
 	} else {

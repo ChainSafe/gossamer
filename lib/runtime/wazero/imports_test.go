@@ -741,43 +741,74 @@ var (
 )
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
-
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
-	require.NoError(t, err)
-
 	testOffset := uint32(2)
 	testBufferSize := uint32(100)
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+	expectedValue := testValue[testOffset:]
+	cases := map[string]struct {
+		setupInstance func(t *testing.T) *Instance
+		expected      *[]byte
+	}{
+		"should_return_none_if_child_doesnt_exist": {
+			setupInstance: func(t *testing.T) *Instance {
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			},
+			expected: nil,
+		},
 
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
+		"child_exists_return_value": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	encBufferSize, err := scale.Marshal(testBufferSize)
-	require.NoError(t, err)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	encOffset, err := scale.Marshal(testOffset)
-	require.NoError(t, err)
+				err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+				require.NoError(t, err)
+				return inst
+			},
+			expected: &expectedValue,
+		},
+	}
 
-	ret, err := inst.Exec(
-		"rtm_ext_default_child_storage_read_version_1",
-		append(append(encChildKey, encKey...),
-			append(encOffset, encBufferSize...)...))
-	require.NoError(t, err)
+	for tname, tt := range cases {
+		tt := tt
 
-	var read *[]byte
-	err = scale.Unmarshal(ret, &read)
-	require.NoError(t, err)
-	require.NotNil(t, read)
+		t.Run(tname, func(t *testing.T) {
+			inst := tt.setupInstance(t)
 
-	val := *read
-	require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
+			encChildKey, err := scale.Marshal(testChildKey)
+			require.NoError(t, err)
+
+			encKey, err := scale.Marshal(testKey)
+			require.NoError(t, err)
+
+			encBufferSize, err := scale.Marshal(testBufferSize)
+			require.NoError(t, err)
+
+			encOffset, err := scale.Marshal(testOffset)
+			require.NoError(t, err)
+
+			args := bytes.Join([][]byte{
+				encChildKey, encKey,
+				encOffset, encBufferSize,
+			}, nil)
+
+			ret, err := inst.Exec("rtm_ext_default_child_storage_read_version_1", args)
+			require.NoError(t, err)
+
+			var read *[]byte
+			err = scale.Unmarshal(ret, &read)
+			require.NoError(t, err)
+
+			if tt.expected == nil {
+				require.Nil(t, read)
+			} else {
+				val := *read
+				require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
+			}
+		})
+	}
 }
 
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
