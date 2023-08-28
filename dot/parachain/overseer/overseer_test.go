@@ -2,6 +2,8 @@ package overseer
 
 import (
 	"fmt"
+	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
@@ -10,12 +12,17 @@ type ExampleSubsystem1 struct {
 	name string
 }
 
-func (e *ExampleSubsystem1) Run(context Context) error {
+func (e *ExampleSubsystem1) Run(context *Context) error {
 	fmt.Printf("Run %v\n", e.name)
-	err := e.initialize(context)
+	err := e.initialize(*context)
 	if err != nil {
 		return fmt.Errorf("initialize %v: %w", e.name, err)
 	}
+	return nil
+}
+
+func (e *ExampleSubsystem1) ProcessActiveLeavesUpdate(update ActiveLeavesUpdate) error {
+	fmt.Printf("ParticipationHandler received active leaves update %v\n", update)
 	return nil
 }
 
@@ -61,7 +68,8 @@ func TestStartSubsystems(t *testing.T) {
 	overseer.RegisterSubSystem(ss2)
 	overseer.Start()
 	time.Sleep(time.Millisecond * 500)
-	overseer.sendActiveLeaf()
+	err := overseer.sendActiveLeaf(parachainTypes.BlockNumber(11))
+	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
 	overseer.stop()

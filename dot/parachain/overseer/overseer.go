@@ -26,9 +26,9 @@ func NewOverseer() *Overseer {
 }
 
 func (o *Overseer) Start() {
-	//for subsystem, context := range o.subsystemContexts {
-	//	go subsystem.Run(context)
-	//}
+	for _, subsystem := range o.subsystems {
+		go subsystem.Run(o.context)
+	}
 
 	go func() {
 		for {
@@ -110,7 +110,7 @@ type SubsystemMessage struct {
 }
 
 type Subsystem interface {
-	//Run(context Context) error
+	Run(context *Context) error
 
 	// ProcessActiveLeavesUpdate processes an active leaves update
 	ProcessActiveLeavesUpdate(update ActiveLeavesUpdate) error
