@@ -1188,6 +1188,7 @@ func ext_default_child_storage_exists_version_1(ctx context.Context, m api.Modul
 		logger.Errorf("failed to get child from child storage: %s", err)
 		return 0
 	}
+
 	if child != nil {
 		return 1
 	}
@@ -1206,7 +1207,7 @@ func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, 
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	var encodedChildOptional []byte
 
-	if err != nil || len(child) == 0 {
+	if err != nil || child == nil {
 		logger.Warnf("child storage not found: %s", err)
 		encodedChildOptional = noneEncoded
 	} else {
