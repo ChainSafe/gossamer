@@ -902,27 +902,52 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	cases := map[string]struct {
+		setupInstance func(t *testing.T) *Instance
+		expected      *[]byte
+	}{
+		"value_exists_expected_value": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
+				err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+				require.NoError(t, err)
+				return inst
+			},
+			expected: &testValue,
+		},
+		"value_not_found_expected_none": {
+			setupInstance: func(t *testing.T) *Instance {
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			},
+			expected: nil,
+		},
+	}
 
-	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
-	require.NoError(t, err)
+	for tname, tt := range cases {
+		tt := tt
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+		t.Run(tname, func(t *testing.T) {
+			inst := tt.setupInstance(t)
 
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
+			encChildKey, err := scale.Marshal(testChildKey)
+			require.NoError(t, err)
 
-	ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
-	require.NoError(t, err)
+			encKey, err := scale.Marshal(testKey)
+			require.NoError(t, err)
 
-	var read *[]byte
-	err = scale.Unmarshal(ret, &read)
-	require.NoError(t, err)
-	require.NotNil(t, read)
+			ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
+			require.NoError(t, err)
+
+			var read *[]byte
+			err = scale.Unmarshal(ret, &read)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expected, read)
+		})
+	}
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
