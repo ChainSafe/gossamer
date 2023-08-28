@@ -41,6 +41,7 @@ func TestHandleTransactionMessage(t *testing.T) {
 		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
 		Return(true, nil)
 
+	// TODO: https://github.com/ChainSafe/gossamer/issues/1975
 	transactionHandler.EXPECT().
 		TransactionsCount().
 		Return(0).AnyTimes()
@@ -55,7 +56,6 @@ func TestHandleTransactionMessage(t *testing.T) {
 	}
 
 	s := createTestService(t, config)
-	time.Sleep(100 * time.Millisecond)
 	ret, err := s.handleTransactionMessage(peer.ID(""), expectedMsgArg)
 
 	require.NoError(t, err)
