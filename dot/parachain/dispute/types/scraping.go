@@ -24,5 +24,5 @@ type ScrapedOnChainVotes struct {
 
 type ScrappedUpdates struct {
 	OnChainVotes     []ScrapedOnChainVotes
-	IncludedReceipts []common.Hash
+	IncludedReceipts []parachainTypes.CandidateReceipt
 }
