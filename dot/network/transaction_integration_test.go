@@ -41,7 +41,10 @@ func TestHandleTransactionMessage(t *testing.T) {
 		HandleTransactionMessage(peer.ID(""), expectedMsgArg).
 		Return(true, nil)
 
-	transactionHandler.EXPECT().TransactionsCount().Return(0)
+	// TODO: https://github.com/ChainSafe/gossamer/issues/1975
+	transactionHandler.EXPECT().
+		TransactionsCount().
+		Return(0).AnyTimes()
 
 	config := &Config{
 		BasePath:           t.TempDir(),
