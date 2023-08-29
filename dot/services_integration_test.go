@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
@@ -333,7 +333,7 @@ func Test_createRuntime(t *testing.T) {
 				config: config,
 				ns:     runtime.NodeStorage{},
 			},
-			expectedType: &wasmer.Instance{},
+			expectedType: &wazero_runtime.Instance{},
 			err:          nil,
 		},
 	}
@@ -433,6 +433,9 @@ func TestCreateStateService(t *testing.T) {
 	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 	require.NotNil(t, stateSrvc)
+
+	err = stateSrvc.DB().Close()
+	require.NoError(t, err)
 }
 
 func newStateServiceWithoutMock(t *testing.T) *state.Service {
@@ -466,7 +469,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
@@ -475,7 +478,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	rtCfg.NodeStorage = runtime.NodeStorage{}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	stateSrvc.Block.StoreRuntime(stateSrvc.Block.BestBlockHash(), rt)
@@ -529,6 +532,8 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc.Epoch = &state.EpochState{}
 
 	_ = builder.createBlockVerifier(stateSrvc)
+	err = stateSrvc.DB().Close()
+	require.NoError(t, err)
 }
 
 func TestCreateSyncService(t *testing.T) {

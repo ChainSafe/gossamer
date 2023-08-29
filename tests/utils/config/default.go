@@ -7,7 +7,7 @@ import (
 	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
 // Default returns a default TOML configuration for Gossamer.
@@ -42,7 +42,7 @@ func Default() cfg.Config {
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
 			GrandpaInterval:  1 * time.Second,
-			WasmInterpreter:  wasmer.Name,
+			WasmInterpreter:  wazero_runtime.Name,
 		},
 		Network: &cfg.NetworkConfig{
 			Bootnodes:         nil,

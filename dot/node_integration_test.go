@@ -25,6 +25,7 @@ import (
 	system "github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -33,9 +34,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,8 +56,7 @@ func TestNewNode(t *testing.T) {
 	initConfig.ChainSpec = genFile
 	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
-	initConfig.Core.WasmInterpreter = wasmer.Name
-
+	initConfig.Core.WasmInterpreter = wazero_runtime.Name
 	initConfig.Log.Digest = "critical"
 
 	networkConfig := &network.Config{
@@ -89,7 +88,7 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(nil)
+	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(false, nil)
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
 		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
@@ -98,7 +97,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
 		// create trie from genesis
-		trie, err := wasmer.NewTrieFromGenesis(*gen)
+		trie, err := runtime.NewTrieFromGenesis(*gen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
@@ -215,9 +214,12 @@ func TestInitNode_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// confirm database was setup
-	db, err := utils.SetupDatabase(config.BasePath, false)
+
+	db, err := database.LoadDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func TestInitNode_GenesisSpec(t *testing.T) {
@@ -230,9 +232,12 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(config)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := utils.SetupDatabase(config.BasePath, false)
+	db, err := database.LoadDatabase(config.BasePath, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
+
+	err = db.Close()
+	require.NoError(t, err)
 }
 
 func TestNodeInitializedIntegration(t *testing.T) {
@@ -242,13 +247,15 @@ func TestNodeInitializedIntegration(t *testing.T) {
 
 	config.ChainSpec = genFile
 
-	result := IsNodeInitialised(config.BasePath)
+	result, err := IsNodeInitialised(config.BasePath)
+	require.NoError(t, err)
 	require.False(t, result)
 
-	err := InitNode(config)
+	err = InitNode(config)
 	require.NoError(t, err)
 
-	result = IsNodeInitialised(config.BasePath)
+	result, err = IsNodeInitialised(config.BasePath)
+	require.NoError(t, err)
 	require.True(t, result)
 }
 

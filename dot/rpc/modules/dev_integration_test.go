@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func newBABEService(t *testing.T) *babe.Service {
 
 	bs, es := newState(t)
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(
 		common.MustHexToBytes("0x886726f904d8372fdabb7707870c2fad"),

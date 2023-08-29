@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 var (
@@ -20,13 +22,21 @@ var (
 	ErrValueMismatchProofTrie = errors.New("value found in proof trie does not match")
 )
 
+var logger = log.NewFromGlobal(log.AddContext("pkg", "proof"))
+
 // Verify verifies a given key and value belongs to the trie by creating
 // a proof trie based on the encoded proof nodes given. The order of proofs is ignored.
 // A nil error is returned on success.
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
 func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
-	proofTrie, err := buildTrie(encodedProofNodes, rootHash)
+	proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
+
+	if err != nil {
+		return err
+	}
+
+	proofTrie, err := buildTrie(encodedProofNodes, rootHash, proofDB)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
 	}
@@ -52,7 +62,7 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err error) {
+func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db Database) (t *trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
 			ErrEmptyProof, rootHash)
@@ -119,7 +129,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte) (t *trie.Trie, err e
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewTrie(root), nil
+	return trie.NewTrie(root, db), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based
@@ -137,6 +147,9 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 
 		merkleValue := child.MerkleValue
 		encoding, ok := digestToEncoding[string(merkleValue)]
+
+		logger.Infof("Node: %x", encoding)
+
 		if !ok {
 			inlinedChild := len(child.StorageValue) > 0 || child.HasChild()
 			if inlinedChild {
@@ -157,6 +170,7 @@ func loadProof(digestToEncoding map[string][]byte, n *node.Node) (err error) {
 			continue
 		}
 
+		logger.Info("loading proof DECODING...")
 		child, err := node.Decode(bytes.NewReader(encoding))
 		if err != nil {
 			return fmt.Errorf("decoding child node for hash digest 0x%x: %w",

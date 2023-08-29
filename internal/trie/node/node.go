@@ -9,8 +9,6 @@ import (
 	"fmt"
 
 	"github.com/qdm12/gotree"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // Node is a node in the trie and can be a leaf or a branch.
@@ -18,6 +16,8 @@ type Node struct {
 	// PartialKey is the partial key bytes in nibbles (0 to f in hexadecimal)
 	PartialKey   []byte
 	StorageValue []byte
+	// HashedValue is true when the StorageValue is a blake2b hash
+	HashedValue bool
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
@@ -26,7 +26,6 @@ type Node struct {
 	// Children is a slice of length 16 for branches.
 	// It is left to nil for leaves to reduce memory usage.
 	Children []*Node
-
 	// Dirty is true when the branch differs
 	// from the node stored in the database.
 	Dirty bool
@@ -53,8 +52,7 @@ func (n *Node) String() string {
 
 // StringNode returns a gotree compatible node for String methods.
 func (n *Node) StringNode() (stringNode *gotree.Node) {
-	caser := cases.Title(language.BritishEnglish)
-	stringNode = gotree.New(caser.String(n.Kind().String()))
+	stringNode = gotree.New(n.Kind().String())
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
