@@ -1190,7 +1190,7 @@ func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 	enc, err := scale.Marshal(data)
 	require.NoError(t, err)
 
-	ret, err := inst.Exec("rtm_ext_hashing_blake2_256_version_1", enc)
+ret, err := inst.Exec("rtm_ext_hashing_blake2_256_version_1", enc)
 	require.NoError(t, err)
 
 	var hash []byte
