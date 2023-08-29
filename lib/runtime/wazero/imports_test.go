@@ -887,8 +887,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 			anotherValue := []byte("some_acc_address_2")
 			insertKeyAndValue(t, inst, exampleChildKey, anotherKey, anotherValue)
 
-			// should be possible to retrive the first address and the new inserted one
-
+			// should be possible to retrieve the first address and the new inserted one
 			acc1 := getValueFromChildStorage(t, inst, exampleChildKey, exampleKey)
 			require.Equal(t, &exampleValue, acc1)
 
