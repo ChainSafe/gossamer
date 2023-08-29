@@ -127,7 +127,8 @@ func TestStateModule_GetPairs(t *testing.T) {
 				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
 			[]string{hexEncode(":key1"), hexEncode("value1")},
 			[]string{hexEncode(":key2"), hexEncode("value2")}}},
-		{params: []string{hexEncode(":key1"), hash.String()}, expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
+		{params: []string{hexEncode(":key1"), hash.String()},
+			expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
