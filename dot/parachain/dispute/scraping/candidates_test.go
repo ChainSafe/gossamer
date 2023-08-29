@@ -8,10 +8,10 @@ import (
 	"github.com/tidwall/btree"
 )
 
-func TestScrappedCandidates(t *testing.T) {
-	sc := NewScrappedCandidates()
+func TestScrapedCandidates(t *testing.T) {
+	sc := NewScrapedCandidates()
 
-	// Test inserting candidates and checking if they exist in the ScrappedCandidates.
+	// Test inserting candidates and checking if they exist in the ScrapedCandidates.
 	sc.Insert(1, common.NewHash([]byte{1}))
 	sc.Insert(2, common.NewHash([]byte{2}))
 	sc.Insert(3, common.NewHash([]byte{3}))
@@ -24,7 +24,7 @@ func TestScrappedCandidates(t *testing.T) {
 	require.False(t, sc.Contains(common.NewHash([]byte{5}))) // Non-existing candidate.
 
 	// Test removing candidates up to a certain height and check if they are removed.
-	modifiedCandidates := sc.RemoveUptoHeight(2)
+	modifiedCandidates := sc.RemoveUptoHeight(3)
 	require.ElementsMatch(t, []common.Hash{common.NewHash([]byte{1}), common.NewHash([]byte{2})}, modifiedCandidates)
 
 	// Check if candidates are removed after the removal operation.
@@ -39,27 +39,27 @@ func TestScrappedCandidates(t *testing.T) {
 	require.True(t, sc.Contains(common.NewHash([]byte{5})))  // Newly inserted candidate.
 
 	// Test edge case: Removing candidates with an empty CandidatesByBlockNumber.
-	emptySc := NewScrappedCandidates()
+	emptySc := NewScrapedCandidates()
 	modifiedCandidates = emptySc.RemoveUptoHeight(1)
 	require.Empty(t, modifiedCandidates)
 
 	// Test edge case: Removing candidates when CandidatesByBlockNumber is nil.
-	sc2 := NewScrappedCandidates()
+	sc2 := NewScrapedCandidates()
 	sc2.Insert(1, common.NewHash([]byte{1}))
-	modifiedCandidates = sc2.RemoveUptoHeight(1)
+	modifiedCandidates = sc2.RemoveUptoHeight(2)
 	require.ElementsMatch(t, []common.Hash{common.NewHash([]byte{1})}, modifiedCandidates)
 
 	// Test edge case: RemoveUptoHeight with blockNumber greater than all candidates.
-	sc3 := &ScrappedCandidates{
+	sc3 := &ScrapedCandidates{
 		Candidates:              make(map[common.Hash]uint32),
-		CandidatesByBlockNumber: btree.New(ScrappedCandidateComparator),
+		CandidatesByBlockNumber: btree.New(ScrapedCandidateComparator),
 	}
 	sc3.Insert(1, common.NewHash([]byte{1}))
 	modifiedCandidates = sc3.RemoveUptoHeight(100)
 	require.ElementsMatch(t, []common.Hash{common.NewHash([]byte{1})}, modifiedCandidates)
 
 	// Test edge case: RemoveUptoHeight with empty Candidates map.
-	sc4 := NewScrappedCandidates()
+	sc4 := NewScrapedCandidates()
 	modifiedCandidates = sc4.RemoveUptoHeight(1)
 	require.Empty(t, modifiedCandidates)
 }

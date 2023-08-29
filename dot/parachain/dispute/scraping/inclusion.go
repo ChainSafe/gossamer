@@ -6,15 +6,19 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// Inclusion the block number and hash of a block that includes a candidate.
 type Inclusion struct {
 	BlockNumber uint32
 	BlockHash   common.Hash
 }
 
+// Inclusions stores the candidates that are included in blocks.
 type Inclusions struct {
+	// CandidateHash -> [BlockNumber -> BlockHash]
 	inner map[common.Hash]map[uint32][]common.Hash
 }
 
+// Insert inserts a new inclusion into the Inclusions.
 func (i *Inclusions) Insert(candidateHash, blockHash common.Hash, blockNumber uint32) {
 	if _, ok := i.inner[candidateHash]; !ok {
 		i.inner[candidateHash] = make(map[uint32][]common.Hash)
@@ -30,12 +34,13 @@ func (i *Inclusions) Insert(candidateHash, blockHash common.Hash, blockNumber ui
 	i.inner[candidateHash][blockNumber] = append(i.inner[candidateHash][blockNumber], blockHash)
 }
 
+// RemoveUpToHeight removes all inclusions up to the given block number.
 func (i *Inclusions) RemoveUpToHeight(blockNumber uint32, candidatesModified []common.Hash) {
 	for _, candidate := range candidatesModified {
 		blocksIncluding, ok := i.inner[candidate]
 		if ok {
 			for height := range blocksIncluding {
-				if height <= blockNumber {
+				if height < blockNumber {
 					delete(blocksIncluding, height)
 				}
 			}
@@ -48,6 +53,7 @@ func (i *Inclusions) RemoveUpToHeight(blockNumber uint32, candidatesModified []c
 	}
 }
 
+// Get returns all inclusions for the given candidate hash.
 func (i *Inclusions) Get(candidateHash common.Hash) []Inclusion {
 	var inclusionsAsSlice []Inclusion
 	blocksIncluding, ok := i.inner[candidateHash]
@@ -76,6 +82,7 @@ func (i *Inclusions) Get(candidateHash common.Hash) []Inclusion {
 	return inclusionsAsSlice
 }
 
+// NewInclusions creates a new Inclusions.
 func NewInclusions() Inclusions {
 	return Inclusions{
 		inner: make(map[common.Hash]map[uint32][]common.Hash),

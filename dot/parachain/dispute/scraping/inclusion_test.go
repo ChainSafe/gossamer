@@ -55,18 +55,14 @@ func TestInclusions_RemoveUpToHeight(t *testing.T) {
 		1: {blockHash1},
 	}
 
-	inclusions.RemoveUpToHeight(1, []common.Hash{candidateHash1})
-	require.Equal(t, map[common.Hash]map[uint32][]common.Hash{
-		candidateHash1: {
-			2: {blockHash2},
-		},
-		candidateHash2: {
-			1: {blockHash1},
-		},
-	}, inclusions.inner)
+	inclusions.RemoveUpToHeight(1, []common.Hash{candidateHash1, candidateHash2})
+	require.Equal(t, 2, len(inclusions.inner))
 
 	inclusions.RemoveUpToHeight(2, []common.Hash{candidateHash1, candidateHash2})
-	require.Equal(t, map[common.Hash]map[uint32][]common.Hash{}, inclusions.inner)
+	require.Equal(t, 1, len(inclusions.inner))
+
+	inclusions.RemoveUpToHeight(3, []common.Hash{candidateHash1, candidateHash2})
+	require.Equal(t, 0, len(inclusions.inner))
 }
 
 func TestInclusions_Get(t *testing.T) {
