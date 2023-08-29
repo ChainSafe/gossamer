@@ -53,9 +53,19 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]
 func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
+	var freshNewTrie bool
+
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
-		return err
+		if errors.Is(err, ErrChildTrieDoesNotExist) {
+			freshNewTrie = true
+		} else {
+			return fmt.Errorf("getting child: %w", err)
+		}
+	}
+
+	if freshNewTrie {
+		child = NewEmptyTrie()
 	}
 
 	origChildHash, err := child.Hash()
@@ -68,14 +78,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 		return fmt.Errorf("putting into child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
-	childHash, err := child.Hash()
-	if err != nil {
-		return err
-	}
-
 	delete(t.childTries, origChildHash)
-	t.childTries[childHash] = child
-
 	return t.SetChild(keyToChild, child)
 }
 

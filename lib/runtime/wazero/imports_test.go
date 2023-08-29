@@ -812,31 +812,90 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	cases := map[string]struct {
+		setupInstance    func(*testing.T) *Instance
+		existsBeforehand bool
+	}{
+		"child_trie_exists_should_not_panic": {
+			existsBeforehand: true,
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	// Check if value is not set
-	val, err := inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
+				return inst
+			},
+		},
+		"child_trie_not_found_should_create_a_empty_one": {
+			existsBeforehand: false,
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				return inst
+			},
+		},
+	}
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+	insertKeyAndValue := func(t *testing.T, inst *Instance, childKey, key, value []byte) {
+		encChildKey, err := scale.Marshal(childKey)
+		require.NoError(t, err)
 
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
+		encKey, err := scale.Marshal(key)
+		require.NoError(t, err)
 
-	encVal, err := scale.Marshal(testValue)
-	require.NoError(t, err)
+		encVal, err := scale.Marshal(value)
+		require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
-	require.NoError(t, err)
+		args := bytes.Join([][]byte{
+			encChildKey, encKey, encVal,
+		}, nil)
 
-	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Equal(t, testValue, val)
+		_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", args)
+		require.NoError(t, err)
+	}
+
+	getValueFromChildStorage := func(t *testing.T, inst *Instance, childKey, key []byte) *[]byte {
+		encChildKey, err := scale.Marshal(childKey)
+		require.NoError(t, err)
+
+		encKey, err := scale.Marshal(key)
+		require.NoError(t, err)
+
+		ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
+		require.NoError(t, err)
+
+		var retrieved *[]byte
+		err = scale.Unmarshal(ret, &retrieved)
+		require.NoError(t, err)
+
+		return retrieved
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			inst := tt.setupInstance(t)
+
+			exampleChildKey := []byte("example_child_key")
+			exampleKey := []byte("key_to_account")
+			exampleValue := []byte("some_acc_address")
+
+			insertKeyAndValue(t, inst, exampleChildKey, exampleKey, exampleValue)
+
+			anotherKey := []byte("key_to_account_2")
+			anotherValue := []byte("some_acc_address_2")
+			insertKeyAndValue(t, inst, exampleChildKey, anotherKey, anotherValue)
+
+			// should be possible to retrive the first address and the new inserted one
+
+			acc1 := getValueFromChildStorage(t, inst, exampleChildKey, exampleKey)
+			require.Equal(t, &exampleValue, acc1)
+
+			acc2 := getValueFromChildStorage(t, inst, exampleChildKey, anotherKey)
+			require.Equal(t, &anotherValue, acc2)
+		})
+	}
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
