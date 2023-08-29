@@ -105,19 +105,29 @@ func TestStateModule_GetPairs(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
+	hexEncode := func(s string) string {
+		return "0x" + hex.EncodeToString([]byte(s))
+	}
+
 	testCases := []struct {
 		params   []string
 		expected []interface{}
 		errMsg   string
 	}{
 		{params: []string{"0x00"}, expected: nil},
-		{params: []string{""}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
-		{params: []string{":key1"}, expected: []interface{}{[]string{":key1", "value1"}}},
+		{params: []string{""}, expected: []interface{}{
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1")}, expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"0x00", hash.String()}, expected: nil},
 		{params: []string{"", hash.String()}, expected: []interface{}{
-			[]string{":key1", "value1"},
-			[]string{":key2", "value2"}}},
-		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1"), hash.String()}, expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
@@ -134,6 +144,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 			if len(test.params) > 1 && test.params[1] != "" {
 				req.Bhash = &common.Hash{}
+				var err error
 				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
@@ -160,10 +171,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 				// Convert human-readable result value to hex.
 				expectedKV, _ := val.([]string)
-				expectedKey := "0x" + hex.EncodeToString([]byte(expectedKV[0]))
-				expectedVal := "0x" + hex.EncodeToString([]byte(expectedKV[1]))
-
-				require.Equal(t, []string{expectedKey, expectedVal}, kv)
+				require.Equal(t, []string{expectedKV[0], expectedKV[1]}, kv)
 			}
 		})
 	}
@@ -551,9 +559,14 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Put([]byte(`:key2`), []byte(`value2`))
-	ts.Put([]byte(`:key1`), []byte(`value1`))
-	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	err = ts.Put([]byte(`:key2`), []byte(`value2`))
+	require.NoError(t, err)
+
+	err = ts.Put([]byte(`:key1`), []byte(`value1`))
+	require.NoError(t, err)
+
+	err = ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	require.NoError(t, err)
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
