@@ -455,17 +455,22 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: nil,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "allKeysTestBlockHash",
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: stateRootHash,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchAll",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b6579",
 				Qty:    10,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchOne",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b657931",
@@ -479,7 +484,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 		{name: "qtyOne",
 			params: StateStorageKeyRequest{
 				Qty: 1,
-			}, expected: []string{"0x3a6b657931"}},
+			}, expected: []string{"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431"}},
 		{name: "afterKey",
 			params: StateStorageKeyRequest{
 				Qty:      10,
