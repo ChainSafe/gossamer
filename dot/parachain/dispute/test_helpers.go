@@ -53,6 +53,25 @@ func dummyCandidateDescriptorBadSignature(relayParent common.Hash) parachainType
 	}
 }
 
+func DummyCandidateReceipt(relayParent common.Hash) parachainTypes.CandidateReceipt {
+	descriptor := parachainTypes.CandidateDescriptor{
+		ParaID:                      0,
+		RelayParent:                 relayParent,
+		Collator:                    parachainTypes.CollatorID{},
+		PersistedValidationDataHash: common.Hash{},
+		PovHash:                     common.Hash{},
+		ErasureRoot:                 common.Hash{},
+		Signature:                   parachainTypes.CollatorSignature{},
+		ParaHead:                    common.Hash{},
+		ValidationCodeHash:          parachainTypes.ValidationCodeHash{},
+	}
+
+	return parachainTypes.CandidateReceipt{
+		Descriptor:      descriptor,
+		CommitmentsHash: common.Hash{},
+	}
+}
+
 func dummyCandidateReceiptBadSignature(
 	relayParent common.Hash,
 	commitments *common.Hash,
@@ -107,4 +126,31 @@ func activateLeaf(
 
 	participation.ProcessActiveLeavesUpdate(update)
 	return nil
+}
+
+func GetBlockNumberHash(blockNumber parachainTypes.BlockNumber) common.Hash {
+	encodedBlockNumber, err := blockNumber.Encode()
+	if err != nil {
+		panic("failed to encode block number:" + err.Error())
+	}
+	blockHash, err := common.Blake2bHash(encodedBlockNumber)
+	if err != nil {
+		panic("failed to hash block number:" + err.Error())
+	}
+
+	return blockHash
+}
+
+func DummyActivatedLeaf(blockNumber parachainTypes.BlockNumber) overseer.ActivatedLeaf {
+	return overseer.ActivatedLeaf{
+		Hash:   GetBlockNumberHash(blockNumber),
+		Number: uint32(blockNumber),
+	}
+}
+
+func NextLeaf(chain *[]common.Hash) overseer.ActivatedLeaf {
+	nextBlockNumber := len(*chain)
+	nextHash := GetBlockNumberHash(parachainTypes.BlockNumber(nextBlockNumber))
+	*chain = append(*(chain), nextHash)
+	return DummyActivatedLeaf(parachainTypes.BlockNumber(nextBlockNumber))
 }

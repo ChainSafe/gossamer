@@ -2,11 +2,10 @@ package scraping
 
 import (
 	"fmt"
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
-	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
@@ -21,19 +20,20 @@ const (
 	AncestryChunkSize = uint32(10)
 
 	// AncestrySizeLimit Limits the overall number of ancestors walked through for a given head.
-	AncestrySizeLimit = uint32(500) // TODO: This should be a MaxFinalityLag
+	AncestrySizeLimit = int(500) // TODO: This should be a MaxFinalityLag
+
+	// LRUObservedBlocksCapacity Number of hashes to keep in the LRU cache.
+	LRUObservedBlocksCapacity = 20
 )
 
-var logger = log.NewFromGlobal(log.AddContext("disputes", "scraping"))
-
-// ChainScrapper Scrapes non finalized chain in order to collect information from blocks
-type ChainScrapper struct {
+// ChainScraper Scrapes non finalized chain in order to collect information from blocks
+type ChainScraper struct {
 	// All candidates we have seen included, which not yet have been finalized.
-	IncludedCandidates ScrappedCandidates
+	IncludedCandidates ScrapedCandidates
 	// All candidates we have seen backed
-	BackedCandidates ScrappedCandidates
+	BackedCandidates ScrapedCandidates
 	// Latest relay blocks observed by the provider.
-	LastObservedBlocks lrucache.LRUCache[common.Hash, *uint32]
+	LastObservedBlocks *lrucache.LRUCache[common.Hash, *uint32]
 	// Maps included candidate hashes to one or more relay block heights and hashes.
 	Inclusions Inclusions
 	// Runtime instance
@@ -41,25 +41,27 @@ type ChainScrapper struct {
 }
 
 // IsCandidateIncluded Check whether we have seen a candidate included on any chain.
-func (cs *ChainScrapper) IsCandidateIncluded(candidateHash common.Hash) bool {
+func (cs *ChainScraper) IsCandidateIncluded(candidateHash common.Hash) bool {
 	return cs.IncludedCandidates.Contains(candidateHash)
 }
 
 // IsCandidateBacked Check whether the candidate is backed
-func (cs *ChainScrapper) IsCandidateBacked(candidateHash common.Hash) bool {
+func (cs *ChainScraper) IsCandidateBacked(candidateHash common.Hash) bool {
 	return cs.BackedCandidates.Contains(candidateHash)
 }
 
-func (cs *ChainScrapper) GetBlocksIncludingCandidate(candidateHash common.Hash) []Inclusion {
+// GetBlocksIncludingCandidate Get blocks including the given candidate hash
+func (cs *ChainScraper) GetBlocksIncludingCandidate(candidateHash common.Hash) []Inclusion {
 	return cs.Inclusions.Get(candidateHash)
 }
 
-func (cs *ChainScrapper) ProcessActiveLeavesUpdate(
+// ProcessActiveLeavesUpdate Process active leaves update
+func (cs *ChainScraper) ProcessActiveLeavesUpdate(
 	sender overseer.Sender,
 	update overseer.ActiveLeavesUpdate,
-) (*types.ScrappedUpdates, error) {
+) (*parachainTypes.ScrapedUpdates, error) {
 	if update.Activated == nil {
-		return &types.ScrappedUpdates{}, nil
+		return &parachainTypes.ScrapedUpdates{}, nil
 	}
 
 	ancestors, err := cs.GetRelevantBlockAncestors(sender, update.Activated.Hash, update.Activated.Number)
@@ -69,16 +71,16 @@ func (cs *ChainScrapper) ProcessActiveLeavesUpdate(
 
 	earliestBlockNumber := update.Activated.Number - uint32(len(ancestors))
 	var blockNumbers []uint32
-	for i := earliestBlockNumber; i <= update.Activated.Number; i++ {
+	for i := update.Activated.Number; i >= earliestBlockNumber; i-- {
 		blockNumbers = append(blockNumbers, i)
 	}
 	blockHashes := append([]common.Hash{update.Activated.Hash}, ancestors...)
 
-	var scrapedUpdates types.ScrappedUpdates
+	var scrapedUpdates parachainTypes.ScrapedUpdates
 	for i, blockNumber := range blockNumbers {
 		blockHash := blockHashes[i]
 
-		receiptsForBlock, err := cs.ProcessCandidateEvents(sender, blockNumber, blockHash)
+		receiptsForBlock, err := cs.ProcessCandidateEvents(blockNumber, blockHash)
 		if err != nil {
 			return nil, fmt.Errorf("processing candidate events: %w", err)
 		}
@@ -89,37 +91,40 @@ func (cs *ChainScrapper) ProcessActiveLeavesUpdate(
 			return nil, fmt.Errorf("getting onchain votes: %w", err)
 		}
 
-		scrapedUpdates.OnChainVotes = append(scrapedUpdates.OnChainVotes, onChainVotes)
+		if onChainVotes != nil {
+			scrapedUpdates.OnChainVotes = append(scrapedUpdates.OnChainVotes, *onChainVotes)
+		}
 	}
 
-	cs.LastObservedBlocks.Put(update.Activated.Hash, nil)
+	cs.LastObservedBlocks.Put(update.Activated.Hash, &update.Activated.Number)
 	return &scrapedUpdates, nil
 }
 
 // ProcessFinalisedBlock prune finalised candidates.
-func (cs *ChainScrapper) ProcessFinalisedBlock(finalisedBlock uint32) {
+func (cs *ChainScraper) ProcessFinalisedBlock(finalisedBlock uint32) {
 	if finalisedBlock < DisputeCandidateLifetimeAfterFinalization-1 {
 		// Nothing to prune. We are still in the beginning of the chain and there are not
 		// enough finalized blocks yet.
 		return
 	}
+	keyToPrune := finalisedBlock - (DisputeCandidateLifetimeAfterFinalization - 1)
 
-	removeUptoHeight := finalisedBlock - (DisputeCandidateLifetimeAfterFinalization - 1)
-	cs.BackedCandidates.RemoveUptoHeight(removeUptoHeight)
-	candidatesModified := cs.IncludedCandidates.RemoveUptoHeight(removeUptoHeight)
-	cs.Inclusions.RemoveUpToHeight(removeUptoHeight, candidatesModified)
+	cs.BackedCandidates.RemoveUptoHeight(keyToPrune)
+	candidatesModified := cs.IncludedCandidates.RemoveUptoHeight(keyToPrune)
+	cs.Inclusions.RemoveUpToHeight(keyToPrune, candidatesModified)
 }
 
-func (cs *ChainScrapper) ProcessCandidateEvents(
-	sender overseer.Sender,
-	blockNumber uint32, blockHash common.Hash,
+// ProcessCandidateEvents Process candidate events
+func (cs *ChainScraper) ProcessCandidateEvents(
+	blockNumber uint32,
+	blockHash common.Hash,
 ) ([]parachainTypes.CandidateReceipt, error) {
 	var (
 		candidateEvents  []parachainTypes.CandidateEvent
 		includedReceipts []parachainTypes.CandidateReceipt
 	)
 
-	events, err := cs.Runtime.ParachainHostCandidateEvents()
+	events, err := cs.Runtime.ParachainHostCandidateEvents(blockHash)
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate events: %w", err)
 	}
@@ -158,7 +163,8 @@ func (cs *ChainScrapper) ProcessCandidateEvents(
 	return includedReceipts, nil
 }
 
-func (cs *ChainScrapper) GetRelevantBlockAncestors(
+// GetRelevantBlockAncestors Get relevant block ancestors
+func (cs *ChainScraper) GetRelevantBlockAncestors(
 	sender overseer.Sender,
 	head common.Hash,
 	headNumber uint32,
@@ -181,31 +187,27 @@ func (cs *ChainScrapper) GetRelevantBlockAncestors(
 			return nil, fmt.Errorf("getting block ancestors: %w", err)
 		}
 
-		earliestBlockNumber := headNumber - uint32(len(hashes))
-		if earliestBlockNumber < 0 {
-			// It's assumed that it's impossible to retrieve more than N ancestors for block number N.
-			logger.Errorf("received %v ancestors for block number %v", len(hashes), headNumber)
-			return ancestors, nil
+		if len(hashes) == 0 {
+			break
 		}
 
+		earliestBlockNumber := saturatingSub(headNumber, uint32(len(hashes)))
 		var blockNumbers []uint32
-		for i := headNumber; i > earliestBlockNumber; i++ {
-			blockNumbers = append(blockNumbers, i)
+		// The reversed order is parent, grandparent, etc. excluding the head.
+		startIndex := int(headNumber - 1)
+		endIndex := int(earliestBlockNumber)
+		for i := startIndex; i >= endIndex; i-- {
+			blockNumbers = append(blockNumbers, uint32(i))
 		}
 
 		for i, blockNumber := range blockNumbers {
 			// Return if we either met target/cached block or hit the size limit for the returned ancestry of head.
 			if cs.LastObservedBlocks.Get(hashes[i]) != nil ||
 				blockNumber <= targetAncestor ||
-				len(ancestors) >= int(AncestrySizeLimit) {
+				len(ancestors) >= AncestrySizeLimit {
 				return ancestors, nil
 			}
-
 			ancestors = append(ancestors, hashes[i])
-		}
-
-		if len(hashes) < 0 {
-			break
 		}
 
 		head = hashes[len(hashes)-1]
@@ -215,7 +217,8 @@ func (cs *ChainScrapper) GetRelevantBlockAncestors(
 	return ancestors, nil
 }
 
-func (cs *ChainScrapper) IsPotentialSpam(voteState types.CandidateVoteState, candidateHash common.Hash) (bool, error) {
+// IsPotentialSpam Check whether the vote state is a potential spam
+func (cs *ChainScraper) IsPotentialSpam(voteState types.CandidateVoteState, candidateHash common.Hash) (bool, error) {
 	isDisputed := voteState.IsDisputed()
 	isIncluded := cs.IsCandidateIncluded(candidateHash)
 	isBacked := cs.IsCandidateBacked(candidateHash)
@@ -227,15 +230,18 @@ func (cs *ChainScrapper) IsPotentialSpam(voteState types.CandidateVoteState, can
 	return isDisputed && !isIncluded && !isBacked && !isConfirmed, nil
 }
 
+// NewChainScraper New chain scraper
 func NewChainScraper(
 	sender overseer.Sender,
+	runtime parachain.RuntimeInstance,
 	initialHead overseer.ActivatedLeaf,
-) (*ChainScrapper, *types.ScrappedUpdates, error) {
-	chainScraper := &ChainScrapper{
-		IncludedCandidates: NewScrappedCandidates(),
-		BackedCandidates:   NewScrappedCandidates(),
-		LastObservedBlocks: lrucache.LRUCache[common.Hash, *uint32]{},
+) (*ChainScraper, *parachainTypes.ScrapedUpdates, error) {
+	chainScraper := &ChainScraper{
+		IncludedCandidates: NewScrapedCandidates(),
+		BackedCandidates:   NewScrapedCandidates(),
+		LastObservedBlocks: lrucache.NewLRUCache[common.Hash, *uint32](LRUObservedBlocksCapacity),
 		Inclusions:         NewInclusions(),
+		Runtime:            runtime,
 	}
 
 	update := overseer.ActiveLeavesUpdate{
@@ -250,7 +256,7 @@ func NewChainScraper(
 }
 
 func getFinalisedBlockNumber(sender overseer.Sender) (uint32, error) {
-	tx := make(chan overseer.FinalizedBlockNumberResponse)
+	tx := make(chan overseer.FinalizedBlockNumberResponse, 1)
 	message := overseer.FinalizedBlockNumberRequest{
 		ResponseChannel: tx,
 	}
@@ -267,12 +273,13 @@ func getFinalisedBlockNumber(sender overseer.Sender) (uint32, error) {
 	return response.Number, nil
 }
 
+// getBlockAncestors sends a message to the overseer to get the ancestors of a block.
 func getBlockAncestors(
 	sender overseer.Sender,
 	head common.Hash,
 	numAncestors uint32,
 ) ([]common.Hash, error) {
-	tx := make(chan overseer.AncestorsResponse)
+	tx := make(chan overseer.AncestorsResponse, 1)
 	message := overseer.AncestorsRequest{
 		Hash:            head,
 		K:               numAncestors,
@@ -291,10 +298,11 @@ func getBlockAncestors(
 	return response.Ancestors, nil
 }
 
+// saturatingSub returns the result of a - b, saturating at 0.
 func saturatingSub(a, b uint32) uint32 {
-	diff := a - b
-	if diff < 0 {
+	result := int(a) - int(b)
+	if result < 0 {
 		return 0
 	}
-	return diff
+	return uint32(result)
 }
