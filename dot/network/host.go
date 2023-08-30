@@ -208,7 +208,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Peerstore(ps),
 		libp2p.ConnectionManager(cm),
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
-			addrs := []ma.Multiaddr{}
+			var addrs []ma.Multiaddr
 			for _, addr := range as {
 				if !privateIPs.AddrBlocked(addr) {
 					addrs = append(addrs, addr)
