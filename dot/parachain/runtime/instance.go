@@ -49,7 +49,7 @@ type ValidationParameters struct {
 	RelayParentStorageRoot common.Hash
 }
 
-// Instance is a wrapper around the wasmer runtime instance.
+// Instance is a wrapper around the wazero runtime instance.
 type Instance struct {
 	*runtimewazero.Instance
 }
