@@ -25,9 +25,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
+	mempstore "github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	rm "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
-	rmObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -176,7 +175,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}
 
-	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
+	ps, err := mempstore.NewPeerstore()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create peerstore: %w", err)
 	}
@@ -185,8 +184,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	var managerOptions []rm.Option
 
 	if cfg.Metrics.Publish {
-		rmObs.MustRegisterWith(prometheus.DefaultRegisterer)
-		reporter, err := rmObs.NewStatsTraceReporter()
+		rm.MustRegisterWith(prometheus.DefaultRegisterer)
+		reporter, err := rm.NewStatsTraceReporter()
 		if err != nil {
 			return nil, fmt.Errorf("while creating resource manager stats trace reporter: %w", err)
 		}
