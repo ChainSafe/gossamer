@@ -10,7 +10,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtimewasmer "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	runtimewazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -49,15 +49,15 @@ type ValidationParameters struct {
 	RelayParentStorageRoot common.Hash
 }
 
-// Instance is a wrapper around the wasmer runtime instance.
+// Instance is a wrapper around the wazero runtime instance.
 type Instance struct {
-	*runtimewasmer.Instance
+	*runtimewazero.Instance
 }
 
 func SetupVM(code []byte) (*Instance, error) {
-	cfg := runtimewasmer.Config{}
+	cfg := runtimewazero.Config{}
 
-	instance, err := runtimewasmer.NewInstance(code, cfg)
+	instance, err := runtimewazero.NewInstance(code, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("creating instance: %w", err)
 	}
