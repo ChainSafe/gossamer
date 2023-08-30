@@ -45,19 +45,14 @@ func TestBlockImportHandle(t *testing.T) {
 	mockedError := errors.New("mock error")
 	cases := map[string]struct {
 		createBlockHeader func(*testing.T) (*types.Header, []types.ConsensusDigest)
-		setupGrandpaState func(*testing.T, *gomock.Controller, *types.Header, []types.ConsensusDigest) GrandpaState
 		setupEpochState   func(*testing.T, *gomock.Controller, *types.Header, []types.ConsensusDigest) EpochState
 		wantErr           error
 		errString         string
 	}{
 		"handle_babe_digest_fails": {
 			wantErr: mockedError,
-			errString: "handling digests: consensus digests: " +
+			errString: "consensus digests: " +
 				"handling babe digest: mock error",
-			setupGrandpaState: func(*testing.T, *gomock.Controller, *types.Header,
-				[]types.ConsensusDigest) GrandpaState {
-				return nil
-			},
 			setupEpochState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) EpochState {
 				epochStateMock := NewMockEpochState(ctrl)
@@ -82,83 +77,7 @@ func TestBlockImportHandle(t *testing.T) {
 					consensusDigests
 			},
 		},
-		"handle_grandpa_digest_fails": {
-			wantErr: mockedError,
-			errString: "handling digests: consensus digests: " +
-				"handling grandpa digest: mock error",
-			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
-				digestData []types.ConsensusDigest) GrandpaState {
-
-				expectedGrandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-				err := scale.Unmarshal(digestData[0].Data, &expectedGrandpaConsensusDigest)
-				require.NoError(t, err)
-
-				grandpaStateMock := NewMockGrandpaState(ctrl)
-				grandpaStateMock.EXPECT().
-					HandleGRANDPADigest(header, expectedGrandpaConsensusDigest).
-					Return(mockedError)
-				return grandpaStateMock
-			},
-			setupEpochState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
-				digestData []types.ConsensusDigest) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				for _, consensusDigest := range digestData {
-					expectedBabeConsensusDigest := types.NewBabeConsensusDigest()
-					err := scale.Unmarshal(consensusDigest.Data, &expectedBabeConsensusDigest)
-					require.NoError(t, err)
-
-					epochStateMock.EXPECT().
-						HandleBABEDigest(header, expectedBabeConsensusDigest).
-						Return(nil)
-				}
-
-				return epochStateMock
-			},
-			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
-				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				grandpaAuths := make([]types.GrandpaAuthoritiesRaw, len(keyPairs))
-				for i, keyPair := range keyPairs {
-					grandpaAuths[i] = types.GrandpaAuthoritiesRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-				}
-
-				createScheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
-					Auths: grandpaAuths[:1],
-					Delay: 2,
-				})
-
-				consensusDigests := []types.ConsensusDigest{
-					genericNextEpochDigest,
-					genericNextConfigDataDigest,
-					createScheduledChange,
-				}
-				return createBlockWithDigests(t, &genesisHeader,
-						genericNextEpochDigest,
-						genericNextConfigDataDigest,
-						createScheduledChange),
-					consensusDigests
-			},
-		},
 		"handle_babe_and_grandpa_digests_successfully": {
-			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
-				digestData []types.ConsensusDigest) GrandpaState {
-
-				grandpaStateMock := NewMockGrandpaState(ctrl)
-				for _, consensusDigest := range digestData {
-					expectedGrandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-					err := scale.Unmarshal(consensusDigest.Data, &expectedGrandpaConsensusDigest)
-					require.NoError(t, err)
-
-					grandpaStateMock.EXPECT().
-						HandleGRANDPADigest(header, expectedGrandpaConsensusDigest).
-						Return(nil)
-				}
-
-				grandpaStateMock.EXPECT().ApplyForcedChanges(header).Return(nil)
-				return grandpaStateMock
-			},
 			setupEpochState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) EpochState {
 				epochStateMock := NewMockEpochState(ctrl)
@@ -198,23 +117,6 @@ func TestBlockImportHandle(t *testing.T) {
 			},
 		},
 		"handle_unknown_consensus_id_should_be_succesfull": {
-			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
-				digestData []types.ConsensusDigest) GrandpaState {
-
-				grandpaStateMock := NewMockGrandpaState(ctrl)
-				for _, consensusDigest := range digestData {
-					expectedGrandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-					err := scale.Unmarshal(consensusDigest.Data, &expectedGrandpaConsensusDigest)
-					require.NoError(t, err)
-
-					grandpaStateMock.EXPECT().
-						HandleGRANDPADigest(header, expectedGrandpaConsensusDigest).
-						Return(nil)
-				}
-
-				grandpaStateMock.EXPECT().ApplyForcedChanges(header).Return(nil)
-				return grandpaStateMock
-			},
 			setupEpochState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
 				digestData []types.ConsensusDigest) EpochState {
 				epochStateMock := NewMockEpochState(ctrl)
@@ -266,64 +168,6 @@ func TestBlockImportHandle(t *testing.T) {
 					consensusDigests
 			},
 		},
-		"on_block_import_failed_to_apply_forced_changes": {
-			wantErr:   mockedError,
-			errString: "applying forced changes: mock error",
-			setupGrandpaState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
-				digestData []types.ConsensusDigest) GrandpaState {
-
-				grandpaStateMock := NewMockGrandpaState(ctrl)
-				for _, consensusDigest := range digestData {
-					expectedGrandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-					err := scale.Unmarshal(consensusDigest.Data, &expectedGrandpaConsensusDigest)
-					require.NoError(t, err)
-
-					grandpaStateMock.EXPECT().
-						HandleGRANDPADigest(header, expectedGrandpaConsensusDigest).
-						Return(nil)
-				}
-
-				grandpaStateMock.EXPECT().ApplyForcedChanges(header).Return(mockedError)
-				return grandpaStateMock
-			},
-			setupEpochState: func(t *testing.T, ctrl *gomock.Controller, header *types.Header,
-				digestData []types.ConsensusDigest) EpochState {
-				epochStateMock := NewMockEpochState(ctrl)
-
-				for _, consensusDigest := range digestData {
-					expectedBabeConsensusDigest := types.NewBabeConsensusDigest()
-					err := scale.Unmarshal(consensusDigest.Data, &expectedBabeConsensusDigest)
-					require.NoError(t, err)
-
-					epochStateMock.EXPECT().
-						HandleBABEDigest(header, expectedBabeConsensusDigest).
-						Return(nil)
-				}
-
-				return epochStateMock
-			},
-			createBlockHeader: func(t *testing.T) (*types.Header, []types.ConsensusDigest) {
-				_, _, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-				grandpaAuths := make([]types.GrandpaAuthoritiesRaw, len(keyPairs))
-				for i, keyPair := range keyPairs {
-					grandpaAuths[i] = types.GrandpaAuthoritiesRaw{
-						Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
-					}
-				}
-
-				createScheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
-					Auths: grandpaAuths[:1],
-					Delay: 2,
-				})
-
-				consensusDigests := []types.ConsensusDigest{
-					genericNextEpochDigest, genericNextConfigDataDigest, createScheduledChange,
-				}
-				return createBlockWithDigests(t, &genesisHeader,
-						genericNextEpochDigest, genericNextConfigDataDigest, createScheduledChange),
-					consensusDigests
-			},
-		},
 	}
 
 	for tname, tt := range cases {
@@ -336,10 +180,8 @@ func TestBlockImportHandle(t *testing.T) {
 			// idexes 0 and 1 belongs to the BABE digests next epoch data and next config data respectively
 			// the indexes after that are for GRANDPA scheduled change and forced change
 			epochStateMock := tt.setupEpochState(t, ctrl, importedHeader, consensusDigests[:2])
-			grandpaStateMock := tt.setupGrandpaState(t, ctrl, importedHeader, consensusDigests[2:])
-
-			onBlockImportDigestHandler := NewBlockImportHandler(epochStateMock, grandpaStateMock)
-			err := onBlockImportDigestHandler.Handle(importedHeader)
+			onBlockImportDigestHandler := NewBlockImportHandler(epochStateMock)
+			err := onBlockImportDigestHandler.HandleDigests(importedHeader)
 			require.ErrorIs(t, err, tt.wantErr)
 			if tt.errString != "" {
 				require.EqualError(t, err, tt.errString)

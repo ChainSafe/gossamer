@@ -592,9 +592,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	epochState, err := state.NewEpochStateFromGenesis(inMemoryDB, stateService.Block, epochBABEConfig)
 	require.NoError(t, err)
 
-	onBlockImportDigestHandler := digest.NewBlockImportHandler(epochState, stateService.Grandpa)
+	onBlockImportDigestHandler := digest.NewBlockImportHandler(epochState)
 
-	digestHandler, err := digest.NewHandler(stateService.Block, epochState, stateService.Grandpa)
+	digestHandler, err := digest.NewHandler(stateService.Block, epochState)
 	require.NoError(t, err)
 
 	digestHandler.Start()
@@ -792,7 +792,7 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 	})
 	require.NoError(t, err)
 
-	err = onImportBlockDigestHandler.Handle(headerWhoOwnsNextEpochDigest)
+	err = onImportBlockDigestHandler.HandleDigests(headerWhoOwnsNextEpochDigest)
 	require.NoError(t, err)
 
 	return headerWhoOwnsNextEpochDigest

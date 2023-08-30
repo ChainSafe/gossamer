@@ -23,9 +23,8 @@ type Handler struct {
 	cancel context.CancelFunc
 
 	// interfaces
-	blockState   BlockState
-	epochState   EpochState
-	grandpaState GrandpaState
+	blockState BlockState
+	epochState EpochState
 
 	// block notification channels
 	imported  chan *types.Block
@@ -33,20 +32,18 @@ type Handler struct {
 }
 
 // NewHandler returns a new Handler
-func NewHandler(blockState BlockState, epochState EpochState,
-	grandpaState GrandpaState) (*Handler, error) {
+func NewHandler(blockState BlockState, epochState EpochState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 	finalised := blockState.GetFinalisedNotifierChannel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Handler{
-		ctx:          ctx,
-		cancel:       cancel,
-		blockState:   blockState,
-		epochState:   epochState,
-		grandpaState: grandpaState,
-		imported:     imported,
-		finalised:    finalised,
+		ctx:        ctx,
+		cancel:     cancel,
+		blockState: blockState,
+		epochState: epochState,
+		imported:   imported,
+		finalised:  finalised,
 	}, nil
 }
 
@@ -80,11 +77,6 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 			err = h.epochState.FinalizeBABENextConfigData(&info.Header)
 			if err != nil {
 				logger.Errorf("failed to persist babe next epoch config: %s", err)
-			}
-
-			err = h.grandpaState.ApplyScheduledChanges(&info.Header)
-			if err != nil {
-				logger.Errorf("failed to apply scheduled change: %s", err)
 			}
 
 		case <-ctx.Done():

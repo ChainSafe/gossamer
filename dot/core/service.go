@@ -45,6 +45,7 @@ type Service struct {
 	blockState       BlockState
 	storageState     StorageState
 	transactionState TransactionState
+	grandpaState     GrandpaState
 	net              Network
 
 	// map of code substitutions keyed by block hash
@@ -63,6 +64,7 @@ type Config struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionState TransactionState
+	GrandpaState     GrandpaState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
@@ -87,6 +89,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:           cfg.BlockState,
 		storageState:         cfg.StorageState,
 		transactionState:     cfg.TransactionState,
+		grandpaState:         cfg.GrandpaState,
 		net:                  cfg.Network,
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
@@ -212,9 +215,14 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
-	err = s.onBlockImport.Handle(&block.Header)
+	err = s.onBlockImport.HandleDigests(&block.Header)
 	if err != nil {
 		return fmt.Errorf("on block import handle: %w", err)
+	}
+
+	err = s.grandpaState.ApplyForcedChanges(&block.Header)
+	if err != nil {
+		return fmt.Errorf("applying forced changes: %w", err)
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",

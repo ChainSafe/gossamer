@@ -11,35 +11,17 @@ import (
 )
 
 type BlockImportHandler struct {
-	epochState   EpochState
-	grandpaState GrandpaState
+	epochState EpochState
 }
 
-func NewBlockImportHandler(epochState EpochState, grandpaState GrandpaState) *BlockImportHandler {
+func NewBlockImportHandler(epochState EpochState) *BlockImportHandler {
 	return &BlockImportHandler{
-		epochState:   epochState,
-		grandpaState: grandpaState,
+		epochState: epochState,
 	}
-}
-
-func (h *BlockImportHandler) Handle(importedBlockHeader *types.Header) error {
-	err := h.handleDigests(importedBlockHeader)
-	if err != nil {
-		return fmt.Errorf("handling digests: %w", err)
-	}
-
-	// TODO: move to core handleBlock
-	// https://github.com/ChainSafe/gossamer/issues/3330
-	err = h.grandpaState.ApplyForcedChanges(importedBlockHeader)
-	if err != nil {
-		return fmt.Errorf("applying forced changes: %w", err)
-	}
-
-	return nil
 }
 
 // HandleDigests handles consensus digests for an imported block
-func (h *BlockImportHandler) handleDigests(header *types.Header) error {
+func (h *BlockImportHandler) HandleDigests(header *types.Header) error {
 	consensusDigests := toConsensusDigests(header.Digest.Types)
 	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
@@ -67,11 +49,6 @@ func (h *BlockImportHandler) handleConsensusDigest(d *types.ConsensusDigest, hea
 		err := scale.Unmarshal(d.Data, &data)
 		if err != nil {
 			return fmt.Errorf("unmarshaling grandpa consensus digest: %w", err)
-		}
-
-		err = h.grandpaState.HandleGRANDPADigest(header, data)
-		if err != nil {
-			return fmt.Errorf("handling grandpa digest: %w", err)
 		}
 	case types.BabeEngineID:
 		data := types.NewBabeConsensusDigest()

@@ -272,11 +272,12 @@ func (nodeBuilder) createCoreService(config *cfg.Config, ks *keystore.GlobalKeys
 		BlockState:           st.Block,
 		StorageState:         st.Storage,
 		TransactionState:     st.Transaction,
+		GrandpaState:         st.Grandpa,
 		Keystore:             ks,
 		Network:              net,
 		CodeSubstitutes:      codeSubs,
 		CodeSubstitutedState: st.Base,
-		OnBlockImport:        digest.NewBlockImportHandler(st.Epoch, st.Grandpa),
+		OnBlockImport:        digest.NewBlockImportHandler(st.Epoch),
 	}
 
 	// create new core service
@@ -504,7 +505,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {
-	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
+	return digest.NewHandler(st.Block, st.Epoch)
 }
 
 func createPprofService(config cfg.PprofConfig) (service *pprof.Service) {
