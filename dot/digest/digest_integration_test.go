@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -46,11 +47,165 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch)
+	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 
-	blockImportHandler := NewBlockImportHandler(stateSrvc.Epoch)
+	blockImportHandler := NewBlockImportHandler(stateSrvc.Epoch, stateSrvc.Grandpa)
 	return dh, blockImportHandler, stateSrvc
+}
+
+func TestHandler_GrandpaScheduledChange(t *testing.T) {
+	handler, blockImportHandler, _ := newTestHandler(t)
+	handler.Start()
+	defer handler.Stop()
+
+	// create 4 blocks and finalize only blocks 0, 1, 2
+	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
+	for i, h := range headers[:3] {
+		err := handler.blockState.(*state.BlockState).SetFinalisedHash(h.Hash(), uint64(i), 0)
+		require.NoError(t, err)
+	}
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	sc := types.GrandpaScheduledChange{
+		Auths: []types.GrandpaAuthoritiesRaw{
+			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
+		},
+		Delay: 0,
+	}
+
+	var digest = types.NewGrandpaConsensusDigest()
+	err = digest.Set(sc)
+	require.NoError(t, err)
+
+	data, err := scale.Marshal(digest)
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.GrandpaEngineID,
+		Data:              data,
+	}
+
+	// include a GrandpaScheduledChange on a block of number 3
+	err = blockImportHandler.handleConsensusDigest(d, headers[3])
+	require.NoError(t, err)
+
+	// finalize block of number 3
+	err = handler.blockState.(*state.BlockState).SetFinalisedHash(headers[3].Hash(), 3, 0)
+	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 500)
+	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
+
+	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
+	require.NoError(t, err)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	require.NoError(t, err)
+	require.Equal(t, expected, auths)
+}
+
+func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
+	tests := map[string]struct {
+		digestsTypes    []scale.VaryingDataTypeValue
+		expectedHandled []scale.VaryingDataTypeValue
+	}{
+		"forced_and_scheduled_changes_same_block": {
+			digestsTypes: []scale.VaryingDataTypeValue{
+				types.GrandpaForcedChange{},
+				types.GrandpaScheduledChange{},
+			},
+			expectedHandled: []scale.VaryingDataTypeValue{
+				types.GrandpaForcedChange{},
+			},
+		},
+		"only_scheduled_change_in_block": {
+			digestsTypes: []scale.VaryingDataTypeValue{
+				types.GrandpaScheduledChange{},
+			},
+			expectedHandled: []scale.VaryingDataTypeValue{
+				types.GrandpaScheduledChange{},
+			},
+		},
+		"more_than_one_forced_changes_in_block": {
+			digestsTypes: []scale.VaryingDataTypeValue{
+				types.GrandpaForcedChange{},
+				types.GrandpaForcedChange{},
+				types.GrandpaForcedChange{},
+				types.GrandpaScheduledChange{},
+			},
+			expectedHandled: []scale.VaryingDataTypeValue{
+				types.GrandpaForcedChange{},
+				types.GrandpaForcedChange{},
+				types.GrandpaForcedChange{},
+			},
+		},
+		"multiple_consensus_digests_in_block": {
+			digestsTypes: []scale.VaryingDataTypeValue{
+				types.GrandpaOnDisabled{},
+				types.GrandpaPause{},
+				types.GrandpaResume{},
+				types.GrandpaForcedChange{},
+				types.GrandpaScheduledChange{},
+			},
+			expectedHandled: []scale.VaryingDataTypeValue{
+				types.GrandpaOnDisabled{},
+				types.GrandpaPause{},
+				types.GrandpaResume{},
+				types.GrandpaForcedChange{},
+			},
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			digests := types.NewDigest()
+
+			for _, item := range tt.digestsTypes {
+				var digest = types.NewGrandpaConsensusDigest()
+				require.NoError(t, digest.Set(item))
+
+				data, err := scale.Marshal(digest)
+				require.NoError(t, err)
+
+				consensusDigest := types.ConsensusDigest{
+					ConsensusEngineID: types.GrandpaEngineID,
+					Data:              data,
+				}
+
+				require.NoError(t, digests.Add(consensusDigest))
+			}
+
+			header := &types.Header{
+				Digest: digests,
+			}
+
+			_, blockImportHandler, _ := newTestHandler(t)
+			ctrl := gomock.NewController(t)
+			grandpaState := NewMockGrandpaState(ctrl)
+
+			for _, item := range tt.expectedHandled {
+				var digest = types.NewGrandpaConsensusDigest()
+				require.NoError(t, digest.Set(item))
+
+				data, err := scale.Marshal(digest)
+				require.NoError(t, err)
+
+				expected := types.NewGrandpaConsensusDigest()
+				require.NoError(t, scale.Unmarshal(data, &expected))
+
+				grandpaState.EXPECT().HandleGRANDPADigest(header, expected).Return(nil)
+			}
+
+			blockImportHandler.grandpaState = grandpaState
+			err := blockImportHandler.HandleDigests(header)
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {

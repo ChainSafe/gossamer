@@ -11,12 +11,14 @@ import (
 )
 
 type BlockImportHandler struct {
-	epochState EpochState
+	epochState   EpochState
+	grandpaState GrandpaState
 }
 
-func NewBlockImportHandler(epochState EpochState) *BlockImportHandler {
+func NewBlockImportHandler(epochState EpochState, grandpaState GrandpaState) *BlockImportHandler {
 	return &BlockImportHandler{
-		epochState: epochState,
+		epochState:   epochState,
+		grandpaState: grandpaState,
 	}
 }
 
@@ -49,6 +51,11 @@ func (h *BlockImportHandler) handleConsensusDigest(d *types.ConsensusDigest, hea
 		err := scale.Unmarshal(d.Data, &data)
 		if err != nil {
 			return fmt.Errorf("unmarshaling grandpa consensus digest: %w", err)
+		}
+
+		err = h.grandpaState.HandleGRANDPADigest(header, data)
+		if err != nil {
+			return fmt.Errorf("handling grandpa digest: %w", err)
 		}
 	case types.BabeEngineID:
 		data := types.NewBabeConsensusDigest()

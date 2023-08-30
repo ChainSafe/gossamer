@@ -592,9 +592,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	epochState, err := state.NewEpochStateFromGenesis(inMemoryDB, stateService.Block, epochBABEConfig)
 	require.NoError(t, err)
 
-	onBlockImportDigestHandler := digest.NewBlockImportHandler(epochState)
+	onBlockImportDigestHandler := digest.NewBlockImportHandler(epochState, stateService.Grandpa)
 
-	digestHandler, err := digest.NewHandler(stateService.Block, epochState)
+	digestHandler, err := digest.NewHandler(stateService.Block, epochState, stateService.Grandpa)
 	require.NoError(t, err)
 
 	digestHandler.Start()
