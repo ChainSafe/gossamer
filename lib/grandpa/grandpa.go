@@ -202,7 +202,8 @@ func (s *Service) Stop() error {
 // authorities returns the current grandpa authorities
 func (s *Service) authorityKeySet() (authorityKeys map[string]struct{}) {
 	authorityKeys = make(map[string]struct{}, len(s.state.voters))
-	for _, voter := range s.state.voters {
+	for idx := range s.state.voters {
+		voter := s.state.voters[idx]
 		authority := &types.Authority{
 			Key:    &voter.Key,
 			Weight: voter.ID,
