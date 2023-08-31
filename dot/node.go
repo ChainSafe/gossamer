@@ -85,7 +85,7 @@ func IsNodeInitialised(basepath string) (bool, error) {
 
 // isNodeInitialised returns nil if the node is successfully initialised
 // and an error otherwise.
-func (*nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
+func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
 	nodeDatabaseDir := filepath.Join(basepath, database.DefaultDatabaseDir)
 
@@ -134,7 +134,7 @@ func InitNode(config *cfg.Config) error {
 
 // InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
-func (*nodeBuilder) initNode(config *cfg.Config) error {
+func (nodeBuilder) initNode(config *cfg.Config) error {
 	globalLogLevel, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
 		return fmt.Errorf("failed to parse log level: %w", err)
@@ -524,7 +524,7 @@ func (n *Node) Stop() {
 	}
 }
 
-func (n *nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,
+func (nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()

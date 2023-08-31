@@ -105,9 +105,13 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	}
 
 	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-	onBlockImportHandlerMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+	onBlockImportHandlerMock.EXPECT().HandleDigests(&newBlock.Header).Return(nil)
+
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&newBlock.Header).Return(nil)
 
 	s.onBlockImport = onBlockImportHandlerMock
+	s.grandpaState = mockGrandpaState
 
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
@@ -178,9 +182,12 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlot, currentTimestamp)
 	onBlockImportDigestHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-	onBlockImportDigestHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+	onBlockImportDigestHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 	s.onBlockImport = onBlockImportDigestHandlerMock
+	s.grandpaState = mockGrandpaState
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

@@ -234,12 +234,13 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
 		digestOnBlockImportMock := mocks.NewMockBlockImportDigestHandler(ctrl)
-		digestOnBlockImportMock.EXPECT().Handle(gomock.Any()).AnyTimes()
+		digestOnBlockImportMock.EXPECT().HandleDigests(gomock.Any()).AnyTimes()
 
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
 			StorageState:         storageState,
 			TransactionState:     dbSrv.Transaction,
+			GrandpaState:         dbSrv.Grandpa,
 			Runtime:              runtime,
 			Keystore:             rtCfg.Keystore,
 			Network:              mockNetwork,
