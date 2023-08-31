@@ -185,17 +185,17 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	// begin advertising and discovery for all nodes
-	err = nodeA.host.discovery.start()
-	require.NoError(t, err)
-
 	err = nodeB.host.discovery.start()
 	require.NoError(t, err)
 
 	err = nodeC.host.discovery.start()
 	require.NoError(t, err)
 
-	time.Sleep(time.Millisecond * 500)
+	// begin advertising and discovery for all nodes
+	err = nodeA.host.discovery.start()
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
 
 	// assert B and C can discover each other
 	addrs := nodeB.host.p2pHost.Peerstore().Addrs(nodeC.host.id())
