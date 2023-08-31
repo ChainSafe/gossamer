@@ -26,6 +26,8 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.16.7
 	github.com/libp2p/go-libp2p v0.30.0
+	github.com/klauspost/reedsolomon v1.11.8
+	github.com/libp2p/go-libp2p v0.27.7
 	github.com/libp2p/go-libp2p-kad-dht v0.24.2
 	github.com/minio/sha256-simd v1.0.1
 	github.com/multiformats/go-multiaddr v0.11.0
