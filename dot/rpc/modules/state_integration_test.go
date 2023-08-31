@@ -106,19 +106,30 @@ func TestStateModule_GetPairs(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
+	hexEncode := func(s string) string {
+		return "0x" + hex.EncodeToString([]byte(s))
+	}
+
 	testCases := []struct {
 		params   []string
 		expected []interface{}
 		errMsg   string
 	}{
 		{params: []string{"0x00"}, expected: nil},
-		{params: []string{""}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
-		{params: []string{":key1"}, expected: []interface{}{[]string{":key1", "value1"}}},
+		{params: []string{""}, expected: []interface{}{
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1")}, expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"0x00", hash.String()}, expected: nil},
 		{params: []string{"", hash.String()}, expected: []interface{}{
-			[]string{":key1", "value1"},
-			[]string{":key2", "value2"}}},
-		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1"), hash.String()},
+			expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
@@ -135,6 +146,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 			if len(test.params) > 1 && test.params[1] != "" {
 				req.Bhash = &common.Hash{}
+				var err error
 				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
@@ -161,10 +173,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 				// Convert human-readable result value to hex.
 				expectedKV, _ := val.([]string)
-				expectedKey := "0x" + hex.EncodeToString([]byte(expectedKV[0]))
-				expectedVal := "0x" + hex.EncodeToString([]byte(expectedKV[1]))
-
-				require.Equal(t, []string{expectedKey, expectedVal}, kv)
+				require.Equal(t, []string{expectedKV[0], expectedKV[1]}, kv)
 			}
 		})
 	}
@@ -447,17 +456,22 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: nil,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "allKeysTestBlockHash",
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: stateRootHash,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchAll",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b6579",
 				Qty:    10,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchOne",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b657931",
@@ -471,7 +485,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 		{name: "qtyOne",
 			params: StateStorageKeyRequest{
 				Qty: 1,
-			}, expected: []string{"0x3a6b657931"}},
+			}, expected: []string{"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431"}},
 		{name: "afterKey",
 			params: StateStorageKeyRequest{
 				Qty:      10,
@@ -552,9 +566,14 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Put([]byte(`:key2`), []byte(`value2`), trie.V0)
-	ts.Put([]byte(`:key1`), []byte(`value1`), trie.V0)
-	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`), trie.V0)
+	err = ts.Put([]byte(`:key2`), []byte(`value2`), trie.V0)
+	require.NoError(t, err)
+
+	err = ts.Put([]byte(`:key1`), []byte(`value1`), trie.V0)
+	require.NoError(t, err)
+
+	err = ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`), trie.V0)
+	require.NoError(t, err)
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
