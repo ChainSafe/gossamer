@@ -114,16 +114,9 @@ func Uint16ToBytes(in uint16) (out []byte) {
 // the big.Int().Bytes() behaviour.
 func UintToBytes(n uint) (b []byte) {
 	b = make([]byte, 0)
-	for n > 255 {
-		b = append(b, 0)
-		copy(b[1:], b)
-		b[0] = byte(n)
+	for n > 0 {
+		b = append([]byte{byte(n & 0xFF)}, b...)
 		n >>= 8
-	}
-	if n > 0 {
-		b = append(b, 0)
-		copy(b[1:], b)
-		b[0] = byte(n)
 	}
 	return b
 }

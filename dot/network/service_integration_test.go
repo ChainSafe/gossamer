@@ -208,7 +208,7 @@ func TestService_Health(t *testing.T) {
 	require.Equal(t, false, h.IsSyncing)
 }
 
-func TestPersistPeerStore(t *testing.T) {
+func TestInMemoryPeerStore(t *testing.T) {
 	t.Parallel()
 
 	nodes := createServiceHelper(t, 2)
@@ -229,9 +229,9 @@ func TestPersistPeerStore(t *testing.T) {
 	err = nodeA.Stop()
 	require.NoError(t, err)
 
-	// Since nodeAA uses the persistent peerstore of nodeA, it should be have nodeB in it's peerstore.
+	// Should be empty since peerstore is kept in memory
 	nodeAA := createTestService(t, nodeA.cfg)
-	require.NotEmpty(t, nodeAA.host.p2pHost.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+	require.Empty(t, nodeAA.host.p2pHost.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 }
 
 func TestHandleConn(t *testing.T) {
