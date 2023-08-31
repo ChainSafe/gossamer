@@ -39,7 +39,7 @@ type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	blockAddCh chan *types.Block // for asynchronous block handling
-	sync.Mutex                   // lock for channel
+	lock       sync.Mutex        // lock for channel
 
 	// Service interfaces
 	blockState       BlockState
@@ -108,8 +108,8 @@ func (s *Service) Start() error {
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	s.Lock()
-	defer s.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	s.cancel()
 	close(s.blockAddCh)
@@ -248,8 +248,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
-		s.Lock()
-		defer s.Unlock()
+		s.lock.Lock()
+		defer s.lock.Unlock()
 		if s.ctx.Err() != nil {
 			return
 		}
