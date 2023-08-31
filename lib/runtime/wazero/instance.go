@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/parachain"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -820,7 +819,6 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 	return nil
 }
 
-<<<<<<< HEAD
 // ParachainHostPersistedValidationData returns persisted validation data for the given parachain id.
 func (in *Instance) ParachainHostPersistedValidationData(
 	parachaidID uint32,
@@ -882,21 +880,12 @@ func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption p
 // ParachainHostValidators returns the validator set at the current state.
 // The specified validators are responsible for backing parachains for the current state.
 func (in *Instance) ParachainHostValidators() ([]parachaintypes.ValidatorID, error) {
-=======
-// ParachainHostValidators returns the validator set at the current state.
-// The specified validators are responsible for backing parachains for the current state.
-func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	encodedValidators, err := in.Exec(runtime.ParachainHostValidators, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	var validatorIDs []parachaintypes.ValidatorID
-=======
-	var validatorIDs []parachain.ValidatorID
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	err = scale.Unmarshal(encodedValidators, &validatorIDs)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -907,21 +896,13 @@ func (in *Instance) ParachainHostValidators() ([]parachain.ValidatorID, error) {
 
 // ParachainHostValidatorGroups returns the validator groups used during the current session.
 // The validators in the groups are referred to by the validator set Id.
-<<<<<<< HEAD
 func (in *Instance) ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error) {
-=======
-func (in *Instance) ParachainHostValidatorGroups() (*parachain.ValidatorGroups, error) {
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	encodedValidatorGroups, err := in.Exec(runtime.ParachainHostValidatorGroups, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	var validatorGroups parachaintypes.ValidatorGroups
-=======
-	var validatorGroups parachain.ValidatorGroups
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	err = scale.Unmarshal(encodedValidatorGroups, &validatorGroups)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -937,11 +918,7 @@ func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlic
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	availabilityCores, err := parachaintypes.NewAvailabilityCores()
-=======
-	availabilityCores, err := parachain.NewAvailabilityCores()
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	if err != nil {
 		return nil, fmt.Errorf("new availability cores: %w", err)
 	}
@@ -956,13 +933,8 @@ func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlic
 // ParachainHostCheckValidationOutputs checks the validation outputs of a candidate.
 // Returns true if the candidate is valid.
 func (in *Instance) ParachainHostCheckValidationOutputs(
-<<<<<<< HEAD
 	parachainID parachaintypes.ParaID,
 	outputs parachaintypes.CandidateCommitments,
-=======
-	parachainID parachain.ParaID,
-	outputs parachain.CandidateCommitments,
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 ) (bool, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -990,21 +962,13 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 }
 
 // ParachainHostSessionIndexForChild returns the session index that is expected at the child of a block.
-<<<<<<< HEAD
 func (in *Instance) ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error) {
-=======
-func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex, error) {
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	encodedSessionIndex, err := in.Exec(runtime.ParachainHostSessionIndexForChild, []byte{})
 	if err != nil {
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	var sessionIndex parachaintypes.SessionIndex
-=======
-	var sessionIndex parachain.SessionIndex
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	err = scale.Unmarshal(encodedSessionIndex, &sessionIndex)
 	if err != nil {
 		return 0, fmt.Errorf("unmarshalling: %w", err)
@@ -1016,13 +980,8 @@ func (in *Instance) ParachainHostSessionIndexForChild() (parachain.SessionIndex,
 // ParachainHostCandidatePendingAvailability returns the receipt of a candidate pending availability
 // for any parachain assigned to an occupied availability core.
 func (in *Instance) ParachainHostCandidatePendingAvailability(
-<<<<<<< HEAD
 	parachainID parachaintypes.ParaID,
 ) (*parachaintypes.CommittedCandidateReceipt, error) {
-=======
-	parachainID parachain.ParaID,
-) (*parachain.CommittedCandidateReceipt, error) {
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -1035,11 +994,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	var candidateReceipt *parachaintypes.CommittedCandidateReceipt
-=======
-	var candidateReceipt *parachain.CommittedCandidateReceipt
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1055,11 +1010,7 @@ func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice,
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	candidateEvents, err := parachaintypes.NewCandidateEvents()
-=======
-	candidateEvents, err := parachain.NewCandidateEvents()
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	if err != nil {
 		return nil, fmt.Errorf("create new candidate events: %w", err)
 	}
@@ -1072,12 +1023,8 @@ func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice,
 }
 
 // ParachainHostSessionInfo returns the session info of the given session, if available.
-<<<<<<< HEAD
 func (in *Instance) ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (
 	*parachaintypes.SessionInfo, error) {
-=======
-func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex) (*parachain.SessionInfo, error) {
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(sessionIndex)
@@ -1090,11 +1037,7 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-<<<<<<< HEAD
 	var sessionInfo *parachaintypes.SessionInfo
-=======
-	var sessionInfo *parachain.SessionInfo
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	err = scale.Unmarshal(encodedSessionInfo, &sessionInfo)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1103,7 +1046,6 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachain.SessionIndex
 	return sessionInfo, nil
 }
 
-<<<<<<< HEAD
 // ParachainHostValidationCodeByHash returns validation code for the given hash.
 func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (
 	*parachaintypes.ValidationCode, error) {
@@ -1129,9 +1071,6 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 }
 
 func (*Instance) RandomSeed() {
-=======
-func (in *Instance) RandomSeed() {
->>>>>>> 8befa3bf (feat/runtime: Add few parachain runtime calls (#3241))
 	panic("unimplemented")
 }
 func (*Instance) OffchainWorker() {
