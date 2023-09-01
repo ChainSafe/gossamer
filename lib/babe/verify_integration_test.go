@@ -792,7 +792,7 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 	})
 	require.NoError(t, err)
 
-	err = onImportBlockDigestHandler.Handle(headerWhoOwnsNextEpochDigest)
+	err = onImportBlockDigestHandler.HandleDigests(headerWhoOwnsNextEpochDigest)
 	require.NoError(t, err)
 
 	return headerWhoOwnsNextEpochDigest
