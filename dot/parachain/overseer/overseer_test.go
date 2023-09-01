@@ -1,4 +1,4 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package overseer
@@ -61,4 +61,7 @@ func TestNewOverseer(t *testing.T) {
 	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf})
 
 	time.Sleep(5000 * time.Millisecond)
+
+	overseer.Stop()
+	time.Sleep(500 * time.Millisecond)
 }
