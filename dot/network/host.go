@@ -35,9 +35,9 @@ func newPrivateIPFilters() (privateIPs *ma.Filters, err error) {
 	privateCIDRs := []string{
 		"10.0.0.0/8",
 		"172.16.0.0/12",
-		"192.168.0.0/16",
 		"100.64.0.0/10",
 		"198.18.0.0/15",
+		"192.168.0.0/16",
 		"169.254.0.0/16",
 	}
 	privateIPs = ma.NewFilters()
@@ -81,6 +81,7 @@ type host struct {
 	messageCache    *messageCache
 	bwc             *metrics.BandwidthCounter
 	closeSync       sync.Once
+	externalAddr    ma.Multiaddr
 }
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
@@ -255,6 +256,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		persistentPeers: pps,
 		messageCache:    msgCache,
 		bwc:             bwc,
+		externalAddr:    externalAddr,
 	}
 
 	cm.host = host
