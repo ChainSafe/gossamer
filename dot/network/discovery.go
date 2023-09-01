@@ -101,6 +101,7 @@ func (d *discovery) start() error {
 	}
 
 	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
+	logger.Debugf("V1ProtocolOverride %v...", d.pid+"/kad")
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
