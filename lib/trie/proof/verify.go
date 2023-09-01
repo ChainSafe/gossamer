@@ -62,7 +62,7 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db Database) (t *trie.Trie, err error) {
+func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t *trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
 			ErrEmptyProof, rootHash)
