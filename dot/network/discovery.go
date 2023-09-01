@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/multiformats/go-multiaddr"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 const (
@@ -111,7 +110,7 @@ func (d *discovery) start() error {
 		dual.DHTOption(kaddht.V1ProtocolOverride(d.pid + "/kad")),
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 		dual.DHTOption(kaddht.AddressFilter(func(as []multiaddr.Multiaddr) []multiaddr.Multiaddr {
-			var addrs []ma.Multiaddr
+			var addrs []multiaddr.Multiaddr
 			for _, addr := range as {
 				if !privateIPs.AddrBlocked(addr) {
 					addrs = append(addrs, addr)
