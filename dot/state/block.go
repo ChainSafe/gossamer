@@ -27,6 +27,8 @@ import (
 
 const (
 	blockPrefix = "block"
+	// should create a check point every 1m blocks
+	checkpointEvery = 1_000_000
 )
 
 var (
@@ -47,6 +49,10 @@ var (
 		Help:      "total number of blocks synced",
 	})
 )
+
+type Checkpointer interface {
+	CreateCheckpoint()
+}
 
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
@@ -69,6 +75,8 @@ type BlockState struct {
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
+	nextCheckpoint uint
+
 	telemetry Telemetry
 }
 
@@ -84,6 +92,7 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
+		nextCheckpoint:             checkpointEvery,
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))
@@ -936,4 +945,19 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 // GetNonFinalisedBlocks get all the blocks in the blocktree
 func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
+}
+
+func (bs *BlockState) Checkpoint(header *types.Header) {
+	if header.Number < bs.nextCheckpoint {
+		return
+	}
+
+	logger.Infof("creating a checkpoint, latest finalized block %s (#%d)",
+		header.Hash(), header.Number)
+
+	bs.nextCheckpoint = header.Number + checkpointEvery
+	err := bs.baseState.db.Checkpoint()
+	if err != nil {
+		logger.Errorf("%s", err)
+	}
 }

@@ -40,6 +40,7 @@ type BlockState interface {
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
+	Checkpoint(header *types.Header)
 }
 
 // StorageState is the interface for the storage state

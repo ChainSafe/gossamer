@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/cockroachdb/pebble"
@@ -151,4 +152,43 @@ func (p *PebbleDB) NewPrefixIterator(prefix []byte) Iterator {
 	return &pebbleIterator{
 		p.db.NewIter(prefixIterOptions),
 	}
+}
+
+func (p *PebbleDB) Checkpoint() error {
+	const snapshotDestination = "snapshot"
+	finalDest := filepath.Clean(filepath.Join(p.path, ".."))
+	finalDest = filepath.Join(finalDest, snapshotDestination)
+
+	exists := true
+	_, err := os.Stat(finalDest)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("getting %s stat: %w", finalDest, err)
+		} else {
+			exists = false
+		}
+	}
+
+	// if dir exists then rename it (allowing the checkpoint to be created)
+	// and then remove the _old concurrently
+	if exists {
+		pathToRemove := finalDest + "_old"
+		err = os.Rename(finalDest, pathToRemove)
+		if err != nil {
+			return fmt.Errorf("while renaming: %w", err)
+		}
+
+		go func() {
+			err := os.RemoveAll(pathToRemove)
+			if err != nil {
+				logger.Errorf("failing to remove %s: %w", err)
+			}
+		}()
+	}
+
+	err = p.db.Checkpoint(finalDest)
+	if err != nil {
+		return fmt.Errorf("while creating checkpoint: %w", err)
+	}
+	return nil
 }
