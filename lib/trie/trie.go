@@ -625,14 +625,11 @@ func LoadFromMap(data map[string]string, version Version) (trie Trie, err error)
 	}()
 
 	for key, value := range data {
-		//"0x1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d"
-		//"\x1c\xb6\xf3n\x02z\xbb \x91ϵ\x11\n\xb5\b\x7f^\x06!Ć\x9a\xa6\f\x02\xbe\x9a\xdcɊ\r\x1d"
 		keyLEBytes, err := common.HexToBytes(key)
 		if err != nil {
 			return Trie{}, fmt.Errorf("cannot convert key hex to bytes: %w", err)
 		}
 
-		//"0x04d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"
 		valueBytes, err := common.HexToBytes(value)
 		if err != nil {
 			return Trie{}, fmt.Errorf("cannot convert value hex to bytes: %w", err)
