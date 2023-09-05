@@ -865,7 +865,8 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
-	stateVersion := uint8(version)
+	stateVersionBytes, _ := m.Memory().Read(version, 4)
+	stateVersion := uint8(binary.LittleEndian.Uint32(stateVersionBytes))
 	trie.EnforceValidVersion(stateVersion)
 
 	data := read(m, dataSpan)
@@ -969,10 +970,10 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		panic("nil runtime context")
 	}
 
-	stateVersion := uint8(version)
-	trie.EnforceValidVersion(stateVersion)
-
 	data := read(m, dataSpan)
+
+	stateVersionBytes, _ := m.Memory().Read(version, 4)
+	stateVersion := binary.LittleEndian.Uint32(stateVersionBytes)
 
 	t := trie.NewEmptyTrie()
 	var values [][]byte
@@ -1051,11 +1052,15 @@ func ext_trie_blake2_256_verify_proof_version_1(
 }
 
 func ext_trie_blake2_256_verify_proof_version_2(
-	ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64, version uint32) uint32 { //skipcq: RVV-B0012
+	ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64, version uint32) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
+
+	stateVersionBytes, _ := m.Memory().Read(version, 4)
+	stateVersion := uint8(binary.LittleEndian.Uint32(stateVersionBytes))
+	trie.EnforceValidVersion(stateVersion)
 
 	toDecProofs := read(m, proofSpan)
 	var encodedProofNodes [][]byte
@@ -2426,6 +2431,10 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
+
+	stateVersionBytes, _ := m.Memory().Read(version, 4)
+	stateVersion := uint8(binary.LittleEndian.Uint32(stateVersionBytes))
+	trie.EnforceValidVersion(stateVersion)
 
 	root, err := storage.Root()
 	if err != nil {

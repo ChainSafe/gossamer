@@ -571,7 +571,6 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	require.Equal(t, expected[:], hash)
 }
 
-// TODO: revisit it
 func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -584,10 +583,7 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-	encVersion, err := scale.Marshal(&stateVersionBytes)
-	require.NoError(t, err)
-
-	data := append(encInput, encVersion...)
+	data := append(encInput, stateVersionBytes...)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_root_version_2", data)
 	require.NoError(t, err)
@@ -633,10 +629,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-	encVersion, err := scale.Marshal(&stateVersionBytes)
-	require.NoError(t, err)
-
-	data := append(encValues, encVersion...)
+	data := append(encValues, stateVersionBytes...)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_ordered_root_version_2", data)
 	require.NoError(t, err)
@@ -826,10 +819,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 			stateVersionBytes := make([]byte, 4)
 			binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-			encVersion, err := scale.Marshal(&stateVersionBytes)
-			require.NoError(t, err)
-
-			args = append(args, encVersion...)
+			args = append(args, stateVersionBytes...)
 
 			res, err := inst.Exec("rtm_ext_trie_blake2_256_verify_proof_version_2", args)
 			require.NoError(t, err)
@@ -1178,10 +1168,10 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	require.NoError(t, err)
 
 	stateVersion := uint32(trie.V1)
-	stateVersionBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
+	//stateVersionBytes := make([]byte, 4)
+	//binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-	encVersion, err := scale.Marshal(&stateVersionBytes)
+	encVersion, err := scale.Marshal(&stateVersion)
 	require.NoError(t, err)
 
 	data := append(encChildKey, encKey...)
@@ -2047,10 +2037,7 @@ func Test_ext_storage_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-	encVersion, err := scale.Marshal(&stateVersionBytes)
-	require.NoError(t, err)
-
-	ret, err := inst.Exec("rtm_ext_storage_root_version_2", encVersion)
+	ret, err := inst.Exec("rtm_ext_storage_root_version_2", stateVersionBytes)
 	require.NoError(t, err)
 
 	var hash []byte
