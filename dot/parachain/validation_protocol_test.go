@@ -166,14 +166,14 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			HrmpWatermark:             0,
 		},
 	}
-	statement := NewStatementVDT()
-	statement.Set(statementSecond)
+	statementVDT := NewStatementVDT()
+	statementVDT.Set(statementSecond)
 
 	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}
-	statementDistributionStatement.Set(SignedFullStatement{
+	statementDistributionStatement.Set(Statement{
 		Hash: hashA,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
-			Payload:        statement,
+			Payload:        statementVDT,
 			ValidatorIndex: 5,
 			Signature:      validatorSignature,
 		},

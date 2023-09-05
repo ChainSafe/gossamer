@@ -16,7 +16,7 @@ type StatementDistributionMessage scale.VaryingDataType
 
 // NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
-	vdt := scale.MustNewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
+	vdt := scale.MustNewVaryingDataType(Statement{}, SecondedStatementWithLargePayload{})
 	return StatementDistributionMessage(vdt)
 }
 
@@ -43,14 +43,14 @@ func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, er
 	return vdt.Value()
 }
 
-// SignedFullStatement represents a signed full statement under a given relay-parent.
-type SignedFullStatement struct {
+// Statement represents a signed full statement under a given relay-parent.
+type Statement struct {
 	Hash                         common.Hash                  `scale:"1"`
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
 // Index returns the index of varying data type
-func (SignedFullStatement) Index() uint {
+func (Statement) Index() uint {
 	return 0
 }
 

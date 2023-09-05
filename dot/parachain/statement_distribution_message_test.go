@@ -44,8 +44,8 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	hash5 := getDummyHash(5)
 
-	statementWithValid := NewStatementVDT()
-	err := statementWithValid.Set(Valid{hash5})
+	statementVDTWithValid := NewStatementVDT()
+	err := statementVDTWithValid.Set(Valid{hash5})
 	require.NoError(t, err)
 
 	secondedEnumValue := Seconded{
@@ -71,23 +71,23 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 	}
 
-	statementWithSeconded := NewStatementVDT()
-	err = statementWithSeconded.Set(secondedEnumValue)
+	statementVDTWithSeconded := NewStatementVDT()
+	err = statementVDTWithSeconded.Set(secondedEnumValue)
 	require.NoError(t, err)
 
-	signedFullStatementWithValid := SignedFullStatement{
+	signedFullStatementWithValid := Statement{
 		Hash: hash5,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
-			Payload:        statementWithValid,
+			Payload:        statementVDTWithValid,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
 		},
 	}
 
-	signedFullStatementWithSeconded := SignedFullStatement{
+	signedFullStatementWithSeconded := Statement{
 		Hash: hash5,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
-			Payload:        statementWithSeconded,
+			Payload:        statementVDTWithSeconded,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
 		},
@@ -119,7 +119,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		// statement_valid, ValidatorIndex(5), val_sign.clone());
 		//     let sdm_statement_valid = StatementDistributionMessage::Statement(
 		// hash1, unchecked_signed_full_statement_valid);
-		//     println!("encode SignedFullStatement with valid statement => {:?}\n\n", sdm_statement_valid.encode());
+		//     println!("encode Statement with valid statementVDT => {:?}\n\n", sdm_statement_valid.encode());
 
 		//     let collator_result = sr25519::Public::from_string(
 		// "0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147");
@@ -157,7 +157,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		// statement_second, ValidatorIndex(5), val_sign.clone());
 		//     let sdm_statement_second = StatementDistributionMessage::Statement(
 		// hash1, unchecked_signed_full_statement_second);
-		//     println!("encode SignedFullStatement with Seconded statement => {:?}\n\n", sdm_statement_second.encode());
+		//     println!("encode Statement with Seconded statementVDT => {:?}\n\n", sdm_statement_second.encode());
 
 		//     let sdm_large_statement = StatementDistributionMessage::LargeStatement(StatementMetadata{
 		//         relay_parent: hash1,
@@ -169,14 +169,14 @@ func TestStatementDistributionMessage(t *testing.T) {
 		// }
 
 		{
-			name:          "SignedFullStatement with valid statement",
+			name:          "Statement with valid statementVDT",
 			enumValue:     signedFullStatementWithValid,
-			encodingValue: common.MustHexToBytes(testDataStatement["sfsValid"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["statementValid"]),
 		},
 		{
-			name:          "SignedFullStatement with Seconded statement",
+			name:          "Statement with Seconded statementVDT",
 			enumValue:     signedFullStatementWithSeconded,
-			encodingValue: common.MustHexToBytes(testDataStatement["sfsSeconded"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["statementSeconded"]),
 		},
 		{
 			name:          "Seconded Statement With LargePayload",

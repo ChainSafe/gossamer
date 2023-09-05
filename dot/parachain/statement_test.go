@@ -64,7 +64,7 @@ func TestStatementVDT(t *testing.T) {
 		{
 			name:          "Seconded",
 			enumValue:     secondedEnumValue,
-			encodingValue: common.MustHexToBytes(testDataStatement["statementSeconded"]),
+			encodingValue: common.MustHexToBytes(testDataStatement["statementVDTSeconded"]),
 		},
 		{
 			name:          "Valid",
