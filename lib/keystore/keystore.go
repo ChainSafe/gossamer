@@ -15,6 +15,7 @@ var (
 )
 
 // Name represents a defined keystore name
+// TODO: Rename this to keyTypeID to match with polkadot? Just Name is uninformative.
 type Name string
 
 var (

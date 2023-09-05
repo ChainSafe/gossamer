@@ -43,6 +43,38 @@ func (s *Statement) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
+// CandidateHash returns candidate hash referenced by this statement
+func (s *Statement) CandidateHash() (*CandidateHash, error) {
+	valVDT, err := s.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting value from varying data type: %w", err)
+	}
+
+	if valVDT.Index() == 1 {
+		val, ok := valVDT.(Seconded)
+		if !ok {
+			return nil, fmt.Errorf("getting seconded statement: %w", err)
+		}
+
+		encodedCandidate, err := scale.Marshal((parachaintypes.CommittedCandidateReceipt)(val))
+		if err != nil {
+			return nil, fmt.Errorf("encoding committed candidate receipt: %w", err)
+		}
+
+		hash, err := common.Blake2bHash(encodedCandidate)
+		if err != nil {
+			return nil, fmt.Errorf("computing candidate hash: %w", err)
+		}
+		return &CandidateHash{Value: hash}, nil
+	}
+
+	val, ok := valVDT.(Valid)
+	if !ok {
+		return nil, fmt.Errorf("getting valid statement: %w", err)
+	}
+	return (*CandidateHash)(&val), nil
+}
+
 // Seconded represents a statement that a validator seconds a candidate.
 type Seconded parachaintypes.CommittedCandidateReceipt
 
