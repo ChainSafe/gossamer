@@ -3,11 +3,17 @@
 
 package overseer
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import (
+	"sync"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
 type Context struct {
 	Sender   Sender
 	Receiver chan any
+	wg       *sync.WaitGroup
+	stopCh   chan struct{}
 }
 
 type Sender interface {
@@ -26,7 +32,4 @@ type ActiveLeavesUpdate struct {
 type Subsystem interface {
 	// Run runs the subsystem.
 	Run(ctx *Context) error
-
-	// ProcessActiveLeavesUpdate processes the active leaves update.
-	//ProcessActiveLeavesUpdate(update ActiveLeavesUpdate) error
 }
