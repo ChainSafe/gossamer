@@ -93,7 +93,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 	}
 
-	secondedStatementWithLargePayload := SecondedStatementWithLargePayload{
+	largePayload := LargePayload{
 		RelayParent:   hash5,
 		CandidateHash: CandidateHash{hash5},
 		SignedBy:      parachaintypes.ValidatorIndex(5),
@@ -165,7 +165,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		//         signed_by: ValidatorIndex(5_u32),
 		//         signature: val_sign.clone(),
 		//     });
-		//     println!("encode SecondedStatementWithLargePayload => {:?}\n\n", sdm_large_statement.encode());
+		//     println!("encode largePayload => {:?}\n\n", sdm_large_statement.encode());
 		// }
 
 		{
@@ -180,7 +180,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 		{
 			name:          "Seconded Statement With LargePayload",
-			enumValue:     secondedStatementWithLargePayload,
+			enumValue:     largePayload,
 			encodingValue: common.MustHexToBytes(testDataStatement["statementWithLargePayload"]),
 		},
 	}

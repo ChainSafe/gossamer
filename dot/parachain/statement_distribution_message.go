@@ -16,7 +16,7 @@ type StatementDistributionMessage scale.VaryingDataType
 
 // NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
-	vdt := scale.MustNewVaryingDataType(Statement{}, SecondedStatementWithLargePayload{})
+	vdt := scale.MustNewVaryingDataType(Statement{}, LargePayload{})
 	return StatementDistributionMessage(vdt)
 }
 
@@ -54,15 +54,15 @@ func (Statement) Index() uint {
 	return 0
 }
 
-// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// LargePayload represents Seconded statement with large payload
 // (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
-type SecondedStatementWithLargePayload StatementMetadata
+type LargePayload StatementMetadata
 
 // Index returns the index of varying data type
-func (SecondedStatementWithLargePayload) Index() uint {
+func (LargePayload) Index() uint {
 	return 1
 }
 
