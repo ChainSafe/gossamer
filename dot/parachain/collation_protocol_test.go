@@ -68,7 +68,7 @@ func TestCollationProtocol(t *testing.T) {
 		},
 	}
 
-	statementWithSeconded := NewStatement()
+	statementWithSeconded := NewStatementVDT()
 	err := statementWithSeconded.Set(secondedEnumValue)
 	require.NoError(t, err)
 

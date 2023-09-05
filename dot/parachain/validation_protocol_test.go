@@ -166,7 +166,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			HrmpWatermark:             0,
 		},
 	}
-	statement := NewStatement()
+	statement := NewStatementVDT()
 	statement.Set(statementSecond)
 
 	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}

@@ -70,7 +70,7 @@ func (SecondedStatementWithLargePayload) Index() uint {
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
-	Payload Statement `scale:"1"`
+	Payload StatementVDT `scale:"1"`
 
 	// The index of the validator signing this statement.
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`

@@ -44,7 +44,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	hash5 := getDummyHash(5)
 
-	statementWithValid := NewStatement()
+	statementWithValid := NewStatementVDT()
 	err := statementWithValid.Set(Valid{hash5})
 	require.NoError(t, err)
 
@@ -71,7 +71,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 	}
 
-	statementWithSeconded := NewStatement()
+	statementWithSeconded := NewStatementVDT()
 	err = statementWithSeconded.Set(secondedEnumValue)
 	require.NoError(t, err)
 

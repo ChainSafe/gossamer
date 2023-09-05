@@ -20,7 +20,7 @@ func getDummyHash(num byte) common.Hash {
 	return hash
 }
 
-func TestStatement(t *testing.T) {
+func TestStatementVDT(t *testing.T) {
 	t.Parallel()
 
 	var collatorID parachaintypes.CollatorID
@@ -80,7 +80,7 @@ func TestStatement(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
-				vdt := NewStatement()
+				vdt := NewStatementVDT()
 				err := vdt.Set(c.enumValue)
 				require.NoError(t, err)
 
@@ -93,7 +93,7 @@ func TestStatement(t *testing.T) {
 			t.Run("unmarshal", func(t *testing.T) {
 				t.Parallel()
 
-				vdt := NewStatement()
+				vdt := NewStatementVDT()
 				err := scale.Unmarshal(c.encodingValue, &vdt)
 				require.NoError(t, err)
 
