@@ -423,11 +423,14 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(nil, errTestDummyError)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
+			grandpaState:  mockGrandpaState,
 			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
@@ -450,13 +453,16 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
 			Return(errTestDummyError)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
 
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
+			grandpaState:  mockGrandpaState,
 			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
@@ -478,12 +484,15 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
+			grandpaState:  mockGrandpaState,
 			ctx:           context.Background(),
 			onBlockImport: onBlockImportHandlerMock,
 		}
@@ -542,12 +551,15 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		mockNetwork := NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(msg)
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			net:           mockNetwork,
+			grandpaState:  mockGrandpaState,
 			ctx:           context.Background(),
 			onBlockImport: onBlockImportHandlerMock,
 		}
