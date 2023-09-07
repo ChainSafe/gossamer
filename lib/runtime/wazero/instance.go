@@ -207,7 +207,13 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_trie_blake2_256_root_version_1).
 		Export("ext_trie_blake2_256_root_version_1").
 		NewFunctionBuilder().
+<<<<<<< HEAD
 		WithFunc(ext_trie_blake2_256_root_version_2).
+=======
+		WithFunc(func(a int64, v int32) int32 {
+			panic("ext_trie_blake2_256_root_version_2 unimplemented")
+		}).
+>>>>>>> 919468c9f84390837160c53e2e5ef6cb0274ae6d
 		Export("ext_trie_blake2_256_root_version_2").
 		NewFunctionBuilder().
 		WithFunc(ext_trie_blake2_256_ordered_root_version_1).

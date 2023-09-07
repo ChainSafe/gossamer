@@ -9,6 +9,27 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+type Database interface {
+	DBGetter
+	DBPutter
+	Copier
+}
+
+// DBGetter gets a value corresponding to the given key.
+type DBGetter interface {
+	Get(key []byte) (value []byte, err error)
+}
+
+// DBPutter puts a value at the given key and returns an error.
+type DBPutter interface {
+	Put(key []byte, value []byte) error
+}
+
+// DBCopy creates a deep copy from a source DB
+type Copier interface {
+	Copy() Database
+}
+
 type MemoryDB struct {
 	data map[common.Hash][]byte
 	l    sync.RWMutex
@@ -36,6 +57,18 @@ func NewMemoryDBFromProof(encodedNodes [][]byte) (*MemoryDB, error) {
 		data: data,
 	}, nil
 
+}
+
+func (mdb *MemoryDB) Copy() Database {
+	newDB := NewEmptyMemoryDB()
+	copyData := make(map[common.Hash][]byte, len(mdb.data))
+
+	for k, v := range mdb.data {
+		copyData[k] = v
+	}
+
+	newDB.data = copyData
+	return newDB
 }
 
 func (mdb *MemoryDB) Get(key []byte) ([]byte, error) {

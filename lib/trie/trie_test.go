@@ -1161,7 +1161,7 @@ func Test_Trie_Put(t *testing.T) {
 						},
 					}),
 				},
-				db: func() Database {
+				db: func() db.Database {
 					db := db.NewEmptyMemoryDB()
 					db.Put(longValueHash, longValue)
 					return db
@@ -2171,7 +2171,7 @@ func Test_retrieve(t *testing.T) {
 		parent *Node
 		key    []byte
 		value  []byte
-		db     DBGetter
+		db     db.DBGetter
 	}{
 		"nil_parent": {
 			key: []byte{1},
@@ -2280,7 +2280,7 @@ func Test_retrieve(t *testing.T) {
 			},
 			key:   []byte{1, 2, 3, 4, 5},
 			value: hashedValueResult,
-			db: func() DBGetter {
+			db: func() db.DBGetter {
 				defaultDBGetterMock := NewMockDBGetter(ctrl)
 				defaultDBGetterMock.EXPECT().Get(gomock.Any()).Return(hashedValueResult, nil).Times(1)
 

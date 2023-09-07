@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 var (
@@ -22,8 +23,8 @@ var (
 // Database defines a key value Get method used
 // for proof generation.
 type Database interface {
-	trie.DBGetter
-	trie.DBPutter
+	db.DBGetter
+	db.DBPutter
 }
 
 // Generate generates and deduplicates the encoded proof nodes

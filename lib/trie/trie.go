@@ -17,17 +17,12 @@ import (
 // EmptyHash is the empty trie hash.
 var EmptyHash = common.MustBlake2bHash([]byte{0})
 
-type Database interface {
-	DBGetter
-	DBPutter
-}
-
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
 	generation uint64
 	root       *Node
 	childTries map[common.Hash]*Trie
-	db         Database
+	db         db.Database
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -42,7 +37,7 @@ func NewEmptyTrie() *Trie {
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node, db Database) *Trie {
+func NewTrie(root *Node, db db.Database) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
@@ -69,9 +64,15 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		}
 	}
 
+	var dbCopy db.Database
+	if t.db != nil {
+		dbCopy = t.db.Copy()
+	}
+
 	return &Trie{
 		generation: t.generation + 1,
 		root:       t.root,
+		db:         dbCopy,
 		childTries: childTries,
 		deltas:     tracking.New(),
 	}
@@ -165,6 +166,10 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 		trieCopy.root = t.root.Copy(copySettings)
 	}
 
+	if t.db != nil {
+		trieCopy.db = t.db.Copy()
+	}
+
 	return trieCopy
 }
 
@@ -213,6 +218,7 @@ func (t *Trie) buildEntriesMap(currentNode *Node, prefix []byte, kv map[string][
 		return
 	}
 
+	// Leaf
 	if currentNode.Kind() == node.Leaf {
 		key := currentNode.PartialKey
 		fullKeyNibbles := concatenateSlices(prefix, key)
@@ -221,6 +227,7 @@ func (t *Trie) buildEntriesMap(currentNode *Node, prefix []byte, kv map[string][
 		return
 	}
 
+	// Branch
 	branch := currentNode
 	if branch.StorageValue != nil {
 		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
@@ -747,7 +754,7 @@ func (t *Trie) Get(keyLE []byte) (value []byte) {
 	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
+func retrieve(db db.DBGetter, parent *Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
@@ -758,7 +765,7 @@ func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
 	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db db.DBGetter, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
 		if leaf.HashedValue {
 			// We get the node
@@ -773,7 +780,7 @@ func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
 	return nil
 }
 
-func retrieveFromBranch(db DBGetter, branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db db.DBGetter, branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}
