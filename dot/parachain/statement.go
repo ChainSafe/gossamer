@@ -56,12 +56,7 @@ func (s *Statement) CandidateHash() (*CandidateHash, error) {
 			return nil, fmt.Errorf("getting seconded statement: %w", err)
 		}
 
-		encodedCandidate, err := scale.Marshal((parachaintypes.CommittedCandidateReceipt)(val))
-		if err != nil {
-			return nil, fmt.Errorf("encoding committed candidate receipt: %w", err)
-		}
-
-		hash, err := common.Blake2bHash(encodedCandidate)
+		hash, err := (*parachaintypes.CommittedCandidateReceipt)(&val).Hash()
 		if err != nil {
 			return nil, fmt.Errorf("computing candidate hash: %w", err)
 		}

@@ -252,6 +252,20 @@ type CommittedCandidateReceipt struct {
 	Commitments CandidateCommitments `scale:"2"`
 }
 
+// Hash returns the blake2b hash of the committed candidate receipt.
+func (u *CommittedCandidateReceipt) Hash() (common.Hash, error) {
+	encodedCandidate, err := scale.Marshal(u)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("encoding committed candidate receipt: %w", err)
+	}
+
+	hash, err := common.Blake2bHash(encodedCandidate)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("computing candidate hash: %w", err)
+	}
+	return hash, nil
+}
+
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte

@@ -147,21 +147,15 @@ type CandidateBackingJob struct {
 	seconded *CandidateHash
 	// The candidates that are includable, by hash. Each entry here indicates
 	// that we've sent the provisioner the backed candidate.
-	backed        map[CandidateHash]bool
-	keystore      *keystore.Keystore
-	table         Table
-	table_context TableContext
+	backed       map[CandidateHash]bool
+	keystore     *keystore.Keystore
+	table        Table
+	tableContext TableContext
 }
 
-func (job *CandidateBackingJob) signImportAndDistributeStatement(statement Statement) (*checkedSignedFullStatement, error) {
-	signedFullStatement, err := job.table_context.validator.Sign(*job.keystore, statement)
-	if err != nil {
-		return nil, err
-	}
-	//-----------------------------------------
-
-	// self.import_statement(ctx, &signed_statement, root_span)?;
-	candidateHash, err := signedFullStatement.Payload.CandidateHash()
+// Import a statement into the statement table and return the summary of the import.
+func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *CheckedSignedFullStatement) (interface{}, error) {
+	candidateHash, err := checkedSignedFullStatement.Payload.CandidateHash()
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash from statement: %w", err)
 	}
@@ -169,15 +163,39 @@ func (job *CandidateBackingJob) signImportAndDistributeStatement(statement State
 	_, isBacked := job.backed[*candidateHash]
 	if !isBacked {
 		// only add if we don't consider this backed.
-		_, ok := job.unbacked_candidates[*candidateHash]
-		if !ok {
-			job.unbacked_candidates[*candidateHash] = true
-		}
+		job.unbacked_candidates[*candidateHash] = true
 	}
 
-	// continue from polkadot/node/core/backing/src/lib.rs , line number 1026
+	summary, err := job.table.importStatement(job.tableContext, checkedSignedFullStatement)
+	if err != nil {
+		return nil, fmt.Errorf("importing statement: %w", err)
+	}
 
-	//-----------------------------------------
+	attested, err := job.table.attestedCandidate(&summary.Candidate, &job.tableContext)
+	if err != nil {
+		return nil, fmt.Errorf("getting attested candidate: %w", err)
+	}
+
+	fmt.Printf("\n\nattested: %v\n\n", attested) // remove this. just to avoid unused error
+
+	if !isBacked {
+		job.backed[*candidateHash] = true
+		delete(job.unbacked_candidates, *candidateHash)
+
+		// polkadot/node/core/backing/src/lib.rs	#L1039
+	}
+
+	return nil, nil
+}
+
+func (job *CandidateBackingJob) signImportAndDistributeStatement(statement Statement) (*CheckedSignedFullStatement, error) {
+	checkedSignedFullStatement, err := job.tableContext.validator.Sign(*job.keystore, statement)
+	if err != nil {
+		return nil, err
+	}
+
+	job.importStatement(checkedSignedFullStatement)
+
 	// TODO: distribute the statement
 	// let smsg = StatementDistributionMessage::Share(self.parent, signed_statement.clone());
 	// ctx.send_unbounded_message(smsg);
@@ -293,11 +311,6 @@ func (job *CandidateBackingJob) handleValidatedCandidateCommand(
 	return nil
 }
 
-// Stores votes
-type Table struct {
-	// TODO: fill the fields
-}
-
 type TableContext struct {
 	validator  *Validator
 	groups     map[parachaintypes.ParaID]parachaintypes.ValidatorIndex
@@ -315,8 +328,8 @@ type Validator struct {
 }
 
 // Sign a payload with this validator
-func (v Validator) Sign(keystore keystore.Keystore, Payload Statement) (*checkedSignedFullStatement, error) {
-	checkedSignedFullStatement := checkedSignedFullStatement{
+func (v Validator) Sign(keystore keystore.Keystore, Payload Statement) (*CheckedSignedFullStatement, error) {
+	checkedSignedFullStatement := CheckedSignedFullStatement{
 		Payload:        Payload,
 		ValidatorIndex: v.index,
 	}
