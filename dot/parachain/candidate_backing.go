@@ -188,7 +188,7 @@ func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *Chec
 	return nil, nil
 }
 
-func (job *CandidateBackingJob) signImportAndDistributeStatement(statement Statement) (*CheckedSignedFullStatement, error) {
+func (job *CandidateBackingJob) signImportAndDistributeStatement(statement StatementVDT) (*CheckedSignedFullStatement, error) {
 	checkedSignedFullStatement, err := job.tableContext.validator.Sign(*job.keystore, statement)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (job *CandidateBackingJob) handleSecondCommand(
 		job.seconded = &candidateHash
 		job.issued_statements[candidateHash] = true
 
-		statement := NewStatement()
+		statement := NewStatementVDT()
 		if err := statement.Set(Seconded{
 			Descriptor:  validationRes.CandidateReceipt.Descriptor,
 			Commitments: validationRes.CandidateCommitments,
@@ -265,7 +265,7 @@ func (job *CandidateBackingJob) handleAttestCommand(
 	_, isIssued := job.issued_statements[candidateHash]
 	if !isIssued {
 		if validationRes.isValid {
-			statement := NewStatement()
+			statement := NewStatementVDT()
 			if err := statement.Set(Valid{candidateHash.Value}); err != nil {
 				return fmt.Errorf("setting value to statement vdt: %s", err)
 			}
@@ -328,7 +328,7 @@ type Validator struct {
 }
 
 // Sign a payload with this validator
-func (v Validator) Sign(keystore keystore.Keystore, Payload Statement) (*CheckedSignedFullStatement, error) {
+func (v Validator) Sign(keystore keystore.Keystore, Payload StatementVDT) (*CheckedSignedFullStatement, error) {
 	checkedSignedFullStatement := CheckedSignedFullStatement{
 		Payload:        Payload,
 		ValidatorIndex: v.index,

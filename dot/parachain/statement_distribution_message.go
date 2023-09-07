@@ -18,7 +18,7 @@ type StatementDistributionMessage scale.VaryingDataType
 
 // NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
-	vdt := scale.MustNewVaryingDataType(SignedFullStatement{}, SecondedStatementWithLargePayload{})
+	vdt := scale.MustNewVaryingDataType(Statement{}, LargePayload{})
 	return StatementDistributionMessage(vdt)
 }
 
@@ -45,26 +45,26 @@ func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, er
 	return vdt.Value()
 }
 
-// SignedFullStatement represents a signed full statement under a given relay-parent.
-type SignedFullStatement struct {
+// Statement represents a signed full statement under a given relay-parent.
+type Statement struct {
 	Hash                         common.Hash                  `scale:"1"`
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
 // Index returns the index of varying data type
-func (SignedFullStatement) Index() uint {
+func (Statement) Index() uint {
 	return 0
 }
 
-// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// LargePayload represents Seconded statement with large payload
 // (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
-type SecondedStatementWithLargePayload StatementMetadata
+type LargePayload StatementMetadata
 
 // Index returns the index of varying data type
-func (SecondedStatementWithLargePayload) Index() uint {
+func (LargePayload) Index() uint {
 	return 1
 }
 
@@ -72,7 +72,7 @@ func (SecondedStatementWithLargePayload) Index() uint {
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
-	Payload Statement `scale:"1"`
+	Payload StatementVDT `scale:"1"`
 
 	// The index of the validator signing this statement.
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`

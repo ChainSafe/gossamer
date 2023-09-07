@@ -11,40 +11,40 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Statement is a result of candidate validation. It could be either `Valid` or `Seconded`.
-type Statement scale.VaryingDataType
+// StatementVDT is a result of candidate validation. It could be either `Valid` or `Seconded`.
+type StatementVDT scale.VaryingDataType
 
-// NewStatement returns a new statement varying data type
-func NewStatement() Statement {
+// NewStatementVDT returns a new statement varying data type
+func NewStatementVDT() StatementVDT {
 	vdt := scale.MustNewVaryingDataType(Seconded{}, Valid{})
-	return Statement(vdt)
+	return StatementVDT(vdt)
 }
 
 // New will enable scale to create new instance when needed
-func (Statement) New() Statement {
-	return NewStatement()
+func (StatementVDT) New() StatementVDT {
+	return NewStatementVDT()
 }
 
 // Set will set a value using the underlying  varying data type
-func (s *Statement) Set(val scale.VaryingDataTypeValue) (err error) {
+func (s *StatementVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*s)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 
-	*s = Statement(vdt)
+	*s = StatementVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying varying data type
-func (s *Statement) Value() (scale.VaryingDataTypeValue, error) {
+func (s *StatementVDT) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*s)
 	return vdt.Value()
 }
 
 // CandidateHash returns candidate hash referenced by this statement
-func (s *Statement) CandidateHash() (*CandidateHash, error) {
+func (s *StatementVDT) CandidateHash() (*CandidateHash, error) {
 	valVDT, err := s.Value()
 	if err != nil {
 		return nil, fmt.Errorf("getting value from varying data type: %w", err)

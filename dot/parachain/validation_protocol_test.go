@@ -166,14 +166,14 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			HrmpWatermark:             0,
 		},
 	}
-	statement := NewStatement()
-	statement.Set(statementSecond)
+	statementVDT := NewStatementVDT()
+	statementVDT.Set(statementSecond)
 
 	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}
-	statementDistributionStatement.Set(SignedFullStatement{
+	statementDistributionStatement.Set(Statement{
 		Hash: hashA,
 		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
-			Payload:        statement,
+			Payload:        statementVDT,
 			ValidatorIndex: 5,
 			Signature:      validatorSignature,
 		},
@@ -199,11 +199,11 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			signature: val_sign.clone(),
 		});
 		let validation_sdm_large_statement = protocol_v1::ValidationProtocol::StatementDistribution(sdm_large_statement);
-		println!("encode validation SecondedStatementWithLargePayload => {:?}\n\n", validation_sdm_large_statement.encode());
+		println!("encode validation largePayload => {:?}\n\n", validation_sdm_large_statement.encode());
 	}
 	*/
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
-	statementDistributionLargeStatement.Set(SecondedStatementWithLargePayload{
+	statementDistributionLargeStatement.Set(LargePayload{
 		RelayParent:   hashA,
 		CandidateHash: CandidateHash{Value: hashA},
 		SignedBy:      5,
