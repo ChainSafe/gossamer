@@ -4,7 +4,6 @@
 package trie
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -105,7 +104,7 @@ func Test_ParseVersion(t *testing.T) {
 			case uint32:
 				version, err = ParseVersion(typed)
 			default:
-				panic(fmt.Sprintf("unsupported type %T", testCase.v))
+				t.Fail()
 			}
 
 			assert.Equal(t, testCase.version, version)
