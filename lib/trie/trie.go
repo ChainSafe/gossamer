@@ -364,7 +364,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 		value = hashedValue.ToBytes()
 	}
 
-	root, _, _, err := t.insert(t.root, nibblesKey, value, isValueHashed, pendingDeltas)
+	root, _, _, err := t.insert(t.root, nibblesKey, value, shouldHash, pendingDeltas)
 	if err != nil {
 		return err
 	}
