@@ -1172,17 +1172,17 @@ func ext_default_child_storage_next_key_version_1(
 
 	keyToChild := read(m, childStorageKey)
 	keyBytes := read(m, key)
-	child, err := storage.GetChildNextKey(keyToChild, keyBytes)
+	childNextKey, err := storage.GetChildNextKey(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child's next key: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&child))
-	if err != nil {
-		panic(err)
+	if childNextKey == nil {
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
-	return ret
+
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&childNextKey))
 }
 
 func ext_default_child_storage_root_version_1(
