@@ -62,8 +62,6 @@ func ParseVersion[T string | uint32](v T) (version Version, err error) {
 		s = value
 	case uint32:
 		s = fmt.Sprintf("V%d", value)
-	default:
-		panic(fmt.Sprintf("unsupported type %T", s))
 	}
 
 	switch {
