@@ -352,8 +352,8 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 		value = []byte{}
 	}
 
-	isValueHashed := version.ShouldHashValue(value)
-	if isValueHashed {
+	shouldHash := version.ShouldHashValue(value)
+	if shouldHash {
 		hashedValue := common.MustBlake2bHash(value)
 
 		// Add original value in db using the hashed value as key
@@ -381,11 +381,11 @@ func (t *Trie) insert(parent *Node, key, value []byte,
 		mutated = true
 		nodesCreated = 1
 		return &Node{
-			PartialKey:   key,
-			StorageValue: value,
-			HashedValue:  isValueHashed,
-			Generation:   t.generation,
-			Dirty:        true,
+			PartialKey:    key,
+			StorageValue:  value,
+			IsHashedValue: isValueHashed,
+			Generation:    t.generation,
+			Dirty:         true,
 		}, mutated, nodesCreated, nil
 	}
 
@@ -427,7 +427,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte, isValueHashed b
 		}
 
 		parentLeaf.StorageValue = value
-		parentLeaf.HashedValue = isValueHashed
+		parentLeaf.IsHashedValue = isValueHashed
 		mutated = true
 		return parentLeaf, mutated, nodesCreated, nil
 	}
@@ -447,7 +447,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte, isValueHashed b
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
 		newBranchParent.StorageValue = value
-		newBranchParent.HashedValue = isValueHashed
+		newBranchParent.IsHashedValue = isValueHashed
 
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
@@ -472,7 +472,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte, isValueHashed b
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
 		newBranchParent.StorageValue = parentLeaf.StorageValue
-		newBranchParent.HashedValue = parentLeaf.HashedValue
+		newBranchParent.IsHashedValue = parentLeaf.IsHashedValue
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
@@ -491,11 +491,11 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte, isValueHashed b
 	}
 	childIndex := key[commonPrefixLength]
 	newBranchParent.Children[childIndex] = &Node{
-		PartialKey:   key[commonPrefixLength+1:],
-		StorageValue: value,
-		HashedValue:  isValueHashed,
-		Generation:   t.generation,
-		Dirty:        true,
+		PartialKey:    key[commonPrefixLength+1:],
+		StorageValue:  value,
+		IsHashedValue: isValueHashed,
+		Generation:    t.generation,
+		Dirty:         true,
 	}
 	newBranchParent.Descendants++
 	nodesCreated++
@@ -518,7 +518,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte, isValueHash
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
 		parentBranch.StorageValue = value
-		parentBranch.HashedValue = isValueHashed
+		parentBranch.IsHashedValue = isValueHashed
 		mutated = true
 		return parentBranch, mutated, 0, nil
 	}
@@ -532,11 +532,11 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte, isValueHash
 
 		if child == nil {
 			child = &Node{
-				PartialKey:   remainingKey,
-				StorageValue: value,
-				HashedValue:  isValueHashed,
-				Generation:   t.generation,
-				Dirty:        true,
+				PartialKey:    remainingKey,
+				StorageValue:  value,
+				IsHashedValue: isValueHashed,
+				Generation:    t.generation,
+				Dirty:         true,
 			}
 			nodesCreated = 1
 			parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
@@ -594,7 +594,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte, isValueHash
 
 	if len(key) <= commonPrefixLength {
 		newParentBranch.StorageValue = value
-		newParentBranch.HashedValue = isValueHashed
+		newParentBranch.IsHashedValue = isValueHashed
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
@@ -767,7 +767,7 @@ func retrieve(db db.DBGetter, parent *Node, key []byte) (value []byte) {
 
 func retrieveFromLeaf(db db.DBGetter, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
-		if leaf.HashedValue {
+		if leaf.IsHashedValue {
 			// We get the node
 			value, err := db.Get(leaf.StorageValue)
 			if err != nil {

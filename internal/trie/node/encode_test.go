@@ -119,9 +119,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf_with_hashed_value_success": {
 			node: &Node{
-				PartialKey:   []byte{1, 2, 3},
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
+				PartialKey:    []byte{1, 2, 3},
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
 			},
 			writes: []writeCall{
 				{
@@ -133,9 +133,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf_with_hashed_value_fail": {
 			node: &Node{
-				PartialKey:   []byte{1, 2, 3},
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
+				PartialKey:    []byte{1, 2, 3},
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
 			},
 			writes: []writeCall{
 				{
@@ -154,9 +154,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"leaf_with_hashed_value_fail_too_short": {
 			node: &Node{
-				PartialKey:   []byte{1, 2, 3},
-				StorageValue: []byte("tooshort"),
-				HashedValue:  true,
+				PartialKey:    []byte{1, 2, 3},
+				StorageValue:  []byte("tooshort"),
+				IsHashedValue: true,
 			},
 			writes: []writeCall{
 				{
@@ -340,9 +340,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"branch_with_hashed_value_success": {
 			node: &Node{
-				PartialKey:   []byte{1, 2, 3},
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
+				PartialKey:    []byte{1, 2, 3},
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
 				Children: []*Node{
 					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
@@ -371,9 +371,9 @@ func Test_Node_Encode(t *testing.T) {
 		},
 		"branch_with_hashed_value_fail_too_short": {
 			node: &Node{
-				PartialKey:   []byte{1, 2, 3},
-				StorageValue: []byte("tooshort"),
-				HashedValue:  true,
+				PartialKey:    []byte{1, 2, 3},
+				StorageValue:  []byte("tooshort"),
+				IsHashedValue: true,
 				Children: []*Node{
 					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},

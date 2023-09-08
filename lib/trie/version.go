@@ -7,11 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const V1MaxValueSize = common.HashLength
+const V1MaxValueSize = 32
 
 // Version is the state trie version which dictates how a
 // Merkle root should be constructed. It is defined in
