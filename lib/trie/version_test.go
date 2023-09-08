@@ -84,7 +84,7 @@ func Test_ParseVersion(t *testing.T) {
 			errWrapped: ErrParseVersion,
 			errMessage: "parsing version failed: \"xyz\" must be one of [v0, v1]",
 		},
-		"invalid uint32": {
+		"invalid_uint32": {
 			v:          uint32(999),
 			errWrapped: ErrParseVersion,
 			errMessage: "parsing version failed: \"V999\" must be one of [v0, v1]",
