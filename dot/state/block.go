@@ -28,7 +28,7 @@ import (
 const (
 	blockPrefix = "block"
 	// should create a check point every 1m blocks
-	checkpointEvery = 1_000_000
+	checkpointFrequency = 10000
 )
 
 var (
@@ -92,7 +92,7 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
-		nextCheckpoint:             checkpointEvery,
+		nextCheckpoint:             checkpointFrequency,
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))
@@ -955,7 +955,7 @@ func (bs *BlockState) Checkpoint(header *types.Header) {
 	logger.Infof("creating a checkpoint, latest finalized block %s (#%d)",
 		header.Hash(), header.Number)
 
-	bs.nextCheckpoint = header.Number + checkpointEvery
+	bs.nextCheckpoint = header.Number + checkpointFrequency
 	err := bs.baseState.db.Checkpoint()
 	if err != nil {
 		logger.Errorf("%s", err)
