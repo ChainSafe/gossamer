@@ -55,7 +55,17 @@ func (v Version) ShouldHashValue(value []byte) bool {
 var ErrParseVersion = errors.New("parsing version failed")
 
 // ParseVersion parses a state trie version string.
-func ParseVersion(s string) (version Version, err error) {
+func ParseVersion[T string | uint32](v T) (version Version, err error) {
+	var s string
+	switch value := any(v).(type) {
+	case string:
+		s = value
+	case uint32:
+		s = fmt.Sprintf("V%d", value)
+	default:
+		panic(fmt.Sprintf("unsupported type %T", s))
+	}
+
 	switch {
 	case strings.EqualFold(s, V0.String()):
 		return V0, nil
@@ -64,16 +74,5 @@ func ParseVersion(s string) (version Version, err error) {
 	default:
 		return version, fmt.Errorf("%w: %q must be one of [%s, %s]",
 			ErrParseVersion, s, V0, V1)
-	}
-}
-
-func EnforceValidVersion(version uint8) {
-	v := Version(version)
-
-	switch v {
-	case V0, V1:
-		return
-	default:
-		panic("Invalid state version")
 	}
 }

@@ -823,8 +823,11 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 	}
 
 	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion := uint8(binary.LittleEndian.Uint32(stateVersionBytes))
-	trie.EnforceValidVersion(stateVersion)
+	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
 
 	data := read(m, dataSpan)
 
@@ -842,7 +845,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 	}
 
 	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value, trie.Version(stateVersion))
+		err := t.Put(kv.Key, kv.Value, stateVersion)
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				kv.Key, kv.Value, err)
@@ -930,11 +933,15 @@ func ext_trie_blake2_256_ordered_root_version_2(
 	data := read(m, dataSpan)
 
 	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion := binary.LittleEndian.Uint32(stateVersionBytes)
+	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
 
 	t := trie.NewEmptyTrie()
 	var values [][]byte
-	err := scale.Unmarshal(data, &values)
+	err = scale.Unmarshal(data, &values)
 	if err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
@@ -950,7 +957,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 			"put key=0x%x and value=0x%x",
 			key, value)
 
-		err = t.Put(key, value, trie.Version(stateVersion))
+		err = t.Put(key, value, stateVersion)
 		if err != nil {
 			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
 				key, value, err)
@@ -1016,12 +1023,15 @@ func ext_trie_blake2_256_verify_proof_version_2(
 	}
 
 	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion := uint8(binary.LittleEndian.Uint32(stateVersionBytes))
-	trie.EnforceValidVersion(stateVersion)
+	_, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
 
 	toDecProofs := read(m, proofSpan)
 	var encodedProofNodes [][]byte
-	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
+	err = scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
 		return uint32(0)
@@ -2354,8 +2364,11 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	storage := rtCtx.Storage
 
 	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion := uint8(binary.LittleEndian.Uint32(stateVersionBytes))
-	trie.EnforceValidVersion(stateVersion)
+	_, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
 
 	root, err := storage.Root()
 	if err != nil {
