@@ -258,7 +258,7 @@ func newNode(config *cfg.Config,
 		return nil, fmt.Errorf("checking if node is initialised: %w", err)
 	}
 
-	if isInitialised {
+	if !isInitialised {
 		err := builder.initNode(config)
 		if err != nil {
 			return nil, fmt.Errorf("cannot initialise node: %w", err)
