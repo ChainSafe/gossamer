@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -239,21 +240,21 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		return nil, err
 	}
 
-	// parachainInherent := inherents.ParachainInherentData{
-	// 	ParentHeader: *parent,
-	// }
+	parachainInherent := inherents.ParachainInherentData{
+		ParentHeader: *parent,
+	}
 
 	// add parachn0 and newheads
 	// for now we can use "empty" values, as we require parachain-specific
 	// logic to actually provide the data.
 
-	// if err = idata.SetInherent(types.Parachn0, parachainInherent); err != nil {
-	// 	return nil, fmt.Errorf("setting inherent %q: %w", types.Parachn0, err)
-	// }
+	if err = idata.SetInherent(types.Parachn0, parachainInherent); err != nil {
+		return nil, fmt.Errorf("setting inherent %q: %w", types.Parachn0, err)
+	}
 
-	// if err = idata.SetInherent(types.Newheads, []byte{0}); err != nil {
-	// 	return nil, fmt.Errorf("setting inherent %q: %w", types.Newheads, err)
-	// }
+	if err = idata.SetInherent(types.Newheads, []byte{0}); err != nil {
+		return nil, fmt.Errorf("setting inherent %q: %w", types.Newheads, err)
+	}
 
 	ienc, err := idata.Encode()
 	if err != nil {

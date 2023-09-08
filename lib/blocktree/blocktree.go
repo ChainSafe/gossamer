@@ -548,11 +548,6 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 
 	currentNode := bt.getNode(hash)
 	if currentNode == nil {
-		hashes := bt.runtimes.hashes()
-		if len(hashes) > 1 {
-			return bt.runtimes.get(hashes[0]), nil
-		}
-
 		return nil, fmt.Errorf("%w: for block hash %s", ErrNodeNotFound, hash)
 	}
 
