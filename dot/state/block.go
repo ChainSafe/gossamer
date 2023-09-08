@@ -50,10 +50,6 @@ var (
 	})
 )
 
-type Checkpointer interface {
-	CreateCheckpoint()
-}
-
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
 type BlockState struct {
