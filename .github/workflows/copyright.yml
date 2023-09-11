@@ -19,7 +19,7 @@ jobs:
         with:
           all_but_latest: true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v4
         with:
