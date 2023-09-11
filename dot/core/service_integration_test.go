@@ -77,8 +77,11 @@ func TestAnnounceBlock(t *testing.T) {
 	}
 
 	onBlockImportHandleMock := NewMockBlockImportDigestHandler(ctrl)
-	onBlockImportHandleMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+	onBlockImportHandleMock.EXPECT().HandleDigests(&newBlock.Header).Return(nil)
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&newBlock.Header).Return(nil)
 	s.onBlockImport = onBlockImportHandleMock
+	s.grandpaState = mockGrandpaState
 
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
@@ -486,8 +489,11 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlotNumber, currentTimestamp)
 
 	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-	onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+	onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 	s.onBlockImport = onBlockImportHandlerMock
+	s.grandpaState = mockGrandpaState
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

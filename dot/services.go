@@ -272,6 +272,7 @@ func (nodeBuilder) createCoreService(config *cfg.Config, ks *keystore.GlobalKeys
 		BlockState:           st.Block,
 		StorageState:         st.Storage,
 		TransactionState:     st.Transaction,
+		GrandpaState:         st.Grandpa,
 		Keystore:             ks,
 		Network:              net,
 		CodeSubstitutes:      codeSubs,

@@ -22,24 +22,8 @@ func NewBlockImportHandler(epochState EpochState, grandpaState GrandpaState) *Bl
 	}
 }
 
-func (h *BlockImportHandler) Handle(importedBlockHeader *types.Header) error {
-	err := h.handleDigests(importedBlockHeader)
-	if err != nil {
-		return fmt.Errorf("handling digests: %w", err)
-	}
-
-	// TODO: move to core handleBlock
-	// https://github.com/ChainSafe/gossamer/issues/3330
-	err = h.grandpaState.ApplyForcedChanges(importedBlockHeader)
-	if err != nil {
-		return fmt.Errorf("applying forced changes: %w", err)
-	}
-
-	return nil
-}
-
 // HandleDigests handles consensus digests for an imported block
-func (h *BlockImportHandler) handleDigests(header *types.Header) error {
+func (h *BlockImportHandler) HandleDigests(header *types.Header) error {
 	consensusDigests := toConsensusDigests(header.Digest.Types)
 	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
