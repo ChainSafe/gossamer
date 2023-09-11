@@ -363,7 +363,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(ctx context.Context, m api.Mod
 	return ret
 }
 
-func ext_crypto_secp256k1_ecdsa_recover_version_2(ctx context.Context, m api.Module, sig uint32, msg uint32) uint64 {
+func ext_crypto_secp256k1_ecdsa_recover_version_2(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(ctx, m, sig, msg)
 }
 
