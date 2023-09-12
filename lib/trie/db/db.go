@@ -3,6 +3,8 @@
 package db
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -35,7 +37,10 @@ func NewInMemoryDBFromProof(encodedNodes [][]byte) (Database, error) {
 			return nil, err
 		}
 
-		db.Put(nodeHash.ToBytes(), encodedProofNode)
+		err = db.Put(nodeHash.ToBytes(), encodedProofNode)
+		if err != nil {
+			return nil, fmt.Errorf("adding value for hash 0x%x in db: %w", nodeHash, err)
+		}
 	}
 
 	return db, nil

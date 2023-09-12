@@ -34,7 +34,6 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	//db, _ := database.LoadDatabase("", true)
 	return NewTrie(nil, db.NewEmptyInMemoryDB())
 }
 
