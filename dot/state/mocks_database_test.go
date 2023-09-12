@@ -7,7 +7,6 @@ package state
 import (
 	reflect "reflect"
 
-	db "github.com/ChainSafe/gossamer/lib/trie/db"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -32,20 +31,6 @@ func NewMockDatabase(ctrl *gomock.Controller) *MockDatabase {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDatabase) EXPECT() *MockDatabaseMockRecorder {
 	return m.recorder
-}
-
-// Copy mocks base method.
-func (m *MockDatabase) Copy() db.Database {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Copy")
-	ret0, _ := ret[0].(db.Database)
-	return ret0
-}
-
-// Copy indicates an expected call of Copy.
-func (mr *MockDatabaseMockRecorder) Copy() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockDatabase)(nil).Copy))
 }
 
 // Get mocks base method.
