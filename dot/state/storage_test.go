@@ -46,7 +46,8 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	ts2 := runtime.NewTrieState(trie)
 	newSnapshot := ts2.Snapshot()
-	require.Equal(t, ts.Trie(), newSnapshot)
+
+	require.True(t, ts.Trie().Equal(newSnapshot))
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {

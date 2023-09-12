@@ -6,6 +6,7 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
@@ -33,6 +34,7 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
+	//db, _ := database.LoadDatabase("", true)
 	return NewTrie(nil, db.NewEmptyMemoryDB())
 }
 
@@ -45,6 +47,23 @@ func NewTrie(root *Node, db db.Database) *Trie {
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
 	}
+}
+
+func (t *Trie) Equal(other *Trie) bool {
+	if t == nil && other == nil {
+		return true
+	}
+
+	if t == nil || other == nil {
+		return false
+	}
+
+	return t.generation == other.generation && reflect.DeepEqual(t.root, other.root) &&
+		reflect.DeepEqual(t.childTries, other.childTries) && reflect.DeepEqual(t.deltas, other.deltas)
+}
+
+func (t *Trie) SetDB(db db.Database) {
+	t.db = db
 }
 
 // Snapshot creates a copy of the trie.
@@ -64,15 +83,10 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		}
 	}
 
-	var dbCopy db.Database
-	if t.db != nil {
-		dbCopy = t.db.Copy()
-	}
-
 	return &Trie{
 		generation: t.generation + 1,
 		root:       t.root,
-		db:         dbCopy,
+		db:         t.db,
 		childTries: childTries,
 		deltas:     tracking.New(),
 	}
@@ -146,6 +160,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 	trieCopy = &Trie{
 		generation: t.generation,
+		db:         t.db,
 	}
 
 	if t.deltas != nil {
@@ -164,10 +179,6 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 	if t.root != nil {
 		copySettings := node.DeepCopySettings
 		trieCopy.root = t.root.Copy(copySettings)
-	}
-
-	if t.db != nil {
-		trieCopy.db = t.db.Copy()
 	}
 
 	return trieCopy

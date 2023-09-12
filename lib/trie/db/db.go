@@ -12,7 +12,6 @@ import (
 type Database interface {
 	DBGetter
 	DBPutter
-	Copier
 }
 
 // DBGetter gets a value corresponding to the given key.
@@ -23,11 +22,6 @@ type DBGetter interface {
 // DBPutter puts a value at the given key and returns an error.
 type DBPutter interface {
 	Put(key []byte, value []byte) error
-}
-
-// DBCopy creates a deep copy from a source DB
-type Copier interface {
-	Copy() Database
 }
 
 type MemoryDB struct {
