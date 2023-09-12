@@ -58,6 +58,20 @@ func (t *Tries) SetDB(db db.Database) {
 	}
 }
 
+func (t *Tries) Equal(other *Tries) bool {
+	if len(t.rootToTrie) != len(other.rootToTrie) {
+		return false
+	}
+
+	for hash, trie := range t.rootToTrie {
+		if !trie.Equal(other.rootToTrie[hash]) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // SetEmptyTrie sets the empty trie in the tries.
 // Note the empty trie is the same for the v0 and the v1
 // state trie versions.

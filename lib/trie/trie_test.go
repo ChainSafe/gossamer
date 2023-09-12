@@ -34,10 +34,11 @@ func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
 		childTries: make(map[common.Hash]*Trie),
 		deltas:     tracking.New(),
-		db:         db.NewEmptyMemoryDB(),
+		db:         db.NewEmptyInMemoryDB(),
 	}
 	trie := NewEmptyTrie()
-	assert.Equal(t, expectedTrie, trie)
+
+	assert.True(t, trie.Equal(expectedTrie))
 }
 
 func Test_NewTrie(t *testing.T) {
@@ -698,7 +699,7 @@ func Test_Trie_Entries(t *testing.T) {
 		trie := Trie{
 			root:       nil,
 			childTries: make(map[common.Hash]*Trie),
-			db:         db.NewEmptyMemoryDB(),
+			db:         db.NewEmptyInMemoryDB(),
 		}
 
 		kv := map[string][]byte{
@@ -723,7 +724,7 @@ func Test_Trie_Entries(t *testing.T) {
 		trie := Trie{
 			root:       nil,
 			childTries: make(map[common.Hash]*Trie),
-			db:         db.NewEmptyMemoryDB(),
+			db:         db.NewEmptyInMemoryDB(),
 		}
 
 		kv := map[string][]byte{
@@ -1086,7 +1087,7 @@ func Test_Trie_Put(t *testing.T) {
 		stateVersion Version
 		key          []byte
 		value        []byte
-		expectedTrie Trie
+		expectedTrie *Trie
 	}{
 		"trie_v0_with_key_and_value": {
 			trie: Trie{
@@ -1099,7 +1100,7 @@ func Test_Trie_Put(t *testing.T) {
 			},
 			key:   []byte{0x12, 0x16},
 			value: []byte{2},
-			expectedTrie: Trie{
+			expectedTrie: &Trie{
 				generation: 1,
 				deltas:     newDeltas("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9"),
 				root: &Node{
@@ -1132,12 +1133,12 @@ func Test_Trie_Put(t *testing.T) {
 					PartialKey:   []byte{1, 2, 0, 5},
 					StorageValue: []byte{1},
 				},
-				db: db.NewEmptyMemoryDB(),
+				db: db.NewEmptyInMemoryDB(),
 			},
 			stateVersion: V1,
 			key:          []byte{0x12, 0x16},
 			value:        longValue,
-			expectedTrie: Trie{
+			expectedTrie: &Trie{
 				generation: 1,
 				deltas:     newDeltas("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9"),
 				root: &Node{
@@ -1162,7 +1163,7 @@ func Test_Trie_Put(t *testing.T) {
 					}),
 				},
 				db: func() db.Database {
-					db := db.NewEmptyMemoryDB()
+					db := db.NewEmptyInMemoryDB()
 					db.Put(longValueHash, longValue)
 					return db
 				}(),
@@ -1178,7 +1179,7 @@ func Test_Trie_Put(t *testing.T) {
 			trie := testCase.trie
 			trie.Put(testCase.key, testCase.value, testCase.stateVersion)
 
-			assert.Equal(t, testCase.expectedTrie, trie)
+			assert.True(t, trie.Equal(testCase.expectedTrie))
 		})
 	}
 }
@@ -1734,7 +1735,7 @@ func Test_LoadFromMap(t *testing.T) {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
-				db:         db.NewEmptyMemoryDB(),
+				db:         db.NewEmptyInMemoryDB(),
 			},
 		},
 		"empty_data": {
@@ -1742,7 +1743,7 @@ func Test_LoadFromMap(t *testing.T) {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
-				db:         db.NewEmptyMemoryDB(),
+				db:         db.NewEmptyInMemoryDB(),
 			},
 		},
 		"bad_key": {
@@ -1776,7 +1777,7 @@ func Test_LoadFromMap(t *testing.T) {
 				},
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
-				db:         db.NewEmptyMemoryDB(),
+				db:         db.NewEmptyInMemoryDB(),
 			},
 		},
 		"load_key_values": {
@@ -1807,7 +1808,7 @@ func Test_LoadFromMap(t *testing.T) {
 				},
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
-				db:         db.NewEmptyMemoryDB(),
+				db:         db.NewEmptyInMemoryDB(),
 			},
 		},
 	}
@@ -1824,7 +1825,7 @@ func Test_LoadFromMap(t *testing.T) {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
 
-			assert.Equal(t, testCase.expectedTrie, trie)
+			assert.True(t, trie.Equal(&testCase.expectedTrie))
 		})
 	}
 }

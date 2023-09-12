@@ -84,7 +84,7 @@ func TestParachainHeaderStateProof(t *testing.T) {
 
 	expectedValue := proof7
 
-	proofDB, err := db.NewMemoryDBFromProof(proof)
+	proofDB, err := db.NewInMemoryDBFromProof(proof)
 	require.NoError(t, err)
 
 	trie, err := buildTrie(proof, stateRoot, proofDB)
@@ -121,7 +121,7 @@ func TestTrieProof(t *testing.T) {
 	}
 
 	proof := [][]byte{proof1, proof2, proof3}
-	proofDB, err := db.NewMemoryDBFromProof(proof)
+	proofDB, err := db.NewInMemoryDBFromProof(proof)
 
 	require.NoError(t, err)
 
