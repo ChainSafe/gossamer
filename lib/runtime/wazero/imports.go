@@ -363,7 +363,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(ctx context.Context, m api.Mod
 	return ret
 }
 
-func ext_crypto_secp256k1_ecdsa_recover_version_2(ctx context.Context, m api.Module, sig uint32, msg uint32) uint64 {
+func ext_crypto_secp256k1_ecdsa_recover_version_2(ctx context.Context, m api.Module, sig, msg uint32) uint64 {
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(ctx, m, sig, msg)
 }
 
@@ -1172,17 +1172,17 @@ func ext_default_child_storage_next_key_version_1(
 
 	keyToChild := read(m, childStorageKey)
 	keyBytes := read(m, key)
-	child, err := storage.GetChildNextKey(keyToChild, keyBytes)
+	childNextKey, err := storage.GetChildNextKey(keyToChild, keyBytes)
 	if err != nil {
 		logger.Errorf("failed to get child's next key: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
 
-	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&child))
-	if err != nil {
-		panic(err)
+	if childNextKey == nil {
+		return mustWrite(m, rtCtx.Allocator, noneEncoded)
 	}
-	return ret
+
+	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&childNextKey))
 }
 
 func ext_default_child_storage_root_version_1(
