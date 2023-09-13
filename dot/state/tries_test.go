@@ -43,7 +43,7 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 		deleteCounter: deleteCounter,
 	}
 
-	assert.True(t, tries.Equal(expectedTries))
+	assert.Equal(t, expectedTries, tries)
 }
 
 func Test_Tries_SetTrie(t *testing.T) {
@@ -124,11 +124,7 @@ func Test_Tries_softSet(t *testing.T) {
 
 			tries.softSet(testCase.root, testCase.trie)
 
-			assert.Equal(t, len(testCase.expectedRootToTrie), len(tries.rootToTrie))
-
-			for root, trie := range tries.rootToTrie {
-				assert.True(t, trie.Equal(testCase.expectedRootToTrie[root]))
-			}
+			assert.Equal(t, testCase.expectedRootToTrie, tries.rootToTrie)
 		})
 	}
 }
