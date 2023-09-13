@@ -167,7 +167,7 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafAShort),
 			}
 
-			proofDB, err := db.NewInMemoryDBFromProof(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
@@ -186,7 +186,7 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafBLarge),
 			}
 
-			proofDB, err := db.NewInMemoryDBFromProof(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
@@ -206,7 +206,7 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafBLarge),
 			}
 
-			proofDB, err := db.NewInMemoryDBFromProof(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
@@ -235,7 +235,7 @@ func Test_buildTrie(t *testing.T) {
 				encodeNode(t, leafCLarge), // children 2
 			}
 
-			proofDB, err := db.NewInMemoryDBFromProof(encodedProofNodes)
+			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 			assert.NoError(t, err)
 
 			return testCase{
