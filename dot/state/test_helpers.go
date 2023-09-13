@@ -24,7 +24,7 @@ var inc, _ = time.ParseDuration("1s")
 func NewInMemoryDB(t *testing.T) database.Database {
 	testDatadirPath := t.TempDir()
 
-	db, err := database.LoadDatabase(testDatadirPath, true)
+	db, err := database.LoadDatabase(testDatadirPath, true, false, "")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()
