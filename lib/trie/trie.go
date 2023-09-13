@@ -48,6 +48,7 @@ func NewTrie(root *Node, db db.Database) *Trie {
 	}
 }
 
+// Equal is to compare one trie with other, this method will ignore the shared db instance
 func (t *Trie) Equal(other *Trie) bool {
 	if t == nil && other == nil {
 		return true
@@ -61,6 +62,7 @@ func (t *Trie) Equal(other *Trie) bool {
 		reflect.DeepEqual(t.childTries, other.childTries) && reflect.DeepEqual(t.deltas, other.deltas)
 }
 
+// SetDB is to set the db that this trie will use primary to store v1 value nodes
 func (t *Trie) SetDB(db db.Database) {
 	t.db = db
 }
@@ -143,6 +145,7 @@ func (t *Trie) registerDeletedNodeHash(node *Node,
 		nodeHash := common.NewHash(node.MerkleValue)
 		pendingDeltas.RecordDeleted(nodeHash)
 
+		// If this node contains a hashed value we have to remove the value node from the db too
 		if node.IsHashedValue {
 			pendingDeltas.RecordDeleted(common.NewHash(node.StorageValue))
 		}
@@ -370,7 +373,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 	if shouldHash {
 		hashedValue := common.MustBlake2bHash(value)
 
-		// Add original value in db using the hashed value as key
+		// Add the original value as value node in db using the hashed value as key
 		err = t.db.Put(hashedValue.ToBytes(), value)
 		if err != nil {
 			return err
