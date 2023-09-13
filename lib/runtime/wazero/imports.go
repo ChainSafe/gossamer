@@ -1035,7 +1035,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 	err = scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return uint32(0)
+		return 0
 	}
 
 	key := read(m, keySpan)
