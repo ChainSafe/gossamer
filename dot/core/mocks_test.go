@@ -85,6 +85,18 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHeader", reflect.TypeOf((*MockBlockState)(nil).BestBlockHeader))
 }
 
+// Checkpoint mocks base method.
+func (m *MockBlockState) Checkpoint(arg0 *types.Header) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Checkpoint", arg0)
+}
+
+// Checkpoint indicates an expected call of Checkpoint.
+func (mr *MockBlockStateMockRecorder) Checkpoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Checkpoint", reflect.TypeOf((*MockBlockState)(nil).Checkpoint), arg0)
+}
+
 // GetBlockBody mocks base method.
 func (m *MockBlockState) GetBlockBody(arg0 common.Hash) (*types.Body, error) {
 	m.ctrl.T.Helper()
