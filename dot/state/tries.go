@@ -52,24 +52,11 @@ func NewTries() (tries *Tries) {
 	}
 }
 
+// SetDB is to set the same db for every trie in the collection
 func (t *Tries) SetDB(db db.Database) {
 	for _, trie := range t.rootToTrie {
 		trie.SetDB(db)
 	}
-}
-
-func (t *Tries) Equal(other *Tries) bool {
-	if len(t.rootToTrie) != len(other.rootToTrie) {
-		return false
-	}
-
-	for hash, trie := range t.rootToTrie {
-		if !trie.Equal(other.rootToTrie[hash]) {
-			return false
-		}
-	}
-
-	return true
 }
 
 // SetEmptyTrie sets the empty trie in the tries.
