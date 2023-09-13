@@ -16,8 +16,8 @@ type Node struct {
 	// PartialKey is the partial key bytes in nibbles (0 to f in hexadecimal)
 	PartialKey   []byte
 	StorageValue []byte
-	// HashedValue is true when the StorageValue is a blake2b hash
-	HashedValue bool
+	// IsHashedValue is true when the StorageValue is a blake2b hash
+	IsHashedValue bool
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are

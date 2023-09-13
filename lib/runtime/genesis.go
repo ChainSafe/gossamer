@@ -26,6 +26,8 @@ func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
 			ErrGenesisTopNotFound, gen.Name)
 	}
 
+	// TODO: I'll set it to V0 since our goal is to work on westend first but we have to revisit it in the future
+	// to get the version from the runtime
 	tr, err = trie.LoadFromMap(keyValues, trie.V0)
 	if err != nil {
 		return tr, fmt.Errorf("loading genesis top key values into trie: %w", err)

@@ -49,7 +49,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	// even if it is empty. Do not encode if the branch is without value.
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
-		if n.HashedValue {
+		if n.IsHashedValue {
 			if len(n.StorageValue) != common.HashLength {
 				return fmt.Errorf("%w: expected %d, got: %d", ErrEncodeHashedValueTooShort, common.HashLength, len(n.StorageValue))
 			}

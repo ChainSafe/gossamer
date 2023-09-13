@@ -4,15 +4,14 @@ package db
 
 import (
 	"fmt"
-	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 type Database interface {
 	DBGetter
 	DBPutter
-	Copier
 }
 
 // DBGetter gets a value corresponding to the given key.
@@ -25,80 +24,25 @@ type DBPutter interface {
 	Put(key []byte, value []byte) error
 }
 
-// DBCopy creates a deep copy from a source DB
-type Copier interface {
-	Copy() Database
+func NewEmptyInMemoryDB() Database {
+	db, _ := database.LoadDatabase("", true)
+	return db
 }
 
-type MemoryDB struct {
-	data map[common.Hash][]byte
-	l    sync.RWMutex
-}
-
-func NewEmptyMemoryDB() *MemoryDB {
-	return &MemoryDB{
-		data: make(map[common.Hash][]byte),
-	}
-}
-
-func NewMemoryDBFromProof(encodedNodes [][]byte) (*MemoryDB, error) {
-	data := make(map[common.Hash][]byte, len(encodedNodes))
-
+func NewInMemoryDBFromProof(encodedNodes [][]byte) (Database, error) {
+	db := NewEmptyInMemoryDB()
 	for _, encodedProofNode := range encodedNodes {
 		nodeHash, err := common.Blake2bHash(encodedProofNode)
 		if err != nil {
 			return nil, err
 		}
 
-		data[nodeHash] = encodedProofNode
+		err = db.Put(nodeHash.ToBytes(), encodedProofNode)
+		if err != nil {
+			return nil, fmt.Errorf("adding value for hash 0x%x in db: %w", nodeHash, err)
+		}
 	}
 
-	return &MemoryDB{
-		data: data,
-	}, nil
+	return db, nil
 
-}
-
-func (mdb *MemoryDB) Copy() Database {
-	newDB := NewEmptyMemoryDB()
-	copyData := make(map[common.Hash][]byte, len(mdb.data))
-
-	for k, v := range mdb.data {
-		copyData[k] = v
-	}
-
-	newDB.data = copyData
-	return newDB
-}
-
-func (mdb *MemoryDB) Get(key []byte) ([]byte, error) {
-	if len(key) != common.HashLength {
-		return nil, fmt.Errorf("expected %d bytes length key, given %d (%x)", common.HashLength, len(key), key)
-	}
-	var hash common.Hash
-	copy(hash[:], key)
-
-	mdb.l.RLock()
-	defer mdb.l.RUnlock()
-
-	if value, found := mdb.data[hash]; found {
-		return value, nil
-	}
-
-	return nil, nil
-}
-
-func (mdb *MemoryDB) Put(key []byte, value []byte) error {
-	if len(key) != common.HashLength {
-		return fmt.Errorf("expected %d bytes length key, given %d (%x)", common.HashLength, len(key), key)
-	}
-
-	var hash common.Hash
-	copy(hash[:], key)
-
-	mdb.l.Lock()
-	defer mdb.l.Unlock()
-
-	mdb.data[hash] = value
-	return nil
 }

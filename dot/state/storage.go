@@ -48,6 +48,8 @@ func NewStorageState(db database.Database, blockState *BlockState,
 	tries *Tries) (*StorageState, error) {
 	storageTable := database.NewTable(db, storagePrefix)
 
+	tries.SetDB(storageTable)
+
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
@@ -119,7 +121,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
+	t := trie.NewTrie(nil, s.db)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err

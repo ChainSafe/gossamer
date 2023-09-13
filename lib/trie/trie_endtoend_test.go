@@ -103,7 +103,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 
 func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 	f.Fuzz(func(t *testing.T, key, value []byte) {
-		trie := NewEmptyTrie()
+		trie := NewTrie(nil, nil)
 		trie.Put(key, value, V0)
 		retrievedValue := trie.Get(key)
 		assert.Equal(t, value, retrievedValue)

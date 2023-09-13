@@ -96,7 +96,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 			return nil, err
 		}
 		node.StorageValue = hashedValue
-		node.HashedValue = true
+		node.IsHashedValue = true
 	default:
 		// Ignored
 	}
@@ -150,7 +150,7 @@ func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (nod
 			return nil, err
 		}
 		node.StorageValue = hashedValue
-		node.HashedValue = true
+		node.IsHashedValue = true
 		return node, nil
 	}
 

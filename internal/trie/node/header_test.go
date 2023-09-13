@@ -47,9 +47,9 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch_with_hashed_value": {
 			node: &Node{
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
-				Children:     make([]*Node, ChildrenCapacity),
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
+				Children:      make([]*Node, ChildrenCapacity),
 			},
 			writes: []writeCall{
 				{written: []byte{branchWithHashedValueVariant.bits}},
@@ -126,8 +126,8 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf_with_hashed_value": {
 			node: &Node{
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
 			},
 			writes: []writeCall{
 				{written: []byte{leafWithHashedValueVariant.bits}},
