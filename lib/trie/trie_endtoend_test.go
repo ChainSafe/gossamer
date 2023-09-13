@@ -267,7 +267,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	db, err := database.NewPebble(t.TempDir(), false)
+	db, err := database.NewPebble(t.TempDir(), false, false, "")
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

@@ -226,7 +226,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			nodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false, false, "")
 			require.NoError(t, err)
 		}
 

@@ -64,7 +64,7 @@ func NewOfflinePruner(inputDBPath string,
 		}
 	}()
 
-	filterDatabase, err := database.NewPebble(filterDatabaseDir, false)
+	filterDatabase, err := database.NewPebble(filterDatabaseDir, false, false, "")
 	if err != nil {
 		return nil, fmt.Errorf("creating badger filter database: %w", err)
 	}

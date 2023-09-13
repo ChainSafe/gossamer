@@ -56,7 +56,7 @@ type rpcServiceSettings struct {
 }
 
 func newInMemoryDB() (database.Database, error) {
-	return database.LoadDatabase("", true)
+	return database.LoadDatabase("", true, false, "")
 }
 
 // createStateService creates the state service and initialise state database
@@ -68,9 +68,11 @@ func (nodeBuilder) createStateService(config *cfg.Config) (*state.Service, error
 		return nil, err
 	}
 	stateConfig := state.Config{
-		Path:     config.BasePath,
-		LogLevel: stateLogLevel,
-		Metrics:  metrics.NewIntervalConfig(config.PrometheusExternal),
+		Path:           config.BasePath,
+		LogLevel:       stateLogLevel,
+		Metrics:        metrics.NewIntervalConfig(config.PrometheusExternal),
+		Checkpoint:     config.Checkpoint,
+		CheckpointPath: config.CheckpointPath,
 	}
 
 	stateSrvc := state.NewService(stateConfig)

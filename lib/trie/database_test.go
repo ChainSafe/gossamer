@@ -13,7 +13,7 @@ import (
 )
 
 func newTestDB(t *testing.T) database.Table {
-	db, err := database.NewPebble("", true)
+	db, err := database.NewPebble("", true, false, "")
 	require.NoError(t, err)
 	return database.NewTable(db, "trie")
 }

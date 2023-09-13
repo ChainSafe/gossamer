@@ -29,7 +29,7 @@ type PebbleDB struct {
 }
 
 // NewPebble return an pebble db implementation of Database interface
-func NewPebble(path string, inMemory bool) (*PebbleDB, error) {
+func NewPebble(path string, inMemory bool, checkpoint bool, checkpointPath string) (*PebbleDB, error) {
 	opts := &pebble.Options{}
 	if inMemory {
 		opts = &pebble.Options{FS: vfs.NewMem()}
@@ -44,11 +44,7 @@ func NewPebble(path string, inMemory bool) (*PebbleDB, error) {
 		return nil, fmt.Errorf("oppening pebble db: %w", err)
 	}
 
-	// TODO: enable checkpoint by flags
-	finalDest := filepath.Clean(filepath.Join(path, ".."))
-	finalDest = filepath.Join(finalDest, "snapshot")
-
-	return &PebbleDB{path, db, true, finalDest}, nil
+	return &PebbleDB{path, db, checkpoint, checkpointPath}, nil
 }
 
 func (p *PebbleDB) Path() string {

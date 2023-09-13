@@ -28,7 +28,7 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 
 	slotState := state.NewSlotState(db)
@@ -52,7 +52,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -102,7 +102,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	epochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
@@ -136,7 +136,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -187,7 +187,7 @@ func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -225,7 +225,7 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -275,7 +275,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -335,7 +335,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -383,7 +383,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
 	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -437,7 +437,7 @@ func TestVerifyPrimarySlotWinner(t *testing.T) {
 	digest, ok := babePreDigest.(types.BabePrimaryPreDigest)
 	require.True(t, ok)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -470,7 +470,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	slot := getSlot(t, runtime, time.Now())
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -488,7 +488,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	db, err := database.NewPebble(t.TempDir(), true)
+	db, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
@@ -586,7 +586,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
 	require.NoError(t, err)
 
-	inMemoryDB, err := database.NewPebble(t.TempDir(), true)
+	inMemoryDB, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 
 	epochState, err := state.NewEpochStateFromGenesis(inMemoryDB, stateService.Block, epochBABEConfig)

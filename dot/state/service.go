@@ -41,15 +41,20 @@ type Service struct {
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
+
+	checkpoint     bool
+	checkpointPath string
 }
 
 // Config is the default configuration used by state service.
 type Config struct {
-	Path      string
-	LogLevel  log.Level
-	PrunerCfg pruner.Config
-	Telemetry Telemetry
-	Metrics   metrics.IntervalConfig
+	Path           string
+	LogLevel       log.Level
+	PrunerCfg      pruner.Config
+	Telemetry      Telemetry
+	Metrics        metrics.IntervalConfig
+	Checkpoint     bool
+	CheckpointPath string
 }
 
 // NewService create a new instance of Service
@@ -57,15 +62,17 @@ func NewService(config Config) *Service {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
 	return &Service{
-		dbPath:    config.Path,
-		logLvl:    config.LogLevel,
-		db:        nil,
-		isMemDB:   false,
-		Storage:   nil,
-		Block:     nil,
-		closeCh:   make(chan interface{}),
-		PrunerCfg: config.PrunerCfg,
-		Telemetry: config.Telemetry,
+		dbPath:         config.Path,
+		logLvl:         config.LogLevel,
+		db:             nil,
+		isMemDB:        false,
+		checkpoint:     config.Checkpoint,
+		checkpointPath: config.CheckpointPath,
+		Storage:        nil,
+		Block:          nil,
+		closeCh:        make(chan interface{}),
+		PrunerCfg:      config.PrunerCfg,
+		Telemetry:      config.Telemetry,
 	}
 }
 
@@ -94,7 +101,7 @@ func (s *Service) SetupBase() error {
 	}
 
 	// initialise database
-	db, err := database.LoadDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, s.isMemDB, s.checkpoint, s.checkpointPath)
 	if err != nil {
 		return err
 	}
@@ -260,7 +267,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
-		s.db, err = database.LoadDatabase(s.dbPath, s.isMemDB)
+		s.db, err = database.LoadDatabase(s.dbPath, s.isMemDB, s.checkpoint, s.checkpointPath)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}

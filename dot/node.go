@@ -106,7 +106,7 @@ func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 		return false, nil
 	}
 
-	db, err := database.LoadDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false, false, "")
 	if err != nil {
 		return false, fmt.Errorf("cannot setup database: %w", err)
 	}
@@ -187,8 +187,10 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 			Mode:           config.Pruning,
 			RetainedBlocks: config.RetainBlocks,
 		},
-		Telemetry: telemetryMailer,
-		Metrics:   metrics.NewIntervalConfig(config.PrometheusExternal),
+		Telemetry:      telemetryMailer,
+		Metrics:        metrics.NewIntervalConfig(config.PrometheusExternal),
+		Checkpoint:     config.Checkpoint,
+		CheckpointPath: config.CheckpointPath,
 	}
 
 	// create new state service
@@ -215,7 +217,7 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
-	db, err := database.LoadDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false, false, "")
 	if err != nil {
 		return "", err
 	}
@@ -466,7 +468,7 @@ func setupTelemetry(config *cfg.Config, genesisData *genesis.Data) (mailer Telem
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := database.LoadDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false, false, "")
 	if err != nil {
 		return err
 	}

@@ -67,7 +67,7 @@ func TestLoadGlobalNodeName(t *testing.T) {
 	t.Parallel()
 
 	basePath := t.TempDir()
-	db, err := database.LoadDatabase(basePath, false)
+	db, err := database.LoadDatabase(basePath, false, false, "")
 	require.NoError(t, err)
 
 	basestate := state.NewBaseState(db)

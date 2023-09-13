@@ -589,7 +589,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	tmp := t.TempDir()
-	memdb, err := database.NewPebble(tmp, true)
+	memdb, err := database.NewPebble(tmp, true, false, "")
 	require.NoError(t, err)
 
 	otherTrie := trie.NewEmptyTrie()

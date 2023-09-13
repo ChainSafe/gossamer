@@ -215,7 +215,7 @@ func TestInitNode_Integration(t *testing.T) {
 
 	// confirm database was setup
 
-	db, err := database.LoadDatabase(config.BasePath, false)
+	db, err := database.LoadDatabase(config.BasePath, false, false, "")
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()
@@ -232,7 +232,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(config)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := database.LoadDatabase(config.BasePath, false)
+	db, err := database.LoadDatabase(config.BasePath, false, false, "")
 	require.NoError(t, err)
 	require.NotNil(t, db)
 

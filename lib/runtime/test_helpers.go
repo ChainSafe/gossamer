@@ -34,7 +34,7 @@ import (
 func NewInMemoryDB(t *testing.T) database.Database {
 	testDatadirPath := t.TempDir()
 
-	db, err := database.NewPebble(testDatadirPath, true)
+	db, err := database.NewPebble(testDatadirPath, true, false, "")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()

@@ -62,7 +62,7 @@ func checkSlotToMapKeyExists(t *testing.T, db database.Table, slotNumber uint64)
 }
 
 func Test_checkEquivocation(t *testing.T) {
-	inMemoryDB, err := database.NewPebble(t.TempDir(), true)
+	inMemoryDB, err := database.NewPebble(t.TempDir(), true, false, "")
 	require.NoError(t, err)
 
 	kr, err := keystore.NewSr25519Keyring()

@@ -33,7 +33,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// initialise database using data directory
-	db, err := database.LoadDatabase(basepath, s.isMemDB)
+	db, err := database.LoadDatabase(basepath, s.isMemDB, s.checkpoint, s.checkpointPath)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
