@@ -32,7 +32,8 @@ var (
 		log.AddContext("module", "wazero"),
 	)
 
-	noneEncoded []byte = []byte{0x00}
+	noneEncoded            []byte = []byte{0x00}
+	emptyByteVectorEncoded []byte = scale.MustMarshal([]byte{})
 )
 
 const (
@@ -995,7 +996,7 @@ func ext_trie_blake2_256_verify_proof_version_1(
 	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return uint32(0)
+		return 0
 	}
 
 	key := read(m, keySpan)
@@ -1034,7 +1035,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 	err = scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return uint32(0)
+		return 0
 	}
 
 	key := read(m, keySpan)
@@ -1371,13 +1372,13 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 	child, err := storage.GetChild(read(m, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to retrieve child: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
 	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 	childRootSlice := childRoot[:]
 
@@ -2367,7 +2368,7 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	_, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
 	root, err := storage.Root()

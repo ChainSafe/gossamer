@@ -52,12 +52,14 @@ func NewTries() (tries *Tries) {
 	}
 }
 
+// SetDB is to set the same db for every trie in the collection
 func (t *Tries) SetDB(db db.Database) {
 	for _, trie := range t.rootToTrie {
 		trie.SetDB(db)
 	}
 }
 
+// Equal is to compare this Tries with other using the internal Equal for every trie it contains
 func (t *Tries) Equal(other *Tries) bool {
 	if len(t.rootToTrie) != len(other.rootToTrie) {
 		return false

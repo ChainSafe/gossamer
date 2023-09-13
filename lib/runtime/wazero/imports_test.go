@@ -1323,9 +1323,6 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	require.NoError(t, err)
 
 	stateVersion := uint32(trie.V1)
-	//stateVersionBytes := make([]byte, 4)
-	//binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
-
 	encVersion, err := scale.Marshal(&stateVersion)
 	require.NoError(t, err)
 
