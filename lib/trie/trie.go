@@ -142,6 +142,10 @@ func (t *Trie) registerDeletedNodeHash(node *Node,
 		// since the last trie snapshot.
 		nodeHash := common.NewHash(node.MerkleValue)
 		pendingDeltas.RecordDeleted(nodeHash)
+
+		if node.IsHashedValue {
+			pendingDeltas.RecordDeleted(common.NewHash(node.StorageValue))
+		}
 	}
 
 	return nil
