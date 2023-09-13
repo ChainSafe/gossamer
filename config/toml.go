@@ -113,6 +113,14 @@ verbosity = {{ .Verbosity }}
 # Defaults to false
 prometheus-external = {{ .BaseConfig.PrometheusExternal }}
 
+# Enable database checkpoints
+# Defaults to false
+# Default path: 'base-path'/snapshot
+# Default frequecy: 1 million blocks
+checkpoint = {{ .BaseConfig.Checkpoint }}
+checkpoint-path = {{ .BaseConfig.CheckpointPath }}
+checkpoint-frequency = {{ .BaseConfig.CheckpointFrequency }}
+
 #######################################################################
 ###                 Advanced Configuration Options                  ###
 #######################################################################

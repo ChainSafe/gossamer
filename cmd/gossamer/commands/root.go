@@ -254,6 +254,24 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"prometheus-external"); err != nil {
 		return fmt.Errorf("failed to add --prometheus-external flag: %s", err)
 	}
+	cmd.Flags().StringVar(&pruning,
+		"checkpoint-path",
+		string(config.BaseConfig.CheckpointPath),
+		"Checkpoint path will store database snapshot")
+	if err := addBoolFlagBindViper(cmd,
+		"checkpoint",
+		config.BaseConfig.Checkpoint,
+		"Enable checkpoint creation automatically given a frequency",
+		"checkpoint"); err != nil {
+		return fmt.Errorf("failed to add --checkpoint flag: %s", err)
+	}
+	if err := addUint32FlagBindViper(cmd,
+		"checkpoint-frequency",
+		config.BaseConfig.CheckpointFrequency,
+		"Checkpoint block frequency",
+		"checkpoint-frequency"); err != nil {
+		return fmt.Errorf("failed to add --checkpoint-frequency flag: %s", err)
+	}
 	cmd.Flags().StringVar(&telemetryURLs,
 		"telemetry-url",
 		"",

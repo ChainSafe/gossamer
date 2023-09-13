@@ -4,8 +4,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
@@ -62,6 +64,10 @@ const (
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
 	DefaultSystemVersion = "0.3.2"
+
+	DefaultCheckpoint          = false
+	DefaultCheckpointPath      = defaultBasePath + "/snapshot"
+	DefaultCheckpointFrequency = 1_000_000
 )
 
 // DefaultRPCModules the default RPC modules
@@ -126,17 +132,20 @@ func (cfg *Config) ValidateBasic() error {
 
 // BaseConfig is to marshal/unmarshal toml global config vars
 type BaseConfig struct {
-	Name               string                      `mapstructure:"name,omitempty"`
-	ID                 string                      `mapstructure:"id,omitempty"`
-	BasePath           string                      `mapstructure:"base-path,omitempty"`
-	ChainSpec          string                      `mapstructure:"chain-spec,omitempty"`
-	LogLevel           string                      `mapstructure:"log-level,omitempty"`
-	PrometheusPort     uint32                      `mapstructure:"prometheus-port,omitempty"`
-	RetainBlocks       uint32                      `mapstructure:"retain-blocks,omitempty"`
-	Pruning            pruner.Mode                 `mapstructure:"pruning,omitempty"`
-	PrometheusExternal bool                        `mapstructure:"prometheus-external,omitempty"`
-	NoTelemetry        bool                        `mapstructure:"no-telemetry"`
-	TelemetryURLs      []genesis.TelemetryEndpoint `mapstructure:"telemetry-urls,omitempty"`
+	Name                string                      `mapstructure:"name,omitempty"`
+	ID                  string                      `mapstructure:"id,omitempty"`
+	BasePath            string                      `mapstructure:"base-path,omitempty"`
+	ChainSpec           string                      `mapstructure:"chain-spec,omitempty"`
+	LogLevel            string                      `mapstructure:"log-level,omitempty"`
+	PrometheusPort      uint32                      `mapstructure:"prometheus-port,omitempty"`
+	RetainBlocks        uint32                      `mapstructure:"retain-blocks,omitempty"`
+	Pruning             pruner.Mode                 `mapstructure:"pruning,omitempty"`
+	PrometheusExternal  bool                        `mapstructure:"prometheus-external,omitempty"`
+	NoTelemetry         bool                        `mapstructure:"no-telemetry"`
+	TelemetryURLs       []genesis.TelemetryEndpoint `mapstructure:"telemetry-urls,omitempty"`
+	Checkpoint          bool                        `mapstructure:"checkpoint,omitempty"`
+	CheckpointPath      string                      `mapstructure:"checkpoin-path,omitempty"`
+	CheckpointFrequency uint32                      `mapstructure:"checkpoin-frequency,omitempty"`
 }
 
 // SystemConfig represents the system configuration
@@ -240,6 +249,10 @@ func (b *BaseConfig) ValidateBasic() error {
 			uint32Max,
 		)
 	}
+	if b.Checkpoint && (strings.TrimSpace(b.CheckpointPath) == "" || b.CheckpointFrequency == 0) {
+		return errors.New(
+			"checkpoint enabled, a checkpoint path must be provided and frequency should be greater then 0")
+	}
 
 	return nil
 }
@@ -330,17 +343,20 @@ func (r *RPCConfig) IsWSEnabled() bool {
 func DefaultConfig() *Config {
 	return &Config{
 		BaseConfig: BaseConfig{
-			Name:               "Gossamer",
-			ID:                 "gssmr",
-			BasePath:           defaultBasePath,
-			ChainSpec:          "",
-			LogLevel:           DefaultLogLevel,
-			PrometheusPort:     DefaultPrometheusPort,
-			RetainBlocks:       DefaultRetainBlocks,
-			Pruning:            DefaultPruning,
-			PrometheusExternal: false,
-			NoTelemetry:        false,
-			TelemetryURLs:      nil,
+			Name:                "Gossamer",
+			ID:                  "gssmr",
+			BasePath:            defaultBasePath,
+			ChainSpec:           "",
+			LogLevel:            DefaultLogLevel,
+			PrometheusPort:      DefaultPrometheusPort,
+			RetainBlocks:        DefaultRetainBlocks,
+			Pruning:             DefaultPruning,
+			PrometheusExternal:  false,
+			NoTelemetry:         false,
+			TelemetryURLs:       nil,
+			Checkpoint:          DefaultCheckpoint,
+			CheckpointPath:      DefaultCheckpointPath,
+			CheckpointFrequency: DefaultCheckpointFrequency,
 		},
 		Log: &LogConfig{
 			Core:    DefaultLogLevel,
