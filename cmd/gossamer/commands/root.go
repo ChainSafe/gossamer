@@ -256,7 +256,7 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 	}
 	cmd.Flags().StringVar(&pruning,
 		"checkpoint-path",
-		string(config.BaseConfig.CheckpointPath),
+		config.BaseConfig.CheckpointPath,
 		"Checkpoint path will store database snapshot")
 	if err := addBoolFlagBindViper(cmd,
 		"checkpoint",

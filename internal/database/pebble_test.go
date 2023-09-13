@@ -30,7 +30,7 @@ func testSetup() []testAssertion {
 func testNewPebble(t *testing.T) Database {
 	t.Helper()
 
-	db, err := NewPebble(t.TempDir(), false)
+	db, err := NewPebble(t.TempDir(), false, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}

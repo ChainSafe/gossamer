@@ -35,7 +35,7 @@ func Test_Generate_Verify(t *testing.T) {
 	rootHash, err := trie.Hash()
 	require.NoError(t, err)
 
-	db, err := database.NewPebble("", true)
+	db, err := database.NewPebble("", true, false, "")
 	require.NoError(t, err)
 	err = trie.WriteDirty(db)
 	require.NoError(t, err)

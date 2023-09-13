@@ -134,7 +134,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	testDatadirPath := t.TempDir()
 
-	db, err := database.LoadDatabase(testDatadirPath, true)
+	db, err := database.LoadDatabase(testDatadirPath, true, false, "")
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

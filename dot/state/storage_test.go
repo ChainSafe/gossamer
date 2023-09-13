@@ -167,7 +167,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	// initialise database using data directory
 	basepath := t.TempDir()
-	db, err := database.LoadDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false, false, "")
 	require.NoError(t, err)
 
 	_, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)

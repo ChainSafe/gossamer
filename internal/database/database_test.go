@@ -15,7 +15,7 @@ func TestSetupAndClearDatabase(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Setup database and execute some operations
-	db, err := LoadDatabase(tmpDir, false)
+	db, err := LoadDatabase(tmpDir, false, false, "")
 	require.NoError(t, err)
 
 	err = db.Put([]byte("key"), []byte("value"))
@@ -38,7 +38,7 @@ func TestSetupAndClearDatabase(t *testing.T) {
 
 	// Setup database after an clear operation
 	// should be okay
-	db, err = LoadDatabase(tmpDir, false)
+	db, err = LoadDatabase(tmpDir, false, false, "")
 	require.NoError(t, err)
 
 	shouldExists = true
