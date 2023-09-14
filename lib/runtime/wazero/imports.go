@@ -1157,6 +1157,9 @@ func ext_default_child_storage_set_version_1(
 
 	childStorageKey := read(m, childStorageKeySpan)
 	key := read(m, keySpan)
+
+	logger.Warnf("default_child_storage_set_version_1: childStorageKey: %x, key: %x", childStorageKey, key)
+
 	value := read(m, valueSpan)
 
 	cp := make([]byte, len(value))
@@ -1179,7 +1182,8 @@ func ext_default_child_storage_clear_version_1(ctx context.Context, m api.Module
 	keyToChild := read(m, childStorageKey)
 	key := read(m, keySpan)
 
-	err := storage.ClearChildStorage(keyToChild, key)
+	logger.Warnf("trying to clear default child storage: childStorageKey %x, key %x", keyToChild, key)
+	err := storage.SetChildStorage(keyToChild, key, nil, trie.V0)
 	if err != nil {
 		logger.Errorf("failed to clear child storage: %s", err)
 	}
@@ -1298,11 +1302,14 @@ func ext_default_child_storage_get_version_1(ctx context.Context, m api.Module, 
 
 	keyToChild := read(m, childStorageKey)
 	keyBytes := read(m, key)
+
+	logger.Warnf("ext_default_child_storage_get_version_1: childStorageKey: %x, key: %x", keyToChild, keyBytes)
+
 	child, err := storage.GetChildStorage(keyToChild, keyBytes)
 	var encodedChildOptional []byte
 
 	if err != nil || child == nil {
-		logger.Warnf("child storage not found: %s", err)
+		logger.Warnf("child storage not found: 	%s", err)
 		encodedChildOptional = noneEncoded
 	} else {
 		encodedChildOptional = scale.MustMarshal(&child)
