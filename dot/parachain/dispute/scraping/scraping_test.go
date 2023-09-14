@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/parachain"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -248,7 +247,7 @@ func mockCandidateEvents(blockHash common.Hash, chain *[]common.Hash) (*scale.Va
 }
 
 func configureMockRuntime(
-	runtime *parachain.MockRuntimeInstance,
+	runtime *MockRuntimeInstance,
 	chain *[]common.Hash,
 	calls expectedRuntimeCalls,
 	eventGenerator func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error),
@@ -278,7 +277,7 @@ func configureMockRuntime(
 func newTestState(
 	t *testing.T,
 	sender *overseer.MockSender,
-	runtime *parachain.MockRuntimeInstance,
+	runtime *MockRuntimeInstance,
 	messages expectedMessages,
 	calls expectedRuntimeCalls,
 	finalisedBlock uint32,
@@ -299,7 +298,7 @@ func TestChainScraper(t *testing.T) {
 	t.Run("scraper_provides_included_state_when_initialised", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		candidate1, err := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(1)).Hash()
@@ -340,7 +339,7 @@ func TestChainScraper(t *testing.T) {
 		const BlocksToSkip = 30
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(0)
@@ -370,7 +369,7 @@ func TestChainScraper(t *testing.T) {
 		var BlocksToSkip = []int{30, 15}
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(0)
@@ -399,7 +398,7 @@ func TestChainScraper(t *testing.T) {
 		const BlocksToSkip = 30
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(17)
@@ -425,7 +424,7 @@ func TestChainScraper(t *testing.T) {
 		)
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
@@ -475,7 +474,7 @@ func TestChainScraper(t *testing.T) {
 		)
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
@@ -532,7 +531,7 @@ func TestChainScraper(t *testing.T) {
 		const BlocksToSkip = 3
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
@@ -595,7 +594,7 @@ func TestChainScraper(t *testing.T) {
 		const BlocksToSkip = 4
 
 		ctrl := gomock.NewController(t)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := overseer.NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)

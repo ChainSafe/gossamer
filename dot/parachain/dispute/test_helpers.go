@@ -129,10 +129,11 @@ func activateLeaf(
 }
 
 func GetBlockNumberHash(blockNumber parachainTypes.BlockNumber) common.Hash {
-	encodedBlockNumber, err := blockNumber.Encode()
+	encodedBlockNumber, err := scale.Marshal(blockNumber)
 	if err != nil {
 		panic("failed to encode block number:" + err.Error())
 	}
+
 	blockHash, err := common.Blake2bHash(encodedBlockNumber)
 	if err != nil {
 		panic("failed to hash block number:" + err.Error())

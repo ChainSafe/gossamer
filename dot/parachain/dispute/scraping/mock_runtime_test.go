@@ -2,7 +2,7 @@
 // Source: github.com/ChainSafe/gossamer/dot/parachain/runtime (interfaces: RuntimeInstance)
 
 // Package dispute is a generated GoMock package.
-package dispute
+package scraping
 
 import (
 	reflect "reflect"
