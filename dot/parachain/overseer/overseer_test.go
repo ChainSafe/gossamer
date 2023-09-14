@@ -15,7 +15,7 @@ type TestSubsystem struct {
 	name string
 }
 
-func (s *TestSubsystem) Run(ctx *Context) error {
+func (s *TestSubsystem) Run(ctx *context) error {
 	fmt.Printf("Run %s\n", s.name)
 	// wait for leaf signal from overseer
 	leaf := s.waitForLeaf(ctx)
@@ -42,7 +42,7 @@ func (s *TestSubsystem) Run(ctx *Context) error {
 
 	return nil
 }
-func (s *TestSubsystem) waitForLeaf(context *Context) *ActivatedLeaf {
+func (s *TestSubsystem) waitForLeaf(context *context) *ActivatedLeaf {
 	for {
 		select {
 		case overseerSignal := <-context.Receiver:

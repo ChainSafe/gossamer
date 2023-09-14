@@ -21,16 +21,16 @@ type Overseer struct {
 	doneCh chan struct{}
 	stopCh chan struct{}
 
-	subsystems        map[Subsystem]*Context
+	subsystems        map[Subsystem]*context
 	subsystemMessages map[Subsystem]<-chan any
 	overseerChannel   chan any
 }
 
-type ExampleSender struct {
+type exampleSender struct {
 	senderChan chan any
 }
 
-func (s *ExampleSender) SendMessage(msg any) error {
+func (s *exampleSender) SendMessage(msg any) error {
 	s.senderChan <- msg
 	return nil
 }
@@ -39,7 +39,7 @@ func NewOverseer() *Overseer {
 	return &Overseer{
 		doneCh:            make(chan struct{}),
 		stopCh:            make(chan struct{}),
-		subsystems:        make(map[Subsystem]*Context),
+		subsystems:        make(map[Subsystem]*context),
 		subsystemMessages: make(map[Subsystem]<-chan any),
 		overseerChannel:   make(chan any),
 	}
@@ -48,8 +48,8 @@ func NewOverseer() *Overseer {
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
 	o.subsystemMessages[subsystem] = o.overseerChannel
 	receiverChan := make(chan any, CommsBufferSize)
-	o.subsystems[subsystem] = &Context{
-		Sender:   &ExampleSender{senderChan: o.overseerChannel},
+	o.subsystems[subsystem] = &context{
+		Sender:   &exampleSender{senderChan: o.overseerChannel},
 		Receiver: receiverChan,
 		wg:       &o.wg,
 		stopCh:   o.stopCh,
@@ -58,14 +58,14 @@ func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
 
 func (o *Overseer) Start() {
 	// start subsystems
-	for subsystem, context := range o.subsystems {
+	for subsystem, cntxt := range o.subsystems {
 		o.wg.Add(1)
-		go func(sub Subsystem, ctx *Context) {
+		go func(sub Subsystem, ctx *context) {
 			err := sub.Run(ctx)
 			if err != nil {
 				logger.Errorf("running subsystem %v failed: %v", sub, err)
 			}
-		}(subsystem, context)
+		}(subsystem, cntxt)
 	}
 
 	// wait for messages from subsystems

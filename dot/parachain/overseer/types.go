@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type Context struct {
+type context struct {
 	Sender   Sender
 	Receiver chan any
 	wg       *sync.WaitGroup
@@ -20,16 +20,20 @@ type Sender interface {
 	SendMessage(msg any) error
 }
 
+// ActivatedLeaf is a parachain head which we care to work on.
 type ActivatedLeaf struct {
 	Hash   common.Hash
 	Number uint32
 }
 
+// ActiveLeavesUpdate changes in the set of active leaves:  the parachain heads which we care to work on.
+//
+//	note: activated field indicates deltas, not complete sets.
 type ActiveLeavesUpdate struct {
 	Activated *ActivatedLeaf
 }
 
 type Subsystem interface {
 	// Run runs the subsystem.
-	Run(ctx *Context) error
+	Run(ctx *context) error
 }
