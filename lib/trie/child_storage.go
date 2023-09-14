@@ -130,7 +130,7 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return err
 	}
 
-	err = child.Delete(key)
+	err = child.Put(key, nil, V0)
 	if err != nil {
 		return fmt.Errorf("deleting from child trie located at key 0x%x: %w", keyToChild, err)
 	}
