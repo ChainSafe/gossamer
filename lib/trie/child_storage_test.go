@@ -4,9 +4,12 @@
 package trie
 
 import (
+	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPutAndGetChild(t *testing.T) {
@@ -84,4 +87,33 @@ func TestPutAndGetFromChild(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, valueRes, testValue)
+}
+
+func TestChildTrieHashAfterClear(t *testing.T) {
+	trieThatHoldsAChildTrie := NewEmptyTrie()
+	fmt.Printf("EMPTY %s\n", trieThatHoldsAChildTrie.MustHash().String())
+
+	keyToChild := []byte("crowdloan")
+	keyInChild := []byte("account-alice")
+
+	contributed := uint64(1000)
+	contributedWith := make([]byte, 8)
+	binary.BigEndian.PutUint64(contributedWith, contributed)
+
+	err := trieThatHoldsAChildTrie.PutIntoChild(keyToChild, keyInChild, contributedWith, V0)
+	require.NoError(t, err)
+
+	fmt.Printf("Parent Trie Hash %s\n", trieThatHoldsAChildTrie.MustHash().String())
+	fmt.Printf("Child Trie Hash %s\n\n", trieThatHoldsAChildTrie.MustGetChild(keyToChild).MustHash().String())
+
+	valueStored, err := trieThatHoldsAChildTrie.GetFromChild(keyToChild, keyInChild)
+	require.NoError(t, err)
+	require.Equal(t, contributed, binary.BigEndian.Uint64(valueStored))
+
+	// clear child trie key value
+	err = trieThatHoldsAChildTrie.ClearFromChild(keyToChild, keyInChild)
+	require.NoError(t, err)
+
+	fmt.Printf("After Clear Parent Trie Hash %s\n", trieThatHoldsAChildTrie.MustHash().String())
+	fmt.Printf("After Clear Child Trie Hash %s\n", trieThatHoldsAChildTrie.MustGetChild(keyToChild).MustHash().String())
 }

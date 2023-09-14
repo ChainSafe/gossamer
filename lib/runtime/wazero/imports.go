@@ -1183,7 +1183,7 @@ func ext_default_child_storage_clear_version_1(ctx context.Context, m api.Module
 	key := read(m, keySpan)
 
 	logger.Warnf("trying to clear default child storage: childStorageKey %x, key %x", keyToChild, key)
-	err := storage.SetChildStorage(keyToChild, key, nil, trie.V0)
+	err := storage.ClearChildStorage(keyToChild, key)
 	if err != nil {
 		logger.Errorf("failed to clear child storage: %s", err)
 	}

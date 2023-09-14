@@ -37,6 +37,15 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie, version Version) error {
 	return nil
 }
 
+func (t *Trie) MustGetChild(keyToChild []byte) *Trie {
+	t, err := t.GetChild(keyToChild)
+	if err != nil {
+		panic(err)
+	}
+
+	return t
+}
+
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
@@ -111,8 +120,14 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 	if err != nil {
 		return err
 	}
+
 	if child == nil {
 		return fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+	}
+
+	originalHash, err := child.Hash()
+	if err != nil {
+		return err
 	}
 
 	err = child.Delete(key)
@@ -120,5 +135,6 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return fmt.Errorf("deleting from child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
-	return nil
+	delete(t.childTries, originalHash)
+	return t.SetChild(keyToChild, child, V0)
 }

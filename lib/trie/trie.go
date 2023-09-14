@@ -1217,10 +1217,15 @@ func (t *Trie) Delete(keyLE []byte) (err error) {
 	}()
 
 	key := codec.KeyLEToNibbles(keyLE)
-	root, _, _, err := t.deleteAtNode(t.root, key, pendingDeltas)
+	root, deleted, _, err := t.deleteAtNode(t.root, key, pendingDeltas)
 	if err != nil {
 		return fmt.Errorf("deleting key %x: %w", keyLE, err)
 	}
+
+	if root != nil && deleted {
+		root.SetDirty()
+	}
+
 	t.root = root
 	return nil
 }
@@ -1261,8 +1266,6 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 	if len(key) > 0 && !bytes.Equal(key, parent.PartialKey) {
 		return parent, nil
 	}
-
-	newParent = nil
 
 	err = t.registerDeletedNodeHash(parent, pendingDeltas)
 	if err != nil {
