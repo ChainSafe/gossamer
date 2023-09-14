@@ -20,7 +20,7 @@ const (
 	AncestryChunkSize = uint32(10)
 
 	// AncestrySizeLimit Limits the overall number of ancestors walked through for a given head.
-	AncestrySizeLimit = int(500) // TODO: This should be a MaxFinalityLag
+	AncestrySizeLimit = int(500) // TODO: This should be MaxFinalityLag
 
 	// LRUObservedBlocksCapacity Number of hashes to keep in the LRU cache.
 	LRUObservedBlocksCapacity = 20
@@ -224,7 +224,7 @@ func (cs *ChainScraper) IsPotentialSpam(voteState types.CandidateVoteState, cand
 	isBacked := cs.IsCandidateBacked(candidateHash)
 	isConfirmed, err := voteState.IsConfirmed()
 	if err != nil {
-		return false, fmt.Errorf("is confirmed: %w", err)
+		return false, fmt.Errorf("checking if the vote state is confirmed: %w", err)
 	}
 
 	return isDisputed && !isIncluded && !isBacked && !isConfirmed, nil
@@ -255,6 +255,7 @@ func NewChainScraper(
 	return chainScraper, updates, nil
 }
 
+// getFinalisedBlockNumber sends a message to the overseer to get the finalised block number.
 func getFinalisedBlockNumber(sender overseer.Sender) (uint32, error) {
 	tx := make(chan overseer.FinalizedBlockNumberResponse, 1)
 	message := overseer.FinalizedBlockNumberRequest{
