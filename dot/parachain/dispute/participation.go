@@ -23,18 +23,12 @@ type CandidateComparator struct {
 
 // NewCandidateComparator creates a new CandidateComparator.
 func NewCandidateComparator(relayParentBlockNumber *uint32,
-	receipt parachainTypes.CandidateReceipt,
-) (CandidateComparator, error) {
-
-	candidateHash, err := receipt.Hash()
-	if err != nil {
-		return CandidateComparator{}, fmt.Errorf("hash candidate receipt: %w", err)
-	}
-
+	candidateHash common.Hash,
+) CandidateComparator {
 	return CandidateComparator{
 		relayParentBlockNumber: relayParentBlockNumber,
 		candidateHash:          candidateHash,
-	}, nil
+	}
 }
 
 // ParticipationRequest a dispute participation request
@@ -62,10 +56,10 @@ type Participation interface {
 	Clear(candidateHash common.Hash) error
 
 	// ProcessActiveLeavesUpdate processes an active leaves update
-	ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate) error
+	ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate)
 
 	// BumpPriority bumps the priority for the given receipts
-	BumpPriority(ctx overseer.Context, receipts []parachainTypes.CandidateReceipt) error
+	BumpPriority(ctx overseer.Context, receipts []parachainTypes.CandidateReceipt)
 }
 
 type block struct {
@@ -108,11 +102,12 @@ func (p *ParticipationHandler) Queue(ctx overseer.Context,
 		return fmt.Errorf("get block number: %w", err)
 	}
 
-	comparator, err := NewCandidateComparator(&blockNumber, request.candidateReceipt)
+	candidateHash, err := request.candidateReceipt.Hash()
 	if err != nil {
-		return fmt.Errorf("create candidate comparator: %w", err)
+		return fmt.Errorf("hash candidate receipt: %w", err)
 	}
 
+	comparator := NewCandidateComparator(&blockNumber, candidateHash)
 	if err := p.queue.Queue(comparator, &request, priority); err != nil {
 		return fmt.Errorf("queue ParticipationHandler request: %w", err)
 	}
@@ -132,29 +127,29 @@ func (p *ParticipationHandler) Clear(candidateHash common.Hash) error {
 	return nil
 }
 
-func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate) error {
+func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate) {
+	// TODO: to check if this is needed here
+	// if it is being called in only one place, we could just add a check there itself
 	if update.Activated == nil {
-		return nil
+		return
 	}
 
-	if p.recentBlock == nil {
-		p.recentBlock = &block{
-			Number: update.Activated.Number,
-			Hash:   update.Activated.Hash,
-		}
-
-		p.dequeueUntilCapacity(update.Activated.Hash)
-	} else {
+	if p.recentBlock != nil {
 		if update.Activated.Number > p.recentBlock.Number {
 			p.recentBlock.Number = update.Activated.Number
 			p.recentBlock.Hash = update.Activated.Hash
 		}
+		return
 	}
 
-	return nil
+	p.recentBlock = &block{
+		Number: update.Activated.Number,
+		Hash:   update.Activated.Hash,
+	}
+	p.dequeueUntilCapacity(update.Activated.Hash)
 }
 
-func (p *ParticipationHandler) BumpPriority(ctx overseer.Context, receipts []parachainTypes.CandidateReceipt) error {
+func (p *ParticipationHandler) BumpPriority(ctx overseer.Context, receipts []parachainTypes.CandidateReceipt) {
 	for _, receipt := range receipts {
 		blockNumber, err := getBlockNumber(ctx.Sender, receipt)
 		if err != nil {
@@ -166,15 +161,16 @@ func (p *ParticipationHandler) BumpPriority(ctx overseer.Context, receipts []par
 			continue
 		}
 
-		comparator, err := NewCandidateComparator(&blockNumber, receipt)
+		candidateHash, err := receipt.Hash()
 		if err != nil {
 			logger.Errorf(
-				"failed to create candidate comparator. CommitmentsHash: %s, Error: %s",
+				"failed to hash candidate receipt. CommitmentsHash: %s, Error: %s",
 				receipt.CommitmentsHash.String(),
 				err,
 			)
 			continue
 		}
+		comparator := NewCandidateComparator(&blockNumber, candidateHash)
 
 		if err := p.queue.PrioritiseIfPresent(comparator); err != nil {
 			logger.Errorf(
@@ -185,8 +181,6 @@ func (p *ParticipationHandler) BumpPriority(ctx overseer.Context, receipts []par
 			continue
 		}
 	}
-
-	return nil
 }
 
 func (p *ParticipationHandler) numberOfWorkers() int {
@@ -300,7 +294,7 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 			sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
 			return fmt.Errorf("validation failed: %s", result.Error)
 		}
-		
+
 		sendResult(p.sender, request, types.ParticipationOutcomeValid)
 		return nil
 	}

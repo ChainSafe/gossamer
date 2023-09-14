@@ -26,10 +26,6 @@ type ValidatorID [sr25519.PublicKeyLength]byte
 // BlockNumber The block number type.
 type BlockNumber uint32
 
-func (b BlockNumber) Encode() ([]byte, error) {
-	return scale.Marshal(&b)
-}
-
 // GroupRotationInfo A helper data-type for tracking validator-group rotations.
 type GroupRotationInfo struct {
 	// SessionStartBlock is the block number at which the session started

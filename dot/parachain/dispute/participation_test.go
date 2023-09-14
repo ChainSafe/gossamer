@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/parachain"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -53,7 +52,7 @@ func participateWithCommitmentsHash(
 func TestNewParticipation(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
-	mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+	mockRuntime := NewMockRuntimeInstance(ctrl)
 	mockSender := overseer.NewMockSender(ctrl)
 
 	participation := NewParticipation(mockSender, mockRuntime)
@@ -68,7 +67,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		ctx := overseer.Context{
@@ -125,7 +124,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		var wg sync.WaitGroup
 		participationTest := func() {
@@ -199,7 +198,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		var wg sync.WaitGroup
 
@@ -276,7 +275,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		ctx := overseer.Context{
@@ -325,7 +324,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		context := overseer.Context{
@@ -382,7 +381,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		context := overseer.Context{
@@ -429,7 +428,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		context := overseer.Context{
@@ -499,7 +498,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		ctx := overseer.Context{
@@ -568,7 +567,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockSender := overseer.NewMockSender(ctrl)
-		mockRuntime := parachain.NewMockRuntimeInstance(ctrl)
+		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
 		ctx := overseer.Context{

@@ -84,7 +84,7 @@ func activateLeaf(
 	participation Participation,
 	blockNumber parachainTypes.BlockNumber,
 ) error {
-	encodedBlockNumber, err := blockNumber.Encode()
+	encodedBlockNumber, err := scale.Marshal(blockNumber)
 	if err != nil {
 		return fmt.Errorf("failed to encode block number: %w", err)
 	}
@@ -109,5 +109,6 @@ func activateLeaf(
 		},
 	}
 
-	return participation.ProcessActiveLeavesUpdate(update)
+	participation.ProcessActiveLeavesUpdate(update)
+	return nil
 }
