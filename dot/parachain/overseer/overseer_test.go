@@ -64,7 +64,15 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 	overseer.RegisterSubsystem(subSystem1)
 	overseer.RegisterSubsystem(subSystem2)
 
-	overseer.Start()
+	errChan, err := overseer.Start()
+	require.NoError(t, err)
+	done := make(chan struct{})
+	go func() {
+		for errC := range errChan {
+			fmt.Printf("overseer start error: %v\n", errC)
+		}
+		close(done)
+	}()
 
 	activedLeaf := &ActivatedLeaf{
 		Hash:   [32]byte{1},
@@ -75,9 +83,11 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 	// let subsystems run for a bit
 	time.Sleep(5000 * time.Millisecond)
 
-	overseer.Stop()
-	time.Sleep(time.Second)
+	err = overseer.Stop()
+	require.NoError(t, err)
+
 	fmt.Printf("overseer stopped\n")
+	<-done
 }
 
 func TestStart2SubsytemsActivate2Different(t *testing.T) {
@@ -90,7 +100,15 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 	overseer.RegisterSubsystem(subSystem1)
 	overseer.RegisterSubsystem(subSystem2)
 
-	overseer.Start()
+	errChan, err := overseer.Start()
+	require.NoError(t, err)
+	done := make(chan struct{})
+	go func() {
+		for errC := range errChan {
+			fmt.Printf("overseer start error: %v\n", errC)
+		}
+		close(done)
+	}()
 
 	activedLeaf1 := &ActivatedLeaf{
 		Hash:   [32]byte{1},
@@ -105,9 +123,11 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 	// let subsystems run for a bit
 	time.Sleep(5000 * time.Millisecond)
 
-	overseer.Stop()
-	time.Sleep(time.Second)
+	err = overseer.Stop()
+	require.NoError(t, err)
+
 	fmt.Printf("overseer stopped\n")
+	<-done
 }
 
 func TestStart2SubsytemsActivate2Same(t *testing.T) {
@@ -120,7 +140,15 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 	overseer.RegisterSubsystem(subSystem1)
 	overseer.RegisterSubsystem(subSystem2)
 
-	overseer.Start()
+	errChan, err := overseer.Start()
+	require.NoError(t, err)
+	done := make(chan struct{})
+	go func() {
+		for errC := range errChan {
+			fmt.Printf("overseer start error: %v\n", errC)
+		}
+		close(done)
+	}()
 
 	activedLeaf := &ActivatedLeaf{
 		Hash:   [32]byte{1},
@@ -131,7 +159,9 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 	// let subsystems run for a bit
 	time.Sleep(5000 * time.Millisecond)
 
-	overseer.Stop()
-	time.Sleep(time.Second)
+	err = overseer.Stop()
+	require.NoError(t, err)
+
 	fmt.Printf("overseer stopped\n")
+	<-done
 }

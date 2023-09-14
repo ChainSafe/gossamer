@@ -17,9 +17,10 @@ var (
 )
 
 type Overseer struct {
-	wg     sync.WaitGroup
-	doneCh chan struct{}
-	stopCh chan struct{}
+	wg      sync.WaitGroup
+	doneCh  chan struct{}
+	stopCh  chan struct{}
+	errChan chan error
 
 	subsystems        map[Subsystem]*context
 	subsystemMessages map[Subsystem]<-chan any
@@ -39,6 +40,7 @@ func NewOverseer() *Overseer {
 	return &Overseer{
 		doneCh:            make(chan struct{}),
 		stopCh:            make(chan struct{}),
+		errChan:           make(chan error),
 		subsystems:        make(map[Subsystem]*context),
 		subsystemMessages: make(map[Subsystem]<-chan any),
 		overseerChannel:   make(chan any),
@@ -56,7 +58,7 @@ func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
 	}
 }
 
-func (o *Overseer) Start() {
+func (o *Overseer) Start() (errChan chan error, err error) {
 	// start subsystems
 	for subsystem, cntxt := range o.subsystems {
 		o.wg.Add(1)
@@ -83,15 +85,19 @@ func (o *Overseer) Start() {
 	}
 
 	// TODO: add logic to start listening for Block Imported events and Finalisation events
+	return o.errChan, nil
 }
 
-func (o *Overseer) Stop() {
+func (o *Overseer) Stop() error {
 	if o.doneCh == nil {
-		return
+		return nil
 	}
 	close(o.stopCh)
 	o.wg.Wait()
+	// close the errorChan to unblock any listeners on the errChan
+	close(o.errChan)
 	o.stopCh = nil
+	return nil
 }
 
 func (o *Overseer) sendActiveLeavesUpdate(update *ActiveLeavesUpdate, subsystem Subsystem) {
