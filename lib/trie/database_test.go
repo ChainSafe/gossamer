@@ -36,6 +36,15 @@ func Test_Trie_Store_Load(t *testing.T) {
 	assert.Equal(t, trie.String(), trieFromDB.String())
 }
 
+func Test_Trie_Load_EmptyHash(t *testing.T) {
+	t.Parallel()
+
+	db := newTestDB(t)
+	trieFromDB := NewEmptyTrie()
+	err := trieFromDB.Load(db, EmptyHash)
+	require.NoError(t, err)
+}
+
 func Test_Trie_WriteDirty_Put(t *testing.T) {
 	t.Parallel()
 
@@ -276,6 +285,17 @@ func Test_GetFromDB(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedValue, value)
 	}
+}
+
+func Test_GetFromDB_EmptyHash(t *testing.T) {
+	t.Parallel()
+
+	db := newTestDB(t)
+
+	value, err := GetFromDB(db, EmptyHash, []byte("test"))
+	assert.NoError(t, err)
+	assert.Nil(t, value)
+
 }
 
 func Test_Trie_PutChild_Store_Load(t *testing.T) {
