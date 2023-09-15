@@ -12,6 +12,7 @@ import (
 
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/stretchr/testify/require"
 )
@@ -39,11 +40,13 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 			ctx: srvc.ctx,
 			h:   srvc.host.p2pHost,
 			ds:  ds,
+			pid: protocol.ID("/testing"),
 		}
 
 		go disc.start()
 		discs = append(discs, disc)
 	}
+
 	return discs
 }
 
@@ -74,7 +77,7 @@ func TestKadDHT(t *testing.T) {
 	// setup 3 nodes
 	nodes := newTestDiscovery(t, 3)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// connects node 0 and node 2
@@ -82,17 +85,17 @@ func TestKadDHT(t *testing.T) {
 
 	time.Sleep(startDHTTimeout + 1)
 
-	// node 2 doesnt know about node 1 then should return error
-	_, err := nodes[2].dht.FindPeer(ctx, nodes[1].h.ID())
+	// node 0 doesnt know about node 1 then should return error
+	_, err := nodes[0].dht.FindPeer(ctx, nodes[1].h.ID())
 	require.ErrorIs(t, err, routing.ErrNotFound)
 
-	// connects node 1 and node 0
-	connectNoSync(ctx, t, nodes[1], nodes[0])
+	// connects node 2 and node 1
+	connectNoSync(ctx, t, nodes[2], nodes[1])
 
 	time.Sleep(startDHTTimeout + 1)
 
-	// node 2 should know node 1 because both are connected to 0
-	_, err = nodes[2].dht.FindPeer(ctx, nodes[1].h.ID())
+	// node 0 should know node 1 because both are connected to 2
+	_, err = nodes[0].dht.FindPeer(ctx, nodes[1].h.ID())
 	require.NoError(t, err)
 }
 
@@ -185,17 +188,17 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	// begin advertising and discovery for all nodes
-	err = nodeA.host.discovery.start()
-	require.NoError(t, err)
-
 	err = nodeB.host.discovery.start()
 	require.NoError(t, err)
 
 	err = nodeC.host.discovery.start()
 	require.NoError(t, err)
 
-	time.Sleep(time.Millisecond * 500)
+	// begin advertising and discovery for all nodes
+	err = nodeA.host.discovery.start()
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
 
 	// assert B and C can discover each other
 	addrs := nodeB.host.p2pHost.Peerstore().Addrs(nodeC.host.id())

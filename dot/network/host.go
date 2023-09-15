@@ -25,9 +25,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoreds"
+	mempstore "github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	rm "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
-	rmObs "github.com/libp2p/go-libp2p/p2p/host/resource-manager/obs"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -36,9 +35,9 @@ func newPrivateIPFilters() (privateIPs *ma.Filters, err error) {
 	privateCIDRs := []string{
 		"10.0.0.0/8",
 		"172.16.0.0/12",
-		"192.168.0.0/16",
 		"100.64.0.0/10",
 		"198.18.0.0/15",
+		"192.168.0.0/16",
 		"169.254.0.0/16",
 	}
 	privateIPs = ma.NewFilters()
@@ -82,6 +81,7 @@ type host struct {
 	messageCache    *messageCache
 	bwc             *metrics.BandwidthCounter
 	closeSync       sync.Once
+	externalAddr    ma.Multiaddr
 }
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
@@ -176,7 +176,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}
 
-	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
+	ps, err := mempstore.NewPeerstore()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create peerstore: %w", err)
 	}
@@ -185,8 +185,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	var managerOptions []rm.Option
 
 	if cfg.Metrics.Publish {
-		rmObs.MustRegisterWith(prometheus.DefaultRegisterer)
-		reporter, err := rmObs.NewStatsTraceReporter()
+		rm.MustRegisterWith(prometheus.DefaultRegisterer)
+		reporter, err := rm.NewStatsTraceReporter()
 		if err != nil {
 			return nil, fmt.Errorf("while creating resource manager stats trace reporter: %w", err)
 		}
@@ -209,7 +209,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Peerstore(ps),
 		libp2p.ConnectionManager(cm),
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
-			addrs := []ma.Multiaddr{}
+			var addrs []ma.Multiaddr
 			for _, addr := range as {
 				if !privateIPs.AddrBlocked(addr) {
 					addrs = append(addrs, addr)
@@ -256,6 +256,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		persistentPeers: pps,
 		messageCache:    msgCache,
 		bwc:             bwc,
+		externalAddr:    externalAddr,
 	}
 
 	cm.host = host

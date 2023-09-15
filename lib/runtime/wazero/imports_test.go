@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -48,7 +48,7 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = inst.Context.NodeStorage.BaseDB.Get(testKey)
-	require.ErrorIs(t, err, chaindb.ErrKeyNotFound)
+	require.ErrorIs(t, err, database.ErrNotFound)
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
@@ -589,11 +589,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 
 func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	tmp := t.TempDir()
-
-	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
-		InMemory: true,
-		DataDir:  tmp,
-	})
+	memdb, err := database.NewPebble(tmp, true)
 	require.NoError(t, err)
 
 	otherTrie := trie.NewEmptyTrie()
@@ -745,71 +741,160 @@ var (
 )
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
-
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
-	require.NoError(t, err)
-
 	testOffset := uint32(2)
 	testBufferSize := uint32(100)
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+	expectedValue := testValue[testOffset:]
+	cases := map[string]struct {
+		setupInstance func(t *testing.T) *Instance
+		expected      *[]byte
+	}{
+		"should_return_none_if_child_doesnt_exist": {
+			setupInstance: func(t *testing.T) *Instance {
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			},
+			expected: nil,
+		},
 
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
+		"child_exists_return_value": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	encBufferSize, err := scale.Marshal(testBufferSize)
-	require.NoError(t, err)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	encOffset, err := scale.Marshal(testOffset)
-	require.NoError(t, err)
+				err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+				require.NoError(t, err)
+				return inst
+			},
+			expected: &expectedValue,
+		},
+	}
 
-	ret, err := inst.Exec(
-		"rtm_ext_default_child_storage_read_version_1",
-		append(append(encChildKey, encKey...),
-			append(encOffset, encBufferSize...)...))
-	require.NoError(t, err)
+	for tname, tt := range cases {
+		tt := tt
 
-	var read *[]byte
-	err = scale.Unmarshal(ret, &read)
-	require.NoError(t, err)
-	require.NotNil(t, read)
+		t.Run(tname, func(t *testing.T) {
+			inst := tt.setupInstance(t)
 
-	val := *read
-	require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
+			encChildKey, err := scale.Marshal(testChildKey)
+			require.NoError(t, err)
+
+			encKey, err := scale.Marshal(testKey)
+			require.NoError(t, err)
+
+			encBufferSize, err := scale.Marshal(testBufferSize)
+			require.NoError(t, err)
+
+			encOffset, err := scale.Marshal(testOffset)
+			require.NoError(t, err)
+
+			args := bytes.Join([][]byte{
+				encChildKey, encKey,
+				encOffset, encBufferSize,
+			}, nil)
+
+			ret, err := inst.Exec("rtm_ext_default_child_storage_read_version_1", args)
+			require.NoError(t, err)
+
+			var read *[]byte
+			err = scale.Unmarshal(ret, &read)
+			require.NoError(t, err)
+
+			if tt.expected == nil {
+				require.Nil(t, read)
+			} else {
+				val := *read
+				require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
+			}
+		})
+	}
 }
 
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	cases := map[string]struct {
+		setupInstance    func(*testing.T) *Instance
+		existsBeforehand bool
+	}{
+		"child_trie_exists_should_not_panic": {
+			existsBeforehand: true,
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	// Check if value is not set
-	val, err := inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
+				return inst
+			},
+		},
+		"child_trie_not_found_should_create_a_empty_one": {
+			existsBeforehand: false,
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				return inst
+			},
+		},
+	}
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+	insertKeyAndValue := func(t *testing.T, inst *Instance, childKey, key, value []byte) {
+		encChildKey, err := scale.Marshal(childKey)
+		require.NoError(t, err)
 
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
+		encKey, err := scale.Marshal(key)
+		require.NoError(t, err)
 
-	encVal, err := scale.Marshal(testValue)
-	require.NoError(t, err)
+		encVal, err := scale.Marshal(value)
+		require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
-	require.NoError(t, err)
+		args := bytes.Join([][]byte{
+			encChildKey, encKey, encVal,
+		}, nil)
 
-	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Equal(t, testValue, val)
+		_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", args)
+		require.NoError(t, err)
+	}
+
+	getValueFromChildStorage := func(t *testing.T, inst *Instance, childKey, key []byte) *[]byte {
+		encChildKey, err := scale.Marshal(childKey)
+		require.NoError(t, err)
+
+		encKey, err := scale.Marshal(key)
+		require.NoError(t, err)
+
+		ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
+		require.NoError(t, err)
+
+		var retrieved *[]byte
+		err = scale.Unmarshal(ret, &retrieved)
+		require.NoError(t, err)
+
+		return retrieved
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			inst := tt.setupInstance(t)
+
+			exampleChildKey := []byte("example_child_key")
+			exampleKey := []byte("key_to_account")
+			exampleValue := []byte("some_acc_address")
+
+			insertKeyAndValue(t, inst, exampleChildKey, exampleKey, exampleValue)
+
+			anotherKey := []byte("key_to_account_2")
+			anotherValue := []byte("some_acc_address_2")
+			insertKeyAndValue(t, inst, exampleChildKey, anotherKey, anotherValue)
+
+			// should be possible to retrieve the first address and the new inserted one
+			acc1 := getValueFromChildStorage(t, inst, exampleChildKey, exampleKey)
+			require.Equal(t, &exampleValue, acc1)
+
+			acc2 := getValueFromChildStorage(t, inst, exampleChildKey, anotherKey)
+			require.Equal(t, &anotherValue, acc2)
+		})
+	}
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
@@ -906,32 +991,55 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	cases := map[string]struct {
+		setupInstance func(t *testing.T) *Instance
+		expected      *[]byte
+	}{
+		"value_exists_expected_value": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
+				err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
+				require.NoError(t, err)
+				return inst
+			},
+			expected: &testValue,
+		},
+		"value_not_found_expected_none": {
+			setupInstance: func(t *testing.T) *Instance {
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			},
+			expected: nil,
+		},
+	}
 
-	err = inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
-	require.NoError(t, err)
+	for tname, tt := range cases {
+		tt := tt
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+		t.Run(tname, func(t *testing.T) {
+			inst := tt.setupInstance(t)
 
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
+			encChildKey, err := scale.Marshal(testChildKey)
+			require.NoError(t, err)
 
-	ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
-	require.NoError(t, err)
+			encKey, err := scale.Marshal(testKey)
+			require.NoError(t, err)
 
-	var read *[]byte
-	err = scale.Unmarshal(ret, &read)
-	require.NoError(t, err)
-	require.NotNil(t, read)
+			ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
+			require.NoError(t, err)
+
+			var read *[]byte
+			err = scale.Unmarshal(ret, &read)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expected, read)
+		})
+	}
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-
 	testKeyValuePair := []struct {
 		key   []byte
 		value []byte
@@ -940,30 +1048,73 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 		{[]byte("key"), []byte("value2")},
 	}
 
-	key := testKeyValuePair[0].key
+	testcases := map[string]struct {
+		setupInstance func(t *testing.T) *Instance
+		expected      *[]byte
+	}{
+		"next_key_exists": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	for _, kv := range testKeyValuePair {
-		err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
-		require.NoError(t, err)
+				for _, kv := range testKeyValuePair {
+					err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+					require.NoError(t, err)
+				}
+
+				return inst
+			},
+			expected: &testKeyValuePair[1].key,
+		},
+		"child_tree_not_exists": {
+			setupInstance: func(t *testing.T) *Instance {
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			},
+			expected: nil,
+		},
+		"with_only_one_key": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
+
+				kv := testKeyValuePair[0]
+				err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+				require.NoError(t, err)
+
+				return inst
+			},
+			expected: nil,
+		},
 	}
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+	for tname, tt := range testcases {
+		tt := tt
 
-	encKey, err := scale.Marshal(key)
-	require.NoError(t, err)
+		t.Run(tname, func(t *testing.T) {
+			key := testKeyValuePair[0].key
 
-	ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
-	require.NoError(t, err)
+			encChildKey, err := scale.Marshal(testChildKey)
+			require.NoError(t, err)
 
-	var read *[]byte
-	err = scale.Unmarshal(ret, &read)
-	require.NoError(t, err)
-	require.NotNil(t, read)
-	require.Equal(t, testKeyValuePair[1].key, *read)
+			encKey, err := scale.Marshal(key)
+			require.NoError(t, err)
+
+			inst := tt.setupInstance(t)
+			ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
+			require.NoError(t, err)
+
+			var read *[]byte
+			err = scale.Unmarshal(ret, &read)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expected, read)
+		})
+	}
+
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
@@ -1376,7 +1527,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.Context.NodeStorage.PersistentStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "pebble: not found")
 	require.Nil(t, val)
 }
 
@@ -1398,7 +1549,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 	require.NoError(t, err)
 
 	val, err := inst.Context.NodeStorage.LocalStorage.Get(testkey)
-	require.EqualError(t, err, "Key not found")
+	require.EqualError(t, err, "pebble: not found")
 	require.Nil(t, val)
 }
 

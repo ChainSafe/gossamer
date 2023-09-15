@@ -782,31 +782,6 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	require.Equal(t, uint32(4), block.Number)
 }
 
-func TestFindParentWithNumber(t *testing.T) {
-	t.Parallel()
-
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
-
-	gs, st := newTestService(t, aliceKeyPair)
-
-	// no branches needed
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, nil)
-	leaves := gs.blockState.(*state.BlockState).Leaves()
-
-	v, err := NewVoteFromHash(leaves[0], st.Block)
-	require.NoError(t, err)
-
-	p, err := gs.findParentWithNumber(v, 1)
-	require.NoError(t, err)
-
-	expected, err := st.Block.GetBlockByNumber(1)
-	require.NoError(t, err)
-
-	require.Equal(t, expected.Header.Hash(), p.Hash)
-}
-
 func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -847,54 +822,6 @@ func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
 	bfc, err := gs.getBestFinalCandidate()
 	require.NoError(t, err)
 	require.Equal(t, voteA, bfc)
-}
-
-func TestGetBestFinalCandidate_PrecommitAncestor(t *testing.T) {
-	t.Parallel()
-
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
-
-	// this tests the case when the highest precommited block is an ancestor of the prevoted block
-	gs, st := newTestService(t, aliceKeyPair)
-
-	branches := map[uint]int{6: 1}
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
-	leaves := gs.blockState.(*state.BlockState).Leaves()
-
-	voteA, err := NewVoteFromHash(leaves[0], st.Block)
-	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
-	require.NoError(t, err)
-
-	// in precommit round, 2/3 voters will vote for ancestor of A
-	voteC, err := gs.findParentWithNumber(voteA, 6)
-	require.NoError(t, err)
-
-	for i, k := range kr.Keys {
-		voter := k.Public().(*ed25519.PublicKey).AsBytes()
-
-		if i < 7 {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteA,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteC,
-			})
-		} else {
-			gs.prevotes.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-			gs.precommits.Store(voter, &SignedVote{
-				Vote: *voteB,
-			})
-		}
-	}
-
-	bfc, err := gs.getBestFinalCandidate()
-	require.NoError(t, err)
-	require.Equal(t, voteC, bfc)
 }
 
 func TestGetBestFinalCandidate_NoPrecommit(t *testing.T) {
