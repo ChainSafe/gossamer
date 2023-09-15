@@ -24,7 +24,7 @@ import (
 
 const (
 	RandomHash     = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
-	ErrKeyNotFound = "Key not found"
+	ErrKeyNotFound = "pebble: not found"
 )
 
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
@@ -105,20 +105,31 @@ func TestStateModule_GetPairs(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
+	hexEncode := func(s string) string {
+		return "0x" + hex.EncodeToString([]byte(s))
+	}
+
 	testCases := []struct {
 		params   []string
 		expected []interface{}
 		errMsg   string
 	}{
 		{params: []string{"0x00"}, expected: nil},
-		{params: []string{""}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
-		{params: []string{":key1"}, expected: []interface{}{[]string{":key1", "value1"}}},
+		{params: []string{""}, expected: []interface{}{
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1")}, expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"0x00", hash.String()}, expected: nil},
 		{params: []string{"", hash.String()}, expected: []interface{}{
-			[]string{":key1", "value1"},
-			[]string{":key2", "value2"}}},
-		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
-		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1"), hash.String()},
+			expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
+		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -134,6 +145,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 			if len(test.params) > 1 && test.params[1] != "" {
 				req.Bhash = &common.Hash{}
+				var err error
 				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
@@ -160,10 +172,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 				// Convert human-readable result value to hex.
 				expectedKV, _ := val.([]string)
-				expectedKey := "0x" + hex.EncodeToString([]byte(expectedKV[0]))
-				expectedVal := "0x" + hex.EncodeToString([]byte(expectedKV[1]))
-
-				require.Equal(t, []string{expectedKey, expectedVal}, kv)
+				require.Equal(t, []string{expectedKV[0], expectedKV[1]}, kv)
 			}
 		})
 	}
@@ -182,7 +191,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 		{params: []string{""}, expected: nil},
 		{params: []string{":key1"}, expected: []byte("value1")},
 		{params: []string{":key1", hash.String()}, expected: []byte("value1")},
-		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -235,7 +244,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 		{params: []string{""}, expected: hashOfNil},
 		{params: []string{":key1"}, expected: hash1},
 		{params: []string{":key1", hash.String()}, expected: hash1},
-		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"0x", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -280,7 +289,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 		{params: []string{""}},
 		{params: []string{":key1"}, expected: 6},
 		{params: []string{":key1", hash.String()}, expected: 6},
-		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"0x", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -446,17 +455,22 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: nil,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "allKeysTestBlockHash",
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: stateRootHash,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchAll",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b6579",
 				Qty:    10,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchOne",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b657931",
@@ -470,7 +484,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 		{name: "qtyOne",
 			params: StateStorageKeyRequest{
 				Qty: 1,
-			}, expected: []string{"0x3a6b657931"}},
+			}, expected: []string{"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431"}},
 		{name: "afterKey",
 			params: StateStorageKeyRequest{
 				Qty:      10,
@@ -551,9 +565,14 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Put([]byte(`:key2`), []byte(`value2`))
-	ts.Put([]byte(`:key1`), []byte(`value1`))
-	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	err = ts.Put([]byte(`:key2`), []byte(`value2`))
+	require.NoError(t, err)
+
+	err = ts.Put([]byte(`:key1`), []byte(`value1`))
+	require.NoError(t, err)
+
+	err = ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	require.NoError(t, err)
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)

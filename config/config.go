@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/os"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	wazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
@@ -279,7 +278,7 @@ func (c *CoreConfig) ValidateBasic() error {
 	if c.WasmInterpreter == "" {
 		return fmt.Errorf("wasm-interpreter cannot be empty")
 	}
-	if c.WasmInterpreter != wasmer.Name && c.WasmInterpreter != wazero.Name {
+	if c.WasmInterpreter != wazero.Name {
 		return fmt.Errorf("wasm-interpreter is invalid")
 	}
 

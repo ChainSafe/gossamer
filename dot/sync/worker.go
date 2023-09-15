@@ -1,95 +1,64 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
 import (
-	"context"
+	"errors"
 	"sync"
-	"time"
-
-	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// workerState helps track the current worker set and set the upcoming worker ID
-type workerState struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+var ErrStopTimeout = errors.New("stop timeout")
 
-	sync.Mutex
-	nextWorker uint64
-	workers    map[uint64]*worker
-}
-
-func newWorkerState() *workerState {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &workerState{
-		ctx:     ctx,
-		cancel:  cancel,
-		workers: make(map[uint64]*worker),
-	}
-}
-
-func (s *workerState) add(w *worker) {
-	s.Lock()
-	defer s.Unlock()
-
-	w.id = s.nextWorker
-	w.ctx = s.ctx
-	s.nextWorker++
-	s.workers[w.id] = w
-}
-
-func (s *workerState) delete(id uint64) {
-	s.Lock()
-	defer s.Unlock()
-	delete(s.workers, id)
-}
-
-func (s *workerState) reset() {
-	s.cancel()
-	s.ctx, s.cancel = context.WithCancel(context.Background())
-
-	s.Lock()
-	defer s.Unlock()
-
-	for id := range s.workers {
-		delete(s.workers, id)
-	}
-	s.nextWorker = 0
-}
-
-// worker respresents a process that is attempting to sync from the specified start block to target block
-// if it fails for some reason, `err` is set.
-// otherwise, we can assume all the blocks have been received and added to the `readyBlocks` queue
 type worker struct {
-	ctx        context.Context
-	id         uint64
-	retryCount uint16
-	peersTried map[peer.ID]struct{}
-
-	startHash    common.Hash
-	startNumber  *uint
-	targetHash   common.Hash
-	targetNumber *uint
-
-	// if this worker is tied to a specific pending block, this field is set
-	pendingBlock *pendingBlock
-
-	// bitmap of fields to request
-	requestData byte
-	direction   network.SyncDirection
-
-	duration time.Duration
-	err      *workerError
+	status       byte
+	peerID       peer.ID
+	sharedGuard  chan struct{}
+	requestMaker network.RequestMaker
 }
 
-type workerError struct {
-	err error
-	who peer.ID // whose response caused the error, if any
+func newWorker(pID peer.ID, sharedGuard chan struct{}, network network.RequestMaker) *worker {
+	return &worker{
+		peerID:       pID,
+		sharedGuard:  sharedGuard,
+		requestMaker: network,
+		status:       available,
+	}
 }
 
-func uintPtr(n uint) *uint { return &n }
+func (w *worker) run(queue chan *syncTask, wg *sync.WaitGroup) {
+	defer func() {
+		logger.Debugf("[STOPPED] worker %s", w.peerID)
+		wg.Done()
+	}()
+
+	for task := range queue {
+		executeRequest(w.peerID, w.requestMaker, task, w.sharedGuard)
+	}
+}
+
+func executeRequest(who peer.ID, requestMaker network.RequestMaker,
+	task *syncTask, sharedGuard chan struct{}) {
+	defer func() {
+		<-sharedGuard
+	}()
+
+	sharedGuard <- struct{}{}
+
+	request := task.request
+	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
+	response := new(network.BlockResponseMessage)
+	err := requestMaker.Do(who, request, response)
+
+	task.resultCh <- &syncTaskResult{
+		who:      who,
+		request:  request,
+		response: response,
+		err:      err,
+	}
+
+	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
+}

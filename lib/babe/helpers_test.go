@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -120,7 +121,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			nodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 			require.NoError(t, err)
 		}
 
@@ -233,12 +234,13 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
 		digestOnBlockImportMock := mocks.NewMockBlockImportDigestHandler(ctrl)
-		digestOnBlockImportMock.EXPECT().Handle(gomock.Any()).AnyTimes()
+		digestOnBlockImportMock.EXPECT().HandleDigests(gomock.Any()).AnyTimes()
 
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
 			StorageState:         storageState,
 			TransactionState:     dbSrv.Transaction,
+			GrandpaState:         dbSrv.Grandpa,
 			Runtime:              runtime,
 			Keystore:             rtCfg.Keystore,
 			Network:              mockNetwork,

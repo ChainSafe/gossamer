@@ -428,6 +428,12 @@ func (s *Service) publishNetworkTelemetry(done <-chan struct{}) {
 
 func (s *Service) sentBlockIntervalTelemetry() {
 	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		default:
+		}
+
 		best, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			continue
@@ -603,6 +609,11 @@ func (s *Service) NetworkState() common.NetworkState {
 		PeerID:     s.host.id().String(),
 		Multiaddrs: s.host.multiaddrs(),
 	}
+}
+
+// AllConnectedPeersIDs returns all the connected to the node instance
+func (s *Service) AllConnectedPeersIDs() []peer.ID {
+	return s.host.p2pHost.Network().Peers()
 }
 
 // Peers returns information about connected peers needed for the rpc server

@@ -43,7 +43,12 @@ func execInit(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get --force: %s", err)
 	}
 
-	if dot.IsNodeInitialised(config.BasePath) {
+	isInitialised, err := dot.IsNodeInitialised(config.BasePath)
+	if err != nil {
+		return fmt.Errorf("checking if node is initialised: %w", err)
+	}
+
+	if isInitialised {
 		// prompt user to confirm reinitialization
 		if force || confirmMessage("Are you sure you want to reinitialise the node? [Y/n]") {
 			logger.Info("reinitialising node at base path " + config.BasePath + "...")

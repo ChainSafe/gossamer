@@ -81,23 +81,6 @@ make install
 
 To install Gossamer
 
-#### Troubleshooting for Apple Silicon users
-
-Apple Silicon users may encounter these errors:
-
-```sh
-undefined: cWasmerImportObjectT
-undefined: cWasmerImportFuncT
-undefined: cWasmerValueTag
-```
-
-If so, set the following
-[Golang environment variables](https://pkg.go.dev/cmd/go#hdr-Environment_variables):
-
-```sh
-GOARCH="amd64"
-```
-
 ## Use Gossamer
 
 A comprehensive guide to

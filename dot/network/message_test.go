@@ -422,3 +422,134 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, encMsg, encodedMessage)
 }
+
+func TestAscendingBlockRequest(t *testing.T) {
+	one := uint32(1)
+	three := uint32(3)
+	maxResponseSize := uint32(MaxBlocksInResponse)
+	cases := map[string]struct {
+		startNumber, targetNumber      uint
+		expectedBlockRequestMessage    []*BlockRequestMessage
+		expectedTotalOfBlocksRequested uint32
+	}{
+		"start_greater_than_target": {
+			startNumber:                    10,
+			targetNumber:                   0,
+			expectedBlockRequestMessage:    []*BlockRequestMessage{},
+			expectedTotalOfBlocksRequested: 0,
+		},
+
+		"no_difference_between_start_and_target": {
+			startNumber:  10,
+			targetNumber: 10,
+			expectedBlockRequestMessage: []*BlockRequestMessage{
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(10)),
+					Direction:     Ascending,
+					Max:           &one,
+				},
+			},
+			expectedTotalOfBlocksRequested: 1,
+		},
+
+		"requesting_128_blocks": {
+			startNumber:                    1,
+			targetNumber:                   128,
+			expectedTotalOfBlocksRequested: 128,
+			expectedBlockRequestMessage: []*BlockRequestMessage{
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+			},
+		},
+
+		"requesting_4_chunks_of_128_blocks": {
+			startNumber:                    1,
+			targetNumber:                   128 * 4, // 512
+			expectedTotalOfBlocksRequested: 512,
+			expectedBlockRequestMessage: []*BlockRequestMessage{
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+			},
+		},
+
+		"requesting_4_chunks_of_128_plus_3_blocks": {
+			startNumber:                    1,
+			targetNumber:                   (128 * 4) + 3,
+			expectedTotalOfBlocksRequested: 515,
+			expectedBlockRequestMessage: []*BlockRequestMessage{
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
+					Direction:     Ascending,
+					Max:           &maxResponseSize,
+				},
+				{
+					RequestedData: BootstrapRequestData,
+					StartingBlock: *variadic.MustNewUint32OrHash(uint32(513)),
+					Direction:     Ascending,
+					Max:           &three,
+				},
+			},
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			requests := NewAscendingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
+			require.Equal(t, tt.expectedBlockRequestMessage, requests)
+
+			acc := uint32(0)
+			for _, r := range requests {
+				acc += *r.Max
+			}
+			require.Equal(t, tt.expectedTotalOfBlocksRequested, acc)
+		})
+	}
+}

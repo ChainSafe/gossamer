@@ -48,7 +48,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, maxResponseSize*2, s.blockState)
+	addTestBlocksToState(t, network.MaxBlocksInResponse*2, s.blockState)
 
 	// test ascending
 	start, err := variadic.NewUint32OrHash(1)
@@ -63,11 +63,11 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
-	max := uint32(maxResponseSize + 100)
+	max := uint32(network.MaxBlocksInResponse + 100)
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
@@ -77,7 +77,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
@@ -108,11 +108,11 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 
-	max = uint32(maxResponseSize + 100)
+	max = uint32(network.MaxBlocksInResponse + 100)
 	start, err = variadic.NewUint32OrHash(uint32(256))
 	require.NoError(t, err)
 
@@ -125,7 +125,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
 	require.Equal(t, uint(129), resp.BlockData[127].Number())
 
@@ -146,7 +146,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(maxResponseSize*2), s.blockState)
+	addTestBlocksToState(t, uint(network.MaxBlocksInResponse*2), s.blockState)
 
 	// test ascending with nil endBlockHash
 	startHash, err := s.blockState.GetHashByNumber(1)
@@ -164,7 +164,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
@@ -201,7 +201,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, uint(16), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[15].Number())
 
-	// test descending with nil endBlockHash and start > maxResponseSize
+	// test descending with nil endBlockHash and start > network.MaxBlocksInResponse
 	startHash, err = s.blockState.GetHashByNumber(256)
 	require.NoError(t, err)
 
@@ -217,7 +217,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
 	require.Equal(t, uint(129), resp.BlockData[127].Number())
 
@@ -236,7 +236,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, maxResponseSize, len(resp.BlockData))
+	require.Equal(t, network.MaxBlocksInResponse, len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 }
