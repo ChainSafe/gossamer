@@ -91,7 +91,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 func TestChildTrieHashAfterClear(t *testing.T) {
 	trieThatHoldsAChildTrie := NewEmptyTrie()
-	fmt.Printf("EMPTY %s\n", trieThatHoldsAChildTrie.MustHash().String())
+	fmt.Printf("Empty parent trie %s\n", trieThatHoldsAChildTrie.MustHash().String())
 
 	keyToChild := []byte("crowdloan")
 	keyInChild := []byte("account-alice")
