@@ -12,7 +12,7 @@ import (
 )
 
 type StatementDistributionMessageValues interface {
-	SignedFullStatement | SecondedStatementWithLargePayload
+	Statement | LargePayload
 }
 
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
@@ -26,11 +26,11 @@ func setStatementDistributionMessage[Value StatementDistributionMessageValues](m
 
 func (mvdt *StatementDistributionMessage) SetValue(value any) (err error) {
 	switch value := value.(type) {
-	case SignedFullStatement:
+	case Statement:
 		setStatementDistributionMessage(mvdt, value)
 		return
 
-	case SecondedStatementWithLargePayload:
+	case LargePayload:
 		setStatementDistributionMessage(mvdt, value)
 		return
 
@@ -41,10 +41,10 @@ func (mvdt *StatementDistributionMessage) SetValue(value any) (err error) {
 
 func (mvdt StatementDistributionMessage) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
-	case SignedFullStatement:
+	case Statement:
 		return 0, mvdt.inner, nil
 
-	case SecondedStatementWithLargePayload:
+	case LargePayload:
 		return 1, mvdt.inner, nil
 
 	}
@@ -59,10 +59,10 @@ func (mvdt StatementDistributionMessage) Value() (value any, err error) {
 func (mvdt StatementDistributionMessage) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
-		return *new(SignedFullStatement), nil
+		return *new(Statement), nil
 
 	case 1:
-		return *new(SecondedStatementWithLargePayload), nil
+		return *new(LargePayload), nil
 
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
@@ -73,24 +73,24 @@ func NewStatementDistributionMessage() StatementDistributionMessage {
 	return StatementDistributionMessage{}
 }
 
-// SignedFullStatement represents a signed full statement under a given relay-parent.
-type SignedFullStatement struct {
+// Statement represents a signed full statement under a given relay-parent.
+type Statement struct {
 	Hash                         common.Hash                  `scale:"1"`
 	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
 }
 
-// SecondedStatementWithLargePayload represents Seconded statement with large payload
+// LargePayload represents Seconded statement with large payload
 // (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
-type SecondedStatementWithLargePayload StatementMetadata
+type LargePayload StatementMetadata
 
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
-	Payload Statement `scale:"1"`
+	Payload StatementVDT `scale:"1"`
 
 	// The index of the validator signing this statement.
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`

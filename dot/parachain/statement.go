@@ -12,19 +12,19 @@ import (
 )
 
 // Statement is a result of candidate validation. It could be either `Valid` or `Seconded`.
-type StatementValues interface {
+type StatementVDTValues interface {
 	Valid | Seconded
 }
 
-type Statement struct {
+type StatementVDT struct {
 	inner any
 }
 
-func setStatement[Value StatementValues](mvdt *Statement, value Value) {
+func setStatement[Value StatementVDTValues](mvdt *StatementVDT, value Value) {
 	mvdt.inner = value
 }
 
-func (mvdt *Statement) SetValue(value any) (err error) {
+func (mvdt *StatementVDT) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case Valid:
 		setStatement(mvdt, value)
@@ -39,7 +39,7 @@ func (mvdt *Statement) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt Statement) IndexValue() (index uint, value any, err error) {
+func (mvdt StatementVDT) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case Valid:
 		return 2, mvdt.inner, nil
@@ -51,12 +51,12 @@ func (mvdt Statement) IndexValue() (index uint, value any, err error) {
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt Statement) Value() (value any, err error) {
+func (mvdt StatementVDT) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func (mvdt Statement) ValueAt(index uint) (value any, err error) {
+func (mvdt StatementVDT) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 2:
 		return *new(Valid), nil
@@ -69,8 +69,8 @@ func (mvdt Statement) ValueAt(index uint) (value any, err error) {
 }
 
 // NewStatement returns a new statement varying data type
-func NewStatement() Statement {
-	return Statement{}
+func NewStatementVDT() StatementVDT {
+	return StatementVDT{}
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
