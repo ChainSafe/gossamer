@@ -4,6 +4,8 @@
 package parachain
 
 import (
+	"errors"
+	"math"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -11,6 +13,15 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
+
+var ErrInvalidVayingDataTypeValue = errors.New(
+	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidTestStruct)")
+
+type invalidVayingDataTypeValue struct{}
+
+func (invalidVayingDataTypeValue) Index() uint {
+	return math.MaxUint
+}
 
 func getDummyHash(num byte) common.Hash {
 	hash := common.Hash{}
@@ -60,16 +71,24 @@ func TestStatementVDT(t *testing.T) {
 		name          string
 		enumValue     scale.VaryingDataTypeValue
 		encodingValue []byte
+		expectedErr   error
 	}{
 		{
 			name:          "Seconded",
 			enumValue:     secondedEnumValue,
 			encodingValue: common.MustHexToBytes(testDataStatement["statementVDTSeconded"]),
+			expectedErr:   nil,
 		},
 		{
 			name:          "Valid",
 			enumValue:     Valid{hash5},
 			encodingValue: common.MustHexToBytes("0x020505050505050505050505050505050505050505050505050505050505050505"),
+			expectedErr:   nil,
+		},
+		{
+			name:        "invalid struct",
+			enumValue:   invalidVayingDataTypeValue{},
+			expectedErr: ErrInvalidVayingDataTypeValue,
 		},
 	}
 
@@ -82,8 +101,13 @@ func TestStatementVDT(t *testing.T) {
 
 				vdt := NewStatementVDT()
 				err := vdt.Set(c.enumValue)
-				require.NoError(t, err)
 
+				if c.expectedErr != nil {
+					require.EqualError(t, err, c.expectedErr.Error())
+					return
+				}
+
+				require.NoError(t, err)
 				bytes, err := scale.Marshal(vdt)
 				require.NoError(t, err)
 
@@ -92,6 +116,9 @@ func TestStatementVDT(t *testing.T) {
 
 			t.Run("unmarshal", func(t *testing.T) {
 				t.Parallel()
+				if c.expectedErr != nil {
+					return
+				}
 
 				vdt := NewStatementVDT()
 				err := scale.Unmarshal(c.encodingValue, &vdt)
