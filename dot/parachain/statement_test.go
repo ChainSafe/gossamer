@@ -15,7 +15,7 @@ import (
 )
 
 var ErrInvalidVayingDataTypeValue = errors.New(
-	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidTestStruct)")
+	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidVayingDataTypeValue)")
 
 type invalidVayingDataTypeValue struct{}
 
