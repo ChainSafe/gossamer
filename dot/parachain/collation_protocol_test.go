@@ -68,8 +68,8 @@ func TestCollationProtocol(t *testing.T) {
 		},
 	}
 
-	statementWithSeconded := NewStatement()
-	err := statementWithSeconded.Set(secondedEnumValue)
+	statementVDTWithSeconded := NewStatementVDT()
+	err := statementVDTWithSeconded.Set(secondedEnumValue)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -96,7 +96,7 @@ func TestCollationProtocol(t *testing.T) {
 			enumValue: CollationSeconded{
 				Hash: hash5,
 				UncheckedSignedFullStatement: UncheckedSignedFullStatement{
-					Payload:        statementWithSeconded,
+					Payload:        statementVDTWithSeconded,
 					ValidatorIndex: parachaintypes.ValidatorIndex(5),
 					Signature:      validatorSignature,
 				},
