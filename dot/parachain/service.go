@@ -124,7 +124,7 @@ func (s Service) run() {
 	s.Network.GossipMessage(&collationMessage)
 
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
-	err := statementDistributionLargeStatement.SetValue(SecondedStatementWithLargePayload{
+	err := statementDistributionLargeStatement.SetValue(LargePayload{
 		RelayParent:   common.Hash{},
 		CandidateHash: CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
