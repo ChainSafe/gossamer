@@ -32,6 +32,11 @@ type BackgroundValidationResult struct {
 
 var InvalidErasureRoot = errors.New("Invalid erasure root")
 
+func attestedToBacked(attested AttestedCandidate, tableContext TableContext) *parachaintypes.CandidateBacked {
+	// TODO: implement this function
+	return &parachaintypes.CandidateBacked{}
+}
+
 func ValidateAndMakeAvailable(
 	nValidators uint,
 	runtimeInstance parachainruntime.RuntimeInstance,
@@ -116,14 +121,13 @@ func runCandidateBacking() {
 }
 
 func run_iteration() error {
-	for {
-		select {
-		// case <- recieve validated candidate command:
-		// handleValidatedCandidateCommand()
-
-		// case <-
-		}
-	}
+	// for {
+	// 	select {
+	// 	// case <- recieve validated candidate command:
+	// 	// handleValidatedCandidateCommand()
+	// 	// case <-
+	// 	}
+	// }
 	return nil
 }
 
@@ -154,7 +158,7 @@ type CandidateBackingJob struct {
 }
 
 // Import a statement into the statement table and return the summary of the import.
-func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *CheckedSignedFullStatement) (interface{}, error) {
+func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *CheckedSignedFullStatement) (*Summary, error) {
 	candidateHash, err := checkedSignedFullStatement.Payload.CandidateHash()
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash from statement: %w", err)
@@ -166,26 +170,46 @@ func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *Chec
 		job.unbacked_candidates[*candidateHash] = true
 	}
 
-	summary, err := job.table.importStatement(job.tableContext, checkedSignedFullStatement)
+	summary, err := job.table.importStatement(&job.tableContext, checkedSignedFullStatement)
 	if err != nil {
-		return nil, fmt.Errorf("importing statement: %w", err)
+		logger.Errorf("importing statement: %s", err)
+	}
+	if summary == nil {
+		// self.issue_new_misbehaviors(ctx.sender());
+		return summary, nil
 	}
 
 	attested, err := job.table.attestedCandidate(&summary.Candidate, &job.tableContext)
 	if err != nil {
-		return nil, fmt.Errorf("getting attested candidate: %w", err)
+		logger.Errorf("getting attested candidate: %s", err)
 	}
-
-	fmt.Printf("\n\nattested: %v\n\n", attested) // remove this. just to avoid unused error
+	if attested == nil {
+		// self.issue_new_misbehaviors(ctx.sender());
+		return summary, nil
+	}
 
 	if !isBacked {
 		job.backed[*candidateHash] = true
 		delete(job.unbacked_candidates, *candidateHash)
 
-		// polkadot/node/core/backing/src/lib.rs	#L1039
+		backedCandidate := attestedToBacked(*attested, job.tableContext)
+		if backedCandidate != nil {
+			// The provisioner waits on candidate-backing, which means
+			// that we need to send unbounded messages to avoid cycles.
+			//
+			// Backed candidates are bounded by the number of validators,
+			// parachains, and the block production rate of the relay chain.
+			// let message = ProvisionerMessage::ProvisionableData(
+			// 	self.parent,
+			// 	ProvisionableData::BackedCandidate(backed.receipt()),
+			// );
+			// ctx.send_unbounded_message(message);
+		}
 	}
 
-	return nil, nil
+	// TODO: implement this function
+	// self.issue_new_misbehaviors(ctx.sender());
+	return summary, nil
 }
 
 func (job *CandidateBackingJob) signImportAndDistributeStatement(statement StatementVDT) (*CheckedSignedFullStatement, error) {

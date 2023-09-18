@@ -61,13 +61,16 @@ func (s *StatementVDT) CandidateHash() (*CandidateHash, error) {
 			return nil, fmt.Errorf("computing candidate hash: %w", err)
 		}
 		return &CandidateHash{Value: hash}, nil
+
+	} else if valVDT.Index() == 2 {
+		val, ok := valVDT.(Valid)
+		if !ok {
+			return nil, fmt.Errorf("getting valid statement: %w", err)
+		}
+		return (*CandidateHash)(&val), nil
 	}
 
-	val, ok := valVDT.(Valid)
-	if !ok {
-		return nil, fmt.Errorf("getting valid statement: %w", err)
-	}
-	return (*CandidateHash)(&val), nil
+	return nil, fmt.Errorf("invalid statement index: %d", valVDT.Index())
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
