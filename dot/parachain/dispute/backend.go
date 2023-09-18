@@ -49,37 +49,33 @@ type DBBackend interface {
 }
 
 type syncedEarliestSession struct {
-	*sync.RWMutex
+	sync.RWMutex
 	*parachainTypes.SessionIndex
 }
 
 func newSyncedEarliestSession() syncedEarliestSession {
-	return syncedEarliestSession{
-		RWMutex: new(sync.RWMutex),
-	}
+	return syncedEarliestSession{}
 }
 
 type syncedRecentDisputes struct {
-	*sync.RWMutex
+	sync.RWMutex
 	*btree.BTree
 }
 
 func newSyncedRecentDisputes() syncedRecentDisputes {
 	return syncedRecentDisputes{
-		RWMutex: new(sync.RWMutex),
-		BTree:   btree.New(types.DisputeComparator),
+		BTree: btree.New(types.DisputeComparator),
 	}
 }
 
 type syncedCandidateVotes struct {
-	*sync.RWMutex
+	sync.RWMutex
 	votes map[types.Comparator]*types.CandidateVotes
 }
 
 func newSyncedCandidateVotes() syncedCandidateVotes {
 	return syncedCandidateVotes{
-		RWMutex: new(sync.RWMutex),
-		votes:   make(map[types.Comparator]*types.CandidateVotes),
+		votes: make(map[types.Comparator]*types.CandidateVotes),
 	}
 }
 
