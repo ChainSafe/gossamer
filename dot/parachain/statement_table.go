@@ -5,7 +5,7 @@ import (
 )
 
 type Table interface {
-	importStatement(*TableContext, *CheckedSignedFullStatement) (*Summary, error)
+	importStatement(*TableContext, *SignedFullStatement) (*Summary, error)
 	attestedCandidate(*CandidateHash, *TableContext) (*AttestedCandidate, error)
 }
 

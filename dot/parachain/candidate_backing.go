@@ -158,7 +158,7 @@ type CandidateBackingJob struct {
 }
 
 // Import a statement into the statement table and return the summary of the import.
-func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *CheckedSignedFullStatement) (*Summary, error) {
+func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *SignedFullStatement) (*Summary, error) {
 	candidateHash, err := checkedSignedFullStatement.Payload.CandidateHash()
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash from statement: %w", err)
@@ -212,7 +212,7 @@ func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *Chec
 	return summary, nil
 }
 
-func (job *CandidateBackingJob) signImportAndDistributeStatement(statement StatementVDT) (*CheckedSignedFullStatement, error) {
+func (job *CandidateBackingJob) signImportAndDistributeStatement(statement StatementVDT) (*SignedFullStatement, error) {
 	checkedSignedFullStatement, err := job.tableContext.validator.Sign(*job.keystore, statement)
 	if err != nil {
 		return nil, err
@@ -352,8 +352,8 @@ type Validator struct {
 }
 
 // Sign a payload with this validator
-func (v Validator) Sign(keystore keystore.Keystore, Payload StatementVDT) (*CheckedSignedFullStatement, error) {
-	checkedSignedFullStatement := CheckedSignedFullStatement{
+func (v Validator) Sign(keystore keystore.Keystore, Payload StatementVDT) (*SignedFullStatement, error) {
+	checkedSignedFullStatement := SignedFullStatement{
 		Payload:        Payload,
 		ValidatorIndex: v.index,
 	}

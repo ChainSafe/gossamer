@@ -114,9 +114,9 @@ func (u *UncheckedSignedFullStatement) Sign(
 	return &valSign, nil
 }
 
-type CheckedSignedFullStatement UncheckedSignedFullStatement
+type SignedFullStatement UncheckedSignedFullStatement
 
-func (u *CheckedSignedFullStatement) Sign(
+func (u *SignedFullStatement) Sign(
 	keystore keystore.Keystore,
 	signingContext SigningContext,
 	key parachaintypes.ValidatorID,
