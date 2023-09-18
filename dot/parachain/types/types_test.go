@@ -358,6 +358,29 @@ func TestCandidateEvent(t *testing.T) {
 	require.Equal(t, result, common.BytesToHex(encoded))
 }
 
+func TestCandidateReceipt_Hash(t *testing.T) {
+	t.Parallel()
+
+	receipt := &CandidateReceipt{
+		Descriptor: CandidateDescriptor{
+			ParaID:                      1,
+			RelayParent:                 common.Hash{1},
+			Collator:                    CollatorID{1},
+			PersistedValidationDataHash: common.Hash{1},
+			PovHash:                     common.Hash{1},
+			ErasureRoot:                 common.Hash{1},
+			Signature:                   CollatorSignature{1},
+			ParaHead:                    common.Hash{1},
+			ValidationCodeHash:          ValidationCodeHash{1},
+		},
+		CommitmentsHash: common.Hash{1},
+	}
+	candidateHash, err := receipt.Hash()
+	require.NoError(t, err)
+
+	require.Equal(t, testData["expectedCandidateReceipt"], common.BytesToHex(candidateHash[:]))
+}
+
 func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [32]byte) {
 	t.Helper()
 	copy(outputArray[:], common.MustHexToBytes(inputHex))

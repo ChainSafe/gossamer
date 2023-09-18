@@ -2,12 +2,13 @@
 // Source: github.com/ChainSafe/gossamer/dot/parachain/runtime (interfaces: RuntimeInstance)
 
 // Package parachain is a generated GoMock package.
-package parachain
+package dispute
 
 import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -77,4 +78,19 @@ func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 uint32, arg1 para
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostValidationCode(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCode", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostValidationCode), arg0, arg1)
+}
+
+// ParachainHostValidationCodeByHash mocks base method.
+func (m *MockRuntimeInstance) ParachainHostValidationCodeByHash(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostValidationCodeByHash", arg0, arg1)
+	ret0, _ := ret[0].(*parachaintypes.ValidationCode)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostValidationCodeByHash indicates an expected call of ParachainHostValidationCodeByHash.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostValidationCodeByHash(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCodeByHash", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostValidationCodeByHash), arg0, arg1)
 }
