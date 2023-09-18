@@ -33,8 +33,7 @@ type Handler struct {
 }
 
 // NewHandler returns a new Handler
-func NewHandler(blockState BlockState, epochState EpochState,
-	grandpaState GrandpaState) (*Handler, error) {
+func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 	finalised := blockState.GetFinalisedNotifierChannel()
 
@@ -86,7 +85,6 @@ func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 			if err != nil {
 				logger.Errorf("failed to apply scheduled change: %s", err)
 			}
-
 		case <-ctx.Done():
 			return
 		}

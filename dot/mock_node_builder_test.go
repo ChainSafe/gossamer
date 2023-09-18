@@ -227,11 +227,12 @@ func (mr *MocknodeBuilderIfaceMockRecorder) initNode(config interface{}) *gomock
 }
 
 // isNodeInitialised mocks base method.
-func (m *MocknodeBuilderIface) isNodeInitialised(basepath string) error {
+func (m *MocknodeBuilderIface) isNodeInitialised(basepath string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "isNodeInitialised", basepath)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // isNodeInitialised indicates an expected call of isNodeInitialised.

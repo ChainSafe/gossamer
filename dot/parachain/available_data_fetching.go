@@ -71,24 +71,6 @@ func (AvailableData) Index() uint {
 	return 0
 }
 
-// // PersistedValidationData provides information about how to create the inputs for the validation
-// // of a candidate by calling the Runtime.
-// // This information is derived from the parachain state and will vary from parachain to parachain,
-// // although some of the fields may be the same for every parachain.
-// type PersistedValidationData struct {
-// 	// The parent head-data
-// 	ParentHead []byte `scale:"1"`
-
-// 	// The relay-chain block number this is in the context of
-// 	RelayParentNumber parachaintypes.BlockNumber `scale:"2"`
-
-// 	// The relay-chain block storage root this is in the context of
-// 	RelayParentStorageRoot common.Hash `scale:"3"`
-
-// 	// The maximum legal size of a POV block, in bytes
-// 	MaxPovSize uint32 `scale:"4"`
-// }
-
 // NoSuchData indicates that the requested data was not found.
 type NoSuchData struct{}
 

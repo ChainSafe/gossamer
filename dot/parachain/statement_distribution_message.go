@@ -68,7 +68,7 @@ func (LargePayload) Index() uint {
 	return 1
 }
 
-// UncheckedSignedFullStatement is a Variant of `checkedSignedFullStatement` where the signature has not yet been verified.
+// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.

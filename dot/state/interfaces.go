@@ -6,8 +6,8 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 )
 
 // GetPutDeleter has methods to get, put and delete key values.
@@ -58,7 +58,7 @@ type Haser interface {
 
 // NewBatcher creates a new database batch.
 type NewBatcher interface {
-	NewBatch() chaindb.Batch
+	NewBatch() database.Batch
 }
 
 // BabeConfigurer returns the babe configuration of the runtime.

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -124,7 +124,7 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 	require.Equal(t, uint64(99), r)
 }
 
-func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
+func testBlockState(t *testing.T, db database.Database) *BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{}))
@@ -143,7 +143,7 @@ func testBlockState(t *testing.T, db *chaindb.BadgerDB) *BlockState {
 	return bs
 }
 
-func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	t.Parallel()
 
 	keyring, err := keystore.NewSr25519Keyring()
@@ -218,7 +218,10 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparal
 	}
 
 	for tname, tt := range tests {
+		tt := tt
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
+
 			// clear the scheduledChangeRoots after the test ends
 			// this does not cause race condition because t.Run without
 			// t.Parallel() blocks until this function returns

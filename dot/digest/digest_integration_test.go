@@ -108,60 +108,6 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestHandler_GrandpaForcedChange(t *testing.T) {
-	handler, blockImportHandler, _ := newTestHandler(t)
-	handler.Start()
-	defer handler.Stop()
-
-	// authorities should change on start of block 4 from start
-	headers, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 2, false)
-
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	fc := types.GrandpaForcedChange{
-		Auths: []types.GrandpaAuthoritiesRaw{
-			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
-		},
-		Delay: 3,
-	}
-
-	var digest = types.NewGrandpaConsensusDigest()
-	err = digest.Set(fc)
-	require.NoError(t, err)
-
-	data, err := scale.Marshal(digest)
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
-
-	// tracking the GrandpaForcedChange under block 1
-	// and when block number 4 being imported then we should apply the change
-	err = blockImportHandler.handleConsensusDigest(d, headers[1])
-	require.NoError(t, err)
-
-	// create new blocks and import them
-	headersInState, _ := state.AddBlocksToState(t, handler.blockState.(*state.BlockState), 4, false)
-	for _, header := range headersInState {
-		err := blockImportHandler.Handle(header)
-		require.NoError(t, err)
-	}
-
-	//time.Sleep(time.Millisecond * 500)
-	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), setID)
-
-	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
-	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
-	require.NoError(t, err)
-	require.Equal(t, expected, auths)
-}
-
 func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 	tests := map[string]struct {
 		digestsTypes    []scale.VaryingDataTypeValue
@@ -256,7 +202,7 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 			}
 
 			blockImportHandler.grandpaState = grandpaState
-			err := blockImportHandler.handleDigests(header)
+			err := blockImportHandler.HandleDigests(header)
 			require.NoError(t, err)
 		})
 	}

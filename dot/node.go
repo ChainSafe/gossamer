@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -35,7 +36,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "dot"))
@@ -50,7 +50,7 @@ type Node struct {
 }
 
 type nodeBuilderIface interface {
-	isNodeInitialised(basepath string) error
+	isNodeInitialised(basepath string) (bool, error)
 	initNode(config *cfg.Config) error
 	createStateService(config *cfg.Config) (*state.Service, error)
 	createNetworkService(config *cfg.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
@@ -80,26 +80,37 @@ type nodeBuilder struct{}
 
 // IsNodeInitialised returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data can been loaded
-func IsNodeInitialised(basepath string) bool {
+func IsNodeInitialised(basepath string) (bool, error) {
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.isNodeInitialised(basepath)
-	return err == nil
+	return nodeInstance.isNodeInitialised(basepath)
 }
 
 // isNodeInitialised returns nil if the node is successfully initialised
 // and an error otherwise.
-func (*nodeBuilder) isNodeInitialised(basepath string) error {
+func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
-	registry := filepath.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+	nodeDatabaseDir := filepath.Join(basepath, database.DefaultDatabaseDir)
 
-	_, err := os.Stat(registry)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("cannot find key registry in database directory: %w", err)
+	_, err := os.Stat(nodeDatabaseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
 
-	db, err := utils.SetupDatabase(basepath, false)
+	entries, err := os.ReadDir(nodeDatabaseDir)
 	if err != nil {
-		return fmt.Errorf("cannot setup database: %w", err)
+		return false, fmt.Errorf("failed to read dir %s: %w", nodeDatabaseDir, err)
+	}
+
+	if len(entries) == 0 {
+		return false, nil
+	}
+
+	db, err := database.LoadDatabase(basepath, false)
+	if err != nil {
+		return false, fmt.Errorf("cannot setup database: %w", err)
 	}
 
 	defer func() {
@@ -111,10 +122,10 @@ func (*nodeBuilder) isNodeInitialised(basepath string) error {
 
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
-		return fmt.Errorf("cannot load genesis data in base state: %w", err)
+		return false, fmt.Errorf("cannot load genesis data in base state: %w", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 // InitNode initialise the node with the given Config
@@ -125,7 +136,7 @@ func InitNode(config *cfg.Config) error {
 
 // InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
-func (*nodeBuilder) initNode(config *cfg.Config) error {
+func (nodeBuilder) initNode(config *cfg.Config) error {
 	globalLogLevel, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
 		return fmt.Errorf("failed to parse log level: %w", err)
@@ -206,7 +217,7 @@ func (*nodeBuilder) initNode(config *cfg.Config) error {
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return "", err
 	}
@@ -244,7 +255,12 @@ func newNode(config *cfg.Config,
 		debug.SetGCPercent(prev)
 	}
 
-	if builder.isNodeInitialised(config.BasePath) != nil {
+	isInitialised, err := builder.isNodeInitialised(config.BasePath)
+	if err != nil {
+		return nil, fmt.Errorf("checking if node is initialised: %w", err)
+	}
+
+	if !isInitialised {
 		err := builder.initNode(config)
 		if err != nil {
 			return nil, fmt.Errorf("cannot initialise node: %w", err)
@@ -458,7 +474,7 @@ func setupTelemetry(config *cfg.Config, genesisData *genesis.Data) (mailer Telem
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	if err != nil {
 		return err
 	}
@@ -516,7 +532,7 @@ func (n *Node) Stop() {
 	}
 }
 
-func (n *nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,
+func (nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,
 	stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 	net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()

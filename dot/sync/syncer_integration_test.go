@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -70,7 +71,7 @@ func newTestSyncer(t *testing.T) *Service {
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		rtCfg.NodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
 	}
 
@@ -117,8 +118,8 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.FinalityGadget = mockFinalityGadget
 	cfg.Network = NewMockNetwork(ctrl)
 	cfg.Telemetry = mockTelemetryClient
-	mockReqRes := NewMockRequestMaker(ctrl)
-	syncer, err := NewService(cfg, mockReqRes)
+	cfg.RequestMaker = NewMockRequestMaker(ctrl)
+	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer
 }
