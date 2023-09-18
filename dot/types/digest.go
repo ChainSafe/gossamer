@@ -17,7 +17,7 @@ type DigestItem struct {
 
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewDigestItem() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{}, RuntimeEnvironmentUpdated{})
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
@@ -83,4 +83,15 @@ func (SealDigest) Index() uint { return 5 }
 // String returns the digest as a string
 func (d SealDigest) String() string {
 	return fmt.Sprintf("SealDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
+}
+
+// RuntimeEnvironmentUpdated contains is an indicator for the light clients that the runtime environment is updated
+type RuntimeEnvironmentUpdated DigestItem
+
+// Index returns VDT index
+func (RuntimeEnvironmentUpdated) Index() uint { return 8 }
+
+// String returns the digest as a string
+func (d RuntimeEnvironmentUpdated) String() string {
+	return "RuntimeEnvironmentUpdated"
 }

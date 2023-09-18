@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	digestItem = scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	digestItem = scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{}, RuntimeEnvironmentUpdated{})
 	digest     = scale.NewVaryingDataTypeSlice(digestItem)
 	testDigest = digest
 )
