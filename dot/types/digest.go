@@ -92,6 +92,6 @@ type RuntimeEnvironmentUpdated DigestItem
 func (RuntimeEnvironmentUpdated) Index() uint { return 8 }
 
 // String returns the digest as a string
-func (d RuntimeEnvironmentUpdated) String() string {
+func (RuntimeEnvironmentUpdated) String() string {
 	return "RuntimeEnvironmentUpdated"
 }
