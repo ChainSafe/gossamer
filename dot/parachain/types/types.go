@@ -225,6 +225,15 @@ type OutboundHrmpMessage struct {
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 
+func (vc ValidationCode) Hash() (ValidationCodeHash, error) {
+	hash, err := common.Blake2bHash(vc)
+	if err != nil {
+		return ValidationCodeHash{}, fmt.Errorf("hashing validation code: %w", err)
+	}
+
+	return ValidationCodeHash(hash), nil
+}
+
 // CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
 type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
@@ -241,8 +250,21 @@ type CandidateCommitments struct {
 	HrmpWatermark uint32 `scale:"6"`
 }
 
+func (c CandidateCommitments) Hash() (common.Hash, error) {
+	encoded, err := scale.Marshal(c)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("encoding candidate commitments: %w", err)
+	}
+
+	return common.Blake2bHash(encoded)
+}
+
 // SessionIndex is a session index.
 type SessionIndex uint32
+
+func (si SessionIndex) Bytes() []byte {
+	return common.UintToBytes(uint(si))
+}
 
 // CommittedCandidateReceipt A candidate-receipt with commitments directly included.
 type CommittedCandidateReceipt struct {
@@ -321,6 +343,16 @@ type CandidateReceipt struct {
 	Descriptor CandidateDescriptor `scale:"1"`
 	// The candidate event.
 	CommitmentsHash common.Hash `scale:"2"`
+}
+
+// Hash computes the blake2-256 hash of the receipt.
+func (cr CandidateReceipt) Hash() (common.Hash, error) {
+	enc, err := scale.Marshal(cr)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("encode candidate receipt: %w", err)
+	}
+
+	return common.Blake2bHash(enc)
 }
 
 // HeadData Parachain head data included in the chain.

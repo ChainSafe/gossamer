@@ -6,9 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/tidwall/btree"
 )
 
@@ -28,20 +25,6 @@ var (
 	// errorPriorityQueueFull is returned when the priority queue is full and the request could not be processed
 	errorPriorityQueueFull = errors.New("priority queue is full")
 )
-
-// CandidateComparator comparator for ordering of disputes for candidate.
-type CandidateComparator struct {
-	relayParentBlockNumber *uint32
-	candidateHash          common.Hash
-}
-
-// ParticipationRequest a dispute participation request
-type ParticipationRequest struct {
-	candidateHash    common.Hash
-	candidateReceipt parachain.CandidateReceipt
-	session          parachain.SessionIndex
-	//TODO: requestTimer for metrics
-}
 
 // ParticipationItem implements btree.Item
 type ParticipationItem struct {
