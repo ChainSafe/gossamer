@@ -320,6 +320,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 	})
 
 	t.Run("cannot_participate_if_cannot_recover_validation_code", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -377,6 +378,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 	})
 
 	t.Run("cast_invalid_vote_if_available_data_is_invalid", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -424,6 +426,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 	})
 
 	t.Run("cast_invalid_vote_if_validation_fails_or_is_invalid", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
