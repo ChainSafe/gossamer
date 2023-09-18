@@ -6,6 +6,7 @@ package overseer
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 )
@@ -93,7 +94,10 @@ func (o *Overseer) Stop() error {
 		return nil
 	}
 	close(o.stopCh)
-	o.wg.Wait()
+	timeout := 5 * time.Second
+
+	waitTimeout(&o.wg, timeout)
+
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
 	o.stopCh = nil
@@ -105,4 +109,18 @@ func (o *Overseer) sendActiveLeavesUpdate(update *ActiveLeavesUpdate, subsystem 
 	//for _, context := range o.subsystems {
 	//	context.Receiver <- update
 	//}
+}
+
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }
