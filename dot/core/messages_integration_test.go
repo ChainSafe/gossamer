@@ -16,11 +16,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/golang/mock/gomock"
@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
@@ -41,7 +41,8 @@ func createExtrinsic(t *testing.T, rt RuntimeInstance, genHash common.Hash, nonc
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	rv := rt.Version()
+	rv, err := rt.Version()
+	require.NoError(t, err)
 
 	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
@@ -103,6 +104,15 @@ func TestService_HandleBlockProduced(t *testing.T) {
 		Body: *types.NewBody([]types.Extrinsic{}),
 	}
 
+	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportHandlerMock.EXPECT().HandleDigests(&newBlock.Header).Return(nil)
+
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&newBlock.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportHandlerMock
+	s.grandpaState = mockGrandpaState
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
@@ -136,15 +146,14 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	net := NewMockNetwork(ctrl)
-	net.EXPECT().GossipMessage(gomock.AssignableToTypeOf(new(network.TransactionMessage))).AnyTimes()
-	net.EXPECT().IsSynced().Return(true).AnyTimes()
+	net.EXPECT().IsSynced().Return(true).Times(2)
 	net.EXPECT().ReportPeer(
 		gomock.AssignableToTypeOf(peerset.ReputationChange{}),
 		gomock.AssignableToTypeOf(peer.ID("")),
-	).AnyTimes()
+	)
 
 	cfg := &Config{
 		Keystore:         ks,
@@ -165,7 +174,20 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+	babeConfig, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	currentTimestamp := uint64(time.Now().UnixMilli())
+	currentSlot := currentTimestamp / babeConfig.SlotDuration
+
+	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlot, currentTimestamp)
+	onBlockImportDigestHandlerMock := NewMockBlockImportDigestHandler(ctrl)
+	onBlockImportDigestHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
+
+	s.onBlockImport = onBlockImportDigestHandlerMock
+	s.grandpaState = mockGrandpaState
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

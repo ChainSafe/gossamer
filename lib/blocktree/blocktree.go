@@ -10,19 +10,30 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
+
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/maps"
 )
 
+var logger = log.NewFromGlobal(log.AddContext("pkg", "blocktree"))
 var (
 	leavesGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_block",
 		Name:      "leaves_total",
 		Help:      "total number of blocktree leaves",
 	})
+	inMemoryRuntimesGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_blocktree",
+		Name:      "runtimes_total",
+		Help:      "total number of runtimes stored in the in-memory blocktree",
+	})
 	errAncestorOutOfBoundsCheck = errors.New("out of bounds ancestor check")
+	ErrRuntimeNotFound          = errors.New("runtime not found")
 )
 
 // Hash common.Hash
@@ -258,6 +269,25 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 		return pruned
 	}
 
+	// Cleanup in-memory runtimes from the canonical chain.
+	// The runtime used in the newly finalised block is kept
+	// instantiated in memory, and all other runtimes are
+	// stopped and removed from memory. Note these are still
+	// accessible through the storage as WASM blob.
+	previousFinalisedBlock := bt.root
+	newCanonicalChainBlocksCount := n.number - previousFinalisedBlock.number
+	if previousFinalisedBlock.number == 0 { // include the genesis block
+		newCanonicalChainBlocksCount++
+	}
+	canonicalChainBlock := n
+	newCanonicalChainBlockHashes := make([]common.Hash, newCanonicalChainBlocksCount)
+	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- {
+		newCanonicalChainBlockHashes[i] = canonicalChainBlock.hash
+		canonicalChainBlock = canonicalChainBlock.parent
+	}
+
+	bt.runtimes.onFinalisation(newCanonicalChainBlockHashes)
+
 	pruned = bt.root.prune(n, nil)
 	bt.root = n
 	bt.root.parent = nil
@@ -266,10 +296,6 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.leaves = newEmptyLeafMap()
 	for _, leaf := range leaves {
 		bt.leaves.store(leaf.hash, leaf)
-	}
-
-	for _, hash := range pruned {
-		bt.runtimes.delete(hash)
 	}
 
 	leavesGauge.Set(float64(len(bt.leaves.nodes())))
@@ -291,7 +317,7 @@ func (bt *BlockTree) String() string {
 
 	// Format leaves
 	var leaves string
-	bt.leaves.smap.Range(func(hash, node interface{}) bool {
+	bt.leaves.smap.Range(func(hash, _ interface{}) bool {
 		leaves = leaves + fmt.Sprintf("%s\n", hash.(Hash))
 		return true
 	})
@@ -330,17 +356,22 @@ func (bt *BlockTree) BestBlockHash() Hash {
 
 // IsDescendantOf returns true if the child is a descendant of parent, false otherwise.
 // it returns an error if either the child or parent are not in the blocktree.
+// If parent and child are the same, we return true.
 func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
+	if parent == child {
+		return true, nil
+	}
+
 	bt.RLock()
 	defer bt.RUnlock()
 
 	pn := bt.getNode(parent)
 	if pn == nil {
-		return false, ErrStartNodeNotFound
+		return false, fmt.Errorf("%w: node hash %s", ErrStartNodeNotFound, parent)
 	}
 	cn := bt.getNode(child)
 	if cn == nil {
-		return false, ErrEndNodeNotFound
+		return false, fmt.Errorf("%w: node hash %s", ErrEndNodeNotFound, child)
 	}
 	return cn.isDescendantOf(pn), nil
 }
@@ -351,15 +382,7 @@ func (bt *BlockTree) Leaves() []Hash {
 	defer bt.RUnlock()
 
 	lm := bt.leaves.toMap()
-	la := make([]common.Hash, len(lm))
-	i := 0
-
-	for k := range lm {
-		la[i] = k
-		i++
-	}
-
-	return la
+	return maps.Keys(lm)
 }
 
 // LowestCommonAncestor returns the lowest common ancestor block hash between two blocks in the tree.
@@ -416,7 +439,7 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 	return bt.root.getAllDescendants(nil)
 }
 
-// GetAllDescendants returns all block hashes that are descendants of the given block hash.
+// GetAllDescendants returns all block hashes that are descendants of the given block hash (including itself).
 func (bt *BlockTree) GetAllDescendants(hash common.Hash) ([]Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
@@ -505,15 +528,38 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bt *BlockTree) StoreRuntime(hash common.Hash, in Runtime) {
-	bt.runtimes.set(hash, in)
+func (bt *BlockTree) StoreRuntime(hash common.Hash, instance runtime.Instance) {
+	bt.runtimes.set(hash, instance)
 }
 
-// GetBlockRuntime returns block runtime for corresponding block hash.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (Runtime, error) {
-	ins := bt.runtimes.get(hash)
-	if ins == nil {
-		return nil, ErrFailedToGetRuntime
+// GetBlockRuntime returns the runtime corresponding to the given block hash. If there is no instance for
+// the given block hash it will lookup an instance of an ancestor and return it.
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
+	// if the current node contains a runtime entry in the runtime mapping
+	// then we early return the instance, otherwise we will lookup for the
+	// closest parent with a runtime instance entry in the mapping
+	runtimeInstance := bt.runtimes.get(hash)
+	if runtimeInstance != nil {
+		return runtimeInstance, nil
 	}
-	return ins, nil
+
+	bt.RLock()
+	defer bt.RUnlock()
+
+	currentNode := bt.getNode(hash)
+	if currentNode == nil {
+		return nil, fmt.Errorf("%w: for block hash %s", ErrNodeNotFound, hash)
+	}
+
+	currentNode = currentNode.parent
+	for currentNode != nil {
+		runtimeInstance := bt.runtimes.get(currentNode.hash)
+		if runtimeInstance != nil {
+			return runtimeInstance, nil
+		}
+
+		currentNode = currentNode.parent
+	}
+
+	return nil, nil
 }

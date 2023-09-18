@@ -4,98 +4,31 @@
 package kusama
 
 import (
-	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	cfg "github.com/ChainSafe/gossamer/config"
 )
 
 var (
-	// GlobalConfig
-
-	// DefaultName Default node name
-	DefaultName = string("Kusama")
-	// DefaultID Default chain ID
-	DefaultID = string("ksmcc3")
-	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/kusama/config.toml")
-	// DefaultBasePath Default node base directory path
-	DefaultBasePath = string("~/.gossamer/kusama")
-
-	// DefaultMetricsAddress is the default metrics server listening address.
-	DefaultMetricsAddress = "localhost:9876"
-
-	// DefaultLvl is the default log level
-	DefaultLvl = log.Info
-
-	// DefaultPruningMode is the default pruning mode
-	DefaultPruningMode = "archive"
-	// DefaultRetainBlocks is the default retained blocks
-	DefaultRetainBlocks = uint32(512)
-
-	// DefaultTelemetryURLs is the default URL of the telemetry server to connect to.
-	DefaultTelemetryURLs []genesis.TelemetryEndpoint
-
-	// InitConfig
-
-	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/kusama/genesis.json")
-
-	// AccountConfig
-
-	// DefaultKey Default account key
-	DefaultKey = string("")
-	// DefaultUnlock Default account unlock
-	DefaultUnlock = string("")
-
-	// CoreConfig
-
-	// DefaultAuthority true if BABE block producer
-	DefaultAuthority = false
-	// DefaultRoles Default node roles
-	DefaultRoles = common.FullNodeRole // full node (see Table D.2)
-	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default
-	DefaultWasmInterpreter = wasmer.Name
-
-	// NetworkConfig
-
-	// DefaultNetworkPort network port
-	DefaultNetworkPort = uint16(7001)
-	// DefaultNetworkBootnodes network bootnodes
-	DefaultNetworkBootnodes = []string(nil)
-	// DefaultNoBootstrap disables bootstrap
-	DefaultNoBootstrap = false
-	// DefaultNoMDNS disables mDNS discovery
-	DefaultNoMDNS = false
-
-	// RPCConfig
-
-	// DefaultRPCHTTPHost rpc host
-	DefaultRPCHTTPHost = string("localhost")
-	// DefaultRPCHTTPPort rpc port
-	DefaultRPCHTTPPort = uint32(8545)
-	// DefaultRPCModules rpc modules
-	DefaultRPCModules = []string{
-		"system", "author", "chain",
-		"state", "rpc", "grandpa",
-		"offchain", "childstate", "syncstate",
-		"payment",
-	}
-	// DefaultRPCWSPort rpc websocket port
-	DefaultRPCWSPort = uint32(8546)
+	// defaultName Default node name
+	defaultName = "Kusama"
+	// defaultID Default chain ID
+	defaultID = "ksmcc3"
+	// defaultBasePath Default node base directory path
+	defaultBasePath = "~/.gossamer/kusama"
+	// defaultChainSpec is the default chain-spec json path
+	defaultChainSpec = "./chain/kusama/genesis.json"
 )
 
-const (
-	// PprofConfig
+// DefaultConfig returns a kusama node configuration
+func DefaultConfig() *cfg.Config {
+	config := cfg.DefaultConfig()
+	config.BasePath = defaultBasePath
+	config.ID = defaultID
+	config.Name = defaultName
+	config.ChainSpec = defaultChainSpec
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.Core.Role = 1
+	config.Network.NoMDNS = false
 
-	// DefaultPprofListeningAddress default pprof HTTP server listening address.
-	DefaultPprofListeningAddress = "localhost:6060"
-
-	// DefaultPprofBlockRate default block profile rate.
-	// Set to 0 to disable profiling.
-	DefaultPprofBlockRate = 0
-
-	// DefaultPprofMutexRate default mutex profile rate.
-	// Set to 0 to disable profiling.
-	DefaultPprofMutexRate = 0
-)
+	return config
+}

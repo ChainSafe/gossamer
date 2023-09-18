@@ -28,9 +28,6 @@ func Test_Digest_String(t *testing.T) {
 		"all_digests": {
 			digestBuilder: func() scale.VaryingDataTypeSlice {
 				digest := NewDigest()
-				digest.Add(ChangesTrieRootDigest{
-					Hash: common.Hash{1},
-				})
 				digest.Add(PreRuntimeDigest{
 					ConsensusEngineID: ConsensusEngineID{'a', 'b', 'c', 'd'},
 					Data:              []byte{1, 2, 3, 4},
@@ -46,7 +43,6 @@ func Test_Digest_String(t *testing.T) {
 				return digest
 			},
 			s: "[" +
-				"ChangesTrieRootDigest Hash=0x0100000000000000000000000000000000000000000000000000000000000000, " +
 				"PreRuntimeDigest ConsensusEngineID=abcd Data=0x01020304, " +
 				"ConsensusDigest ConsensusEngineID=ffgg Data=0x0506, " +
 				"SealDigest ConsensusEngineID=xywz Data=0x0708" +
@@ -139,36 +135,6 @@ func TestDecodeDigest(t *testing.T) {
 	enc, err := scale.Marshal(v)
 	require.NoError(t, err)
 	require.Equal(t, d, enc)
-}
-
-func TestChangesTrieRootDigest(t *testing.T) {
-	exp := common.MustHexToBytes("0x02005b3219d65e772447d8219855b822783da1a4df4c3528f64c26ebcc2b1fb31c")
-	d := ChangesTrieRootDigest{
-		Hash: common.Hash{
-			0, 91, 50, 25, 214, 94, 119, 36, 71,
-			216, 33, 152, 85, 184, 34, 120, 61,
-			161, 164, 223, 76, 53, 40, 246, 76,
-			38, 235, 204, 43, 31, 179, 28},
-	}
-
-	di := NewDigestItem()
-	err := di.Set(d)
-	require.NoError(t, err)
-
-	enc, err := scale.Marshal(di)
-	require.NoError(t, err)
-
-	require.Equal(t, exp, enc)
-
-	v := NewDigestItem()
-	err = scale.Unmarshal(enc, &v)
-	require.NoError(t, err)
-
-	diValue, err := di.Value()
-	require.NoError(t, err)
-	vValue, err := v.Value()
-	require.NoError(t, err)
-	require.Equal(t, diValue, vValue)
 }
 
 func TestPreRuntimeDigest(t *testing.T) {

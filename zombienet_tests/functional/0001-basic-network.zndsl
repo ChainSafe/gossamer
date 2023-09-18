@@ -1,0 +1,15 @@
+Description: Small Network test
+Network: ./0001-basic-network.toml
+Creds: config
+
+# metrics
+alice: reports gossamer_network_node_peer_count_total is 2 within 30 seconds
+alice: reports gossamer_network_syncer_is_synced is 1 within 30 seconds
+bob: reports gossamer_network_node_peer_count_total is 2 within 30 seconds
+bob: reports gossamer_network_syncer_is_synced is 1 within 30 seconds
+charlie: reports gossamer_network_node_peer_count_total is 2 within 30 seconds
+charlie: reports gossamer_network_syncer_is_synced is 1 within 30 seconds
+
+alice: log line matches "built block [0-9]+" within 30 seconds
+bob: log line matches "built block [0-9]+" within 30 seconds
+charlie: log line matches "built block [0-9]+" within 30 seconds

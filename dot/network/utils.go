@@ -6,7 +6,6 @@ package network
 import (
 	crand "crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	mrand "math/rand"
@@ -22,7 +21,7 @@ import (
 
 const (
 	// maxBlockRequestSize              uint64 = 1024 * 1024      // 1mb
-	maxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
+	MaxBlockResponseSize uint64 = 1024 * 1024 * 16 // 16mb
 	// MaxGrandpaNotificationSize is maximum size for a grandpa notification message.
 	MaxGrandpaNotificationSize       uint64 = 1024 * 1024      // 1mb
 	maxTransactionsNotificationSize  uint64 = 1024 * 1024 * 16 // 16mb
@@ -150,11 +149,7 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
-	if len(buf) == 0 {
-		return 0, 0, errors.New("buffer has length 0")
-	}
-
+func readLEB128ToUint64(r io.Reader) (uint64, int, error) {
 	var out uint64
 	var shift uint
 
@@ -162,14 +157,16 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 	bytesRead := 0
 
 	for {
-		n, err := r.Read(buf[:1])
+		// read a sinlge byte
+		singleByte := []byte{0}
+		n, err := r.Read(singleByte)
 		if err != nil {
 			return 0, bytesRead, err
 		}
 
 		bytesRead += n
 
-		b := buf[0]
+		b := singleByte[0]
 		out |= uint64(0x7F&b) << shift
 		if b&0x80 == 0 {
 			break
@@ -177,7 +174,7 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 
 		maxSize--
 		if maxSize == 0 {
-			return 0, bytesRead, fmt.Errorf("invalid LEB128 encoded data")
+			return 0, bytesRead, ErrInvalidLEB128EncodedData
 		}
 
 		shift += 7
@@ -186,17 +183,12 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, int, error) {
 }
 
 // readStream reads from the stream into the given buffer, returning the number of bytes read
-func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64) (int, error) {
+func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64) (tot int, err error) {
 	if stream == nil {
-		return 0, errors.New("stream is nil")
+		return 0, ErrNilStream
 	}
 
-	var (
-		tot int
-	)
-
-	buf := *bufPointer
-	length, bytesRead, err := readLEB128ToUint64(stream, buf[:1])
+	length, bytesRead, err := readLEB128ToUint64(stream)
 	if err != nil {
 		return bytesRead, fmt.Errorf("failed to read length: %w", err)
 	}
@@ -205,32 +197,30 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64)
 		return 0, nil // msg length of 0 is allowed, for example transactions handshake
 	}
 
+	buf := *bufPointer
 	if length > uint64(len(buf)) {
-		extraBytes := int(length) - len(buf)
-		*bufPointer = append(buf, make([]byte, extraBytes)...) // TODO #2288 use bytes.Buffer instead
 		logger.Warnf("received message with size %d greater than allocated message buffer size %d", length, len(buf))
+		extraBytes := int(length) - len(buf)
+		*bufPointer = append(buf, make([]byte, extraBytes)...)
+		buf = *bufPointer
 	}
 
 	if length > maxSize {
 		logger.Warnf("received message with size %d greater than max size %d, closing stream", length, maxSize)
-		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
+		return 0, fmt.Errorf("%w: max %d, got %d", ErrGreaterThanMaxSize, maxSize, length)
 	}
 
-	tot = 0
-	for i := 0; i < maxReads; i++ {
+	for tot < int(length) {
 		n, err := stream.Read(buf[tot:])
 		if err != nil {
 			return n + tot, err
 		}
 
 		tot += n
-		if tot == int(length) {
-			break
-		}
 	}
 
 	if tot != int(length) {
-		return tot, fmt.Errorf("failed to read entire message: expected %d bytes, received %d bytes", length, tot)
+		return tot, fmt.Errorf("%w: expected %d bytes, received %d bytes", ErrFailedToReadEntireMessage, length, tot)
 	}
 
 	return tot, nil

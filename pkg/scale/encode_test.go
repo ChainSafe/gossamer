@@ -82,7 +82,7 @@ func Test_MustMarshal(t *testing.T) {
 		assert.Equal(t, []byte{4, 1}, b)
 	})
 
-	t.Run("panics on error", func(t *testing.T) {
+	t.Run("panics_on_error", func(t *testing.T) {
 		t.Parallel()
 
 		const expected = "unsupported type: chan struct {}"
@@ -598,9 +598,18 @@ var (
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
+			name: "struct_{[]byte,_int32}_with_invalid_tag",
+			in: &struct {
+				Foo []byte `scale:"1,invalid"`
+			}{
+				Foo: []byte{0x01},
+			},
+			wantErr: true,
+		},
+		{
 			name: "struct_{[]byte,_int32,_bool}",
 			in: struct {
-				Baz bool   `scale:"3,enum"`
+				Baz bool   `scale:"3"`
 				Bar int32  `scale:"2"`
 				Foo []byte `scale:"1"`
 			}{
@@ -1073,8 +1082,12 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
+
+			// we don't need this check for error cases
+			if !tt.wantErr {
+				if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+					t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
+				}
 			}
 		})
 	}
@@ -1182,8 +1195,12 @@ func Test_marshal_optionality(t *testing.T) {
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
+
+			// if we expect an error, we do not need to check the result
+			if !tt.wantErr {
+				if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
+					t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", buffer.Bytes(), tt.want)
+				}
 			}
 		})
 	}
@@ -1195,9 +1212,6 @@ func Test_marshal_optionality_nil_cases(t *testing.T) {
 		t := allTests[i]
 		ptrTest := test{
 			name: t.name,
-			// in:      t.in,
-			wantErr: t.wantErr,
-			want:    t.want,
 		}
 		// create a new pointer to new zero value of t.in
 		temp := reflect.New(reflect.TypeOf(t.in))

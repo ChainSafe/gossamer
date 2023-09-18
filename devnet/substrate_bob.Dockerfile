@@ -1,8 +1,9 @@
 # Copyright 2022 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
-ARG POLKADOT_VERSION=v0.9.10
 
-FROM golang:1.19 as openmetrics
+ARG POLKADOT_VERSION=v0.9.37
+
+FROM golang:1.20 as openmetrics
 
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
@@ -16,9 +17,7 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
-ARG POLKADOT_VERSION
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
+ARG CHAIN=westend-local
 ARG DD_API_KEY=somekey
 ARG key
 
@@ -42,11 +41,11 @@ COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.
 
 USER polkadot
 
-COPY ./devnet/chain ./chain/
+COPY ./chain/ ./chain/
 
-ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
+ENTRYPOINT  service datadog-agent start && /usr/bin/polkadot \
     --bootnodes /dns/alice/tcp/7001/p2p/12D3KooWMER5iow67nScpWeVqEiRRx59PJ3xMMAYPTACYPRQbbWU \
-    --chain chain/$CHAIN/genesis-raw.json \
+    --chain chain/$CHAIN/$CHAIN-spec-raw.json \
     --port 7001 \
     --rpc-port 8545 \
     --ws-port 8546 \

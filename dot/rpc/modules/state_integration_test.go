@@ -24,33 +24,39 @@ import (
 
 const (
 	RandomHash     = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
-	ErrKeyNotFound = "Key not found"
+	ErrKeyNotFound = "pebble: not found"
 )
 
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
-	// expected results based on responses from prior tests
+	/* expected results based on responses from prior tests
+	We can get this data from polkadot runtime release source code
+	https://github.com/paritytech/polkadot/blob/v0.9.29/runtime/westend/src/lib.rs#L105-L117
+	*/
 	expected := StateRuntimeVersionResponse{
-		SpecName:         "node",
-		ImplName:         "substrate-node",
-		AuthoringVersion: 10,
-		SpecVersion:      264,
+		SpecName:         "westend",
+		ImplName:         "parity-westend",
+		AuthoringVersion: 2,
+		SpecVersion:      9290,
 		ImplVersion:      0,
 		Apis: []interface{}{
-			[]interface{}{"0xdf6acb689907609b", uint32(3)},
+			[]interface{}{"0xdf6acb689907609b", uint32(4)},
 			[]interface{}{"0x37e397fc7c91f5e4", uint32(1)},
-			[]interface{}{"0x40fe3ad401f8959a", uint32(4)},
-			[]interface{}{"0xd2bc9897eed08f15", uint32(2)},
+			[]interface{}{"0x40fe3ad401f8959a", uint32(6)},
+			[]interface{}{"0xd2bc9897eed08f15", uint32(3)},
 			[]interface{}{"0xf78b278be53f454c", uint32(2)},
-			[]interface{}{"0xed99c5acb25eedf5", uint32(2)},
+			[]interface{}{"0xaf2c0297a23e6d3d", uint32(2)},
+			[]interface{}{"0x49eaaf1b548a0cb0", uint32(1)},
+			[]interface{}{"0x91d5df18b0d2cf58", uint32(1)},
+			[]interface{}{"0xed99c5acb25eedf5", uint32(3)},
 			[]interface{}{"0xcbca25e39f142387", uint32(2)},
 			[]interface{}{"0x687ad44ad37f03c2", uint32(1)},
-			[]interface{}{"0xbc9d89904f5b923f", uint32(1)},
-			[]interface{}{"0x68b66ba122c93fa7", uint32(1)},
-			[]interface{}{"0x37c8bb1350a9a2a8", uint32(1)},
-			[]interface{}{"0x91d5df18b0d2cf58", uint32(1)},
 			[]interface{}{"0xab3c0572291feb8b", uint32(1)},
+			[]interface{}{"0xbc9d89904f5b923f", uint32(1)},
+			[]interface{}{"0x37c8bb1350a9a2a8", uint32(1)},
+			[]interface{}{"0xf3ff14d5ab527059", uint32(1)},
+			[]interface{}{"0x17a6bc0d0062aeb3", uint32(1)},
 		},
-		TransactionVersion: 2,
+		TransactionVersion: 12,
 	}
 
 	sm, hash, _ := setupStateModule(t)
@@ -99,20 +105,31 @@ func TestStateModule_GetPairs(t *testing.T) {
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
+	hexEncode := func(s string) string {
+		return "0x" + hex.EncodeToString([]byte(s))
+	}
+
 	testCases := []struct {
 		params   []string
 		expected []interface{}
 		errMsg   string
 	}{
 		{params: []string{"0x00"}, expected: nil},
-		{params: []string{""}, expected: []interface{}{[]string{":key1", "value1"}, []string{":key2", "value2"}}},
-		{params: []string{":key1"}, expected: []interface{}{[]string{":key1", "value1"}}},
+		{params: []string{""}, expected: []interface{}{
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1")}, expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
 		{params: []string{"0x00", hash.String()}, expected: nil},
 		{params: []string{"", hash.String()}, expected: []interface{}{
-			[]string{":key1", "value1"},
-			[]string{":key2", "value2"}}},
-		{params: []string{":key1", hash.String()}, expected: []interface{}{[]string{":key1", "value1"}}},
-		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
+			[]string{hexEncode(":child_storage:default::child1"),
+				"0x8f733acc98dff0e6527f97e2a87e4834cd8b2e601f56fb003084e9d43183d7ff"},
+			[]string{hexEncode(":key1"), hexEncode("value1")},
+			[]string{hexEncode(":key2"), hexEncode("value2")}}},
+		{params: []string{hexEncode(":key1"), hash.String()},
+			expected: []interface{}{[]string{hexEncode(":key1"), hexEncode("value1")}}},
+		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -128,6 +145,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 			if len(test.params) > 1 && test.params[1] != "" {
 				req.Bhash = &common.Hash{}
+				var err error
 				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
@@ -154,10 +172,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 				// Convert human-readable result value to hex.
 				expectedKV, _ := val.([]string)
-				expectedKey := "0x" + hex.EncodeToString([]byte(expectedKV[0]))
-				expectedVal := "0x" + hex.EncodeToString([]byte(expectedKV[1]))
-
-				require.Equal(t, []string{expectedKey, expectedVal}, kv)
+				require.Equal(t, []string{expectedKV[0], expectedKV[1]}, kv)
 			}
 		})
 	}
@@ -176,7 +191,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 		{params: []string{""}, expected: nil},
 		{params: []string{":key1"}, expected: []byte("value1")},
 		{params: []string{":key1", hash.String()}, expected: []byte("value1")},
-		{params: []string{"", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -229,7 +244,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 		{params: []string{""}, expected: hashOfNil},
 		{params: []string{":key1"}, expected: hash1},
 		{params: []string{":key1", hash.String()}, expected: hash1},
-		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"0x", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -274,7 +289,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 		{params: []string{""}},
 		{params: []string{":key1"}, expected: 6},
 		{params: []string{":key1", hash.String()}, expected: 6},
-		{params: []string{"0x", randomHash.String()}, errMsg: "Key not found"},
+		{params: []string{"0x", randomHash.String()}, errMsg: "pebble: not found"},
 	}
 
 	for _, test := range testCases {
@@ -307,7 +322,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 }
 
 func TestStateModule_QueryStorage(t *testing.T) {
-	t.Run("When starting block is empty", func(t *testing.T) {
+	t.Run("When_starting_block_is_empty", func(t *testing.T) {
 		module := new(StateModule)
 		req := new(StateStorageQueryRangeRequest)
 
@@ -316,7 +331,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		require.Error(t, err, "the start block hash cannot be an empty value")
 	})
 
-	t.Run("When blockAPI returns error", func(t *testing.T) {
+	t.Run("When_blockAPI_returns_error", func(t *testing.T) {
 		mockError := errors.New("mock test error")
 		ctrl := gomock.NewController(t)
 		mockBlockAPI := NewMockBlockAPI(ctrl)
@@ -332,7 +347,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		assert.ErrorIs(t, err, mockError)
 	})
 
-	t.Run("When QueryStorage returns data", func(t *testing.T) {
+	t.Run("When_QueryStorage_returns_data", func(t *testing.T) {
 		expectedChanges := [][2]*string{
 			makeChange("0x90", stringToHex("value")),
 			makeChange("0x80", stringToHex("another value")),
@@ -440,17 +455,22 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: nil,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "allKeysTestBlockHash",
 			params: StateStorageKeyRequest{
 				Qty:   10,
 				Block: stateRootHash,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchAll",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b6579",
 				Qty:    10,
-			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+			}, expected: []string{
+				"0x3a6b657931", "0x3a6b657932"}},
 		{name: "prefixMatchOne",
 			params: StateStorageKeyRequest{
 				Prefix: "0x3a6b657931",
@@ -464,7 +484,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 		{name: "qtyOne",
 			params: StateStorageKeyRequest{
 				Qty: 1,
-			}, expected: []string{"0x3a6b657931"}},
+			}, expected: []string{"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431"}},
 		{name: "afterKey",
 			params: StateStorageKeyRequest{
 				Qty:      10,
@@ -545,9 +565,14 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	ts.Put([]byte(`:key2`), []byte(`value2`))
-	ts.Put([]byte(`:key1`), []byte(`value1`))
-	ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	err = ts.Put([]byte(`:key2`), []byte(`value2`))
+	require.NoError(t, err)
+
+	err = ts.Put([]byte(`:key1`), []byte(`value1`))
+	require.NoError(t, err)
+
+	err = ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
+	require.NoError(t, err)
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)

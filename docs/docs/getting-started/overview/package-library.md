@@ -100,7 +100,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `lib/transaction`
 
-- the **transaction package** is contains transaction types and the transaction queue data structure.
+- the **transaction package** contains transaction types and the transaction queue data structure.
 
 #### `lib/trie`
 

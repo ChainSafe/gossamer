@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -20,7 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -42,20 +43,10 @@ var (
 		Number: 0,
 		Digest: types.NewDigest(),
 	}
-
-	genesisBABEConfig = &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
 )
 
-// NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
+// newTestCoreService creates a new test core service
+func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	genesisTrie trie.Trie, genesisHeader types.Header) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -117,7 +108,7 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	}
 
 	if cfg.Runtime == nil {
-		var rtCfg wasmer.Config
+		var rtCfg wazero_runtime.Config
 
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -130,13 +121,13 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			nodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 			require.NoError(t, err)
 		}
 
 		rtCfg.NodeStorage = nodeStorage
 
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
@@ -163,8 +154,8 @@ func NewTestService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie trie.Trie, genesisHeader types.Header) *Service {
-	wasmer.DefaultTestLogLvl = log.Error
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
+	wazero_runtime.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
 		cfg.Keypair = keyring.Alice().(*sr25519.Keypair)
@@ -194,6 +185,8 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
+	dbSrv.Transaction = state.NewTransactionState(telemetryMock)
+
 	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
 	require.NoError(t, err)
 
@@ -204,12 +197,17 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		_ = dbSrv.Stop()
 	})
 
+	// Allow for epoch state to be made from custom babe config
+	if babeConfig != nil {
+		dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), dbSrv.Block, babeConfig)
+		require.NoError(t, err)
+	}
 	cfg.BlockState = dbSrv.Block
 	cfg.StorageState = dbSrv.Storage
 	cfg.EpochState = dbSrv.Epoch
 	cfg.TransactionState = dbSrv.Transaction
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	storageState := cfg.StorageState.(*state.StorageState)
@@ -220,10 +218,12 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	nodeStorage.BaseDB = dbSrv.Base
 
 	rtCfg.NodeStorage = nodeStorage
-	runtime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rtCfg.Transaction = dbSrv.Transaction
+	runtime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
 
+	cfg.Authority = true
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(&cfg)
@@ -233,18 +233,23 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 		mockNetwork := mocks.NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(gomock.Any()).AnyTimes()
 
+		digestOnBlockImportMock := mocks.NewMockBlockImportDigestHandler(ctrl)
+		digestOnBlockImportMock.EXPECT().HandleDigests(gomock.Any()).AnyTimes()
+
 		coreConfig := core.Config{
 			BlockState:           dbSrv.Block,
 			StorageState:         storageState,
 			TransactionState:     dbSrv.Transaction,
+			GrandpaState:         dbSrv.Grandpa,
 			Runtime:              runtime,
 			Keystore:             rtCfg.Keystore,
 			Network:              mockNetwork,
 			CodeSubstitutedState: dbSrv.Base,
 			CodeSubstitutes:      make(map[common.Hash]string),
+			OnBlockImport:        digestOnBlockImportMock,
 		}
 
-		babeService.blockImportHandler = NewTestService(t, &coreConfig, genesis,
+		babeService.blockImportHandler = newTestCoreService(t, &coreConfig, genesis,
 			genesisTrie, genesisHeader)
 	}
 
@@ -277,11 +282,11 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 		_ = dbSrv.Stop()
 	})
 
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		Storage: rtstorage.NewTrieState(&genesisTrie),
 	}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	genCfg, err := rt.BabeConfiguration()
@@ -307,7 +312,8 @@ func createSecondaryVRFPreDigest(t *testing.T,
 
 func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsic,
 	bestBlockHash common.Hash) types.Extrinsic {
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
 	require.NoError(t, err)
 	var extrinsicParts [][]byte
@@ -365,7 +371,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
@@ -384,7 +390,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),

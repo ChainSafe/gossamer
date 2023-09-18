@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 // Initialise initialises the genesis state of the DB using the given storage trie.
@@ -29,19 +28,19 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to read basepath: %s", err)
 	}
 
+	if err := database.ClearDatabase(basepath); err != nil {
+		return fmt.Errorf("while cleaning database: %w", err)
+	}
+
 	// initialise database using data directory
-	db, err := utils.SetupDatabase(basepath, s.isMemDB)
+	db, err := database.LoadDatabase(basepath, s.isMemDB)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
 
 	s.db = db
 
-	if err = db.ClearAll(); err != nil {
-		return fmt.Errorf("failed to clear database: %s", err)
-	}
-
-	if err = t.WriteDirty(chaindb.NewTable(db, storagePrefix)); err != nil {
+	if err = t.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
 	}
 
@@ -73,7 +72,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storageState, err := NewStorageState(db, blockState, tries)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
@@ -88,7 +87,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths)
+	grandpaState, err := NewGrandpaStateFromGenesis(db, blockState, grandpaAuths, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
 	}
@@ -100,6 +99,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		s.Block = blockState
 		s.Epoch = epochState
 		s.Grandpa = grandpaState
+		s.Slot = NewSlotState(db)
 	} else if err = db.Close(); err != nil {
 		return fmt.Errorf("failed to close database: %s", err)
 	}
@@ -136,7 +136,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 	// write genesis trie to database
-	if err := t.WriteDirty(chaindb.NewTable(s.db, storagePrefix)); err != nil {
+	if err := t.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 
@@ -145,25 +145,21 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
 	}
 
-	if err := s.Base.storePruningData(s.PrunerCfg); err != nil {
-		return fmt.Errorf("failed to write pruning data to database: %s", err)
-	}
-
 	return nil
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (Runtime, error) {
+func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
 	genTrie := rtstorage.NewTrieState(t)
 
 	// create genesis runtime
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		LogLvl:  s.logLvl,
 		Storage: genTrie,
 	}
 
-	r, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	r, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
 	}

@@ -28,7 +28,9 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
-	tomlConfig.Init.Genesis = genesisPath
+	tomlConfig.Network.MinPeers = 1
+	tomlConfig.Network.MaxPeers = 3
+	tomlConfig.ChainSpec = genesisPath
 	nodes := node.MakeNodes(t, numberOfNodes, tomlConfig)
 
 	nodes.InitAndStartTest(ctx, t, cancel)
@@ -111,8 +113,8 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 
 		expectedResponse := modules.SystemPeersResponse{
 			// Assert they all have the same best block number and hash
-			{Roles: 4, PeerID: ""},
-			{Roles: 4, PeerID: ""},
+			{Role: 4, PeerID: ""},
+			{Role: 4, PeerID: ""},
 		}
 		for i := range response {
 			// Check randomly generated peer IDs and clear them

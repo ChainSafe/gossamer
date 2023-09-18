@@ -32,7 +32,7 @@ type BlockAnnounceMessage struct {
 }
 
 // Type returns blockAnnounceMsgType
-func (*BlockAnnounceMessage) Type() byte {
+func (*BlockAnnounceMessage) Type() MessageType {
 	return blockAnnounceMsgType
 }
 
@@ -99,7 +99,7 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
-	Roles           common.Roles
+	Roles           common.NetworkRole
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
@@ -107,7 +107,7 @@ type BlockAnnounceHandshake struct {
 
 // String formats a BlockAnnounceHandshake as a string
 func (hs *BlockAnnounceHandshake) String() string {
-	return fmt.Sprintf("BlockAnnounceHandshake Roles=%d BestBlockNumber=%d BestBlockHash=%s GenesisHash=%s",
+	return fmt.Sprintf("BlockAnnounceHandshake NetworkRole=%d BestBlockNumber=%d BestBlockHash=%s GenesisHash=%s",
 		hs.Roles,
 		hs.BestBlockNumber,
 		hs.BestBlockHash,

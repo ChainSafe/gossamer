@@ -66,9 +66,9 @@ async function main() {
     const aliceKey = keyring.addFromUri('//Alice',  { name: 'Alice default' });
     console.log(`${aliceKey.meta.name}: has address ${aliceKey.address} with publicKey [${aliceKey.publicKey}]`);
 
-    const ADDR_Bob = '0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22';
+    const ADDR_Charlie = '0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22';
 
-    const transfer = await api.tx.balances.transfer(ADDR_Bob, 12345)
+    const transfer = await api.tx.balances.transfer(ADDR_Charlie, 12345)
         .signAndSend(aliceKey);
 
     console.log(`hxHash ${transfer}`);

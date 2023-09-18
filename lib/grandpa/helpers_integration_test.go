@@ -12,12 +12,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
@@ -82,7 +84,7 @@ func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
 
 func (*testNetwork) RegisterNotificationsProtocol(
 	_ protocol.ID,
-	_ byte,
+	_ network.MessageType,
 	_ network.HandshakeGetter,
 	_ network.HandshakeDecoder,
 	_ network.HandshakeValidator,
@@ -132,26 +134,29 @@ func newTestState(t *testing.T) *state.Service {
 
 	testDatadirPath := t.TempDir()
 
-	db, err := utils.SetupDatabase(testDatadirPath, true)
+	db, err := database.LoadDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() {
+		closeErr := db.Close()
+		require.NoError(t, closeErr)
+	})
 
-	_, genTrie, _ := newTestGenesisWithTrieAndHeader(t)
+	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(&genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = storage.NewTrieState(&genTrie)
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)
 
-	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t))
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, nil, newTestVoters(t), telemetryMock)
 	require.NoError(t, err)
 
 	return &state.Service{
@@ -185,7 +190,7 @@ func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Se
 	return gs, st
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
@@ -194,7 +199,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	assert.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	assert.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})

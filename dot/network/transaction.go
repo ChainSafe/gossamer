@@ -29,7 +29,7 @@ type TransactionMessage struct {
 }
 
 // Type returns transactionMsgType
-func (*TransactionMessage) Type() byte {
+func (*TransactionMessage) Type() MessageType {
 	return transactionMsgType
 }
 

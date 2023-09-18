@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -44,9 +44,9 @@ type StorageState struct {
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
-func NewStorageState(db *chaindb.BadgerDB, blockState *BlockState,
-	tries *Tries, onlinePruner pruner.Config) (*StorageState, error) {
-	storageTable := chaindb.NewTable(db, storagePrefix)
+func NewStorageState(db database.Database, blockState *BlockState,
+	tries *Tries) (*StorageState, error) {
+	storageTable := database.NewTable(db, storagePrefix)
 
 	return &StorageState{
 		blockState:   blockState,
@@ -64,14 +64,14 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	s.tries.softSet(root, ts.Trie())
 
 	if header != nil {
-		insertedMerkleValues, deletedMerkleValues, err := ts.GetChangedNodeHashes()
+		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
 		if err != nil {
-			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
+			return fmt.Errorf("getting trie changed node hashes for block hash %s: %w", header.Hash(), err)
 		}
 
-		err = s.pruner.StoreJournalRecord(deletedMerkleValues, insertedMerkleValues, header.Hash(), int64(header.Number))
+		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
 		if err != nil {
-			return err
+			return fmt.Errorf("storing journal record: %w", err)
 		}
 	}
 

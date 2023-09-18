@@ -53,7 +53,7 @@ and start a development network.
 [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) is required
 to acquire the Gossamer source code, and
 [Make](https://tilburgsciencehub.com/building-blocks/configure-your-computer/automation-and-workflows/make/)
-is used to build it. Building Gossamer requires version 1.19 or higher of
+is used to build it. Building Gossamer requires version 1.20 or higher of
 [Golang](https://go.dev/dl/).
 
 ### Installation
@@ -80,23 +80,6 @@ make install
 ```
 
 To install Gossamer
-
-#### Troubleshooting for Apple Silicon users
-
-Apple Silicon users may encounter these errors:
-
-```sh
-undefined: cWasmerImportObjectT
-undefined: cWasmerImportFuncT
-undefined: cWasmerValueTag
-```
-
-If so, set the following
-[Golang environment variables](https://pkg.go.dev/cmd/go#hdr-Environment_variables):
-
-```sh
-GOARCH="amd64"
-```
 
 ## Use Gossamer
 
@@ -135,13 +118,13 @@ First, initialize the directory that will be used by the Gossamer node to manage
 its state:
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-dev/config.toml
+./bin/gossamer init --force --chain westend-dev
 ```
 
 Now, start Gossamer as a host for the local Westend development chain:
 
 ```sh
-./bin/gossamer --config ./chain/westend-dev/config.toml
+./bin/gossamer --chain westend-dev
 ```
 
 ### Multi-Node Development Network
@@ -151,29 +134,29 @@ and Charlie test accounts. In three separate terminals, initialize the data
 directories for the three Gossamer instances:
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-local/config-alice.toml
+./bin/gossamer init --force --chain westend-local --alice
 ```
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-local/config-bob.toml
+./bin/gossamer init --force --chain westend-local --bob
 ```
 
 ```sh
-./bin/gossamer init --force --config ./chain/westend-local/config-charlie.toml
+./bin/gossamer init --force --config westend-local --charlie
 ```
 
 Then start the three hosts:
 
 ```sh
-./bin/gossamer --config ./chain/westend-local/config-alice.toml
+./bin/gossamer --chain westend-local --alice
 ```
 
 ```sh
-./bin/gossamer --config ./chain/westend-local/config-bob.toml
+./bin/gossamer --chain westend-local --bob
 ```
 
 ```sh
-./bin/gossamer --config ./chain/westend-local/config-charlie.toml
+./bin/gossamer --chain westend-local --charlie
 ```
 
 ## Contribute

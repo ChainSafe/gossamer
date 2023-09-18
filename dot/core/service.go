@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
@@ -39,12 +39,13 @@ type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	blockAddCh chan *types.Block // for asynchronous block handling
-	sync.Mutex                   // lock for channel
+	lock       sync.Mutex        // lock for channel
 
 	// Service interfaces
 	blockState       BlockState
 	storageState     StorageState
 	transactionState TransactionState
+	grandpaState     GrandpaState
 	net              Network
 
 	// map of code substitutions keyed by block hash
@@ -52,7 +53,8 @@ type Service struct {
 	codeSubstitutedState CodeSubstitutedState
 
 	// Keystore
-	keys *keystore.GlobalKeystore
+	keys          *keystore.GlobalKeystore
+	onBlockImport BlockImportDigestHandler
 }
 
 // Config holds the configuration for the core Service.
@@ -62,12 +64,14 @@ type Config struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionState TransactionState
+	GrandpaState     GrandpaState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
-	Runtime          RuntimeInstance
+	Runtime          runtime.Instance
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
+	OnBlockImport        BlockImportDigestHandler
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -85,10 +89,12 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:           cfg.BlockState,
 		storageState:         cfg.StorageState,
 		transactionState:     cfg.TransactionState,
+		grandpaState:         cfg.GrandpaState,
 		net:                  cfg.Network,
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
+		onBlockImport:        cfg.OnBlockImport,
 	}
 
 	return srv, nil
@@ -102,8 +108,8 @@ func (s *Service) Start() error {
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	s.Lock()
-	defer s.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	s.cancel()
 	close(s.blockAddCh)
@@ -209,16 +215,27 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
+	err = s.onBlockImport.HandleDigests(&block.Header)
+	if err != nil {
+		return fmt.Errorf("on block import handle: %w", err)
+	}
+
+	err = s.grandpaState.ApplyForcedChanges(&block.Header)
+	if err != nil {
+		return fmt.Errorf("applying forced changes: %w", err)
+	}
+
 	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
-	rt, err := s.blockState.GetRuntime(block.Header.ParentHash)
+	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
 		return err
 	}
 
 	// check for runtime changes
-	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+	err = s.blockState.HandleRuntimeChanges(state, parentRuntimeInstance, block.Header.Hash())
+	if err != nil {
 		logger.Criticalf("failed to update runtime code: %s", err)
 		return err
 	}
@@ -231,8 +248,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
-		s.Lock()
-		defer s.Unlock()
+		s.lock.Lock()
+		defer s.lock.Unlock()
 		if s.ctx.Err() != nil {
 			return
 		}
@@ -263,7 +280,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
@@ -274,7 +291,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := wazero_runtime.NewInstance(code, cfg)
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}
@@ -489,7 +506,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (
 	if err != nil {
 		return version, fmt.Errorf("setting up runtime: %w", err)
 	}
-	return rt.Version(), nil
+	return rt.Version()
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
@@ -575,7 +592,10 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (
 // buildExternalTransaction builds an external transaction based on the current transaction queue API version
 // See https://github.com/paritytech/substrate/blob/polkadot-v0.9.25/primitives/transaction-pool/src/runtime_api.rs#L25-L55
 func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrinsic) (types.Extrinsic, error) {
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	if err != nil {
+		return nil, err
+	}
 	txQueueVersion, err := runtimeVersion.TaggedTransactionQueueVersion()
 	if err != nil {
 		return nil, err

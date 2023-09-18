@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -18,7 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -47,7 +48,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
 	require.NoError(t, err)
 
-	genesisTrie, err := wasmer.NewTrieFromGenesis(*gen)
+	genesisTrie, err := runtime.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	// Extrinsic and context related stuff
@@ -94,7 +95,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgStorageState := stateSrvc.Storage
 	cfgCodeSubstitutedState := stateSrvc.Base
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
@@ -105,12 +106,12 @@ func createTestService(t *testing.T, genesisFilePath string,
 
 	rtCfg.NodeStorage = nodeStorage
 
-	cfgRuntime, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	cfgRuntime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfgRuntime.GetContext().Storage.Put(aliceBalanceKey, encodedAccountInfo)
+	cfgRuntime.Context.Storage.Put(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfgRuntime.GetContext().Storage.Put(common.UpgradedToDualRefKey, []byte{1})
+	cfgRuntime.Context.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 
@@ -172,7 +173,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	var stateSrvc *state.Service
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendLocalWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil ||
 		cfg.TransactionState == nil || cfg.CodeSubstitutedState == nil {
@@ -212,7 +213,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		var rtCfg wasmer.Config
+		var rtCfg wazero_runtime.Config
 
 		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -225,13 +226,13 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		if stateSrvc != nil {
 			nodeStorage.BaseDB = stateSrvc.Base
 		} else {
-			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			nodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 			require.NoError(t, err)
 		}
 
 		rtCfg.NodeStorage = nodeStorage
 
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
@@ -257,16 +258,16 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	return s
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
-	genesisPath := utils.GetGssmrV3SubstrateGenesisRawPathTest(t)
+	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
 	genPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
 	require.NoError(t, err)
 	gen = *genPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -280,14 +281,14 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	return gen, genesisTrie, genesisHeader
 }
 
-func getGssmrRuntimeCode(t *testing.T) (code []byte) {
+func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	t.Helper()
 
 	path := utils.GetWestendDevRawGenesisPath(t)
-	gssmrGenesis, err := genesis.NewGenesisFromJSONRaw(path)
+	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	genesisTrie, err := wasmer.NewTrieFromGenesis(*gssmrGenesis)
+	genesisTrie, err := runtime.NewTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
 	trieState := rtstorage.NewTrieState(&genesisTrie)

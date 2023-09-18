@@ -11,10 +11,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -267,11 +267,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestTrieDiff(t *testing.T) {
-	cfg := &chaindb.Config{
-		DataDir: t.TempDir(),
-	}
-
-	db, err := chaindb.NewBadgerDB(cfg)
+	db, err := database.NewPebble(t.TempDir(), false)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -279,12 +275,7 @@ func TestTrieDiff(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	storageDB := chaindb.NewTable(db, "storage")
-	t.Cleanup(func() {
-		err = storageDB.Close()
-		require.NoError(t, err)
-	})
-
+	storageDB := database.NewTable(db, "storage")
 	trie := NewEmptyTrie()
 
 	var testKey = []byte("testKey")
@@ -315,9 +306,9 @@ func TestTrieDiff(t *testing.T) {
 		newTrie.Put(test.key, test.value)
 	}
 
-	deletedMerkleValues := newTrie.deltas.Deleted()
-	expectedDeletdMerkleValues := map[common.Hash]struct{}{
-		// root branch Merkle value which was modified (by its descendants).
+	deletedNodeHashes := newTrie.deltas.Deleted()
+	expectedDeletedNodeHashes := map[common.Hash]struct{}{
+		// root branch hash which was modified (by its descendants).
 		// Other nodes result in an encoding of less than 32B so they are not
 		// tracked since they are inlined in the branch.
 		{0xa9, 0x76, 0xfa, 0x55, 0x6d, 0x65, 0x24, 0x3c,
@@ -325,13 +316,13 @@ func TestTrieDiff(t *testing.T) {
 			0xe4, 0xb6, 0x8a, 0x60, 0xe5, 0x4d, 0xea, 0x68,
 			0x9c, 0xab, 0xbf, 0xbb, 0xc0, 0xfc, 0x72, 0x48}: {},
 	}
-	assert.Equal(t, expectedDeletdMerkleValues, deletedMerkleValues)
+	assert.Equal(t, expectedDeletedNodeHashes, deletedNodeHashes)
 
 	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
-	for deletedMerkleValue := range deletedMerkleValues {
-		err = storageDB.Del(deletedMerkleValue[:])
+	for deletedNodeHash := range deletedNodeHashes {
+		err = storageDB.Del(deletedNodeHash[:])
 		require.NoError(t, err)
 	}
 

@@ -11,22 +11,22 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_createRuntimeStorage(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -53,15 +53,15 @@ func Test_createRuntimeStorage(t *testing.T) {
 }
 
 func Test_createSystemService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 
 	builder := nodeBuilder{}
-	err := builder.initNode(cfg)
+	err := builder.initNode(config)
 	require.NoError(t, err)
 
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
 	type args struct {
@@ -135,7 +135,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -156,7 +156,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
@@ -165,7 +165,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	rtCfg.NodeStorage = runtime.NodeStorage{}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	stateSrvc.Block.StoreRuntime(stateSrvc.Block.BestBlockHash(), rt)

@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -354,7 +354,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt)
+	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
 		rt.Stop()
@@ -496,7 +496,7 @@ func TestLocalPeerId(t *testing.T) {
 }
 
 func TestAddReservedPeer(t *testing.T) {
-	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
+	t.Run("Test_Add_and_Remove_reserved_peers_with_success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		networkMock := mocks.NewMockNetworkAPI(ctrl)
@@ -519,7 +519,7 @@ func TestAddReservedPeer(t *testing.T) {
 		require.Nil(t, b)
 	})
 
-	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
+	t.Run("Test_Add_and_Remove_reserved_peers_without_success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		networkMock := mocks.NewMockNetworkAPI(ctrl)
@@ -546,7 +546,7 @@ func TestAddReservedPeer(t *testing.T) {
 		require.Nil(t, b)
 	})
 
-	t.Run("Test trying to add or remove peers with empty or white space request", func(t *testing.T) {
+	t.Run("Test_trying_to_add_or_remove_peers_with_empty_or_white_space_request", func(t *testing.T) {
 		sysModule := &SystemModule{}
 		require.Error(t, sysModule.AddReservedPeer(nil, &StringRequest{String: ""}, nil))
 		require.Error(t, sysModule.RemoveReservedPeer(nil, &StringRequest{String: "    "}, nil))

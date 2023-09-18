@@ -1,6 +1,6 @@
 # Gossamer Devnet
 
-Docker container and Docker Compose for a Gossamer Devnet currently with three authority nodes running the `gssmr` chain with keys `alice`, `bob` and `charlie`.
+Docker container and Docker Compose for a Gossamer Devnet currently with three authority nodes running the `westend` chain with keys `alice`, `bob` and `charlie`.
 
 ## Requirements
 
@@ -43,7 +43,7 @@ export $DD_API_KEY=YourKey
 
 There are four Docker files used in the devnet.  
 
-- `alice.Dockerfile` is the lead node and is initiated with the `babe-lead` flag to build the first block.  
+- `alice.Dockerfile` is the lead node.  
 - `bob.Dockerfile` is used for both `bob` and `charlie` and shares the same genesis as alice docker file.
 - `substrate_alice.Dockerfile` is the alice node initiated with explicit node key to keep a deterministic peer id (the same used by gossamer alice node)
 - `substrate_bob.Dockerfile` is used for `bob` and `charlie` and shares the same genesis as alice docker file.

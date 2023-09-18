@@ -65,7 +65,7 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
     go test <file_you_are_working_on>
     ```
 
-    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` pacakge, the comment would be:
+    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` package, the comment would be:
 
     ```go
     //go:generate mockgen -destination=mock_myinterface_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client

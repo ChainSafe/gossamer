@@ -1,9 +1,9 @@
 # Copyright 2022 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-ARG POLKADOT_VERSION=v0.9.10
+ARG POLKADOT_VERSION=v0.9.37
 
-FROM golang:1.19 as openmetrics
+FROM golang:1.20 as openmetrics
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
 WORKDIR /devnet
@@ -16,9 +16,7 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 FROM parity/polkadot:${POLKADOT_VERSION}
 
-ARG POLKADOT_VERSION
-# Using a genesis file with 3 authority nodes (alice, bob, charlie) generated using polkadot $POLKADOT_VERSION
-ARG CHAIN=3-auth-node-${POLKADOT_VERSION}
+ARG CHAIN=westend-local
 ARG DD_API_KEY=somekey
 
 ENV DD_API_KEY=${DD_API_KEY}
@@ -39,14 +37,14 @@ COPY --from=openmetrics /devnet/conf.yaml /etc/datadog-agent/conf.d/openmetrics.
 
 USER polkadot
 
-COPY ./devnet/chain ./chain/
+COPY ./chain/ ./chain/
 
 # The substrate node-key argument should be a 32 bytes long sr25519 secret key
 # while gossamer nodes uses a 64 bytes long sr25519 key (32 bytes long to secret key + 32 bytes long to public key).
 # Then to keep both substrate and gossamer alice nodes with the same libp2p node keys we just need to use
 # the first 32 bytes from `alice.node.key` which means the 32 bytes long sr25519 secret key used here.
 ENTRYPOINT service datadog-agent start && /usr/bin/polkadot \
-    --chain ./chain/$CHAIN/genesis-raw.json \
+    --chain chain/$CHAIN/$CHAIN-spec-raw.json \
     --alice \
     --port 7001 \
     --rpc-port 8545 \

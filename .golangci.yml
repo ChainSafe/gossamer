@@ -15,11 +15,9 @@ linters-settings:
     # report about shadowed variables
     check-shadowing: true
 
-  depguard:
-    list-type: blacklist
-    include-go-root: false
-    packages:
-      - github.com/davecgh/go-spew/spew
+  revive:
+    severity: warning
+    confidence: 0.8
 
   lll:
     # max line length, lines longer will be reported. Default is 120.
@@ -27,6 +25,13 @@ linters-settings:
     line-length: 120
     # tab width in spaces. Default to 1.
     tab-width: 1
+  
+  nilnil:
+    checked-types:
+      - func
+      - iface
+      - map
+      - chan
 
   misspell:
     locale: UK
@@ -40,7 +45,6 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - depguard
     - errcheck
     - exportloopref
     - goconst
@@ -63,7 +67,7 @@ linters:
     - unconvert
     - unparam
     - usestdlibvars
-    - varcheck
+    - unused
 
 issues:
   exclude-rules:

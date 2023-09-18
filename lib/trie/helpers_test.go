@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
 )
 
 type keyValues struct {
@@ -100,11 +101,7 @@ func makeSeededTrie(t *testing.T, size int) (
 
 func pickKeys(keyValues map[string][]byte,
 	generator *rand.Rand, n int) (keys [][]byte) {
-	allKeys := make([]string, 0, len(keyValues))
-	for key := range keyValues {
-		allKeys = append(allKeys, key)
-	}
-
+	allKeys := maps.Keys(keyValues)
 	keys = make([][]byte, n)
 	for i := range keys {
 		pickedIndex := generator.Intn(len(allKeys))

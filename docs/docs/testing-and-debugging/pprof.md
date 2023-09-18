@@ -6,7 +6,7 @@ permalink: /testing-and-debugging/pprof
 
 ## Pprof
 
-There is a built-in pprof server to faciliate profiling the program.
+There is a built-in pprof server to facilitate profiling the program.
 You can enable it with the flag `--pprofserver` or by modifying the TOML configuration file.
 
 Note it does not affect performance unless the server is queried.

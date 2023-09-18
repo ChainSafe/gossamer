@@ -7,14 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/golang/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -26,7 +25,7 @@ func newTestStorageState(t *testing.T) *StorageState {
 	tries := newTriesEmpty()
 	bs := newTestBlockState(t, tries)
 
-	s, err := NewStorageState(db, bs, tries, pruner.Config{})
+	s, err := NewStorageState(db, bs, tries)
 	require.NoError(t, err)
 	return s
 }
@@ -46,8 +45,8 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
 	ts2 := runtime.NewTrieState(trie)
-	new := ts2.Snapshot()
-	require.Equal(t, ts.Trie(), new)
+	newSnapshot := ts2.Snapshot()
+	require.Equal(t, ts.Trie(), newSnapshot)
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -168,10 +167,10 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	// initialise database using data directory
 	basepath := t.TempDir()
-	db, err := utils.SetupDatabase(basepath, false)
+	db, err := database.LoadDatabase(basepath, false)
 	require.NoError(t, err)
 
-	_, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	_, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
@@ -179,13 +178,15 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		genHeader.Hash(),
 		"0",
 	))
+	dbGetter := NewMockDBGetter(ctrl)
+	dbGetter.EXPECT().Get(gomock.Any()).Times(0)
 
 	trieRoot := &node.Node{
 		PartialKey:   []byte{1, 2},
 		StorageValue: []byte{3, 4},
 		Dirty:        true,
 	}
-	testChildTrie := trie.NewTrie(trieRoot)
+	testChildTrie := trie.NewTrie(trieRoot, dbGetter)
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
@@ -197,7 +198,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, blockState, tries, pruner.Config{})
+	storage, err := NewStorageState(db, blockState, tries)
 	require.NoError(t, err)
 
 	trieState := runtime.NewTrieState(&genTrie)

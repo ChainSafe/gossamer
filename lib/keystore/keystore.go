@@ -17,7 +17,6 @@ var (
 // Name represents a defined keystore name
 type Name string
 
-//nolint:revive
 var (
 	BabeName Name = "babe"
 	GranName Name = "gran"

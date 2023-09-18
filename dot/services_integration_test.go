@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+
 	core "github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -18,14 +20,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/pprof"
 	babe "github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
 	ks := keystore.NewGlobalKeystore()
 	ks2 := keystore.NewGlobalKeystore()
@@ -46,7 +47,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 	ks2.Babe.Insert(kr.Alice())
 
 	type args struct {
-		cfg              *Config
+		cfg              *cfg.Config
 		initStateService bool
 		ks               KeyStore
 		cs               *core.Service
@@ -61,7 +62,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 		{
 			name: "invalid_keystore",
 			args: args{
-				cfg:              cfg,
+				cfg:              config,
 				initStateService: true,
 				ks:               ks.Gran,
 			},
@@ -71,7 +72,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 		{
 			name: "empty_keystore",
 			args: args{
-				cfg:              cfg,
+				cfg:              config,
 				initStateService: true,
 				ks:               ks.Babe,
 			},
@@ -81,7 +82,7 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 		{
 			name: "base_case",
 			args: args{
-				cfg:              cfg,
+				cfg:              config,
 				initStateService: true,
 				ks:               ks2.Babe,
 			},
@@ -96,12 +97,15 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 
 			stateSrvc := newStateService(t, ctrl)
 			mockBabeBuilder := NewMockServiceBuilder(ctrl)
-			mockBabeBuilder.EXPECT().NewServiceIFace(
-				gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
-				DoAndReturn(
-					func(cfg *babe.ServiceConfig) (*babe.Service, error) {
-						return &babe.Service{}, nil
-					}).AnyTimes()
+			if tt.err == nil {
+				mockBabeBuilder.EXPECT().NewServiceIFace(
+					gomock.AssignableToTypeOf(&babe.ServiceConfig{})).
+					DoAndReturn(
+						func(cfg *babe.ServiceConfig) (*babe.Service, error) {
+							return &babe.Service{}, nil
+						})
+			}
+
 			builder := nodeBuilder{}
 			var got *babe.Service
 			if tt.args.initStateService {
@@ -154,12 +158,12 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 
 			builder := nodeBuilder{}
-			got, err := builder.createCoreService(cfg, tt.args.ks, stateSrvc, tt.args.net, tt.args.dh)
+			got, err := builder.createCoreService(config, tt.args.ks, stateSrvc, tt.args.net, tt.args.dh)
 
 			assert.ErrorIs(t, err, tt.err)
 
@@ -195,10 +199,10 @@ func Test_nodeBuilder_createNetworkService(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 
-			cfg := NewTestConfig(t)
+			config := DefaultTestWestendDevConfig(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
-			got, err := no.createNetworkService(cfg, stateSrvc, nil)
+			got, err := no.createNetworkService(config, stateSrvc, nil)
 			assert.ErrorIs(t, err, tt.err)
 			// TODO: create interface for network.NewService to handle assert.Equal test
 			if tt.expectNil {
@@ -230,12 +234,12 @@ func Test_nodeBuilder_createRPCService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
 			rpcParams := rpcServiceSettings{
-				config: cfg,
+				config: config,
 				state:  stateSrvc,
 			}
 			got, err := no.createRPCService(rpcParams)
@@ -284,7 +288,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			networkConfig := &network.Config{
@@ -295,7 +299,7 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 			networkSrvc, err := network.NewService(networkConfig)
 			require.NoError(t, err)
 			builder := nodeBuilder{}
-			got, err := builder.createGRANDPAService(cfg, stateSrvc, tt.ks, networkSrvc,
+			got, err := builder.createGRANDPAService(config, stateSrvc, tt.ks, networkSrvc,
 				nil)
 			assert.ErrorIs(t, err, tt.err)
 			// TODO: create interface for grandpa.NewService to enable testing with assert.Equal
@@ -311,11 +315,11 @@ func Test_nodeBuilder_createGRANDPAService(t *testing.T) {
 
 func Test_createRuntime(t *testing.T) {
 	t.Parallel()
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
 	type args struct {
-		cfg *Config
-		ns  runtime.NodeStorage
+		config *cfg.Config
+		ns     runtime.NodeStorage
 	}
 	tests := []struct {
 		name         string
@@ -326,10 +330,10 @@ func Test_createRuntime(t *testing.T) {
 		{
 			name: "wasmer_runtime",
 			args: args{
-				cfg: cfg,
-				ns:  runtime.NodeStorage{},
+				config: config,
+				ns:     runtime.NodeStorage{},
 			},
-			expectedType: &wasmer.Instance{},
+			expectedType: &wazero_runtime.Instance{},
 			err:          nil,
 		},
 	}
@@ -343,7 +347,7 @@ func Test_createRuntime(t *testing.T) {
 			code, err := stateSrvc.Storage.LoadCode(nil)
 			require.NoError(t, err)
 
-			got, err := createRuntime(tt.args.cfg, tt.args.ns, stateSrvc, nil, nil, code)
+			got, err := createRuntime(tt.args.config, tt.args.ns, stateSrvc, nil, nil, code)
 			assert.ErrorIs(t, err, tt.err)
 			if tt.expectedType == nil {
 				assert.Nil(t, got)
@@ -358,6 +362,17 @@ func Test_createRuntime(t *testing.T) {
 func Test_nodeBuilder_newSyncService(t *testing.T) {
 	t.Parallel()
 	finalityGadget := &grandpa.Service{}
+
+	ctrl := gomock.NewController(t)
+	stateSrvc := newStateService(t, ctrl)
+	networkConfig := &network.Config{
+		BasePath:   t.TempDir(),
+		BlockState: stateSrvc.Block,
+		RandSeed:   2,
+	}
+	networkService, err := network.NewService(networkConfig)
+	require.NoError(t, err)
+
 	type args struct {
 		fg              BlockJustificationVerifier
 		verifier        *babe.VerificationManager
@@ -377,7 +392,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 				fg:              finalityGadget,
 				verifier:        nil,
 				cs:              nil,
-				net:             nil,
+				net:             networkService,
 				telemetryMailer: nil,
 			},
 			expectNil: false,
@@ -389,11 +404,11 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := NewTestConfig(t)
+			config := DefaultTestWestendDevConfig(t)
 			ctrl := gomock.NewController(t)
 			stateSrvc := newStateService(t, ctrl)
 			no := nodeBuilder{}
-			got, err := no.newSyncService(cfg, stateSrvc, tt.args.fg, tt.args.verifier, tt.args.cs,
+			got, err := no.newSyncService(config, stateSrvc, tt.args.fg, tt.args.verifier, tt.args.cs,
 				tt.args.net, tt.args.telemetryMailer)
 			assert.ErrorIs(t, err, tt.err)
 			if tt.expectNil {
@@ -406,19 +421,21 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 }
 
 func TestCreateStateService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
+	config.ChainSpec = genFile
 
-	cfg.Init.Genesis = genFile
-
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 	require.NotNil(t, stateSrvc)
+
+	err = stateSrvc.DB().Close()
+	require.NoError(t, err)
 }
 
 func newStateServiceWithoutMock(t *testing.T) *state.Service {
@@ -431,7 +448,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -452,7 +469,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
@@ -461,7 +478,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	rtCfg.NodeStorage = runtime.NodeStorage{}
 
-	rt, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	stateSrvc.Block.StoreRuntime(stateSrvc.Block.BestBlockHash(), rt)
@@ -470,16 +487,15 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 }
 
 func TestCreateCoreService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
+	config.Core.Role = common.FullNodeRole
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.ChainSpec = genFile
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile
-
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	stateSrvc := newStateServiceWithoutMock(t)
@@ -492,40 +508,42 @@ func TestCreateCoreService(t *testing.T) {
 	networkSrvc := &network.Service{}
 
 	builder := nodeBuilder{}
-	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 	require.NotNil(t, coreSrvc)
 }
 
 func TestCreateBlockVerifier(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := newTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 	stateSrvc.Epoch = &state.EpochState{}
 
 	_ = builder.createBlockVerifier(stateSrvc)
+	err = stateSrvc.DB().Close()
+	require.NoError(t, err)
 }
 
 func TestCreateSyncService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := newTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
@@ -536,45 +554,51 @@ func TestCreateSyncService(t *testing.T) {
 
 	ver := builder.createBlockVerifier(stateSrvc)
 
-	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	networkService, err := network.NewService(&network.Config{
+		BlockState: stateSrvc.Block,
+		BasePath:   config.BasePath,
+	})
 	require.NoError(t, err)
 
-	_, err = builder.newSyncService(cfg, stateSrvc, &grandpa.Service{}, ver, coreSrvc, &network.Service{}, nil)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkService, dh)
+	require.NoError(t, err)
+
+	_, err = builder.newSyncService(config, stateSrvc, &grandpa.Service{}, ver, coreSrvc, networkService, nil)
 	require.NoError(t, err)
 }
 
 func TestCreateNetworkService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Init.Genesis = genFile
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
 	stateSrvc := newStateServiceWithoutMock(t)
 
-	networkSrvc, err := builder.createNetworkService(cfg, stateSrvc, nil)
+	networkSrvc, err := builder.createNetworkService(config, stateSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, networkSrvc)
 }
 
 func TestCreateRPCService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile
+	config.Core.Role = common.FullNodeRole
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
@@ -588,20 +612,24 @@ func TestCreateRPCService(t *testing.T) {
 
 	ns, err := builder.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
+	err = builder.loadRuntime(config, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 
-	sysSrvc, err := builder.createSystemService(&cfg.System, stateSrvc)
+	systemInfo := &types.SystemInfo{
+		SystemName:    config.System.SystemName,
+		SystemVersion: config.System.SystemVersion,
+	}
+	sysSrvc, err := builder.createSystemService(systemInfo, stateSrvc)
 	require.NoError(t, err)
 
 	rpcSettings := rpcServiceSettings{
-		config:      cfg,
+		config:      config,
 		nodeStorage: ns,
 		state:       stateSrvc,
 		core:        coreSrvc,
@@ -614,14 +642,14 @@ func TestCreateRPCService(t *testing.T) {
 }
 
 func TestCreateBABEService_Integration(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Init.Genesis = genFile
+	config.Core.Role = common.FullNodeRole
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
@@ -634,29 +662,29 @@ func TestCreateBABEService_Integration(t *testing.T) {
 
 	ns, err := builder.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	err = builder.loadRuntime(config, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	bs, err := builder.createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc, nil)
+	bs, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, nil)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
 
 func TestCreateGrandpaService(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Core.Roles = common.AuthorityRole
-	cfg.Init.Genesis = genFile
+	config.Core.Role = common.AuthorityRole
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
@@ -670,7 +698,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	ns, err := builder.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
 
-	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
+	err = builder.loadRuntime(config, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
 	networkConfig := &network.Config{
@@ -683,13 +711,13 @@ func TestCreateGrandpaService(t *testing.T) {
 	testNetworkService, err := network.NewService(networkConfig)
 	require.NoError(t, err)
 
-	gs, err := builder.createGRANDPAService(cfg, stateSrvc, ks.Gran, testNetworkService, nil)
+	gs, err := builder.createGRANDPAService(config, stateSrvc, ks.Gran, testNetworkService, nil)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-	const addr = "localhost:8546"
+	const addr = "localhost:9546"
 	testCalls := []struct {
 		call     []byte
 		expected []byte
@@ -716,20 +744,20 @@ func TestNewWebSocketServer(t *testing.T) {
 			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	}
 
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Core.Roles = common.FullNodeRole
-	cfg.Core.BabeAuthority = false
-	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile
-	cfg.RPC.External = false
-	cfg.RPC.WS = true
-	cfg.RPC.WSExternal = false
-	cfg.System.SystemName = "gossamer"
+	config.Core.Role = common.FullNodeRole
+	config.Core.BabeAuthority = false
+	config.Core.GrandpaAuthority = false
+	config.ChainSpec = genFile
+	config.RPC.Port = 9545
+	config.RPC.WSPort = 9546
+	config.RPC.WSExternal = true
+	config.System.SystemName = "gossamer"
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
@@ -743,20 +771,24 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	ns, err := builder.createRuntimeStorage(stateSrvc)
 	require.NoError(t, err)
-	err = builder.loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
+	err = builder.loadRuntime(config, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	dh, err := builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 
-	sysSrvc, err := builder.createSystemService(&cfg.System, stateSrvc)
+	systemInfo := &types.SystemInfo{
+		SystemName:    config.System.SystemName,
+		SystemVersion: config.System.SystemVersion,
+	}
+	sysSrvc, err := builder.createSystemService(systemInfo, stateSrvc)
 	require.NoError(t, err)
 
 	rpcSettings := rpcServiceSettings{
-		config:      cfg,
+		config:      config,
 		nodeStorage: ns,
 		state:       stateSrvc,
 		core:        coreSrvc,
@@ -789,7 +821,7 @@ func TestNewWebSocketServer(t *testing.T) {
 func Test_createPprofService(t *testing.T) {
 	tests := []struct {
 		name     string
-		settings pprof.Settings
+		settings cfg.PprofConfig
 		notNil   bool
 	}{
 		{
@@ -810,24 +842,23 @@ func Test_createPprofService(t *testing.T) {
 }
 
 func Test_createDigestHandler(t *testing.T) {
-	cfg := NewTestConfig(t)
+	config := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	cfg.Core.Roles = common.AuthorityRole
-	cfg.Init.Genesis = genFile
+	config.Core.Role = common.AuthorityRole
+	config.ChainSpec = genFile
 
-	err := InitNode(cfg)
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	builder := nodeBuilder{}
-	stateSrvc, err := builder.createStateService(cfg)
+	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
-	err = startStateService(cfg, stateSrvc)
+	err = startStateService(*config.State, stateSrvc)
 	require.NoError(t, err)
 
-	_, err = builder.createDigestHandler(cfg.Log.DigestLvl, stateSrvc)
+	_, err = builder.createDigestHandler(stateSrvc)
 	require.NoError(t, err)
-
 }

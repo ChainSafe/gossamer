@@ -7,6 +7,7 @@ ifndef VERSION
 VERSION=latest
 endif
 FULLDOCKERNAME=$(COMPANY)/$(NAME):$(VERSION)
+OS:=$(shell uname)
 
 .PHONY: help lint test install build clean start docker gossamer build-debug
 all: help
@@ -19,7 +20,7 @@ help: Makefile
 
 .PHONY: lint
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.48
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54
 	golangci-lint run
 
 clean:
@@ -59,9 +60,14 @@ it-polkadotjs: build
 	MODE=polkadot go test ./tests/polkadotjs_test/... -timeout=5m -v
 
 ## test: Runs `go test -race` on project test files.
-test-state-race:
+test-using-race-detector:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
 	go test ./dot/state/... -race -timeout=5m
+	go test ./dot/sync/... -race -timeout=5m
+	go test ./internal/log/... -race -timeout=5m
+	go test ./lib/blocktree/... -race -timeout=5m
+	go test ./lib/grandpa/... -race -timeout=5m
+
 
 ## deps: Install missing dependencies. Runs `go mod download` internally.
 deps:
@@ -127,3 +133,17 @@ gossamer: clean build
 ## install: install the gossamer binary in $GOPATH/bin
 install: build
 	mv ./bin/gossamer $(GOPATH)/bin/gossamer
+
+install-zombienet:
+ifeq ($(OS),Darwin)
+	wget -O /usr/local/bin/zombienet https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-macos
+else ifeq ($(OS),Linux)
+		wget -O $(GOPATH)/bin/zombienet https://github.com/paritytech/zombienet/releases/download/v1.3.41/zombienet-linux-x64
+else
+		@echo "Zombienet for $(OS) is not supported"
+		exit 1
+endif
+	chmod a+x $(GOPATH)/bin/zombienet
+
+zombienet-test: install install-zombienet
+	zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl

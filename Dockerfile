@@ -1,5 +1,5 @@
 ARG DEBIAN_VERSION=bullseye-slim
-ARG GO_VERSION=1.19-buster
+ARG GO_VERSION=1.20-buster
 
 FROM golang:${GO_VERSION} AS builder
 
@@ -23,9 +23,6 @@ WORKDIR /go/src/github.com/ChainSafe/gossamer
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Prepare libwasmer.so for COPY
-RUN cp /go/pkg/mod/github.com/wasmerio/go-ext-wasm@*/wasmer/libwasmer.so libwasmer.so
-
 # Copy gossamer sources
 COPY . .
 
@@ -41,10 +38,6 @@ RUN go build \
 FROM debian:${DEBIAN_VERSION}
 
 WORKDIR /gossamer
-
-# Install libwasmer.so
-ENV LD_LIBRARY_PATH=/lib:/usr/lib
-COPY --from=builder /go/src/github.com/ChainSafe/gossamer/libwasmer.so /lib/libwasmer.so
 
 EXPOSE 7001 8546 8540
 

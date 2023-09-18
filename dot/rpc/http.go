@@ -43,15 +43,12 @@ type HTTPServerConfig struct {
 	SyncStateAPI        SyncStateAPI
 	SyncAPI             SyncAPI
 	NodeStorage         *runtime.NodeStorage
-	RPC                 bool
-	RPCExternal         bool
 	RPCUnsafe           bool
+	RPCExternal         bool
 	RPCUnsafeExternal   bool
 	Host                string
 	RPCPort             uint32
-	WS                  bool
 	WSExternal          bool
-	WSUnsafe            bool
 	WSUnsafeExternal    bool
 	WSPort              uint32
 	Modules             []string
@@ -62,7 +59,7 @@ func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
 }
 
 func (h *HTTPServerConfig) wsUnsafeEnabled() bool {
-	return h.WSUnsafe || h.WSUnsafeExternal
+	return h.WSUnsafeExternal
 }
 
 func (h *HTTPServerConfig) exposeWS() bool {
@@ -154,13 +151,19 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterValidateRequestFunc(rpcValidator(h.serverConfig, validate))
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
+		server := &http.Server{
+			Addr:              fmt.Sprintf(":%d", h.serverConfig.RPCPort),
+			ReadHeaderTimeout: 5 * time.Second,
+			Handler:           r,
+		}
+
+		err := server.ListenAndServe()
 		if err != nil {
 			h.logger.Errorf("http error: %s", err)
 		}
 	}()
 
-	if !h.serverConfig.WS {
+	if !h.serverConfig.exposeWS() {
 		return nil
 	}
 
@@ -169,7 +172,13 @@ func (h *HTTPServer) Start() error {
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
+		wsServer := &http.Server{
+			Addr:              fmt.Sprintf(":%d", h.serverConfig.WSPort),
+			ReadHeaderTimeout: 5 * time.Second,
+			Handler:           ws,
+		}
+
+		err := wsServer.ListenAndServe()
 		if err != nil {
 			h.logger.Errorf("http error: %s", err)
 		}
@@ -180,7 +189,7 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	if h.serverConfig.WS {
+	if h.serverConfig.exposeWS() {
 		// close all channels and websocket connections
 		for _, conn := range h.wsConns {
 			for _, sub := range conn.Subscriptions {

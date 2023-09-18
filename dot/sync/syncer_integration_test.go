@@ -12,11 +12,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -30,7 +32,7 @@ func newTestSyncer(t *testing.T) *Service {
 	mockTelemetryClient := NewMockTelemetry(ctrl)
 	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
-	wasmer.DefaultTestLogLvl = log.Warn
+	wazero_runtime.DefaultTestLogLvl = log.Warn
 
 	cfg := &Config{}
 	testDatadirPath := t.TempDir()
@@ -43,7 +45,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -61,7 +63,7 @@ func newTestSyncer(t *testing.T) *Service {
 	// initialise runtime
 	genState := rtstorage.NewTrieState(&genTrie)
 
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		Storage: genState,
 		LogLvl:  log.Critical,
 	}
@@ -69,14 +71,14 @@ func newTestSyncer(t *testing.T) *Service {
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
 	} else {
-		rtCfg.NodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		rtCfg.NodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
 		require.NoError(t, err)
 	}
 
 	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	instance, err := wasmer.NewRuntimeFromGenesis(rtCfg)
+	instance, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	bestBlockHash := cfg.BlockState.(*state.BlockState).BestBlockHash()
@@ -109,19 +111,20 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.LogLvl = log.Trace
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
 	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(hash common.Hash, justification []byte) ([]byte, error) {
-		return justification, nil
+		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(hash common.Hash, justification []byte) error {
+		return nil
 	}).AnyTimes()
 
 	cfg.FinalityGadget = mockFinalityGadget
 	cfg.Network = NewMockNetwork(ctrl)
 	cfg.Telemetry = mockTelemetryClient
+	cfg.RequestMaker = NewMockRequestMaker(ctrl)
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
@@ -130,7 +133,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = wasmer.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})

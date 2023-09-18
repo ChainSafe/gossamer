@@ -13,10 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -25,6 +25,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -77,7 +78,6 @@ type Service struct {
 
 	// channels for communication with other services
 	finalisedCh chan *types.FinalisationInfo
-	//receivedCommit chan *CommitMessage
 
 	telemetry Telemetry
 }
@@ -202,7 +202,8 @@ func (s *Service) Stop() error {
 // authorities returns the current grandpa authorities
 func (s *Service) authorityKeySet() (authorityKeys map[string]struct{}) {
 	authorityKeys = make(map[string]struct{}, len(s.state.voters))
-	for _, voter := range s.state.voters {
+	for idx := range s.state.voters {
+		voter := s.state.voters[idx]
 		authority := &types.Authority{
 			Key:    &voter.Key,
 			Weight: voter.ID,
@@ -1045,41 +1046,7 @@ func (s *Service) getDirectVotes(stage Subround) map[Vote]uint64 {
 // getVotes returns all the current votes as an array
 func (s *Service) getVotes(stage Subround) []Vote {
 	votes := s.getDirectVotes(stage)
-	va := make([]Vote, len(votes))
-	i := 0
-
-	for v := range votes {
-		va[i] = v
-		i++
-	}
-
-	return va
-}
-
-// findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
-	if v.Number <= n {
-		return v, nil
-	}
-
-	b, err := s.blockState.GetHeader(v.Hash)
-	if err != nil {
-		return nil, err
-	}
-
-	// # of iterations
-	l := int(v.Number - n)
-
-	for i := 0; i < l; i++ {
-		p, err := s.blockState.GetHeader(b.ParentHash)
-		if err != nil {
-			return nil, err
-		}
-
-		b = p
-	}
-
-	return NewVoteFromHeader(b), nil
+	return maps.Keys(votes)
 }
 
 // GetSetID returns the current setID
@@ -1114,10 +1081,7 @@ func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 		return true
 	})
 
-	for v := range s.pvEquivocations {
-		votes = append(votes, v)
-	}
-
+	votes = append(votes, maps.Keys(s.pvEquivocations)...)
 	return votes
 }
 
@@ -1134,10 +1098,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 		return true
 	})
 
-	for v := range s.pvEquivocations {
-		votes = append(votes, v)
-	}
-
+	votes = append(votes, maps.Keys(s.pvEquivocations)...)
 	return votes
 }
 
@@ -1184,7 +1145,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))
 	if err != nil {
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			s.tracker.addCommit(commitMessage)
 		}
 

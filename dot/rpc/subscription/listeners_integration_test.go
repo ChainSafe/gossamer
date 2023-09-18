@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
@@ -189,8 +189,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	wsconn.BlockAPI = BlockAPI
 
 	TxStateAPI := NewMockTransactionStateAPI(ctrl)
-	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any()).AnyTimes()
-	TxStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).AnyTimes()
+	TxStateAPI.EXPECT().FreeStatusNotifierChannel(gomock.Any())
 	wsconn.TxStateAPI = TxStateAPI
 
 	esl := ExtrinsicSubmitListener{
@@ -244,7 +243,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 }
 
 func TestGrandpaJustification_Listen(t *testing.T) {
-	t.Run("When justification doesnt returns error", func(t *testing.T) {
+	t.Run("When_justification_doesnt_returns_error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		wsconn, ws, cancel := setupWSConn(t)
@@ -316,33 +315,37 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	expectedInitialResponse.Method = "state_runtimeVersion"
 	expectedInitialResponse.Params.Result = expectedInitialVersion
 
-	polkadotRuntimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME)
+	polkadotRuntimeFilepath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0929)
 	require.NoError(t, err)
 	code, err := os.ReadFile(polkadotRuntimeFilepath)
 	require.NoError(t, err)
-	version, err := wasmer.GetRuntimeVersion(code)
+	version, err := wazero_runtime.GetRuntimeVersion(code)
 	require.NoError(t, err)
 
 	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{
 		SpecName:           "polkadot",
 		ImplName:           "parity-polkadot",
 		AuthoringVersion:   0,
-		SpecVersion:        25,
+		SpecVersion:        9290,
 		ImplVersion:        0,
-		TransactionVersion: 5,
+		TransactionVersion: 14,
 		Apis: []interface{}{
-			[]interface{}{"0xdf6acb689907609b", uint32(0x3)},
+			[]interface{}{"0xdf6acb689907609b", uint32(0x4)},
 			[]interface{}{"0x37e397fc7c91f5e4", uint32(0x1)},
-			[]interface{}{"0x40fe3ad401f8959a", uint32(0x4)},
-			[]interface{}{"0xd2bc9897eed08f15", uint32(0x2)},
+			[]interface{}{"0x40fe3ad401f8959a", uint32(0x6)},
+			[]interface{}{"0x17a6bc0d0062aeb3", uint32(0x1)},
+			[]interface{}{"0xd2bc9897eed08f15", uint32(0x3)},
 			[]interface{}{"0xf78b278be53f454c", uint32(0x2)},
-			[]interface{}{"0xaf2c0297a23e6d3d", uint32(0x1)},
-			[]interface{}{"0xed99c5acb25eedf5", uint32(0x2)},
+			[]interface{}{"0xaf2c0297a23e6d3d", uint32(0x2)},
+			[]interface{}{"0x49eaaf1b548a0cb0", uint32(0x1)},
+			[]interface{}{"0x91d5df18b0d2cf58", uint32(0x1)},
+			[]interface{}{"0xed99c5acb25eedf5", uint32(0x3)},
 			[]interface{}{"0xcbca25e39f142387", uint32(0x2)},
 			[]interface{}{"0x687ad44ad37f03c2", uint32(0x1)},
 			[]interface{}{"0xab3c0572291feb8b", uint32(0x1)},
 			[]interface{}{"0xbc9d89904f5b923f", uint32(0x1)},
 			[]interface{}{"0x37c8bb1350a9a2a8", uint32(0x1)},
+			[]interface{}{"0xf3ff14d5ab527059", uint32(0x1)},
 		},
 	}
 

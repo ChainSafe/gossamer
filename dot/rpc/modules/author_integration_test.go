@@ -29,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -43,13 +43,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type useRuntimeInstance func(*testing.T, *storage.TrieState) Runtime
+type useRuntimeInstance func(*testing.T, *storage.TrieState) runtime.Instance
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Storage: rtStorage,
 		LogLvl:  log.Warn,
 		NodeStorage: runtime.NodeStorage{
@@ -57,21 +57,21 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 		},
 	}
 
-	runtimeInstance, err := wasmer.NewRuntimeFromGenesis(cfg)
+	runtimeInstance, err := wazero_runtime.NewRuntimeFromGenesis(cfg)
 	require.NoError(t, err)
 
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (instance Runtime) {
-	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.POLKADOT_RUNTIME_v0910)
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
+	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
 	require.NoError(t, err)
 
 	rtStorage.Put(common.CodeKey, bytes)
 
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Role:     0,
 		LogLvl:   log.Critical,
 		Storage:  rtStorage,
@@ -83,7 +83,7 @@ func useInstanceFromRuntimeV0910(t *testing.T, rtStorage *storage.TrieState) (in
 		},
 	}
 
-	runtimeInstance, err := wasmer.NewInstanceFromTrie(rtStorage.Trie(), cfg)
+	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.Trie(), cfg)
 	require.NoError(t, err)
 
 	return runtimeInstance
@@ -103,7 +103,8 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	err = codec.Decode(decoded, meta)
 	require.NoError(t, err)
 
-	runtimeVersion := rt.Version()
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
 
 	metaCall, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
@@ -235,7 +236,6 @@ func TestAuthorModule_SubmitExtrinsic_bad_proof(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	net2test := NewMockNetwork(ctrl)
-	net2test.EXPECT().GossipMessage(nil).MaxTimes(0)
 
 	integrationTestController.network = net2test
 
@@ -468,11 +468,11 @@ func TestAuthorModule_HasKey_Integration(t *testing.T) {
 func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	t.Parallel()
 
-	const granSeed = "0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115"
-	const granPubK = "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"
+	const aliceGrandpaSeed = "0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115"
+	const aliceGrandpaPublicKey = "0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"
 
-	const sr25519Seed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
-	const sr25519Pubk = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+	const sr25519AliceSeed = "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"
+	const sr25519AlicePublicKey = "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
 
 	insertSessionKeys := []struct {
 		ktype      []string
@@ -480,13 +480,13 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}{
 		{
 			ktype: []string{"gran"},
-			seed:  granSeed,
-			pubk:  granPubK,
+			seed:  aliceGrandpaSeed,
+			pubk:  aliceGrandpaPublicKey,
 		},
 		{
 			ktype: []string{"babe", "imon", "para", "asgn", "audi"},
-			seed:  sr25519Seed,
-			pubk:  sr25519Pubk,
+			seed:  sr25519AliceSeed,
+			pubk:  sr25519AlicePublicKey,
 		},
 	}
 
@@ -570,9 +570,9 @@ func TestAuthorModule_HasSessionKeys_Integration(t *testing.T) {
 	}
 }
 
-func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_WithVersion_V0929(t *testing.T) {
 	t.Parallel()
-	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0910)
+	integrationTestController := setupStateAndPopulateTrieState(t, t.TempDir(), useInstanceFromRuntimeV0929)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
@@ -602,7 +602,7 @@ func TestAuthorModule_SubmitExtrinsic_WithVersion_V0910(t *testing.T) {
 	expected := &transaction.ValidTransaction{
 		Extrinsic: expectedExtrinsic,
 		Validity: &transaction.Validity{
-			Priority: 4295664014726,
+			Priority: 36074,
 			Provides: [][]byte{
 				common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d00000000"),
 			},
@@ -638,7 +638,7 @@ type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
-	runtime       Runtime
+	runtime       runtime.Instance
 	stateSrv      *state.Service
 	network       coreNetwork
 	storageState  coreStorageState

@@ -21,6 +21,7 @@ type Trie struct {
 	generation uint64
 	root       *Node
 	childTries map[common.Hash]*Trie
+	db         DBGetter
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -31,14 +32,15 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	return NewTrie(nil)
+	return NewTrie(nil, nil)
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node) *Trie {
+func NewTrie(root *Node, db DBGetter) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
+		db:         db,
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
 	}
@@ -69,8 +71,8 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	}
 }
 
-// handleTrackedDeltas sets the pending deleted Merkle values in
-// the trie deleted merkle values set if and only if success is true.
+// handleTrackedDeltas sets the pending deleted node hashes in
+// the trie deltas tracker if and only if success is true.
 func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas DeltaDeletedGetter) {
 	if !success || t.generation == 0 {
 		// Do not persist tracked deleted node hashes if the operation failed or
@@ -90,7 +92,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 		// update the node generation.
 		newNode = currentNode
 	} else {
-		err = t.registerDeletedMerkleValue(currentNode, pendingDeltas)
+		err = t.registerDeletedNodeHash(currentNode, pendingDeltas)
 		if err != nil {
 			return nil, fmt.Errorf("registering deleted node: %w", err)
 		}
@@ -101,7 +103,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 	return newNode, nil
 }
 
-func (t *Trie) registerDeletedMerkleValue(node *Node,
+func (t *Trie) registerDeletedNodeHash(node *Node,
 	pendingDeltas DeltaRecorder) (err error) {
 	err = t.ensureMerkleValueIsCalculated(node)
 	if err != nil {
@@ -190,6 +192,40 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	}
 	copy(rootHash[:], merkleValue)
 	return rootHash, nil
+}
+
+// EntriesList returns all the key-value pairs in the trie as a slice of key value
+// where the keys are encoded in Little Endian.  The slice starts with root node.
+func (t *Trie) EntriesList() [][2][]byte {
+	list := make([][2][]byte, 0)
+	entriesList(t.root, nil, &list)
+	return list
+}
+
+func entriesList(parent *Node, prefix []byte, list *[][2][]byte) {
+	if parent == nil {
+		return
+	}
+
+	if parent.Kind() == node.Leaf {
+		parentKey := parent.PartialKey
+		fullKeyNibbles := concatenateSlices(prefix, parentKey)
+		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
+		*list = append(*list, [2][]byte{keyLE, parent.StorageValue})
+		return
+	}
+
+	branch := parent
+	if branch.StorageValue != nil {
+		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
+		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
+		*list = append(*list, [2][]byte{keyLE, parent.StorageValue})
+	}
+
+	for i, child := range branch.Children {
+		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
+		entriesList(child, childPrefix, list)
+	}
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
@@ -608,6 +644,29 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 	return trie, nil
 }
 
+// LoadFromEntries loads the given slice of key values into a new empty trie.
+// The keys are in hexadecimal little Endian encoding and the values
+// are hexadecimal encoded.
+func LoadFromEntries(entries [][2][]byte) (trie *Trie, err error) {
+	trie = NewEmptyTrie()
+
+	pendingDeltas := tracking.New()
+	defer func() {
+		trie.handleTrackedDeltas(err == nil, pendingDeltas)
+	}()
+
+	for _, keyValue := range entries {
+		keyLE := keyValue[0]
+		value := keyValue[1]
+		err := trie.insertKeyLE(keyLE, value, pendingDeltas)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return trie, nil
+}
+
 // GetKeysWithPrefix returns all keys in little Endian
 // format from nodes in the trie that have the given little
 // Endian formatted prefix in their key.
@@ -715,28 +774,36 @@ func makeChildPrefix(branchPrefix, branchKey []byte,
 // Note the key argument is given in little Endian format.
 func (t *Trie) Get(keyLE []byte) (value []byte) {
 	keyNibbles := codec.KeyLEToNibbles(keyLE)
-	return retrieve(t.root, keyNibbles)
+	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(parent *Node, key []byte) (value []byte) {
+func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
 
 	if parent.Kind() == node.Leaf {
-		return retrieveFromLeaf(parent, key)
+		return retrieveFromLeaf(db, parent, key)
 	}
-	return retrieveFromBranch(parent, key)
+	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
+		if leaf.HashedValue {
+			// We get the node
+			value, err := db.Get(leaf.StorageValue)
+			if err != nil {
+				panic(fmt.Sprintf("retrieving value from leaf %s", err.Error()))
+			}
+			return value
+		}
 		return leaf.StorageValue
 	}
 	return nil
 }
 
-func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db DBGetter, branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}
@@ -749,7 +816,7 @@ func retrieveFromBranch(branch *Node, key []byte) (value []byte) {
 	childIndex := key[commonPrefixLength]
 	childKey := key[commonPrefixLength+1:]
 	child := branch.Children[childIndex]
-	return retrieve(child, childKey)
+	return retrieve(db, child, childKey)
 }
 
 // ClearPrefixLimit deletes the keys having the prefix given in little
@@ -796,10 +863,10 @@ func (t *Trie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 		// TODO check this is the same behaviour as in substrate
 		const allDeleted = true
 		if bytes.HasPrefix(parent.PartialKey, prefix) {
-			err = t.registerDeletedMerkleValue(parent, pendingDeltas)
+			err = t.registerDeletedNodeHash(parent, pendingDeltas)
 			if err != nil {
 				return nil, 0, 0, false,
-					fmt.Errorf("registering deleted Merkle value: %w", err)
+					fmt.Errorf("registering deleted node hash: %w", err)
 			}
 
 			valuesDeleted, nodesRemoved = 1, 1
@@ -938,9 +1005,9 @@ func (t *Trie) deleteNodesLimit(parent *Node, limit uint32,
 	}
 
 	if parent.Kind() == node.Leaf {
-		err = t.registerDeletedMerkleValue(parent, pendingDeltas)
+		err = t.registerDeletedNodeHash(parent, pendingDeltas)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("registering deleted merkle value: %w", err)
+			return nil, 0, 0, fmt.Errorf("registering deleted node hash: %w", err)
 		}
 		valuesDeleted, nodesRemoved = 1, 1
 		return nil, valuesDeleted, nodesRemoved, nil
@@ -1086,9 +1153,9 @@ func (t *Trie) clearPrefixAtNode(parent *Node, prefix []byte,
 			return nil, 0, fmt.Errorf("preparing branch for mutation: %w", err)
 		}
 
-		err = t.registerDeletedMerkleValue(child, pendingDeltas)
+		err = t.registerDeletedNodeHash(child, pendingDeltas)
 		if err != nil {
-			return nil, 0, fmt.Errorf("registering deleted merkle value for child: %w", err)
+			return nil, 0, fmt.Errorf("registering deleted node hash for child: %w", err)
 		}
 
 		branch.Children[childIndex] = nil
@@ -1203,9 +1270,9 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 
 	newParent = nil
 
-	err = t.registerDeletedMerkleValue(parent, pendingDeltas)
+	err = t.registerDeletedNodeHash(parent, pendingDeltas)
 	if err != nil {
-		return nil, fmt.Errorf("registering deleted merkle value: %w", err)
+		return nil, fmt.Errorf("registering deleted node hash: %w", err)
 	}
 
 	return newParent, nil
@@ -1324,9 +1391,9 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		const branchChildMerged = true
 		childIndex := firstChildIndex
 		child := branch.Children[firstChildIndex]
-		err = t.registerDeletedMerkleValue(child, pendingDeltas)
+		err = t.registerDeletedNodeHash(child, pendingDeltas)
 		if err != nil {
-			return nil, false, fmt.Errorf("registering deleted merkle value: %w", err)
+			return nil, false, fmt.Errorf("registering deleted node hash: %w", err)
 		}
 
 		if child.Kind() == node.Leaf {
@@ -1364,7 +1431,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 	}
 }
 
-// ensureMerkleValueIsCalculated is used before calling PopulateMerkleValues
+// ensureMerkleValueIsCalculated is used before calling PopulateNodeHashes
 // to ensure the parent node and all its descendant nodes have their Merkle
 // value computed and ready to be used. This has a close to zero performance
 // impact if the parent node Merkle value is already computed.

@@ -13,12 +13,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,7 +57,7 @@ func newTestMemDBService(t *testing.T) *Service {
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -73,7 +74,7 @@ func TestService_Start(t *testing.T) {
 func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	// Deep copy the trie because of the following:
 	// Initialise clears the database, writes only dirty nodes to disk
@@ -108,7 +109,7 @@ func TestService_Initialise(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService(t)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := state.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -134,7 +135,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(config)
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -172,7 +173,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	const retainBlocks uint = 2
 	config := Config{
@@ -187,7 +188,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -219,14 +220,14 @@ func TestService_StorageTriePruning(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number))
 			continue
 		}
-		require.ErrorIs(t, err, chaindb.ErrKeyNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number))
+		require.ErrorIs(t, err, database.ErrNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number))
 	}
 }
 
 func TestService_PruneStorage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 	config := Config{
 		Path:      t.TempDir(),
@@ -236,7 +237,7 @@ func TestService_PruneStorage(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -307,7 +308,7 @@ func TestService_PruneStorage(t *testing.T) {
 func TestService_Rewind(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(3)
 
 	config := Config{
 		Path:      t.TempDir(),
@@ -317,7 +318,7 @@ func TestService_Rewind(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -356,16 +357,16 @@ func TestService_Rewind(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = serv.Grandpa.GetSetIDChange(2)
-	require.Equal(t, chaindb.ErrKeyNotFound, err)
+	require.Equal(t, database.ErrNotFound, err)
 
 	_, err = serv.Grandpa.GetSetIDChange(3)
-	require.Equal(t, chaindb.ErrKeyNotFound, err)
+	require.Equal(t, database.ErrNotFound, err)
 }
 
 func TestService_Import(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := Config{
 		Path:      t.TempDir(),
@@ -375,7 +376,7 @@ func TestService_Import(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
 	require.NoError(t, err)
 
@@ -425,4 +426,39 @@ func TestService_Import(t *testing.T) {
 
 	err = serv.Stop()
 	require.NoError(t, err)
+}
+
+func generateBlockWithRandomTrie(t *testing.T, serv *Service,
+	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
+	trieState, err := serv.Storage.TrieState(nil)
+	require.NoError(t, err)
+
+	// Generate random data for trie state.
+	rand := time.Now().UnixNano()
+	key := []byte("testKey" + fmt.Sprint(rand))
+	value := []byte("testValue" + fmt.Sprint(rand))
+	err = trieState.Put(key, value)
+	require.NoError(t, err)
+
+	trieStateRoot, err := trieState.Root()
+	require.NoError(t, err)
+
+	if parent == nil {
+		bb := serv.Block.BestBlockHash()
+		parent = &bb
+	}
+
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: *parent,
+			Number:     bNum,
+			StateRoot:  trieStateRoot,
+			Digest:     createPrimaryBABEDigest(t),
+		},
+		Body: *body,
+	}
+	return block, trieState
 }

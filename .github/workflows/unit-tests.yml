@@ -20,11 +20,16 @@ name: unit-tests
 jobs:
   unit-tests:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
-      - uses: actions/setup-go@v3
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
         with:
-          go-version: 1.19
+          all_but_latest: true
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
           stable: true
           check-latest: true
 
@@ -34,7 +39,7 @@ jobs:
           echo "::set-output name=go-build::$(go env GOCACHE)"
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Go build cache
         uses: actions/cache@v3
@@ -81,10 +86,10 @@ jobs:
           go test -run ^Test_Trie_MemoryUsage$ ./lib/trie
           sed -i 's/const skip = false/const skip = true/g' ./lib/trie/mem_test.go
 
-      - name: Test State - Race
-        run: make test-state-race
+      - name: Test - Race
+        run: make test-using-race-detector
 
-      - uses: codecov/codecov-action@v3.1.1
+      - uses: codecov/codecov-action@v3.1.4
         with:
           if_ci_failed: success
           informational: true

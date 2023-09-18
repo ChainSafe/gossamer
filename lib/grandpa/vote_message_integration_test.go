@@ -39,10 +39,10 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range newTestVoters(t) {
-		equivocated := gs.checkForEquivocation(&v, &SignedVote{
+		err = gs.checkAndReportEquivocation(&v, &SignedVote{
 			Vote: *vote,
 		}, prevote)
-		require.False(t, equivocated)
+		require.NoError(t, err)
 	}
 }
 
@@ -78,10 +78,10 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
-	require.True(t, equivocated)
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
@@ -120,20 +120,20 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote2, err := NewVoteFromHash(leaves[0], gs.blockState)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote2,
 	}, prevote)
-	require.True(t, equivocated)
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
 	vote3 := vote1
 
-	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
+	err = gs.checkAndReportEquivocation(&voter, &SignedVote{
 		Vote: *vote3,
 	}, prevote)
-	require.True(t, equivocated)
+	require.ErrorIs(t, err, ErrEquivocation)
 
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
@@ -283,7 +283,6 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	_, err = gs.validateVoteMessage("", msg)
 	require.ErrorIs(t, err, ErrEquivocation)
-	require.EqualError(t, err, ErrEquivocation.Error())
 }
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {

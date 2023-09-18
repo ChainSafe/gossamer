@@ -23,14 +23,10 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "babe"))
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
-	ctx       context.Context
-	cancel    context.CancelFunc
-	authority bool
-	dev       bool
-	// lead is used when setting up a new network from genesis.
-	// the "lead" node is the node that is designated to build block 1, after which the rest of the nodes
-	// will sync block 1 and determine the first slot of the network based on it
-	lead         bool
+	ctx          context.Context
+	cancel       context.CancelFunc
+	authority    bool
+	dev          bool
 	constants    constants
 	epochHandler *epochHandler
 
@@ -50,6 +46,7 @@ type Service struct {
 	pause chan struct{}
 
 	telemetry Telemetry
+	wg        sync.WaitGroup
 }
 
 // ServiceConfig represents a BABE configuration
@@ -64,7 +61,6 @@ type ServiceConfig struct {
 	AuthData           []types.Authority
 	IsDev              bool
 	Authority          bool
-	Lead               bool
 	Telemetry          Telemetry
 }
 
@@ -112,7 +108,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
-		lead:               cfg.Lead,
 		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  epochLength,
@@ -124,10 +119,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		"created service with block producer ID=%v, slot duration %s, epoch length (slots) %d",
 		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
 	)
-
-	if cfg.Lead {
-		logger.Debug("node designated to build block 1")
-	}
 
 	return babeService, nil
 }
@@ -164,7 +155,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
-		lead:               cfg.Lead,
 		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  epochLength,
@@ -177,10 +167,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		cfg.Authority, babeService.constants.slotDuration, babeService.constants.epochLength,
 	)
 
-	if cfg.Lead {
-		logger.Debug("node designated to build block 1")
-	}
-
 	return babeService, nil
 }
 
@@ -190,53 +176,12 @@ func (b *Service) Start() error {
 		return nil
 	}
 
-	// if we aren't leading node, wait for first block
-	if !b.lead {
-		if err := b.waitForFirstBlock(); err != nil {
-			return err
-		}
-	}
-
-	go b.initiate()
+	b.wg.Add(1)
+	go func() {
+		b.initiate()
+		b.wg.Done()
+	}()
 	return nil
-}
-
-func (b *Service) waitForFirstBlock() error {
-	head, err := b.blockState.BestBlockHeader()
-	if err != nil {
-		return fmt.Errorf("cannot get best block header: %w", err)
-	}
-
-	if head.Number > 0 {
-		return nil
-	}
-
-	ch := b.blockState.GetImportedBlockNotifierChannel()
-	defer b.blockState.FreeImportedBlockNotifierChannel(ch)
-
-	const firstBlockTimeout = time.Minute * 5
-	timer := time.NewTimer(firstBlockTimeout)
-
-	// loop until block 1
-	for {
-		select {
-		case block, ok := <-ch:
-			if !ok {
-				timer.Stop()
-				return errChannelClosed
-			}
-
-			if ok && block.Header.Number > 0 {
-				timer.Stop()
-				return nil
-			}
-		case <-timer.C:
-			return errFirstBlockTimeout
-		case <-b.ctx.Done():
-			timer.Stop()
-			return b.ctx.Err()
-		}
-	}
 }
 
 // SlotDuration returns the current service slot duration in milliseconds
@@ -272,7 +217,11 @@ func (b *Service) Resume() error {
 	}
 
 	b.pause = make(chan struct{})
-	go b.initiate()
+	b.wg.Add(1)
+	go func() {
+		b.initiate()
+		b.wg.Done()
+	}()
 	logger.Debug("service resumed")
 	return nil
 }
@@ -304,6 +253,7 @@ func (b *Service) Stop() error {
 	ethmetrics.Unregister(buildBlockErrors)
 
 	b.cancel()
+	b.wg.Wait()
 	return nil
 }
 
@@ -388,8 +338,14 @@ func (b *Service) runEngine() error {
 }
 
 func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
+	wg := sync.WaitGroup{}
+
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+
 	b.epochHandler, err = b.initiateAndGetEpochHandler(epoch)
 	if err != nil {
 		return 0, fmt.Errorf("cannot initiate and get epoch handler: %w", err)
@@ -404,8 +360,12 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
 
-	errCh := make(chan error)
-	go b.epochHandler.run(ctx, errCh)
+	errCh := make(chan error, 1)
+	wg.Add(1)
+	go func() {
+		b.epochHandler.run(ctx, errCh)
+		wg.Done()
+	}()
 
 	select {
 	case <-b.ctx.Done():
@@ -420,7 +380,9 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 	case err := <-errCh:
 		// TODO: errEpochPast is sent on this channel, but it doesnot get logged here
 		epochTimer.Stop()
-		logger.Errorf("error from epochHandler: %s", err)
+		if err != nil {
+			logger.Errorf("error from epochHandler: %s", err)
+		}
 	}
 
 	// setup next epoch, re-invoke block authoring

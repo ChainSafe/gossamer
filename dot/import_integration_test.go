@@ -7,7 +7,6 @@ package dot
 
 import (
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -82,30 +81,26 @@ func TestNewHeaderFromFile(t *testing.T) {
 }
 
 func TestImportState_Integration(t *testing.T) {
-	basepath := os.TempDir()
+	config := DefaultTestWestendDevConfig(t)
 
-	cfg := NewTestConfig(t)
+	genFile := NewTestGenesisRawFile(t, config)
 
-	genFile := NewTestGenesisRawFile(t, cfg)
-
-	cfg.Init.Genesis = genFile
-
-	cfg.Global.BasePath = basepath
-	err := InitNode(cfg)
+	config.ChainSpec = genFile
+	err := InitNode(config)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
 	const firstSlot = uint64(262493679)
-	err = ImportState(basepath, stateFP, headerFP, firstSlot)
+	err = ImportState(config.BasePath, stateFP, headerFP, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
-	config := state.Config{
-		Path:     basepath,
+	stateConfig := state.Config{
+		Path:     config.BasePath,
 		LogLevel: log.Info,
 	}
-	srv := state.NewService(config)
+	srv := state.NewService(stateConfig)
 	srv.SetupBase()
 
 	lookupKey := []byte{98, 108, 111, 99, 107, 104, 100, 114, 88, 127, 109, 161, 191, 167, 26, 103, 95, 16, 223, 160,
@@ -118,15 +113,11 @@ func TestImportState_Integration(t *testing.T) {
 func TestImportState(t *testing.T) {
 	t.Parallel()
 
-	basepath := t.TempDir()
+	config := DefaultTestWestendDevConfig(t)
 
-	cfg := NewTestConfig(t)
-
-	cfg.Init.Genesis = NewTestGenesisRawFile(t, cfg)
-
-	cfg.Global.BasePath = basepath
+	config.ChainSpec = NewTestGenesisRawFile(t, config)
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(cfg)
+	err := nodeInstance.initNode(config)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
@@ -150,7 +141,7 @@ func TestImportState(t *testing.T) {
 		{
 			name: "working_example",
 			args: args{
-				basepath:  basepath,
+				basepath:  config.BasePath,
 				stateFP:   stateFP,
 				headerFP:  headerFP,
 				firstSlot: 262493679,

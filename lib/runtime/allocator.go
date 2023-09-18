@@ -19,11 +19,11 @@ const DefaultHeapBase = uint32(1469576)
 // The pointers need to be aligned to 8 bytes
 const alignment uint32 = 8
 
-// HeadsQty 22
-const HeadsQty = 22
+// HeadsQty 23
+const HeadsQty = 23
 
-// MaxPossibleAllocation 2^24 bytes
-const MaxPossibleAllocation = (1 << 24)
+// MaxPossibleAllocation 2^25 bytes, 32 MiB
+const MaxPossibleAllocation = (1 << 25)
 
 // FreeingBumpHeapAllocator struct
 type FreeingBumpHeapAllocator struct {
@@ -56,16 +56,16 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 		ptrOffset += alignment - padding
 	}
 
-	if mem.Length() <= ptrOffset {
-		err := mem.Grow(((ptrOffset - mem.Length()) / PageSize) + 1)
-		if err != nil {
-			panic(err)
+	if mem.Size() <= ptrOffset {
+		_, ok := mem.Grow(((ptrOffset - mem.Size()) / PageSize) + 1)
+		if !ok {
+			panic("exceeds max memory definition")
 		}
 	}
 
 	fbha.bumper = 0
 	fbha.heap = mem
-	fbha.maxHeapSize = mem.Length() - alignment
+	fbha.maxHeapSize = mem.Size() - alignment
 	fbha.ptrOffset = ptrOffset
 	fbha.totalSize = 0
 
@@ -73,12 +73,12 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 }
 
 func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
-	err := fbha.heap.Grow(numPages)
-	if err != nil {
-		return err
+	_, ok := fbha.heap.Grow(numPages)
+	if !ok {
+		return fmt.Errorf("heap.Grow ignored")
 	}
 
-	fbha.maxHeapSize = fbha.heap.Length() - alignment
+	fbha.maxHeapSize = fbha.heap.Size() - alignment
 	return nil
 }
 
@@ -176,18 +176,31 @@ func (fbha *FreeingBumpHeapAllocator) bump(qty uint32) uint32 {
 }
 
 func (fbha *FreeingBumpHeapAllocator) setHeap(ptr uint32, value uint8) {
-	fbha.heap.Data()[fbha.ptrOffset+ptr] = value
+	if !fbha.heap.WriteByte(fbha.ptrOffset+ptr, value) {
+		panic("write: out of range")
+	}
 }
 
 func (fbha *FreeingBumpHeapAllocator) setHeap4bytes(ptr uint32, value []byte) {
-	copy(fbha.heap.Data()[fbha.ptrOffset+ptr:fbha.ptrOffset+ptr+4], value)
+	if !fbha.heap.Write(fbha.ptrOffset+ptr, value) {
+		panic("write: out of range")
+	}
 }
+
 func (fbha *FreeingBumpHeapAllocator) getHeap4bytes(ptr uint32) []byte {
-	return fbha.heap.Data()[fbha.ptrOffset+ptr : fbha.ptrOffset+ptr+4]
+	bytes, ok := fbha.heap.Read(fbha.ptrOffset+ptr, 4)
+	if !ok {
+		panic("read: out of range")
+	}
+	return bytes
 }
 
 func (fbha *FreeingBumpHeapAllocator) getHeapByte(ptr uint32) byte {
-	return fbha.heap.Data()[fbha.ptrOffset+ptr]
+	b, ok := fbha.heap.ReadByte(fbha.ptrOffset + ptr)
+	if !ok {
+		panic("read: out of range")
+	}
+	return b
 }
 
 func getItemSizeFromIndex(index uint) uint {

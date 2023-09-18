@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -54,27 +54,25 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-// TODO see if there can be better assertions on block body #3060
-// Are extrinsics correct, what are the extrinsics now that there are 2 instead of 1, is one the same?
-// Does order matter?
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	testEpochData, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
+	extrinsic := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(ext)},
-		testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(extrinsic)},
+		testEpochIndex, testEpochData, slot)
 
+	const expectedSecondExtrinsic = "0x042d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" //nolint:lll
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
 		Number:     1,
@@ -89,11 +87,15 @@ func TestBuildBlock_ok(t *testing.T) {
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
 	require.Equal(t, 2, len(extsBytes))
+	// The first extrinsic is based on timestamp so is not consistent, but since the second is based on
+	// Parachn0 and Newheads inherents this can be asserted against. This works for now since we don't support real
+	// parachain data in these inherents currently, but when we do this will need to be updated
+	require.Equal(t, expectedSecondExtrinsic, common.BytesToHex(extsBytes[1]))
 }
 
 func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -170,149 +172,146 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
+	keyRing, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, 1, types.NewDigest())
-
+	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
-	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
+	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = runtime.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
-	rawMeta, err := runtime.Metadata()
+	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
-	var decoded []byte
-	err = scale.Unmarshal(rawMeta, &decoded)
+	var metadataBytes []byte
+	err = scale.Unmarshal(rawMeta, &metadataBytes)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = codec.Decode(decoded, meta)
+	err = codec.Decode(metadataBytes, meta)
 	require.NoError(t, err)
 
-	rv := runtime.Version()
-
-	bob, err := ctypes.NewMultiAddressFromHexAccountID(
-		"0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	runtimeVersion, err := rt.Version()
 	require.NoError(t, err)
 
-	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
+		keyRing.KeyCharlie.Public().Hex())
+	require.NoError(t, err)
+
+	call, err := ctypes.NewCall(meta, "Balances.transfer", charlie, ctypes.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
 	// Create the extrinsic
-	ext := ctypes.NewExtrinsic(call)
-	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	extrinsic := ctypes.NewExtrinsic(call)
+	genesisHash, err := ctypes.NewHashFromHexString(genesisHeader.Hash().String())
 	require.NoError(t, err)
 
-	o := ctypes.SignatureOptions{
-		BlockHash:          genHash,
+	so := ctypes.SignatureOptions{
+		BlockHash:          genesisHash,
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-		GenesisHash:        genHash,
+		GenesisHash:        genesisHash,
 		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
-		SpecVersion:        ctypes.U32(rv.SpecVersion),
+		SpecVersion:        ctypes.U32(runtimeVersion.SpecVersion),
 		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion),
+		TransactionVersion: ctypes.U32(runtimeVersion.TransactionVersion),
 	}
 
 	// Sign the transaction using Alice's default account
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, so)
 	require.NoError(t, err)
 
-	extEnc := bytes.Buffer{}
-	encoder := cscale.NewEncoder(&extEnc)
-	ext.Encode(*encoder)
-
-	externalExtrinsic := buildLocalTransaction(t, runtime, extEnc.Bytes(), bestBlockHash)
-
-	txVal, err := runtime.ValidateTransaction(externalExtrinsic)
+	extEnc := bytes.NewBuffer(nil)
+	encoder := cscale.NewEncoder(extEnc)
+	err = extrinsic.Encode(*encoder)
 	require.NoError(t, err)
 
-	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
-	babeService.transactionState.Push(vtx)
+	externalExtrinsic := buildLocalTransaction(t, rt, extEnc.Bytes(), bestBlockHash)
+
+	txVal, err := rt.ValidateTransaction(externalExtrinsic)
+	require.NoError(t, err)
+
+	validTransaction := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
+	_, err = babeService.transactionState.Push(validTransaction)
+	require.NoError(t, err)
 
 	// apply extrinsic
-	res, err := runtime.ApplyExtrinsic(extEnc.Bytes())
+	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
 }
 
-// TODO investigate if this is a needed test #3060
-// Good to test build block error case, but this test can be improved
-func TestBuildBlock_failing(t *testing.T) {
-	t.Skip()
-
-	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, gen, genTrie, genHeader)
-
-	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
-	// add a valid transaction
-	txa := []byte{
-		3, 16, 110, 111, 111, 116,
-		1, 64, 103, 111, 115, 115,
-		97, 109, 101, 114, 95, 105,
-		115, 95, 99, 111, 111, 108}
-	vtx := transaction.NewValidTransaction(types.Extrinsic(txa), &transaction.Validity{})
-	babeService.transactionState.Push(vtx)
-
-	// add a transaction that can't be included (transfer from account with no balance)
-	// See https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-	txb := []byte{
-		1, 212, 53, 147, 199, 21, 253, 211,
-		28, 97, 20, 26, 189, 4, 169, 159,
-		214, 130, 44, 133, 88, 133, 76, 205,
-		227, 154, 86, 132, 231, 165, 109, 162,
-		125, 142, 175, 4, 21, 22, 135, 115, 99,
-		38, 201, 254, 161, 126, 37, 252, 82,
-		135, 97, 54, 147, 201, 18, 144, 156,
-		178, 38, 170, 71, 148, 242, 106, 72,
-		69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 216, 5, 113, 87, 87, 40,
-		221, 120, 247, 252, 137, 201, 74, 231,
-		222, 101, 85, 108, 102, 39, 31, 190, 210,
-		14, 215, 124, 19, 160, 180, 203, 54,
-		110, 167, 163, 149, 45, 12, 108, 80,
-		221, 65, 238, 57, 237, 199, 16, 10,
-		33, 185, 8, 244, 184, 243, 139, 5,
-		87, 252, 245, 24, 225, 37, 154, 163, 142}
-	vtx = transaction.NewValidTransaction(types.Extrinsic(txb), &transaction.Validity{})
-	babeService.transactionState.Push(vtx)
-
-	zeroHash, err := common.HexToHash("0x00")
+func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
+	keyRing, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	parentHeader := &types.Header{
-		ParentHash: zeroHash,
-	}
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   1000,
-	}
-
+	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	const authorityIndex uint32 = 0
-	_, err = babeService.buildBlock(parentHeader, slot, rt, authorityIndex, &types.PreRuntimeDigest{})
-	require.NotNil(t, err)
-	require.Equal(t, "cannot build extrinsics: error applying extrinsic: Apply error, type: Payment",
-		err.Error(), "Did not receive expected error text")
+	err = rt.InitializeBlock(header)
+	require.NoError(t, err)
 
-	txc := babeService.transactionState.(*state.TransactionState).Peek()
-	if !bytes.Equal(txc.Extrinsic, txa) {
-		t.Fatal("did not readd valid transaction to queue")
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+	var metadataBytes []byte
+	err = scale.Unmarshal(rawMeta, &metadataBytes)
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = codec.Decode(metadataBytes, meta)
+	require.NoError(t, err)
+
+	runtimeVersion, err := rt.Version()
+	require.NoError(t, err)
+
+	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
+		keyRing.KeyCharlie.Public().Hex())
+	require.NoError(t, err)
+
+	call, err := ctypes.NewCall(meta, "Balances.transfer", charlie, ctypes.NewUCompactFromUInt(^uint64(0)))
+	require.NoError(t, err)
+
+	extrinsic := ctypes.NewExtrinsic(call)
+	genesisHash, err := ctypes.NewHashFromHexString(genesisHeader.Hash().String())
+	require.NoError(t, err)
+
+	so := ctypes.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genesisHash,
+		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
+		SpecVersion:        ctypes.U32(runtimeVersion.SpecVersion),
+		Tip:                ctypes.NewUCompactFromUInt(^uint64(0)),
+		TransactionVersion: ctypes.U32(runtimeVersion.TransactionVersion),
 	}
+
+	err = extrinsic.Sign(signature.TestKeyringPairAlice, so)
+	require.NoError(t, err)
+
+	extEnc := bytes.NewBuffer(nil)
+	encoder := cscale.NewEncoder(extEnc)
+	err = extrinsic.Encode(*encoder)
+	require.NoError(t, err)
+
+	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
+	require.NoError(t, err)
+
+	err = determineErr(res)
+	_, ok := err.(*TransactionValidityError)
+	require.True(t, ok)
+	require.Equal(t, "transaction validity error: invalid payment", err.Error())
 }
 
 func TestDecodeExtrinsicBody(t *testing.T) {
@@ -336,7 +335,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Unregister(buildBlockTimer)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)

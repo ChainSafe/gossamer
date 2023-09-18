@@ -36,8 +36,8 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 	blockErrorAPIMock1 := mocks.NewMockBlockAPI(ctrl)
 	blockErrorAPIMock2 := mocks.NewMockBlockAPI(ctrl)
 
-	blockAPIMock.EXPECT().BestBlockHash().Return(testHash).AnyTimes()
-	blockAPIMock.EXPECT().GetRuntime(testHash).Return(runtimeMock, nil).AnyTimes()
+	blockAPIMock.EXPECT().BestBlockHash().Return(testHash).Times(2)
+	blockAPIMock.EXPECT().GetRuntime(testHash).Return(runtimeMock, nil).Times(3)
 
 	blockAPIMock2.EXPECT().GetRuntime(testHash).Return(runtimeMock2, nil)
 
@@ -45,7 +45,7 @@ func TestPaymentModule_QueryInfo(t *testing.T) {
 
 	blockErrorAPIMock2.EXPECT().GetRuntime(testHash).Return(nil, errors.New("GetRuntime error"))
 
-	runtimeMock.EXPECT().PaymentQueryInfo(common.MustHexToBytes("0x0000")).Return(nil, nil).AnyTimes()
+	runtimeMock.EXPECT().PaymentQueryInfo(common.MustHexToBytes("0x0000")).Return(nil, nil).Times(2)
 	runtimeMock2.EXPECT().PaymentQueryInfo(common.MustHexToBytes("0x0000")).Return(&types.RuntimeDispatchInfo{
 		Weight:     uint64(21),
 		Class:      21,

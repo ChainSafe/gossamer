@@ -35,11 +35,16 @@ jobs:
             github.com/ChainSafe/gossamer/lib/babe,
             github.com/ChainSafe/gossamer/lib/grandpa,
           ]
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
-      - uses: actions/setup-go@v3
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
         with:
-          go-version: 1.19
+          all_but_latest: true
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
           stable: true
           check-latest: true
 
@@ -49,7 +54,7 @@ jobs:
           echo "::set-output name=go-build::$(go env GOCACHE)"
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Go build cache
         uses: actions/cache@v3

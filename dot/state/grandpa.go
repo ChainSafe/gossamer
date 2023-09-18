@@ -7,9 +7,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strconv"
 
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -40,17 +42,19 @@ type GrandpaState struct {
 
 	forcedChanges        *orderedPendingChanges
 	scheduledChangeRoots *changeTree
+	telemetry            Telemetry
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db *chaindb.BadgerDB, bs *BlockState,
-	genesisAuthorities []types.GrandpaVoter) (*GrandpaState, error) {
-	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
+func NewGrandpaStateFromGenesis(db database.Database, bs *BlockState,
+	genesisAuthorities []types.GrandpaVoter, telemetry Telemetry) (*GrandpaState, error) {
+	grandpaDB := database.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
 		db:                   grandpaDB,
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),
+		telemetry:            telemetry,
 	}
 
 	if err := s.setCurrentSetID(genesisSetID); err != nil {
@@ -73,12 +77,13 @@ func NewGrandpaStateFromGenesis(db *chaindb.BadgerDB, bs *BlockState,
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db *chaindb.BadgerDB, bs *BlockState) *GrandpaState {
+func NewGrandpaState(db database.Database, bs *BlockState, telemetry Telemetry) *GrandpaState {
 	return &GrandpaState{
-		db:                   chaindb.NewTable(db, grandpaPrefix),
+		db:                   database.NewTable(db, grandpaPrefix),
 		blockState:           bs,
 		scheduledChangeRoots: new(changeTree),
 		forcedChanges:        new(orderedPendingChanges),
+		telemetry:            telemetry,
 	}
 }
 
@@ -194,7 +199,11 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 	logger.Debugf("Applying authority set change scheduled at block #%d",
 		changeToApply.change.announcingHeader.Number)
 
-	// TODO: add afg.applying_scheduled_authority_set_change telemetry info here
+	canonHeightString := strconv.FormatUint(uint64(changeToApply.change.announcingHeader.Number), 10)
+	s.telemetry.SendMessage(telemetry.NewAfgApplyingScheduledAuthoritySetChange(
+		canonHeightString,
+	))
+
 	return nil
 }
 
@@ -226,10 +235,12 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("%w: %s", errPendingScheduledChanges, dependant.change)
 	}
 
-	logger.Debugf("applying forced change: %s", forcedChange)
+	logger.Debugf("Applying authority set forced change: %s", forcedChange)
 
-	// TODO: send the telemetry messages here
-	// afg.applying_forced_authority_set_change
+	canonHeightString := strconv.FormatUint(uint64(forcedChange.announcingHeader.Number), 10)
+	s.telemetry.SendMessage(telemetry.NewAfgApplyingForcedAuthoritySetChange(
+		canonHeightString,
+	))
 
 	currentSetID, err := s.GetCurrentSetID()
 	if err != nil {
@@ -257,9 +268,10 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 		return fmt.Errorf("cannot set change set id at block")
 	}
 
-	logger.Debugf("Applying authority set forced change at block #%d",
-		forcedChange.announcingHeader.Number)
+	logger.Debugf("Applied authority set forced change: %s", forcedChange)
 
+	s.forcedChanges.pruneAll()
+	s.scheduledChangeRoots.pruneAll()
 	return nil
 }
 
@@ -447,7 +459,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 
 	for {
 		changeUpper, err := s.GetSetIDChange(curr + 1)
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			if curr == 0 {
 				return 0, nil
 			}
@@ -490,7 +502,7 @@ func (s *GrandpaState) SetNextPause(number uint) error {
 }
 
 // GetNextPause returns the block number of the next grandpa pause.
-// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// If the key is not found in the database, the error database.ErrNotFound
 // is returned.
 func (s *GrandpaState) GetNextPause() (blockNumber uint, err error) {
 	value, err := s.db.Get(pauseKey)
@@ -508,7 +520,7 @@ func (s *GrandpaState) SetNextResume(number uint) error {
 }
 
 // GetNextResume returns the block number of the next grandpa resume.
-// If the key is not found in the database, the error chaindb.ErrKeyNotFound
+// If the key is not found in the database, the error database.ErrNotFound
 // is returned.
 func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
 	value, err := s.db.Get(resumeKey)
@@ -556,7 +568,7 @@ func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVo
 		return nil, err
 	}
 
-	pvs := []types.GrandpaSignedVote{}
+	var pvs []types.GrandpaSignedVote
 	err = scale.Unmarshal(data, &pvs)
 	if err != nil {
 		return nil, err
@@ -582,7 +594,7 @@ func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSigned
 		return nil, err
 	}
 
-	pcs := []types.GrandpaSignedVote{}
+	var pcs []types.GrandpaSignedVote
 	err = scale.Unmarshal(data, &pcs)
 	if err != nil {
 		return nil, err

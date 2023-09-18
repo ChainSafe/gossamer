@@ -18,11 +18,16 @@ name: docker-rpc
 
 jobs:
   docker-rpc-tests:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     env:
       DOCKER_BUILDKIT: "1"
     steps:
-      - uses: docker/build-push-action@v3
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          all_but_latest: true
+
+      - uses: docker/build-push-action@v5
         with:
           load: true
           target: builder

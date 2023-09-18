@@ -6,143 +6,22 @@ package blocktree
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var zeroHash, _ = common.HexToHash("0x00")
-var testHeader = &types.Header{
-	ParentHash: zeroHash,
-	Number:     0,
-	Digest:     types.NewDigest(),
-}
-
-type testBranch struct {
-	hash        Hash
-	number      uint
-	arrivalTime int64
-}
 
 func newBlockTreeFromNode(root *node) *BlockTree {
 	return &BlockTree{
 		root:   root,
 		leaves: newLeafMap(root),
 	}
-}
-
-func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
-	babeDigest := types.NewBabeDigest()
-	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
-	require.NoError(t, err)
-
-	bdEnc, err := scale.Marshal(babeDigest)
-	require.NoError(t, err)
-
-	digest := types.NewDigest()
-	err = digest.Add(types.PreRuntimeDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              bdEnc,
-	})
-	require.NoError(t, err)
-	return digest
-}
-
-func createTestBlockTree(t *testing.T, header *types.Header, number uint) (*BlockTree, []testBranch) {
-	bt := NewBlockTreeFromRoot(header)
-	previousHash := header.Hash()
-
-	// branch tree randomly
-	var branches []testBranch
-	r := rand.New(rand.NewSource(time.Now().UnixNano())) //skipcq: GSC-G404
-
-	at := int64(0)
-
-	// create base tree
-	for i := uint(1); i <= number; i++ {
-		header := &types.Header{
-			ParentHash: previousHash,
-			Number:     i,
-			Digest:     createPrimaryBABEDigest(t),
-		}
-
-		hash := header.Hash()
-		err := bt.AddBlock(header, time.Unix(0, at))
-		require.NoError(t, err)
-
-		previousHash = hash
-
-		isBranch := r.Intn(2)
-		if isBranch == 1 {
-			branches = append(branches, testBranch{
-				hash:        hash,
-				number:      bt.getNode(hash).number,
-				arrivalTime: at,
-			})
-		}
-
-		at += int64(r.Intn(8))
-	}
-
-	// create tree branches
-	for _, branch := range branches {
-		at := branch.arrivalTime
-		previousHash = branch.hash
-
-		for i := branch.number; i <= number; i++ {
-			header := &types.Header{
-				ParentHash: previousHash,
-				Number:     i + 1,
-				StateRoot:  common.Hash{0x1},
-				Digest:     createPrimaryBABEDigest(t),
-			}
-
-			hash := header.Hash()
-			err := bt.AddBlock(header, time.Unix(0, at))
-			require.NoError(t, err)
-
-			previousHash = hash
-			at += int64(r.Intn(8))
-
-		}
-	}
-
-	return bt, branches
-}
-
-func createFlatTree(t testing.TB, number uint) (*BlockTree, []common.Hash) {
-	rootHeader := &types.Header{
-		ParentHash: zeroHash,
-		Digest:     createPrimaryBABEDigest(t),
-	}
-
-	bt := NewBlockTreeFromRoot(rootHeader)
-	require.NotNil(t, bt)
-	previousHash := bt.root.hash
-
-	hashes := []common.Hash{bt.root.hash}
-	for i := uint(1); i <= number; i++ {
-		header := &types.Header{
-			ParentHash: previousHash,
-			Number:     i,
-			Digest:     createPrimaryBABEDigest(t),
-		}
-
-		hash := header.Hash()
-		hashes = append(hashes, hash)
-
-		err := bt.AddBlock(header, time.Unix(0, 0))
-		require.NoError(t, err)
-		previousHash = hash
-	}
-
-	return bt, hashes
 }
 
 func Test_NewBlockTreeFromNode(t *testing.T) {
@@ -504,39 +383,397 @@ func Test_BlockTree_LowestCommonAncestor_SameChain(t *testing.T) {
 	require.Equal(t, b, p)
 }
 
+func buildLinearBlockTree(t *testing.T, amount int) *BlockTree {
+	t.Helper()
+
+	blockTree := &BlockTree{
+		leaves:   newEmptyLeafMap(),
+		runtimes: newHashToRuntime(),
+	}
+
+	rootNode := &node{
+		hash:   common.MustHexToHash("0x00"),
+		number: 0,
+	}
+
+	blockTree.root = rootNode
+
+	parentNode := rootNode
+	for idx := 1; idx < amount; idx++ {
+		newNode := &node{
+			parent: parentNode,
+			hash:   common.MustHexToHash(fmt.Sprintf("0x0%d", idx)),
+			number: uint(idx),
+		}
+
+		parentNode.addChild(newNode)
+		parentNode = newNode
+	}
+
+	// parentNode node here will be the latest block in the tree
+	// that means it will be the leaf as well
+	blockTree.leaves.store(parentNode.hash, parentNode)
+	return blockTree
+}
+
+func appendRuntimeToHash(t *testing.T, blockTree *BlockTree,
+	hash common.Hash, runtimeInstance runtime.Instance) {
+	t.Helper()
+
+	blockTree.runtimes.set(hash, runtimeInstance)
+}
+
+func appendForksAt(t *testing.T, blockTree *BlockTree, forkAt common.Hash, forkHashes ...common.Hash) {
+	t.Helper()
+
+	parentNode := blockTree.getNode(forkAt)
+	require.NotNil(t, parentNode)
+
+	for idx, hash := range forkHashes {
+		newNode := &node{
+			parent: parentNode,
+			hash:   hash,
+			number: uint(100 + idx),
+		}
+		parentNode.addChild(newNode)
+		parentNode = newNode
+	}
+
+	// parentNode node here will be the latest block in the tree
+	// that means it will be the leaf as well
+	blockTree.leaves.store(parentNode.hash, parentNode)
+
+}
+
+func Test_BlockTree_GetBlockRuntime(t *testing.T) {
+	// {0x00} -> {0x01} -> {0x02} -> {0x03}
+	//                  -> {0x04} -> {0x05}
+	//							  -> {0x06}
+	blockTree := buildLinearBlockTree(t, 4)
+
+	appendForksAt(t, blockTree, common.MustHexToHash("0x01"),
+		common.MustHexToHash("0x04"),
+		common.MustHexToHash("0x05"))
+
+	appendForksAt(t, blockTree, common.MustHexToHash("0x04"),
+		common.MustHexToHash("0x06"))
+
+	rootRuntime := NewMockInstance(nil)
+	lastCanonicalRuntime := NewMockInstance(nil)
+	forkedRuntime := NewMockInstance(nil)
+
+	appendRuntimeToHash(t, blockTree, common.MustHexToHash("0x00"), rootRuntime)
+	appendRuntimeToHash(t, blockTree, common.MustHexToHash("0x03"), lastCanonicalRuntime)
+	appendRuntimeToHash(t, blockTree, common.MustHexToHash("0x04"), forkedRuntime)
+	appendRuntimeToHash(t, blockTree, common.MustHexToHash("0x05"), lastCanonicalRuntime)
+
+	// Even though we have only 3 runtimes (rootRuntime, lastCanonicalRuntime and forkedRuntime)
+	// the lastCanonicalRuntime happens in different forks, it is in the block `0x03` and in block
+	// `0x05` and both blocks don't have any relashionship that justifies the usage of one instance
+	const totalRuntimesInMemory = 4
+	require.Equal(t, totalRuntimesInMemory, len(blockTree.runtimes.mapping))
+
+	testCases := []struct {
+		hashInput       common.Hash
+		expectedRuntime runtime.Instance
+	}{
+		{common.MustHexToHash("0x06"), forkedRuntime},
+		{common.MustHexToHash("0x05"), lastCanonicalRuntime},
+		{common.MustHexToHash("0x04"), forkedRuntime},
+		{common.MustHexToHash("0x03"), lastCanonicalRuntime},
+		{common.MustHexToHash("0x02"), rootRuntime},
+		{common.MustHexToHash("0x00"), rootRuntime},
+	}
+
+	for _, tt := range testCases {
+		givenRuntime, err := blockTree.GetBlockRuntime(tt.hashInput)
+		require.NoError(t, err)
+		if tt.expectedRuntime != givenRuntime {
+			t.Errorf("exepected %v. got %v", tt.expectedRuntime, givenRuntime)
+			return
+		}
+	}
+}
+
 func Test_BlockTree_Prune(t *testing.T) {
-	var bt *BlockTree
-	var branches []testBranch
+	t.Parallel()
 
-	for {
-		bt, branches = createTestBlockTree(t, testHeader, 5)
-		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
-			break
-		}
-	}
+	t.Run("finalised_hash_is_root_hash", func(t *testing.T) {
+		t.Parallel()
 
-	blockTreeCopy := bt.DeepCopy()
-
-	// pick some block to finalise
-	finalised := bt.root.children[0].children[0].children[0]
-	pruned := bt.Prune(finalised.hash)
-
-	for _, prunedHash := range pruned {
-		prunedNode := blockTreeCopy.getNode(prunedHash)
-		if prunedNode.isDescendantOf(finalised) {
-			t.Fatal("pruned node that's descendant of finalised node!!")
+		blockTree := &BlockTree{
+			root: &node{
+				hash: Hash{1},
+			},
 		}
 
-		if finalised.isDescendantOf(prunedNode) {
-			t.Fatal("pruned an ancestor of the finalised node!!")
-		}
-	}
+		pruned := blockTree.Prune(Hash{1})
 
-	require.NotEqual(t, 0, len(bt.leaves.nodes()))
-	for _, leaf := range bt.leaves.nodes() {
-		require.NotEqual(t, leaf.hash, finalised.hash)
-		require.True(t, leaf.isDescendantOf(finalised))
-	}
+		assert.Empty(t, pruned)
+	})
+
+	t.Run("node_not_found", func(t *testing.T) {
+		t.Parallel()
+
+		blockTree := &BlockTree{
+			root:   &node{},
+			leaves: newEmptyLeafMap(),
+		}
+
+		pruned := blockTree.Prune(Hash{1})
+
+		assert.Empty(t, pruned)
+	})
+
+	t.Run("nothing_to_prune", func(t *testing.T) {
+		t.Parallel()
+
+		rootNode := &node{
+			hash:   common.Hash{1},
+			number: 0,
+		}
+		blockTree := &BlockTree{
+			root:     rootNode,
+			leaves:   newEmptyLeafMap(),
+			runtimes: newHashToRuntime(),
+		}
+
+		ctrl := gomock.NewController(t)
+		runtimeInstanceToBePrunned := NewMockInstance(ctrl)
+		runtimeInstanceToBePrunned.EXPECT().Stop()
+		blockTree.runtimes.set(common.Hash{1}, runtimeInstanceToBePrunned)
+
+		// {1} -> {2}
+		parent := rootNode
+		newNode := &node{
+			parent: parent,
+			hash:   common.Hash{2},
+			number: 1,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+
+		expectedRuntimeInstance := NewMockInstance(nil)
+		blockTree.runtimes.set(common.Hash{2}, expectedRuntimeInstance)
+
+		pruned := blockTree.Prune(common.Hash{2})
+		assert.Empty(t, pruned)
+
+		expectedHashToRuntime := &hashToRuntime{
+			mapping: map[common.Hash]runtime.Instance{
+				{2}: expectedRuntimeInstance,
+			},
+		}
+		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
+	})
+
+	t.Run("prune_canonical_runtimes", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+
+		rootNode := &node{
+			hash:   common.Hash{1},
+			number: 0,
+		}
+		rootRuntime := NewMockInstance(ctrl)
+		blockTree := &BlockTree{
+			root:     rootNode,
+			leaves:   newEmptyLeafMap(),
+			runtimes: newHashToRuntime(),
+		}
+		blockTree.runtimes.set(common.Hash{1}, rootRuntime)
+
+		// {1} -> {2}
+		parent := rootNode
+		newNode := &node{
+			parent: parent,
+			hash:   common.Hash{2},
+			number: 1,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+		leafRuntime := NewMockInstance(ctrl)
+		blockTree.runtimes.set(common.Hash{2}, leafRuntime)
+
+		// Previous runtime is pruned
+		rootRuntime.EXPECT().Stop()
+
+		pruned := blockTree.Prune(common.Hash{2})
+		assert.Empty(t, pruned)
+
+		expectedHashToRuntime := &hashToRuntime{
+			mapping: map[common.Hash]runtime.Instance{
+				{2}: leafRuntime,
+			},
+		}
+		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
+	})
+
+	t.Run("prune_fork", func(t *testing.T) {
+		t.Parallel()
+
+		rootNode := &node{
+			hash:   common.Hash{1},
+			number: 0,
+		}
+
+		blockTree := &BlockTree{
+			root:     rootNode,
+			leaves:   newEmptyLeafMap(),
+			runtimes: newHashToRuntime(),
+		}
+
+		rootRuntime := NewMockInstance(nil)
+		blockTree.runtimes.set(common.Hash{1}, rootRuntime)
+
+		// {1} -> {2}
+		// we don't need to add a runtime to node number 2 since
+		parent := rootNode
+		newNode := &node{
+			parent: parent,
+			hash:   common.Hash{2},
+			number: 1,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+
+		// {1} -> {2}
+		//     -> {3}
+		parent = rootNode
+		newNode = &node{
+			parent: parent,
+			hash:   common.Hash{3},
+			number: 1,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+
+		ctrl := gomock.NewController(t)
+		runtimeToBePrunned := NewMockInstance(ctrl)
+		runtimeToBePrunned.EXPECT().Stop()
+
+		blockTree.runtimes.set(common.Hash{3}, runtimeToBePrunned)
+
+		// expect that node number 3 to be prunned with its runtime
+		pruned := blockTree.Prune(common.Hash{2})
+		assert.Equal(t, []common.Hash{{3}}, pruned)
+		expectedHashToRuntime := &hashToRuntime{
+			mapping: map[common.Hash]runtime.Instance{
+				{2}: rootRuntime,
+			},
+		}
+		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
+	})
+
+	t.Run("complex_example", func(t *testing.T) {
+		t.Parallel()
+		ctrl := gomock.NewController(t)
+
+		rootNode := &node{
+			hash:   common.Hash{1},
+			number: 100,
+		}
+		rootRuntime := NewMockInstance(ctrl)
+		rootRuntime.EXPECT().Stop()
+
+		blockTree := &BlockTree{
+			root:   rootNode,
+			leaves: newEmptyLeafMap(),
+			runtimes: &hashToRuntime{
+				mapping: map[common.Hash]runtime.Instance{
+					{1}: rootRuntime,
+				},
+			},
+		}
+
+		// {1} -> rootRuntime
+		// {1} -> {2}
+		parent := rootNode
+		newNode := &node{
+			parent: parent,
+			hash:   common.Hash{2},
+			number: 101,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+
+		// {1} -> rootRuntime | {3} -> lastCanonicalRuntime
+		// {1} -> {2} -> {3}
+		parent = newNode
+		newNode = &node{
+			parent: parent,
+			hash:   common.Hash{3},
+			number: 102,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+		lastCanonicalRuntime := NewMockInstance(ctrl)
+		blockTree.runtimes.set(common.Hash{3}, lastCanonicalRuntime)
+
+		// {1} -> rootRuntime | {3} -> lastCanonicalRuntime
+		// {1} -> {2} -> {3} -> {4}
+		parent = newNode
+		newNode = &node{
+			parent: parent,
+			hash:   common.Hash{4},
+			number: 103,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+
+		// {1} -> rootRuntime | {3} -> lastCanonicalRuntime
+		// {1} -> {2} -> {3} -> {4}
+		//            -> {5}
+		parent = blockTree.getNode(common.Hash{2})
+		newNode = &node{
+			parent: parent,
+			hash:   common.Hash{5},
+			number: 102,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+
+		// {1} -> rootRuntime | {3} -> lastCanonicalRuntime
+		// {1} -> rootRuntime | {6} -> lastCanonicalRuntime
+		// {1} -> {2} -> {3} -> {4}
+		//            -> {5} -> {6}
+		parent = blockTree.getNode(common.Hash{5})
+		newNode = &node{
+			parent: parent,
+			hash:   common.Hash{6},
+			number: 103,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+		blockTree.runtimes.set(common.Hash{6}, lastCanonicalRuntime)
+
+		// {1} -> rootRuntime | {3} -> lastCanonicalRuntime
+		// {1} -> rootRuntime | {6} -> lastCanonicalRuntime | {7} -> forkedRuntime
+		// {1} -> {2} -> {3} -> {4}
+		//            -> {5} -> {6}
+		//						-> {7}
+		parent = blockTree.getNode(common.Hash{5})
+		newNode = &node{
+			parent: parent,
+			hash:   common.Hash{7},
+			number: 102,
+		}
+		parent.addChild(newNode)
+		blockTree.leaves.replace(parent, newNode)
+		forkedRuntime := NewMockInstance(ctrl)
+		forkedRuntime.EXPECT().Stop()
+		blockTree.runtimes.set(common.Hash{7}, forkedRuntime)
+
+		pruned := blockTree.Prune(common.Hash{4})
+		assert.Equal(t, []common.Hash{{5}, {6}, {7}}, pruned)
+
+		expectedHashToRuntime := &hashToRuntime{
+			mapping: map[common.Hash]runtime.Instance{
+				{4}: lastCanonicalRuntime,
+			},
+		}
+		assert.Equal(t, expectedHashToRuntime, blockTree.runtimes)
+	})
 }
 
 func Test_BlockTree_GetHashByNumber(t *testing.T) {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -27,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -60,8 +60,8 @@ func TestUnsafeRPCProtection(t *testing.T) {
 		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev", "syncstate"},
 		RPCPort:           7878,
 		RPCAPI:            NewService(),
-		RPCUnsafe:         false,
 		RPCUnsafeExternal: false,
+		RPCUnsafe:         false,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -96,6 +96,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 		})
 	}
 }
+
 func TestRPCUnsafeExpose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -146,10 +147,11 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &HTTPServerConfig{
-		Modules:   []string{"system"},
-		RPCPort:   7880,
-		RPCAPI:    NewService(),
-		RPCUnsafe: true,
+		Modules:           []string{"system"},
+		RPCPort:           7880,
+		RPCAPI:            NewService(),
+		RPCUnsafe:         true,
+		RPCUnsafeExternal: false,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -200,9 +202,9 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 		Modules:           []string{"system"},
 		RPCPort:           8786,
 		RPCAPI:            NewService(),
-		RPCUnsafe:         true,
-		RPCUnsafeExternal: false,
 		RPCExternal:       true,
+		RPCUnsafeExternal: false,
+		RPCUnsafe:         true,
 		NetworkAPI:        netmock,
 	}
 
@@ -299,7 +301,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	testDatadirPath := t.TempDir()
 
-	gen, genesisTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
@@ -338,7 +340,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	err = cfg.Keystore.Acco.Insert(kp)
 	require.NoError(t, err)
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -350,7 +352,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	}
 	rtCfg.NodeStorage = nodeStorage
 
-	cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+	cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)

@@ -35,20 +35,6 @@ func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 	return m.recorder
 }
 
-// ApplyForcedChanges mocks base method.
-func (m *MockGrandpaState) ApplyForcedChanges(arg0 *types.Header) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyForcedChanges", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ApplyForcedChanges indicates an expected call of ApplyForcedChanges.
-func (mr *MockGrandpaStateMockRecorder) ApplyForcedChanges(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyForcedChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyForcedChanges), arg0)
-}
-
 // ApplyScheduledChanges mocks base method.
 func (m *MockGrandpaState) ApplyScheduledChanges(arg0 *types.Header) error {
 	m.ctrl.T.Helper()

@@ -4,7 +4,9 @@
 package network
 
 import (
+	"crypto/ed25519"
 	"errors"
+	"fmt"
 	"path"
 	"time"
 
@@ -58,7 +60,7 @@ type Config struct {
 	// BasePath the data directory for the node
 	BasePath string
 	// Roles a bitmap value that represents the different roles for the sender node (see Table D.2)
-	Roles common.Roles
+	Roles common.NetworkRole
 
 	// Service interfaces
 	BlockState         BlockState
@@ -82,6 +84,8 @@ type Config struct {
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
+	// ListenAddress is the multiaddress to listen on
+	ListenAddress string
 
 	MinPeers int
 	MaxPeers int
@@ -90,6 +94,9 @@ type Config struct {
 
 	// PersistentPeers is a list of multiaddrs which the node should remain connected to
 	PersistentPeers []string
+
+	// NodeKey is the private hex encoded Ed25519 key to build the p2p identity
+	NodeKey string
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
@@ -161,6 +168,20 @@ func (c *Config) checkState() (err error) {
 // service, if a key does not exist or cannot be loaded, it creates a new key
 // using the random seed (if random seed is not set, creates new random key)
 func (c *Config) buildIdentity() error {
+	if c.NodeKey != "" {
+		privateKeySeed, err := common.HexToBytes("0x" + c.NodeKey)
+		if err != nil {
+			return fmt.Errorf("parsing hex encoding of ed25519 private key: %w", err)
+		}
+		key := ed25519.NewKeyFromSeed(privateKeySeed)
+		privateKey, err := crypto.UnmarshalEd25519PrivateKey(key)
+		if err != nil {
+			return fmt.Errorf("decoding ed25519 bytes: %w", err)
+		}
+		c.privateKey = privateKey
+		return nil
+	}
+
 	if c.RandSeed == 0 {
 
 		// attempt to load existing key

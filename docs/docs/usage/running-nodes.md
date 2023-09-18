@@ -8,12 +8,12 @@ permalink: /usage/running-nodes/
 
 To run default Gossamer node, first initialise the node. This writes the genesis state to the database.
 ```
-./bin/gossamer --chain gssmr init
+./bin/gossamer --chain westend-dev init
 ```
 
 The gossamer node runs as an authority by default. The built-in authorities are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`. To start the node as an authority, provide it with a built-in key:
 ```
-./bin/gossamer --chain gssmr --key alice
+./bin/gossamer --chain westend-dev --key alice
 ```
 
 
@@ -24,27 +24,25 @@ The node will not build blocks every slot by default; it will appear that the no
 roles = 4
 babe-authority = true
 grandpa-authority = true
-babe-threshold-numerator = 1
-babe-threshold-denominator = 1
 ```
 
 Then, re-run the above steps. NOTE: this feature is for testing only; if you wish to change the BABE block production parameters, you need to create a modified runtime.
 
 If you wish to run the default node as a non-authority, you can specify `roles=1`:
 ```
-./bin/gossamer --chain gssmr --roles 1
+./bin/gossamer --chain westend-dev --roles 1 --base-path /tmp/gossamer
 ```
 
 ## Run Kusama Node
 
 To run a Kusama node, first initialise the node:
 ```
-./bin/gossamer --chain kusama init
+./bin/gossamer --chain kusama init --base-path /tmp/gossamer
 ```
 
 Then run the node selecting the Kusama chain:
 ```
-./bin/gossamer --chain kusama
+./bin/gossamer --chain kusama --base-path /tmp/gossamer
 ```
 
 The node may not appear to do anything for the first minute or so (it's bootstrapping to the network.) If you wish to see what is it doing in this time, you can turn on debug logs in `chain/kusama/config.toml`:
@@ -60,12 +58,12 @@ After it's finished bootstrapping, the node should begin to sync.
 
 Initialise polkadot node:
 ```
-./bin/gossamer --chain polkadot init
+./bin/gossamer init --chain polkadot --base-path /tmp/gossamer
 ```
 
 Start polkadot node:
 ```
-./bin/gossamer --chain polkadot
+./bin/gossamer --chain polkadot --base-path /tmp/gossamer
 ```
 
 ## Run Gossamer Node with Docker

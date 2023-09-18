@@ -6,13 +6,18 @@ package types
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// DigestItem is a varying date type that holds type identifier and a scaled encoded message payload.
+type DigestItem struct {
+	ConsensusEngineID ConsensusEngineID
+	Data              []byte
+}
+
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewDigestItem() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
@@ -39,24 +44,8 @@ var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 // GrandpaEngineID is the hard-coded grandpa ID
 var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
-// ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
-type ChangesTrieRootDigest struct {
-	Hash common.Hash
-}
-
-// Index returns VDT index
-func (ChangesTrieRootDigest) Index() uint { return 2 }
-
-// String returns the digest as a string
-func (d ChangesTrieRootDigest) String() string {
-	return fmt.Sprintf("ChangesTrieRootDigest Hash=%s", d.Hash)
-}
-
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
-type PreRuntimeDigest struct {
-	ConsensusEngineID ConsensusEngineID
-	Data              []byte
-}
+type PreRuntimeDigest DigestItem
 
 // Index returns VDT index
 func (PreRuntimeDigest) Index() uint { return 6 }
@@ -75,10 +64,7 @@ func (d PreRuntimeDigest) String() string {
 }
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.
-type ConsensusDigest struct {
-	ConsensusEngineID ConsensusEngineID
-	Data              []byte
-}
+type ConsensusDigest DigestItem
 
 // Index returns VDT index
 func (ConsensusDigest) Index() uint { return 4 }
@@ -89,10 +75,7 @@ func (d ConsensusDigest) String() string {
 }
 
 // SealDigest contains the seal or signature. This is only used by native code.
-type SealDigest struct {
-	ConsensusEngineID ConsensusEngineID
-	Data              []byte
-}
+type SealDigest DigestItem
 
 // Index returns VDT index
 func (SealDigest) Index() uint { return 5 }

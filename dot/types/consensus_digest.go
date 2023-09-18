@@ -11,7 +11,7 @@ import (
 
 // NewBabeConsensusDigest constructs a vdt representing a babe consensus digest
 func NewBabeConsensusDigest() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NextConfigData{})
+	return scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NewVersionedNextConfigData())
 }
 
 // NewGrandpaConsensusDigest constructs a vdt representing a grandpa consensus digest
@@ -126,27 +126,67 @@ func (b BABEOnDisabled) String() string {
 	return fmt.Sprintf("BABEOnDisabled{ID=%d}", b.ID)
 }
 
-// NextConfigData is the digest that contains changes to the BABE configuration.
+// NextConfigDataV1 is the digest that contains changes to the BABE configuration.
 // It is potentially included in the first block of an epoch to describe the next epoch.
-type NextConfigData struct {
+type NextConfigDataV1 struct {
 	C1             uint64
 	C2             uint64
 	SecondarySlots byte
 }
 
 // Index returns VDT index
-func (NextConfigData) Index() uint { return 3 } //skipcq: GO-W1029
+func (NextConfigDataV1) Index() uint { return 1 } //skipcq: GO-W1029
 
-func (d NextConfigData) String() string { //skipcq: GO-W1029
+func (d NextConfigDataV1) String() string { //skipcq: GO-W1029
 	return fmt.Sprintf("NextConfigData{C1=%d, C2=%d, SecondarySlots=%d}",
 		d.C1, d.C2, d.SecondarySlots)
 }
 
 // ToConfigData returns the NextConfigData as ConfigData
-func (d *NextConfigData) ToConfigData() *ConfigData { //skipcq: GO-W1029
+func (d *NextConfigDataV1) ToConfigData() *ConfigData { //skipcq: GO-W1029
 	return &ConfigData{
 		C1:             d.C1,
 		C2:             d.C2,
 		SecondarySlots: d.SecondarySlots,
 	}
+}
+
+// VersionedNextConfigData represents the enum of next config data consensus digest messages
+type VersionedNextConfigData scale.VaryingDataType
+
+// Index returns VDT index
+func (VersionedNextConfigData) Index() uint { return 3 }
+
+// Value returns the current VDT value
+func (vncd *VersionedNextConfigData) Value() (val scale.VaryingDataTypeValue, err error) {
+	vdt := scale.VaryingDataType(*vncd)
+	return vdt.Value()
+}
+
+// Set updates the current VDT value to be `val`
+func (vncd *VersionedNextConfigData) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*vncd)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting varying data type value: %w", err)
+	}
+	*vncd = VersionedNextConfigData(vdt)
+	return nil
+}
+
+// String returns the string representation for the current VDT value
+func (vncd VersionedNextConfigData) String() string {
+	val, err := vncd.Value()
+	if err != nil {
+		return "VersionedNextConfigData()"
+	}
+
+	return fmt.Sprintf("VersionedNextConfigData(%s)", val)
+}
+
+// NewVersionedNextConfigData creates a new VersionedNextConfigData instance
+func NewVersionedNextConfigData() VersionedNextConfigData {
+	vdt := scale.MustNewVaryingDataType(NextConfigDataV1{})
+
+	return VersionedNextConfigData(vdt)
 }

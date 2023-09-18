@@ -7,12 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
+
+type SlotState interface {
+	CheckEquivocation(slotNow, slot uint64, header *types.Header,
+		signer types.AuthorityID) (*types.BabeEquivocationProof, error)
+}
 
 // BlockState interface for block state methods
 type BlockState interface {
@@ -27,8 +32,8 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(blockNumber uint) (bool, error)
-	GetRuntime(blockHash common.Hash) (runtime state.Runtime, err error)
-	StoreRuntime(common.Hash, state.Runtime)
+	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
+	StoreRuntime(common.Hash, runtime.Instance)
 	ImportedBlockNotifierManager
 }
 
@@ -56,6 +61,7 @@ type EpochState interface {
 	GetSlotDuration() (time.Duration, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
+	SetEpochData(epoch uint64, info *types.EpochData) error
 
 	GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)

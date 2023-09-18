@@ -23,7 +23,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 	state := newTestStateService(t)
 	bestBlockHash := state.Block.BestBlockHash()
 
-	t.Run("When there is no errors", func(t *testing.T) {
+	t.Run("When_there_is_no_errors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		mockedQueryInfo := &types.RuntimeDispatchInfo{
@@ -61,7 +61,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		require.Equal(t, expected, res)
 	})
 
-	t.Run("When could not get runtime", func(t *testing.T) {
+	t.Run("When_could_not_get_runtime", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		blockAPIMock := mocks.NewMockBlockAPI(ctrl)
@@ -85,7 +85,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		require.Equal(t, res, PaymentQueryInfoResponse{})
 	})
 
-	t.Run("When PaymentQueryInfo returns error", func(t *testing.T) {
+	t.Run("When_PaymentQueryInfo_returns_error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeMock := mocksruntime.NewMockInstance(ctrl)
@@ -110,7 +110,7 @@ func TestPaymentQueryInfo(t *testing.T) {
 		require.Equal(t, res, PaymentQueryInfoResponse{})
 	})
 
-	t.Run("When PaymentQueryInfo returns a nil info", func(t *testing.T) {
+	t.Run("When_PaymentQueryInfo_returns_a_nil_info", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		runtimeMock := mocksruntime.NewMockInstance(ctrl)

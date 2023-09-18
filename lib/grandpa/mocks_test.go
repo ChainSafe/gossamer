@@ -10,6 +10,7 @@ import (
 	network "github.com/ChainSafe/gossamer/dot/network"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "github.com/golang/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
@@ -36,6 +37,20 @@ func NewMockBlockState(ctrl *gomock.Controller) *MockBlockState {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
+}
+
+// BestBlockHash mocks base method.
+func (m *MockBlockState) BestBlockHash() common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BestBlockHash")
+	ret0, _ := ret[0].(common.Hash)
+	return ret0
+}
+
+// BestBlockHash indicates an expected call of BestBlockHash.
+func (mr *MockBlockStateMockRecorder) BestBlockHash() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHash", reflect.TypeOf((*MockBlockState)(nil).BestBlockHash))
 }
 
 // BestBlockHeader mocks base method.
@@ -104,6 +119,21 @@ func (m *MockBlockState) GenesisHash() common.Hash {
 func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
+}
+
+// GetFinalisedHash mocks base method.
+func (m *MockBlockState) GetFinalisedHash(arg0, arg1 uint64) (common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFinalisedHash", arg0, arg1)
+	ret0, _ := ret[0].(common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFinalisedHash indicates an expected call of GetFinalisedHash.
+func (mr *MockBlockStateMockRecorder) GetFinalisedHash(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedHash), arg0, arg1)
 }
 
 // GetFinalisedHeader mocks base method.
@@ -208,6 +238,21 @@ func (m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
+}
+
+// GetRuntime mocks base method.
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
 // HasFinalisedBlock mocks base method.
@@ -504,7 +549,7 @@ func (mr *MockNetworkMockRecorder) GossipMessage(arg0 interface{}) *gomock.Call 
 }
 
 // RegisterNotificationsProtocol mocks base method.
-func (m *MockNetwork) RegisterNotificationsProtocol(arg0 protocol.ID, arg1 byte, arg2 func() (network.Handshake, error), arg3 func([]byte) (network.Handshake, error), arg4 func(peer.ID, network.Handshake) error, arg5 func([]byte) (network.NotificationsMessage, error), arg6 func(peer.ID, network.NotificationsMessage) (bool, error), arg7 func(peer.ID, network.NotificationsMessage), arg8 uint64) error {
+func (m *MockNetwork) RegisterNotificationsProtocol(arg0 protocol.ID, arg1 network.MessageType, arg2 func() (network.Handshake, error), arg3 func([]byte) (network.Handshake, error), arg4 func(peer.ID, network.Handshake) error, arg5 func([]byte) (network.NotificationsMessage, error), arg6 func(peer.ID, network.NotificationsMessage) (bool, error), arg7 func(peer.ID, network.NotificationsMessage), arg8 uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterNotificationsProtocol", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	ret0, _ := ret[0].(error)
