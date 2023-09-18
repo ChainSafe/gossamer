@@ -345,22 +345,13 @@ type CandidateReceipt struct {
 	CommitmentsHash common.Hash `scale:"2"`
 }
 
-// Encode returns the SCALE encoding of the receipt.
-func (cr CandidateReceipt) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(cr)
-	if err != nil {
-		return nil, fmt.Errorf("encode candidate receipt: %w", err)
-	}
-
-	return enc, nil
-}
-
 // Hash computes the blake2-256 hash of the receipt.
 func (cr CandidateReceipt) Hash() (common.Hash, error) {
-	enc, err := cr.Encode()
+	enc, err := scale.Marshal(cr)
 	if err != nil {
-		return common.Hash{}, err
+		return common.Hash{}, fmt.Errorf("encode candidate receipt: %w", err)
 	}
+
 	return common.Blake2bHash(enc)
 }
 
