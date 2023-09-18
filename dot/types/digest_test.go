@@ -191,6 +191,32 @@ func TestConsensusDigest(t *testing.T) {
 	require.Equal(t, diValue, vValue)
 }
 
+func TestRuntimeEnvironmentUpdatedDigest(t *testing.T) {
+	exp := common.MustHexToBytes("0x080000000000")
+	d := RuntimeEnvironmentUpdated{
+		Data: []byte{},
+	}
+
+	di := NewDigestItem()
+	err := di.Set(d)
+	require.NoError(t, err)
+
+	enc, err := scale.Marshal(di)
+	require.NoError(t, err)
+
+	require.Equal(t, exp, enc)
+
+	v := NewDigestItem()
+	err = scale.Unmarshal(enc, &v)
+	require.NoError(t, err)
+
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
+}
+
 func TestSealDigest(t *testing.T) {
 	exp := common.MustHexToBytes("0x05424142451001030507")
 	d := SealDigest{
