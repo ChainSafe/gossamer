@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -20,7 +21,8 @@ const (
 )
 
 type Service struct {
-	Network Network
+	Network  Network
+	Overseer *overseer.Overseer
 }
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
@@ -94,8 +96,10 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 		}
 	}
 
+	overseer := overseer.NewOverseer()
 	parachainService := &Service{
-		Network: net,
+		Network:  net,
+		Overseer: overseer,
 	}
 
 	go parachainService.run()
@@ -104,13 +108,26 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 }
 
 // Start starts the Handler
-func (Service) Start() error {
+func (s Service) Start() error {
+	logger.Infof("starting overseer")
+	errChan, err := s.Overseer.Start()
+	if err != nil {
+		return err
+	}
+	go func() {
+		for errC := range errChan {
+			// TODO: handle error
+			fmt.Printf("overseer start error: %v\n", errC)
+		}
+	}()
+
 	return nil
 }
 
 // Stop stops the Handler
-func (Service) Stop() error {
-	return nil
+func (s Service) Stop() error {
+	logger.Infof("stopping overseer")
+	return s.Overseer.Stop()
 }
 
 // main loop of parachain service
