@@ -113,16 +113,8 @@ func newSyncedBTree(comparator func(a, b any) bool) *syncedBTree {
 // The queues store participationItem's.
 // The btree is ordered by the CandidateComparator of participationItem.
 type QueueHandler struct {
-<<<<<<< HEAD
 	bestEffort *syncedBTree
 	priority   *syncedBTree
-=======
-	bestEffort *btree.BTree
-	priority   *btree.BTree
-
-	bestEffortLock sync.RWMutex
-	priorityLock   sync.RWMutex
->>>>>>> a8a50559 (use rwmutex)
 
 	bestEffortMaxSize int
 	priorityMaxSize   int
@@ -220,7 +212,6 @@ func (q *QueueHandler) PopPriority() *ParticipationItem {
 
 func (q *QueueHandler) Len(queueType ParticipationPriority) int {
 	if queueType.IsPriority() {
-<<<<<<< HEAD
 		q.priority.RLock()
 		defer q.priority.RUnlock()
 		return q.priority.Len()
@@ -228,15 +219,6 @@ func (q *QueueHandler) Len(queueType ParticipationPriority) int {
 
 	q.bestEffort.RLock()
 	defer q.bestEffort.RUnlock()
-=======
-		q.priorityLock.RLock()
-		defer q.priorityLock.RUnlock()
-		return q.priority.Len()
-	}
-
-	q.bestEffortLock.RLock()
-	defer q.bestEffortLock.RUnlock()
->>>>>>> a8a50559 (use rwmutex)
 	return q.bestEffort.Len()
 }
 
