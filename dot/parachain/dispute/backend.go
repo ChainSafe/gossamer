@@ -1,13 +1,13 @@
 package dispute
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/dgraph-io/badger/v4"
 	"github.com/tidwall/btree"
 )
 
@@ -32,10 +32,14 @@ type Backend interface {
 type OverlayBackend interface {
 	Backend
 
+	// IsEmpty returns true if the overlay backend is empty.
+	IsEmpty() bool
 	// WriteToDB writes the given dispute to the database.
 	WriteToDB() error
 	// GetActiveDisputes returns the active disputes.
 	GetActiveDisputes(now int64) (*btree.BTree, error)
+	// NoteEarliestSession prunes data in the DB based on the provided session index.
+	NoteEarliestSession(session parachainTypes.SessionIndex) error
 }
 
 // DBBackend is the backend for the dispute coordinator module that uses a database.
@@ -186,16 +190,64 @@ func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
 	return activeDisputes, nil
 }
 
+func (b *overlayBackend) IsEmpty() bool {
+	return b.earliestSession.SessionIndex == nil && b.recentDisputes.Len() == 0 && len(b.candidateVotes.votes) == 0
+}
+
 func (b *overlayBackend) WriteToDB() error {
 	return b.inner.Write(b.earliestSession.SessionIndex, b.recentDisputes.BTree.Copy(), b.candidateVotes.votes)
+}
+
+func (b *overlayBackend) NoteEarliestSession(session parachainTypes.SessionIndex) error {
+	if b.earliestSession.SessionIndex == nil {
+		b.earliestSession.SessionIndex = &session
+		return nil
+	}
+
+	if *b.earliestSession.SessionIndex > session {
+		b.earliestSession.SessionIndex = &session
+		// clear recent disputes metadata
+		recentDisputes, err := b.GetRecentDisputes()
+		if err != nil {
+			return fmt.Errorf("get recent disputes: %w", err)
+		}
+
+		// determine new recent disputes
+		newRecentDisputes := btree.New(types.DisputeComparator)
+		recentDisputes.Ascend(nil, func(item interface{}) bool {
+			dispute := item.(*types.Dispute)
+			if dispute.Comparator.SessionIndex >= session {
+				newRecentDisputes.Set(dispute)
+			}
+			return true
+		})
+
+		// prune obsolete disputes
+		recentDisputes.Ascend(nil, func(item interface{}) bool {
+			dispute := item.(*types.Dispute)
+			if dispute.Comparator.SessionIndex < session {
+				recentDisputes.Delete(dispute)
+			}
+			return true
+		})
+
+		// update db
+		if recentDisputes.Len() > 0 {
+			if err = b.SetRecentDisputes(newRecentDisputes); err != nil {
+				return fmt.Errorf("set recent disputes: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 var _ OverlayBackend = (*overlayBackend)(nil)
 
 // newOverlayBackend creates a new overlayBackend.
-func newOverlayBackend(db *badger.DB) *overlayBackend {
+func newOverlayBackend(dbBackend DBBackend) *overlayBackend {
 	return &overlayBackend{
-		inner:           NewDBBackend(db),
+		inner:           dbBackend,
 		earliestSession: newSyncedEarliestSession(),
 		recentDisputes:  newSyncedRecentDisputes(),
 		candidateVotes:  newSyncedCandidateVotes(),

@@ -99,6 +99,36 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostPersistedValidationData(
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostPersistedValidationData", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostPersistedValidationData), arg0, arg1)
 }
 
+// ParachainHostSessionIndexForChild mocks base method.
+func (m *MockRuntimeInstance) ParachainHostSessionIndexForChild(arg0 common.Hash) (parachaintypes.SessionIndex, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostSessionIndexForChild", arg0)
+	ret0, _ := ret[0].(parachaintypes.SessionIndex)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostSessionIndexForChild indicates an expected call of ParachainHostSessionIndexForChild.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostSessionIndexForChild(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionIndexForChild", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostSessionIndexForChild), arg0)
+}
+
+// ParachainHostSessionInfo mocks base method.
+func (m *MockRuntimeInstance) ParachainHostSessionInfo(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostSessionInfo", arg0, arg1)
+	ret0, _ := ret[0].(*parachaintypes.SessionInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostSessionInfo indicates an expected call of ParachainHostSessionInfo.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostSessionInfo(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionInfo", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostSessionInfo), arg0, arg1)
+}
+
 // ParachainHostValidationCode mocks base method.
 func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error) {
 	m.ctrl.T.Helper()

@@ -94,4 +94,7 @@ type RuntimeInstance interface {
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostOnChainVotes(blockHash common.Hash) (*parachaintypes.ScrapedOnChainVotes, error)
 	ParachainHostCandidateEvents(blockHash common.Hash) (*scale.VaryingDataTypeSlice, error)
+	ParachainHostSessionInfo(blockHash common.Hash, sessionIndex parachaintypes.SessionIndex) (
+		*parachaintypes.SessionInfo, error)
+	ParachainHostSessionIndexForChild(blockHash common.Hash) (parachaintypes.SessionIndex, error)
 }
