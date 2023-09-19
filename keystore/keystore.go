@@ -1,6 +1,8 @@
 package keystore
 
 import (
+	"crypto/ed25519"
+
 	"github.com/ChainSafe/gossamer/core/crypto"
 	"github.com/ChainSafe/gossamer/core/sr25519"
 )
@@ -48,20 +50,22 @@ type KeyStore interface {
 	// 	public: &sr25519::Public,
 	// 	input: &sr25519::vrf::VrfInput,
 	// ) -> Result<Option<sr25519::vrf::VrfOutput>, Error>;
-	Sr25519VRFOutput(keyType crypto.KeyTypeID, public sr25519.Public)
+	Sr25519VRFOutput(keyType crypto.KeyTypeID, public sr25519.Public, input sr25519.VRFInput) (*sr25519.VRFOutput, error)
 
 	// /// Returns all ed25519 public keys for the given key type.
 	// fn ed25519_public_keys(&self, key_type: KeyTypeId) -> Vec<ed25519::Public>;
+	Ed25519PublicKeys(keyType crypto.KeyTypeID) []ed25519.PublicKey
 
-	// /// Generate a new ed25519 key pair for the given key type and an optional seed.
-	// ///
-	// /// Returns an `ed25519::Public` key of the generated key pair or an `Err` if
-	// /// something failed during key generation.
+	/// Generate a new ed25519 key pair for the given key type and an optional seed.
+	///
+	/// Returns an `ed25519::Public` key of the generated key pair or an `Err` if
+	/// something failed during key generation.
 	// fn ed25519_generate_new(
 	// 	&self,
 	// 	key_type: KeyTypeId,
 	// 	seed: Option<&str>,
 	// ) -> Result<ed25519::Public, Error>;
+	Ed25519GenerateNew(keyType crypto.KeyTypeID, seed *string) (ed25519.PublicKey, error)
 
 	// /// Generate an ed25519 signature for a given message.
 	// ///
@@ -77,6 +81,7 @@ type KeyStore interface {
 	// 	public: &ed25519::Public,
 	// 	msg: &[u8],
 	// ) -> Result<Option<ed25519::Signature>, Error>;
+	Ed25519Sign(keyType crypto.KeyTypeID, public ed25519.PublicKey, msg []byte) (ed25519.Signature, error)
 
 	// /// Returns all ecdsa public keys for the given key type.
 	// fn ecdsa_public_keys(&self, key_type: KeyTypeId) -> Vec<ecdsa::Public>;
