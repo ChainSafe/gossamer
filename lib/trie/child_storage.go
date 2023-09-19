@@ -111,8 +111,14 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 	if err != nil {
 		return err
 	}
+
 	if child == nil {
 		return fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+	}
+
+	origChildHash, err := child.Hash()
+	if err != nil {
+		return err
 	}
 
 	err = child.Delete(key)
@@ -120,5 +126,10 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return fmt.Errorf("deleting from child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
-	return nil
+	delete(t.childTries, origChildHash)
+	if child.root == nil {
+		return t.DeleteChild(keyToChild)
+	}
+
+	return t.SetChild(keyToChild, child)
 }
