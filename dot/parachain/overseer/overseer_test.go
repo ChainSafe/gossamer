@@ -5,6 +5,7 @@ package overseer
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -15,37 +16,27 @@ type TestSubsystem struct {
 	name string
 }
 
-func (s *TestSubsystem) Run(ctx *context) error {
-	fmt.Printf("Run %s\n", s.name)
-
+func (s *TestSubsystem) Run(ctx *overseerContext) error {
+	fmt.Printf("%s run\n", s.name)
+	counter := 0
 	for {
 		select {
-		case overseerSignal, ok := <-ctx.Receiver:
-			stop := make(chan struct{})
-			fmt.Printf("Ok: %v, sig %v\n", ok, overseerSignal)
-			if !ok {
-				close(stop)
+		case <-ctx.ctx.Done():
+			if err := ctx.ctx.Err(); err != nil {
+				fmt.Printf("%s ctx error: %v\n", s.name, err)
 			}
-			// simulate work, send message to overseer
-			go func(stop chan struct{}) {
-				counter := 0
-				for {
-					select {
-					case <-stop:
-						fmt.Printf("overseer stopping %v\n", s.name)
-						return
-					default:
-					}
-
-					counter++
-					time.Sleep(time.Second)
-					fmt.Printf("%v working on: %v\n", s.name, overseerSignal)
-					ctx.Sender.SendMessage(fmt.Sprintf("hello from %v, count: %v", s.name, counter))
-				}
-			}(stop)
+			fmt.Printf("%s overseer stopping\n", s.name)
+			return nil
+		case overseerSignal := <-ctx.Receiver:
+			fmt.Printf("%s received from overseer %v\n", s.name, overseerSignal)
+		default:
+			// simulate work, and sending messages to overseer
+			r := rand.Intn(1000)
+			time.Sleep(time.Duration(r) * time.Millisecond)
+			ctx.Sender.SendMessage(fmt.Sprintf("hello from %v, i: %d", s.name, counter))
+			counter++
 		}
 	}
-	return nil
 }
 
 func TestStart2SubsytemsActivate1(t *testing.T) {
@@ -60,7 +51,9 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 
 	errChan, err := overseer.Start()
 	require.NoError(t, err)
+
 	done := make(chan struct{})
+	// listen for errors from overseer
 	go func() {
 		for errC := range errChan {
 			fmt.Printf("overseer start error: %v\n", errC)
@@ -68,18 +61,21 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 		close(done)
 	}()
 
-	activedLeaf := &ActivatedLeaf{
+	time.Sleep(1000 * time.Millisecond)
+	activedLeaf := ActivatedLeaf{
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
-	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
 
 	// let subsystems run for a bit
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(4000 * time.Millisecond)
 
 	err = overseer.Stop()
 	require.NoError(t, err)
-
+	// give subsystems time to stop
+	// TODO: add logic to wait for subsystems to stop
+	time.Sleep(1000 * time.Millisecond)
 	fmt.Printf("overseer stopped\n")
 	<-done
 }
@@ -104,22 +100,24 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 		close(done)
 	}()
 
-	activedLeaf1 := &ActivatedLeaf{
+	activedLeaf1 := ActivatedLeaf{
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
-	activedLeaf2 := &ActivatedLeaf{
+	activedLeaf2 := ActivatedLeaf{
 		Hash:   [32]byte{2},
 		Number: 2,
 	}
-	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf1}, subSystem1)
-	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf2}, subSystem2)
+	time.Sleep(250 * time.Millisecond)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf1}, subSystem1)
+	time.Sleep(400 * time.Millisecond)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf2}, subSystem2)
 	// let subsystems run for a bit
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(3000 * time.Millisecond)
 
 	err = overseer.Stop()
 	require.NoError(t, err)
-
+	time.Sleep(1000 * time.Millisecond)
 	fmt.Printf("overseer stopped\n")
 	<-done
 }
@@ -144,18 +142,20 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 		close(done)
 	}()
 
-	activedLeaf := &ActivatedLeaf{
+	activedLeaf := ActivatedLeaf{
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
-	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
-	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf}, subSystem2)
+	time.Sleep(300 * time.Millisecond)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
+	time.Sleep(400 * time.Millisecond)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem2)
 	// let subsystems run for a bit
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(2000 * time.Millisecond)
 
 	err = overseer.Stop()
 	require.NoError(t, err)
-
+	time.Sleep(1000 * time.Millisecond)
 	fmt.Printf("overseer stopped\n")
 	<-done
 }

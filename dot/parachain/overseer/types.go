@@ -4,18 +4,18 @@
 package overseer
 
 import (
-	"sync"
+	"context"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type context struct {
-	Sender   Sender
-	Receiver chan any
-	wg       *sync.WaitGroup
-	stopCh   chan struct{}
+type overseerContext struct {
+	ctx      context.Context
+	Sender   Sender   // interfaco for subsystem to send messages to overseer
+	Receiver chan any // channel for subsystem to receive messages from overseer
 }
 
+// Sender is an interface for subsystems to send messages to overseer.
 type Sender interface {
 	SendMessage(msg any) error
 }
@@ -30,10 +30,11 @@ type ActivatedLeaf struct {
 //
 //	note: activated field indicates deltas, not complete sets.
 type ActiveLeavesUpdate struct {
-	Activated *ActivatedLeaf
+	Activated ActivatedLeaf
 }
 
+// Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
-	Run(ctx *context) error
+	Run(ctx *overseerContext) error
 }

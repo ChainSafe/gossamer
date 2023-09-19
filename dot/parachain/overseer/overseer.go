@@ -4,73 +4,62 @@
 package overseer
 
 import (
+	"context"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 )
-
-const CommsBufferSize = 5
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-overseer"))
 )
 
 type Overseer struct {
+	ctx             context.Context
+	cancelContext   context.CancelFunc
 	messageListener Sender
-	wg              sync.WaitGroup
-	doneCh          chan struct{}
-	//stopCh          chan struct{}
-	errChan chan error
-
-	subsystems map[Subsystem]*context
+	errChan         chan error // channel for overseer to send errors to service that started it
+	subsystems      map[Subsystem]*overseerContext
 }
 
 type exampleSender struct {
 }
 
 func (s *exampleSender) SendMessage(msg any) error {
-	fmt.Printf("exampleSender sending message: %v\n", msg)
+	fmt.Printf("sender message: %v\n", msg)
 	return nil
 }
 
 func NewOverseer() *Overseer {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 	return &Overseer{
+		ctx:             ctx,
+		cancelContext:   cancel,
 		messageListener: &exampleSender{},
-		doneCh:          make(chan struct{}),
-		//stopCh:          make(chan struct{}),
-		errChan:    make(chan error),
-		subsystems: make(map[Subsystem]*context),
+		errChan:         make(chan error),
+		subsystems:      make(map[Subsystem]*overseerContext),
 	}
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,
 //
-//		Add context to subsystem map, which includes: Sender implementation,
-//		Receiver channel.  The context will be pass to subsystem's Run method
-//		Subsystem will use that context to send messages to overseer, and to recieve messages from overseer (
-//		via receiver channel), and to signal when it is done (overseer closes the receiver channel)
-//	  the subsystem will signal overseer when it's done stopping by done channel
-//		Overseer implements SendMessage interface for Subsystem to communitate to overseer
-//		Overseer returns channel to subsystem for messages from overseer to subsystem,
-//
-// and when that channel is closed it uses that to confirm subsystem is done
+//	Add overseerContext to subsystem map, which includes: context, Sender implementation,
+//	Receiver channel.  The overseerContext will be pass to subsystem's Run method
+//	Subsystem will use that overseerContext to send messages to overseer, and to receive messages from overseer (
+//	via receiver channel), and context to signal when overseer has canceled
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
-	receiverChan := make(chan any, CommsBufferSize)
-	o.subsystems[subsystem] = &context{
-		Sender:   &exampleSender{},
-		Receiver: receiverChan,
-		wg:       &o.wg,
-		//stopCh:   o.stopCh,
+	o.subsystems[subsystem] = &overseerContext{
+		ctx:      o.ctx,
+		Sender:   o.messageListener,
+		Receiver: make(chan any),
 	}
 }
 
 func (o *Overseer) Start() (errChan chan error, err error) {
 	// start subsystems
 	for subsystem, cntxt := range o.subsystems {
-		o.wg.Add(1)
-		go func(sub Subsystem, ctx *context) {
+		go func(sub Subsystem, ctx *overseerContext) {
 			err := sub.Run(ctx)
 			if err != nil {
 				logger.Errorf("running subsystem %v failed: %v", sub, err)
@@ -83,38 +72,15 @@ func (o *Overseer) Start() (errChan chan error, err error) {
 }
 
 func (o *Overseer) Stop() error {
-	if o.doneCh == nil {
-		return nil
-	}
-	//close(o.stopCh)
-
-	for subsystem, _ := range o.subsystems {
-		close(o.subsystems[subsystem].Receiver)
-	}
-
-	timeout := time.Millisecond
-	waitTimeout(&o.wg, timeout)
+	o.cancelContext()
 
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
-	//o.stopCh = nil
+
 	return nil
 }
 
-func (o *Overseer) sendActiveLeavesUpdate(update *ActiveLeavesUpdate, subsystem Subsystem) {
+// sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
+func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdate, subsystem Subsystem) {
 	o.subsystems[subsystem].Receiver <- update
-}
-
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false // completed normally
-	case <-time.After(timeout):
-		return true // timed out
-	}
 }
