@@ -920,9 +920,10 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
+	_, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.ErrorIs(t, err, trie.ErrChildTrieDoesNotExist)
+	require.EqualError(t, err, "child trie does not exist at key "+
+		"0x3a6368696c645f73746f726167653a64656661756c743a6368696c644b6579")
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
