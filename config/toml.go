@@ -113,13 +113,6 @@ verbosity = {{ .Verbosity }}
 # Defaults to false
 prometheus-external = {{ .BaseConfig.PrometheusExternal }}
 
-# Enable database checkpoints
-# Defaults to false
-# Default path: 'base-path'/snapshot
-# Default frequecy: 1 million blocks
-checkpoint = {{ .BaseConfig.Checkpoint }}
-checkpoint-path = {{ .BaseConfig.CheckpointPath }}
-checkpoint-frequency = {{ .BaseConfig.CheckpointFrequency }}
 
 #######################################################################
 ###                 Advanced Configuration Options                  ###
@@ -319,4 +312,18 @@ block-profile-rate = {{ .Pprof.BlockProfileRate }}
 # The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.
 # Defaults to 0
 mutex-profile-rate = {{ .Pprof.MutexProfileRate }}
+
+#######################################################
+###            Checkpoint Configuration Options     ###
+#######################################################
+
+[checkpoint]
+
+# Enable database checkpoints
+# Defaults to false
+# Default path: 'base-path'/snapshot
+# Default frequecy: 1 million blocks
+enabled = {{ .Checkpoint.Enabled }}
+path = {{ .Checkpoint.Path }}
+frequency = {{ .Checkpoint.Frequency }}
 `
