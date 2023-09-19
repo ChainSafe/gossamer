@@ -40,12 +40,14 @@ func Test_Digest_String(t *testing.T) {
 					ConsensusEngineID: ConsensusEngineID{'x', 'y', 'w', 'z'},
 					Data:              []byte{7, 8},
 				})
+				digest.Add(RuntimeEnvironmentUpdated{})
 				return digest
 			},
 			s: "[" +
 				"PreRuntimeDigest ConsensusEngineID=abcd Data=0x01020304, " +
 				"ConsensusDigest ConsensusEngineID=ffgg Data=0x0506, " +
-				"SealDigest ConsensusEngineID=xywz Data=0x0708" +
+				"SealDigest ConsensusEngineID=xywz Data=0x0708, " +
+				"RuntimeEnvironmentUpdated" +
 				"]",
 		},
 	}
