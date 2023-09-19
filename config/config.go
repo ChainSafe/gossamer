@@ -87,13 +87,14 @@ var DefaultRPCModules = []string{
 // Config defines the configuration for the gossamer node
 type Config struct {
 	BaseConfig `mapstructure:",squash"`
-	Log        *LogConfig     `mapstructure:"log"`
-	Account    *AccountConfig `mapstructure:"account"`
-	Core       *CoreConfig    `mapstructure:"core"`
-	Network    *NetworkConfig `mapstructure:"network"`
-	State      *StateConfig   `mapstructure:"state"`
-	RPC        *RPCConfig     `mapstructure:"rpc"`
-	Pprof      *PprofConfig   `mapstructure:"pprof"`
+	Log        *LogConfig        `mapstructure:"log"`
+	Account    *AccountConfig    `mapstructure:"account"`
+	Core       *CoreConfig       `mapstructure:"core"`
+	Network    *NetworkConfig    `mapstructure:"network"`
+	State      *StateConfig      `mapstructure:"state"`
+	RPC        *RPCConfig        `mapstructure:"rpc"`
+	Pprof      *PprofConfig      `mapstructure:"pprof"`
+	Checkpoint *CheckpointConfig `mapstructure:"checkpoint"`
 
 	// System holds the system information
 	// Do not export this field, as it is not part of the config file
@@ -127,31 +128,37 @@ func (cfg *Config) ValidateBasic() error {
 	if err := cfg.Pprof.ValidateBasic(); err != nil {
 		return fmt.Errorf("pprof config: %w", err)
 	}
+	if err := cfg.Checkpoint.ValidateBasic(); err != nil {
+		return fmt.Errorf("checkpoint config: %w", err)
+	}
 	return nil
 }
 
 // BaseConfig is to marshal/unmarshal toml global config vars
 type BaseConfig struct {
-	Name                string                      `mapstructure:"name,omitempty"`
-	ID                  string                      `mapstructure:"id,omitempty"`
-	BasePath            string                      `mapstructure:"base-path,omitempty"`
-	ChainSpec           string                      `mapstructure:"chain-spec,omitempty"`
-	LogLevel            string                      `mapstructure:"log-level,omitempty"`
-	PrometheusPort      uint32                      `mapstructure:"prometheus-port,omitempty"`
-	RetainBlocks        uint32                      `mapstructure:"retain-blocks,omitempty"`
-	Pruning             pruner.Mode                 `mapstructure:"pruning,omitempty"`
-	PrometheusExternal  bool                        `mapstructure:"prometheus-external,omitempty"`
-	NoTelemetry         bool                        `mapstructure:"no-telemetry"`
-	TelemetryURLs       []genesis.TelemetryEndpoint `mapstructure:"telemetry-urls,omitempty"`
-	Checkpoint          bool                        `mapstructure:"checkpoint,omitempty"`
-	CheckpointPath      string                      `mapstructure:"checkpoin-path,omitempty"`
-	CheckpointFrequency uint32                      `mapstructure:"checkpoin-frequency,omitempty"`
+	Name               string                      `mapstructure:"name,omitempty"`
+	ID                 string                      `mapstructure:"id,omitempty"`
+	BasePath           string                      `mapstructure:"base-path,omitempty"`
+	ChainSpec          string                      `mapstructure:"chain-spec,omitempty"`
+	LogLevel           string                      `mapstructure:"log-level,omitempty"`
+	PrometheusPort     uint32                      `mapstructure:"prometheus-port,omitempty"`
+	RetainBlocks       uint32                      `mapstructure:"retain-blocks,omitempty"`
+	Pruning            pruner.Mode                 `mapstructure:"pruning,omitempty"`
+	PrometheusExternal bool                        `mapstructure:"prometheus-external,omitempty"`
+	NoTelemetry        bool                        `mapstructure:"no-telemetry"`
+	TelemetryURLs      []genesis.TelemetryEndpoint `mapstructure:"telemetry-urls,omitempty"`
 }
 
 // SystemConfig represents the system configuration
 type SystemConfig struct {
 	SystemName    string
 	SystemVersion string
+}
+
+type CheckpointConfig struct {
+	Enabled   bool
+	Path      string
+	Frequency uint32
 }
 
 // LogConfig represents the log levels for individual packages
@@ -249,10 +256,6 @@ func (b *BaseConfig) ValidateBasic() error {
 			uint32Max,
 		)
 	}
-	if b.Checkpoint && (strings.TrimSpace(b.CheckpointPath) == "" || b.CheckpointFrequency == 0) {
-		return errors.New(
-			"checkpoint enabled, a checkpoint path must be provided and frequency should be greater then 0")
-	}
 
 	return nil
 }
@@ -329,6 +332,15 @@ func (p *PprofConfig) ValidateBasic() error {
 	return nil
 }
 
+func (c *CheckpointConfig) ValidateBasic() error {
+	if c.Enabled && (strings.TrimSpace(c.Path) == "" || c.Frequency == 0) {
+		return errors.New(
+			"checkpoint enabled, a checkpoint path must be provided and frequency should be greater then 0")
+	}
+
+	return nil
+}
+
 // IsRPCEnabled returns true if RPC is enabled.
 func (r *RPCConfig) IsRPCEnabled() bool {
 	return r.UnsafeRPCExternal || r.RPCExternal || r.UnsafeRPC
@@ -343,20 +355,17 @@ func (r *RPCConfig) IsWSEnabled() bool {
 func DefaultConfig() *Config {
 	return &Config{
 		BaseConfig: BaseConfig{
-			Name:                "Gossamer",
-			ID:                  "gssmr",
-			BasePath:            defaultBasePath,
-			ChainSpec:           "",
-			LogLevel:            DefaultLogLevel,
-			PrometheusPort:      DefaultPrometheusPort,
-			RetainBlocks:        DefaultRetainBlocks,
-			Pruning:             DefaultPruning,
-			PrometheusExternal:  false,
-			NoTelemetry:         false,
-			TelemetryURLs:       nil,
-			Checkpoint:          DefaultCheckpoint,
-			CheckpointPath:      DefaultCheckpointPath,
-			CheckpointFrequency: DefaultCheckpointFrequency,
+			Name:               "Gossamer",
+			ID:                 "gssmr",
+			BasePath:           defaultBasePath,
+			ChainSpec:          "",
+			LogLevel:           DefaultLogLevel,
+			PrometheusPort:     DefaultPrometheusPort,
+			RetainBlocks:       DefaultRetainBlocks,
+			Pruning:            DefaultPruning,
+			PrometheusExternal: false,
+			NoTelemetry:        false,
+			TelemetryURLs:      nil,
 		},
 		Log: &LogConfig{
 			Core:    DefaultLogLevel,
@@ -419,6 +428,11 @@ func DefaultConfig() *Config {
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
 			SystemVersion: DefaultSystemVersion,
+		},
+		Checkpoint: &CheckpointConfig{
+			Enabled:   DefaultCheckpoint,
+			Path:      DefaultCheckpointPath,
+			Frequency: DefaultCheckpointFrequency,
 		},
 	}
 }

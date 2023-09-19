@@ -201,6 +201,10 @@ func addRootFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add rpc flags: %s", err)
 	}
 
+	if err := addCheckpointFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add checkpoint flags: %s", err)
+	}
+
 	// pprof Config
 	addPprofFlags(cmd)
 
@@ -254,24 +258,7 @@ func addBaseConfigFlags(cmd *cobra.Command) error {
 		"prometheus-external"); err != nil {
 		return fmt.Errorf("failed to add --prometheus-external flag: %s", err)
 	}
-	cmd.Flags().StringVar(&pruning,
-		"checkpoint-path",
-		config.BaseConfig.CheckpointPath,
-		"Checkpoint path will store database snapshot")
-	if err := addBoolFlagBindViper(cmd,
-		"checkpoint",
-		config.BaseConfig.Checkpoint,
-		"Enable checkpoint creation automatically given a frequency",
-		"checkpoint"); err != nil {
-		return fmt.Errorf("failed to add --checkpoint flag: %s", err)
-	}
-	if err := addUint32FlagBindViper(cmd,
-		"checkpoint-frequency",
-		config.BaseConfig.CheckpointFrequency,
-		"Checkpoint block frequency",
-		"checkpoint-frequency"); err != nil {
-		return fmt.Errorf("failed to add --checkpoint-frequency flag: %s", err)
-	}
+
 	cmd.Flags().StringVar(&telemetryURLs,
 		"telemetry-url",
 		"",
@@ -581,6 +568,31 @@ func addPprofFlags(cmd *cobra.Command) {
 	cmd.Flags().Int("pprof.mutex-profile-rate",
 		config.Pprof.MutexProfileRate,
 		"The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.")
+}
+
+func addCheckpointFlags(cmd *cobra.Command) error {
+	cmd.Flags().StringVar(&pruning,
+		"checkpoint-path",
+		config.Checkpoint.Path,
+		"Checkpoint path will store database snapshot")
+
+	if err := addBoolFlagBindViper(cmd,
+		"checkpoint-enabled",
+		config.Checkpoint.Enabled,
+		"Enable checkpoint creation automatically given a frequency",
+		"checkpoint"); err != nil {
+		return fmt.Errorf("failed to add --checkpoint flag: %s", err)
+	}
+
+	if err := addUint32FlagBindViper(cmd,
+		"checkpoint-frequency",
+		config.Checkpoint.Frequency,
+		"Checkpoint block frequency",
+		"checkpoint-frequency"); err != nil {
+		return fmt.Errorf("failed to add --checkpoint-frequency flag: %s", err)
+	}
+
+	return nil
 }
 
 // execRoot executes the root command
