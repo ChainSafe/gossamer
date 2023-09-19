@@ -187,10 +187,10 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 			Mode:           config.Pruning,
 			RetainedBlocks: config.RetainBlocks,
 		},
-		Telemetry:      telemetryMailer,
-		Metrics:        metrics.NewIntervalConfig(config.PrometheusExternal),
-		Checkpoint:     config.Checkpoint,
-		CheckpointPath: config.CheckpointPath,
+		Telemetry:         telemetryMailer,
+		Metrics:           metrics.NewIntervalConfig(config.PrometheusExternal),
+		CheckpointEnabled: config.Checkpoint.Enabled,
+		CheckpointPath:    config.Checkpoint.Path,
 	}
 
 	// create new state service

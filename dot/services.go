@@ -68,11 +68,11 @@ func (nodeBuilder) createStateService(config *cfg.Config) (*state.Service, error
 		return nil, err
 	}
 	stateConfig := state.Config{
-		Path:           config.BasePath,
-		LogLevel:       stateLogLevel,
-		Metrics:        metrics.NewIntervalConfig(config.PrometheusExternal),
-		Checkpoint:     config.Checkpoint,
-		CheckpointPath: config.CheckpointPath,
+		Path:              config.BasePath,
+		LogLevel:          stateLogLevel,
+		Metrics:           metrics.NewIntervalConfig(config.PrometheusExternal),
+		CheckpointEnabled: config.Checkpoint.Enabled,
+		CheckpointPath:    config.Checkpoint.Path,
 	}
 
 	stateSrvc := state.NewService(stateConfig)

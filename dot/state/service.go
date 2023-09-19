@@ -48,13 +48,13 @@ type Service struct {
 
 // Config is the default configuration used by state service.
 type Config struct {
-	Path           string
-	LogLevel       log.Level
-	PrunerCfg      pruner.Config
-	Telemetry      Telemetry
-	Metrics        metrics.IntervalConfig
-	Checkpoint     bool
-	CheckpointPath string
+	Path              string
+	LogLevel          log.Level
+	PrunerCfg         pruner.Config
+	Telemetry         Telemetry
+	Metrics           metrics.IntervalConfig
+	CheckpointEnabled bool
+	CheckpointPath    string
 }
 
 // NewService create a new instance of Service
@@ -66,7 +66,7 @@ func NewService(config Config) *Service {
 		logLvl:         config.LogLevel,
 		db:             nil,
 		isMemDB:        false,
-		checkpoint:     config.Checkpoint,
+		checkpoint:     config.CheckpointEnabled,
 		checkpointPath: config.CheckpointPath,
 		Storage:        nil,
 		Block:          nil,
