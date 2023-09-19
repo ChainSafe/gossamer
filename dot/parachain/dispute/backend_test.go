@@ -22,7 +22,8 @@ func TestOverlayBackend_EarliestSession(t *testing.T) {
 	require.NoError(t, err)
 
 	// when
-	backend := newOverlayBackend(db)
+	dbBackend := NewDBBackend(db)
+	backend := newOverlayBackend(dbBackend)
 	err = backend.SetEarliestSession(getSessionIndex(1))
 	require.NoError(t, err)
 
@@ -50,7 +51,8 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	disputes.Set(dispute2)
 
 	// when
-	backend := newOverlayBackend(db)
+	dbBackend := NewDBBackend(db)
+	backend := newOverlayBackend(dbBackend)
 	err = backend.SetRecentDisputes(disputes)
 	require.NoError(t, err)
 
@@ -69,7 +71,8 @@ func TestOverlayBackend_CandidateVotes(t *testing.T) {
 	candidateVotes1 := types.DummyCandidateVotes(t)
 
 	// when
-	backend := newOverlayBackend(db)
+	dbBackend := NewDBBackend(db)
+	backend := newOverlayBackend(dbBackend)
 	err = backend.SetCandidateVotes(1, common.Hash{1}, candidateVotes1)
 	require.NoError(t, err)
 
@@ -96,7 +99,8 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 	disputes.Set(dispute2)
 
 	// when
-	backend := newOverlayBackend(db)
+	dbBackend := NewDBBackend(db)
+	backend := newOverlayBackend(dbBackend)
 	err = backend.SetRecentDisputes(disputes)
 	require.NoError(t, err)
 
@@ -112,7 +116,8 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	backend := newOverlayBackend(db)
+	dbBackend := NewDBBackend(db)
+	backend := newOverlayBackend(dbBackend)
 
 	numGoroutines := 10
 	numIterations := 1000

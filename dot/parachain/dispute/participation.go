@@ -39,12 +39,25 @@ type ParticipationRequest struct {
 	//TODO: requestTimer for metrics
 }
 
+// ParticipationRequestWithPriority a dispute participation request with priority
+type ParticipationRequestWithPriority struct {
+	request  ParticipationRequest
+	priority ParticipationPriority
+}
+
 // ParticipationStatement is a statement as result of the validation process.
 type ParticipationStatement struct {
 	Session          parachainTypes.SessionIndex
 	CandidateHash    common.Hash
 	CandidateReceipt parachainTypes.CandidateReceipt
 	Outcome          types.ParticipationOutcome
+}
+
+// MuxedMessage messages to be handled in this subsystem.
+type MuxedMessage struct {
+	Subsystem     *types.DisputeCoordinatorMessage
+	Participation *ParticipationStatement
+	Signal        types.OverseerSignal
 }
 
 // Participation keeps track of the disputes we need to participate in.

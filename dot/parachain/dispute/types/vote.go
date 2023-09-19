@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/emirpasic/gods/sets/treeset"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
@@ -205,7 +206,7 @@ func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState,
 
 // NewCandidateVoteState creates a new CandidateVoteState
 // TODO: implement this later since nothing is using it yet
-func NewCandidateVoteState(votes CandidateVotes, now uint64) (*CandidateVoteState, error) {
+func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState, error) {
 	var (
 		status DisputeStatus
 		err    error
@@ -214,7 +215,7 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (*CandidateVoteStat
 	// TODO: initialize own vote state with the votes
 	ownVoteState, err := NewOwnVoteState(CannotVote{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create own vote state: %w", err)
+		return CandidateVoteState{}, fmt.Errorf("failed to create own vote state: %w", err)
 	}
 
 	// TODO: get number of validators
@@ -227,7 +228,7 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (*CandidateVoteStat
 	if isDisputed {
 		status, err = NewDisputeStatus()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create dispute status: %w", err)
+			return CandidateVoteState{}, fmt.Errorf("failed to create dispute status: %w", err)
 		}
 
 		// TODO: get byzantine threshold
@@ -236,26 +237,26 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (*CandidateVoteStat
 		isConfirmed := len(votes.Valid) > byzantineThreshold
 		if isConfirmed {
 			if err := status.Confirm(); err != nil {
-				return nil, fmt.Errorf("failed to confirm dispute status: %w", err)
+				return CandidateVoteState{}, fmt.Errorf("failed to confirm dispute status: %w", err)
 			}
 		}
 
 		isConcludedFor := len(votes.Valid) > superMajorityThreshold
 		if isConcludedFor {
 			if err := status.ConcludeFor(now); err != nil {
-				return nil, fmt.Errorf("failed to conclude dispute status for: %w", err)
+				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status for: %w", err)
 			}
 		}
 
 		isConcludedAgainst := len(votes.Invalid) >= superMajorityThreshold
 		if isConcludedAgainst {
 			if err := status.ConcludeAgainst(now); err != nil {
-				return nil, fmt.Errorf("failed to conclude dispute status against: %w", err)
+				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status against: %w", err)
 			}
 		}
 	}
 
-	return &CandidateVoteState{
+	return CandidateVoteState{
 		Votes:         votes,
 		Own:           ownVoteState,
 		DisputeStatus: &status,
@@ -311,6 +312,19 @@ type CandidateVotes struct {
 	// TODO: check if we need to use btree for this in the future
 	Valid   ValidCandidateVotes                    `scale:"2"`
 	Invalid map[parachainTypes.ValidatorIndex]Vote `scale:"3"`
+}
+
+func (cv *CandidateVotes) VotedIndices() *treeset.Set {
+	votedIndices := treeset.NewWithIntComparator()
+	for validatorIndex := range cv.Valid {
+		votedIndices.Add(validatorIndex)
+	}
+
+	for validatorIndex := range cv.Invalid {
+		votedIndices.Add(validatorIndex)
+	}
+
+	return votedIndices
 }
 
 func NewCandidateVotes() *CandidateVotes {

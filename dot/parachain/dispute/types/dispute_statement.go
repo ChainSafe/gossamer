@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/gossamer/dot/parachain"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -11,7 +12,7 @@ import (
 
 // SecondedCompactStatement is the proposal of a parachain candidate.
 type SecondedCompactStatement struct {
-	CandidateHash parachainTypes.CandidateHash
+	CandidateHash common.Hash
 }
 
 // Index returns the index of the type SecondedCompactStatement.
@@ -25,7 +26,7 @@ func (SecondedCompactStatement) SigningPayload() []byte {
 
 // ValidCompactStatement represents a valid candidate.
 type ValidCompactStatement struct {
-	CandidateHash parachainTypes.CandidateHash
+	CandidateHash common.Hash
 }
 
 // Index returns the index of the type ValidCompactStatement.
@@ -85,7 +86,7 @@ const (
 	ValidCompactStatementKind
 )
 
-func NewCustomCompactStatement(kind CompactStatementKind, candidateHash parachainTypes.CandidateHash) (CompactStatement, error) {
+func NewCustomCompactStatement(kind CompactStatementKind, candidateHash common.Hash) (CompactStatement, error) {
 	vdt, err := NewCompactStatement()
 	if err != nil {
 		return CompactStatement{}, fmt.Errorf("create new compact statement: %w", err)
@@ -114,7 +115,7 @@ func NewCustomCompactStatement(kind CompactStatementKind, candidateHash parachai
 // ExplicitDisputeStatement An explicit statement on a candidate issued as part of a dispute.
 type ExplicitDisputeStatement struct {
 	Valid         bool
-	CandidateHash parachainTypes.CandidateHash
+	CandidateHash common.Hash
 	Session       parachainTypes.SessionIndex
 }
 
@@ -124,7 +125,7 @@ func (ExplicitDisputeStatement) SigningPayload() []byte {
 
 // ApprovalVote A vote of approval on a candidate.
 type ApprovalVote struct {
-	candidateHash parachainTypes.CandidateHash
+	candidateHash common.Hash
 }
 
 func (a *ApprovalVote) SigningPayload() ([]byte, error) {
@@ -139,14 +140,14 @@ func (a *ApprovalVote) SigningPayload() ([]byte, error) {
 // SignedDisputeStatement A checked dispute statement from an associated validator.
 type SignedDisputeStatement struct {
 	DisputeStatement   inherents.DisputeStatement
-	CandidateHash      parachainTypes.CandidateHash
+	CandidateHash      common.Hash
 	ValidatorPublic    parachainTypes.ValidatorID
 	ValidatorSignature parachain.ValidatorSignature
 	SessionIndex       parachainTypes.SessionIndex
 }
 
 func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatement,
-	candidateHash parachainTypes.CandidateHash,
+	candidateHash common.Hash,
 	sessionIndex parachainTypes.SessionIndex,
 	validatorPublic parachainTypes.ValidatorID,
 	validatorSignature parachain.ValidatorSignature,
@@ -170,7 +171,7 @@ func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatemen
 }
 
 func getDisputeStatementSigningPayload(disputeStatement inherents.DisputeStatement,
-	candidateHash parachainTypes.CandidateHash,
+	candidateHash common.Hash,
 	session parachainTypes.SessionIndex,
 ) ([]byte, error) {
 	statement, err := disputeStatement.Value()

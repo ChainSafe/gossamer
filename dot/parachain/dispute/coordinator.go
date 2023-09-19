@@ -51,16 +51,16 @@ func (d *disputeCoordinator) Run(context overseer.Context) error {
 
 type startupResult struct {
 	participation    []ParticipationRequestWithPriority
-	votes            []types.ScrapedOnChainVotes
+	votes            []parachainTypes.ScrapedOnChainVotes
 	spamSlots        SpamSlots
-	orderingProvider scraping.ChainScrapper
+	orderingProvider scraping.ChainScraper
 	highestSession   parachainTypes.SessionIndex
 	gapsInCache      bool
 }
 
 type initializeResult struct {
 	participation []ParticipationRequestWithPriority
-	votes         []types.ScrapedOnChainVotes
+	votes         []parachainTypes.ScrapedOnChainVotes
 	activatedLeaf *overseer.ActivatedLeaf
 	initialized   *Initialized
 }
@@ -151,7 +151,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 	var participationRequests []ParticipationRequestWithPriority
 	spamDisputes := make(map[unconfirmedKey]*treeset.Set)
 	leafHash := initialHead.Hash
-	scraper, scrapedVotes, err := scraping.NewChainScraper(context.Sender, initialHead)
+	scraper, scrapedVotes, err := scraping.NewChainScraper(context.Sender, d.runtime, initialHead)
 	if err != nil {
 		return nil, fmt.Errorf("new chain scraper: %w", err)
 	}
@@ -220,7 +220,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 				})
 			} else {
 				logger.Tracef("found valid dispute, with vote from us on startup - distributing. %s")
-				d.sendDisputeMessages(context, *env, *voteState)
+				d.sendDisputeMessages(context, *env, voteState)
 			}
 		}
 
@@ -229,9 +229,9 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 
 	return &startupResult{
 		participation:    participationRequests,
-		votes:            scrapedVotes,
+		votes:            scrapedVotes.OnChainVotes,
 		spamSlots:        NewSpamSlotsFromState(spamDisputes, MaxSpamVotes),
-		orderingProvider: scraping.ChainScrapper{},
+		orderingProvider: scraping.ChainScraper{},
 		highestSession:   0,
 		gapsInCache:      gapsInCache,
 	}, nil

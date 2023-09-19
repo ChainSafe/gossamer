@@ -6,7 +6,7 @@ import (
 )
 
 type ChainAPIMessage struct {
-	RelayParent     parachainTypes.CandidateHash
+	RelayParent     common.Hash
 	ResponseChannel chan *uint32
 }
 
