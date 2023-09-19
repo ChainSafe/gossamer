@@ -192,10 +192,8 @@ func TestConsensusDigest(t *testing.T) {
 }
 
 func TestRuntimeEnvironmentUpdatedDigest(t *testing.T) {
-	exp := common.MustHexToBytes("0x080000000000")
-	d := RuntimeEnvironmentUpdated{
-		Data: []byte{},
-	}
+	exp := common.MustHexToBytes("0x08")
+	d := RuntimeEnvironmentUpdated{}
 
 	di := NewDigestItem()
 	err := di.Set(d)
