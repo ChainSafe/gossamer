@@ -17,41 +17,35 @@ type TestSubsystem struct {
 
 func (s *TestSubsystem) Run(ctx *context) error {
 	fmt.Printf("Run %s\n", s.name)
-	// wait for leaf signal from overseer
-	leaf := s.waitForLeaf(ctx)
-	fmt.Printf("%s received leaf %v\n", s.name, leaf)
 
-	// simulate work, send message to overseer
-	go func() {
-		defer ctx.wg.Done()
-		counter := 0
-		for {
-			select {
-			case <-ctx.stopCh:
-				fmt.Printf("overseer stopping %v\n", s.name)
-				return
-			default:
-			}
-
-			counter++
-			time.Sleep(time.Second)
-			fmt.Printf("%v working on: %v\n", s.name, leaf)
-			ctx.Sender.SendMessage(fmt.Sprintf("hello from %v, count: %v", s.name, counter))
-		}
-	}()
-
-	return nil
-}
-func (s *TestSubsystem) waitForLeaf(context *context) *ActivatedLeaf {
 	for {
 		select {
-		case overseerSignal := <-context.Receiver:
-			return overseerSignal.(*ActiveLeavesUpdate).Activated
-		case <-context.stopCh: //listen for stop signal here in case we need to stop before we get a leaf
-			fmt.Printf("overseer stopping %v\n", s.name)
-			return nil
+		case overseerSignal, ok := <-ctx.Receiver:
+			stop := make(chan struct{})
+			fmt.Printf("Ok: %v, sig %v\n", ok, overseerSignal)
+			if !ok {
+				close(stop)
+			}
+			// simulate work, send message to overseer
+			go func(stop chan struct{}) {
+				counter := 0
+				for {
+					select {
+					case <-stop:
+						fmt.Printf("overseer stopping %v\n", s.name)
+						return
+					default:
+					}
+
+					counter++
+					time.Sleep(time.Second)
+					fmt.Printf("%v working on: %v\n", s.name, overseerSignal)
+					ctx.Sender.SendMessage(fmt.Sprintf("hello from %v, count: %v", s.name, counter))
+				}
+			}(stop)
 		}
 	}
+	return nil
 }
 
 func TestStart2SubsytemsActivate1(t *testing.T) {
@@ -81,7 +75,7 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 	overseer.sendActiveLeavesUpdate(&ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
 
 	// let subsystems run for a bit
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	err = overseer.Stop()
 	require.NoError(t, err)

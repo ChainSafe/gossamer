@@ -18,44 +18,51 @@ var (
 )
 
 type Overseer struct {
-	wg      sync.WaitGroup
-	doneCh  chan struct{}
-	stopCh  chan struct{}
+	messageListener Sender
+	wg              sync.WaitGroup
+	doneCh          chan struct{}
+	//stopCh          chan struct{}
 	errChan chan error
 
-	subsystems        map[Subsystem]*context
-	subsystemMessages map[Subsystem]<-chan any
-	overseerChannel   chan any
+	subsystems map[Subsystem]*context
 }
 
 type exampleSender struct {
-	senderChan chan any
 }
 
 func (s *exampleSender) SendMessage(msg any) error {
-	s.senderChan <- msg
+	fmt.Printf("exampleSender sending message: %v\n", msg)
 	return nil
 }
 
 func NewOverseer() *Overseer {
 	return &Overseer{
-		doneCh:            make(chan struct{}),
-		stopCh:            make(chan struct{}),
-		errChan:           make(chan error),
-		subsystems:        make(map[Subsystem]*context),
-		subsystemMessages: make(map[Subsystem]<-chan any),
-		overseerChannel:   make(chan any),
+		messageListener: &exampleSender{},
+		doneCh:          make(chan struct{}),
+		//stopCh:          make(chan struct{}),
+		errChan:    make(chan error),
+		subsystems: make(map[Subsystem]*context),
 	}
 }
 
+// RegisterSubsystem registers a subsystem with the overseer,
+//
+//		Add context to subsystem map, which includes: Sender implementation,
+//		Receiver channel.  The context will be pass to subsystem's Run method
+//		Subsystem will use that context to send messages to overseer, and to recieve messages from overseer (
+//		via receiver channel), and to signal when it is done (overseer closes the receiver channel)
+//	  the subsystem will signal overseer when it's done stopping by done channel
+//		Overseer implements SendMessage interface for Subsystem to communitate to overseer
+//		Overseer returns channel to subsystem for messages from overseer to subsystem,
+//
+// and when that channel is closed it uses that to confirm subsystem is done
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
-	o.subsystemMessages[subsystem] = o.overseerChannel
 	receiverChan := make(chan any, CommsBufferSize)
 	o.subsystems[subsystem] = &context{
-		Sender:   &exampleSender{senderChan: o.overseerChannel},
+		Sender:   &exampleSender{},
 		Receiver: receiverChan,
 		wg:       &o.wg,
-		stopCh:   o.stopCh,
+		//stopCh:   o.stopCh,
 	}
 }
 
@@ -71,20 +78,6 @@ func (o *Overseer) Start() (errChan chan error, err error) {
 		}(subsystem, cntxt)
 	}
 
-	// wait for messages from subsystems
-	// TODO: this is a temporary solution, we will determine logic to handle different message types
-	for subsystem, recChan := range o.subsystemMessages {
-		go func(sub Subsystem, channel <-chan any) {
-			fmt.Printf("overseer waiting for messages from %v\n", sub)
-			for { //nolint:gosimple
-				select {
-				case msg := <-channel:
-					fmt.Printf("overseer received message from %v: %v\n", sub, msg)
-				}
-			}
-		}(subsystem, recChan)
-	}
-
 	// TODO: add logic to start listening for Block Imported events and Finalisation events
 	return o.errChan, nil
 }
@@ -93,22 +86,23 @@ func (o *Overseer) Stop() error {
 	if o.doneCh == nil {
 		return nil
 	}
-	close(o.stopCh)
-	timeout := 5 * time.Second
+	//close(o.stopCh)
 
+	for subsystem, _ := range o.subsystems {
+		close(o.subsystems[subsystem].Receiver)
+	}
+
+	timeout := time.Millisecond
 	waitTimeout(&o.wg, timeout)
 
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
-	o.stopCh = nil
+	//o.stopCh = nil
 	return nil
 }
 
 func (o *Overseer) sendActiveLeavesUpdate(update *ActiveLeavesUpdate, subsystem Subsystem) {
 	o.subsystems[subsystem].Receiver <- update
-	//for _, context := range o.subsystems {
-	//	context.Receiver <- update
-	//}
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
