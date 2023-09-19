@@ -14,6 +14,7 @@ import (
 	"time"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -27,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -340,7 +340,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	err = cfg.Keystore.Acco.Insert(kp)
 	require.NoError(t, err)
 
-	var rtCfg wasmer.Config
+	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
@@ -352,7 +352,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	}
 	rtCfg.NodeStorage = nodeStorage
 
-	cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(rtCfg)
+	cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
 	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)

@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
@@ -39,12 +39,13 @@ type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	blockAddCh chan *types.Block // for asynchronous block handling
-	sync.Mutex                   // lock for channel
+	lock       sync.Mutex        // lock for channel
 
 	// Service interfaces
 	blockState       BlockState
 	storageState     StorageState
 	transactionState TransactionState
+	grandpaState     GrandpaState
 	net              Network
 
 	// map of code substitutions keyed by block hash
@@ -63,6 +64,7 @@ type Config struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionState TransactionState
+	GrandpaState     GrandpaState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
@@ -87,6 +89,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:           cfg.BlockState,
 		storageState:         cfg.StorageState,
 		transactionState:     cfg.TransactionState,
+		grandpaState:         cfg.GrandpaState,
 		net:                  cfg.Network,
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
@@ -105,8 +108,8 @@ func (s *Service) Start() error {
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	s.Lock()
-	defer s.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	s.cancel()
 	close(s.blockAddCh)
@@ -212,9 +215,14 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
-	err = s.onBlockImport.Handle(&block.Header)
+	err = s.onBlockImport.HandleDigests(&block.Header)
 	if err != nil {
 		return fmt.Errorf("on block import handle: %w", err)
+	}
+
+	err = s.grandpaState.ApplyForcedChanges(&block.Header)
+	if err != nil {
+		return fmt.Errorf("applying forced changes: %w", err)
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
@@ -240,8 +248,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
-		s.Lock()
-		defer s.Unlock()
+		s.lock.Lock()
+		defer s.lock.Unlock()
 		if s.ctx.Err() != nil {
 			return
 		}
@@ -272,7 +280,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 
 	// this needs to create a new runtime instance, otherwise it will update
 	// the blocks that reference the current runtime version to use the code substition
-	cfg := wasmer.Config{
+	cfg := wazero_runtime.Config{
 		Storage:     state,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
@@ -283,7 +291,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		cfg.Role = 4
 	}
 
-	next, err := wasmer.NewInstance(code, cfg)
+	next, err := wazero_runtime.NewInstance(code, cfg)
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
 	}

@@ -601,8 +601,13 @@ func execRoot(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to ensure root: %s", err)
 	}
 
+	isInitialised, err := dot.IsNodeInitialised(config.BasePath)
+	if err != nil {
+		return fmt.Errorf("failed to check is not is initialised: %w", err)
+	}
+
 	// if the node is not initialised, initialise it
-	if !dot.IsNodeInitialised(config.BasePath) {
+	if !isInitialised {
 		if err := dot.InitNode(config); err != nil {
 			return fmt.Errorf("failed to initialise node: %s", err)
 		}

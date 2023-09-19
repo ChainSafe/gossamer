@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -964,9 +964,9 @@ func TestRange(t *testing.T) {
 		"start_hash_in_memory_while_end_hash_in_database": {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 64,
-			wantErr:               chaindb.ErrKeyNotFound,
+			wantErr:               database.ErrNotFound,
 			stringErr: "range start should be in database: " +
-				"querying database: Key not found",
+				"querying database: pebble: not found",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
 				genesisHeader *types.Header) *BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
