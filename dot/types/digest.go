@@ -86,7 +86,7 @@ func (d SealDigest) String() string {
 }
 
 // RuntimeEnvironmentUpdated contains is an indicator for the light clients that the runtime environment is updated
-type RuntimeEnvironmentUpdated DigestItem
+type RuntimeEnvironmentUpdated struct{}
 
 // Index returns VDT index
 func (RuntimeEnvironmentUpdated) Index() uint { return 8 }
