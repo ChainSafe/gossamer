@@ -20,6 +20,29 @@ type VRFSignData struct {
 	extra *VRFTranscript
 }
 
+// /// Transcript ready to be used for VRF related operations.
+// #[derive(Clone)]
+// pub struct VrfTranscript(pub merlin::Transcript);
+
+// impl VrfTranscript {
+// 	/// Build a new transcript instance.
+// 	///
+// 	/// Each `data` element is a tuple `(domain, message)` composing the transcipt.
+// 	pub fn new(label: &'static [u8], data: &[(&'static [u8], &[u8])]) -> Self {
+// 		let mut transcript = merlin::Transcript::new(label);
+// 		data.iter().for_each(|(l, b)| transcript.append_message(l, b));
+// 		VrfTranscript(transcript)
+// 	}
+
+// 	/// Map transcript to `VrfSignData`.
+// 	pub fn into_sign_data(self) -> VrfSignData {
+// 		self.into()
+// 	}
+// }
+
+// VRFInput is a transcript used by the Fiat-Shamir transform.
+type VRFInput VRFTranscript
+
 // / VRF output type suitable for schnorrkel operations.
 // #[derive(Clone, Debug, PartialEq, Eq)]
 // pub struct VrfOutput(pub schnorrkel::vrf::VRFOutput);
