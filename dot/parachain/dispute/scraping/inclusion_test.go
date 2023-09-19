@@ -1,20 +1,32 @@
 package scraping
 
 import (
+	"crypto/rand"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+func getRandomHash() common.Hash {
+	var hash [32]byte
+	randomBytes := make([]byte, len(hash))
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	copy(hash[:], randomBytes)
+	return hash
+}
+
 func TestInclusions_Insert(t *testing.T) {
 	t.Parallel()
 	inclusions := &Inclusions{inner: make(map[common.Hash]map[uint32][]common.Hash)}
-	candidateHash := types.GetRandomHash()
-	blockHash1 := types.GetRandomHash()
-	blockHash2 := types.GetRandomHash()
+	candidateHash := getRandomHash()
+	blockHash1 := getRandomHash()
+	blockHash2 := getRandomHash()
 
 	inclusions.Insert(candidateHash, blockHash1, 1)
 	require.Equal(t, map[common.Hash]map[uint32][]common.Hash{
@@ -42,10 +54,10 @@ func TestInclusions_Insert(t *testing.T) {
 func TestInclusions_RemoveUpToHeight(t *testing.T) {
 	t.Parallel()
 	inclusions := &Inclusions{inner: make(map[common.Hash]map[uint32][]common.Hash)}
-	candidateHash1 := types.GetRandomHash()
-	candidateHash2 := types.GetRandomHash()
-	blockHash1 := types.GetRandomHash()
-	blockHash2 := types.GetRandomHash()
+	candidateHash1 := getRandomHash()
+	candidateHash2 := getRandomHash()
+	blockHash1 := getRandomHash()
+	blockHash2 := getRandomHash()
 
 	inclusions.inner[candidateHash1] = map[uint32][]common.Hash{
 		1: {blockHash1},
@@ -68,9 +80,9 @@ func TestInclusions_RemoveUpToHeight(t *testing.T) {
 func TestInclusions_Get(t *testing.T) {
 	t.Parallel()
 	inclusions := &Inclusions{inner: make(map[common.Hash]map[uint32][]common.Hash)}
-	candidateHash := types.GetRandomHash()
-	blockHash1 := types.GetRandomHash()
-	blockHash2 := types.GetRandomHash()
+	candidateHash := getRandomHash()
+	blockHash1 := getRandomHash()
+	blockHash2 := getRandomHash()
 
 	inclusions.inner[candidateHash] = map[uint32][]common.Hash{
 		2: {blockHash1},

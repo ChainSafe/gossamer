@@ -21,15 +21,15 @@ type Initialized struct {
 	GapsInCache           bool
 	SpamSlots             SpamSlots
 	Participation         Participation
-	Scraper               *scraping.ChainScrapper
+	Scraper               *scraping.ChainScraper
 	ParticipationReceiver chan MuxedMessage
-	ChainImportBacklog    *deque.Deque[types.ScrapedOnChainVotes]
+	ChainImportBacklog    *deque.Deque[parachainTypes.ScrapedOnChainVotes]
 	// TODO: metrics
 }
 
 type InitialData struct {
 	Participation []ParticipationRequestWithPriority
-	Votes         []types.ScrapedOnChainVotes
+	Votes         []parachainTypes.ScrapedOnChainVotes
 	Leaf          *overseer.ActivatedLeaf
 }
 
@@ -64,9 +64,7 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 		}
 
 		update := overseer.ActiveLeavesUpdate{Activated: initialData.Leaf}
-		if err := i.Participation.ProcessActiveLeavesUpdate(update); err != nil {
-			return fmt.Errorf("process active leaves update: %w", err)
-		}
+		i.Participation.ProcessActiveLeavesUpdate(update)
 	}
 
 	for {
@@ -149,13 +147,8 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 		return fmt.Errorf("scraper: process active leaves update: %w", err)
 	}
 
-	if err := i.Participation.BumpPriority(context, scrappedUpdates.IncludedReceipts); err != nil {
-		logger.Errorf("bump priority: %w", err)
-	}
-
-	if err := i.Participation.ProcessActiveLeavesUpdate(update); err != nil {
-		return fmt.Errorf("participation: process active leaves update: %w", err)
-	}
+	i.Participation.BumpPriority(context, scrappedUpdates.IncludedReceipts)
+	i.Participation.ProcessActiveLeavesUpdate(update)
 
 	if update.Activated != nil {
 		sessionIDx, err := i.runtime.ParachainHostSessionIndexForChild(update.Activated.Hash)
@@ -215,11 +208,11 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 func (i *Initialized) ProcessChainImportBacklog(
 	context overseer.Context,
 	backend OverlayBackend,
-	newVotes []types.ScrapedOnChainVotes,
+	newVotes []parachainTypes.ScrapedOnChainVotes,
 	now uint64,
 	blockHash common.Hash,
 ) error {
-	chainImportBacklog := deque.New[types.ScrapedOnChainVotes]()
+	chainImportBacklog := deque.New[parachainTypes.ScrapedOnChainVotes]()
 	for k := 0; k < i.ChainImportBacklog.Len(); k++ {
 		chainImportBacklog.PushBack(i.ChainImportBacklog.At(k))
 	}
@@ -243,7 +236,7 @@ func (i *Initialized) ProcessChainImportBacklog(
 func (i *Initialized) ProcessOnChainVotes(
 	context overseer.Context,
 	backend OverlayBackend,
-	votes types.ScrapedOnChainVotes,
+	votes parachainTypes.ScrapedOnChainVotes,
 	now uint64,
 	blockHash common.Hash,
 ) error {
@@ -291,7 +284,7 @@ func (i *Initialized) sessionIsAncient(session parachainTypes.SessionIndex) bool
 	return session < diff || session < i.HighestSessionSeen
 }
 
-func NewInitializedState(sender overseer.Sender, runtime parachain.RuntimeInstance, spamSlots SpamSlots, scraper *scraping.ChainScrapper, highestSessionSeen parachainTypes.SessionIndex, gapsInCache bool) *Initialized {
+func NewInitializedState(sender overseer.Sender, runtime parachain.RuntimeInstance, spamSlots SpamSlots, scraper *scraping.ChainScraper, highestSessionSeen parachainTypes.SessionIndex, gapsInCache bool) *Initialized {
 	return &Initialized{
 		runtime:               runtime,
 		SpamSlots:             spamSlots,
@@ -299,7 +292,7 @@ func NewInitializedState(sender overseer.Sender, runtime parachain.RuntimeInstan
 		HighestSessionSeen:    highestSessionSeen,
 		GapsInCache:           gapsInCache,
 		ParticipationReceiver: make(chan MuxedMessage),
-		ChainImportBacklog:    deque.New[types.ScrapedOnChainVotes](),
+		ChainImportBacklog:    deque.New[parachainTypes.ScrapedOnChainVotes](),
 		Participation:         NewParticipation(sender, runtime),
 	}
 }

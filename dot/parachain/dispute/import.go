@@ -142,13 +142,9 @@ func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []types.Vote, now
 		return nil, fmt.Errorf("creating new candidate vote state: %w", err)
 	}
 
-	if newState == nil {
-		return nil, fmt.Errorf("new state is nil")
-	}
-
 	return &ImportResultHandler{
 		oldState:              i.oldState,
-		newState:              *newState,
+		newState:              newState,
 		newInvalidVoters:      i.newInvalidVoters,
 		importedInvalidVotes:  i.importedInvalidVotes,
 		importedValidVotes:    i.importedValidVotes,
@@ -242,7 +238,7 @@ func NewImportResultFromStatements(env types.CandidateEnvironment,
 
 	return &ImportResultHandler{
 		oldState:              oldState,
-		newState:              *newState,
+		newState:              newState,
 		newInvalidVoters:      newInvalidVoters,
 		importedInvalidVotes:  importedInvalidVotes,
 		importedValidVotes:    importedValidVotes,

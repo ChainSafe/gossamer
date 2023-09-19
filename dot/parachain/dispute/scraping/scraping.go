@@ -2,9 +2,9 @@ package scraping
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -234,7 +234,7 @@ func (cs *ChainScraper) IsPotentialSpam(voteState types.CandidateVoteState, cand
 func NewChainScraper(
 	sender overseer.Sender,
 	runtime parachain.RuntimeInstance,
-	initialHead overseer.ActivatedLeaf,
+	initialHead *overseer.ActivatedLeaf,
 ) (*ChainScraper, *parachainTypes.ScrapedUpdates, error) {
 	chainScraper := &ChainScraper{
 		IncludedCandidates: NewScrapedCandidates(),
@@ -245,7 +245,7 @@ func NewChainScraper(
 	}
 
 	update := overseer.ActiveLeavesUpdate{
-		Activated: &initialHead,
+		Activated: initialHead,
 	}
 	updates, err := chainScraper.ProcessActiveLeavesUpdate(sender, update)
 	if err != nil {

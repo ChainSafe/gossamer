@@ -26,6 +26,11 @@ type ValidatorID [sr25519.PublicKeyLength]byte
 // BlockNumber The block number type.
 type BlockNumber uint32
 
+// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
+type CandidateHash struct {
+	Value common.Hash `scale:"1"`
+}
+
 // GroupRotationInfo A helper data-type for tracking validator-group rotations.
 type GroupRotationInfo struct {
 	// SessionStartBlock is the block number at which the session started
