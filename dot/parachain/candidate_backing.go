@@ -12,7 +12,22 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type commandAndRelayParent struct {
+	relayParent   common.Hash
+	command       ValidatedCandidateCommand
+	validationRes BackgroundValidationResult
+	candidateHash CandidateHash
+}
+
 type ValidatedCandidateCommand byte
+
+/*
+	enum ValidatedCandidateCommand {
+		Second(BackgroundValidationResult),
+		Attest(BackgroundValidationResult),
+		AttestNoPoV(CandidateHash),
+	}
+*/
 
 const (
 	// We were instructed to second the candidate that has been already validated.
@@ -31,11 +46,6 @@ type BackgroundValidationResult struct {
 }
 
 var InvalidErasureRoot = errors.New("Invalid erasure root")
-
-func attestedToBacked(attested AttestedCandidate, tableContext TableContext) *parachaintypes.CandidateBacked {
-	// TODO: implement this function
-	return &parachaintypes.CandidateBacked{}
-}
 
 func ValidateAndMakeAvailable(
 	nValidators uint,
@@ -112,23 +122,50 @@ func MakePoVAvailable(
 	return nil
 }
 
+func attestedToBacked(attested AttestedCandidate, tableContext TableContext) *parachaintypes.CandidateBacked {
+	// TODO: implement this function
+	return &parachaintypes.CandidateBacked{}
+}
+
 func runCandidateBacking() {
+	jobs := make(map[common.Hash]CandidateBackingJob)
+
+	// TODO: figure out buffer size of these channels.
+	sender := make(chan<- commandAndRelayParent)
+	receiver := make(<-chan commandAndRelayParent)
+
 	for {
-		if err := run_iteration(); err == nil {
+		if err := run_iteration(jobs, sender, receiver); err == nil {
 			return
 		}
 	}
 }
 
-func run_iteration() error {
-	// for {
-	// 	select {
-	// 	// case <- recieve validated candidate command:
-	// 	// handleValidatedCandidateCommand()
-	// 	// case <-
-	// 	}
-	// }
-	return nil
+func run_iteration(
+	jobs map[common.Hash]CandidateBackingJob,
+	sender chan<- commandAndRelayParent,
+	receiver <-chan commandAndRelayParent,
+) error {
+	for {
+		select {
+		case cmdAndParent, ok := <-receiver:
+			if !ok {
+				return nil
+			}
+
+			if job, ok := jobs[cmdAndParent.relayParent]; ok {
+				if err := job.handleValidatedCandidateCommand(
+					cmdAndParent.command,
+					cmdAndParent.validationRes,
+					cmdAndParent.candidateHash,
+				); err != nil {
+					return fmt.Errorf("handling validated candidate command: %w", err)
+				}
+			}
+
+			// case <- receive from overseer:
+		}
+	}
 }
 
 // Holds all data needed for candidate backing job operation.
@@ -157,9 +194,124 @@ type CandidateBackingJob struct {
 	tableContext TableContext
 }
 
+func (job *CandidateBackingJob) handleValidatedCandidateCommand(
+	command ValidatedCandidateCommand,
+	validationRes BackgroundValidationResult,
+	candidateHash CandidateHash,
+) error {
+	delete(job.awaiting_validation, candidateHash)
+	switch command {
+	case Second:
+		return job.handleSecondCommand(validationRes, candidateHash)
+	case Attest:
+		return job.handleAttestCommand(validationRes, candidateHash)
+	case AttestNoPoV:
+		return job.handleAttestNoPoVCommand(candidateHash)
+	}
+	return nil
+}
+
+func (job *CandidateBackingJob) handleSecondCommand(
+	validationRes BackgroundValidationResult,
+	candidateHash CandidateHash,
+) error {
+	if !validationRes.isValid {
+		// // Break cycle - bounded as there is only one candidate to
+		// // second per block.
+		// ctx.send_unbounded_message(CollatorProtocolMessage::Invalid(
+		// 	self.parent,
+		// 	candidate,
+		// ));
+		return nil
+	}
+
+	// sanity check.
+	if job.seconded != nil || job.issued_statements[candidateHash] {
+		return nil
+	}
+
+	job.seconded = &candidateHash
+	job.issued_statements[candidateHash] = true
+
+	statement := NewStatementVDT()
+	if err := statement.Set(Seconded{
+		Descriptor:  validationRes.CandidateReceipt.Descriptor,
+		Commitments: validationRes.CandidateCommitments,
+	}); err != nil {
+		return fmt.Errorf("setting value to statement vdt: %s", err)
+	}
+
+	signedFullStatement, err := job.signImportAndDistributeStatement(statement)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\njust to avoid unused error: signedFullStatement: %v\n", signedFullStatement) // remove this line
+
+	if signedFullStatement != nil {
+		/*
+			TODO: implement this function
+
+			// Break cycle - bounded as there is only one candidate to
+			// second per block.
+			ctx.send_unbounded_message(CollatorProtocolMessage::Seconded(
+				self.parent,
+				stmt,
+			));
+		*/
+	}
+	return nil
+}
+
+func (job *CandidateBackingJob) handleAttestCommand(
+	validationRes BackgroundValidationResult,
+	candidateHash CandidateHash,
+) error {
+	// We are done - avoid new validation spawns:
+	delete(job.fallbacks, candidateHash)
+
+	// sanity check.
+	if _, isIssued := job.issued_statements[candidateHash]; isIssued {
+		return nil
+	}
+
+	if validationRes.isValid {
+		statement := NewStatementVDT()
+		if err := statement.Set(Valid{candidateHash.Value}); err != nil {
+			return fmt.Errorf("setting value to statement vdt: %s", err)
+		}
+		if _, err := job.signImportAndDistributeStatement(statement); err != nil {
+			return err
+		}
+	}
+
+	job.issued_statements[candidateHash] = true
+	return nil
+}
+
+func (job *CandidateBackingJob) handleAttestNoPoVCommand(candidateHash CandidateHash) error {
+	attesting, ok := job.fallbacks[candidateHash]
+	if !ok {
+		logger.Warn("AttestNoPoV was triggered without fallback being available.")
+		return nil
+	}
+
+	backingLen := len(attesting.backing)
+	if backingLen > 1 {
+		lastBackingIndex := attesting.backing[backingLen-1]
+		attesting.backing = attesting.backing[:backingLen-1]
+		attesting.from_validator = lastBackingIndex
+
+		// TODO: Implement self.kick_off_validation_work(ctx, attesting, c_span) method
+		// self.kick_off_validation_work(ctx, attesting, c_span).await?
+	}
+
+	return nil
+}
+
 // Import a statement into the statement table and return the summary of the import.
-func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *SignedFullStatement) (*Summary, error) {
-	candidateHash, err := checkedSignedFullStatement.Payload.CandidateHash()
+func (job *CandidateBackingJob) importStatement(signedFullStatement *SignedFullStatement) (*Summary, error) {
+	candidateHash, err := signedFullStatement.Payload.CandidateHash()
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash from statement: %w", err)
 	}
@@ -170,10 +322,11 @@ func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *Sign
 		job.unbacked_candidates[*candidateHash] = true
 	}
 
-	summary, err := job.table.importStatement(&job.tableContext, checkedSignedFullStatement)
+	summary, err := job.table.importStatement(&job.tableContext, signedFullStatement)
 	if err != nil {
 		logger.Errorf("importing statement: %s", err)
 	}
+
 	if summary == nil {
 		// self.issue_new_misbehaviors(ctx.sender());
 		return summary, nil
@@ -183,12 +336,8 @@ func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *Sign
 	if err != nil {
 		logger.Errorf("getting attested candidate: %s", err)
 	}
-	if attested == nil {
-		// self.issue_new_misbehaviors(ctx.sender());
-		return summary, nil
-	}
 
-	if !isBacked {
+	if attested != nil && !isBacked {
 		job.backed[*candidateHash] = true
 		delete(job.unbacked_candidates, *candidateHash)
 
@@ -213,126 +362,21 @@ func (job *CandidateBackingJob) importStatement(checkedSignedFullStatement *Sign
 }
 
 func (job *CandidateBackingJob) signImportAndDistributeStatement(statement StatementVDT) (*SignedFullStatement, error) {
-	checkedSignedFullStatement, err := job.tableContext.validator.Sign(*job.keystore, statement)
+	signedFullStatement, err := job.tableContext.validator.Sign(*job.keystore, statement)
 	if err != nil {
-		return nil, err
+		logger.Errorf("signing statement: %w", err)
+		return nil, nil
 	}
 
-	job.importStatement(checkedSignedFullStatement)
+	_, err = job.importStatement(signedFullStatement)
+	if err != nil {
+		return nil, fmt.Errorf("importing statement: %w", err)
+	}
 
 	// TODO: distribute the statement
 	// let smsg = StatementDistributionMessage::Share(self.parent, signed_statement.clone());
 	// ctx.send_unbounded_message(smsg);
-	return nil, nil
-}
-
-func (job *CandidateBackingJob) handleSecondCommand(
-	validationRes BackgroundValidationResult,
-	candidateHash CandidateHash,
-) error {
-	candidateHash = CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(validationRes.CandidateReceipt)),
-	}
-	delete(job.awaiting_validation, candidateHash)
-
-	if !validationRes.isValid {
-		// // Break cycle - bounded as there is only one candidate to
-		// // second per block.
-		// ctx.send_unbounded_message(CollatorProtocolMessage::Invalid(
-		// 	self.parent,
-		// 	candidate,
-		// ));
-		return nil
-	}
-
-	// sanity check.
-	_, isIssued := job.issued_statements[candidateHash]
-	if job.seconded != nil && !isIssued {
-		job.seconded = &candidateHash
-		job.issued_statements[candidateHash] = true
-
-		statement := NewStatementVDT()
-		if err := statement.Set(Seconded{
-			Descriptor:  validationRes.CandidateReceipt.Descriptor,
-			Commitments: validationRes.CandidateCommitments,
-		}); err != nil {
-			return fmt.Errorf("setting value to statement vdt: %s", err)
-		}
-
-		// TODO: Implement self.sign_import_and_distribute_statement(ctx, statement) method
-
-		// if job.sign_import_and_distribute_statement(ctx, statement) != nil {
-		// 	// // Break cycle - bounded as there is only one candidate to
-		// 	// // second per block.
-		// 	// ctx.send_unbounded_message(CollatorProtocolMessage::Invalid(
-		// 	// 	self.parent,
-		// 	// 	candidate,
-		// 	// ));
-		// }
-	}
-	return nil
-}
-
-func (job *CandidateBackingJob) handleAttestCommand(
-	validationRes BackgroundValidationResult,
-	candidateHash CandidateHash,
-) error {
-	candidateHash = CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(validationRes.CandidateReceipt)),
-	}
-	delete(job.awaiting_validation, candidateHash)
-
-	// We are done - avoid new validation spawns:
-	delete(job.fallbacks, candidateHash)
-
-	// sanity check.
-	_, isIssued := job.issued_statements[candidateHash]
-	if !isIssued {
-		if validationRes.isValid {
-			statement := NewStatementVDT()
-			if err := statement.Set(Valid{candidateHash.Value}); err != nil {
-				return fmt.Errorf("setting value to statement vdt: %s", err)
-			}
-			// self.sign_import_and_distribute_statement(ctx, statement, &root_span)?;
-		}
-		job.issued_statements[candidateHash] = true
-	}
-	return nil
-}
-
-func (job *CandidateBackingJob) handleAttestNoPoVCommand(candidateHash CandidateHash) error {
-	delete(job.awaiting_validation, candidateHash)
-
-	attesting, ok := job.fallbacks[candidateHash]
-	if ok {
-		backingLen := len(attesting.backing)
-		if backingLen > 1 {
-			lastBackingIndex := attesting.backing[backingLen-1]
-			attesting.backing = attesting.backing[:backingLen-1]
-			attesting.from_validator = lastBackingIndex
-
-			// TODO: Implement self.kick_off_validation_work(ctx, attesting, c_span) method
-			// self.kick_off_validation_work(ctx, attesting, c_span).await?
-		}
-	}
-
-	return nil
-}
-
-func (job *CandidateBackingJob) handleValidatedCandidateCommand(
-	command ValidatedCandidateCommand,
-	validationRes BackgroundValidationResult,
-	candidateHash CandidateHash,
-) error {
-	switch command {
-	case Second:
-		return job.handleSecondCommand(validationRes, candidateHash)
-	case Attest:
-		return job.handleAttestCommand(validationRes, candidateHash)
-	case AttestNoPoV:
-		return job.handleAttestNoPoVCommand(candidateHash)
-	}
-	return nil
+	return signedFullStatement, nil
 }
 
 type TableContext struct {
@@ -353,18 +397,18 @@ type Validator struct {
 
 // Sign a payload with this validator
 func (v Validator) Sign(keystore keystore.Keystore, Payload StatementVDT) (*SignedFullStatement, error) {
-	checkedSignedFullStatement := SignedFullStatement{
+	signedFullStatement := SignedFullStatement{
 		Payload:        Payload,
 		ValidatorIndex: v.index,
 	}
 
-	signature, err := checkedSignedFullStatement.Sign(keystore, v.signing_context, v.key)
+	signature, err := signedFullStatement.Sign(keystore, v.signing_context, v.key)
 	if err != nil {
 		return nil, err
 	}
-	checkedSignedFullStatement.Signature = *signature
+	signedFullStatement.Signature = *signature
 
-	return &checkedSignedFullStatement, nil
+	return &signedFullStatement, nil
 }
 
 // A type returned by runtime with current session index and a parent hash.

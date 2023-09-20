@@ -253,8 +253,8 @@ type CommittedCandidateReceipt struct {
 }
 
 // Hash returns the blake2b hash of the committed candidate receipt.
-func (u *CommittedCandidateReceipt) Hash() (common.Hash, error) {
-	encodedCandidate, err := scale.Marshal(u)
+func (c *CommittedCandidateReceipt) Hash() (common.Hash, error) {
+	encodedCandidate, err := scale.Marshal(c)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("encoding committed candidate receipt: %w", err)
 	}
