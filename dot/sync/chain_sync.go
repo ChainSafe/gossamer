@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -26,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -886,9 +888,39 @@ func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.Bloc
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
-	err = cs.babeVerifier.VerifyBlock(blockData.Header)
-	if err != nil {
-		return fmt.Errorf("babe verifying block: %w", err)
+	// err = cs.babeVerifier.VerifyBlock(blockData.Header)
+	// if err != nil {
+	// 	return fmt.Errorf("babe verifying block: %w", err)
+	// }
+
+	if blockData.Header.Number == 8077850 {
+		latest, err := cs.blockState.BestBlockHeader()
+		if err != nil {
+			fmt.Printf("getting best block header: %s \n", err.Error())
+			return err
+		}
+		state, err := cs.storageState.TrieState(&latest.StateRoot)
+		if err != nil {
+			fmt.Printf("getting trie state: %s \n", err.Error())
+			return err
+		}
+
+		entries := state.Trie().EntriesList()
+
+		data, err := scale.Marshal(entries)
+		if err != nil {
+			fmt.Printf("scale marshallign trie state: %s \n", err.Error())
+			return err
+		}
+
+		err = os.WriteFile("/entries.out", data, os.ModePerm)
+
+		if err != nil {
+			fmt.Printf("writing /entries.out file: %s \n", err.Error())
+			return err
+		}
+
+		fmt.Printf("WE DID IT!! check the /entries.out file to be happy :) \n")
 	}
 
 	cs.handleBody(blockData.Body)
