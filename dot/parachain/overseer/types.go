@@ -10,14 +10,9 @@ import (
 )
 
 type overseerContext struct {
-	ctx      context.Context
-	Sender   Sender   // interfaco for subsystem to send messages to overseer
-	Receiver chan any // channel for subsystem to receive messages from overseer
-}
-
-// Sender is an interface for subsystems to send messages to overseer.
-type Sender interface {
-	SendMessage(msg any) error
+	ctx          context.Context
+	ToOverseer   chan any // channel for subsystem to send messages to overseer
+	FromOverseer chan any // channel for subsystem to receive messages from overseer
 }
 
 // ActivatedLeaf is a parachain head which we care to work on.
@@ -28,7 +23,7 @@ type ActivatedLeaf struct {
 
 // ActiveLeavesUpdate changes in the set of active leaves:  the parachain heads which we care to work on.
 //
-//	note: activated field indicates deltas, not complete sets.
+// note: activated field indicates deltas, not complete sets.
 type ActiveLeavesUpdate struct {
 	Activated ActivatedLeaf
 }

@@ -27,13 +27,13 @@ func (s *TestSubsystem) Run(ctx *overseerContext) error {
 			}
 			fmt.Printf("%s overseer stopping\n", s.name)
 			return nil
-		case overseerSignal := <-ctx.Receiver:
+		case overseerSignal := <-ctx.FromOverseer:
 			fmt.Printf("%s received from overseer %v\n", s.name, overseerSignal)
 		default:
 			// simulate work, and sending messages to overseer
 			r := rand.Intn(1000)
 			time.Sleep(time.Duration(r) * time.Millisecond)
-			ctx.Sender.SendMessage(fmt.Sprintf("hello from %v, i: %d", s.name, counter))
+			ctx.ToOverseer <- fmt.Sprintf("hello from %v, i: %d", s.name, counter)
 			counter++
 		}
 	}
@@ -49,13 +49,13 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 	overseer.RegisterSubsystem(subSystem1)
 	overseer.RegisterSubsystem(subSystem2)
 
-	errChan, err := overseer.Start()
+	err := overseer.Start()
 	require.NoError(t, err)
 
 	done := make(chan struct{})
 	// listen for errors from overseer
 	go func() {
-		for errC := range errChan {
+		for errC := range overseer.errChan {
 			fmt.Printf("overseer start error: %v\n", errC)
 		}
 		close(done)
@@ -88,11 +88,11 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 	overseer.RegisterSubsystem(subSystem1)
 	overseer.RegisterSubsystem(subSystem2)
 
-	errChan, err := overseer.Start()
+	err := overseer.Start()
 	require.NoError(t, err)
 	done := make(chan struct{})
 	go func() {
-		for errC := range errChan {
+		for errC := range overseer.errChan {
 			fmt.Printf("overseer start error: %v\n", errC)
 		}
 		close(done)
@@ -130,11 +130,11 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 	overseer.RegisterSubsystem(subSystem1)
 	overseer.RegisterSubsystem(subSystem2)
 
-	errChan, err := overseer.Start()
+	err := overseer.Start()
 	require.NoError(t, err)
 	done := make(chan struct{})
 	go func() {
-		for errC := range errChan {
+		for errC := range overseer.errChan {
 			fmt.Printf("overseer start error: %v\n", errC)
 		}
 		close(done)

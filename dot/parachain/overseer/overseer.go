@@ -17,49 +17,39 @@ var (
 )
 
 type Overseer struct {
-	ctx             context.Context
-	cancelContext   context.CancelFunc
-	messageListener Sender
-	errChan         chan error // channel for overseer to send errors to service that started it
-	subsystems      map[Subsystem]*overseerContext
-	wg              sync.WaitGroup
-}
-
-type exampleSender struct {
-}
-
-func (s *exampleSender) SendMessage(msg any) error {
-	fmt.Printf("sender message: %v\n", msg)
-	return nil
+	ctx        context.Context
+	cancel     context.CancelFunc
+	errChan    chan error // channel for overseer to send errors to service that started it
+	subsystems map[Subsystem]*overseerContext
+	wg         sync.WaitGroup
 }
 
 func NewOverseer() *Overseer {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	return &Overseer{
-		ctx:             ctx,
-		cancelContext:   cancel,
-		messageListener: &exampleSender{},
-		errChan:         make(chan error),
-		subsystems:      make(map[Subsystem]*overseerContext),
+		ctx:        ctx,
+		cancel:     cancel,
+		errChan:    make(chan error),
+		subsystems: make(map[Subsystem]*overseerContext),
 	}
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,
 //
-//	Add overseerContext to subsystem map, which includes: context, Sender implementation,
-//	Receiver channel.  The overseerContext will be pass to subsystem's Run method
-//	Subsystem will use that overseerContext to send messages to overseer, and to receive messages from overseer (
-//	via receiver channel), and context to signal when overseer has canceled
+// Add overseerContext to subsystem map, which includes: context, Sender implementation,
+// Receiver channel.  The overseerContext will be pass to subsystem's Run method
+// Subsystem will use that overseerContext to send messages to overseer, and to receive messages from overseer (
+// via receiver channel), and context to signal when overseer has canceled
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
 	o.subsystems[subsystem] = &overseerContext{
-		ctx:      o.ctx,
-		Sender:   o.messageListener,
-		Receiver: make(chan any),
+		ctx:          o.ctx,
+		ToOverseer:   make(chan any),
+		FromOverseer: make(chan any),
 	}
 }
 
-func (o *Overseer) Start() (errChan chan error, err error) {
+func (o *Overseer) Start() error {
 	// start subsystems
 	for subsystem, cntxt := range o.subsystems {
 		o.wg.Add(1)
@@ -68,17 +58,17 @@ func (o *Overseer) Start() (errChan chan error, err error) {
 			if err != nil {
 				logger.Errorf("running subsystem %v failed: %v", sub, err)
 			}
-			fmt.Printf("subsystem %v stopped\n", sub)
+			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
 		}(subsystem, cntxt)
 	}
 
 	// TODO: add logic to start listening for Block Imported events and Finalisation events
-	return o.errChan, nil
+	return nil
 }
 
 func (o *Overseer) Stop() error {
-	o.cancelContext()
+	o.cancel()
 
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
@@ -93,7 +83,7 @@ func (o *Overseer) Stop() error {
 
 // sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
 func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdate, subsystem Subsystem) {
-	o.subsystems[subsystem].Receiver <- update
+	o.subsystems[subsystem].FromOverseer <- update
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
