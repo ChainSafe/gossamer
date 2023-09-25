@@ -4,6 +4,7 @@
 package wazero_runtime
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -33,6 +34,7 @@ var (
 	)
 
 	noneEncoded            []byte = []byte{0x00}
+	allZeroesBytes                = [32]byte{}
 	emptyByteVectorEncoded []byte = scale.MustMarshal([]byte{})
 )
 
@@ -711,6 +713,18 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("nil runtime context")
 	}
 
+	pubKeyBytes, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	// prevents Polkadot zero-address crash using
+	// ext_crypto_sr25519_verify_version_1
+	// https://pacna.org/dot-zero-addr/
+	if bytes.Equal(pubKeyBytes, allZeroesBytes[:]) {
+		return ext_crypto_sr25519_verify_version_1(ctx, m, sig, msg, key)
+	}
+
 	sigVerifier := rtCtx.SigVerifier
 
 	message := read(m, msg)
@@ -719,10 +733,6 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("read overflow")
 	}
 
-	pubKeyBytes, ok := m.Memory().Read(key, 32)
-	if !ok {
-		panic("read overflow")
-	}
 	pub, err := sr25519.NewPublicKey(pubKeyBytes)
 	if err != nil {
 		logger.Error("invalid sr25519 public key")

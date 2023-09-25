@@ -115,5 +115,4 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 	require.NoError(t, err)
 
 	fmt.Printf("After Clear Parent Trie Hash %s\n", trieThatHoldsAChildTrie.MustHash().String())
-	//fmt.Printf("After Clear Child Trie Hash %s\n", trieThatHoldsAChildTrie.MustGetChild(keyToChild).MustHash().String())
 }
