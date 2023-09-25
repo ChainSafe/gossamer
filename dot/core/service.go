@@ -247,6 +247,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return err
 	}
 
+	s.blockState.Checkpoint(&block.Header)
+
 	go func() {
 		s.lock.Lock()
 		defer s.lock.Unlock()
@@ -256,7 +258,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 		s.blockAddCh <- block
 	}()
-
 	return nil
 }
 

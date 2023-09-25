@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/cockroachdb/pebble"
@@ -21,6 +23,9 @@ var ErrNotFound = pebble.ErrNotFound
 type PebbleDB struct {
 	path string
 	db   *pebble.DB
+
+	withCheckpoint     bool
+	checkpointFullPath string
 }
 
 // NewPebble return an pebble db implementation of Database interface
@@ -39,7 +44,11 @@ func NewPebble(path string, inMemory bool) (*PebbleDB, error) {
 		return nil, fmt.Errorf("oppening pebble db: %w", err)
 	}
 
-	return &PebbleDB{path, db}, nil
+	// TODO: enable checkpoint by flags
+	finalDest := filepath.Clean(filepath.Join(path, ".."))
+	finalDest = filepath.Join(finalDest, "snapshot")
+
+	return &PebbleDB{path, db, true, finalDest}, nil
 }
 
 func (p *PebbleDB) Path() string {
@@ -151,4 +160,59 @@ func (p *PebbleDB) NewPrefixIterator(prefix []byte) Iterator {
 	return &pebbleIterator{
 		p.db.NewIter(prefixIterOptions),
 	}
+}
+
+func (p *PebbleDB) Checkpoint() (err error) {
+	if !p.withCheckpoint {
+		return nil
+	}
+
+	exists := true
+	_, err = os.Stat(p.checkpointFullPath)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("getting %s stat: %w", p.checkpointFullPath, err)
+		} else {
+			exists = false
+		}
+	}
+
+	dir, finalDir := filepath.Split(p.checkpointFullPath)
+
+	// if dir exists then rename it (allowing the checkpoint to be created)
+	// and then remove the _old concurrently
+	oldSnapshotFolder := filepath.Join(dir, finalDir+"_old")
+	if exists {
+		err = os.Rename(p.checkpointFullPath, oldSnapshotFolder)
+		if err != nil {
+			return fmt.Errorf("while renaming: %w", err)
+		}
+	}
+
+	checkpointStartMetric := time.Now()
+	defer func() {
+		checkpointEndMetric := time.Since(checkpointStartMetric)
+		logger.Infof("📜 checkpoint took %.2f seconds", checkpointEndMetric.Seconds())
+	}()
+
+	err = p.db.Checkpoint(p.checkpointFullPath)
+	if err != nil {
+		renamingErr := os.Rename(oldSnapshotFolder, p.checkpointFullPath)
+		if err != nil {
+			return errors.Join(renamingErr, err)
+		}
+
+		return err
+	}
+
+	// if no problem happens while generating the checkpoint,
+	// then remove the `_old` folder
+	go func() {
+		err := os.RemoveAll(oldSnapshotFolder)
+		if err != nil {
+			logger.Errorf("failing to remove %s: %w", err)
+		}
+	}()
+
+	return nil
 }
