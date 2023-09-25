@@ -40,9 +40,15 @@ func NewOfflinePruner(inputDBPath string,
 	tries := NewTries()
 	tries.SetEmptyTrie()
 
+	// initialise database table to use in trieDB
+	trieDBTable := database.NewTable(db, storagePrefix)
+
+	// initialise trieDB
+	trieDB := NewTrieDB(trieDBTable, tries)
+
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
-	blockState, err := NewBlockState(db, tries, nil)
+	blockState, err := NewBlockState(db, trieDB, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -70,7 +76,7 @@ func NewOfflinePruner(inputDBPath string,
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, tries)
+	storageState, err := NewStorageState(db, blockState, trieDB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}

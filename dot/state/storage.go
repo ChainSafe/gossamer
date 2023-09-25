@@ -31,9 +31,8 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      *Tries
+	trieDB     *TrieDB
 
-	db GetNewBatcher
 	sync.RWMutex
 
 	// change notifiers
@@ -45,13 +44,11 @@ type StorageState struct {
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db database.Database, blockState *BlockState,
-	tries *Tries) (*StorageState, error) {
-	storageTable := database.NewTable(db, storagePrefix)
+	trieDB *TrieDB) (*StorageState, error) {
 
 	return &StorageState{
 		blockState:   blockState,
-		tries:        tries,
-		db:           storageTable,
+		trieDB:       trieDB,
 		observerList: []Observer{},
 		pruner:       &pruner.ArchiveNode{},
 	}, nil
@@ -60,8 +57,6 @@ func NewStorageState(db database.Database, blockState *BlockState,
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-
-	s.tries.softSet(root, ts.Trie())
 
 	if header != nil {
 		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
@@ -77,7 +72,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	logger.Tracef("cached trie in storage state: %s", root)
 
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
+	if err := s.trieDB.Put(ts.Trie()); err != nil {
 		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
 		return err
 	}
@@ -97,16 +92,12 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
-	if t == nil {
-		var err error
-		t, err = s.LoadFromDB(*root)
-		if err != nil {
-			return nil, err
-		}
+	t, err := s.trieDB.Get(*root)
+	if err != nil {
+		return nil, err
+	}
 
-		s.tries.softSet(*root, t)
-	} else if t.MustHash() != *root {
+	if t.MustHash() != *root {
 		panic("trie does not have expected root")
 	}
 
@@ -119,14 +110,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
-	err := t.Load(s.db, root)
-	if err != nil {
-		return nil, err
-	}
-
-	s.tries.softSet(t.MustHash(), t)
-	return t, nil
+	return s.trieDB.Get(root)
 }
 
 func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
@@ -138,17 +122,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
-	if t != nil {
-		return t, nil
-	}
-
-	tr, err := s.LoadFromDB(*root)
-	if err != nil {
-		return nil, fmt.Errorf("trie does not exist at root %s: %w", *root, err)
-	}
-
-	return tr, nil
+	return s.trieDB.Get(*root)
 }
 
 // ExistsStorage check if the key exists in the storage trie with the given storage hash
@@ -169,13 +143,7 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		root = &sr
 	}
 
-	t := s.tries.get(*root)
-	if t != nil {
-		val := t.Get(key)
-		return val, nil
-	}
-
-	return trie.GetFromDB(s.db, *root, key)
+	return s.trieDB.GetKey(*root, key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
@@ -281,5 +249,10 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
 func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	encodedProofNodes [][]byte, err error) {
-	return proof.Generate(stateRoot[:], keys, s.db)
+
+	trie, err := s.trieDB.Get(stateRoot)
+	if err != nil {
+		return nil, err
+	}
+	return proof.Generate(trie, keys)
 }

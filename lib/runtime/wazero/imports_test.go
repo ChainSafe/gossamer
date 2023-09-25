@@ -622,7 +622,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	root := hash.ToBytes()
 	otherRoot := otherHash.ToBytes()
 
-	allProofs, err := proof.Generate(root, keys, memdb)
+	allProofs, err := proof.Generate(tr, keys)
 	require.NoError(t, err)
 
 	testcases := map[string]struct {

@@ -114,8 +114,14 @@ func (s *Service) Start() (err error) {
 	tries := NewTries()
 	tries.SetEmptyTrie()
 
+	// initialise database table to use in trieDB
+	trieDBTable := database.NewTable(s.db, storagePrefix)
+
+	// initialise trieDB
+	trieDB := NewTrieDB(trieDBTable, tries)
+
 	// create block state
-	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
+	s.Block, err = NewBlockState(s.db, trieDB, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -130,7 +136,7 @@ func (s *Service) Start() (err error) {
 	logger.Debugf("start with latest state root: %s", stateRoot)
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, tries)
+	s.Storage, err = NewStorageState(s.db, s.Block, trieDB)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
@@ -270,9 +276,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		db: database.NewTable(s.db, blockPrefix),
 	}
 
-	storage := &StorageState{
-		db: database.NewTable(s.db, storagePrefix),
-	}
+	trieDBTable := database.NewTable(s.db, storagePrefix)
 
 	epoch, err := NewEpochState(s.db, block)
 	if err != nil {
@@ -309,7 +313,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	logger.Info("importing storage trie from base path " +
 		s.dbPath + " with root " + root.String() + "...")
 
-	if err := t.WriteDirty(storage.db); err != nil {
+	if err := t.WriteDirty(trieDBTable); err != nil {
 		return err
 	}
 

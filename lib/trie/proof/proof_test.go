@@ -42,7 +42,7 @@ func Test_Generate_Verify(t *testing.T) {
 
 	for i, key := range keys {
 		fullKeys := [][]byte{[]byte(key)}
-		proof, err := Generate(rootHash.ToBytes(), fullKeys, db)
+		proof, err := Generate(trie, fullKeys)
 		require.NoError(t, err)
 
 		expectedValue := fmt.Sprintf("%x-%d", key, i)

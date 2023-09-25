@@ -300,7 +300,8 @@ func TestService_PruneStorage(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		tr := serv.Storage.blockState.tries.get(v.hash)
+		tr, err := serv.Storage.blockState.trieDB.Get(v.hash)
+		require.NoError(t, err)
 		require.Nil(t, tr)
 	}
 }

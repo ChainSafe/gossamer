@@ -130,7 +130,11 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{}))
 	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
+	tries := newTriesEmpty()
+	trieDBTable := database.NewTable(db, "storage")
+	trieDB := NewTrieDB(trieDBTable, tries)
+
+	bs, err := NewBlockStateFromGenesis(db, trieDB, header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted
@@ -138,7 +142,7 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 	tr := trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
-	bs.tries.softSet(header.StateRoot, tr)
+	bs.trieDB.Put(tr)
 
 	return bs
 }

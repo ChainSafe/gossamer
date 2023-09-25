@@ -35,7 +35,10 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	db := NewInMemoryDB(t)
 	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
+	trieDBTable := database.NewTable(db, "storage")
+	trieDB := NewTrieDB(trieDBTable, tries)
+
+	bs, err := NewBlockStateFromGenesis(db, trieDB, header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted
@@ -43,7 +46,7 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	tr := trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
-	bs.tries.softSet(header.StateRoot, tr)
+	bs.trieDB.Put(tr)
 
 	return bs
 }
@@ -749,7 +752,11 @@ func TestRange(t *testing.T) {
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
+
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -779,7 +786,11 @@ func TestRange(t *testing.T) {
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
+
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -809,7 +820,11 @@ func TestRange(t *testing.T) {
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
+
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -840,7 +855,11 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
+
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 
 				mockedDb := NewMockBlockStateDatabase(ctrl)
 				// cannot assert the exact hash type since the block header
@@ -875,8 +894,11 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -907,8 +929,11 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -940,8 +965,11 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -973,8 +1001,11 @@ func TestRange(t *testing.T) {
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
+				tries := newTriesEmpty()
+				trieDBTable := database.NewTable(db, "storage")
+				trieDB := NewTrieDB(trieDBTable, tries)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -1072,7 +1103,11 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 		Digest:    types.NewDigest(),
 	}
 
-	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	tries := newTriesEmpty()
+	trieDBTable := database.NewTable(db, "storage")
+	trieDB := NewTrieDB(trieDBTable, tries)
+
+	blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())
@@ -1094,7 +1129,12 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 		Digest:    types.NewDigest(),
 	}
 	genesisHash := genesisHeader.Hash()
-	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+
+	tries := newTriesEmpty()
+	trieDBTable := database.NewTable(db, "storage")
+	trieDB := NewTrieDB(trieDBTable, tries)
+
+	blockState, err := NewBlockStateFromGenesis(db, trieDB, genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	runtimeInstance := NewMockInstance(nil)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -41,8 +42,10 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	_, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(&genesisTrie)
-	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
+	trieDBTable := database.NewTable(db, "storage")
+	trieDB := state.NewTrieDB(trieDBTable, tries)
+	trieDB.Put(&genesisTrie)
+	bs, err := state.NewBlockStateFromGenesis(db, trieDB, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
 	require.NoError(t, err)

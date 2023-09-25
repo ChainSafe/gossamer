@@ -150,7 +150,10 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			continue
 		}
 
-		bs.tries.delete(blockHeader.StateRoot)
+		if err := bs.trieDB.Delete(blockHeader.StateRoot); err != nil {
+			return fmt.Errorf("deleting trie state: %w", err)
+		}
+
 		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
 
@@ -190,9 +193,17 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 	if err != nil {
 		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
 	}
-	stateRootTrie := bs.tries.get(lastFinalisedHeader.StateRoot)
+
+	stateRootTrie, err := bs.trieDB.Get(lastFinalisedHeader.StateRoot)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve state root trie, hash: %s, err: %s", bs.lastFinalised, err)
+	}
+
 	if stateRootTrie != nil {
-		bs.tries.delete(lastFinalisedHeader.StateRoot)
+		err := bs.trieDB.Delete(lastFinalisedHeader.StateRoot)
+		if err != nil {
+			return fmt.Errorf("unable to delete state root trie, hash: %s, err: %s", bs.lastFinalised, err)
+		}
 	} else {
 		return fmt.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
 	}
@@ -254,7 +265,9 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 		// prune all the subchain hashes state tries from memory
 		// but keep the state trie from the current finalized block
 		if currentFinalizedHash != subchainHash {
-			bs.tries.delete(blockHeader.StateRoot)
+			if err = bs.trieDB.Delete(blockHeader.StateRoot); err != nil {
+				return err
+			}
 		}
 
 		logger.Tracef("cleaned out finalised block from memory; block number %d with hash %s",

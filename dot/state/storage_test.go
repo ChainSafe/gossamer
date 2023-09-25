@@ -25,7 +25,10 @@ func newTestStorageState(t *testing.T) *StorageState {
 	tries := newTriesEmpty()
 	bs := newTestBlockState(t, tries)
 
-	s, err := NewStorageState(db, bs, tries)
+	trieDBTable := database.NewTable(db, storagePrefix)
+	trieDB := NewTrieDB(trieDBTable, tries)
+
+	s, err := NewStorageState(db, bs, trieDB)
 	require.NoError(t, err)
 	return s
 }
@@ -98,7 +101,7 @@ func TestStorage_TrieState(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
-	storage.blockState.tries.delete(root)
+	storage.blockState.trieDB.Delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
@@ -131,19 +134,19 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.blockState.tries.delete(root)
+	storage.blockState.trieDB.Delete(root)
 
 	data, err := storage.GetStorage(&root, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
-	storage.blockState.tries.delete(root)
+	storage.blockState.trieDB.Delete(root)
 
 	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
-	storage.blockState.tries.delete(root)
+	storage.blockState.trieDB.Delete(root)
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
@@ -161,7 +164,6 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, storage.blockState.tries.len())
 }
 
 func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
@@ -194,11 +196,13 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	tries := newTriesEmpty()
+	trieDBTable := database.NewTable(db, "storage")
+	trieDB := NewTrieDB(trieDBTable, tries)
 
-	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
+	blockState, err := NewBlockStateFromGenesis(db, trieDB, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, blockState, tries)
+	storage, err := NewStorageState(db, blockState, trieDB)
 	require.NoError(t, err)
 
 	trieState := runtime.NewTrieState(&genTrie)
@@ -216,7 +220,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	storage.blockState.tries.delete(rootHash)
+	storage.blockState.trieDB.deleteCached(rootHash)
 
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
