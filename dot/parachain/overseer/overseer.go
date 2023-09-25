@@ -17,21 +17,23 @@ var (
 )
 
 type Overseer struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
-	errChan    chan error // channel for overseer to send errors to service that started it
-	subsystems map[Subsystem]*overseerContext
-	wg         sync.WaitGroup
+	ctx            context.Context
+	cancel         context.CancelFunc
+	errChan        chan error // channel for overseer to send errors to service that started it
+	FromSubsystems chan any
+	subsystems     map[Subsystem]*overseerContext
+	wg             sync.WaitGroup
 }
 
 func NewOverseer() *Overseer {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	return &Overseer{
-		ctx:        ctx,
-		cancel:     cancel,
-		errChan:    make(chan error),
-		subsystems: make(map[Subsystem]*overseerContext),
+		ctx:            ctx,
+		cancel:         cancel,
+		errChan:        make(chan error),
+		FromSubsystems: make(chan any),
+		subsystems:     make(map[Subsystem]*overseerContext),
 	}
 }
 
@@ -44,7 +46,7 @@ func NewOverseer() *Overseer {
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
 	o.subsystems[subsystem] = &overseerContext{
 		ctx:          o.ctx,
-		ToOverseer:   make(chan any),
+		ToOverseer:   o.FromSubsystems,
 		FromOverseer: make(chan any),
 	}
 }
@@ -63,8 +65,28 @@ func (o *Overseer) Start() error {
 		}(subsystem, cntxt)
 	}
 
+	go o.processMessages()
+
 	// TODO: add logic to start listening for Block Imported events and Finalisation events
 	return nil
+}
+
+func (o *Overseer) processMessages() {
+	for {
+		select {
+		case msg := <-o.FromSubsystems:
+			switch msg.(type) {
+			default:
+				logger.Error("unknown message type")
+			}
+		case <-o.ctx.Done():
+			if err := o.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
+			logger.Info("overseer stopping")
+			return
+		}
+	}
 }
 
 func (o *Overseer) Stop() error {
