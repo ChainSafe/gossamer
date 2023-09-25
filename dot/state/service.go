@@ -116,7 +116,6 @@ func (s *Service) Start() (err error) {
 
 	// initialise database table to use in trieDB
 	trieDBTable := database.NewTable(s.db, storagePrefix)
-
 	// initialise trieDB
 	trieDB := NewTrieDB(trieDBTable, tries)
 
@@ -136,7 +135,7 @@ func (s *Service) Start() (err error) {
 	logger.Debugf("start with latest state root: %s", stateRoot)
 
 	// create storage state
-	s.Storage, err = NewStorageState(s.db, s.Block, trieDB)
+	s.Storage, err = NewStorageState(s.Block, trieDB)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

@@ -28,7 +28,7 @@ func newTestStorageState(t *testing.T) *StorageState {
 	trieDBTable := database.NewTable(db, storagePrefix)
 	trieDB := NewTrieDB(trieDBTable, tries)
 
-	s, err := NewStorageState(db, bs, trieDB)
+	s, err := NewStorageState(bs, trieDB)
 	require.NoError(t, err)
 	return s
 }
@@ -202,7 +202,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	blockState, err := NewBlockStateFromGenesis(db, trieDB, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	storage, err := NewStorageState(db, blockState, trieDB)
+	storage, err := NewStorageState(blockState, trieDB)
 	require.NoError(t, err)
 
 	trieState := runtime.NewTrieState(&genTrie)

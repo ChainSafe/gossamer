@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -43,7 +42,7 @@ type StorageState struct {
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
-func NewStorageState(db database.Database, blockState *BlockState,
+func NewStorageState(blockState *BlockState,
 	trieDB *TrieDB) (*StorageState, error) {
 
 	return &StorageState{

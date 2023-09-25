@@ -76,7 +76,7 @@ func NewOfflinePruner(inputDBPath string,
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, trieDB)
+	storageState, err := NewStorageState(blockState, trieDB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
