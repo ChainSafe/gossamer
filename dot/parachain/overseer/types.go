@@ -9,12 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type overseerContext struct {
-	ctx          context.Context
-	ToOverseer   chan any // channel for subsystem to send messages to overseer
-	FromOverseer chan any // channel for subsystem to receive messages from overseer
-}
-
 // ActivatedLeaf is a parachain head which we care to work on.
 type ActivatedLeaf struct {
 	Hash   common.Hash
@@ -31,5 +25,5 @@ type ActiveLeavesUpdate struct {
 // Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
-	Run(ctx *overseerContext) error
+	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
 }

@@ -21,7 +21,7 @@ type Overseer struct {
 	cancel         context.CancelFunc
 	errChan        chan error // channel for overseer to send errors to service that started it
 	FromSubsystems chan any
-	subsystems     map[Subsystem]*overseerContext
+	subsystems     map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
 	wg             sync.WaitGroup
 }
 
@@ -33,36 +33,28 @@ func NewOverseer() *Overseer {
 		cancel:         cancel,
 		errChan:        make(chan error),
 		FromSubsystems: make(chan any),
-		subsystems:     make(map[Subsystem]*overseerContext),
+		subsystems:     make(map[Subsystem]chan any),
 	}
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,
-//
-// Add overseerContext to subsystem map, which includes: context, Sender implementation,
-// Receiver channel.  The overseerContext will be pass to subsystem's Run method
-// Subsystem will use that overseerContext to send messages to overseer, and to receive messages from overseer (
-// via receiver channel), and context to signal when overseer has canceled
+// Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
-	o.subsystems[subsystem] = &overseerContext{
-		ctx:          o.ctx,
-		ToOverseer:   o.FromSubsystems,
-		FromOverseer: make(chan any),
-	}
+	o.subsystems[subsystem] = make(chan any)
 }
 
 func (o *Overseer) Start() error {
 	// start subsystems
-	for subsystem, cntxt := range o.subsystems {
+	for subsystem, fromOverseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
-		go func(sub Subsystem, ctx *overseerContext) {
-			err := sub.Run(ctx)
+		go func(sub Subsystem, fromOverseer chan any) {
+			err := sub.Run(o.ctx, o.FromSubsystems, fromOverseer)
 			if err != nil {
 				logger.Errorf("running subsystem %v failed: %v", sub, err)
 			}
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
-		}(subsystem, cntxt)
+		}(subsystem, fromOverseerToSubSystem)
 	}
 
 	go o.processMessages()
@@ -105,7 +97,7 @@ func (o *Overseer) Stop() error {
 
 // sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
 func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdate, subsystem Subsystem) {
-	o.subsystems[subsystem].FromOverseer <- update
+	o.subsystems[subsystem] <- update
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {

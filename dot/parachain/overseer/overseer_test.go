@@ -4,6 +4,7 @@
 package overseer
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -16,24 +17,24 @@ type TestSubsystem struct {
 	name string
 }
 
-func (s *TestSubsystem) Run(ctx *overseerContext) error {
+func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
 	fmt.Printf("%s run\n", s.name)
 	counter := 0
 	for {
 		select {
-		case <-ctx.ctx.Done():
-			if err := ctx.ctx.Err(); err != nil {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
 				fmt.Printf("%s ctx error: %v\n", s.name, err)
 			}
 			fmt.Printf("%s overseer stopping\n", s.name)
 			return nil
-		case overseerSignal := <-ctx.FromOverseer:
+		case overseerSignal := <-OverseerToSubSystem:
 			fmt.Printf("%s received from overseer %v\n", s.name, overseerSignal)
 		default:
 			// simulate work, and sending messages to overseer
 			r := rand.Intn(1000)
 			time.Sleep(time.Duration(r) * time.Millisecond)
-			ctx.ToOverseer <- fmt.Sprintf("hello from %v, i: %d", s.name, counter)
+			SubSystemToOverseer <- fmt.Sprintf("hello from %v, i: %d", s.name, counter)
 			counter++
 		}
 	}
