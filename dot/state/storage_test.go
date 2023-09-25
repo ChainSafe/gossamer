@@ -22,11 +22,10 @@ import (
 func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 
-	tries := newTriesEmpty()
-	bs := newTestBlockState(t, tries)
+	bs := newTestBlockState(t)
 
 	trieDBTable := database.NewTable(db, storagePrefix)
-	trieDB := NewTrieDB(trieDBTable, tries)
+	trieDB := NewTrieDB(trieDBTable)
 
 	s, err := NewStorageState(bs, trieDB)
 	require.NoError(t, err)
@@ -195,9 +194,8 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = genTrie.SetChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
-	tries := newTriesEmpty()
 	trieDBTable := database.NewTable(db, "storage")
-	trieDB := NewTrieDB(trieDBTable, tries)
+	trieDB := NewTrieDB(trieDBTable)
 
 	blockState, err := NewBlockStateFromGenesis(db, trieDB, &genHeader, telemetryMock)
 	require.NoError(t, err)

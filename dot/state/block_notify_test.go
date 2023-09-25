@@ -16,7 +16,7 @@ import (
 var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 	ch := bs.GetImportedBlockNotifierChannel()
 
 	defer bs.FreeImportedBlockNotifierChannel(ch)
@@ -33,7 +33,7 @@ func TestImportChannel(t *testing.T) {
 }
 
 func TestFreeImportedBlockNotifierChannel(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 	ch := bs.GetImportedBlockNotifierChannel()
 	require.Equal(t, 1, len(bs.imported))
 
@@ -42,7 +42,7 @@ func TestFreeImportedBlockNotifierChannel(t *testing.T) {
 }
 
 func TestFinalizedChannel(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 
 	ch := bs.GetFinalisedNotifierChannel()
 
@@ -64,7 +64,7 @@ func TestFinalizedChannel(t *testing.T) {
 }
 
 func TestImportChannel_Multi(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 
 	num := 5
 	chs := make([]chan *types.Block, num)
@@ -96,7 +96,7 @@ func TestImportChannel_Multi(t *testing.T) {
 }
 
 func TestFinalizedChannel_Multi(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 
 	num := 5
 	chs := make([]chan *types.FinalisationInfo, num)
@@ -133,7 +133,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 }
 
 func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 	ch := make(chan<- runtime.Version)
 	chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
 	require.NoError(t, err)
@@ -144,7 +144,7 @@ func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 }
 
 func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 
 	go func() {
 		for i := 0; i < 100; i++ {

@@ -17,15 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTriesEmpty() *Tries {
-	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.Trie),
-		triesGauge:    triesGauge,
-		setCounter:    setCounter,
-		deleteCounter: deleteCounter,
-	}
-}
-
 // newGenerator creates a new PRNG seeded with the
 // unix nanoseconds value of the current time.
 func newGenerator() (prng *rand.Rand) {

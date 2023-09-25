@@ -37,14 +37,10 @@ func NewOfflinePruner(inputDBPath string,
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	tries := NewTries()
-	tries.SetEmptyTrie()
-
 	// initialise database table to use in trieDB
 	trieDBTable := database.NewTable(db, storagePrefix)
-
 	// initialise trieDB
-	trieDB := NewTrieDB(trieDBTable, tries)
+	trieDB := NewTrieDB(trieDBTable)
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry

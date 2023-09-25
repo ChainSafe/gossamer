@@ -8,15 +8,15 @@ import (
 
 type TrieDB struct {
 	db    database.Table
-	tries *Tries
+	tries *tries
 }
 
 // NewTrieDB creates a new TrieDB
 // db is expected to be a table of the database, see `database.NewTable` for more details
-func NewTrieDB(db database.Table, tries *Tries) *TrieDB {
+func NewTrieDB(db database.Table) *TrieDB {
 	return &TrieDB{
 		db:    db,
-		tries: tries,
+		tries: newTries(),
 	}
 }
 

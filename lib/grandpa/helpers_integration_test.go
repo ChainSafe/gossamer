@@ -143,9 +143,8 @@ func newTestState(t *testing.T) *state.Service {
 	})
 
 	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
-	tries := state.NewTries()
 	trieDBTable := database.NewTable(db, "storage")
-	trieDB := state.NewTrieDB(trieDBTable, tries)
+	trieDB := state.NewTrieDB(trieDBTable)
 	trieDB.Put(&genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, trieDB, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)

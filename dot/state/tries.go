@@ -32,7 +32,7 @@ var (
 
 // Tries is a thread safe map of root hash
 // to trie.
-type Tries struct {
+type tries struct {
 	rootToTrie    map[common.Hash]*trie.Trie
 	mapMutex      sync.RWMutex
 	triesGauge    prometheus.Gauge
@@ -40,10 +40,10 @@ type Tries struct {
 	deleteCounter prometheus.Counter
 }
 
-// NewTries creates a new thread safe map of root hash
+// newTries creates a new thread safe map of root hash
 // to trie.
-func NewTries() (tries *Tries) {
-	return &Tries{
+func newTries() *tries {
+	return &tries{
 		rootToTrie:    make(map[common.Hash]*trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
@@ -54,18 +54,18 @@ func NewTries() (tries *Tries) {
 // SetEmptyTrie sets the empty trie in the tries.
 // Note the empty trie is the same for the v0 and the v1
 // state trie versions.
-func (t *Tries) SetEmptyTrie() {
+func (t *tries) SetEmptyTrie() {
 	t.softSet(trie.EmptyHash, trie.NewEmptyTrie())
 }
 
 // SetTrie sets the trie at its root hash in the tries map.
-func (t *Tries) SetTrie(trie *trie.Trie) {
+func (t *tries) SetTrie(trie *trie.Trie) {
 	t.softSet(trie.MustHash(), trie)
 }
 
 // softSet sets the given trie at the given root hash
 // in the memory map only if it is not already set.
-func (t *Tries) softSet(root common.Hash, trie *trie.Trie) {
+func (t *tries) softSet(root common.Hash, trie *trie.Trie) {
 	t.mapMutex.Lock()
 	defer t.mapMutex.Unlock()
 
@@ -79,7 +79,7 @@ func (t *Tries) softSet(root common.Hash, trie *trie.Trie) {
 	t.rootToTrie[root] = trie
 }
 
-func (t *Tries) delete(root common.Hash) {
+func (t *tries) delete(root common.Hash) {
 	t.mapMutex.Lock()
 	defer t.mapMutex.Unlock()
 	delete(t.rootToTrie, root)
@@ -91,7 +91,7 @@ func (t *Tries) delete(root common.Hash) {
 
 // get retrieves the trie corresponding to the root hash given
 // from the in-memory thread safe map.
-func (t *Tries) get(root common.Hash) (tr *trie.Trie) {
+func (t *tries) get(root common.Hash) (tr *trie.Trie) {
 	t.mapMutex.RLock()
 	defer t.mapMutex.RUnlock()
 	return t.rootToTrie[root]
@@ -99,7 +99,7 @@ func (t *Tries) get(root common.Hash) (tr *trie.Trie) {
 
 // len returns the current numbers of tries
 // stored in the in-memory map.
-func (t *Tries) len() int {
+func (t *tries) len() int {
 	t.mapMutex.RLock()
 	defer t.mapMutex.RUnlock()
 	return len(t.rootToTrie)

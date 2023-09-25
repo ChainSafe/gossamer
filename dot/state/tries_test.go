@@ -16,9 +16,9 @@ import (
 func Test_NewTries(t *testing.T) {
 	t.Parallel()
 
-	rootToTrie := NewTries()
+	rootToTrie := newTries()
 
-	expectedTries := &Tries{
+	expectedTries := &tries{
 		rootToTrie:    map[common.Hash]*trie.Trie{},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
@@ -31,10 +31,10 @@ func Test_NewTries(t *testing.T) {
 func Test_Tries_SetEmptyTrie(t *testing.T) {
 	t.Parallel()
 
-	tries := NewTries()
-	tries.SetEmptyTrie()
+	trs := newTries()
+	trs.SetEmptyTrie()
 
-	expectedTries := &Tries{
+	expectedTries := &tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
 			trie.EmptyHash: trie.NewEmptyTrie(),
 		},
@@ -43,7 +43,7 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 		deleteCounter: deleteCounter,
 	}
 
-	assert.Equal(t, expectedTries, tries)
+	assert.Equal(t, expectedTries, trs)
 }
 
 func Test_Tries_SetTrie(t *testing.T) {
@@ -54,10 +54,10 @@ func Test_Tries_SetTrie(t *testing.T) {
 
 	tr := trie.NewTrie(&node.Node{PartialKey: []byte{1}}, dbGetter)
 
-	tries := NewTries()
-	tries.SetTrie(tr)
+	trs := newTries()
+	trs.SetTrie(tr)
 
-	expectedTries := &Tries{
+	expectedTries := &tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
 			tr.MustHash(): tr,
 		},
@@ -66,7 +66,7 @@ func Test_Tries_SetTrie(t *testing.T) {
 		deleteCounter: deleteCounter,
 	}
 
-	assert.Equal(t, expectedTries, tries)
+	assert.Equal(t, expectedTries, trs)
 }
 
 func Test_Tries_softSet(t *testing.T) {
@@ -116,7 +116,7 @@ func Test_Tries_softSet(t *testing.T) {
 				setCounter.EXPECT().Inc()
 			}
 
-			tries := &Tries{
+			tries := &tries{
 				rootToTrie: testCase.rootToTrie,
 				triesGauge: triesGauge,
 				setCounter: setCounter,
@@ -177,7 +177,7 @@ func Test_Tries_delete(t *testing.T) {
 				deleteCounter.EXPECT().Inc()
 			}
 
-			tries := &Tries{
+			tries := &tries{
 				rootToTrie:    testCase.rootToTrie,
 				triesGauge:    triesGauge,
 				deleteCounter: deleteCounter,
@@ -196,12 +196,12 @@ func Test_Tries_get(t *testing.T) {
 	dbGetter.EXPECT().Get(gomock.Any()).Times(0)
 
 	testCases := map[string]struct {
-		tries *Tries
+		tries *tries
 		root  common.Hash
 		trie  *trie.Trie
 	}{
 		"found_in_map": {
-			tries: &Tries{
+			tries: &tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: trie.NewTrie(&node.Node{
 						PartialKey:   []byte{1, 2, 3},
@@ -217,7 +217,7 @@ func Test_Tries_get(t *testing.T) {
 		},
 		"not_found_in_map": {
 			// similar to not found in database
-			tries: &Tries{
+			tries: &tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 			root: common.Hash{1, 2, 3},
@@ -240,16 +240,16 @@ func Test_Tries_len(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		tries  *Tries
+		tries  *tries
 		length int
 	}{
 		"empty_map": {
-			tries: &Tries{
+			tries: &tries{
 				rootToTrie: map[common.Hash]*trie.Trie{},
 			},
 		},
 		"non_empty_map": {
-			tries: &Tries{
+			tries: &tries{
 				rootToTrie: map[common.Hash]*trie.Trie{
 					{1, 2, 3}: {},
 				},

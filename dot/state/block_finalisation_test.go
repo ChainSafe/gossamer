@@ -14,7 +14,7 @@ import (
 )
 
 func TestHighestRoundAndSetID(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 	round, setID, err := bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
@@ -66,7 +66,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 }
 
 func TestBlockState_SetFinalisedHash(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 	h, err := bs.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
@@ -108,7 +108,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 }
 
 func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestBlockState(t)
 	firstSlot := uint64(42069)
 
 	digest := types.NewDigest()

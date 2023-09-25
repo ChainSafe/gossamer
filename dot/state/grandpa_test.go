@@ -130,9 +130,8 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{}))
 	header := testGenesisHeader
 
-	tries := newTriesEmpty()
 	trieDBTable := database.NewTable(db, "storage")
-	trieDB := NewTrieDB(trieDBTable, tries)
+	trieDB := NewTrieDB(trieDBTable)
 
 	bs, err := NewBlockStateFromGenesis(db, trieDB, header, telemetryMock)
 	require.NoError(t, err)

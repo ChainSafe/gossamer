@@ -62,14 +62,15 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	tries := NewTries()
-	tries.SetTrie(t)
-
 	// initialise database table to use in trieDB
 	trieDBTable := database.NewTable(s.db, storagePrefix)
 
 	// initialise trieDB
-	trieDB := NewTrieDB(trieDBTable, tries)
+	trieDB := NewTrieDB(trieDBTable)
+	err = trieDB.Put(t)
+	if err != nil {
+		return fmt.Errorf("failed to add trie into triedb: %s", err)
+	}
 
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, trieDB, header, s.Telemetry)

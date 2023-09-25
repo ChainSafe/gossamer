@@ -27,8 +27,6 @@ func TestConcurrencySetHeader(t *testing.T) {
 		dbs[i] = NewInMemoryDB(t)
 	}
 
-	tries := newTriesEmpty()
-
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
 	for i := 0; i < threads; i++ {
@@ -37,7 +35,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 
 			db := dbs[index]
 			trieDBTable := database.NewTable(db, "storage")
-			trieDB := NewTrieDB(trieDBTable, tries)
+			trieDB := NewTrieDB(trieDBTable)
 			bs, err := NewBlockStateFromGenesis(db, trieDB, testGenesisHeader, telemetryMock)
 			require.NoError(t, err)
 

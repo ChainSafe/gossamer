@@ -111,13 +111,10 @@ func (s *Service) Start() (err error) {
 		return nil
 	}
 
-	tries := NewTries()
-	tries.SetEmptyTrie()
-
 	// initialise database table to use in trieDB
 	trieDBTable := database.NewTable(s.db, storagePrefix)
 	// initialise trieDB
-	trieDB := NewTrieDB(trieDBTable, tries)
+	trieDB := NewTrieDB(trieDBTable)
 
 	// create block state
 	s.Block, err = NewBlockState(s.db, trieDB, s.Telemetry)
