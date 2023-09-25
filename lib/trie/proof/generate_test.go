@@ -13,256 +13,189 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// func Test_Generate(t *testing.T) {
-// 	t.Parallel()
+func Test_Generate(t *testing.T) {
+	t.Parallel()
 
-// 	errTest := errors.New("test error")
+	someHash := make([]byte, 32)
+	for i := range someHash {
+		someHash[i] = byte(i)
+	}
 
-// 	someHash := make([]byte, 32)
-// 	for i := range someHash {
-// 		someHash[i] = byte(i)
-// 	}
+	largeValue := generateBytes(t, 50)
+	assertLongEncoding(t, node.Node{StorageValue: largeValue})
 
-// 	largeValue := generateBytes(t, 50)
-// 	assertLongEncoding(t, node.Node{StorageValue: largeValue})
+	testCases := map[string]struct {
+		rootHash          []byte
+		fullKeysNibbles   [][]byte
+		trie              *trie.Trie
+		encodedProofNodes [][]byte
+		errWrapped        error
+		errMessage        string
+	}{
+		"walk_error": {
+			rootHash:        someHash,
+			fullKeysNibbles: [][]byte{{1}},
+			trie: trie.NewTrie(&node.Node{
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
+			}, nil),
+			errWrapped: ErrKeyNotFound,
+			errMessage: "walking to node at key 0x01: key not found",
+		},
+		"leaf_root": {
+			rootHash:        someHash,
+			fullKeysNibbles: [][]byte{{}},
+			trie: trie.NewTrie(&node.Node{
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
+			}, nil),
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
+				}),
+			},
+		},
+		"branch_root": {
+			rootHash:        someHash,
+			fullKeysNibbles: [][]byte{{}},
+			trie: trie.NewTrie(&node.Node{
+				PartialKey:   []byte{1},
+				StorageValue: []byte{2},
+				Children: padRightChildren([]*node.Node{
+					nil, nil,
+					{
+						PartialKey:   []byte{3},
+						StorageValue: []byte{4},
+					},
+				}),
+			}, nil),
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{1},
+					StorageValue: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil,
+						{
+							PartialKey:   []byte{3},
+							StorageValue: []byte{4},
+						},
+					}),
+				}),
+			},
+		},
+		"target_leaf_of_branch": {
+			rootHash: someHash,
+			fullKeysNibbles: [][]byte{
+				{1, 2, 3, 4},
+			},
+			trie: trie.NewTrie(&node.Node{
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{2},
+				Children: padRightChildren([]*node.Node{
+					nil, nil, nil,
+					{ // full key 1, 2, 3, 4
+						PartialKey:   []byte{4},
+						StorageValue: largeValue,
+					},
+				}),
+			}, nil),
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil, nil,
+						{
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
+						},
+					}),
+				}),
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{4},
+					StorageValue: largeValue,
+				}),
+			},
+		},
+		"deduplicate_proof_nodes": {
+			rootHash: someHash,
+			fullKeysNibbles: [][]byte{
+				{1, 2, 3, 4},
+				{1, 2, 4, 4},
+				{1, 2, 5, 5},
+			},
+			trie: trie.NewTrie(&node.Node{
+				PartialKey:   []byte{1, 2},
+				StorageValue: []byte{2},
+				Children: padRightChildren([]*node.Node{
+					nil, nil, nil,
+					{ // full key 1, 2, 3, 4
+						PartialKey:   []byte{4},
+						StorageValue: largeValue,
+					},
+					{ // full key 1, 2, 4, 4
+						PartialKey:   []byte{4},
+						StorageValue: largeValue,
+					},
+					{ // full key 1, 2, 5, 5
+						PartialKey:   []byte{5},
+						StorageValue: largeValue,
+					},
+				}),
+			}, nil),
+			encodedProofNodes: [][]byte{
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{1, 2},
+					StorageValue: []byte{2},
+					Children: padRightChildren([]*node.Node{
+						nil, nil, nil,
+						{ // full key 1, 2, 3, 4
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
+						},
+						{ // full key 1, 2, 4, 4
+							PartialKey:   []byte{4},
+							StorageValue: largeValue,
+						},
+						{ // full key 1, 2, 5, 5
+							PartialKey:   []byte{5},
+							StorageValue: largeValue,
+						},
+					}),
+				}),
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{4},
+					StorageValue: largeValue,
+				}),
+				encodeNode(t, node.Node{
+					PartialKey:   []byte{5},
+					StorageValue: largeValue,
+				}),
+			},
+		},
+	}
 
-// 	testCases := map[string]struct {
-// 		rootHash          []byte
-// 		fullKeysNibbles   [][]byte
-// 		databaseBuilder   func(ctrl *gomock.Controller) Database
-// 		encodedProofNodes [][]byte
-// 		errWrapped        error
-// 		errMessage        string
-// 	}{
-// 		"failed_loading_trie": {
-// 			rootHash: someHash,
-// 			databaseBuilder: func(ctrl *gomock.Controller) Database {
-// 				mockDatabase := NewMockDatabase(ctrl)
-// 				mockDatabase.EXPECT().Get(someHash).
-// 					Return(nil, errTest)
-// 				return mockDatabase
-// 			},
-// 			errWrapped: errTest,
-// 			errMessage: "loading trie: " +
-// 				"failed to find root key " +
-// 				"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f: " +
-// 				"test error",
-// 		},
-// 		"walk_error": {
-// 			rootHash:        someHash,
-// 			fullKeysNibbles: [][]byte{{1}},
-// 			databaseBuilder: func(ctrl *gomock.Controller) Database {
-// 				mockDatabase := NewMockDatabase(ctrl)
-// 				encodedRoot := encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1},
-// 					StorageValue: []byte{2},
-// 				})
-// 				mockDatabase.EXPECT().Get(someHash).
-// 					Return(encodedRoot, nil)
-// 				return mockDatabase
-// 			},
-// 			errWrapped: ErrKeyNotFound,
-// 			errMessage: "walking to node at key 0x01: key not found",
-// 		},
-// 		"leaf_root": {
-// 			rootHash:        someHash,
-// 			fullKeysNibbles: [][]byte{{}},
-// 			databaseBuilder: func(ctrl *gomock.Controller) Database {
-// 				mockDatabase := NewMockDatabase(ctrl)
-// 				encodedRoot := encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1},
-// 					StorageValue: []byte{2},
-// 				})
-// 				mockDatabase.EXPECT().Get(someHash).
-// 					Return(encodedRoot, nil)
-// 				return mockDatabase
-// 			},
-// 			encodedProofNodes: [][]byte{
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1},
-// 					StorageValue: []byte{2},
-// 				}),
-// 			},
-// 		},
-// 		"branch_root": {
-// 			rootHash:        someHash,
-// 			fullKeysNibbles: [][]byte{{}},
-// 			databaseBuilder: func(ctrl *gomock.Controller) Database {
-// 				mockDatabase := NewMockDatabase(ctrl)
-// 				encodedRoot := encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1},
-// 					StorageValue: []byte{2},
-// 					Children: padRightChildren([]*node.Node{
-// 						nil, nil,
-// 						{
-// 							PartialKey:   []byte{3},
-// 							StorageValue: []byte{4},
-// 						},
-// 					}),
-// 				})
-// 				mockDatabase.EXPECT().Get(someHash).
-// 					Return(encodedRoot, nil)
-// 				return mockDatabase
-// 			},
-// 			encodedProofNodes: [][]byte{
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1},
-// 					StorageValue: []byte{2},
-// 					Children: padRightChildren([]*node.Node{
-// 						nil, nil,
-// 						{
-// 							PartialKey:   []byte{3},
-// 							StorageValue: []byte{4},
-// 						},
-// 					}),
-// 				}),
-// 			},
-// 		},
-// 		"target_leaf_of_branch": {
-// 			rootHash: someHash,
-// 			fullKeysNibbles: [][]byte{
-// 				{1, 2, 3, 4},
-// 			},
-// 			databaseBuilder: func(ctrl *gomock.Controller) Database {
-// 				mockDatabase := NewMockDatabase(ctrl)
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-// 				rootNode := node.Node{
-// 					PartialKey:   []byte{1, 2},
-// 					StorageValue: []byte{2},
-// 					Children: padRightChildren([]*node.Node{
-// 						nil, nil, nil,
-// 						{ // full key 1, 2, 3, 4
-// 							PartialKey:   []byte{4},
-// 							StorageValue: largeValue,
-// 						},
-// 					}),
-// 				}
+			fullKeysLE := make([][]byte, len(testCase.fullKeysNibbles))
+			for i, fullKeyNibbles := range testCase.fullKeysNibbles {
+				fullKeysLE[i] = codec.NibblesToKeyLE(fullKeyNibbles)
+			}
 
-// 				mockDatabase.EXPECT().Get(someHash).
-// 					Return(encodeNode(t, rootNode), nil)
+			encodedProofNodes, err := Generate(testCase.trie, fullKeysLE)
 
-// 				encodedChild := encodeNode(t, *rootNode.Children[3])
-// 				mockDatabase.EXPECT().Get(blake2b(t, encodedChild)).
-// 					Return(encodedChild, nil)
-
-// 				return mockDatabase
-// 			},
-// 			encodedProofNodes: [][]byte{
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1, 2},
-// 					StorageValue: []byte{2},
-// 					Children: padRightChildren([]*node.Node{
-// 						nil, nil, nil,
-// 						{
-// 							PartialKey:   []byte{4},
-// 							StorageValue: largeValue,
-// 						},
-// 					}),
-// 				}),
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{4},
-// 					StorageValue: largeValue,
-// 				}),
-// 			},
-// 		},
-// 		"deduplicate_proof_nodes": {
-// 			rootHash: someHash,
-// 			fullKeysNibbles: [][]byte{
-// 				{1, 2, 3, 4},
-// 				{1, 2, 4, 4},
-// 				{1, 2, 5, 5},
-// 			},
-// 			databaseBuilder: func(ctrl *gomock.Controller) Database {
-// 				mockDatabase := NewMockDatabase(ctrl)
-
-// 				rootNode := node.Node{
-// 					PartialKey:   []byte{1, 2},
-// 					StorageValue: []byte{2},
-// 					Children: padRightChildren([]*node.Node{
-// 						nil, nil, nil,
-// 						{ // full key 1, 2, 3, 4
-// 							PartialKey:   []byte{4},
-// 							StorageValue: largeValue,
-// 						},
-// 						{ // full key 1, 2, 4, 4
-// 							PartialKey:   []byte{4},
-// 							StorageValue: largeValue,
-// 						},
-// 						{ // full key 1, 2, 5, 5
-// 							PartialKey:   []byte{5},
-// 							StorageValue: largeValue,
-// 						},
-// 					}),
-// 				}
-
-// 				mockDatabase.EXPECT().Get(someHash).
-// 					Return(encodeNode(t, rootNode), nil)
-
-// 				encodedLargeChild1 := encodeNode(t, *rootNode.Children[3])
-// 				mockDatabase.EXPECT().Get(blake2b(t, encodedLargeChild1)).
-// 					Return(encodedLargeChild1, nil).Times(2)
-
-// 				encodedLargeChild2 := encodeNode(t, *rootNode.Children[5])
-// 				mockDatabase.EXPECT().Get(blake2b(t, encodedLargeChild2)).
-// 					Return(encodedLargeChild2, nil)
-
-// 				return mockDatabase
-// 			},
-// 			encodedProofNodes: [][]byte{
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{1, 2},
-// 					StorageValue: []byte{2},
-// 					Children: padRightChildren([]*node.Node{
-// 						nil, nil, nil,
-// 						{ // full key 1, 2, 3, 4
-// 							PartialKey:   []byte{4},
-// 							StorageValue: largeValue,
-// 						},
-// 						{ // full key 1, 2, 4, 4
-// 							PartialKey:   []byte{4},
-// 							StorageValue: largeValue,
-// 						},
-// 						{ // full key 1, 2, 5, 5
-// 							PartialKey:   []byte{5},
-// 							StorageValue: largeValue,
-// 						},
-// 					}),
-// 				}),
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{4},
-// 					StorageValue: largeValue,
-// 				}),
-// 				encodeNode(t, node.Node{
-// 					PartialKey:   []byte{5},
-// 					StorageValue: largeValue,
-// 				}),
-// 			},
-// 		},
-// 	}
-
-// 	for name, testCase := range testCases {
-// 		testCase := testCase
-// 		t.Run(name, func(t *testing.T) {
-// 			t.Parallel()
-// 			ctrl := gomock.NewController(t)
-
-// 			database := testCase.databaseBuilder(ctrl)
-// 			fullKeysLE := make([][]byte, len(testCase.fullKeysNibbles))
-// 			for i, fullKeyNibbles := range testCase.fullKeysNibbles {
-// 				fullKeysLE[i] = codec.NibblesToKeyLE(fullKeyNibbles)
-// 			}
-
-// 			encodedProofNodes, err := Generate(testCase.rootHash,
-// 				fullKeysLE, database)
-
-// 			assert.ErrorIs(t, err, testCase.errWrapped)
-// 			if testCase.errWrapped != nil {
-// 				assert.EqualError(t, err, testCase.errMessage)
-// 			}
-// 			assert.Equal(t, testCase.encodedProofNodes, encodedProofNodes)
-// 		})
-// 	}
-// }
+			assert.ErrorIs(t, err, testCase.errWrapped)
+			if testCase.errWrapped != nil {
+				assert.EqualError(t, err, testCase.errMessage)
+			}
+			assert.Equal(t, testCase.encodedProofNodes, encodedProofNodes)
+		})
+	}
+}
 
 func Test_walkRoot(t *testing.T) {
 	t.Parallel()
