@@ -17,23 +17,23 @@ var (
 )
 
 type Overseer struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	errChan        chan error // channel for overseer to send errors to service that started it
-	FromSubsystems chan any
-	subsystems     map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
-	wg             sync.WaitGroup
+	ctx                  context.Context
+	cancel               context.CancelFunc
+	errChan              chan error // channel for overseer to send errors to service that started it
+	SubsystemsToOverseer chan any
+	subsystems           map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
+	wg                   sync.WaitGroup
 }
 
 func NewOverseer() *Overseer {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	return &Overseer{
-		ctx:            ctx,
-		cancel:         cancel,
-		errChan:        make(chan error),
-		FromSubsystems: make(chan any),
-		subsystems:     make(map[Subsystem]chan any),
+		ctx:                  ctx,
+		cancel:               cancel,
+		errChan:              make(chan error),
+		SubsystemsToOverseer: make(chan any),
+		subsystems:           make(map[Subsystem]chan any),
 	}
 }
 
@@ -45,16 +45,16 @@ func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
 
 func (o *Overseer) Start() error {
 	// start subsystems
-	for subsystem, fromOverseerToSubSystem := range o.subsystems {
+	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
-		go func(sub Subsystem, fromOverseer chan any) {
-			err := sub.Run(o.ctx, o.FromSubsystems, fromOverseer)
+		go func(sub Subsystem, overseerToSubSystem chan any) {
+			err := sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
 			if err != nil {
 				logger.Errorf("running subsystem %v failed: %v", sub, err)
 			}
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
-		}(subsystem, fromOverseerToSubSystem)
+		}(subsystem, overseerToSubSystem)
 	}
 
 	go o.processMessages()
@@ -66,7 +66,7 @@ func (o *Overseer) Start() error {
 func (o *Overseer) processMessages() {
 	for {
 		select {
-		case msg := <-o.FromSubsystems:
+		case msg := <-o.SubsystemsToOverseer:
 			switch msg.(type) {
 			default:
 				logger.Error("unknown message type")
