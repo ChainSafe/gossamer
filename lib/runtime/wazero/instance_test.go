@@ -415,24 +415,23 @@ func TestInstance_BabeConfiguration_WestendRuntime_NoAuthorities(t *testing.T) {
 func extractZippedState(t *testing.T, zippedFile, destPath string) {
 	r, err := zip.OpenReader(zippedFile)
 	require.NoError(t, err)
-	defer r.Close()
+	require.Equal(t, len(r.File), 1)
 
-	for _, f := range r.File {
-		outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		require.NoError(t, err)
+	f := r.File[0]
+	outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+	require.NoError(t, err)
 
-		defer outFile.Close()
+	rc, err := f.Open()
+	require.NoError(t, err)
 
-		rc, err := f.Open()
-		require.NoError(t, err)
-		defer rc.Close()
+	_, err = io.CopyN(outFile, rc, rc)
+	require.NoError(t, err)
 
-		_, err = io.Copy(outFile, rc)
-		require.NoError(t, err)
-
-		// File extracted, no need to loop further
-		return
-	}
+	t.Cleanup(func() {
+		require.NoError(t, outFile.Close())
+		require.NoError(t, rc.Close())
+		require.NoError(t, r.Close())
+	})
 }
 
 func TestInstance_ExecuteBlock_WestendRuntime_WestendBlock8077850(t *testing.T) {
@@ -481,7 +480,7 @@ func TestInstance_ExecuteBlock_WestendRuntime_WestendBlock8077850(t *testing.T) 
 		"0x41b93a99fee24501ddeb1cc2dcfbec938c99a3d94531c7e16b4f4e102a9df38a",
 	}
 
-	bodyExtrinsicHashes := []string{}
+	var bodyExtrinsicHashes []string
 	for _, ext := range exts {
 		bodyExtrinsicHashes = append(bodyExtrinsicHashes, ext.Hash().String())
 	}
