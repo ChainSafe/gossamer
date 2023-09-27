@@ -5,7 +5,6 @@ package wazero_runtime
 
 import (
 	_ "embed"
-	"fmt"
 
 	"archive/zip"
 	"bytes"
@@ -461,8 +460,6 @@ func TestInstance_ExecuteBlock_WestendRuntime_WestendBlock8077850(t *testing.T) 
 
 	err = yaml.NewDecoder(bytes.NewReader(block8077850)).Decode(&block8077850Data)
 	require.NoError(t, err)
-
-	fmt.Println(block8077850Data.BlockData)
 
 	entireBlockData := common.MustHexToBytes(block8077850Data.BlockData)
 
