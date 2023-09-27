@@ -100,16 +100,18 @@ func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdate, subsystem S
 	o.subsystems[subsystem] <- update
 }
 
-func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) (timeouted bool) {
 	c := make(chan struct{})
 	go func() {
 		defer close(c)
 		wg.Wait()
 	}()
-        timeoutTimer := time.NewTimer(timeout)
+	timeoutTimer := time.NewTimer(timeout)
 	select {
 	case <-c:
-	        if !timeoutTimer.Stop() { <-timeoutTimer.C }
+		if !timeoutTimer.Stop() {
+			<-timeoutTimer.C
+		}
 		return false // completed normally
 	case <-timeoutTimer.C:
 		return true // timed out
