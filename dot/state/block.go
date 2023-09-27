@@ -27,6 +27,8 @@ import (
 
 const (
 	blockPrefix = "block"
+	// should create a check point every 1m blocks
+	checkpointFrequency = 1_000_000
 )
 
 var (
@@ -69,6 +71,8 @@ type BlockState struct {
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
+	nextCheckpoint uint
+
 	telemetry Telemetry
 }
 
@@ -99,6 +103,8 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 
 	bs.genesisHash = genesisHash
 	bs.lastFinalised = header.Hash()
+	bs.nextCheckpoint = header.Number + checkpointFrequency
+
 	bs.bt = blocktree.NewBlockTreeFromRoot(header)
 	return bs, nil
 }
@@ -139,6 +145,7 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 
 	bs.genesisHash = header.Hash()
 	bs.lastFinalised = header.Hash()
+	bs.nextCheckpoint = header.Number + checkpointFrequency
 
 	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
@@ -936,4 +943,19 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 // GetNonFinalisedBlocks get all the blocks in the blocktree
 func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
+}
+
+func (bs *BlockState) Checkpoint(header *types.Header) {
+	if header.Number < bs.nextCheckpoint {
+		return
+	}
+
+	logger.Infof("creating a checkpoint, latest finalized block %s (#%d)",
+		header.Hash(), header.Number)
+
+	bs.nextCheckpoint += checkpointFrequency
+	err := bs.baseState.db.Checkpoint()
+	if err != nil {
+		logger.Errorf("%s", err)
+	}
 }

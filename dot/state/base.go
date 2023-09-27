@@ -8,17 +8,18 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
 // BaseState is a wrapper for a database, without any prefixes
 type BaseState struct {
-	db GetPutDeleter
+	db database.Database
 }
 
 // NewBaseState returns a new BaseState
-func NewBaseState(db GetPutDeleter) *BaseState {
+func NewBaseState(db database.Database) *BaseState {
 	return &BaseState{
 		db: db,
 	}

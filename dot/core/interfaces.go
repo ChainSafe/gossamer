@@ -35,6 +35,7 @@ type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
+	Checkpoint(*types.Header)
 }
 
 // StorageState interface for storage state methods

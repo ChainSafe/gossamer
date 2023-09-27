@@ -52,6 +52,8 @@ type Database interface {
 	NewBatch() Batch
 	NewIterator() Iterator
 	NewPrefixIterator(prefix []byte) Iterator
+
+	Checkpoint() error
 }
 
 type Table interface {
