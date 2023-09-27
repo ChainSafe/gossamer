@@ -106,10 +106,12 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 		defer close(c)
 		wg.Wait()
 	}()
+        timeoutTimer := time.NewTimer(timeout)
 	select {
 	case <-c:
+	        if !timeoutTimer.Stop() { <-timeoutTimer.C }
 		return false // completed normally
-	case <-time.After(timeout):
+	case <-timeoutTimer.C:
 		return true // timed out
 	}
 }
