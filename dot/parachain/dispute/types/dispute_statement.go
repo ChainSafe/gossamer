@@ -106,6 +106,36 @@ func NewCustomCompactStatement(kind CompactStatementKind, candidateHash parachai
 	return vdt, nil
 }
 
+func NewCompactStatementFromAttestation(
+	attestation inherents.ValidityAttestation,
+	candidateHash common.Hash,
+) (CompactStatement, error) {
+	compactStatementVDT, err := NewCompactStatement()
+	if err != nil {
+		return CompactStatement{}, fmt.Errorf("create new compact statement: %w", err)
+	}
+
+	attestationVDT := scale.VaryingDataType(attestation)
+	val, err := attestationVDT.Value()
+	if err != nil {
+		return CompactStatement{}, fmt.Errorf("get attestation value: %w", err)
+	}
+
+	switch val.(type) {
+	case inherents.Implicit:
+		err = compactStatementVDT.Set(ValidCompactStatement{
+			CandidateHash: candidateHash,
+		})
+	case inherents.Explicit:
+		err = compactStatementVDT.Set(SecondedCompactStatement{
+			CandidateHash: candidateHash,
+		})
+	default:
+		return CompactStatement{}, fmt.Errorf("invalid compact statement kind")
+	}
+	return compactStatementVDT, nil
+}
+
 // ExplicitDisputeStatement An explicit statement on a candidate issued as part of a dispute.
 type ExplicitDisputeStatement struct {
 	Valid         bool
@@ -138,6 +168,21 @@ type SignedDisputeStatement struct {
 	ValidatorPublic    parachainTypes.ValidatorID
 	ValidatorSignature parachain.ValidatorSignature
 	SessionIndex       parachainTypes.SessionIndex
+}
+
+func NewSignedDisputeStatement(disputeStatement inherents.DisputeStatement,
+	candidateHash common.Hash,
+	sessionIndex parachainTypes.SessionIndex,
+	validatorPublic parachainTypes.ValidatorID,
+	validatorSignature parachain.ValidatorSignature,
+) SignedDisputeStatement {
+	return SignedDisputeStatement{
+		DisputeStatement:   disputeStatement,
+		CandidateHash:      candidateHash,
+		ValidatorPublic:    validatorPublic,
+		ValidatorSignature: validatorSignature,
+		SessionIndex:       sessionIndex,
+	}
 }
 
 func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatement,

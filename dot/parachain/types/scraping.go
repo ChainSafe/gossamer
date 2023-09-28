@@ -2,7 +2,6 @@ package parachaintypes
 
 import (
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // BackingValidators backing validators for a candidate
@@ -13,14 +12,14 @@ type BackingValidators struct {
 
 // BackingValidatorsPerCandidate Set of backing validators for each candidate, represented by its candidate receipt.
 type BackingValidatorsPerCandidate struct {
-	CandidateReceipt  common.Hash
+	CandidateReceipt  CandidateReceipt
 	BackingValidators []BackingValidators
 }
 
 // ScrapedOnChainVotes scraped runtime backing votes and resolved disputes
 type ScrapedOnChainVotes struct {
 	Session           SessionIndex
-	BackingValidators BackingValidatorsPerCandidate
+	BackingValidators []BackingValidatorsPerCandidate
 	Disputes          inherents.MultiDisputeStatementSet
 }
 
