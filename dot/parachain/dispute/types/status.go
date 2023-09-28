@@ -217,6 +217,22 @@ func (ds *DisputeStatus) IsConcludedAgainst() (bool, error) {
 	return false, nil
 }
 
+// IsPossiblyInvalid returns true if the dispute is possibly invalid.
+func (ds *DisputeStatus) IsPossiblyInvalid() (bool, error) {
+	vdt := scale.VaryingDataType(*ds)
+	val, err := vdt.Value()
+	if err != nil {
+		return false, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+	}
+
+	switch val.(type) {
+	case ActiveStatus, ConfirmedStatus, ConcludedAgainstStatus:
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
 // NewDisputeStatus returns a new DisputeStatus.
 func NewDisputeStatus() (DisputeStatus, error) {
 	vdt, err := scale.NewVaryingDataType(ActiveStatus{},

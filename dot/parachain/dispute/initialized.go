@@ -14,6 +14,13 @@ import (
 	"time"
 )
 
+type ImportStatementResult uint
+
+const (
+	InvalidImport ImportStatementResult = iota
+	ValidImport
+)
+
 const ChainImportMaxBatchSize = 6
 
 type Initialized struct {
@@ -349,13 +356,13 @@ func (i *Initialized) ProcessOnChainVotes(
 
 			// Importantly, handling import statements for backing votes also
 			// clears spam slots for any newly backed candidates
-			if err := i.HandleImportStatements(context,
+			if outcome := i.HandleImportStatements(context,
 				backend,
 				backingValidators.CandidateReceipt,
 				votes.Session,
 				statements,
 				now,
-			); err != nil {
+			); outcome == InvalidImport {
 				logger.Errorf("attempted import of on-chain backing votes failed. session: %v, relayParent: %v",
 					votes.Session,
 					backingValidators.CandidateReceipt.Descriptor.RelayParent,
@@ -417,13 +424,13 @@ func (i *Initialized) ProcessOnChainVotes(
 				continue
 			}
 
-			if err := i.HandleImportStatements(context,
+			if outcome := i.HandleImportStatements(context,
 				backend,
 				backingValidators.CandidateReceipt,
 				votes.Session,
 				filteredStatements,
 				now,
-			); err != nil {
+			); outcome == InvalidImport {
 				logger.Errorf("attempted import of on-chain dispute votes failed. "+
 					"session: %v, candidateHash: %v",
 					votes.Session,
@@ -447,20 +454,107 @@ func (i *Initialized) HandleIncoming(
 	backend OverlayBackend,
 	message types.DisputeCoordinatorMessage,
 	now uint64,
-) error {
+) (func() error, error) {
 	switch {
 	case message.ImportStatements != nil:
-		logger.Tracef("in HandleIncoming::ImportStatements")
+		logger.Tracef("HandleIncoming::ImportStatements")
+		outcome := i.HandleImportStatements(context,
+			backend,
+			message.ImportStatements.CandidateReceipt,
+			message.ImportStatements.Session,
+			message.ImportStatements.Statements,
+			now,
+		)
+
+		report := func() error {
+			if message.ImportStatements.PendingConfirmation != nil {
+				if err := message.ImportStatements.PendingConfirmation.SendMessage(outcome); err != nil {
+					return fmt.Errorf("confirm import statements: %w", err)
+				}
+			}
+
+			return nil
+		}
+
+		if outcome == InvalidImport {
+			return nil, report()
+		}
+
+		return report, nil
 	case message.RecentDisputes != nil:
+		logger.Tracef("HandleIncoming::RecentDisputes")
+		recentDisputes, err := backend.GetRecentDisputes()
+		if err != nil {
+			return nil, fmt.Errorf("get recent disputes: %w", err)
+		}
+
+		if err := message.RecentDisputes.Sender.SendMessage(recentDisputes); err != nil {
+			return nil, fmt.Errorf("send recent disputes: %w", err)
+		}
 	case message.ActiveDisputes != nil:
+		logger.Tracef("HandleIncoming::ActiveDisputes")
+		activeDisputes, err := backend.GetActiveDisputes(now)
+		if err != nil {
+			return nil, fmt.Errorf("get active disputes: %w", err)
+		}
+
+		if err := message.ActiveDisputes.Sender.SendMessage(activeDisputes); err != nil {
+			return nil, fmt.Errorf("send active disputes: %w", err)
+		}
 	case message.QueryCandidateVotes != nil:
+		logger.Tracef("HandleIncoming::QueryCandidateVotes")
+
+		var queryOutput []types.QueryCandidateVotesResponse
+		for _, query := range message.QueryCandidateVotes.Queries {
+			candidateVotes, err := backend.GetCandidateVotes(query.Session, query.CandidateHash)
+			if err != nil {
+				logger.Debugf("no candidate votes found for query. session: %v, candidateHash: %v",
+					query.Session,
+					query.CandidateHash,
+				)
+				return nil, fmt.Errorf("get candidate votes: %w", err)
+			}
+
+			queryOutput = append(queryOutput, types.QueryCandidateVotesResponse{
+				Session:       query.Session,
+				CandidateHash: query.CandidateHash,
+				Votes:         *candidateVotes,
+			})
+		}
+
+		if err := message.QueryCandidateVotes.Sender.SendMessage(queryOutput); err != nil {
+			return nil, fmt.Errorf("send candidate votes: %w", err)
+		}
 	case message.IssueLocalStatement != nil:
+		logger.Tracef("HandleIncoming::IssueLocalStatement")
+		if err := i.IssueLocalStatement(context,
+			backend,
+			message.IssueLocalStatement.CandidateHash,
+			message.IssueLocalStatement.CandidateReceipt,
+			message.IssueLocalStatement.Session,
+			message.IssueLocalStatement.Valid,
+			now,
+		); err != nil {
+			return nil, fmt.Errorf("issue local statement: %w", err)
+		}
 	case message.DetermineUndisputedChain != nil:
+		logger.Tracef("HandleIncoming::DetermineUndisputedChain")
+		undisputedChain, err := i.determineUndisputedChain(backend,
+			message.DetermineUndisputedChain.Base,
+			message.DetermineUndisputedChain.BlockDescriptions,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("determine undisputed chain: %w", err)
+		}
+
+		if err := message.DetermineUndisputedChain.Tx.SendMessage(undisputedChain); err != nil {
+			return nil, fmt.Errorf("send undisputed chain: %w", err)
+		}
 	default:
-		return fmt.Errorf("unknown dispute coordinator message")
+		return nil, fmt.Errorf("unknown dispute coordinator message")
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (i *Initialized) HandleImportStatements(
@@ -470,12 +564,10 @@ func (i *Initialized) HandleImportStatements(
 	session parachainTypes.SessionIndex,
 	statements []types.Statement,
 	now uint64,
-) error {
+) ImportStatementResult {
 	logger.Tracef("in HandleImportStatements")
 
-	if i.sessionIsAncient(session) {
-
-	}
+	return InvalidImport
 }
 
 func (i *Initialized) IssueLocalStatement(
@@ -494,6 +586,57 @@ func (i *Initialized) IssueLocalStatement(
 func (i *Initialized) sessionIsAncient(session parachainTypes.SessionIndex) bool {
 	diff := session - (DisputeWindow - 1)
 	return session < diff || session < i.HighestSessionSeen
+}
+
+func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
+	baseBlock types.Block,
+	blockDescriptions []types.BlockDescription,
+) (types.Block, error) {
+	last := types.NewBlock(baseBlock.BlockNumber+uint32(len(blockDescriptions)),
+		blockDescriptions[len(blockDescriptions)-1].BlockHash,
+	)
+
+	recentDisputes, err := backend.GetRecentDisputes()
+	if err != nil {
+		return types.Block{}, fmt.Errorf("get recent disputes: %w", err)
+	}
+
+	if recentDisputes == nil || recentDisputes.Len() == 0 {
+		return last, nil
+	}
+
+	isPossiblyInvalid := func(session parachainTypes.SessionIndex, candidateHash common.Hash) bool {
+		disputeStatus := recentDisputes.Get(types.NewDisputeComparator(session, candidateHash))
+		status, ok := disputeStatus.(types.DisputeStatus)
+		if !ok {
+			logger.Errorf("cast to dispute status. Expected types.DisputeStatus, got %T", disputeStatus)
+			return false
+		}
+
+		isPossiblyInvalid, err := status.IsPossiblyInvalid()
+		if err != nil {
+			logger.Errorf("is possibly invalid: %s", err)
+			return false
+		}
+
+		return isPossiblyInvalid
+	}
+
+	for i, blockDescription := range blockDescriptions {
+		for _, candidate := range blockDescription.Candidates {
+			if isPossiblyInvalid(blockDescription.Session, candidate.Value) {
+				if i == 0 {
+					return baseBlock, nil
+				} else {
+					return types.NewBlock(baseBlock.BlockNumber+uint32(i-1),
+						blockDescriptions[i-1].BlockHash,
+					), nil
+				}
+			}
+		}
+	}
+
+	return last, nil
 }
 
 func NewInitializedState(sender overseer.Sender,

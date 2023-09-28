@@ -73,7 +73,7 @@ func (b *BadgerBackend) GetEarliestSession() (*parachainTypes.SessionIndex, erro
 }
 
 func (b *BadgerBackend) GetRecentDisputes() (*btree.BTree, error) {
-	recentDisputes := btree.New(types.DisputeComparator)
+	recentDisputes := btree.New(types.CompareDisputes)
 
 	if err := b.db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions

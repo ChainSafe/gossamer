@@ -65,7 +65,7 @@ func TestDBBackend_SetRecentDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(types.DisputeComparator)
+	disputes := btree.New(types.CompareDisputes)
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
 	disputes.Set(dispute1)
@@ -110,7 +110,7 @@ func TestDBBackend_Write(t *testing.T) {
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
 	earliestSession := getSessionIndex(1)
-	disputes := btree.New(types.DisputeComparator)
+	disputes := btree.New(types.CompareDisputes)
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
 	disputes.Set(dispute1)
@@ -219,7 +219,7 @@ func BenchmarkBadgerBackend_SetRecentDisputes(b *testing.B) {
 	require.NoError(b, err)
 	backend := NewDBBackend(db)
 
-	disputes := btree.New(types.DisputeComparator)
+	disputes := btree.New(types.CompareDisputes)
 	for i := 0; i < 10000; i++ {
 		dispute, err := types.DummyDispute(parachainTypes.SessionIndex(i), common.Hash{byte(i)}, types.DisputeStatusActive)
 		require.NoError(b, err)
@@ -267,7 +267,7 @@ func BenchmarkBadgerBackend_GetRecentDisputes(b *testing.B) {
 	require.NoError(b, err)
 	backend := NewDBBackend(db)
 
-	disputes := btree.New(types.DisputeComparator)
+	disputes := btree.New(types.CompareDisputes)
 	for i := 0; i < 1000; i++ {
 		dispute, err := types.DummyDispute(parachainTypes.SessionIndex(i), common.Hash{byte(1)}, types.DisputeStatusActive)
 		require.NoError(b, err)
