@@ -15,6 +15,14 @@ type Comparator struct {
 	CandidateHash common.Hash                 `scale:"2"`
 }
 
+// NewDisputeComparator creates a new dispute comparator.
+func NewDisputeComparator(sessionIndex parachainTypes.SessionIndex, candidateHash common.Hash) Comparator {
+	return Comparator{
+		SessionIndex:  sessionIndex,
+		CandidateHash: candidateHash,
+	}
+}
+
 // Dispute is a dispute for a candidate.
 // It is used as an item in the btree.BTree ordered by the Comparator.
 type Dispute struct {
@@ -35,8 +43,8 @@ func NewDispute() (*Dispute, error) {
 	}, nil
 }
 
-// DisputeComparator compares two disputes.
-func DisputeComparator(a, b any) bool {
+// CompareDisputes compares two disputes.
+func CompareDisputes(a, b any) bool {
 	d1, d2 := a.(*Dispute), b.(*Dispute)
 
 	if d1.Comparator.SessionIndex == d2.Comparator.SessionIndex {
