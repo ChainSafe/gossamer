@@ -301,7 +301,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	for _, v := range prunedArr {
 		tr, err := serv.Storage.blockState.trieDB.Get(v.hash)
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "not found")
 		require.Nil(t, tr)
 	}
 }
