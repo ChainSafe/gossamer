@@ -162,7 +162,8 @@ func (i ImportResultHandler) IntoUpdatedVotes() types.CandidateVotes {
 
 var _ ImportResult = (*ImportResultHandler)(nil)
 
-func NewImportResultFromStatements(env types.CandidateEnvironment,
+func NewImportResultFromStatements(
+	env types.CandidateEnvironment,
 	statements []types.Statement,
 	candidateVoteState types.CandidateVoteState,
 	now uint64,
