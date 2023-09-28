@@ -40,7 +40,7 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(types.DisputeComparator)
+	disputes := btree.New(types.CompareDisputes)
 
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(types.DisputeComparator)
+	disputes := btree.New(types.CompareDisputes)
 
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 	require.NoError(t, err)
 
 	// then
-	activeDisputes, err := backend.GetActiveDisputes(time.Now().Unix())
+	activeDisputes, err := backend.GetActiveDisputes(uint64(time.Now().Unix()))
 	require.NoError(t, err)
 	require.True(t, compareBTrees(disputes, activeDisputes))
 }
@@ -160,7 +160,7 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < numIterations; j++ {
-				disputes := btree.New(types.DisputeComparator)
+				disputes := btree.New(types.CompareDisputes)
 
 				dispute1, err := types.DummyDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)},
