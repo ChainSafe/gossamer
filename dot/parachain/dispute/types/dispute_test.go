@@ -72,8 +72,8 @@ func TestDispute_Comparator(t *testing.T) {
 	}
 
 	// when
-	less12 := DisputeComparator(&dispute1, &dispute2)
-	less23 := DisputeComparator(&dispute2, &dispute3)
+	less12 := CompareDisputes(&dispute1, &dispute2)
+	less23 := CompareDisputes(&dispute2, &dispute3)
 
 	// then
 	require.True(t, less12)

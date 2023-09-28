@@ -20,6 +20,11 @@ import (
 // ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorId` when appropriate
 type ValidatorIndex uint32
 
+// CompareValidatorIndices compares two validator indices.
+func CompareValidatorIndices(a, b any) bool {
+	return a.(ValidatorIndex) < b.(ValidatorIndex)
+}
+
 // ValidatorID The public key of a validator.
 type ValidatorID [sr25519.PublicKeyLength]byte
 

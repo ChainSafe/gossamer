@@ -37,7 +37,7 @@ type OverlayBackend interface {
 	// WriteToDB writes the given dispute to the database.
 	WriteToDB() error
 	// GetActiveDisputes returns the active disputes.
-	GetActiveDisputes(now int64) (*btree.BTree, error)
+	GetActiveDisputes(now uint64) (*btree.BTree, error)
 	// NoteEarliestSession prunes data in the DB based on the provided session index.
 	NoteEarliestSession(session parachainTypes.SessionIndex) error
 }
@@ -68,7 +68,7 @@ type syncedRecentDisputes struct {
 
 func newSyncedRecentDisputes() syncedRecentDisputes {
 	return syncedRecentDisputes{
-		BTree: btree.New(types.DisputeComparator),
+		BTree: btree.New(types.CompareDisputes),
 	}
 }
 
@@ -161,12 +161,12 @@ func (b *overlayBackend) SetCandidateVotes(session parachainTypes.SessionIndex,
 const ActiveDuration = 180 * time.Second
 
 // GetActiveDisputes returns the active disputes, if any.
-func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
+func (b *overlayBackend) GetActiveDisputes(now uint64) (*btree.BTree, error) {
 	b.recentDisputes.RLock()
 	recentDisputes := b.recentDisputes.Copy()
 	b.recentDisputes.RUnlock()
 
-	activeDisputes := btree.New(types.DisputeComparator)
+	activeDisputes := btree.New(types.CompareDisputes)
 	recentDisputes.Ascend(nil, func(i interface{}) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
@@ -180,7 +180,7 @@ func (b *overlayBackend) GetActiveDisputes(now int64) (*btree.BTree, error) {
 			return true
 		}
 
-		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > uint64(now) {
+		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > now {
 			activeDisputes.Set(dispute)
 		}
 
@@ -213,7 +213,7 @@ func (b *overlayBackend) NoteEarliestSession(session parachainTypes.SessionIndex
 		}
 
 		// determine new recent disputes
-		newRecentDisputes := btree.New(types.DisputeComparator)
+		newRecentDisputes := btree.New(types.CompareDisputes)
 		recentDisputes.Ascend(nil, func(item interface{}) bool {
 			dispute := item.(*types.Dispute)
 			if dispute.Comparator.SessionIndex >= session {

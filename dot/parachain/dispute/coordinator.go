@@ -116,7 +116,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 	error,
 ) {
 	var now = time.Now().Unix()
-	activeDisputes, err := d.store.GetActiveDisputes(now)
+	activeDisputes, err := d.store.GetActiveDisputes(uint64(now))
 	if err != nil {
 		return nil, fmt.Errorf("get active disputes: %w", err)
 	}
