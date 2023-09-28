@@ -351,7 +351,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 
 	slot := getSlot(t, runtime, time.Now())
 	createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot)
-	require.Equal(t, int64(1), timerMetrics.Count())
+	require.Equal(t, int64(1), timerMetrics.Snapshot().Count())
 
 	// TODO: there isn't an easy way to trigger an error in buildBlock from here
 	// _, err = babeService.buildBlock(parent, Slot{}, rt, 0, nil)
