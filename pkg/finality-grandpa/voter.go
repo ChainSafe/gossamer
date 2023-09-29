@@ -157,7 +157,6 @@ type Environment[Hash comparable, Number constraints.Unsigned, Signature compara
 	) error
 
 	// Called when a block should be finalized.
-	// TODO: make this a future that resolves when it's e.g. written to disk?
 	FinalizeBlock(
 		hash Hash,
 		number Number,
@@ -533,9 +532,9 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	env                    Environment[Hash, Number, Signature, ID]
 	voters                 VoterSet[ID]
 	inner                  *innerVoterState[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]
-	finalizedNotifications chan finalizedNotification[Hash, Number, Signature, ID]
+	finalizedNotifications *wakerChan[finalizedNotification[Hash, Number, Signature, ID]]
 	lastFinalizedNumber    Number
-	globalIn               chan globalInItem
+	globalIn               *wakerChan[globalInItem]
 	globalOut              *buffered[CommunicationOut]
 	// the commit protocol might finalize further than the current round (if we're
 	// behind), we keep track of last finalized in round so we don't violate any
@@ -606,10 +605,10 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		env:                    env,
 		voters:                 voters,
 		inner:                  inner,
-		finalizedNotifications: finalizedNotifications,
+		finalizedNotifications: newWakerChan(finalizedNotifications),
 		lastFinalizedNumber:    lastFinalizedNumber,
 		lastFinalizedInRounds:  lastFinalized,
-		globalIn:               globalIn,
+		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOut),
 		stopChan:               make(chan any),
 	}, globalOut
@@ -639,10 +638,11 @@ pastRounds:
 		}
 	}
 
+	v.finalizedNotifications.setWaker(waker)
 finalizedNotifications:
 	for {
 		select {
-		case notif := <-v.finalizedNotifications:
+		case notif := <-v.finalizedNotifications.channel():
 			fHash := notif.Hash
 			fNum := notif.Number
 			round := notif.Round
@@ -660,7 +660,6 @@ finalizedNotifications:
 				v.lastFinalizedInRounds = HashNumber[Hash, Number]{fHash, fNum}
 			}
 		default:
-			// TODO: wake when messages come back
 			break finalizedNotifications
 		}
 	}
@@ -676,12 +675,12 @@ finalizedNotifications:
 //
 // Otherwise, we will simply handle the commit and issue a finalisation command
 // to the environment.
-func (v *Voter[Hash, Number, Signature, ID]) processIncoming() error {
-	// TODO: implement waker chans
+func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *waker) error {
+	v.globalIn.setWaker(waker)
 loop:
 	for {
 		select {
-		case item := <-v.globalIn:
+		case item := <-v.globalIn.channel():
 			if item.Error != nil {
 				return item.Error
 			}
@@ -691,6 +690,7 @@ loop:
 				compactCommit := variant.CompactCommit
 				processCommitOutcome := variant.Callback
 
+				// TODO: TRACE
 				fmt.Printf("Got commit for round_number %+v: target_number: %+v, target_hash: %+v\n",
 					roundNumber,
 					compactCommit.TargetNumber,
@@ -747,6 +747,7 @@ loop:
 				catchUp := variant.CatchUp
 				processCatchUpOutcome := variant.Callback
 
+				// TODO: TRACE
 				fmt.Printf("Got catch-up message for round %v\n", catchUp.RoundNumber)
 
 				v.inner.Lock()
@@ -838,6 +839,7 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (boo
 			return false, nil
 		}
 
+		// TODO: TRACE
 		fmt.Printf("Best round at %v has become completable. Starting new best round at %v\n",
 			v.inner.bestRound.roundNumber(),
 			v.inner.bestRound.roundNumber()+1,
@@ -919,7 +921,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) { //skipcq: RVV-B0001
-	err := v.processIncoming()
+	err := v.processIncoming(waker)
 	if err != nil {
 		return true, err
 	}

@@ -40,7 +40,7 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	)
 
 	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = globalIn
+	voter.globalIn = newWakerChan(globalIn)
 
 	done := make(chan any)
 	go func() {
@@ -90,7 +90,7 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 		)
 
 		globalIn := network.MakeGlobalComms(globalOut)
-		voter.globalIn = globalIn
+		voter.globalIn = newWakerChan(globalIn)
 
 		wg.Add(1)
 		go voter.Start()
@@ -144,7 +144,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		)
 
 		globalIn := network.MakeGlobalComms(globalOut)
-		voter.globalIn = globalIn
+		voter.globalIn = newWakerChan(globalIn)
 
 		voters[i] = voter
 		voterStates[i] = voter.VoterState()
@@ -230,7 +230,7 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	commitsIn := network.MakeGlobalComms(globalOut)
 
 	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = globalIn
+	voter.globalIn = newWakerChan(globalIn)
 
 	go voter.Start()
 	<-commitsIn
@@ -286,7 +286,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 		lastFinalized,
 	)
 	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = globalIn
+	voter.globalIn = newWakerChan(globalIn)
 
 	go func() {
 		voter.Start()
@@ -384,7 +384,7 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	)
 
 	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = globalIn
+	voter.globalIn = newWakerChan(globalIn)
 
 	go func() {
 		voter.Start()
@@ -438,7 +438,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 		lastFinalized,
 	)
 	globalIn := network.MakeGlobalComms(globalOut)
-	unsyncedVoter.globalIn = globalIn
+	unsyncedVoter.globalIn = newWakerChan(globalIn)
 
 	prevote := func(id uint32) SignedPrevote[string, uint32, Signature, ID] {
 		return SignedPrevote[string, uint32, Signature, ID]{
@@ -552,7 +552,7 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 		lastFinalized,
 	)
 	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = globalIn
+	voter.globalIn = newWakerChan(globalIn)
 
 	go voter.Start()
 	for finalized := range env.FinalizedStream() {
@@ -640,7 +640,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 		lastFinalized,
 	)
 	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = globalIn
+	voter.globalIn = newWakerChan(globalIn)
 	go voter.Start()
 
 	// wait until we see a prevote on round 3 from our local ID,
