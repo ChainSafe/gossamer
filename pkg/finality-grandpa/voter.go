@@ -302,7 +302,7 @@ func instantiateLastRound[
 		// bail if any votes are bad.
 		err := lastRound.handleVote(vote)
 		if err != nil {
-			fmt.Printf("lastRound.Handlevote error: %v\n", err)
+			log.Debugf("lastRound.Handlevote error: %v", err)
 			return nil
 		}
 	}
@@ -690,8 +690,7 @@ loop:
 				compactCommit := variant.CompactCommit
 				processCommitOutcome := variant.Callback
 
-				// TODO: TRACE
-				fmt.Printf("Got commit for round_number %+v: target_number: %+v, target_hash: %+v\n",
+				log.Tracef("Got commit for round_number %+v: target_number: %+v, target_hash: %+v",
 					roundNumber,
 					compactCommit.TargetNumber,
 					compactCommit.TargetHash,
@@ -747,8 +746,7 @@ loop:
 				catchUp := variant.CatchUp
 				processCatchUpOutcome := variant.Callback
 
-				// TODO: TRACE
-				fmt.Printf("Got catch-up message for round %v\n", catchUp.RoundNumber)
+				log.Tracef("Got catch-up message for round %v", catchUp.RoundNumber)
 
 				v.inner.Lock()
 
@@ -839,8 +837,7 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (boo
 			return false, nil
 		}
 
-		// TODO: TRACE
-		fmt.Printf("Best round at %v has become completable. Starting new best round at %v\n",
+		log.Tracef("Best round at %v has become completable. Starting new best round at %v",
 			v.inner.bestRound.roundNumber(),
 			v.inner.bestRound.roundNumber()+1,
 		)
@@ -1016,7 +1013,7 @@ func validateCatchUp[
 	bestRoundNumber uint64,
 ) *Round[ID, Hash, Number, Signature] {
 	if catchUp.RoundNumber <= bestRoundNumber {
-		fmt.Println("Ignoring because best round number is", bestRoundNumber)
+		log.Tracef("Ignoring because best round number is %d", bestRoundNumber)
 		return nil
 	}
 
@@ -1030,7 +1027,7 @@ func validateCatchUp[
 
 		for _, prevote := range catchUp.Prevotes {
 			if !voters.Contains(prevote.ID) {
-				fmt.Println("Ignoring invalid catch up, invalid voter:", prevote.ID)
+				log.Tracef("Ignoring invalid catch up, invalid voter: %v", prevote.ID)
 				return nil
 			}
 
@@ -1045,7 +1042,7 @@ func validateCatchUp[
 
 		for _, precommit := range catchUp.Precommits {
 			if !voters.Contains(precommit.ID) {
-				fmt.Println("Ignoring invalid catch up, invalid voter:", precommit.ID)
+				log.Tracef("Ignoring invalid catch up, invalid voter: %v", precommit.ID)
 				return nil
 			}
 
@@ -1080,7 +1077,7 @@ func validateCatchUp[
 
 		threshold := voters.Threshold()
 		if pv < VoteWeight(threshold) || pc < VoteWeight(threshold) {
-			fmt.Println("Ignoring invalid catch up, missing voter threshold")
+			log.Tracef("Ignoring invalid catch up, missing voter threshold")
 			return nil
 		}
 	}
@@ -1093,7 +1090,7 @@ func validateCatchUp[
 	for _, sp := range catchUp.Prevotes {
 		_, err := round.importPrevote(env, sp.Prevote, sp.ID, sp.Signature)
 		if err != nil {
-			fmt.Println("Ignoring invalid catch up, error importing prevote:", err)
+			log.Tracef("Ignoring invalid catch up, error importing prevote: %v", err)
 			return nil
 		}
 	}
@@ -1102,7 +1099,7 @@ func validateCatchUp[
 	for _, sp := range catchUp.Precommits {
 		_, err := round.importPrecommit(env, sp.Precommit, sp.ID, sp.Signature)
 		if err != nil {
-			fmt.Println("Ignoring invalid catch up, error importing precommit:", err)
+			log.Tracef("Ignoring invalid catch up, error importing precommit: %v", err)
 			return nil
 		}
 	}

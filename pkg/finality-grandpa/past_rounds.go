@@ -4,8 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
-
 	"golang.org/x/exp/constraints"
 )
 
@@ -202,8 +200,7 @@ loop:
 				return true, nil, err
 			}
 			if !imported {
-				// TODO: trace!(target: "afg", "Ignoring invalid commit");
-				fmt.Println("Ignoring invalid commit")
+				log.Trace("Ignoring invalid commit")
 			}
 		default:
 			// TODO: delay a little bit?
@@ -348,8 +345,7 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 				// reschedule until irrelevant
 				p.pastRounds = append(p.pastRounds[1:], br)
 
-				// TODO: DEBUG
-				fmt.Printf(
+				log.Debugf(
 					"Committing: round_number = %v, target_number = %v, target_hash = %v\n",
 					number,
 					commit.TargetNumber,

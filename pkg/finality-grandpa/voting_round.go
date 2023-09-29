@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"time"
 
 	"golang.org/x/exp/constraints"
@@ -165,9 +164,8 @@ func newVotingRoundCompleted[
 // Poll the round. When the round is completable and messages have been flushed, it will return `Poll::Ready` but
 // can continue to be polled.
 func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) {
-	// TODO: TRACE log level
-	fmt.Printf(
-		"Polling round %d, state = %+v, step = %T\n",
+	log.Tracef(
+		"Polling round %d, state = %+v, step = %T",
 		vr.votes.Number(),
 		vr.votes.State(),
 		vr.state,
@@ -249,21 +247,19 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool,
 
 	// the previous round estimate must be finalized
 	if !lastRoundEstimateFinalized {
-		// TODO: trace!(target: "afg", "Round {} completable but estimate not finalized.", self.round_number());
-		vr.logParticipation("TRACE")
+		log.Tracef("Round {} completable but estimate not finalized.", vr.roundNumber())
+		vr.logParticipation(trace)
 		return false, nil
 	}
 
-	// TODO: Debug log level
-	fmt.Printf(
-		"Completed round %d, state = %+v, step = %T\n",
+	log.Debugf(
+		"Completed round %d, state = %+v, step = %T",
 		vr.votes.Number(),
 		vr.votes.State(),
 		vr.state,
 	)
 
-	// TODO: self.log_participation(log::Level::Trace);
-	vr.logParticipation("TRACE")
+	vr.logParticipation(debug)
 	return true, nil
 }
 
@@ -372,10 +368,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan fi
 func (vr *votingRound[Hash, Number, Signature, ID, E]) bridgeState() *latterView[Hash, Number] {
 	priorView, latterView := bridgeState(vr.votes.State())
 	if vr.bridgedRoundState != nil {
-		// TODO:
-		// warn!(target: "afg", "Bridged state from round {} more than once.",
-		// 		self.votes.number());
-		fmt.Printf("Bridged state from round %d more than once.\n", vr.votes.Number())
+		log.Warnf("Bridged state from round %d more than once", vr.votes.Number())
 	}
 
 	vr.bridgedRoundState = &priorView
@@ -434,7 +427,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) handleVote(vote SignedMes
 	return nil
 }
 
-func (vr *votingRound[Hash, Number, Signature, ID, E]) logParticipation(level any) {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) logParticipation(level logLevel) {
 	totalWeight := vr.voters().TotalWeight()
 	threshold := vr.voters().Threshold()
 	nVoters := vr.voters().Len()
@@ -443,14 +436,18 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) logParticipation(level an
 	preVoteWeight, nPrevotes := vr.votes.PrevoteParticipation()
 	precommitWeight, nPrecommits := vr.votes.PrecommitParticipation()
 
-	// TODO: log::log!(target: "afg", log_level, "Round {}: prevotes: {}/{}/{} weight, {}/{} actual",
-	// number, prevote_weight, threshold, total_weight, n_prevotes, n_voters);
-	fmt.Printf("%s: Round %d: prevotes: %d/%d/%d weight, %d/%d actual\n",
+	var logf func(format string, values ...any)
+	switch level {
+	case debug:
+		logf = log.Debugf
+	case trace:
+		logf = log.Tracef
+	}
+
+	logf("%s: Round %d: prevotes: %d/%d/%d weight, %d/%d actual",
 		level, number, preVoteWeight, threshold, totalWeight, nPrevotes, nVoters)
 
-	// TODO: log::log!(target: "afg", log_level, "Round {}: precommits: {}/{}/{} weight, {}/{} actual",
-	// number, precommit_weight, threshold, total_weight, n_precommits, n_voters);
-	fmt.Printf("%s: Round %d: precommits: %d/%d/%d weight, %d/%d actual\n",
+	logf("%s: Round %d: precommits: %d/%d/%d weight, %d/%d actual",
 		level, number, precommitWeight, threshold, totalWeight, nPrecommits, nVoters)
 }
 
@@ -465,8 +462,7 @@ while:
 	for {
 		select {
 		case incoming := <-vr.incoming.channel():
-			// TODO: TRACE
-			fmt.Printf("Round %d: Got incoming message\n", vr.roundNumber())
+			log.Tracef("Round %d: Got incoming message", vr.roundNumber())
 			if timer != nil {
 				timer.Stop()
 				timer = nil
@@ -481,7 +477,7 @@ while:
 			msgCount++
 		case <-timerChan:
 			if msgCount > 0 {
-				fmt.Println("processed", msgCount, "messages")
+				log.Tracef("processed %d messages", msgCount)
 			}
 			break while
 		default:
@@ -518,8 +514,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 				shouldSendPrimary = lastRoundEstimate.Number > maybeFinalized.Number
 			}
 			if shouldSendPrimary {
-				// TODO: DEBUG
-				fmt.Printf("Sending primary block hint for round %d\n", vr.votes.Number())
+				log.Debugf("Sending primary block hint for round %d", vr.votes.Number())
 				primary := PrimaryPropose[Hash, Number]{
 					TargetHash:   lastRoundEstimate.Hash,
 					TargetNumber: lastRoundEstimate.Number,
@@ -534,15 +529,13 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 
 				return nil
 			}
-			// TODO: DEBUG
-			fmt.Printf(
-				"Last round estimate has been finalized, not sending primary block hint for round %d\n",
+			log.Debugf(
+				"Last round estimate has been finalized, not sending primary block hint for round %d",
 				vr.votes.Number(),
 			)
 
 		case maybeEstimate == nil && vr.voting.isPrimary():
-			// TODO: DEBUG
-			fmt.Printf("Last round estimate does not exist, not sending primary block hint for round %d\n", vr.votes.Number())
+			log.Debugf("Last round estimate does not exist, not sending primary block hint for round %d", vr.votes.Number())
 		default:
 		}
 		setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateStart[Timer]{prevoteTimer, precommitTimer})
@@ -571,7 +564,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 
 		if shouldPrevote {
 			if vr.voting.isActive() {
-				fmt.Println("Constructing prevote for round", vr.votes.Number())
+				log.Debugf("Constructing prevote for round %d", vr.votes.Number())
 
 				base, bestChain := vr.constructPrevote(lastRoundState)
 
@@ -616,8 +609,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		if best != nil {
 			prevote := Prevote[Hash, Number]{best.Hash, best.Number}
 
-			// TODO: debug!(target: "afg", "Casting prevote for round {}", this.votes.number());
-			fmt.Println("Casting prevote for round {}", vr.votes.Number())
+			log.Debugf("Casting prevote for round {}", vr.votes.Number())
 			err := vr.env.Prevoted(vr.roundNumber(), prevote)
 			if err != nil {
 				return err
@@ -627,13 +619,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 			vr.outgoing.Push(message)
 			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
 		} else {
-			// if this block is considered unknown, something has gone wrong.
-			// log and handle, but skip casting a vote.
-			// TODO: warn!(target: "afg",
-			// 	"Could not cast prevote: previously known block {:?} has disappeared",
-			// 	base,
-			// );
-			fmt.Printf("Could not cast prevote: previously known block %v has disappeared\n", base)
+			log.Warnf("Could not cast prevote: previously known block %v has disappeared", base)
 
 			// when we can't construct a prevote, we shouldn't precommit.
 			vr.state = nil
@@ -697,8 +683,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 
 		if shouldPrecommit {
 			if vr.voting.isActive() {
-				// TODO: debug!(target: "afg", "Casting precommit for round {}", self.votes.number());
-				fmt.Println("Casting precommit for round {}", vr.votes.Number())
+				log.Debugf("Casting precommit for round {}", vr.votes.Number())
 				precommit := vr.constructPrecommit()
 				err := vr.env.Precommitted(vr.roundNumber(), precommit)
 				if err != nil {
@@ -756,15 +741,9 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 			ancestry, err := vr.env.Ancestry(lastRoundEstimate.Hash, lastPrevoteG.Hash)
 			if err != nil {
 				// This is only possible in case of massive equivocation
-				// warn!(target: "afg",
-				// 	"Possible case of massive equivocation:
-				// 	last round prevote GHOST: {:?} is not a descendant of last round estimate: {:?}",
-				// 	last_prevote_g,
-				// 	last_round_estimate,
-				// );
-				fmt.Printf(
+				log.Warnf(
 					"Possible case of massive equivocation: last round prevote GHOST: %v"+
-						"is not a descendant of last round estimate: %v\n",
+						" is not a descendant of last round estimate: %v",
 					lastPrevoteG,
 					lastRoundEstimate,
 				)
