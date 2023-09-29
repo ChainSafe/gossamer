@@ -77,9 +77,8 @@ func TestTrieState_SetAndClearFromChild(t *testing.T) {
 			err := ts.ClearChildStorage([]byte(tc), []byte(tc), trie.V0)
 			require.NoError(t, err)
 
-			res, err := ts.GetChildStorage([]byte(tc), []byte(tc))
-			require.NoError(t, err)
-			require.Equal(t, []uint8(nil), res)
+			_, err = ts.GetChildStorage([]byte(tc), []byte(tc))
+			require.ErrorContains(t, err, "child trie does not exist at key")
 		}
 	}
 
