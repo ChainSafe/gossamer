@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -157,4 +158,5 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
