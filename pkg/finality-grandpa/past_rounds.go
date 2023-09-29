@@ -348,6 +348,7 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 				// reschedule until irrelevant
 				p.pastRounds = append(p.pastRounds[1:], br)
 
+				// TODO: DEBUG
 				fmt.Printf(
 					"Committing: round_number = %v, target_number = %v, target_hash = %v\n",
 					number,

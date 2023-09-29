@@ -23,12 +23,22 @@ type statePrevoted[T any] [1]T
 
 type statePrecommitted struct{}
 
-// type states[T, W any] interface {
-// 	stateStart[T] | stateProposed[T] | statePrevoting[T, W] | statePrevoted[T] | statePrecommitted
-// }
+type states[T, W any] interface {
+	stateStart[T] | stateProposed[T] | statePrevoting[T, W] | statePrevoted[T] | statePrecommitted
+}
 
 // The state of a voting round.
 type state any
+
+func setState[T, W any, V states[T, W]](s *state, val V) {
+	*s = val
+}
+
+func newState[T, W any, V states[T, W]](val V) state {
+	var s state
+	setState[T, W](&s, val)
+	return s
+}
 
 type hashBestChain[Hash comparable, Number constraints.Unsigned] struct {
 	Hash      Hash
@@ -114,7 +124,7 @@ func newVotingRound[
 		voting:            voting,
 		incoming:          newWakerChan(roundData.Incoming),
 		outgoing:          newBuffered(outgoing),
-		state:             stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer},
+		state:             newState[Timer, hashBestChain[Hash, Number]](stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer}),
 		bridgedRoundState: nil,
 		primaryBlock:      nil,
 		bestFinalized:     nil,
@@ -155,6 +165,7 @@ func newVotingRoundCompleted[
 // Poll the round. When the round is completable and messages have been flushed, it will return `Poll::Ready` but
 // can continue to be polled.
 func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) {
+	// TODO: TRACE log level
 	fmt.Printf(
 		"Polling round %d, state = %+v, step = %T\n",
 		vr.votes.Number(),
@@ -243,6 +254,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool,
 		return false, nil
 	}
 
+	// TODO: Debug log level
 	fmt.Printf(
 		"Completed round %d, state = %+v, step = %T\n",
 		vr.votes.Number(),
@@ -453,6 +465,7 @@ while:
 	for {
 		select {
 		case incoming := <-vr.incoming.channel():
+			// TODO: TRACE
 			fmt.Printf("Round %d: Got incoming message\n", vr.roundNumber())
 			if timer != nil {
 				timer.Stop()
@@ -483,7 +496,6 @@ while:
 }
 
 func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundState *RoundState[Hash, Number]) error {
-	// self.state.take()
 	state := vr.state
 	vr.state = nil
 
@@ -506,6 +518,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 				shouldSendPrimary = lastRoundEstimate.Number > maybeFinalized.Number
 			}
 			if shouldSendPrimary {
+				// TODO: DEBUG
 				fmt.Printf("Sending primary block hint for round %d\n", vr.votes.Number())
 				primary := PrimaryPropose[Hash, Number]{
 					TargetHash:   lastRoundEstimate.Hash,
@@ -517,21 +530,22 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 				}
 				message := newMessage(primary)
 				vr.outgoing.Push(message)
-				vr.state = stateProposed[Timer]{prevoteTimer, precommitTimer}
+				setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateProposed[Timer]{prevoteTimer, precommitTimer})
 
 				return nil
 			}
+			// TODO: DEBUG
 			fmt.Printf(
 				"Last round estimate has been finalized, not sending primary block hint for round %d\n",
 				vr.votes.Number(),
 			)
 
 		case maybeEstimate == nil && vr.voting.isPrimary():
+			// TODO: DEBUG
 			fmt.Printf("Last round estimate does not exist, not sending primary block hint for round %d\n", vr.votes.Number())
 		default:
 		}
-
-		vr.state = stateStart[Timer]{prevoteTimer, precommitTimer}
+		setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateStart[Timer]{prevoteTimer, precommitTimer})
 	default:
 		vr.state = state
 	}
@@ -567,16 +581,16 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 				// state to `Prevoting`.
 				waker.wake()
 
-				vr.state = statePrevoting[Timer, hashBestChain[Hash, Number]]{
+				setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoting[Timer, hashBestChain[Hash, Number]]{
 					precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
-				}
+				})
 			} else {
-				vr.state = statePrevoted[Timer]{precommitTimer}
+				setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
 			}
 		} else if proposed {
-			vr.state = stateProposed[Timer]{prevoteTimer, precommitTimer}
+			setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateProposed[Timer]{prevoteTimer, precommitTimer})
 		} else {
-			vr.state = stateStart[Timer]{prevoteTimer, precommitTimer}
+			setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateStart[Timer]{prevoteTimer, precommitTimer})
 		}
 
 		return nil
@@ -593,9 +607,9 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		case res.Value != nil:
 			best = res.Value
 		default:
-			vr.state = statePrevoting[Timer, hashBestChain[Hash, Number]]{
+			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoting[Timer, hashBestChain[Hash, Number]]{
 				precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
-			}
+			})
 			return nil
 		}
 
@@ -611,7 +625,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 			vr.votes.SetPrevotedIdx()
 			message := newMessage(prevote)
 			vr.outgoing.Push(message)
-			vr.state = statePrevoted[Timer]{precommitTimer}
+			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
 		} else {
 			// if this block is considered unknown, something has gone wrong.
 			// log and handle, but skip casting a vote.
@@ -694,9 +708,9 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 				message := newMessage(precommit)
 				vr.outgoing.Push(message)
 			}
-			vr.state = statePrecommitted{}
+			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrecommitted{})
 		} else {
-			vr.state = statePrevoted[Timer]{precommitTimer}
+			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
 		}
 	default:
 		vr.state = state
