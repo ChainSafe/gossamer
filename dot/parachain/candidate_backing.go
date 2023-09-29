@@ -12,6 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+var InvalidErasureRoot = errors.New("Invalid erasure root")
+
 type commandAndRelayParent struct {
 	relayParent   common.Hash
 	command       ValidatedCandidateCommand
@@ -45,97 +47,27 @@ type BackgroundValidationResult struct {
 	isValid              bool
 }
 
-var InvalidErasureRoot = errors.New("Invalid erasure root")
-
-func ValidateAndMakeAvailable(
-	nValidators uint,
-	runtimeInstance parachainruntime.RuntimeInstance,
-	povRequestor PoVRequestor,
-	candidateReceipt parachaintypes.CandidateReceipt,
-) error {
-
-	// TODO: either use already available data (from candidate selection) if possible,
-	// or request it from the validator.
-	// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/node/core/backing/src/lib.rs#L697-L708
-	pov := povRequestor.RequestPoV(candidateReceipt.Descriptor.PovHash) // temporary
-
-	candidateCommitments, persistedValidationData, isValid, err := ValidateFromChainState(runtimeInstance, povRequestor, candidateReceipt)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("\n\ncandidateCommitments: %v\n\n", candidateCommitments) // remove this. just to avoid unused error
-
-	if isValid {
-		candidateHash := CandidateHash{common.MustBlake2bHash(scale.MustMarshal(candidateReceipt))}
-		if err := MakePoVAvailable(
-			nValidators,
-			pov,
-			candidateHash,
-			*persistedValidationData,
-			candidateReceipt.Descriptor.ErasureRoot,
-		); err != nil {
-			return err
-		}
-	}
-
-	// TODO: If is not valid Report to collator protocol,
-	// about the invalidity so that it can punish the collator that sent us this candidate
-
-	return nil
-}
-
-func MakePoVAvailable(
-	nValidators uint,
-	pov PoV,
-	candidateHash CandidateHash,
-	validationData parachaintypes.PersistedValidationData,
-	expectedErasureRoot common.Hash,
-) error {
-	availableData := AvailableData{pov, validationData}
-	availableDataBytes, err := scale.Marshal(availableData)
-	if err != nil {
-		return err
-	}
-
-	chunks, err := erasure.ObtainChunks(nValidators, availableDataBytes)
-	if err != nil {
-		return err
-	}
-
-	chunksTrie, err := erasure.ChunksToTrie(chunks)
-	if err != nil {
-		return err
-	}
-
-	root, err := chunksTrie.Hash()
-	if err != nil {
-		return err
-	}
-
-	if root != expectedErasureRoot {
-		return InvalidErasureRoot
-	}
-
-	// TODO: send a message to overseear to store the available data
-	// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/node/core/backing/src/lib.rs#L566-L573
-
-	return nil
-}
-
 func attestedToBacked(attested AttestedCandidate, tableContext TableContext) *parachaintypes.CandidateBacked {
 	// TODO: implement this function
 	return &parachaintypes.CandidateBacked{}
 }
 
-func runCandidateBacking() {
+// TODO: use actual type of overseearSender and overseearReceiver
+func runCandidateBacking(overseearSender chan<- interface{}, overseearReceiver <-chan interface{}) {
 	jobs := make(map[common.Hash]CandidateBackingJob)
 
 	// TODO: figure out buffer size of these channels.
-	sender := make(chan<- commandAndRelayParent)
-	receiver := make(<-chan commandAndRelayParent)
+	validationSender := make(chan<- commandAndRelayParent)
+	validationReceiver := make(<-chan commandAndRelayParent)
 
 	for {
-		if err := run_iteration(jobs, sender, receiver); err == nil {
+		if err := run_iteration(
+			jobs,
+			validationSender,
+			validationReceiver,
+			overseearSender,
+			overseearReceiver,
+		); err == nil {
 			return
 		}
 	}
@@ -143,12 +75,14 @@ func runCandidateBacking() {
 
 func run_iteration(
 	jobs map[common.Hash]CandidateBackingJob,
-	sender chan<- commandAndRelayParent,
-	receiver <-chan commandAndRelayParent,
+	validationSender chan<- commandAndRelayParent,
+	validationReceiver <-chan commandAndRelayParent,
+	overseearSender chan<- interface{},
+	overseearReceiver <-chan interface{},
 ) error {
 	for {
 		select {
-		case cmdAndParent, ok := <-receiver:
+		case cmdAndParent, ok := <-validationReceiver:
 			if !ok {
 				return nil
 			}
@@ -163,7 +97,27 @@ func run_iteration(
 				}
 			}
 
-			// case <- receive from overseer:
+		case data, ok := <-overseearReceiver:
+			if !ok {
+				return nil
+			}
+
+			fmt.Print(data) // remove this line, just to avoid unused error
+
+			// switch data := data.(type) {
+			// TODO: Implement this case
+			// FromOrchestra::Signal(OverseerSignal::ActiveLeaves(update)) => handle_active_leaves_update(
+			// 	&mut *ctx,
+			// 	update,
+			// 	jobs,
+			// 	&keystore,
+			// 	&background_validation_tx,
+			// 	&metrics,
+			// ).await?,
+
+			// TODO: Implement this case
+			// FromOrchestra::Communication { msg } => handle_communication(&mut *ctx, jobs, msg).await?,
+			// }
 		}
 	}
 }
@@ -433,4 +387,130 @@ type AttestingData struct {
 	from_validator parachaintypes.ValidatorIndex
 	/// Other backing validators we can try in case `from_validator` failed.
 	backing []parachaintypes.ValidatorIndex
+}
+
+func ValidateAndMakeAvailable(
+	nValidators uint,
+	runtimeInstance parachainruntime.RuntimeInstance,
+	povRequestor PoVRequestor,
+	candidateReceipt parachaintypes.CandidateReceipt,
+) error {
+
+	// TODO: either use already available data (from candidate selection) if possible,
+	// or request it from the validator.
+	// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/node/core/backing/src/lib.rs#L697-L708
+	pov := povRequestor.RequestPoV(candidateReceipt.Descriptor.PovHash) // temporary
+
+	candidateCommitments, persistedValidationData, isValid, err := ValidateFromChainState(runtimeInstance, povRequestor, candidateReceipt)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("\n\ncandidateCommitments: %v\n\n", candidateCommitments) // remove this. just to avoid unused error
+
+	if isValid {
+		candidateHash := CandidateHash{common.MustBlake2bHash(scale.MustMarshal(candidateReceipt))}
+		if err := MakePoVAvailable(
+			nValidators,
+			pov,
+			candidateHash,
+			*persistedValidationData,
+			candidateReceipt.Descriptor.ErasureRoot,
+		); err != nil {
+			return err
+		}
+	}
+
+	// TODO: If is not valid Report to collator protocol,
+	// about the invalidity so that it can punish the collator that sent us this candidate
+
+	return nil
+}
+
+func MakePoVAvailable(
+	nValidators uint,
+	pov PoV,
+	candidateHash CandidateHash,
+	validationData parachaintypes.PersistedValidationData,
+	expectedErasureRoot common.Hash,
+) error {
+	availableData := AvailableData{pov, validationData}
+	availableDataBytes, err := scale.Marshal(availableData)
+	if err != nil {
+		return err
+	}
+
+	chunks, err := erasure.ObtainChunks(nValidators, availableDataBytes)
+	if err != nil {
+		return err
+	}
+
+	chunksTrie, err := erasure.ChunksToTrie(chunks)
+	if err != nil {
+		return err
+	}
+
+	root, err := chunksTrie.Hash()
+	if err != nil {
+		return err
+	}
+
+	if root != expectedErasureRoot {
+		return InvalidErasureRoot
+	}
+
+	// TODO: send a message to overseear to store the available data
+	// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/node/core/backing/src/lib.rs#L566-L573
+
+	return nil
+}
+
+// Requests a set of backable candidates that could be backed in a child of the given
+// relay-parent, referenced by its hash.
+type BackingMsgGetBackedCandidates struct {
+	RelayParent common.Hash
+	// TODO: add other fields
+}
+
+// Note that the Candidate Backing subsystem should second the given candidate in the context of the
+// given relay parent. This candidate must be validated.
+type BackingMsgSecond struct {
+	RelayParent      common.Hash
+	CandidateReceipt parachaintypes.CandidateReceipt
+	PoV              PoV
+}
+
+// Note a validator's statement about a particular candidate. Disagreements about validity must be escalated
+// to a broader check by the Disputes Subsystem, though that escalation is deferred until the approval voting
+// stage to guarantee availability. Agreements are simply tallied until a quorum is reached.
+type BackingMsgStatement struct {
+	RelayParent         common.Hash
+	SignedFullStatement SignedFullStatement
+}
+
+func (job *CandidateBackingJob) handleCandidateBakingMessage(candidateBackingMessage any) {
+	switch message := candidateBackingMessage.(type) {
+	case BackingMsgGetBackedCandidates:
+		job.handleBackingMsgGetBackedCandidates(message)
+	case BackingMsgSecond:
+		job.handleBackingMsgSecond(message)
+	case BackingMsgStatement:
+		job.handleBackingMsgStatement(message)
+	default:
+		logger.Error("Unknown candidate backing message")
+	}
+}
+
+func (job *CandidateBackingJob) handleBackingMsgGetBackedCandidates(message BackingMsgGetBackedCandidates) error {
+	// TODO: implement this function
+	return nil
+}
+
+func (job *CandidateBackingJob) handleBackingMsgSecond(message BackingMsgSecond) error {
+	// TODO: implement this function
+	return nil
+}
+
+func (job *CandidateBackingJob) handleBackingMsgStatement(message BackingMsgStatement) error {
+	// TODO: implement this function
+	return nil
 }
