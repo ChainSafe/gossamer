@@ -34,7 +34,8 @@ func (cb *CandidateBacking) Run(ctx context.Context, OverseerToSubSystem chan an
 
 func (cb *CandidateBacking) processMessages() {
 	for msg := range cb.OverseerToSubSystem {
-		// process these received messages by referenceing https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
+		// process these received messages by referencing
+		// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 		switch msg.(type) {
 		case ActiveLeavesUpdate:
 			cb.handleActiveLeavesUpdate()
@@ -70,7 +71,8 @@ type GetBackedCandidates []struct {
 	CandidateRelayParent common.Hash
 }
 
-// CanSecond is a request made to the candidate backing subsystem to determine whether it is permissible to second a given candidate.
+// CanSecond is a request made to the candidate backing subsystem to determine whether it is permissible
+// to second a given candidate.
 // The rule for seconding candidates is: Collations must either be built on top of the root of a fragment tree
 // or have a parent node that represents the backed candidate.
 type CanSecond struct {
