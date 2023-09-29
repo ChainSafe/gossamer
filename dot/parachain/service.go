@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -126,9 +127,9 @@ func (s Service) run() {
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
 	err := statementDistributionLargeStatement.Set(LargePayload{
 		RelayParent:   common.Hash{},
-		CandidateHash: CandidateHash{Value: common.Hash{}},
+		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
-		Signature:     ValidatorSignature{},
+		Signature:     parachaintypes.ValidatorSignature{},
 	})
 	if err != nil {
 		logger.Errorf("creating test statement message: %w\n", err)

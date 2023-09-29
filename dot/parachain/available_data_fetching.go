@@ -14,7 +14,7 @@ import (
 // AvailableDataFetchingRequest represents a request to retrieve all available data for a specific candidate.
 type AvailableDataFetchingRequest struct {
 	// Hash of the candidate for which the available data is requested.
-	CandidateHash CandidateHash
+	CandidateHash parachaintypes.CandidateHash
 }
 
 // Encode returns the SCALE encoding of the AvailableDataFetchingRequest
