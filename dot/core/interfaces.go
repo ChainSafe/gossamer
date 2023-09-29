@@ -20,7 +20,7 @@ import (
 )
 
 type BlockImportDigestHandler interface {
-	Handle(*types.Header) error
+	HandleDigests(*types.Header) error
 }
 
 // BlockState interface for block state methods
@@ -44,6 +44,11 @@ type StorageState interface {
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker
+}
+
+// GrandpaState is the interface for the state.GrandpaState
+type GrandpaState interface {
+	ApplyForcedChanges(importedHeader *types.Header) error
 }
 
 // TransactionState is the interface for transaction state methods

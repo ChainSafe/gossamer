@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -20,7 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -251,9 +252,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				}
 			},
 			blockHash:  common.Hash{0x01},
-			errWrapped: wasmer.ErrWASMDecompress,
-			errMessage: "creating new runtime instance: setting up VM: " +
-				"wasm decompression failed: unexpected EOF",
+			errWrapped: io.ErrUnexpectedEOF,
 		},
 		"store_code_substitution_block_hash_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
@@ -302,7 +301,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 					Return(nil)
 
 				blockState.EXPECT().StoreRuntime(common.Hash{0x01},
-					gomock.AssignableToTypeOf(&wasmer.Instance{}))
+					gomock.AssignableToTypeOf(&wazero_runtime.Instance{}))
 
 				return &Service{
 					blockState: blockState,
@@ -326,7 +325,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 
 			err := service.handleCodeSubstitution(testCase.blockHash, testCase.trieState)
 			assert.ErrorIs(t, err, testCase.errWrapped)
-			if testCase.errWrapped != nil {
+			if testCase.errMessage != "" {
 				assert.EqualError(t, err, testCase.errMessage)
 			}
 		})
@@ -424,11 +423,14 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(nil, errTestDummyError)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
+			grandpaState:  mockGrandpaState,
 			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
@@ -451,13 +453,16 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
 			Return(errTestDummyError)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
 
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
+			grandpaState:  mockGrandpaState,
 			onBlockImport: onBlockImportHandlerMock,
 		}
 		execTest(t, service, &block, trieState, errTestDummyError)
@@ -479,12 +484,15 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockBlockState.EXPECT().AddBlock(&block).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
+			grandpaState:  mockGrandpaState,
 			ctx:           context.Background(),
 			onBlockImport: onBlockImportHandlerMock,
 		}
@@ -543,12 +551,15 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		mockNetwork := NewMockNetwork(ctrl)
 		mockNetwork.EXPECT().GossipMessage(msg)
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-		onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+		onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+		mockGrandpaState := NewMockGrandpaState(ctrl)
+		mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 
 		service := &Service{
 			storageState:  mockStorageState,
 			blockState:    mockBlockState,
 			net:           mockNetwork,
+			grandpaState:  mockGrandpaState,
 			ctx:           context.Background(),
 			onBlockImport: onBlockImportHandlerMock,
 		}

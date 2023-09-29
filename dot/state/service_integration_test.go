@@ -13,12 +13,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -219,7 +220,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number))
 			continue
 		}
-		require.ErrorIs(t, err, chaindb.ErrKeyNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number))
+		require.ErrorIs(t, err, database.ErrNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number))
 	}
 }
 
@@ -356,10 +357,10 @@ func TestService_Rewind(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = serv.Grandpa.GetSetIDChange(2)
-	require.Equal(t, chaindb.ErrKeyNotFound, err)
+	require.Equal(t, database.ErrNotFound, err)
 
 	_, err = serv.Grandpa.GetSetIDChange(3)
-	require.Equal(t, chaindb.ErrKeyNotFound, err)
+	require.Equal(t, database.ErrNotFound, err)
 }
 
 func TestService_Import(t *testing.T) {
@@ -425,4 +426,39 @@ func TestService_Import(t *testing.T) {
 
 	err = serv.Stop()
 	require.NoError(t, err)
+}
+
+func generateBlockWithRandomTrie(t *testing.T, serv *Service,
+	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
+	trieState, err := serv.Storage.TrieState(nil)
+	require.NoError(t, err)
+
+	// Generate random data for trie state.
+	rand := time.Now().UnixNano()
+	key := []byte("testKey" + fmt.Sprint(rand))
+	value := []byte("testValue" + fmt.Sprint(rand))
+	err = trieState.Put(key, value)
+	require.NoError(t, err)
+
+	trieStateRoot, err := trieState.Root()
+	require.NoError(t, err)
+
+	if parent == nil {
+		bb := serv.Block.BestBlockHash()
+		parent = &bb
+	}
+
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: *parent,
+			Number:     bNum,
+			StateRoot:  trieStateRoot,
+			Digest:     createPrimaryBABEDigest(t),
+		},
+		Body: *body,
+	}
+	return block, trieState
 }

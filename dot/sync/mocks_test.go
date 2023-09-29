@@ -7,7 +7,6 @@ package sync
 import (
 	reflect "reflect"
 
-	network "github.com/ChainSafe/gossamer/dot/network"
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
@@ -609,19 +608,18 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 	return m.recorder
 }
 
-// DoBlockRequest mocks base method.
-func (m *MockNetwork) DoBlockRequest(arg0 peer.ID, arg1 *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+// AllConnectedPeersIDs mocks base method.
+func (m *MockNetwork) AllConnectedPeersIDs() []peer.ID {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoBlockRequest", arg0, arg1)
-	ret0, _ := ret[0].(*network.BlockResponseMessage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "AllConnectedPeersIDs")
+	ret0, _ := ret[0].([]peer.ID)
+	return ret0
 }
 
-// DoBlockRequest indicates an expected call of DoBlockRequest.
-func (mr *MockNetworkMockRecorder) DoBlockRequest(arg0, arg1 interface{}) *gomock.Call {
+// AllConnectedPeersIDs indicates an expected call of AllConnectedPeersIDs.
+func (mr *MockNetworkMockRecorder) AllConnectedPeersIDs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoBlockRequest", reflect.TypeOf((*MockNetwork)(nil).DoBlockRequest), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllConnectedPeersIDs", reflect.TypeOf((*MockNetwork)(nil).AllConnectedPeersIDs))
 }
 
 // Peers mocks base method.

@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
-
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/assert"
@@ -124,9 +122,9 @@ func TestBuildSpec_ToJSON(t *testing.T) {
 
 func TestBuildFromDB(t *testing.T) {
 	// initialise node (initialise state database and load genesis data)
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
+
 	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
-	config.BasePath = t.TempDir()
 	builder := nodeBuilder{}
 	err := builder.initNode(config)
 	require.NoError(t, err)
@@ -145,11 +143,11 @@ func TestBuildFromDB(t *testing.T) {
 				ProtocolID: "dot",
 				Genesis: genesis.Fields{
 					Raw:     map[string]map[string]string{},
-					Runtime: map[string]map[string]interface{}{},
+					Runtime: new(genesis.Runtime),
 				},
 			}}},
 		{name: "invalid_db_path", path: t.TempDir(),
-			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: Key not found")},
+			err: errors.New("cannot start state service: failed to create block state: cannot get block 0: pebble: not found")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -162,7 +160,7 @@ func TestBuildFromDB(t *testing.T) {
 			}
 			if tt.want != nil {
 				got.genesis.Genesis.Raw = map[string]map[string]string{}
-				got.genesis.Genesis.Runtime = map[string]map[string]interface{}{}
+				got.genesis.Genesis.Runtime = new(genesis.Runtime)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -173,9 +171,10 @@ func TestBuildFromGenesis(t *testing.T) {
 	rawGenesis := genesis.Genesis{
 		Name: "test",
 		Genesis: genesis.Fields{
-			Runtime: map[string]map[string]interface{}{
-				"System": {
-					"code": "mocktestcode",
+			Raw: map[string]map[string]string{},
+			Runtime: &genesis.Runtime{
+				System: &genesis.System{
+					Code: "mocktestcode",
 				},
 			},
 		},
@@ -210,7 +209,11 @@ func TestBuildFromGenesis(t *testing.T) {
 					Raw: map[string]map[string]string{"top" +
 						"": {"0x26aa394eea5630e07c48ae0c9558cef7c21aab032aaa6e946ca50ad39ab66603": "0x01",
 						"0x3a636f6465": "mocktestcode"}},
-					Runtime: map[string]map[string]interface{}{"System": {"code": "mocktestcode"}},
+					Runtime: &genesis.Runtime{
+						System: &genesis.System{
+							Code: "mocktestcode",
+						},
+					},
 				},
 			}},
 		},

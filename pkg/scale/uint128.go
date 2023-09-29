@@ -161,3 +161,8 @@ func (u *Uint128) UnmarshalJSON(data []byte) error {
 	u.Lower = dec.Lower
 	return nil
 }
+
+// MarshalJSON converts Uint128 to []byte.
+func (u Uint128) MarshalJSON() ([]byte, error) {
+	return []byte(u.String()), nil
+}

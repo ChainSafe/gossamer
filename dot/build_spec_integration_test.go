@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
-
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
@@ -22,7 +20,7 @@ import (
 const codeHex = "0x3a636f6465"
 
 func TestWriteGenesisSpecFile_Integration(t *testing.T) {
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 
 	expected, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
@@ -61,7 +59,7 @@ func TestWriteGenesisSpecFile_Integration(t *testing.T) {
 
 func TestBuildFromDB_Integration(t *testing.T) {
 	// setup expected
-	config := westenddev.DefaultConfig()
+	config := DefaultTestWestendDevConfig(t)
 	config.ChainSpec = utils.GetWestendDevRawGenesisPath(t)
 	expected, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
 	require.NoError(t, err)
@@ -77,5 +75,5 @@ func TestBuildFromDB_Integration(t *testing.T) {
 	err = json.Unmarshal(res, &jGen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime["system"]["code"])
+	require.Equal(t, expected.Genesis.Raw["top"][codeHex], jGen.Genesis.Runtime.System.Code)
 }

@@ -22,7 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -77,8 +77,11 @@ func TestAnnounceBlock(t *testing.T) {
 	}
 
 	onBlockImportHandleMock := NewMockBlockImportDigestHandler(ctrl)
-	onBlockImportHandleMock.EXPECT().Handle(&newBlock.Header).Return(nil)
+	onBlockImportHandleMock.EXPECT().HandleDigests(&newBlock.Header).Return(nil)
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&newBlock.Header).Return(nil)
 	s.onBlockImport = onBlockImportHandleMock
+	s.grandpaState = mockGrandpaState
 
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
@@ -292,7 +295,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	t.Skip() // need to update this test to use a valid transaction
 
 	cfg := &Config{
-		Runtime: wasmer.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
+		Runtime: wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929),
 	}
 
 	s := NewTestService(t, cfg)
@@ -486,8 +489,11 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	block := buildTestBlockWithoutExtrinsics(t, rt, genHeader, currentSlotNumber, currentTimestamp)
 
 	onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
-	onBlockImportHandlerMock.EXPECT().Handle(&block.Header).Return(nil)
+	onBlockImportHandlerMock.EXPECT().HandleDigests(&block.Header).Return(nil)
+	mockGrandpaState := NewMockGrandpaState(ctrl)
+	mockGrandpaState.EXPECT().ApplyForcedChanges(&block.Header).Return(nil)
 	s.onBlockImport = onBlockImportHandlerMock
+	s.grandpaState = mockGrandpaState
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

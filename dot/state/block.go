@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -22,7 +22,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
 const (
@@ -73,11 +73,11 @@ type BlockState struct {
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db *chaindb.BadgerDB, trs *Tries, telemetry Telemetry) (*BlockState, error) {
+func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
+		db:                         database.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
@@ -105,12 +105,12 @@ func NewBlockState(db *chaindb.BadgerDB, trs *Tries, telemetry Telemetry) (*Bloc
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db *chaindb.BadgerDB, trs *Tries, header *types.Header,
+func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.Header,
 	telemetryMailer Telemetry) (*BlockState, error) {
 	bs := &BlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
+		db:                         database.NewTable(db, blockPrefix),
 		unfinalisedBlocks:          newHashToBlockMap(),
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
@@ -211,7 +211,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if has, _ := bs.HasHeader(hash); !has {
-		return nil, chaindb.ErrKeyNotFound
+		return nil, database.ErrNotFound
 	}
 
 	data, err := bs.db.Get(headerKey(hash))
@@ -226,7 +226,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 	}
 
 	if result.Empty() {
-		return nil, chaindb.ErrKeyNotFound
+		return nil, database.ErrNotFound
 	}
 
 	result.Hash()
@@ -644,7 +644,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 	}
 
 	endHeader, err := bs.loadHeaderFromDatabase(endHash)
-	if errors.Is(err, chaindb.ErrKeyNotFound) ||
+	if errors.Is(err, database.ErrNotFound) ||
 		errors.Is(err, ErrEmptyHeader) {
 		// end hash is not in the database so we should lookup the
 		// block that could be in memory and in the database as well
@@ -853,7 +853,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
 	if codeSubBlockHash != (common.Hash{}) {
-		newVersion, err := wasmer.GetRuntimeVersion(code)
+		newVersion, err := wazero_runtime.GetRuntimeVersion(code)
 		if err != nil {
 			return err
 		}
@@ -875,7 +875,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 			bHash, parentCodeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
 
-	rtCfg := wasmer.Config{
+	rtCfg := wazero_runtime.Config{
 		Storage:     newState,
 		Keystore:    parentRuntimeInstance.Keystore(),
 		NodeStorage: parentRuntimeInstance.NodeStorage(),
@@ -887,7 +887,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		rtCfg.Role = 4
 	}
 
-	instance, err := wasmer.NewInstance(code, rtCfg)
+	instance, err := wazero_runtime.NewInstance(code, rtCfg)
 	if err != nil {
 		return err
 	}

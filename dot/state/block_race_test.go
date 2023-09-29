@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	threads := runtime.NumCPU()
-	dbs := make([]*chaindb.BadgerDB, threads)
+	dbs := make([]database.Database, threads)
 	for i := 0; i < threads; i++ {
 		dbs[i] = NewInMemoryDB(t)
 	}

@@ -18,9 +18,9 @@ const (
 func (k Kind) String() string {
 	switch k {
 	case Leaf:
-		return "leaf"
+		return "Leaf"
 	case Branch:
-		return "branch"
+		return "Branch"
 	default:
 		panic(fmt.Sprintf("invalid node type: %d", k))
 	}

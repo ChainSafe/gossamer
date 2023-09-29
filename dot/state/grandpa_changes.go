@@ -21,7 +21,7 @@ type pendingChange struct {
 	announcingHeader    *types.Header
 }
 
-func (p pendingChange) String() string {
+func (p *pendingChange) String() string {
 	return fmt.Sprintf("announcing header: %s (#%d), delay: %d, effective block number: %d, next authorities: %d",
 		p.announcingHeader.Hash().Short(), p.announcingHeader.Number, p.delay, p.effectiveNumber(), len(p.nextAuthorities))
 }
@@ -35,7 +35,7 @@ type orderedPendingChanges []pendingChange
 func (oc *orderedPendingChanges) Len() int { return len(*oc) }
 
 // findApplicable try to retrieve an applicable change from the slice of forced changes
-func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importedNumber uint,
+func (oc *orderedPendingChanges) findApplicable(importedHash common.Hash, importedNumber uint,
 	isDescendatOf isDescendantOfFunc) (*pendingChange, error) {
 
 	return oc.lookupChangeWhere(func(forced pendingChange) (bool, error) {
@@ -57,9 +57,9 @@ func (oc orderedPendingChanges) findApplicable(importedHash common.Hash, importe
 }
 
 // lookupChangeWhere return the first pending change which satisfy the condition
-func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[pendingChange]) (
+func (oc *orderedPendingChanges) lookupChangeWhere(condition conditionFunc[pendingChange]) (
 	pendingChange *pendingChange, err error) {
-	for _, change := range oc {
+	for _, change := range *oc {
 		ok, err := condition(change)
 		if err != nil {
 			return pendingChange, fmt.Errorf("failed while applying condition: %w", err)
@@ -70,7 +70,7 @@ func (oc orderedPendingChanges) lookupChangeWhere(condition conditionFunc[pendin
 		}
 	}
 
-	return nil, nil //nolint:nilnil
+	return nil, nil
 }
 
 // importChange only tracks the pending change if and only if it is the
@@ -188,7 +188,7 @@ func (c *pendingChangeNode) importNode(blockHash common.Hash, blockNumber uint, 
 // node ancestry using the `isDescendantOfFunc`
 type changeTree []*pendingChangeNode
 
-func (ct changeTree) Len() int { return len(ct) }
+func (ct *changeTree) Len() int { return len(*ct) }
 func (ct *changeTree) importChange(pendingChange *pendingChange, isDescendantOf isDescendantOfFunc) error {
 	for _, root := range *ct {
 		imported, err := root.importNode(pendingChange.announcingHeader.Hash(),
@@ -215,9 +215,9 @@ func (ct *changeTree) importChange(pendingChange *pendingChange, isDescendantOf 
 
 // lookupChangesWhere returns the first change which satisfy the
 // condition whithout modify the current state of the change tree
-func (ct changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNode]) (
+func (ct *changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNode]) (
 	changeNode *pendingChangeNode, err error) {
-	for _, root := range ct {
+	for _, root := range *ct {
 		ok, err := condition(root)
 		if err != nil {
 			return nil, fmt.Errorf("failed while applying condition: %w", err)
@@ -228,7 +228,7 @@ func (ct changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNod
 		}
 	}
 
-	return nil, nil //nolint:nilnil
+	return nil, nil
 }
 
 // findApplicable try to retrieve an applicable change
@@ -261,7 +261,7 @@ func (ct *changeTree) findApplicable(hash common.Hash, number uint,
 // 1. contains the same hash as the one we're looking for.
 // 2. contains a lower or equal effective number as the one we're looking for.
 // 3. does not contains pending changes to be applied.
-func (ct changeTree) findApplicableChange(hash common.Hash, number uint,
+func (ct *changeTree) findApplicableChange(hash common.Hash, number uint,
 	isDescendantOf isDescendantOfFunc) (changeNode *pendingChangeNode, err error) {
 	return ct.lookupChangeWhere(func(pcn *pendingChangeNode) (bool, error) {
 		if pcn.change.effectiveNumber() > number {
@@ -300,7 +300,7 @@ func (ct changeTree) findApplicableChange(hash common.Hash, number uint,
 // pruneChanges will remove changes whose are not descendant of the hash argument
 // this function updates the current state of the change tree
 func (ct *changeTree) pruneChanges(hash common.Hash, isDescendantOf isDescendantOfFunc) error {
-	onBranchChanges := []*pendingChangeNode{}
+	var onBranchChanges []*pendingChangeNode
 
 	for _, root := range *ct {
 		scheduledChangeHash := root.change.announcingHeader.Hash()
