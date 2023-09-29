@@ -232,10 +232,10 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 }
 
 // ClearChildStorage removes the child storage entry from the trie
-func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
+func (s *TrieState) ClearChildStorage(keyToChild, key []byte, version trie.Version) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.ClearFromChild(keyToChild, key)
+	return s.t.ClearFromChild(keyToChild, key, version)
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix

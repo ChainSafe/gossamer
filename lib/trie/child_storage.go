@@ -106,7 +106,7 @@ func (t *Trie) DeleteChild(keyToChild []byte) (err error) {
 }
 
 // ClearFromChild removes the child storage entry
-func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
+func (t *Trie) ClearFromChild(keyToChild, key []byte, version Version) error {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
 		return err
@@ -131,5 +131,5 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return t.DeleteChild(keyToChild)
 	}
 
-	return t.SetChild(keyToChild, child)
+	return t.SetChild(keyToChild, child, version)
 }

@@ -74,7 +74,7 @@ func TestTrieState_SetAndClearFromChild(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			err := ts.ClearChildStorage([]byte(tc), []byte(tc))
+			err := ts.ClearChildStorage([]byte(tc), []byte(tc), trie.V0)
 			require.NoError(t, err)
 
 			res, err := ts.GetChildStorage([]byte(tc), []byte(tc))
