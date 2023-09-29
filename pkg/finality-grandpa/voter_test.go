@@ -96,8 +96,7 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 		go voter.Start()
 		go func() {
 			defer wg.Done()
-			finalizedMsg := <-finalized
-			t.Logf("%+v\n", finalizedMsg)
+			<-finalized
 			err := voter.Stop()
 			assert.NoError(t, err)
 		}()
@@ -152,8 +151,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			finalizedMsg := <-finalized
-			t.Logf("%+v\n", finalizedMsg)
+			<-finalized
 		}()
 	}
 
