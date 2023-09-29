@@ -59,6 +59,7 @@ func (Valid) Index() uint {
 	return 2
 }
 
+// TODO: remove this type, copied to dot/parachain/types
 // CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
 type CandidateHash struct {
 	Value common.Hash `scale:"1"`

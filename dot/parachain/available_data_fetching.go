@@ -57,6 +57,7 @@ type AvailableData struct {
 	ValidationData PersistedValidationData `scale:"2"`
 }
 
+// TODO: remove this type, copied to dot/parachain/types
 // PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
 // It contains the necessary data for the parachain specific state transition logic.
 type PoV struct {
