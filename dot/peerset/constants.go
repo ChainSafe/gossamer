@@ -5,6 +5,18 @@ package peerset
 
 import "math"
 
+const (
+	CostMinor         Reputation = -100000
+	CostMajor         Reputation = -300000
+	CostMinorRepeated Reputation = -200000
+	CostMajorRepeated Reputation = -600000
+	Malicious         Reputation = math.MinInt32
+	BenefitMajorFirst Reputation = 300000
+	BenefitMajor      Reputation = 200000
+	BenefitMinorFirst Reputation = 15000
+	BenefitMinor      Reputation = 10000
+)
+
 // ReputationChange value and reason
 const (
 
@@ -14,7 +26,7 @@ const (
 	BadMessageReason = "Bad message"
 
 	// BadProtocolValue used when a peer is on unsupported protocol version.
-	BadProtocolValue Reputation = math.MinInt32
+	BadProtocolValue Reputation = Malicious
 	// BadProtocolReason used when a peer is on unsupported protocol version.
 	BadProtocolReason = "Unsupported protocol"
 
@@ -64,11 +76,51 @@ const (
 	BadJustificationReason = "Bad justification"
 
 	// GenesisMismatch is used when peer has a different genesis
-	GenesisMismatch Reputation = math.MinInt32
+	GenesisMismatch Reputation = Malicious
 	// GenesisMismatchReason used when a peer has a different genesis
 	GenesisMismatchReason = "Genesis mismatch"
 
 	// SameBlockSyncRequest used when a peer send us more than the max number of the same request.
 	SameBlockSyncRequest       Reputation = math.MinInt32
 	SameBlockSyncRequestReason            = "same block sync request"
+
+	// BenefitNotifyGoodValue is used when a collator was noted good by another subsystem
+	BenefitNotifyGoodValue Reputation = BenefitMinor
+	// BenefitNotifyGoodReason is used when a collator was noted good by another subsystem
+	BenefitNotifyGoodReason = "A collator was noted good by another subsystem"
+
+	// UnexpectedMessageValue is used when validator side of the collator protocol receives an unexpected message
+	UnexpectedMessageValue Reputation = CostMinor
+	// UnexpectedMessageReason is used when validator side of the collator protocol receives an unexpected message
+	UnexpectedMessageReason = "An unexpected message"
+
+	// CurruptedMessageValue is used when message could not be decoded properly.
+	CurruptedMessageValue = CostMinor
+	// CurruptedMessageReason is used when message could not be decoded properly.
+	CurruptedMessageReason = "Message was corrupt"
+
+	// NetworkErrorValue is used when network errors that originated at the remote host should have same cost as timeout.
+	NetworkErrorValue = CostMinor
+	// NetworkErrorReason is used when network errors that originated at the remote host should have same cost as timeout.
+	NetworkErrorReason = "Some network error"
+
+	// InvalidSignatureValue is used when signature of the network message is invalid.
+	InvalidSignatureValue Reputation = Malicious
+	// InvalidSignatureReason is used when signature of the network message is invalid.
+	InvalidSignatureReason = "Invalid network message signature"
+
+	// ReportBadCollatorValue is used when a collator was reported to be bad by another subsystem
+	ReportBadCollatorValue Reputation = Malicious
+	// ReportBadCollatorReason is used when a collator was reported to be bad by another subsystem
+	ReportBadCollatorReason = "A collator was reported by another subsystem"
+
+	// WrongParaValue is used when a collator provided a collation for the wrong para
+	WrongParaValue Reputation = Malicious
+	// WrongParaReason is used when a collator provided a collation for the wrong para
+	WrongParaReason = "A collator provided a collation for the wrong para"
+
+	// UnneededCollatorValue is used when an unneeded collator connected
+	UnneededCollatorValue = CostMinor
+	// UnneededCollatorReason is used when an unneeded collator connected
+	UnneededCollatorReason = "An unneeded collator connected"
 )
