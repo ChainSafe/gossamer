@@ -110,6 +110,7 @@ var (
 	errInvalidMandatoryDispatch = errors.New("invalid mandatory dispatch")
 	errLookupFailed             = errors.New("lookup failed")
 	errValidatorNotFound        = errors.New("validator not found")
+	errBadSigner                = errors.New("invalid signing address")
 )
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
@@ -271,6 +272,14 @@ func (MandatoryDispatch) Index() uint { return 9 }
 
 func (MandatoryDispatch) String() string { return "mandatory dispatch" }
 
+// MandatoryDispatch A transaction with a mandatory dispatch
+type BadSigner struct{}
+
+// Index returns VDT index
+func (BadSigner) Index() uint { return 10 }
+
+func (BadSigner) String() string { return "invalid signing address" }
+
 func determineErrType(vdt scale.VaryingDataType) error {
 	vdtVal, err := vdt.Value()
 	if err != nil {
@@ -311,6 +320,8 @@ func determineErrType(vdt scale.VaryingDataType) error {
 		return &TransactionValidityError{errValidatorNotFound}
 	case UnknownCustom:
 		return &TransactionValidityError{newUnknownError(val)}
+	case BadSigner:
+		return &TransactionValidityError{errBadSigner}
 	}
 
 	return errInvalidResult
@@ -319,7 +330,7 @@ func determineErrType(vdt scale.VaryingDataType) error {
 func determineErr(res []byte) error {
 	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
 	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{}, BadSigner{})
 	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
 
 	okRes := scale.NewResult(nil, dispatchError)

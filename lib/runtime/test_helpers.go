@@ -78,6 +78,10 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case WESTEND_RUNTIME_v0929:
 		runtimeFilename = WESTEND_RUNTIME_V0929_FP
 		url = WESTEND_RUNTIME_V0929_URL
+	// only used for TestInstance_BadSignatureExtrinsic_On_WestendBlock8077850
+	case WESTEND_RUNTIME_v0912:
+		runtimeFilename = WESTEND_RUNTIME_V0912_FP
+		url = WESTEND_RUNTIME_V0912_URL
 	default:
 		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
 	}
