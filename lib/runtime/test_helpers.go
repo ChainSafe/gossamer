@@ -60,7 +60,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 		return runtime, nil
 	}
 
-	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
+	basePath := filepath.Join(os.TempDir(), "gossamer", "runtimes")
 	const perm = os.FileMode(0777)
 	err = os.MkdirAll(basePath, perm)
 	if err != nil {
