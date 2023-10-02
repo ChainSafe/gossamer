@@ -38,7 +38,7 @@ func TestPoVFetchingResponse(t *testing.T) {
 	}{
 		{
 			name:        "PoV",
-			value:       PoV{BlockData: testBytes},
+			value:       parachaintypes.PoV{BlockData: testBytes},
 			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 		},
 		{

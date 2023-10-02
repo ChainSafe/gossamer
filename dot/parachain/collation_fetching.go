@@ -32,7 +32,7 @@ type CollationFetchingResponse scale.VaryingDataType
 // Collation represents a requested collation to be delivered
 type Collation struct {
 	CandidateReceipt parachaintypes.CandidateReceipt `scale:"1"`
-	PoV              PoV                             `scale:"2"`
+	PoV              parachaintypes.PoV                             `scale:"2"`
 }
 
 // Index returns the index of varying data type

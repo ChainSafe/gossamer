@@ -508,6 +508,11 @@ type PoV struct {
 	BlockData BlockData `scale:"1"`
 }
 
+// Index returns the index of varying data type
+func (PoV) Index() uint {
+	return 0
+}
+
 // BlockData represents parachain block data.
 // It contains everything required to validate para-block, may contain block and witness data.
 type BlockData []byte
