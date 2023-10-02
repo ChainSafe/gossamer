@@ -192,4 +192,9 @@ type BadSigner struct{}
 // Index returns VDT index
 func (BadSigner) Index() uint { return 10 }
 
-func (BadSigner) String() string { return "invalid signing address" }
+func (b BadSigner) String() string { return b.Error() }
+
+// Error returns the error message associated with the MandatoryDispatch
+func (BadSigner) Error() string {
+	return "invalid signing address"
+}
