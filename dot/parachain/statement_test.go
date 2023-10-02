@@ -43,7 +43,7 @@ func TestStatementVDT(t *testing.T) {
 
 	hash5 := getDummyHash(5)
 
-	secondedEnumValue := Seconded{
+	secondedEnumValue := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 hash5,
@@ -80,7 +80,7 @@ func TestStatementVDT(t *testing.T) {
 		},
 		{
 			name:          "Valid",
-			enumValue:     Valid{hash5},
+			enumValue:     parachaintypes.Valid{Value: hash5},
 			encodingValue: common.MustHexToBytes("0x020505050505050505050505050505050505050505050505050505050505050505"),
 			expectedErr:   nil,
 		},
@@ -98,7 +98,7 @@ func TestStatementVDT(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
-				vdt := NewStatementVDT()
+				vdt := parachaintypes.NewStatementVDT()
 				err := vdt.SetValue(c.enumValue)
 
 				if c.expectedErr != nil {
@@ -119,7 +119,7 @@ func TestStatementVDT(t *testing.T) {
 					return
 				}
 
-				vdt := NewStatementVDT()
+				vdt := parachaintypes.NewStatementVDT()
 				err := scale.Unmarshal(c.encodingValue, &vdt)
 				require.NoError(t, err)
 

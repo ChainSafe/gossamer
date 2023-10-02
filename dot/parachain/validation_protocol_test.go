@@ -70,7 +70,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		println!("encode validation proto => {:?}\n\n", val_proto.encode());
 	}
 	*/
-	var validatorSignature ValidatorSignature
+	var validatorSignature parachaintypes.ValidatorSignature
 	tempSignature := common.MustHexToBytes(testValidationProtocolHex["validatorSignature"])
 	copy(validatorSignature[:], tempSignature)
 
@@ -145,7 +145,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	var collatorSignature parachaintypes.CollatorSignature
 	copy(collatorSignature[:], tempSignature)
 
-	statementSecond := Seconded{
+	statementSecond := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      1,
 			RelayParent:                 hashA,
@@ -166,13 +166,13 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			HrmpWatermark:             0,
 		},
 	}
-	statementVDT := NewStatementVDT()
+	statementVDT := parachaintypes.NewStatementVDT()
 	statementVDT.SetValue(statementSecond)
 
 	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}
 	statementDistributionStatement.SetValue(Statement{
 		Hash: hashA,
-		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDT,
 			ValidatorIndex: 5,
 			Signature:      validatorSignature,
@@ -205,7 +205,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
 	statementDistributionLargeStatement.SetValue(LargePayload{
 		RelayParent:   hashA,
-		CandidateHash: CandidateHash{Value: hashA},
+		CandidateHash: parachaintypes.CandidateHash{Value: hashA},
 		SignedBy:      5,
 		Signature:     validatorSignature,
 	})

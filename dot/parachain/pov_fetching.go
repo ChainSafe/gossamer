@@ -6,13 +6,14 @@ package parachain
 import (
 	"fmt"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // PoVFetchingRequest represents a request to fetch the advertised collation at the relay-parent.
 type PoVFetchingRequest struct {
 	// Hash of the candidate for which we want to retrieve a Proof-of-Validity (PoV).
-	CandidateHash CandidateHash
+	CandidateHash parachaintypes.CandidateHash
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingRequest
@@ -21,7 +22,7 @@ func (p PoVFetchingRequest) Encode() ([]byte, error) {
 }
 
 type PoVFetchingResponseValues interface {
-	PoV | NoSuchPoV
+	parachaintypes.PoV | NoSuchPoV
 }
 
 // PoVFetchingResponse represents the possible responses to a PoVFetchingRequest.
@@ -35,7 +36,7 @@ func setPoVFetchingResponse[Value PoVFetchingResponseValues](mvdt *PoVFetchingRe
 
 func (mvdt *PoVFetchingResponse) SetValue(value any) (err error) {
 	switch value := value.(type) {
-	case PoV:
+	case parachaintypes.PoV:
 		setPoVFetchingResponse(mvdt, value)
 		return
 
@@ -50,7 +51,7 @@ func (mvdt *PoVFetchingResponse) SetValue(value any) (err error) {
 
 func (mvdt PoVFetchingResponse) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
-	case PoV:
+	case parachaintypes.PoV:
 		return 0, mvdt.inner, nil
 
 	case NoSuchPoV:
@@ -68,7 +69,7 @@ func (mvdt PoVFetchingResponse) Value() (value any, err error) {
 func (mvdt PoVFetchingResponse) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
-		return *new(PoV), nil
+		return *new(parachaintypes.PoV), nil
 
 	case 1:
 		return *new(NoSuchPoV), nil
@@ -102,7 +103,7 @@ func (p *PoVFetchingResponse) String() string {
 	}
 
 	v, _ := p.Value()
-	pov, ok := v.(PoV)
+	pov, ok := v.(parachaintypes.PoV)
 	if !ok {
 		return "PoVFetchingResponse=NoSuchPoV"
 	}
