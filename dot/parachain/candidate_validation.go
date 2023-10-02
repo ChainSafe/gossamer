@@ -23,7 +23,7 @@ var (
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
 // TODO: Implement PoV requestor
 type PoVRequestor interface {
-	RequestPoV(povHash common.Hash) PoV
+	RequestPoV(povHash common.Hash) parachaintypes.PoV
 }
 
 func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID uint32,

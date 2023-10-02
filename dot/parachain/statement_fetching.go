@@ -17,7 +17,7 @@ type StatementFetchingRequest struct {
 	RelayParent common.Hash `scale:"1"`
 
 	// Hash of candidate that was used create the `CommitedCandidateRecept`.
-	CandidateHash CandidateHash `scale:"2"`
+	CandidateHash parachaintypes.CandidateHash `scale:"2"`
 }
 
 // Encode returns the SCALE encoding of the StatementFetchingRequest.
