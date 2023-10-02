@@ -25,7 +25,7 @@ type UncheckedSignedAvailabilityBitfield struct {
 	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
 
 	// The signature by the validator of the signed payload.
-	Signature ValidatorSignature `scale:"3"`
+	Signature parachaintypes.ValidatorSignature `scale:"3"`
 }
 
 // Bitfield avalibility bitfield for given relay-parent hash

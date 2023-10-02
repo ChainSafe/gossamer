@@ -496,3 +496,42 @@ func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
 
 	return OccupiedCoreAssumption(vdt)
 }
+
+// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
+type CandidateHash struct {
+	Value common.Hash `scale:"1"`
+}
+
+// PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
+// It contains the necessary data for the parachain specific state transition logic.
+type PoV struct {
+	BlockData BlockData `scale:"1"`
+}
+
+// Index returns the index of varying data type
+func (PoV) Index() uint {
+	return 0
+}
+
+// BlockData represents parachain block data.
+// It contains everything required to validate para-block, may contain block and witness data.
+type BlockData []byte
+
+// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
+type UncheckedSignedFullStatement struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload StatementVDT `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
+
+// ValidatorSignature represents the signature with which parachain validators sign blocks.
+type ValidatorSignature Signature
+
+// Signature represents a cryptographic signature.
+type Signature [64]byte
