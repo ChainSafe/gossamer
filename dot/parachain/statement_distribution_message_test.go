@@ -35,7 +35,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
-	var validatorSignature ValidatorSignature
+	var validatorSignature parachaintypes.ValidatorSignature
 	copy(validatorSignature[:], tempSignature)
 
 	var collatorID parachaintypes.CollatorID
@@ -44,11 +44,11 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	hash5 := getDummyHash(5)
 
-	statementVDTWithValid := NewStatementVDT()
-	err := statementVDTWithValid.SetValue(Valid{hash5})
+	statementVDTWithValid := parachaintypes.NewStatementVDT()
+	err := statementVDTWithValid.SetValue(parachaintypes.Valid{Value: hash5})
 	require.NoError(t, err)
 
-	secondedEnumValue := Seconded{
+	secondedEnumValue := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 hash5,
@@ -71,13 +71,13 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 	}
 
-	statementVDTWithSeconded := NewStatementVDT()
+	statementVDTWithSeconded := parachaintypes.NewStatementVDT()
 	err = statementVDTWithSeconded.SetValue(secondedEnumValue)
 	require.NoError(t, err)
 
 	signedFullStatementWithValid := Statement{
 		Hash: hash5,
-		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDTWithValid,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
@@ -86,7 +86,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	signedFullStatementWithSeconded := Statement{
 		Hash: hash5,
-		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDTWithSeconded,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
@@ -95,7 +95,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	largePayload := LargePayload{
 		RelayParent:   hash5,
-		CandidateHash: CandidateHash{hash5},
+		CandidateHash: parachaintypes.CandidateHash{Value: hash5},
 		SignedBy:      parachaintypes.ValidatorIndex(5),
 		Signature:     validatorSignature,
 	}

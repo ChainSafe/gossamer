@@ -70,7 +70,7 @@ func TestValidateFromChainState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pov := PoV{
+	pov := parachaintypes.PoV{
 		BlockData: bd,
 	}
 

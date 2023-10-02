@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -116,6 +119,12 @@ func (Service) Stop() error {
 
 // main loop of parachain service
 func (s Service) run() {
+	overseer := overseer.NewOverseer()
+
+	candidateBacking := backing.New(overseer.SubsystemsToOverseer)
+	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)
+
+	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
 
 	// NOTE: this is a temporary test, just to show that we can send messages to peers
 	//
@@ -127,9 +136,9 @@ func (s Service) run() {
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
 	err := statementDistributionLargeStatement.SetValue(LargePayload{
 		RelayParent:   common.Hash{},
-		CandidateHash: CandidateHash{Value: common.Hash{}},
+		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
-		Signature:     ValidatorSignature{},
+		Signature:     parachaintypes.ValidatorSignature{},
 	})
 	if err != nil {
 		logger.Errorf("creating test statement message: %w\n", err)

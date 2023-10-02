@@ -35,7 +35,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			name: "all_4_in_hash",
 			request: StatementFetchingRequest{
 				RelayParent:   getDummyHash(4),
-				CandidateHash: CandidateHash{Value: getDummyHash(4)},
+				CandidateHash: parachaintypes.CandidateHash{Value: getDummyHash(4)},
 			},
 			expectedEncode: common.MustHexToBytes(testDataStatement["all4InCommonHash"]),
 		},
@@ -43,7 +43,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			name: "all_7_in_hash",
 			request: StatementFetchingRequest{
 				RelayParent:   getDummyHash(7),
-				CandidateHash: CandidateHash{Value: getDummyHash(7)},
+				CandidateHash: parachaintypes.CandidateHash{Value: getDummyHash(7)},
 			},
 			expectedEncode: common.MustHexToBytes(testDataStatement["all7InCommonHash"]),
 		},
@@ -51,7 +51,7 @@ func TestEncodeStatementFetchingRequest(t *testing.T) {
 			name: "random_hash",
 			request: StatementFetchingRequest{
 				RelayParent: common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
-				CandidateHash: CandidateHash{
+				CandidateHash: parachaintypes.CandidateHash{
 					Value: common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
 				},
 			},

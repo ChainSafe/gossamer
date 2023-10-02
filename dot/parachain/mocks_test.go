@@ -7,6 +7,7 @@ package parachain
 import (
 	reflect "reflect"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -35,10 +36,10 @@ func (m *MockPoVRequestor) EXPECT() *MockPoVRequestorMockRecorder {
 }
 
 // RequestPoV mocks base method.
-func (m *MockPoVRequestor) RequestPoV(arg0 common.Hash) PoV {
+func (m *MockPoVRequestor) RequestPoV(arg0 common.Hash) parachaintypes.PoV {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RequestPoV", arg0)
-	ret0, _ := ret[0].(PoV)
+	ret0, _ := ret[0].(parachaintypes.PoV)
 	return ret0
 }
 

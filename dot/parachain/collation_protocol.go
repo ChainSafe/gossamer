@@ -153,8 +153,8 @@ type AdvertiseCollation common.Hash
 
 // CollationSeconded represents that a collation sent to a validator was seconded.
 type CollationSeconded struct {
-	Hash                         common.Hash                  `scale:"1"`
-	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
+	Hash                         common.Hash                                 `scale:"1"`
+	UncheckedSignedFullStatement parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
 
 // Index returns the index of varying data type

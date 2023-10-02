@@ -76,7 +76,7 @@ func (mvdt CollationFetchingResponse) ValueAt(index uint) (value any, err error)
 // Collation represents a requested collation to be delivered
 type Collation struct {
 	CandidateReceipt parachaintypes.CandidateReceipt `scale:"1"`
-	PoV              PoV                             `scale:"2"`
+	PoV              parachaintypes.PoV              `scale:"2"`
 }
 
 // NewCollationFetchingResponse returns a new collation fetching response varying data type
