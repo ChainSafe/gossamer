@@ -272,7 +272,7 @@ func (MandatoryDispatch) Index() uint { return 9 }
 
 func (MandatoryDispatch) String() string { return "mandatory dispatch" }
 
-// MandatoryDispatch A transaction with a mandatory dispatch
+// BadSigner A transaction with a mandatory dispatch
 type BadSigner struct{}
 
 // Index returns VDT index

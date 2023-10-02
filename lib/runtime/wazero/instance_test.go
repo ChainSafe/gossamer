@@ -418,7 +418,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				genTrie, err := runtime.NewTrieFromGenesis(gen)
 				require.NoError(t, err)
 
-				//set state to genesis state
+				// set state to genesis state
 				genState := storage.NewTrieState(&genTrie)
 
 				cfg := Config{
