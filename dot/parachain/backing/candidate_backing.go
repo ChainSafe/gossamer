@@ -15,53 +15,9 @@ type CandidateBacking struct {
 	OverseerToSubSystem <-chan any
 }
 
-func New(overseerChan chan<- any) *CandidateBacking {
-	return &CandidateBacking{
-		SubSystemToOverseer: overseerChan,
-	}
-}
-
-func (cb *CandidateBacking) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
-	// TODO: handle_validated_candidate_command
-	// There is one more case where we handle results of candidate validation.
-	// My feeling is that instead of doing it here, we would be able to do that along with processing
-	// other backing related overseer message.
-	// This would become more clear after we complete processMessages function. It would give us clarity
-	// if we need background_validation_rx or background_validation_tx, as done in rust.
-	cb.processMessages()
-	return nil
-}
-
-func (cb *CandidateBacking) processMessages() {
-	for msg := range cb.OverseerToSubSystem {
-		// process these received messages by referencing
-		// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
-		switch msg.(type) {
-		case ActiveLeavesUpdate:
-			cb.handleActiveLeavesUpdate()
-		case GetBackedCandidates:
-			// TODO: Implement this
-		case CanSecond:
-			// TODO: Implement this
-		case Second:
-			// TODO: Implement this
-		case Statement:
-			// TODO: Implement this
-		default:
-			logger.Error("unknown message type")
-		}
-	}
-}
-
-func (cb *CandidateBacking) handleActiveLeavesUpdate() {
-	// TODO: Implement this
-	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L347
-}
-
 // ActiveLeavesUpdate is a messages from overseer
 type ActiveLeavesUpdate struct {
-	// TODO: Complete this struct
-	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/subsystem-types/src/lib.rs#L153
+	// TODO: Complete this struct #3503
 }
 
 // GetBackedCandidates is a message received from overseer that requests a set of backable
@@ -98,6 +54,64 @@ type Second struct {
 type Statement struct {
 	RelayParent         common.Hash
 	SignedFullStatement SignedFullStatementWithPVD
+}
+
+func New(overseerChan chan<- any) *CandidateBacking {
+	return &CandidateBacking{
+		SubSystemToOverseer: overseerChan,
+	}
+}
+
+func (cb *CandidateBacking) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+	// TODO: handle_validated_candidate_command
+	// There is one more case where we handle results of candidate validation.
+	// My feeling is that instead of doing it here, we would be able to do that along with processing
+	// other backing related overseer message.
+	// This would become more clear after we complete processMessages function. It would give us clarity
+	// if we need background_validation_rx or background_validation_tx, as done in rust.
+	cb.processMessages()
+	return nil
+}
+
+func (cb *CandidateBacking) processMessages() {
+	for msg := range cb.OverseerToSubSystem {
+		// process these received messages by referencing
+		// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
+		switch msg.(type) {
+		case ActiveLeavesUpdate:
+			cb.handleActiveLeavesUpdate()
+		case GetBackedCandidates:
+			cb.handleGetBackedCandidates()
+		case CanSecond:
+			cb.handleCanSecond()
+		case Second:
+			cb.handleSecond()
+		case Statement:
+			cb.handleStatement()
+		default:
+			logger.Error("unknown message type")
+		}
+	}
+}
+
+func (cb *CandidateBacking) handleActiveLeavesUpdate() {
+	// TODO: Implement this #3503
+}
+
+func (cb *CandidateBacking) handleGetBackedCandidates() {
+	// TODO: Implement this #3504
+}
+
+func (cb *CandidateBacking) handleCanSecond() {
+	// TODO: Implement this #3505
+}
+
+func (cb *CandidateBacking) handleSecond() {
+	// TODO: Implement this #3506
+}
+
+func (cb *CandidateBacking) handleStatement() {
+	// TODO: Implement this #3507
 }
 
 // SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
