@@ -194,18 +194,9 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
 	}
 
-	stateRootTrie, err := bs.trieDB.Get(lastFinalisedHeader.StateRoot)
+	err = bs.trieDB.Delete(lastFinalisedHeader.StateRoot)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve state root trie, hash: %s, err: %s", bs.lastFinalised, err)
-	}
-
-	if stateRootTrie != nil {
-		err := bs.trieDB.Delete(lastFinalisedHeader.StateRoot)
-		if err != nil {
-			return fmt.Errorf("unable to delete state root trie, hash: %s, err: %s", bs.lastFinalised, err)
-		}
-	} else {
-		return fmt.Errorf("unable to find trie with stateroot hash: %s", lastFinalisedHeader.StateRoot)
+		return fmt.Errorf("unable to delete state root trie, hash: %s, err: %s", bs.lastFinalised, err)
 	}
 	return nil
 }
@@ -262,7 +253,7 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 			continue
 		}
 
-		// prune all the subchain hashes state tries from memory
+		// prune all the subchain hashes state tries from database
 		// but keep the state trie from the current finalized block
 		if currentFinalizedHash != subchainHash {
 			if err = bs.trieDB.Delete(blockHeader.StateRoot); err != nil {
