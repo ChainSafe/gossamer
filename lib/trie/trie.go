@@ -1395,10 +1395,11 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
 			return &Node{
-				PartialKey:   newLeafKey,
-				StorageValue: child.StorageValue,
-				Dirty:        true,
-				Generation:   branch.Generation,
+				PartialKey:    newLeafKey,
+				StorageValue:  child.StorageValue,
+				IsHashedValue: child.IsHashedValue,
+				Dirty:         true,
+				Generation:    branch.Generation,
 			}, branchChildMerged, nil
 		}
 
