@@ -1,13 +1,11 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package parachaintypes
 
 import (
 	"fmt"
 
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -74,12 +72,7 @@ func NewStatementVDT() StatementVDT {
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
-type Seconded parachaintypes.CommittedCandidateReceipt
+type Seconded CommittedCandidateReceipt
 
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
-
-// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
-type CandidateHash struct {
-	Value common.Hash `scale:"1"`
-}

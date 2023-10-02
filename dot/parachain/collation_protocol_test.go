@@ -40,12 +40,12 @@ func TestCollationProtocol(t *testing.T) {
 	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
-	var validatorSignature ValidatorSignature
+	var validatorSignature parachaintypes.ValidatorSignature
 	copy(validatorSignature[:], tempSignature)
 
 	hash5 := getDummyHash(5)
 
-	secondedEnumValue := Seconded{
+	secondedEnumValue := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 hash5,
@@ -68,7 +68,7 @@ func TestCollationProtocol(t *testing.T) {
 		},
 	}
 
-	statementVDTWithSeconded := NewStatementVDT()
+	statementVDTWithSeconded := parachaintypes.NewStatementVDT()
 	err := statementVDTWithSeconded.SetValue(secondedEnumValue)
 	require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func TestCollationProtocol(t *testing.T) {
 			name: "CollationSeconded",
 			enumValue: CollationSeconded{
 				Hash: hash5,
-				UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+				UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 					Payload:        statementVDTWithSeconded,
 					ValidatorIndex: parachaintypes.ValidatorIndex(5),
 					Signature:      validatorSignature,
