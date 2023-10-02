@@ -13,7 +13,7 @@ import (
 // ChunkFetchingRequest represents a request to retrieve chunks of a parachain candidate
 type ChunkFetchingRequest struct {
 	// Hash of candidate we want a chunk for.
-	CandidateHash CandidateHash `scale:"1"`
+	CandidateHash parachaintypes.CandidateHash `scale:"1"`
 
 	// The index of the chunk to fetch.
 	Index parachaintypes.ValidatorIndex `scale:"2"`

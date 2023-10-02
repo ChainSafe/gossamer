@@ -45,8 +45,8 @@ func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, er
 
 // Statement represents a signed full statement under a given relay-parent.
 type Statement struct {
-	Hash                         common.Hash                  `scale:"1"`
-	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
+	Hash                         common.Hash                                 `scale:"1"`
+	UncheckedSignedFullStatement parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
 
 // Index returns the index of varying data type
@@ -66,36 +66,17 @@ func (LargePayload) Index() uint {
 	return 1
 }
 
-// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
-type UncheckedSignedFullStatement struct {
-	// The payload is part of the signed data. The rest is the signing context,
-	// which is known both at signing and at validation.
-	Payload StatementVDT `scale:"1"`
-
-	// The index of the validator signing this statement.
-	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
-
-	// The signature by the validator of the signed payload.
-	Signature ValidatorSignature `scale:"3"`
-}
-
 // StatementMetadata represents the data that makes a statement unique.
 type StatementMetadata struct {
 	// Relay parent this statement is relevant under.
 	RelayParent common.Hash `scale:"1"`
 
 	// Hash of the candidate that got validated.
-	CandidateHash CandidateHash `scale:"2"`
+	CandidateHash parachaintypes.CandidateHash `scale:"2"`
 
 	// Validator that attested the validity.
 	SignedBy parachaintypes.ValidatorIndex `scale:"3"`
 
 	// Signature of seconding validator.
-	Signature ValidatorSignature `scale:"4"`
+	Signature parachaintypes.ValidatorSignature `scale:"4"`
 }
-
-// ValidatorSignature represents the signature with which parachain validators sign blocks.
-type ValidatorSignature Signature
-
-// Signature represents a cryptographic signature.
-type Signature [64]byte

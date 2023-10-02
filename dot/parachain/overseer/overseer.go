@@ -39,8 +39,11 @@ func NewOverseer() *Overseer {
 
 // RegisterSubsystem registers a subsystem with the overseer,
 // Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
-func (o *Overseer) RegisterSubsystem(subsystem Subsystem) {
-	o.subsystems[subsystem] = make(chan any)
+func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
+	OverseerToSubSystem := make(chan any)
+	o.subsystems[subsystem] = OverseerToSubSystem
+
+	return OverseerToSubSystem
 }
 
 func (o *Overseer) Start() error {

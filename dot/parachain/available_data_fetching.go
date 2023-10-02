@@ -14,7 +14,7 @@ import (
 // AvailableDataFetchingRequest represents a request to retrieve all available data for a specific candidate.
 type AvailableDataFetchingRequest struct {
 	// Hash of the candidate for which the available data is requested.
-	CandidateHash CandidateHash
+	CandidateHash parachaintypes.CandidateHash
 }
 
 // Encode returns the SCALE encoding of the AvailableDataFetchingRequest
@@ -51,21 +51,11 @@ func (a *AvailableDataFetchingResponse) Value() (val scale.VaryingDataTypeValue,
 // AvailableData represents the data that is kept available for each candidate included in the relay chain.
 type AvailableData struct {
 	// The Proof-of-Validation (PoV) of the candidate
-	PoV PoV `scale:"1"`
+	PoV parachaintypes.PoV `scale:"1"`
 
 	// The persisted validation data needed for approval checks
 	ValidationData PersistedValidationData `scale:"2"`
 }
-
-// PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
-// It contains the necessary data for the parachain specific state transition logic.
-type PoV struct {
-	BlockData BlockData `scale:"1"`
-}
-
-// BlockData represents parachain block data.
-// It contains everything required to validate para-block, may contain block and witness data.
-type BlockData []byte
 
 // Index returns the index of varying data type
 func (AvailableData) Index() uint {
