@@ -62,7 +62,7 @@ func New(overseerChan chan<- any) *CandidateBacking {
 	}
 }
 
-func (cb *CandidateBacking) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) error {
 	// TODO: handle_validated_candidate_command
 	// There is one more case where we handle results of candidate validation.
 	// My feeling is that instead of doing it here, we would be able to do that along with processing
