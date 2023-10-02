@@ -1,6 +1,7 @@
 package collatorprotocol
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -274,6 +275,9 @@ func (collations Collations) IsSecondedLimitReached(relayParentMode ProspectiveP
 type CollatorProtocolValidatorSide struct {
 	net Network
 
+	SubSystemToOverseer chan<- any
+	OverseerToSubSystem <-chan any
+
 	collationFetchingReqResProtocol *network.RequestResponseProtocol
 
 	// TODO: Check if there are better ways to store this.
@@ -376,6 +380,11 @@ func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID par
 	}
 
 	return "", false
+}
+
+func (cb CollatorProtocolValidatorSide) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+	// TODO:
+	return nil
 }
 
 func (cpvs CollatorProtocolValidatorSide) processMessage(msgType MessageType, msg interface{}) error {

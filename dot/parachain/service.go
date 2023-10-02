@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -23,12 +24,15 @@ const (
 )
 
 type Service struct {
-	Network Network
+	Network  Network
+	overseer *overseer.Overseer
 }
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
+	overseer := overseer.NewOverseer()
+
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
@@ -67,13 +71,15 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
-	err = collatorprotocol.Register(net, protocol.ID(collationProtocolID))
+	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
 	if err != nil {
 		return nil, err
 	}
+	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
 
 	parachainService := &Service{
-		Network: net,
+		Network:  net,
+		overseer: overseer,
 	}
 
 	go parachainService.run()

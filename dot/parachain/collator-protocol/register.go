@@ -7,10 +7,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-func Register(net Network, protocolID protocol.ID) error {
+func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*CollatorProtocolValidatorSide, error) {
 
 	// TODO: fill up values for CollatorProtocolValidatorSide
-	cpvs := CollatorProtocolValidatorSide{}
+	cpvs := CollatorProtocolValidatorSide{
+		SubSystemToOverseer: overseerChan,
+	}
 
 	// register collation protocol
 	var err error
@@ -44,5 +46,9 @@ func Register(net Network, protocolID protocol.ID) error {
 		}
 	}
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return &cpvs, nil
 }
