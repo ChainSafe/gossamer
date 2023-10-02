@@ -11,11 +11,11 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
 type CandidateBacking struct {
-	SubSystemToOverseer <-chan any
+	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 }
 
-func New(overseerChan <-chan any) *CandidateBacking {
+func New(overseerChan chan<- any) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
 	}
