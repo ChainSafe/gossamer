@@ -372,7 +372,7 @@ type hashvote[Hash constraints.Ordered, voteNode voteNodeI[voteNode, Vote], Vote
 // given a key, node pair (which must correspond), assuming this node fulfils the condition,
 // this function will find the highest point at which its descendents merge, which may be the
 // node itself.
-func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint( //skipcq: GO-R1005
 	nodeKey Hash, activeNode *voteGraphEntry[Hash, Number, voteNode, Vote], forceConstrain *HashNumber[Hash, Number],
 	condition func(voteNode) bool) subChain[Hash, Number] {
 
@@ -495,7 +495,7 @@ type hashVoteGraphEntry[
 // enough to trigger the threshold.
 //
 // Returns `nil` when the given `currentBest` does not fulfil the condition.
-func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindGHOST(
+func (vg *VoteGraph[Hash, Number, voteNode, Vote]) FindGHOST( //skipcq: GO-R1005
 	currentBest *HashNumber[Hash, Number],
 	condition func(voteNode) bool,
 ) *HashNumber[Hash, Number] {

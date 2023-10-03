@@ -256,7 +256,7 @@ func (cvr CommitValidationResult) NumInvalidVoters() uint {
 // Duplicate votes or votes from voters not in the voter-set will be ignored,
 // but it is recommended for the caller of this function to remove those at
 // signature-verification time.
-func ValidateCommit[
+func ValidateCommit[ //skipcq: GO-R1005
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
 	Signature comparable,

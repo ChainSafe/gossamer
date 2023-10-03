@@ -26,28 +26,28 @@ type Logger interface {
 
 type noopLogger struct{}
 
-func (nl noopLogger) Warn(l string) {
+func (noopLogger) Warn(_ string) {
 }
 
-func (nl noopLogger) Warnf(format string, values ...any) {
+func (noopLogger) Warnf(_ string, _ ...any) {
 }
 
-func (nl noopLogger) Info(l string) {
+func (noopLogger) Info(_ string) {
 }
 
-func (nl noopLogger) Infof(format string, values ...any) {
+func (noopLogger) Infof(_ string, _ ...any) {
 }
 
-func (nl noopLogger) Debug(l string) {
+func (noopLogger) Debug(_ string) {
 }
 
-func (nl noopLogger) Debugf(format string, values ...any) {
+func (noopLogger) Debugf(_ string, _ ...any) {
 }
 
-func (nl noopLogger) Trace(l string) {
+func (noopLogger) Trace(_ string) {
 }
 
-func (nl noopLogger) Tracef(format string, values ...any) {
+func (noopLogger) Tracef(_ string, _ ...any) {
 }
 
 var log Logger

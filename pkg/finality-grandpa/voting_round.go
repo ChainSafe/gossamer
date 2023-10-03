@@ -164,7 +164,7 @@ func newVotingRoundCompleted[
 
 // Poll the round. When the round is completable and messages have been flushed, it will return `Poll::Ready` but
 // can continue to be polled.
-func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) { //skipcq: GO-R1005
 	log.Tracef(
 		"Polling round %d, state = %+v, step = %T",
 		vr.votes.Number(),
@@ -546,7 +546,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 	return nil
 }
 
-func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll
+func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRoundState *RoundState[Hash, Number]) error { //nolint:lll //skipcq: GO-R1005
 	state := vr.state
 	vr.state = nil
 

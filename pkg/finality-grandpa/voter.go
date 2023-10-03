@@ -675,7 +675,7 @@ finalizedNotifications:
 //
 // Otherwise, we will simply handle the commit and issue a finalisation command
 // to the environment.
-func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *waker) error {
+func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *waker) error { //skipcq: GO-R1005
 	v.globalIn.setWaker(waker)
 loop:
 	for {
@@ -1012,7 +1012,7 @@ type VoterState[ID comparable] interface {
 // Validate the given catch up and return a completed round with all prevotes
 // and precommits from the catch up imported. If the catch up is invalid `None`
 // is returned instead.
-func validateCatchUp[
+func validateCatchUp[ //skipcq: GO-R1005
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
 	Signature comparable,
