@@ -113,10 +113,10 @@ func (s Service) run() {
 	// let's try sending a collation message  and validation message to a peer and see what happens
 	collatorProtocolMessage := collatorprotocol.NewCollatorProtocolMessage()
 	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
-	collatorProtocolMessage.Set(collatorprotocol.Declare{})
+	_ = collatorProtocolMessage.Set(collatorprotocol.Declare{})
 	collationMessage := collatorprotocol.NewCollationProtocol()
-	collationMessage.Set(collatorProtocolMessage)
 
+	_ = collationMessage.Set(collatorProtocolMessage)
 	s.Network.GossipMessage(&collationMessage)
 
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}

@@ -11,15 +11,8 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
-)
-
-var (
-	ErrProtocolMismatch     = errors.New("an advertisement format doesn't match the relay parent")
-	ErrSecondedLimitReached = errors.New("para reached a limit of seconded candidates for this relay parent")
 )
 
 const LEGACY_COLLATION_PROTOCOL_V1 = "/polkadot/collation/1"
@@ -102,16 +95,6 @@ type Declare struct {
 // Index returns the index of varying data type
 func (Declare) Index() uint {
 	return 0
-}
-
-// getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.
-// The payload is a the local peed id of the node, which serves to prove that it controls the
-// collator key it is declaring and intends to collate under.
-func getDeclareSignaturePayload(peerID peer.ID) []byte {
-	payload := []byte("COLL")
-	payload = append(payload, peerID...)
-
-	return payload
 }
 
 // AdvertiseCollation contains a relay parent hash and is used to advertise a collation to a validator.
@@ -197,11 +180,7 @@ const (
 )
 
 func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(sender peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: Add things
-	fmt.Println("We got a collation message", msg)
-
 	if msg.Type() != network.CollationMsgType {
-		// TODO: Adding a string method for message type might make this message more informative
 		return false, fmt.Errorf("unexpected message type, expected: %d, found:%d",
 			network.CollationMsgType, msg.Type())
 	}
@@ -220,85 +199,13 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(sender peer.ID,
 		return false, errors.New("expected value to be collator protocol message")
 	}
 
-	collatorProtocolMessageV, err := collatorProtocolMessage.Value()
-	if err != nil {
-		return false, fmt.Errorf("getting collator protocol message value: %w", err)
-	}
-
-	// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L814
 	switch collatorProtocolMessage.Index() {
 	// TODO: Make sure that V1 and VStaging both types are covered
 	// All the types covered currently are V1.
 	case 0: // Declare
-		declareMessage, ok := collatorProtocolMessageV.(Declare)
-		if !ok {
-			return false, errors.New("expected message to be declare")
-		}
-
-		// check if we already have the collator id declared in this message. If so, punish the
-		// peer who sent us this message by reducing its reputation
-		peerID, ok := cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
-		if ok {
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnexpectedMessageValue,
-				Reason: peerset.UnexpectedMessageReason,
-			}, peerID)
-			return true, nil
-		}
-
-		peerData := cpvs.peerData[sender]
-		if peerData.state.PeerState == Collating {
-			logger.Error("peer is already in the collating state")
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnexpectedMessageValue,
-				Reason: peerset.UnexpectedMessageReason,
-			}, sender)
-			return true, nil
-		}
-
-		// check signature declareMessage.CollatorSignature
-		err = sr25519.VerifySignature(declareMessage.CollatorId[:], declareMessage.CollatorSignature[:],
-			getDeclareSignaturePayload(peerID))
-		if errors.Is(err, crypto.ErrSignatureVerificationFailed) {
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.InvalidSignatureValue,
-				Reason: peerset.InvalidSignatureReason,
-			}, sender)
-			return true, fmt.Errorf("invalid signature: %w", err)
-		}
-		if err != nil {
-			return false, fmt.Errorf("verifying signature: %w", err)
-		}
-
-		_, ok = cpvs.currentAssignments[parachaintypes.ParaID(declareMessage.ParaID)]
-		if ok {
-			logger.Errorf("declared as collator for current para: %d", declareMessage.ParaID)
-
-			// TODO: Add this
-			// peer_data.set_collating(collator_id, para_id);
-		} else {
-			logger.Errorf("declared as collator for unneeded para: %d", declareMessage.ParaID)
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnneededCollatorValue,
-				Reason: peerset.UnneededCollatorReason,
-			}, sender)
-			// TODO: Disconnect peer
-		}
+		// TODO: handle collator declaration
 	case 1: // AdvertiseCollation
-		// advertiseCollationMessage, ok := collatorProtocolMessageV.(AdvertiseCollation)
-		// if !ok {
-		// 	return false, errors.New("expected message to be advertise collation")
-		// }
-
-		// err := cpvs.handleAdvertisement(common.Hash(advertiseCollationMessage))
-		// if err != nil {
-		// 	return false, fmt.Errorf("handling advertisement: %w", err)
-		// }
-		// TODO:
-		// - tracks advertisements received and the source (peer id) of the advertisement
-
-		// - accept one advertisement per collator per source per relay-parent
-
+		// TODO: handle collation advertisement
 	case 2: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.net.ReportPeer(peerset.ReputationChange{

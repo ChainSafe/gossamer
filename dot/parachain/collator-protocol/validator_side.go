@@ -148,7 +148,6 @@ func (peerData PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool 
 }
 
 func (peerData PeerData) InsertAdvertisement() error {
-
 	// TODO: Make this method real
 	return nil
 }
@@ -203,11 +202,6 @@ type CollationEvent struct {
 	PendingCollation PendingCollation
 }
 
-//	struct PerRelayParent {
-//		prospective_parachains_mode: ProspectiveParachainsMode,
-//		assignment: GroupAssignments,
-//		collations: Collations,
-//	}
 type ProspectiveParachainsMode struct {
 	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
 	isEnabled bool
@@ -257,17 +251,6 @@ type CollatorProtocolValidatorSide struct {
 
 	collationFetchingReqResProtocol *network.RequestResponseProtocol
 
-	// TODO: Check if there are better ways to store this.
-	// Check if this should be stored in storage instead
-	collations map[uint32]map[common.Hash]parachaintypes.Collation
-	// TODO: This will almost certainly change, array is not efficient to search into.
-	// See if this should be stored in storage.
-	adverisements []Advertisement
-
-	pendingCollationFetchingRequests []CollationFetchingRequest
-
-	unfetchedCollations []UnfetchedCollation
-
 	fetchedCollations []parachaintypes.Collation
 	// track all active collators and their data
 	peerData map[peer.ID]PeerData
@@ -276,10 +259,6 @@ type CollatorProtocolValidatorSide struct {
 
 	// Keep track of all pending candidate collations
 	pendingCandidates map[common.Hash]CollationEvent
-
-	// Parachains we're currently assigned to. With async backing enabled
-	// this includes assignments from the implicit view.
-	currentAssignments map[parachaintypes.ParaID]uint
 }
 
 func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID) (peer.ID, bool) {
