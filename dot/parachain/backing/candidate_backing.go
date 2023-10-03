@@ -5,6 +5,7 @@ package backing
 
 import (
 	"context"
+	"fmt"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -13,9 +14,15 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
+var RejectedByProspectiveParachains error = fmt.Errorf("rejected by prospective parachains")
+
 type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
+	perRelayParent      map[common.Hash]perRelayParentState
+}
+
+type perRelayParentState struct {
 }
 
 // ActiveLeavesUpdate is a messages from overseer
@@ -57,6 +64,12 @@ type Second struct {
 type Statement struct {
 	RelayParent         common.Hash
 	SignedFullStatement SignedFullStatementWithPVD
+}
+
+// SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
+type SignedFullStatementWithPVD struct {
+	SignedFullStatement     parachaintypes.UncheckedSignedFullStatement
+	PersistedValidationData *parachaintypes.PersistedValidationData
 }
 
 func New(overseerChan chan<- any) *CandidateBacking {
@@ -113,12 +126,41 @@ func (cb *CandidateBacking) handleSecond() {
 	// TODO: Implement this #3506
 }
 
-func (cb *CandidateBacking) handleStatement() {
+func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement SignedFullStatementWithPVD) error {
 	// TODO: Implement this #3507
+
+	rpState, ok := cb.perRelayParent[relayParent]
+	if !ok {
+		logger.Tracef("Received statement for unknown relay parent %s", relayParent)
+		return nil
+	}
+
+	summery, err := importStatement()
+	if err != nil {
+		if err == RejectedByProspectiveParachains {
+			logger.Debug("Statement rejected by prospective parachains")
+			return nil
+		}
+		return err
+	}
+
+	if err := postImportStatement(); err != nil {
+		return err
+	}
+
+	if summery == nil {
+		return nil
+	}
+
+	return nil
 }
 
-// SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
-type SignedFullStatementWithPVD struct {
-	SignedFullStatement     parachaintypes.UncheckedSignedFullStatement
-	PersistedValidationData *parachaintypes.PersistedValidationData
+func importStatement() (*Summary, error) {
+	// TODO: Implement this
+	return &Summary{}, nil
+}
+
+func postImportStatement() error {
+	// TODO: Implement this
+	return nil
 }
