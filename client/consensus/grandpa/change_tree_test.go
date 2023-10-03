@@ -11,35 +11,35 @@ import (
 
 func TestSwapRemove(t *testing.T) {
 	change1 := &PendingChange[string, uint]{
-		canonHash: "a",
+		CanonHash: "a",
 	}
 
 	change2 := &PendingChange[string, uint]{
-		canonHash: "b",
+		CanonHash: "b",
 	}
 
 	change3 := &PendingChange[string, uint]{
-		canonHash: "b",
+		CanonHash: "c",
 	}
 
-	pendingChangeNode1 := &pendingChangeNode[string, uint]{
-		change: change1,
+	pendingChangeNode1 := &PendingChangeNode[string, uint]{
+		Change: change1,
 	}
 
-	pendingChangeNode2 := &pendingChangeNode[string, uint]{
-		change: change2,
+	pendingChangeNode2 := &PendingChangeNode[string, uint]{
+		Change: change2,
 	}
 
-	pendingChangeNode3 := &pendingChangeNode[string, uint]{
-		change: change3,
+	pendingChangeNode3 := &PendingChangeNode[string, uint]{
+		Change: change3,
 	}
 
-	changeNodes1 := []*pendingChangeNode[string, uint]{
+	changeNodes1 := []*PendingChangeNode[string, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 	}
 
-	changeNodes2 := []*pendingChangeNode[string, uint]{
+	changeNodes2 := []*PendingChangeNode[string, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 		pendingChangeNode3,
@@ -51,23 +51,23 @@ func TestSwapRemove(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		exp  pendingChangeNode[string, uint]
+		exp  PendingChangeNode[string, uint]
 	}{
 		{
-			name: "TwoElemSliceDeletingLastElement",
+			name: "2 elem slice deleting last element",
 			args: args{
 				ct: ChangeTree[string, uint]{
-					roots: changeNodes1,
+					TreeRoots: changeNodes1,
 				},
 				index: 1,
 			},
 			exp: *pendingChangeNode2,
 		},
 		{
-			name: "ThreeElemSliceDeletingFirstElement",
+			name: "3 elem slice deleting first element",
 			args: args{
 				ct: ChangeTree[string, uint]{
-					roots: changeNodes2,
+					TreeRoots: changeNodes2,
 				},
 				index: 0,
 			},
