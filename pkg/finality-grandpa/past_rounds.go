@@ -145,9 +145,6 @@ type roundCommitter[
 	commitTimer   Timer
 	importCommits *wakerChan[Commit[Hash, Number, Signature, ID]]
 	lastCommit    *Commit[Hash, Number, Signature, ID]
-
-	// pollChan is used to signal back to backgroundRound to poll again
-	pollChan chan any
 }
 
 func newRoundCommitter[
@@ -158,7 +155,7 @@ func newRoundCommitter[
 	commitReceiver *wakerChan[Commit[Hash, Number, Signature, ID]],
 ) *roundCommitter[Hash, Number, Signature, ID, E] {
 	return &roundCommitter[Hash, Number, Signature, ID, E]{
-		commitTimer, commitReceiver, nil, make(chan any),
+		commitTimer, commitReceiver, nil,
 	}
 }
 
@@ -251,7 +248,8 @@ func newPastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signat
 // push an old voting round onto this stream.
 func (p *pastRounds[Hash, Number, Signature, ID, E]) Push(env E, round votingRound[Hash, Number, Signature, ID, E]) {
 	roundNumber := round.roundNumber()
-	ch := make(chan Commit[Hash, Number, Signature, ID])
+	// TODO: this is supposed to be an unbounded channel on the producer side.  Use buffered in p.commitSenders
+	ch := make(chan Commit[Hash, Number, Signature, ID], 100)
 	background := backgroundRound[Hash, Number, Signature, ID, E]{
 		inner: round,
 		// this will get updated in a call to pastRounds.UpdateFinalized() on next poll
@@ -335,7 +333,7 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 				if err != nil {
 					return true, nil, err
 				}
-
+				close(p.commitSenders[uint64(number)])
 				delete(p.commitSenders, uint64(number))
 				p.pastRounds = p.pastRounds[1:]
 			case committed[Hash, Number, Signature, ID]:
@@ -346,7 +344,7 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) pollNext(waker *waker) (
 				p.pastRounds = append(p.pastRounds[1:], br)
 
 				log.Debugf(
-					"Committing: round_number = %v, target_number = %v, target_hash = %v\n",
+					"Committing: round_number = %v, target_number = %v, target_hash = %v",
 					number,
 					commit.TargetNumber,
 					commit.TargetHash,

@@ -244,6 +244,9 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 
 	network := NewNetwork()
 
+	commitsOut := make(chan CommunicationOut)
+	commitsIn := network.MakeGlobalComms(commitsOut)
+
 	roundOut := make(chan Message[string, uint32])
 	roundIn := network.MakeRoundComms(1, testID, roundOut)
 
@@ -302,8 +305,6 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 		roundOut <- v
 	}
 
-	commitsOut := make(chan CommunicationOut)
-	commitsIn := network.MakeGlobalComms(commitsOut)
 waitForPrecommit:
 	for {
 		item = <-roundIn
@@ -317,24 +318,22 @@ waitForPrecommit:
 		}
 	}
 
+	// send our commit
 	co := newCommunicationOut(CommunicationOutCommit[string, uint32, Signature, ID](commit))
 	commitsOut <- co
 
-	timer := time.NewTimer(5000 * time.Millisecond)
+	timer := time.NewTimer(500 * time.Millisecond)
 	var commitCount int
 waitForCommits:
 	for {
 		select {
 		case <-commitsIn:
 			commitCount++
-			if commitCount == 2 {
-				break waitForCommits
-			}
 		case <-timer.C:
 			break waitForCommits
 		}
 	}
-	assert.Equal(t, 2, commitCount)
+	assert.Equal(t, 1, commitCount)
 
 	err := voter.Stop()
 	assert.NoError(t, err)

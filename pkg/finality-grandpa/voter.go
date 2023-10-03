@@ -6,6 +6,7 @@ package grandpa
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/tidwall/btree"
 	"golang.org/x/exp/constraints"
@@ -28,6 +29,7 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 }
 
 func (wc *wakerChan[Item]) start() {
+	defer close(wc.out)
 	for item := range wc.in {
 		if wc.waker != nil {
 			wc.waker.wake()
@@ -242,18 +244,13 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 	case <-b.readyCh:
 		defer func() {
 			b.readyCh <- nil
-			// if waker != nil {
-			// 	waker.Wake()
-			// }
-			// b.mtx.Unlock()
+			waker.wake()
 		}()
 
 		for len(b.buffer) > 0 {
 			b.inner <- b.buffer[0]
 			b.buffer = b.buffer[1:]
-			if waker != nil {
-				waker.wake()
-			}
+			waker.wake()
 		}
 
 	default:
@@ -541,7 +538,9 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
-	stopChan chan any
+	stopTimeout time.Duration
+	stopChan    chan any
+	wg          sync.WaitGroup
 }
 
 // NewVoter creates a new `Voter` tracker with given round number and base block.
@@ -611,6 +610,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOut),
 		stopChan:               make(chan any),
+		stopTimeout:            30 * time.Second,
 	}, globalOut
 }
 
@@ -893,6 +893,8 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
+	v.wg.Add(1)
+	defer v.wg.Done()
 	waker := newWaker()
 	for {
 		ready, err := v.poll(waker)
@@ -912,8 +914,18 @@ func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
 
 func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	close(v.stopChan)
-	// TODO: waitgroup to ensure Start() and other goroutines all exit
 	v.globalOut.Close()
+	timeout := time.NewTimer(v.stopTimeout)
+	wgDone := make(chan any)
+	go func() {
+		defer close(wgDone)
+		v.wg.Wait()
+	}()
+	select {
+	case <-timeout.C:
+		return fmt.Errorf("timeout for Voter.Stop()")
+	case <-wgDone:
+	}
 	return nil
 }
 
