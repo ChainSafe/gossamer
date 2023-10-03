@@ -4,6 +4,8 @@
 package wazero_runtime
 
 import (
+	_ "embed"
+
 	"bytes"
 	"encoding/json"
 	"math/big"
@@ -401,6 +403,136 @@ func TestInstance_BabeConfiguration_WestendRuntime_NoAuthorities(t *testing.T) {
 		SecondarySlots:     2,
 	}
 	require.Equal(t, expected, cfg)
+}
+
+func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
+	tests := map[string]struct {
+		setupRuntime  func(t *testing.T) (*Instance, *types.Header)
+		expectedError []byte
+	}{
+		"westend_dev_runtime_should_fail_with_bad_signature": {
+			expectedError: []byte{1, 0, 0xa},
+			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
+				genesisPath := utils.GetWestendDevRawGenesisPath(t)
+				gen := genesisFromRawJSON(t, genesisPath)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
+				require.NoError(t, err)
+
+				// set state to genesis state
+				genState := storage.NewTrieState(&genTrie)
+
+				cfg := Config{
+					Storage: genState,
+					LogLvl:  log.Critical,
+				}
+
+				rt, err := NewRuntimeFromGenesis(cfg)
+				require.NoError(t, err)
+
+				// reset state back to parent state before executing
+				parentState := storage.NewTrieState(&genTrie)
+				rt.SetContextStorage(parentState)
+
+				genesisHeader := &types.Header{
+					Number:    0,
+					StateRoot: genTrie.MustHash(),
+				}
+
+				header := &types.Header{
+					ParentHash: genesisHeader.Hash(),
+					Number:     1,
+					Digest:     types.NewDigest(),
+				}
+
+				return rt, header
+			},
+		},
+		"westend_0912_runtime_should_fail_with_invalid_payment": {
+			expectedError: []byte{1, 0, 1},
+			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
+				genesisPath := utils.GetWestendDevRawGenesisPath(t)
+				gen := genesisFromRawJSON(t, genesisPath)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
+				require.NoError(t, err)
+
+				rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0912)
+				parentState := storage.NewTrieState(&genTrie)
+				rt.SetContextStorage(parentState)
+
+				genesisHeader := &types.Header{
+					Number:    0,
+					StateRoot: genTrie.MustHash(),
+				}
+
+				header := &types.Header{
+					ParentHash: genesisHeader.Hash(),
+					Number:     1,
+					Digest:     types.NewDigest(),
+				}
+
+				return rt, header
+			},
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			instance, header := tt.setupRuntime(t)
+
+			err := instance.InitializeBlock(header)
+			require.NoError(t, err)
+
+			idata := types.NewInherentData()
+			err = idata.SetInherent(types.Timstap0, uint64(5))
+			require.NoError(t, err)
+
+			err = idata.SetInherent(types.Babeslot, uint64(1))
+			require.NoError(t, err)
+
+			ienc, err := idata.Encode()
+			require.NoError(t, err)
+
+			// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
+			inherentExts, err := instance.InherentExtrinsics(ienc)
+			require.NoError(t, err)
+
+			// decode inherent extrinsics
+			cp := make([]byte, len(inherentExts))
+			copy(cp, inherentExts)
+			var inExts [][]byte
+			err = scale.Unmarshal(cp, &inExts)
+			require.NoError(t, err)
+
+			// apply each inherent extrinsic
+			for _, inherent := range inExts {
+				in, err := scale.Marshal(inherent)
+				require.NoError(t, err)
+
+				ret, err := instance.ApplyExtrinsic(in)
+				require.NoError(t, err)
+				require.Equal(t, ret, []byte{0, 0})
+			}
+
+			keyring, err := signature.KeyringPairFromSecret(
+				"0x00000000000000000000000000000000000000000000000000000"+
+					"00000000000000000000000000000000000000000000000000000"+
+					"0000000000000000000000", 42)
+			require.NoError(t, err)
+
+			extHex := runtime.NewTestExtrinsic(t, instance, header.ParentHash, header.ParentHash,
+				0, keyring, "System.remark", []byte{0xab, 0xcd})
+
+			res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
+			require.NoError(t, err)
+
+			// should fail with transaction validity error: invalid payment for runtime 0.9.12
+			// should fail with transaction validity error: bad signature for runtime version greater than 0.9.12
+			require.Equal(t, tt.expectedError, res)
+		})
+	}
+
 }
 
 func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T) {
