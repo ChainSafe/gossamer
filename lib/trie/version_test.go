@@ -170,55 +170,13 @@ func Test_ShouldHashValue(t *testing.T) {
 	}
 }
 
-func Test_Version_MaxInlineValueSize(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		version      Version
-		maxInline    int
-		panicMessage string
-	}{
-		"v0": {
-			version:   V0,
-			maxInline: NoMaxValueSize,
-		},
-		"v1": {
-			version:   V1,
-			maxInline: V1MaxValueSize,
-		},
-		"invalid": {
-			version:      Version(99),
-			panicMessage: "unknown version 99",
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			if testCase.panicMessage != "" {
-				assert.PanicsWithValue(t, testCase.panicMessage, func() {
-					_ = testCase.version.MaxInlineValueSize()
-				})
-				return
-			}
-
-			maxInline := testCase.version.MaxInlineValueSize()
-			assert.Equal(t, testCase.maxInline, maxInline)
-		})
-	}
-}
-
 func Test_Version_Root(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		version      Version
-		input        Entries
-		expected     common.Hash
-		err          error
-		panicMessage string
+		version  Version
+		input    Entries
+		expected common.Hash
 	}{
 		"v0": {
 			version: V0,
@@ -244,10 +202,6 @@ func Test_Version_Root(t *testing.T) {
 				0x5f, 0x78, 0x99, 0x6e, 0xc0, 0x6a, 0x6a, 0x96, 0x5d, 0x50, 0x97, 0xa2, 0x91, 0x1c, 0x29,
 			},
 		},
-		"invalid": {
-			version:      Version(99),
-			panicMessage: "unknown version 99",
-		},
 	}
 
 	for name, testCase := range testCases {
@@ -255,20 +209,9 @@ func Test_Version_Root(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			if testCase.panicMessage != "" {
-				assert.PanicsWithValue(t, testCase.panicMessage, func() {
-					_ = testCase.version.MaxInlineValueSize()
-				})
-				return
-			}
-
 			maxInline, err := testCase.version.Root(testCase.input)
-			if testCase.err != nil {
-				assert.ErrorIs(t, err, testCase.err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, testCase.expected, maxInline)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expected, maxInline)
 		})
 	}
 }

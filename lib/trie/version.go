@@ -47,19 +47,8 @@ func (v Version) String() string {
 	}
 }
 
-func (v Version) MaxInlineValueSize() int {
-	switch v {
-	case V0:
-		return NoMaxValueSize
-	case V1:
-		return V1MaxValueSize
-	default:
-		panic(fmt.Sprintf("unknown version %d", v))
-	}
-}
-
 func (v Version) ShouldHashValue(value []byte) bool {
-	return v.MaxInlineValueSize() != NoMaxValueSize && len(value) > v.MaxInlineValueSize()
+	return v == V1 && len(value) > V1MaxValueSize
 }
 
 func (v Version) Root(entries Entries) (common.Hash, error) {
