@@ -54,10 +54,6 @@ func (cpvs CollatorProtocolValidatorSide) Run(ctx context.Context, OverseerToSub
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
 
 		case unfetchedCollation := <-cpvs.unfetchedCollation:
-			// process existing list of collation fetching requests and apply reputation changes based on that
-			// If our request doesn't get processed in a fixed amount of time we should try getting collations
-			// from a different collator.
-
 			// TODO: If we can't get the collation from given collator within MAX_UNSHARED_DOWNLOAD_TIME,
 			// we will start another one from the next collator.
 
@@ -200,45 +196,6 @@ type Network interface {
 type CollationEvent struct {
 	CollatorId       parachaintypes.CollatorID
 	PendingCollation PendingCollation
-}
-
-type ProspectiveParachainsMode struct {
-	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
-	isEnabled bool
-
-	// these values would be present only if `isEnabled` is true
-
-	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
-	// Restricts nodes from building arbitrary long chains and spamming other validators.
-	maxCandidateDepth uint
-
-	// How many ancestors of a relay parent are allowed to build candidates on top of.
-	allowedAncestryLen uint
-}
-
-type PerRelayParent struct {
-	prospectiveParachainMode ProspectiveParachainsMode
-	assignment               *parachaintypes.ParaID
-	collations               Collations
-}
-
-type Collations struct {
-	// What is the current status in regards to a collation for this relay parent?
-	status CollationStatus
-	// how many collations have been seconded
-	secondedCount uint
-}
-
-// IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
-func (collations Collations) IsSecondedLimitReached(relayParentMode ProspectiveParachainsMode) bool {
-	var secondedLimit uint
-	if relayParentMode.isEnabled {
-		secondedLimit = relayParentMode.maxCandidateDepth + 1
-	} else {
-		secondedLimit = 1
-	}
-
-	return collations.secondedCount >= secondedLimit
 }
 
 type CollatorProtocolValidatorSide struct {
