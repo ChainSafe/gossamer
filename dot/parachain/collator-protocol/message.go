@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	ErrProtocolMismatch     = errors.New("An advertisement format doesn't match the relay parent")
-	ErrSecondedLimitReached = errors.New("Para reached a limit of seconded candidates for this relay parent.")
+	ErrProtocolMismatch     = errors.New("an advertisement format doesn't match the relay parent")
+	ErrSecondedLimitReached = errors.New("para reached a limit of seconded candidates for this relay parent")
 )
 
 const LEGACY_COLLATION_PROTOCOL_V1 = "/polkadot/collation/1"
@@ -183,75 +183,6 @@ type ProspectiveCandidate struct {
 	ParentHeadDataHash common.Hash
 }
 
-// BlockedAdvertisement is vstaging advertisement that was rejected by the backing
-// subsystem. Validator may fetch it later if its fragment
-// membership gets recognized before relay parent goes out of view.
-type BlockedAdvertisement struct {
-	// peer that advertised the collation
-	peerID               peer.ID
-	collatorID           parachaintypes.CollatorID
-	candidateRelayParent common.Hash
-	candidateHash        parachaintypes.CandidateHash
-}
-
-func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, peerID peer.ID, prospectiveCandidate *ProspectiveCandidate) error {
-	// TODO:
-	// - tracks advertisements received and the source (peer id) of the advertisement
-
-	// - accept one advertisement per collator per source per relay-parent
-	perRelayParent, ok := cpvs.perRelayParent[relayParent]
-	if !ok {
-		return errors.New("relay parent is unknown")
-	}
-
-	peerData, ok := cpvs.peerData[peerID]
-	if !ok {
-		return errors.New("peer is unknown")
-	}
-
-	if peerData.state.PeerState != Collating {
-		return errors.New("peer has not declared its para id")
-	}
-
-	collatorParaID := peerData.state.CollatingPeerState.ParaID
-
-	if perRelayParent.assignment == nil || *perRelayParent.assignment != collatorParaID {
-		return errors.New("we're assigned to a different para at the given relay parent.")
-	}
-
-	if perRelayParent.prospectiveParachainMode.isEnabled && prospectiveCandidate == nil {
-		return ErrProtocolMismatch
-	}
-
-	err := peerData.InsertAdvertisement()
-	if err != nil {
-		return fmt.Errorf("inserting advertisement: %w", err)
-	}
-
-	if perRelayParent.collations.IsSecondedLimitReached(perRelayParent.prospectiveParachainMode) {
-		return ErrSecondedLimitReached
-	}
-
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || canSecond()
-
-	if !isSecondingAllowed {
-		logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
-			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
-
-		cpvs.BlockedAdvertisements = append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
-			peerID:               peerID,
-			collatorID:           peerData.state.CollatingPeerState.CollatorID,
-			candidateRelayParent: relayParent,
-			candidateHash:        prospectiveCandidate.CandidateHash,
-		})
-		return nil
-	}
-
-	cpvs.enqueueCollation(perRelayParent.collations)
-
-	return nil
-}
-
 type CollationStatus int
 
 const (
@@ -264,20 +195,6 @@ const (
 	// We have seconded a collation.
 	Seconded
 )
-
-func (cpvs CollatorProtocolValidatorSide) enqueueCollation(collations Collations) {
-	switch collations.status {
-	case Fetching, WaitingOnValidation:
-
-	}
-
-}
-
-func canSecond() bool {
-	// TODO
-	// https://github.com/paritytech/polkadot-sdk/blob/6079b6dd3aaba56ef257111fda74a57a800f16d0/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L955
-	return false
-}
 
 func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(sender peer.ID, msg network.NotificationsMessage) (bool, error) {
 	// TODO: Add things
