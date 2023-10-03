@@ -27,7 +27,7 @@ jobs:
         with:
           all_but_latest: true
 
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v5
         with:
           load: true
           target: builder

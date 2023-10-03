@@ -21,7 +21,7 @@ type Storage interface {
 	DeleteChild(keyToChild []byte) (err error)
 	DeleteChildLimit(keyToChild []byte, limit *[]byte) (
 		deleted uint32, allDeleted bool, err error)
-	ClearChildStorage(keyToChild, key []byte) error
+	ClearChildStorage(keyToChild, key []byte, version trie.Version) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error)

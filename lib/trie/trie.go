@@ -147,6 +147,8 @@ func (t *Trie) registerDeletedNodeHash(node *Node,
 
 		// If this node contains a hashed value we have to remove the value node from the db too
 		if node.IsHashedValue {
+			// TODO: fix this! we could have an issue since we are using the same shared value node for N hashed nodes
+			// One way to fix it is having a reference counter for each value node
 			pendingDeltas.RecordDeleted(common.NewHash(node.StorageValue))
 		}
 	}
@@ -1393,10 +1395,11 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
 			return &Node{
-				PartialKey:   newLeafKey,
-				StorageValue: child.StorageValue,
-				Dirty:        true,
-				Generation:   branch.Generation,
+				PartialKey:    newLeafKey,
+				StorageValue:  child.StorageValue,
+				IsHashedValue: child.IsHashedValue,
+				Dirty:         true,
+				Generation:    branch.Generation,
 			}, branchChildMerged, nil
 		}
 

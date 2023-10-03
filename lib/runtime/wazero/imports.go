@@ -4,6 +4,7 @@
 package wazero_runtime
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -32,7 +33,9 @@ var (
 		log.AddContext("module", "wazero"),
 	)
 
-	noneEncoded []byte = []byte{0x00}
+	emptyByteVectorEncoded []byte = scale.MustMarshal([]byte{})
+	noneEncoded            []byte = []byte{0x00}
+	allZeroesBytes                = [32]byte{}
 )
 
 const (
@@ -710,6 +713,18 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("nil runtime context")
 	}
 
+	pubKeyBytes, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	// prevents Polkadot zero-address crash using
+	// ext_crypto_sr25519_verify_version_1
+	// https://pacna.org/dot-zero-addr/
+	if bytes.Equal(pubKeyBytes, allZeroesBytes[:]) {
+		return ext_crypto_sr25519_verify_version_1(ctx, m, sig, msg, key)
+	}
+
 	sigVerifier := rtCtx.SigVerifier
 
 	message := read(m, msg)
@@ -718,10 +733,6 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("read overflow")
 	}
 
-	pubKeyBytes, ok := m.Memory().Read(key, 32)
-	if !ok {
-		panic("read overflow")
-	}
 	pub, err := sr25519.NewPublicKey(pubKeyBytes)
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
@@ -769,51 +780,7 @@ func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module)
 }
 
 func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
-	if rtCtx == nil {
-		panic("nil runtime context")
-	}
-
-	data := read(m, dataSpan)
-
-	t := trie.NewEmptyTrie()
-
-	type kv struct {
-		Key, Value []byte
-	}
-
-	// this function is expecting an array of (key, value) tuples
-	var kvs []kv
-	if err := scale.Unmarshal(data, &kvs); err != nil {
-		logger.Errorf("failed scale decoding data: %s", err)
-		return 0
-	}
-
-	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value, trie.V0)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				kv.Key, kv.Value, err)
-			return 0
-		}
-	}
-
-	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
-	if err != nil {
-		logger.Errorf("failed allocating: %s", err)
-		return 0
-	}
-
-	hash, err := t.Hash()
-	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return 0
-	}
-
-	logger.Debugf("root hash is %s", hash)
-	m.Memory().Write(ptr, hash[:])
-	return ptr
+	return ext_trie_blake2_256_root_version_2(ctx, m, dataSpan, 0)
 }
 
 func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
@@ -831,38 +798,23 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 
 	data := read(m, dataSpan)
 
-	t := trie.NewEmptyTrie()
-
-	type kv struct {
-		Key, Value []byte
-	}
-
 	// this function is expecting an array of (key, value) tuples
-	var kvs []kv
-	if err := scale.Unmarshal(data, &kvs); err != nil {
+	var entries trie.Entries
+	if err := scale.Unmarshal(data, &entries); err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
 	}
 
-	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value, stateVersion)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				kv.Key, kv.Value, err)
-			return 0
-		}
+	hash, err := stateVersion.Root(entries)
+	if err != nil {
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
+		return 0
 	}
 
 	// allocate memory for value and copy value to memory
 	ptr, err := rtCtx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
-		return 0
-	}
-
-	hash, err := t.Hash()
-	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
 	}
 
@@ -872,55 +824,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 }
 
 func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
-	if rtCtx == nil {
-		panic("nil runtime context")
-	}
-
-	data := read(m, dataSpan)
-
-	t := trie.NewEmptyTrie()
-	var values [][]byte
-	err := scale.Unmarshal(data, &values)
-	if err != nil {
-		logger.Errorf("failed scale decoding data: %s", err)
-		return 0
-	}
-
-	for i, value := range values {
-		key, err := scale.Marshal(big.NewInt(int64(i)))
-		if err != nil {
-			logger.Errorf("failed scale encoding value index %d: %s", i, err)
-			return 0
-		}
-		logger.Tracef(
-			"put key=0x%x and value=0x%x",
-			key, value)
-
-		err = t.Put(key, value, trie.V0)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				key, value, err)
-			return 0
-		}
-	}
-
-	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
-	if err != nil {
-		logger.Errorf("failed allocating: %s", err)
-		return 0
-	}
-
-	hash, err := t.Hash()
-	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return 0
-	}
-
-	logger.Debugf("root hash is %s", hash)
-	m.Memory().Write(ptr, hash[:])
-	return ptr
+	return ext_trie_blake2_256_ordered_root_version_2(ctx, m, dataSpan, 0)
 }
 
 func ext_trie_blake2_256_ordered_root_version_2(
@@ -939,7 +843,6 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	t := trie.NewEmptyTrie()
 	var values [][]byte
 	err = scale.Unmarshal(data, &values)
 	if err != nil {
@@ -947,22 +850,16 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
+	var entries trie.Entries
+
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
 			return 0
 		}
-		logger.Tracef(
-			"put key=0x%x and value=0x%x",
-			key, value)
 
-		err = t.Put(key, value, stateVersion)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				key, value, err)
-			return 0
-		}
+		entries = append(entries, trie.Entry{Key: key, Value: value})
 	}
 
 	// allocate memory for value and copy value to memory
@@ -972,7 +869,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	hash, err := t.Hash()
+	hash, err := stateVersion.Root(entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -995,7 +892,7 @@ func ext_trie_blake2_256_verify_proof_version_1(
 	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return uint32(0)
+		return 0
 	}
 
 	key := read(m, keySpan)
@@ -1034,7 +931,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 	err = scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return uint32(0)
+		return 0
 	}
 
 	key := read(m, keySpan)
@@ -1178,7 +1075,7 @@ func ext_default_child_storage_clear_version_1(ctx context.Context, m api.Module
 	keyToChild := read(m, childStorageKey)
 	key := read(m, keySpan)
 
-	err := storage.ClearChildStorage(keyToChild, key)
+	err := storage.ClearChildStorage(keyToChild, key, trie.V0)
 	if err != nil {
 		logger.Errorf("failed to clear child storage: %s", err)
 	}
@@ -1371,13 +1268,13 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 	child, err := storage.GetChild(read(m, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to retrieve child: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
 	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 	childRootSlice := childRoot[:]
 
@@ -2367,7 +2264,7 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	_, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
-		return 0
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
 	root, err := storage.Root()
