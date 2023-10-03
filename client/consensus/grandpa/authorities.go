@@ -209,15 +209,14 @@ func invalidAuthorityList(authorities []Authority) bool { //skipcq:  RVV-B0001
 }
 
 // NewGenesisAuthoritySet Get a genesis set with given authorities.
-func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](
-	initial []Authority) (authSet *AuthoritySet[H, N], err error) {
-	return NewAuthoritySet[H, N](
-		initial,
-		0,
-		NewChangeTree[H, N](),
-		make([]PendingChange[H, N], 0),
-		make(AuthoritySetChanges[N], 0),
-	)
+func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](initial []Authority) (authSet *AuthoritySet[H, N], err error) {
+	if invalidAuthorityList(initial) {
+		return nil, errInvalidAuthorityList
+	}
+
+	return &AuthoritySet[H, N]{
+		CurrentAuthorities: initial,
+	}, nil
 }
 
 // NewAuthoritySet creates a new AuthoritySet
