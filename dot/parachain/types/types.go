@@ -530,3 +530,9 @@ type Collation struct {
 	CandidateReceipt CandidateReceipt `scale:"1"`
 	PoV              PoV              `scale:"2"`
 }
+
+// ValidatorSignature represents the signature with which parachain validators sign blocks.
+type ValidatorSignature Signature
+
+// Signature represents a cryptographic signature.
+type Signature [64]byte

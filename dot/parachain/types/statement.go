@@ -69,9 +69,3 @@ type UncheckedSignedFullStatement struct {
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`
 }
-
-// ValidatorSignature represents the signature with which parachain validators sign blocks.
-type ValidatorSignature Signature
-
-// Signature represents a cryptographic signature.
-type Signature [64]byte
