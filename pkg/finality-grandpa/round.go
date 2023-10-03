@@ -108,6 +108,7 @@ func (vt *voteTracker[ID, Vote, Signature]) addVote(
 	vm, ok := vt.votes.Get(id)
 	if !ok {
 		// TODO: figure out saturating_add stuff
+		// https://github.com/ChainSafe/gossamer/issues/3511
 		vt.currentWeight = vt.currentWeight + VoteWeight(weight)
 		multiplicity := newVoteMultiplicity[Vote, Signature](
 			single[Vote, Signature]{vote, signature},

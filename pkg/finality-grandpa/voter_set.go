@@ -174,9 +174,12 @@ func (vi VoterInfo) Weight() VoterWeight {
 // Compute the threshold weight given the total voting weight.
 func threshold(totalWeight VoterWeight) VoterWeight { //skipcq: RVV-B0001
 	// TODO: implement saturating sub
+	// https://github.com/ChainSafe/gossamer/issues/3511
 	// let faulty = total_weight.get().saturating_sub(1) / 3;
 	var faulty = (totalWeight - 1) / 3
-	// TODO: check that this computation is NonZero
-	// VoterWeight::new(total_weight.get() - faulty).expect("subtrahend > minuend; qed")
+	vw := totalWeight - faulty
+	if vw == 0 {
+		panic("subtrahend > minuend; qed")
+	}
 	return totalWeight - faulty
 }

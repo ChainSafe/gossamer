@@ -132,7 +132,6 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) append(
 	}
 
 	if ancestorIndex == nil {
-		// TODO: change error message, copied from rust package
 		panic(fmt.Errorf("base is kept; chain returns ancestry only if the block is a descendent of base;"))
 	}
 
@@ -176,7 +175,6 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 	for _, descendant := range descendants {
 		entry, ok := vg.entries.Get(descendant)
 		if !ok {
-			// TODO: update this panic msg, copied from rust
 			panic("this function only invoked with keys of vote-nodes; qed")
 		}
 
@@ -401,7 +399,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint(
 	descendantBlocks := make([]hashvote[Hash, voteNode, Vote], 0)
 	hashes := []Hash{nodeKey}
 
-	// TODO: for long ranges of blocks this could get inefficient
+	// TODO: for long ranges of blocks this could get inefficient (copied from rust code)
 	var offset Number
 	for {
 		offset = offset + 1
@@ -668,7 +666,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) AdjustBase(ancestryProof []Ha
 	}
 	newHash := ancestryProof[len(ancestryProof)-1]
 
-	// not a valid ancestry proof. TODO: error?
+	// not a valid ancestry proof. TODO: error? (TODO copied from rust code)
 	if len(ancestryProof) > int(vg.baseNumber) {
 		return
 	}

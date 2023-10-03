@@ -190,7 +190,7 @@ loop:
 		select {
 		case commit, ok := <-rc.importCommits.channel():
 			if !ok {
-				panic("TODO: handle channel closure")
+				break loop
 			}
 			imported, err := rc.importCommit(votingRound, commit)
 			if err != nil {
@@ -200,7 +200,6 @@ loop:
 				log.Trace("Ignoring invalid commit")
 			}
 		default:
-			// TODO: delay a little bit?
 			break loop
 		}
 	}
@@ -249,6 +248,7 @@ func newPastRounds[Hash constraints.Ordered, Number constraints.Unsigned, Signat
 func (p *pastRounds[Hash, Number, Signature, ID, E]) Push(env E, round votingRound[Hash, Number, Signature, ID, E]) {
 	roundNumber := round.roundNumber()
 	// TODO: this is supposed to be an unbounded channel on the producer side.  Use buffered in p.commitSenders
+	// https://github.com/ChainSafe/gossamer/issues/3510
 	ch := make(chan Commit[Hash, Number, Signature, ID], 100)
 	background := backgroundRound[Hash, Number, Signature, ID, E]{
 		inner: round,
