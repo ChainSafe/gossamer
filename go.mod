@@ -37,6 +37,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
 	github.com/tetratelabs/wazero v1.1.0
+	github.com/tidwall/btree v1.7.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
