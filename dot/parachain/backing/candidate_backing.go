@@ -10,19 +10,78 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
-var RejectedByProspectiveParachains error = fmt.Errorf("rejected by prospective parachains")
+var ErrRejectedByProspectiveParachains error = fmt.Errorf("rejected by prospective parachains")
 
 type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	perRelayParent      map[common.Hash]perRelayParentState
+	perCandidate        map[parachaintypes.CandidateHash]perCandidateState
+}
+
+type perCandidateState struct {
+	persistedValidationData parachaintypes.PersistedValidationData
+	secondedLocally         bool
+	paraID                  parachaintypes.ParaID
+	relayParent             common.Hash
 }
 
 type perRelayParentState struct {
+	// The `ParaId` assigned to the local validator at this relay parent.
+	Assignment parachaintypes.ParaID
+	// The table of candidates and statements under this relay-parent.
+	Table Table
+	// The table context, including groups.
+	TableContext TableContext
+	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
+	fallbacks map[parachaintypes.CandidateHash]AttestingData
+	// These candidates are undergoing validation in the background.
+	AwaitingValidation map[parachaintypes.CandidateHash]bool
+}
+
+// In case a backing validator does not provide a PoV, we need to retry with other backing
+// validators.
+//
+// This is the data needed to accomplish this. Basically all the data needed for spawning a
+// validation job and a list of backing validators, we can try.
+type AttestingData struct {
+	// The candidate to attest.
+	candidate parachaintypes.CandidateReceipt
+	// Hash of the PoV we need to fetch.
+	povHash common.Hash
+	// Validator we are currently trying to get the PoV from.
+	fromValidator parachaintypes.ValidatorIndex
+	// Other backing validators we can try in case `from_validator` failed.
+	backing []parachaintypes.ValidatorIndex
+}
+
+type TableContext struct {
+	validator  *Validator
+	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
+	validators []parachaintypes.ValidatorID
+}
+
+// Local validator information
+//
+// It can be created if the local node is a validator in the context of a particular
+// relay chain block.
+type Validator struct {
+	signing_context SigningContext
+	key             parachaintypes.ValidatorID
+	index           parachaintypes.ValidatorIndex
+}
+
+// A type returned by runtime with current session index and a parent hash.
+type SigningContext struct {
+	/// Current session index.
+	SessionIndex parachaintypes.SessionIndex
+	/// Hash of the parent.
+	ParentHash common.Hash
 }
 
 // ActiveLeavesUpdate is a messages from overseer
@@ -93,7 +152,7 @@ func (cb *CandidateBacking) processMessages() {
 	for msg := range cb.OverseerToSubSystem {
 		// process these received messages by referencing
 		// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
-		switch msg.(type) {
+		switch msg := msg.(type) {
 		case ActiveLeavesUpdate:
 			cb.handleActiveLeavesUpdate()
 		case GetBackedCandidates:
@@ -103,7 +162,7 @@ func (cb *CandidateBacking) processMessages() {
 		case Second:
 			cb.handleSecond()
 		case Statement:
-			cb.handleStatement()
+			cb.handleStatement(msg.RelayParent, msg.SignedFullStatement)
 		default:
 			logger.Error("unknown message type")
 		}
@@ -137,7 +196,7 @@ func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement S
 
 	summery, err := importStatement()
 	if err != nil {
-		if err == RejectedByProspectiveParachains {
+		if err == ErrRejectedByProspectiveParachains {
 			logger.Debug("Statement rejected by prospective parachains")
 			return nil
 		}
@@ -148,8 +207,65 @@ func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement S
 		return err
 	}
 
-	if summery == nil {
+	if summery == nil || summery.GroupID != uint32(rpState.Assignment) {
 		return nil
+	}
+
+	statementVDT, err := statement.SignedFullStatement.Payload.Value()
+	if err != nil {
+		return fmt.Errorf("getting statementVDT value: %w", err)
+	}
+
+	var attestingData AttestingData
+	switch statementVDT.Index() {
+	case 1: // Seconded
+		commitedCandidateReceipt, err := rpState.Table.getCandidate(summery.Candidate)
+		if err != nil {
+			return fmt.Errorf("getting candidate: %w", err)
+		}
+
+		candidateReceipt := parachaintypes.CandidateReceipt{
+			Descriptor:      commitedCandidateReceipt.Descriptor,
+			CommitmentsHash: common.MustBlake2bHash(scale.MustMarshal(commitedCandidateReceipt.Commitments)),
+		}
+
+		attestingData = AttestingData{
+			candidate:     candidateReceipt,
+			povHash:       statementVDT.(parachaintypes.Seconded).Descriptor.PovHash,
+			fromValidator: statement.SignedFullStatement.ValidatorIndex,
+			backing:       []parachaintypes.ValidatorIndex{},
+		}
+
+		rpState.fallbacks[summery.Candidate] = attestingData
+
+	case 2: // Valid
+		attesting, ok := rpState.fallbacks[summery.Candidate]
+		if !ok {
+			return nil
+		}
+
+		ourIndex := rpState.TableContext.validator.index
+		if statement.SignedFullStatement.ValidatorIndex == ourIndex {
+			return nil
+		}
+
+		if rpState.AwaitingValidation[summery.Candidate] {
+			// Job already running
+			attesting.backing = append(attesting.backing, statement.SignedFullStatement.ValidatorIndex)
+			return nil
+		}
+		// No job, so start another with current validator:
+		attesting.fromValidator = statement.SignedFullStatement.ValidatorIndex
+		attestingData = attesting
+
+	default:
+		return fmt.Errorf("invalid statementVDT index: %d", statementVDT.Index())
+	}
+
+	if pc, ok := cb.perCandidate[summery.Candidate]; ok {
+		if err := kickOffValidationWork(pc.persistedValidationData); err != nil {
+			return fmt.Errorf("validating candidate: %w", err)
+		}
 	}
 
 	return nil
@@ -161,6 +277,11 @@ func importStatement() (*Summary, error) {
 }
 
 func postImportStatement() error {
+	// TODO: Implement this
+	return nil
+}
+
+func kickOffValidationWork(parachaintypes.PersistedValidationData) error {
 	// TODO: Implement this
 	return nil
 }

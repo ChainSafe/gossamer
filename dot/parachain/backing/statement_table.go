@@ -2,6 +2,10 @@ package backing
 
 import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
+type Table interface {
+	getCandidate(parachaintypes.CandidateHash) (*parachaintypes.CommittedCandidateReceipt, error)
+}
+
 // A summary of import of a statement.
 type Summary struct {
 	// The digest of the candidate referenced.
