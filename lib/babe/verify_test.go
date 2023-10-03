@@ -546,7 +546,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	// Case 0: First element not preruntime digest
 	header0 := newTestHeader(t, testInvalidSeal, testInvalidSeal)
 
-	// Case 1: last element not seal
+	// Case 1: Last element not seal
 	header1 := newTestHeader(t, testInvalidPreRuntimeDigest, testInvalidPreRuntimeDigest)
 
 	// Case 2: Fail to verify preruntime digest
