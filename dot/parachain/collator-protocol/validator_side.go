@@ -303,9 +303,3 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 
 	return nil
 }
-
-type Advertisement struct {
-	ParaID      uint32
-	Collator    parachaintypes.CollatorID
-	RelayParent common.Hash
-}
