@@ -172,7 +172,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}
 	statementDistributionStatement.Set(Statement{
 		Hash: hashA,
-		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDT,
 			ValidatorIndex: 5,
 			Signature:      validatorSignature,

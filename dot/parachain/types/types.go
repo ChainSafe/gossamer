@@ -497,10 +497,28 @@ func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
 	return OccupiedCoreAssumption(vdt)
 }
 
+// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
+type CandidateHash struct {
+	Value common.Hash `scale:"1"`
+}
+
 // PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
 // It contains the necessary data for the parachain specific state transition logic.
 type PoV struct {
 	BlockData BlockData `scale:"1"`
+}
+
+// Index returns the index of varying data type
+func (PoV) Index() uint {
+	return 0
+}
+
+// NoSuchPoV indicates that the requested PoV was not found in the store.
+type NoSuchPoV struct{}
+
+// Index returns the index of varying data type
+func (NoSuchPoV) Index() uint {
+	return 1
 }
 
 // BlockData represents parachain block data.

@@ -26,7 +26,7 @@ type PoVFetchingResponse scale.VaryingDataType
 
 // NewPoVFetchingResponse returns a new PoV fetching response varying data type
 func NewPoVFetchingResponse() PoVFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(PoVVDT{}, NoSuchPoVVDT{})
+	vdt := scale.MustNewVaryingDataType(parachaintypes.PoV{}, parachaintypes.NoSuchPoV{})
 	return PoVFetchingResponse(vdt)
 }
 
@@ -47,21 +47,6 @@ func (p *PoVFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error
 	return vdt.Value()
 }
 
-type PoVVDT parachaintypes.PoV
-
-// Index returns the index of varying data type
-func (PoVVDT) Index() uint {
-	return 0
-}
-
-// NoSuchPoVVDT indicates that the requested PoV was not found in the store.
-type NoSuchPoVVDT struct{}
-
-// Index returns the index of varying data type
-func (NoSuchPoVVDT) Index() uint {
-	return 1
-}
-
 // Encode returns the SCALE encoding of the PoVFetchingResponse
 func (p *PoVFetchingResponse) Encode() ([]byte, error) {
 	return scale.Marshal(*p)
@@ -79,7 +64,7 @@ func (p *PoVFetchingResponse) String() string {
 	}
 
 	v, _ := p.Value()
-	pov, ok := v.(PoVVDT)
+	pov, ok := v.(parachaintypes.PoV)
 	if !ok {
 		return "PoVFetchingResponse=NoSuchPoV"
 	}

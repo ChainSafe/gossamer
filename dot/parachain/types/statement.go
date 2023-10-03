@@ -6,7 +6,6 @@ package parachaintypes
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -56,11 +55,6 @@ type Valid CandidateHash
 // Index returns the index of varying data type
 func (Valid) Index() uint {
 	return 2
-}
-
-// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
-type CandidateHash struct {
-	Value common.Hash `scale:"1"`
 }
 
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.

@@ -96,7 +96,7 @@ func TestStatementVDT(t *testing.T) {
 		},
 		{
 			name:          "Valid",
-			enumValue:     Valid{hash5},
+			enumValue:     Valid{Value: hash5},
 			encodingValue: common.MustHexToBytes("0x020505050505050505050505050505050505050505050505050505050505050505"),
 			expectedErr:   nil,
 		},

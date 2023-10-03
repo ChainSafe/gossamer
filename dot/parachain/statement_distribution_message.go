@@ -56,8 +56,8 @@ func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, er
 
 // Statement represents a signed full statement under a given relay-parent.
 type Statement struct {
-	Hash                         common.Hash                  `scale:"1"`
-	UncheckedSignedFullStatement UncheckedSignedFullStatement `scale:"2"`
+	Hash                         common.Hash                                 `scale:"1"`
+	UncheckedSignedFullStatement parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
 
 // Index returns the index of varying data type
@@ -75,19 +75,6 @@ type LargePayload StatementMetadata
 // Index returns the index of varying data type
 func (LargePayload) Index() uint {
 	return 1
-}
-
-// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
-type UncheckedSignedFullStatement struct {
-	// The payload is part of the signed data. The rest is the signing context,
-	// which is known both at signing and at validation.
-	Payload parachaintypes.StatementVDT `scale:"1"`
-
-	// The index of the validator signing this statement.
-	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
-
-	// The signature by the validator of the signed payload.
-	Signature parachaintypes.ValidatorSignature `scale:"3"`
 }
 
 // StatementMetadata represents the data that makes a statement unique.

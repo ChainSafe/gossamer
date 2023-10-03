@@ -85,7 +85,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	signedFullStatementWithValid := Statement{
 		Hash: hash5,
-		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDTWithValid,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
@@ -94,7 +94,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	signedFullStatementWithSeconded := Statement{
 		Hash: hash5,
-		UncheckedSignedFullStatement: UncheckedSignedFullStatement{
+		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDTWithSeconded,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
