@@ -119,11 +119,12 @@ func newVotingRound[
 	}
 
 	return votingRound[Hash, Number, Signature, ID, E]{
-		votes:             votes,
-		voting:            voting,
-		incoming:          newWakerChan(roundData.Incoming),
-		outgoing:          newBuffered(outgoing),
-		state:             newState[Timer, hashBestChain[Hash, Number]](stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer}),
+		votes:    votes,
+		voting:   voting,
+		incoming: newWakerChan(roundData.Incoming),
+		outgoing: newBuffered(outgoing),
+		state: newState[Timer, hashBestChain[Hash, Number]](
+			stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer}),
 		bridgedRoundState: nil,
 		primaryBlock:      nil,
 		bestFinalized:     nil,
