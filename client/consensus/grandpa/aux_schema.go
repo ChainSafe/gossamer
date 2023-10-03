@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/client/api"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -18,7 +19,8 @@ var (
 	authoritySetKey   = []byte("grandpa_voters")
 	bestJustification = []byte("grandpa_best_justification") //nolint
 
-	errValueNotFound = errors.New("value not found")
+	errJustificationNotFound = errors.New("justification not found")
+	errValueNotFound         = errors.New("value not found")
 )
 
 type writeAux func(insertions []api.KeyValue) error
@@ -195,15 +197,39 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 // We always keep around the justification for the best finalized block and overwrite it
 // as we finalize new blocks, this makes sure that we don't store useless justifications
 // but can always prove finality of the latest block.
-func UpdateBestJustification() {
-	// TODO impl when we have justification logic
-	panic("impl")
+func UpdateBestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](justification Justification[H, N, S, ID, Header], write writeAux) error {
+	encodedJustificaiton, err := scale.Marshal(justification)
+	if err != nil {
+		return fmt.Errorf("marshaling: %w", err)
+	}
+
+	insert := []api.KeyValue{
+		{bestJustification, encodedJustificaiton},
+	}
+	err = write(insert)
+	if err != nil {
+		return fmt.Errorf("inserting justification: %w", err)
+	}
+	return nil
 }
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
-func BestJustification() {
-	// TODO impl when we have justification logic
-	panic("impl")
+func BestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](store AuxStore) (*Justification[H, N, S, ID, Header], error) {
+	encodedJustification, err := store.Get(bestJustification)
+	if err != nil {
+		return nil, err
+	}
+
+	if encodedJustification == nil {
+		return nil, fmt.Errorf("%w", errJustificationNotFound)
+	}
+
+	justification := Justification[H, N, S, ID, Header]{}
+	err = scale.Unmarshal(*encodedJustification, &justification)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+	return &justification, nil
 }
 
 // WriteVoterSetState Write voter set state.

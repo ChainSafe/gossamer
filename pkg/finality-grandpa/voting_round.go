@@ -396,7 +396,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) handleVote(vote SignedMes
 		return nil
 	}
 
-	switch message := message.Value().(type) {
+	switch message := message.Value.(type) {
 	case Prevote[Hash, Number]:
 		prevote := message
 		importResult, err := vr.votes.importPrevote(vr.env, prevote, vote.ID, vote.Signature)

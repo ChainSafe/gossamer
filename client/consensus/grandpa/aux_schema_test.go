@@ -73,7 +73,6 @@ func TestDummyStore(t *testing.T) {
 	require.True(t, len(*store) == 2)
 
 	del := []api.Key{setStateKey}
-
 	err = store.Insert(nil, del)
 	require.NoError(t, err)
 	require.True(t, len(*store) == 1)
@@ -368,4 +367,43 @@ func TestWriteConcludedRound(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, val)
 	require.Equal(t, encRoundData, *val)
+}
+
+func TestWriteJustification(t *testing.T) {
+	store := newDummyStore(t)
+
+	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
+	ids := make([]int32, 0)
+	for i := 1; i < 4; i++ {
+		ids = append(ids, int32(i))
+	}
+	precommit := makePrecommit(t, "a", 1, 1)
+	precommits = append(precommits, precommit)
+
+	expAncestries := make([]testHeader[testHash, uint], 0)
+	expAncestries = append(expAncestries, testHeader[testHash, uint]{
+		NumberField:     100,
+		ParentHashField: "a",
+	})
+
+	justification := Justification[testHash, uint, string, int32, testHeader[testHash, uint]]{
+		Round: 2,
+		Commit: finalityGrandpa.Commit[testHash, uint, string, int32]{
+			TargetHash:   "a",
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VotesAncestries: expAncestries,
+	}
+
+	bestJustification, err := BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
+	require.ErrorIs(t, err, errJustificationNotFound)
+
+	err = UpdateBestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](justification, write(store))
+	require.NoError(t, err)
+
+	bestJustification, err = BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
+	require.NoError(t, err)
+	require.NotNil(t, bestJustification)
+	require.Equal(t, justification, *bestJustification)
 }
