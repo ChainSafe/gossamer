@@ -843,7 +843,6 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	t := trie.NewEmptyTrie()
 	var values [][]byte
 	err = scale.Unmarshal(data, &values)
 	if err != nil {
@@ -851,22 +850,16 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
+	var entries trie.Entries
+
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
 			return 0
 		}
-		logger.Tracef(
-			"put key=0x%x and value=0x%x",
-			key, value)
 
-		err = t.Put(key, value, stateVersion)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				key, value, err)
-			return 0
-		}
+		entries = append(entries, trie.Entry{Key: key, Value: value})
 	}
 
 	// allocate memory for value and copy value to memory
@@ -876,7 +869,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	hash, err := t.Hash()
+	hash, err := stateVersion.Root(entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
