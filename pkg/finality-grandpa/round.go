@@ -298,7 +298,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 			return nil, err
 		}
 
-		// Push the vote into HistoricalVotes.
+		// push the vote into HistoricalVotes.
 		message := Message[H, N]{}
 		setMessage(&message, prevote)
 		signedMessage := SignedMessage[H, N, S, ID]{
@@ -315,7 +315,7 @@ func (r *Round[ID, H, N, S]) importPrevote(
 		// mark the equivocator as such. no need to "undo" the first vote.
 		r.context.Equivocated(*info, PrevotePhase)
 
-		// Push the vote into HistoricalVotes.
+		// push the vote into HistoricalVotes.
 		message := Message[H, N]{}
 		setMessage(&message, prevote)
 		signedMessage := SignedMessage[H, N, S, ID]{
@@ -383,7 +383,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 			return nil, err
 		}
 
-		// Push the vote into HistoricalVotes.
+		// push the vote into HistoricalVotes.
 		message := Message[H, N]{}
 		setMessage(&message, precommit)
 		signedMessage := SignedMessage[H, N, S, ID]{
@@ -400,7 +400,7 @@ func (r *Round[ID, H, N, S]) importPrecommit(
 		// mark the equivocator as such. no need to "undo" the first vote.
 		r.context.Equivocated(*info, PrecommitPhase)
 
-		// Push the vote into HistoricalVotes.
+		// push the vote into HistoricalVotes.
 		message := Message[H, N]{}
 		setMessage(&message, precommit)
 		signedMessage := SignedMessage[H, N, S, ID]{

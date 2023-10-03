@@ -67,7 +67,7 @@ type priorView[Hash, Number any] struct {
 	bridged *bridged[Hash, Number]
 }
 
-// Push an update to the latter view.
+// push an update to the latter view.
 func (pv *priorView[H, N]) update(new RoundState[H, N]) { //skipcq: RVV-B0001
 	pv.bridged.update(new)
 }
