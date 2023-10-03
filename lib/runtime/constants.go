@@ -14,14 +14,20 @@ const (
 	// v0.9.29 polkadot
 	POLKADOT_RUNTIME_v0929     = "polkadot_runtime-v929"
 	POLKADOT_RUNTIME_V0929_FP  = "polkadot_runtime-v929.compact.wasm"
-	POLKADOT_RUNTIME_V0929_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9." +
-		"29/polkadot_runtime-v9290.compact.compressed.wasm?raw=true"
+	POLKADOT_RUNTIME_V0929_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9.29/" +
+		"polkadot_runtime-v9290.compact.compressed.wasm?raw=true"
 
 	// v0.9.29 westend
 	WESTEND_RUNTIME_v0929     = "westend_runtime-v929"
 	WESTEND_RUNTIME_V0929_FP  = "westend_runtime-v929.compact.wasm"
-	WESTEND_RUNTIME_V0929_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9." +
-		"29/westend_runtime-v9290.compact.compressed.wasm?raw=true"
+	WESTEND_RUNTIME_V0929_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9.29/" +
+		"westend_runtime-v9290.compact.compressed.wasm?raw=true"
+
+	// v0.9.12 westend used for zero-address bug test
+	WESTEND_RUNTIME_v0912     = "westend_runtime-v9111"
+	WESTEND_RUNTIME_V0912_FP  = "westend_runtime-v9111.compact.wasm"
+	WESTEND_RUNTIME_V0912_URL = "https://github.com/paritytech/polkadot/releases/download/v0.9.11/" +
+		"westend_runtime-v9111.compact.compressed.wasm?raw=true"
 )
 
 const (

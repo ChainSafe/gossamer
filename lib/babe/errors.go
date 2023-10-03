@@ -110,6 +110,7 @@ var (
 	errInvalidMandatoryDispatch = errors.New("invalid mandatory dispatch")
 	errLookupFailed             = errors.New("lookup failed")
 	errValidatorNotFound        = errors.New("validator not found")
+	errBadSigner                = errors.New("invalid signing address")
 )
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
@@ -271,55 +272,68 @@ func (MandatoryDispatch) Index() uint { return 9 }
 
 func (MandatoryDispatch) String() string { return "mandatory dispatch" }
 
-func determineErrType(vdt scale.VaryingDataType) error {
+// BadSigner A transaction with a mandatory dispatch
+type BadSigner struct{}
+
+// Index returns VDT index
+func (BadSigner) Index() uint { return 10 }
+
+func (BadSigner) String() string { return "invalid signing address" }
+
+func determineErrType(vdt scale.VaryingDataType) (err error) {
 	vdtVal, err := vdt.Value()
 	if err != nil {
 		return fmt.Errorf("getting vdt value: %w", err)
 	}
+
 	switch val := vdtVal.(type) {
 	case Other:
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
+		err = &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case CannotLookup:
-		return &DispatchOutcomeError{"failed lookup"}
+		err = &DispatchOutcomeError{"failed lookup"}
 	case BadOrigin:
-		return &DispatchOutcomeError{"bad origin"}
+		err = &DispatchOutcomeError{"bad origin"}
 	case Module:
-		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val)}
+		err = &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val)}
 	case Call:
-		return &TransactionValidityError{errUnexpectedTxCall}
+		err = &TransactionValidityError{errUnexpectedTxCall}
 	case Payment:
-		return &TransactionValidityError{errInvalidPayment}
+		err = &TransactionValidityError{errInvalidPayment}
 	case Future:
-		return &TransactionValidityError{errInvalidTransaction}
+		err = &TransactionValidityError{errInvalidTransaction}
 	case Stale:
-		return &TransactionValidityError{errOutdatedTransaction}
+		err = &TransactionValidityError{errOutdatedTransaction}
 	case BadProof:
-		return &TransactionValidityError{errBadProof}
+		err = &TransactionValidityError{errBadProof}
 	case AncientBirthBlock:
-		return &TransactionValidityError{errAncientBirthBlock}
+		err = &TransactionValidityError{errAncientBirthBlock}
 	case ExhaustsResources:
-		return &TransactionValidityError{errExhaustsResources}
+		err = &TransactionValidityError{errExhaustsResources}
 	case InvalidCustom:
-		return &TransactionValidityError{newUnknownError(val)}
+		err = &TransactionValidityError{newUnknownError(val)}
 	case BadMandatory:
-		return &TransactionValidityError{errMandatoryDispatchError}
+		err = &TransactionValidityError{errMandatoryDispatchError}
 	case MandatoryDispatch:
-		return &TransactionValidityError{errInvalidMandatoryDispatch}
+		err = &TransactionValidityError{errInvalidMandatoryDispatch}
 	case ValidityCannotLookup:
-		return &TransactionValidityError{errLookupFailed}
+		err = &TransactionValidityError{errLookupFailed}
 	case NoUnsignedValidator:
-		return &TransactionValidityError{errValidatorNotFound}
+		err = &TransactionValidityError{errValidatorNotFound}
 	case UnknownCustom:
-		return &TransactionValidityError{newUnknownError(val)}
+		err = &TransactionValidityError{newUnknownError(val)}
+	case BadSigner:
+		err = &TransactionValidityError{errBadSigner}
+	default:
+		err = errInvalidResult
 	}
 
-	return errInvalidResult
+	return err
 }
 
 func determineErr(res []byte) error {
 	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
 	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{}, BadSigner{})
 	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
 
 	okRes := scale.NewResult(nil, dispatchError)

@@ -4,19 +4,14 @@
 package wazero_runtime
 
 import (
-	_ "embed"
-	"fmt"
-
-	"archive/zip"
 	"bytes"
+	_ "embed"
 	"encoding/json"
-	"io"
 	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -29,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
-	"gopkg.in/yaml.v3"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -413,86 +407,133 @@ func TestInstance_BabeConfiguration_WestendRuntime_NoAuthorities(t *testing.T) {
 	require.Equal(t, expected, cfg)
 }
 
-func extractZippedState(t *testing.T, zippedFile, destPath string) {
-	r, err := zip.OpenReader(zippedFile)
-	require.NoError(t, err)
-	defer r.Close()
+func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
+	tests := map[string]struct {
+		setupRuntime  func(t *testing.T) (*Instance, *types.Header)
+		expectedError []byte
+	}{
+		"westend_dev_runtime_should_fail_with_bad_signature": {
+			expectedError: []byte{1, 0, 0xa},
+			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
+				genesisPath := utils.GetWestendDevRawGenesisPath(t)
+				gen := genesisFromRawJSON(t, genesisPath)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
+				require.NoError(t, err)
 
-	for _, f := range r.File {
-		outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		require.NoError(t, err)
+				// set state to genesis state
+				genState := storage.NewTrieState(&genTrie)
 
-		defer outFile.Close()
+				cfg := Config{
+					Storage: genState,
+					LogLvl:  log.Critical,
+				}
 
-		rc, err := f.Open()
-		require.NoError(t, err)
-		defer rc.Close()
+				rt, err := NewRuntimeFromGenesis(cfg)
+				require.NoError(t, err)
 
-		_, err = io.Copy(outFile, rc)
-		require.NoError(t, err)
+				// reset state back to parent state before executing
+				parentState := storage.NewTrieState(&genTrie)
+				rt.SetContextStorage(parentState)
 
-		// File extracted, no need to loop further
-		return
-	}
-}
+				genesisHeader := &types.Header{
+					Number:    0,
+					StateRoot: genTrie.MustHash(),
+				}
 
-func TestInstance_ExecuteBlock_WestendRuntime_WestendBlock8077850(t *testing.T) {
-	stateTrieFile := t.TempDir() + "state_block8077850.txt"
-	extractZippedState(t, "../test_data/westend/state_block8077850.zip", stateTrieFile)
+				header := &types.Header{
+					ParentHash: genesisHeader.Hash(),
+					Number:     1,
+					Digest:     types.NewDigest(),
+				}
 
-	gossTrie8077850 := newTrieFromScaledPairs(t, stateTrieFile)
-	expectedRoot := common.MustHexToHash("0x731cea81940165128e1ffdfc5b4207e2ad84548377899b392dc497b1c166dc1f")
+				return rt, header
+			},
+		},
+		"westend_0912_runtime_should_fail_with_invalid_payment": {
+			expectedError: []byte{1, 0, 1},
+			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
+				genesisPath := utils.GetWestendDevRawGenesisPath(t)
+				gen := genesisFromRawJSON(t, genesisPath)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
+				require.NoError(t, err)
 
-	require.Equal(t, expectedRoot, gossTrie8077850.MustHash())
+				rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0912)
+				parentState := storage.NewTrieState(&genTrie)
+				rt.SetContextStorage(parentState)
 
-	// set state to genesis state
-	state8077850 := storage.NewTrieState(gossTrie8077850)
-	cfg := Config{
-		Storage: state8077850,
-		LogLvl:  log.Critical,
-	}
+				genesisHeader := &types.Header{
+					Number:    0,
+					StateRoot: genTrie.MustHash(),
+				}
 
-	instance, err := NewInstanceFromTrie(gossTrie8077850, cfg)
-	require.NoError(t, err)
+				header := &types.Header{
+					ParentHash: genesisHeader.Hash(),
+					Number:     1,
+					Digest:     types.NewDigest(),
+				}
 
-	block8077850Data := struct {
-		BlockData string `yaml:"blockData"`
-	}{}
-
-	err = yaml.NewDecoder(bytes.NewReader(block8077850)).Decode(&block8077850Data)
-	require.NoError(t, err)
-
-	fmt.Println(block8077850Data.BlockData)
-
-	entireBlockData := common.MustHexToBytes(block8077850Data.BlockData)
-
-	blockResponseData := new(network.BlockResponseMessage)
-	err = blockResponseData.Decode(entireBlockData)
-	require.NoError(t, err)
-
-	block := &types.Block{
-		Header: *blockResponseData.BlockData[0].Header,
-		Body:   *blockResponseData.BlockData[0].Body,
-	}
-
-	exts, err := block.Body.AsEncodedExtrinsics()
-	require.NoError(t, err)
-
-	expectedExtrinsics := []string{
-		"0x8bea0528dc1e7b07896a36d6d2ecb86c6cccbda21064089b5212a081d8b62631",
-		"0xc0014ff921c3bf55333621237f3058af2d2a696bddf5f703338a7c3b11c1965f",
-		"0x41b93a99fee24501ddeb1cc2dcfbec938c99a3d94531c7e16b4f4e102a9df38a",
-	}
-
-	bodyExtrinsicHashes := []string{}
-	for _, ext := range exts {
-		bodyExtrinsicHashes = append(bodyExtrinsicHashes, ext.Hash().String())
+				return rt, header
+			},
+		},
 	}
 
-	require.Equal(t, expectedExtrinsics, bodyExtrinsicHashes)
+	for tname, tt := range tests {
+		tt := tt
 
-	_, err = instance.ExecuteBlock(block)
-	require.NoError(t, err)
+		t.Run(tname, func(t *testing.T) {
+			instance, header := tt.setupRuntime(t)
+
+			err := instance.InitializeBlock(header)
+			require.NoError(t, err)
+
+			idata := types.NewInherentData()
+			err = idata.SetInherent(types.Timstap0, uint64(5))
+			require.NoError(t, err)
+
+			err = idata.SetInherent(types.Babeslot, uint64(1))
+			require.NoError(t, err)
+
+			ienc, err := idata.Encode()
+			require.NoError(t, err)
+
+			// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
+			inherentExts, err := instance.InherentExtrinsics(ienc)
+			require.NoError(t, err)
+
+			// decode inherent extrinsics
+			cp := make([]byte, len(inherentExts))
+			copy(cp, inherentExts)
+			var inExts [][]byte
+			err = scale.Unmarshal(cp, &inExts)
+			require.NoError(t, err)
+
+			// apply each inherent extrinsic
+			for _, inherent := range inExts {
+				in, err := scale.Marshal(inherent)
+				require.NoError(t, err)
+
+				ret, err := instance.ApplyExtrinsic(in)
+				require.NoError(t, err)
+				require.Equal(t, ret, []byte{0, 0})
+			}
+
+			keyring, err := signature.KeyringPairFromSecret(
+				"0x00000000000000000000000000000000000000000000000000000"+
+					"00000000000000000000000000000000000000000000000000000"+
+					"0000000000000000000000", 42)
+			require.NoError(t, err)
+
+			extHex := runtime.NewTestExtrinsic(t, instance, header.ParentHash, header.ParentHash,
+				0, keyring, "System.remark", []byte{0xab, 0xcd})
+
+			res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
+			require.NoError(t, err)
+
+			// should fail with transaction validity error: invalid payment for runtime 0.9.12
+			// should fail with transaction validity error: bad signature for runtime version greater than 0.9.12
+			require.Equal(t, tt.expectedError, res)
+		})
+	}
 
 }
 

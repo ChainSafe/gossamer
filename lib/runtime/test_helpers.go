@@ -60,7 +60,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 		return runtime, nil
 	}
 
-	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
+	basePath := filepath.Join(os.TempDir(), "gossamer", "runtimes")
 	const perm = os.FileMode(0777)
 	err = os.MkdirAll(basePath, perm)
 	if err != nil {
@@ -78,6 +78,10 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case WESTEND_RUNTIME_v0929:
 		runtimeFilename = WESTEND_RUNTIME_V0929_FP
 		url = WESTEND_RUNTIME_V0929_URL
+	// only used for TestInstance_BadSignatureExtrinsic_On_WestendBlock8077850
+	case WESTEND_RUNTIME_v0912:
+		runtimeFilename = WESTEND_RUNTIME_V0912_FP
+		url = WESTEND_RUNTIME_V0912_URL
 	default:
 		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
 	}
@@ -96,7 +100,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("cannot make HTTP request: %w", err)
 	}
