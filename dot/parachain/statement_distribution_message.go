@@ -80,10 +80,3 @@ type StatementMetadata struct {
 	// Signature of seconding validator.
 	Signature parachaintypes.ValidatorSignature `scale:"4"`
 }
-
-// TODO: remove this, copied to parachain/types/t
-// ValidatorSignature represents the signature with which parachain validators sign blocks.
-type ValidatorSignature Signature
-
-// Signature represents a cryptographic signature.
-type Signature [64]byte
