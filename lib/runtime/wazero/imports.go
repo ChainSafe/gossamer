@@ -780,51 +780,7 @@ func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module)
 }
 
 func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
-	if rtCtx == nil {
-		panic("nil runtime context")
-	}
-
-	data := read(m, dataSpan)
-
-	t := trie.NewEmptyTrie()
-
-	type kv struct {
-		Key, Value []byte
-	}
-
-	// this function is expecting an array of (key, value) tuples
-	var kvs []kv
-	if err := scale.Unmarshal(data, &kvs); err != nil {
-		logger.Errorf("failed scale decoding data: %s", err)
-		return 0
-	}
-
-	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value, trie.V0)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				kv.Key, kv.Value, err)
-			return 0
-		}
-	}
-
-	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
-	if err != nil {
-		logger.Errorf("failed allocating: %s", err)
-		return 0
-	}
-
-	hash, err := t.Hash()
-	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return 0
-	}
-
-	logger.Debugf("root hash is %s", hash)
-	m.Memory().Write(ptr, hash[:])
-	return ptr
+	return ext_trie_blake2_256_root_version_2(ctx, m, dataSpan, 0)
 }
 
 func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
@@ -842,38 +798,23 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 
 	data := read(m, dataSpan)
 
-	t := trie.NewEmptyTrie()
-
-	type kv struct {
-		Key, Value []byte
-	}
-
 	// this function is expecting an array of (key, value) tuples
-	var kvs []kv
-	if err := scale.Unmarshal(data, &kvs); err != nil {
+	var entries trie.Entries
+	if err := scale.Unmarshal(data, &entries); err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
 	}
 
-	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value, stateVersion)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				kv.Key, kv.Value, err)
-			return 0
-		}
+	hash, err := stateVersion.Root(entries)
+	if err != nil {
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
+		return 0
 	}
 
 	// allocate memory for value and copy value to memory
 	ptr, err := rtCtx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
-		return 0
-	}
-
-	hash, err := t.Hash()
-	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
 	}
 
@@ -883,55 +824,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 }
 
 func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
-	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
-	if rtCtx == nil {
-		panic("nil runtime context")
-	}
-
-	data := read(m, dataSpan)
-
-	t := trie.NewEmptyTrie()
-	var values [][]byte
-	err := scale.Unmarshal(data, &values)
-	if err != nil {
-		logger.Errorf("failed scale decoding data: %s", err)
-		return 0
-	}
-
-	for i, value := range values {
-		key, err := scale.Marshal(big.NewInt(int64(i)))
-		if err != nil {
-			logger.Errorf("failed scale encoding value index %d: %s", i, err)
-			return 0
-		}
-		logger.Tracef(
-			"put key=0x%x and value=0x%x",
-			key, value)
-
-		err = t.Put(key, value, trie.V0)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				key, value, err)
-			return 0
-		}
-	}
-
-	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
-	if err != nil {
-		logger.Errorf("failed allocating: %s", err)
-		return 0
-	}
-
-	hash, err := t.Hash()
-	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
-		return 0
-	}
-
-	logger.Debugf("root hash is %s", hash)
-	m.Memory().Write(ptr, hash[:])
-	return ptr
+	return ext_trie_blake2_256_ordered_root_version_2(ctx, m, dataSpan, 0)
 }
 
 func ext_trie_blake2_256_ordered_root_version_2(

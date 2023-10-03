@@ -7,9 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const V1MaxValueSize = 32
+const (
+	NoMaxValueSize = -1
+	V1MaxValueSize = 32
+)
 
 // Version is the state trie version which dictates how a
 // Merkle root should be constructed. It is defined in
@@ -28,6 +33,8 @@ const (
 // See https://github.com/paritytech/substrate/blob/5e76587825b9a9d52d8cb02ba38828adf606157b/primitives/storage/src/lib.rs#L435-L439
 const DefaultStateVersion = V1
 
+type Entries []struct{ Key, Value []byte }
+
 func (v Version) String() string {
 	switch v {
 	case V0:
@@ -39,15 +46,32 @@ func (v Version) String() string {
 	}
 }
 
-func (v Version) ShouldHashValue(value []byte) bool {
+func (v Version) MaxInlineValueSize() int {
 	switch v {
 	case V0:
-		return false
+		return NoMaxValueSize
 	case V1:
-		return len(value) >= V1MaxValueSize
+		return V1MaxValueSize
 	default:
 		panic(fmt.Sprintf("unknown version %d", v))
 	}
+}
+
+func (v Version) ShouldHashValue(value []byte) bool {
+	return v.MaxInlineValueSize() != NoMaxValueSize && len(value) > v.MaxInlineValueSize()
+}
+
+func (v Version) Root(entries Entries) (common.Hash, error) {
+	t := NewEmptyTrie()
+
+	for _, kv := range entries {
+		err := t.Put(kv.Key, kv.Value, v)
+		if err != nil {
+			return common.EmptyHash, err
+		}
+	}
+
+	return t.Hash()
 }
 
 var ErrParseVersion = errors.New("parsing version failed")
