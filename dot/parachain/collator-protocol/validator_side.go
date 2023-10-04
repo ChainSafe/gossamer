@@ -34,7 +34,8 @@ var (
 	ErrPeerIDNotFoundForCollator  = errors.New("peer id not found for collator")
 )
 
-func (cpvs CollatorProtocolValidatorSide) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+func (cpvs CollatorProtocolValidatorSide) Run(
+	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
 	inactivityTicker := time.NewTicker(ACTIVITY_POLL)
 
 	for {
@@ -90,7 +91,7 @@ func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Ha
 	}
 
 	collationFetchingResponse := NewCollationFetchingResponse()
-	// TODO: find out the approprate value of collationFetchingResponseTimeout
+	// TODO: find out the appropriate value of collationFetchingResponseTimeout
 	// collationFetchingResponseTimeout will be part of collationFetchingReqResProtocol
 
 	// collationFetchingResponseTimeout := 5 * time.Second
@@ -158,8 +159,8 @@ type PeerStateInfo struct {
 type CollatingPeerState struct {
 	CollatorID     parachaintypes.CollatorID
 	ParaID         parachaintypes.ParaID
-	advertisements []common.Hash
-	lastActive     time.Time
+	advertisements []common.Hash //nolint
+	lastActive     time.Time     //nolint
 }
 
 type PeerState uint
@@ -173,7 +174,7 @@ type View struct {
 	// a bounded amount of chain heads
 	heads []common.Hash
 	// the highest known finalized number
-	finalizedNumber uint32
+	finalizedNumber uint32 //nolint
 }
 
 // Network is the interface required by parachain service for the network
@@ -218,7 +219,8 @@ type CollatorProtocolValidatorSide struct {
 	pendingCandidates map[common.Hash]CollationEvent
 }
 
-func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID) (peer.ID, bool) {
+func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,
+) (peer.ID, bool) {
 	for peerID, peerData := range cpvs.peerData {
 		if peerData.state.PeerState == Collating && peerData.state.CollatingPeerState.CollatorID == collatorID {
 			return peerID, true
@@ -238,7 +240,6 @@ type ReportCollator parachaintypes.CollatorID
 
 type NetworkBridgeUpdate struct {
 	// TODO: not quite sure if we would need this or something similar to this
-	// TODO:
 }
 
 type SecondedOverseerMsg struct {
@@ -270,9 +271,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 		}, peerID)
 	case NetworkBridgeUpdate:
 		// TODO: handle network message
-		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457
+		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
 	case SecondedOverseerMsg:
-		// TODO: https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1466
+		// TODO: handle seconded message
+		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1466 //nolint
 
 	case InvalidOverseeMsg:
 		invalidOverseerMsg := msg

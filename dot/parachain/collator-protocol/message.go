@@ -179,7 +179,8 @@ const (
 	Seconded
 )
 
-func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
+	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
 	if msg.Type() != network.CollationMsgType {
 		return false, fmt.Errorf("unexpected message type, expected: %d, found:%d",
 			network.CollationMsgType, msg.Type())
