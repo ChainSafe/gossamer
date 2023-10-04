@@ -12,7 +12,6 @@ import (
 
 func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*CollatorProtocolValidatorSide, error) {
 
-	// TODO: fill up values for CollatorProtocolValidatorSide
 	cpvs := CollatorProtocolValidatorSide{
 		SubSystemToOverseer: overseerChan,
 	}

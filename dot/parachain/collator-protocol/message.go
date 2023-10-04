@@ -121,8 +121,6 @@ func (CollationSeconded) Index() uint {
 
 const MaxCollationMessageSize uint64 = 100 * 1024
 
-// type CollationProtocolV1 CollationProtocol
-
 // Type returns CollationMsgType
 func (CollationProtocol) Type() network.MessageType {
 	return network.CollationMsgType
@@ -149,8 +147,6 @@ func (cp CollationProtocol) Encode() ([]byte, error) {
 }
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	fmt.Println("decoding collation message", in)
-
 	collationMessage := CollationProtocol{}
 
 	err := scale.Unmarshal(in, &collationMessage)
@@ -204,9 +200,9 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	// TODO: Make sure that V1 and VStaging both types are covered
 	// All the types covered currently are V1.
 	case 0: // Declare
-		// TODO: handle collator declaration
+		// TODO: handle collator declaration https://github.com/ChainSafe/gossamer/issues/3513
 	case 1: // AdvertiseCollation
-		// TODO: handle collation advertisement
+		// TODO: handle collation advertisement https://github.com/ChainSafe/gossamer/issues/3514
 	case 2: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.net.ReportPeer(peerset.ReputationChange{
