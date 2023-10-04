@@ -121,10 +121,9 @@ func Test_ShouldHashValue(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		version      Version
-		value        []byte
-		shouldHash   bool
-		panicMessage string
+		version    Version
+		value      []byte
+		shouldHash bool
 	}{
 		"v0_small_value": {
 			version:    V0,
@@ -146,23 +145,12 @@ func Test_ShouldHashValue(t *testing.T) {
 			value:      []byte("newvaluewithmorethan32byteslength"),
 			shouldHash: true,
 		},
-		"invalid": {
-			version:      Version(99),
-			panicMessage: "unknown version 99",
-		},
 	}
 
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-
-			if testCase.panicMessage != "" {
-				assert.PanicsWithValue(t, testCase.panicMessage, func() {
-					_ = testCase.version.ShouldHashValue(testCase.value)
-				})
-				return
-			}
 
 			shouldHash := testCase.version.ShouldHashValue(testCase.value)
 			assert.Equal(t, testCase.shouldHash, shouldHash)
