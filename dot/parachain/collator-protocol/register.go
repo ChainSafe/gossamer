@@ -18,8 +18,7 @@ func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*Co
 	}
 
 	// register collation protocol
-	var err error
-	err = net.RegisterNotificationsProtocol(
+	err := net.RegisterNotificationsProtocol(
 		protocolID,
 		network.CollationMsgType,
 		getCollatorHandshake,
@@ -45,12 +44,8 @@ func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*Co
 		)
 
 		if err1 != nil {
-			err = fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
+			return nil, fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
 		}
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	return &cpvs, nil

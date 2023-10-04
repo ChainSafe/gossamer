@@ -4,23 +4,12 @@
 package parachain
 
 import (
-	"errors"
 	"fmt"
-	"math"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-var ErrInvalidVayingDataTypeValue = errors.New(
-	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidVayingDataTypeValue)")
-
-type invalidVayingDataTypeValue struct{}
-
-func (invalidVayingDataTypeValue) Index() uint {
-	return math.MaxUint
-}
 
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
 type StatementDistributionMessage scale.VaryingDataType
