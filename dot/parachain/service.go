@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
-	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -34,11 +33,17 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
 	overseer := overseer.NewOverseer()
 
+	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer)
+	if err != nil {
+		return nil, fmt.Errorf("registering availability store: %w", err)
+	}
+	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
 	// register validation protocol
-	err := net.RegisterNotificationsProtocol(
+	err = net.RegisterNotificationsProtocol(
 		protocol.ID(validationProtocolID),
 		network.ValidationMsgType,
 		getValidationHandshake,

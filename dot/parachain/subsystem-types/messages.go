@@ -131,6 +131,7 @@ type PruningKey struct {
 	Expiry time.Time
 }
 
+/*
 type AvailabilityStoreSubsystemInterface interface {
 	LoadAvailableData(db interface{}, config Config, candidate CandidateHash) (AvailableData, error)
 	LoadMeta(db interface{}, config Config, candidate CandidateHash) (CandidateMeta, error)
@@ -318,3 +319,4 @@ func ProcessMessage(subsystem AvailabilityStoreSubsystemInterface, msg Availabil
 	}
 	return nil
 }
+*/
