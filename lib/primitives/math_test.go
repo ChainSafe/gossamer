@@ -17,7 +17,7 @@ func TestSaturatingAdd(t *testing.T) {
 	require.Equal(t, uint32(math.MaxUint32), SaturatingAdd(uint32(math.MaxUint32), 100))
 	require.Equal(t, uint32(100), SaturatingAdd(uint32(0), 100))
 
-	// should not be able to overflow in the oposite direction as well
+	// should not be able to overflow in the opposite direction as well
 	require.Equal(t, int64(math.MinInt64), SaturatingAdd(int64(math.MinInt64), -100))
 	require.Equal(t, int8(127), SaturatingAdd(int8(120), 7))
 	require.Equal(t, int8(127), SaturatingAdd(int8(120), 8))
