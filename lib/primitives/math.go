@@ -18,6 +18,7 @@ func saturatingOperations[T constraints.Integer](a, b T,
 ) T {
 	switch any(a).(type) {
 	case int, int8, int16, int32, int64:
+		// #nosec G103
 		sizeOf := (unsafe.Sizeof(a) * 8) - 1
 
 		var (
