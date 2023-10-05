@@ -26,7 +26,7 @@ type PoVFetchingResponse scale.VaryingDataType
 
 // NewPoVFetchingResponse returns a new PoV fetching response varying data type
 func NewPoVFetchingResponse() PoVFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(parachaintypes.PoV{}, NoSuchPoV{})
+	vdt := scale.MustNewVaryingDataType(parachaintypes.PoV{}, parachaintypes.NoSuchPoV{})
 	return PoVFetchingResponse(vdt)
 }
 
@@ -45,14 +45,6 @@ func (p *PoVFetchingResponse) Set(val scale.VaryingDataTypeValue) (err error) {
 func (p *PoVFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*p)
 	return vdt.Value()
-}
-
-// NoSuchPoV indicates that the requested PoV was not found in the store.
-type NoSuchPoV struct{}
-
-// Index returns the index of varying data type
-func (NoSuchPoV) Index() uint {
-	return 1
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingResponse
