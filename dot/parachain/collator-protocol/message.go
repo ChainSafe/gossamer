@@ -1,17 +1,21 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package collatorprotocol
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
+
+const legacyCollationProtocolV1 = "/polkadot/collation/1"
 
 // CollationProtocol represents all network messages on the collation peer-set.
 type CollationProtocol scale.VaryingDataType
@@ -106,8 +110,8 @@ func (AdvertiseCollation) Index() uint {
 
 // CollationSeconded represents that a collation sent to a validator was seconded.
 type CollationSeconded struct {
-	Hash                         common.Hash                                 `scale:"1"`
-	UncheckedSignedFullStatement parachaintypes.UncheckedSignedFullStatement `scale:"2"`
+	RelayParent common.Hash                                 `scale:"1"`
+	Statement   parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
 
 // Index returns the index of varying data type
@@ -117,15 +121,13 @@ func (CollationSeconded) Index() uint {
 
 const MaxCollationMessageSize uint64 = 100 * 1024
 
-type CollationProtocolV1 struct{}
-
 // Type returns CollationMsgType
-func (*CollationProtocolV1) Type() network.MessageType {
+func (CollationProtocol) Type() network.MessageType {
 	return network.CollationMsgType
 }
 
 // Hash returns the hash of the CollationProtocolV1
-func (cp *CollationProtocolV1) Hash() (common.Hash, error) {
+func (cp CollationProtocol) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
 	encMsg, err := cp.Encode()
 	if err != nil {
@@ -136,8 +138,8 @@ func (cp *CollationProtocolV1) Hash() (common.Hash, error) {
 }
 
 // Encode a collator protocol message using scale encode
-func (cp *CollationProtocolV1) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*cp)
+func (cp CollationProtocol) Encode() ([]byte, error) {
+	enc, err := scale.Marshal(cp)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +147,7 @@ func (cp *CollationProtocolV1) Encode() ([]byte, error) {
 }
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	collationMessage := CollationProtocolV1{}
+	collationMessage := CollationProtocol{}
 
 	err := scale.Unmarshal(in, &collationMessage)
 	if err != nil {
@@ -155,9 +157,60 @@ func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
 	return &collationMessage, nil
 }
 
-func handleCollationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: Add things
-	fmt.Println("We got a collation message", msg)
+type ProspectiveCandidate struct {
+	CandidateHash      parachaintypes.CandidateHash
+	ParentHeadDataHash common.Hash
+}
+
+type CollationStatus int
+
+const (
+	// We are waiting for a collation to be advertised to us.
+	Waiting CollationStatus = iota
+	// We are currently fetching a collation.
+	Fetching
+	// We are waiting that a collation is being validated.
+	WaitingOnValidation
+	// We have seconded a collation.
+	Seconded
+)
+
+func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
+	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+	if msg.Type() != network.CollationMsgType {
+		return false, fmt.Errorf("unexpected message type, expected: %d, found:%d",
+			network.CollationMsgType, msg.Type())
+	}
+
+	collatorProtocol, ok := msg.(*CollationProtocol)
+	if !ok {
+		return false, fmt.Errorf("failed to cast into collator protocol message, expected: *CollationProtocol, got: %T", msg)
+	}
+
+	collatorProtocolV, err := collatorProtocol.Value()
+	if err != nil {
+		return false, fmt.Errorf("getting collator protocol value: %w", err)
+	}
+	collatorProtocolMessage, ok := collatorProtocolV.(CollatorProtocolMessage)
+	if !ok {
+		return false, errors.New("expected value to be collator protocol message")
+	}
+
+	switch collatorProtocolMessage.Index() {
+	// TODO: Make sure that V1 and VStaging both types are covered
+	// All the types covered currently are V1.
+	case 0: // Declare
+		// TODO: handle collator declaration https://github.com/ChainSafe/gossamer/issues/3513
+	case 1: // AdvertiseCollation
+		// TODO: handle collation advertisement https://github.com/ChainSafe/gossamer/issues/3514
+	case 2: // CollationSeconded
+		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.UnexpectedMessageValue,
+			Reason: peerset.UnexpectedMessageReason,
+		}, sender)
+	}
+
 	return false, nil
 }
 

@@ -1,14 +1,22 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package collatorprotocol
 
 import (
 	"fmt"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
+const (
+	/// Maximum PoV size we support right now.
+	maxPoVSize                       = 5 * 1024 * 1024
+	collationFetchingRequestTimeout  = time.Millisecond * 1200
+	collationFetchingMaxResponseSize = maxPoVSize + 10000 // 10MB
 )
 
 // CollationFetchingRequest represents a request to retrieve
@@ -22,27 +30,23 @@ type CollationFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the CollationFetchingRequest
-func (c *CollationFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(*c)
+func (c CollationFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(c)
 }
 
 // CollationFetchingResponse represents a response sent by collator
 type CollationFetchingResponse scale.VaryingDataType
 
-// Collation represents a requested collation to be delivered
-type Collation struct {
-	CandidateReceipt parachaintypes.CandidateReceipt `scale:"1"`
-	PoV              parachaintypes.PoV              `scale:"2"`
-}
+type CollationVDT parachaintypes.Collation
 
 // Index returns the index of varying data type
-func (Collation) Index() uint {
+func (CollationVDT) Index() uint {
 	return 0
 }
 
 // NewCollationFetchingResponse returns a new collation fetching response varying data type
 func NewCollationFetchingResponse() CollationFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(Collation{})
+	vdt := scale.MustNewVaryingDataType(CollationVDT{})
 	return CollationFetchingResponse(vdt)
 }
 
@@ -80,6 +84,6 @@ func (c *CollationFetchingResponse) String() string {
 	}
 
 	v, _ := c.Value()
-	collation := v.(Collation)
+	collation := v.(CollationVDT)
 	return fmt.Sprintf("CollationFetchingResponse Collation=%+v", collation)
 }

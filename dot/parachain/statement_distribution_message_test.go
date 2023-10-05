@@ -5,7 +5,9 @@ package parachain
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
+	"math"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -26,6 +28,23 @@ func init() {
 		fmt.Printf("Error unmarshaling test data: %s\n", err)
 		return
 	}
+}
+
+var ErrInvalidVayingDataTypeValue = errors.New(
+	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidVayingDataTypeValue)")
+
+type invalidVayingDataTypeValue struct{}
+
+func (invalidVayingDataTypeValue) Index() uint {
+	return math.MaxUint
+}
+
+func getDummyHash(num byte) common.Hash {
+	hash := common.Hash{}
+	for i := 0; i < 32; i++ {
+		hash[i] = num
+	}
+	return hash
 }
 
 func TestStatementDistributionMessage(t *testing.T) {
