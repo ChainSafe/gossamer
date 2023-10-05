@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package collatorprotocol
 
 import (
 	"testing"
@@ -34,10 +34,10 @@ func TestCollationFetchingResponse(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
+	tempSignature := common.MustHexToBytes(testDataCollationProtocol["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
-	collation := Collation{
+	collation := CollationVDT{
 		CandidateReceipt: parachaintypes.CandidateReceipt{
 			Descriptor: parachaintypes.CandidateDescriptor{
 				ParaID:                      uint32(1),

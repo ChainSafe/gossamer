@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -24,12 +25,15 @@ const (
 )
 
 type Service struct {
-	Network Network
+	Network  Network
+	overseer *overseer.Overseer
 }
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
+	overseer := overseer.NewOverseer()
+
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
@@ -48,7 +52,7 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 	if err != nil {
 		// try with legacy protocol id
 		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(LEGACY_VALIDATION_PROTOCOL_V1),
+			protocol.ID(legacyValidationProtocolV1),
 			network.ValidationMsgType,
 			getValidationHandshake,
 			decodeValidationHandshake,
@@ -68,38 +72,15 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
-	err = net.RegisterNotificationsProtocol(
-		protocol.ID(collationProtocolID),
-		network.CollationMsgType,
-		getCollatorHandshake,
-		decodeCollatorHandshake,
-		validateCollatorHandshake,
-		decodeCollationMessage,
-		handleCollationMessage,
-		nil,
-		MaxCollationMessageSize,
-	)
+	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
 	if err != nil {
-		// try with legacy protocol id
-		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(LEGACY_COLLATION_PROTOCOL_V1),
-			network.CollationMsgType,
-			getCollatorHandshake,
-			decodeCollatorHandshake,
-			validateCollatorHandshake,
-			decodeCollationMessage,
-			handleCollationMessage,
-			nil,
-			MaxCollationMessageSize,
-		)
-
-		if err1 != nil {
-			return nil, fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
-		}
+		return nil, err
 	}
+	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
 
 	parachainService := &Service{
-		Network: net,
+		Network:  net,
+		overseer: overseer,
 	}
 
 	go parachainService.run()
@@ -130,7 +111,12 @@ func (s Service) run() {
 	//
 	time.Sleep(time.Second * 15)
 	// let's try sending a collation message  and validation message to a peer and see what happens
-	collationMessage := CollationProtocolV1{}
+	collatorProtocolMessage := collatorprotocol.NewCollatorProtocolMessage()
+	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
+	_ = collatorProtocolMessage.Set(collatorprotocol.Declare{})
+	collationMessage := collatorprotocol.NewCollationProtocol()
+
+	_ = collationMessage.Set(collatorProtocolMessage)
 	s.Network.GossipMessage(&collationMessage)
 
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
@@ -167,5 +153,7 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
+		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
