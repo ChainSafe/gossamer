@@ -15,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-const LEGACY_COLLATION_PROTOCOL_V1 = "/polkadot/collation/1"
+const legacyCollationProtocolV1 = "/polkadot/collation/1"
 
 // CollationProtocol represents all network messages on the collation peer-set.
 type CollationProtocol scale.VaryingDataType
@@ -184,7 +184,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 
 	collatorProtocol, ok := msg.(*CollationProtocol)
 	if !ok {
-		return false, errors.New("failed to cast into collator protocol message")
+		return false, fmt.Errorf("failed to cast into collator protocol message, expected: *CollationProtocol, got: %T", msg)
 	}
 
 	collatorProtocolV, err := collatorProtocol.Value()

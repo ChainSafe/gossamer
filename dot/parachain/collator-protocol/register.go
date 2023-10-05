@@ -11,9 +11,12 @@ import (
 )
 
 func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*CollatorProtocolValidatorSide, error) {
+	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
+		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
 
 	cpvs := CollatorProtocolValidatorSide{
-		SubSystemToOverseer: overseerChan,
+		SubSystemToOverseer:             overseerChan,
+		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
 	}
 
 	// register collation protocol
@@ -31,7 +34,7 @@ func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*Co
 	if err != nil {
 		// try with legacy protocol id
 		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(LEGACY_COLLATION_PROTOCOL_V1),
+			protocol.ID(legacyCollationProtocolV1),
 			network.CollationMsgType,
 			getCollatorHandshake,
 			decodeCollatorHandshake,

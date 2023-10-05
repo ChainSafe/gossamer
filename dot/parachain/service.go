@@ -52,7 +52,7 @@ func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, 
 	if err != nil {
 		// try with legacy protocol id
 		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(LEGACY_VALIDATION_PROTOCOL_V1),
+			protocol.ID(legacyValidationProtocolV1),
 			network.ValidationMsgType,
 			getValidationHandshake,
 			decodeValidationHandshake,
@@ -153,5 +153,7 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
+		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }

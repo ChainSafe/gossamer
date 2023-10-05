@@ -22,9 +22,8 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "collator-protocol"))
 
 const (
-	ACTIVITY_POLL              = 10 * time.Millisecond
-	CHECK_COLLATIONS_POLL      = 50 * time.Millisecond
-	MAX_UNSHARED_DOWNLOAD_TIME = 100 * time.Millisecond
+	activityPoll            = 10 * time.Millisecond
+	maxUnsharedDownloadTime = 100 * time.Millisecond
 )
 
 var (
@@ -36,7 +35,7 @@ var (
 
 func (cpvs CollatorProtocolValidatorSide) Run(
 	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
-	inactivityTicker := time.NewTicker(ACTIVITY_POLL)
+	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
 		select {
@@ -91,10 +90,6 @@ func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Ha
 	}
 
 	collationFetchingResponse := NewCollationFetchingResponse()
-	// TODO: find out the appropriate value of collationFetchingResponseTimeout
-	// collationFetchingResponseTimeout will be part of collationFetchingReqResProtocol
-
-	// collationFetchingResponseTimeout := 5 * time.Second
 	err := cpvs.collationFetchingReqResProtocol.Do(peerID, collationFetchingRequest, &collationFetchingResponse)
 	if err != nil {
 		return nil, fmt.Errorf("collation fetching request failed: %w", err)
@@ -106,7 +101,7 @@ func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Ha
 	}
 	collationVDT, ok := v.(CollationVDT)
 	if !ok {
-		return nil, fmt.Errorf("collation fetching response value is not of type CollationVDT")
+		return nil, fmt.Errorf("collation fetching response value expected: CollationVDT, got: %T", v)
 	}
 	collation := parachaintypes.Collation(collationVDT)
 
@@ -135,13 +130,7 @@ func (peerData PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool 
 		return false
 	}
 
-	for _, head := range peerData.view.heads {
-		if head == relayParent {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(peerData.view.heads, relayParent)
 }
 
 func (peerData PeerData) InsertAdvertisement() error {
@@ -191,6 +180,8 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
+		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 

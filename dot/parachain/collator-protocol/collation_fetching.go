@@ -5,10 +5,18 @@ package collatorprotocol
 
 import (
 	"fmt"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
+const (
+	/// Maximum PoV size we support right now.
+	maxPoVSize                       = 5 * 1024 * 1024
+	collationFetchingRequestTimeout  = time.Millisecond * 1200
+	collationFetchingMaxResponseSize = maxPoVSize + 10000 // 10MB
 )
 
 // CollationFetchingRequest represents a request to retrieve

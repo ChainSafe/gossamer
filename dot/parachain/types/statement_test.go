@@ -17,12 +17,12 @@ import (
 )
 
 //go:embed testdata/statement.yaml
-var testDataStatementRaw string
+var testDataStatementRaw []byte
 
 var testDataStatement map[string]string
 
 func init() {
-	err := yaml.Unmarshal([]byte(testDataStatementRaw), &testDataStatement)
+	err := yaml.Unmarshal(testDataStatementRaw, &testDataStatement)
 	if err != nil {
 		fmt.Printf("Error unmarshaling test data: %s\n", err)
 		return
