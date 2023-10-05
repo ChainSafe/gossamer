@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -25,7 +26,7 @@ type ImportResult interface {
 	// IsFreshlyConcluded returns true if the dispute state changed to concluded during the import
 	IsFreshlyConcluded() (bool, error)
 	// ImportApprovalVotes imports the given approval votes into the current import
-	ImportApprovalVotes(approvalVotes []types.Vote, now uint64) (ImportResult, error)
+	ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, now uint64) (ImportResult, error)
 	// IntoUpdatedVotes returns the updated votes after the import
 	IntoUpdatedVotes() types.CandidateVotes
 }
@@ -124,14 +125,15 @@ func (i ImportResultHandler) IsFreshlyConcluded() (bool, error) {
 	return isFreshlyConcludedFor || isFreshlyConcludedAgainst, nil
 }
 
-func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []types.Vote, now uint64) (ImportResult, error) {
+func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, now uint64) (ImportResult, error) {
 	votes := i.newState.Votes
 
 	for _, approvalVote := range approvalVotes {
 		// TODO: validate signature
 
-		if _, ok := votes.Valid[approvalVote.ValidatorIndex]; !ok {
-			votes.Valid[approvalVote.ValidatorIndex] = approvalVote
+		existingVote := votes.Valid.Value.Get(approvalVote)
+		if existingVote == nil {
+			votes.Valid.Value.Set(approvalVote)
 			i.importedValidVotes++
 			i.importedApprovalVotes++
 		}
@@ -163,7 +165,7 @@ func (i ImportResultHandler) IntoUpdatedVotes() types.CandidateVotes {
 var _ ImportResult = (*ImportResultHandler)(nil)
 
 func NewImportResultFromStatements(
-	env types.CandidateEnvironment,
+	env *types.CandidateEnvironment,
 	statements []types.Statement,
 	candidateVoteState types.CandidateVoteState,
 	now uint64,
@@ -219,13 +221,13 @@ func NewImportResultFromStatements(
 				importedValidVotes++
 			}
 		case inherents.InvalidDisputeStatementKind:
-			_, ok := votes.Invalid[statement.ValidatorIndex]
-			if !ok {
-				votes.Invalid[statement.ValidatorIndex] = types.Vote{
-					ValidatorIndex:     statement.ValidatorIndex,
-					ValidatorSignature: statement.SignedDisputeStatement.ValidatorSignature,
-					DisputeStatement:   statement.SignedDisputeStatement.DisputeStatement,
-				}
+			vote := types.Vote{
+				ValidatorIndex:     statement.ValidatorIndex,
+				ValidatorSignature: statement.SignedDisputeStatement.ValidatorSignature,
+				DisputeStatement:   statement.SignedDisputeStatement.DisputeStatement,
+			}
+			if v := votes.Invalid.Get(vote); v == nil {
+				votes.Invalid.Set(vote)
 				importedInvalidVotes++
 				newInvalidVoters = append(newInvalidVoters, statement.ValidatorIndex)
 			}

@@ -1,6 +1,7 @@
 package overseer
 
 import (
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/scraping"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -100,4 +101,31 @@ type AncestorsRequest struct {
 	Hash            common.Hash
 	K               uint32
 	ResponseChannel chan AncestorsResponse
+}
+
+type ApprovalSignature struct {
+	ValidatorIndex     parachainTypes.ValidatorIndex
+	ValidatorSignature common.Hash
+}
+
+type ApprovalSignatureResponse struct {
+	Signature []ApprovalSignature
+	Error     error
+}
+
+type GetApprovalSignatureForCandidate struct {
+	CandidateHash common.Hash
+	ResponseChan  chan *ApprovalSignatureResponse
+}
+
+type ApprovalVotingMessage struct {
+	GetApprovalSignature *GetApprovalSignatureForCandidate
+}
+
+type RevertBlocksRequest struct {
+	Blocks []scraping.Inclusion
+}
+
+type ChainSelectionMessage struct {
+	RevertBlocks *RevertBlocksRequest
 }

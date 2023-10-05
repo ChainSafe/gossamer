@@ -7,6 +7,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
 // UncheckedDisputeMessage is a dispute message where signatures of statements have not yet been checked.
@@ -160,10 +162,11 @@ func NewDisputeMessageFromSignedStatements(
 
 // NewDisputeMessage creates a new dispute message.
 func NewDisputeMessage(
-	info parachainTypes.SessionInfo,
+	keypair keystore.KeyPair,
 	votes CandidateVotes,
 	ourVote *SignedDisputeStatement,
 	ourIndex parachainTypes.ValidatorIndex,
+	info parachainTypes.SessionInfo,
 ) (DisputeMessage, error) {
 	disputeStatement, err := ourVote.DisputeStatement.Value()
 	if err != nil {
@@ -185,23 +188,19 @@ func NewDisputeMessage(
 			return ok
 		})
 
-		invalidDisputeStatement := inherents.NewInvalidDisputeStatement()
-
-		if firstVote.ValidatorIndex > parachainTypes.ValidatorIndex(len(info.Validators)) {
-			return DisputeMessage{}, fmt.Errorf("invalid validator index")
-		}
-
 		validStatement = *ourVote
 		validIndex = ourIndex
 
-		validatorPublicKey := info.Validators[firstVote.ValidatorIndex]
-		invalidStatement = NewSignedDisputeStatement(
-			invalidDisputeStatement,
+		invalidStatement, err = NewSignedDisputeStatement(
+			keypair,
+			false,
 			ourVote.CandidateHash,
 			ourVote.SessionIndex,
-			validatorPublicKey,
-			ourVote.ValidatorSignature,
 		)
+		if err != nil {
+			return DisputeMessage{}, fmt.Errorf("new signed dispute statement: %w", err)
+		}
+
 		invalidIndex = firstVote.ValidatorIndex
 	} else {
 		votes.Valid.Value.Descend(nil, func(i interface{}) bool {
@@ -209,20 +208,12 @@ func NewDisputeMessage(
 			return ok
 		})
 
-		validDisputeStatement := inherents.NewValidDisputeStatement()
-
-		if firstVote.ValidatorIndex > parachainTypes.ValidatorIndex(len(info.Validators)) {
-			return DisputeMessage{}, fmt.Errorf("invalid validator index")
-		}
-
 		validIndex = firstVote.ValidatorIndex
-		validatorPublicKey := info.Validators[firstVote.ValidatorIndex]
-		validStatement = NewSignedDisputeStatement(
-			validDisputeStatement,
+		validStatement, err = NewSignedDisputeStatement(
+			keypair,
+			true,
 			ourVote.CandidateHash,
 			ourVote.SessionIndex,
-			validatorPublicKey,
-			ourVote.ValidatorSignature,
 		)
 
 		invalidStatement = *ourVote
