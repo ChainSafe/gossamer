@@ -1,7 +1,7 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
+	github.com/ChainSafe/go-schnorrkel v1.1.0
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
