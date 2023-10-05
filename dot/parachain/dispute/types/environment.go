@@ -17,7 +17,6 @@ func NewCandidateEnvironment(sessionIndex parachainTypes.SessionIndex,
 	relayParent common.Hash,
 	runtime parachain.RuntimeInstance,
 ) (*CandidateEnvironment, error) {
-	// TODO: get session info from relay parent
 	sessionInfo, err := runtime.ParachainHostSessionInfo(relayParent, sessionIndex)
 	if err != nil {
 		return nil, fmt.Errorf("get session info: %w", err)

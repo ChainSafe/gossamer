@@ -6,6 +6,7 @@ package overseer
 type Sender interface {
 	SendMessage(msg any) error
 	Feed(msg any) error
+	SendUnboundedMessage(msg any) error
 }
 
 type Context struct {

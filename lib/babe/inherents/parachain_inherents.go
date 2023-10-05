@@ -120,6 +120,18 @@ func (d *DisputeStatement) Value() (scale.VaryingDataTypeValue, error) {
 	return vdt.Value()
 }
 
+// IsValid returns true if the DisputeStatement is valid.
+func (d DisputeStatement) IsValid() (bool, error) {
+	vdt := scale.VaryingDataType(d)
+	val, err := vdt.Value()
+	if err != nil {
+		return false, fmt.Errorf("getting value from DisputeStatement vdt: %w", err)
+	}
+
+	_, ok := val.(ValidDisputeStatementKind)
+	return ok, nil
+}
+
 // ValidDisputeStatementKind is a kind of statements of validity on a candidate.
 type ValidDisputeStatementKind scale.VaryingDataType //skipcq
 
@@ -283,40 +295,40 @@ func NewDisputeStatement() DisputeStatement { //skipcq
 	return DisputeStatement(vdt)
 }
 
-// NewInvalidDisputeStatement create a new DisputeStatement varying data type.
-func NewInvalidDisputeStatement() DisputeStatement { //skipcq
-	disputeStatement := NewDisputeStatement()
-
-	idsKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
-	if err != nil {
-		panic(err)
-	}
-
-	err = disputeStatement.Set(InvalidDisputeStatementKind(idsKind))
-	if err != nil {
-		panic(err)
-	}
-
-	return disputeStatement
-}
-
-// NewValidDisputeStatement create a new DisputeStatement varying data type.
-func NewValidDisputeStatement() DisputeStatement { //skipcq
-	disputeStatement := NewDisputeStatement()
-
-	vdsKind, err := scale.NewVaryingDataType(
-		ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
-	if err != nil {
-		panic(err)
-	}
-
-	err = disputeStatement.Set(ValidDisputeStatementKind(vdsKind))
-	if err != nil {
-		panic(err)
-	}
-
-	return disputeStatement
-}
+//// NewInvalidDisputeStatement create a new DisputeStatement varying data type.
+//func NewInvalidDisputeStatement() DisputeStatement { //skipcq
+//	disputeStatement := NewDisputeStatement()
+//
+//	idsKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	err = disputeStatement.Set(InvalidDisputeStatementKind(idsKind))
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	return disputeStatement
+//}
+//
+//// NewValidDisputeStatement create a new DisputeStatement varying data type.
+//func NewValidDisputeStatement() DisputeStatement { //skipcq
+//	disputeStatement := NewDisputeStatement()
+//
+//	vdsKind, err := scale.NewVaryingDataType(
+//		ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	err = disputeStatement.Set(ValidDisputeStatementKind(vdsKind))
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	return disputeStatement
+//}
 
 // collatorID is the collator's relay-chain account ID
 type collatorID sr25519.PublicKey

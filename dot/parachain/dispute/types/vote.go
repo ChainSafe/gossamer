@@ -265,14 +265,14 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState
 }
 
 // NewCandidateVoteStateFromReceipt creates a new CandidateVoteState from a CandidateReceipt
-func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (*CandidateVoteState, error) {
+func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (CandidateVoteState, error) {
 	votes := NewCandidateVotesFromReceipt(receipt)
 	ownVoteState, err := NewOwnVoteState(CannotVote{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create own vote state: %w", err)
+		return CandidateVoteState{}, fmt.Errorf("failed to create own vote state: %w", err)
 	}
 
-	return &CandidateVoteState{
+	return CandidateVoteState{
 		Votes: votes,
 		Own:   ownVoteState,
 	}, nil
@@ -285,14 +285,19 @@ type ValidCandidateVotes struct {
 }
 
 func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
-	existingVote, ok := vcv.Value.Get(vote.ValidatorIndex).(Vote)
-	if !ok {
+	existingVote := vcv.Value.Get(vote.ValidatorIndex)
+	if existingVote == nil {
 		vcv.Value.Set(vote)
 		vcv.VotedValidators[vote.ValidatorIndex] = struct{}{}
 		return true, nil
 	}
 
-	disputeStatement, err := existingVote.DisputeStatement.Value()
+	oldVote, ok := existingVote.(Vote)
+	if !ok {
+		return false, fmt.Errorf("invalid type for existing vote: expected Vote, got %T", existingVote)
+	}
+
+	disputeStatement, err := oldVote.DisputeStatement.Value()
 	if err != nil {
 		return false, fmt.Errorf("getting value from DisputeStatement vdt: %w", err)
 	}

@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/ChainSafe/gossamer/dot/parachain"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -18,10 +19,6 @@ type SecondedCompactStatement struct {
 // Index returns the index of the type SecondedCompactStatement.
 func (SecondedCompactStatement) Index() uint {
 	return 0
-}
-
-func (SecondedCompactStatement) SigningPayload() []byte {
-	panic("implement me")
 }
 
 // ValidCompactStatement represents a valid candidate.
@@ -59,13 +56,26 @@ func (cs *CompactStatementVDT) Value() (val scale.VaryingDataTypeValue, err erro
 	return val, nil
 }
 
+type SigningContext struct {
+	SessionIndex  parachainTypes.SessionIndex
+	CandidateHash common.Hash
+}
+
 func (cs *CompactStatementVDT) SigningPayload() ([]byte, error) {
-	// scale encode the value
-	encoded, err := scale.Marshal(*cs)
+	// scale encode the compact statement
+	encodedStatement, err := scale.Marshal(*cs)
 	if err != nil {
 		return nil, fmt.Errorf("encode compact statement: %w", err)
 	}
 
+	// scale encode the signing context
+	encodedSigningContext, err := scale.Marshal(signingContext)
+	if err != nil {
+		return nil, fmt.Errorf("encode signing context: %w", err)
+	}
+
+	// concatenate the encoded statement and encoded signing context
+	encoded := append(encodedStatement, encodedSigningContext...)
 	return encoded, nil
 }
 
@@ -143,8 +153,19 @@ type ExplicitDisputeStatement struct {
 	Session       parachainTypes.SessionIndex
 }
 
-func (ExplicitDisputeStatement) SigningPayload() []byte {
-	panic("implement me")
+func (eds ExplicitDisputeStatement) SigningPayload() ([]byte, error) {
+	const magic = "DISP"
+	var magicBytes [4]byte
+	copy(magicBytes[:], magic)
+
+	encoded, err := scale.Marshal(eds)
+	if err != nil {
+		return nil, fmt.Errorf("marshal ExplicitDisputeStatement")
+	}
+
+	// how to return
+	payload := append(magicBytes[:], encoded...)
+	return payload, nil
 }
 
 // ApprovalVote A vote of approval on a candidate.
@@ -153,12 +174,18 @@ type ApprovalVote struct {
 }
 
 func (a *ApprovalVote) SigningPayload() ([]byte, error) {
-	encoded, err := scale.Marshal(&a)
+	const magic = "APPR"
+	var magicBytes [4]byte
+	copy(magicBytes[:], magic)
+
+	encoded, err := scale.Marshal(a)
 	if err != nil {
-		return nil, fmt.Errorf("encode approval vote: %w", err)
+		return nil, fmt.Errorf("marshal ExplicitDisputeStatement")
 	}
 
-	return encoded, nil
+	// how to return
+	payload := append(magicBytes[:], encoded...)
+	return payload, nil
 }
 
 // SignedDisputeStatement A checked dispute statement from an associated validator.
@@ -170,19 +197,40 @@ type SignedDisputeStatement struct {
 	SessionIndex       parachainTypes.SessionIndex
 }
 
-func NewSignedDisputeStatement(disputeStatement inherents.DisputeStatement,
+func NewSignedDisputeStatement(
+	keypair keystore.KeyPair,
+	valid bool,
 	candidateHash common.Hash,
 	sessionIndex parachainTypes.SessionIndex,
-	validatorPublic parachainTypes.ValidatorID,
-	validatorSignature parachain.ValidatorSignature,
-) SignedDisputeStatement {
+) (SignedDisputeStatement, error) {
+	disputeStatement := inherents.NewDisputeStatement()
+	if valid {
+		if err := disputeStatement.Set(inherents.ExplicitValidDisputeStatementKind{}); err != nil {
+			return SignedDisputeStatement{}, fmt.Errorf("set dispute statement: %w", err)
+		}
+	} else {
+		if err := disputeStatement.Set(inherents.ExplicitInvalidDisputeStatementKind{}); err != nil {
+			return SignedDisputeStatement{}, fmt.Errorf("set dispute statement: %w", err)
+		}
+	}
+
+	payload, err := getDisputeStatementSigningPayload(disputeStatement, candidateHash, sessionIndex)
+	if err != nil {
+		return SignedDisputeStatement{}, fmt.Errorf("get dispute statement signing payload: %w", err)
+	}
+
+	signature, err := keypair.Sign(payload)
+	if err != nil {
+		return SignedDisputeStatement{}, fmt.Errorf("sign payload: %w", err)
+	}
+
 	return SignedDisputeStatement{
 		DisputeStatement:   disputeStatement,
 		CandidateHash:      candidateHash,
-		ValidatorPublic:    validatorPublic,
-		ValidatorSignature: validatorSignature,
+		ValidatorPublic:    parachainTypes.ValidatorID(keypair.Public().Encode()),
+		ValidatorSignature: parachain.ValidatorSignature(signature),
 		SessionIndex:       sessionIndex,
-	}
+	}, nil
 }
 
 func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatement,
@@ -191,13 +239,8 @@ func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatemen
 	validatorPublic parachainTypes.ValidatorID,
 	validatorSignature parachain.ValidatorSignature,
 ) (*SignedDisputeStatement, error) {
-	payload, err := getDisputeStatementSigningPayload(disputeStatement, candidateHash, sessionIndex)
-	if err != nil {
-		return nil, fmt.Errorf("get dispute statement signing payload: %w", err)
-	}
-
-	if err := validatorSignature.Verify(payload, validatorPublic); err != nil {
-		return nil, fmt.Errorf("verify validator signature: %w", err)
+	if err := VerifyDisputeStatement(disputeStatement, candidateHash, sessionIndex, validatorPublic, validatorSignature); err != nil {
+		return nil, fmt.Errorf("verify dispute statement: %w", err)
 	}
 
 	return &SignedDisputeStatement{
@@ -209,7 +252,27 @@ func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatemen
 	}, nil
 }
 
-func getDisputeStatementSigningPayload(disputeStatement inherents.DisputeStatement,
+func VerifyDisputeStatement(
+	disputeStatement inherents.DisputeStatement,
+	candidateHash common.Hash,
+	sessionIndex parachainTypes.SessionIndex,
+	validatorPublic parachainTypes.ValidatorID,
+	validatorSignature parachain.ValidatorSignature,
+) error {
+	payload, err := getDisputeStatementSigningPayload(disputeStatement, candidateHash, sessionIndex)
+	if err != nil {
+		return fmt.Errorf("get dispute statement signing payload: %w", err)
+	}
+
+	if err := validatorSignature.Verify(payload, validatorPublic); err != nil {
+		return fmt.Errorf("verify validator signature: %w", err)
+	}
+
+	return nil
+}
+
+func getDisputeStatementSigningPayload(
+	disputeStatement inherents.DisputeStatement,
 	candidateHash common.Hash,
 	session parachainTypes.SessionIndex,
 ) ([]byte, error) {
@@ -226,49 +289,58 @@ func getDisputeStatementSigningPayload(disputeStatement inherents.DisputeStateme
 			CandidateHash: candidateHash,
 			Session:       session,
 		}
-		payload = data.SigningPayload()
+		payload, err = data.SigningPayload()
+		if err != nil {
+			return nil, fmt.Errorf("get signing payload: %w", err)
+		}
 	case inherents.BackingSeconded:
 		data, err := NewCustomCompactStatement(SecondedCompactStatementKind, candidateHash)
 		if err != nil {
 			return nil, fmt.Errorf("new custom compact statement: %w", err)
 		}
 
-		payload, err = data.SigningPayload()
-		if err != nil {
-			return nil, fmt.Errorf("signing payload: %w", err)
+		signingContext := SigningContext{
+			SessionIndex:  session,
+			CandidateHash: candidateHash,
 		}
-
+		payload, err = data.SigningPayload(signingContext)
+		if err != nil {
+			return nil, fmt.Errorf("get signing payload: %w", err)
+		}
 	case inherents.BackingValid:
 		data, err := NewCustomCompactStatement(ValidCompactStatementKind, candidateHash)
 		if err != nil {
 			return nil, fmt.Errorf("new custom compact statement: %w", err)
 		}
 
-		payload, err = data.SigningPayload()
-		if err != nil {
-			return nil, fmt.Errorf("signing payload: %w", err)
+		signingContext := SigningContext{
+			SessionIndex:  session,
+			CandidateHash: candidateHash,
 		}
-
+		payload, err = data.SigningPayload(signingContext)
+		if err != nil {
+			return nil, fmt.Errorf("get signing payload: %w", err)
+		}
 	case inherents.ApprovalChecking:
 		data := ApprovalVote{
 			candidateHash: candidateHash,
 		}
 		payload, err = data.SigningPayload()
 		if err != nil {
-			return nil, fmt.Errorf("signing payload: %w", err)
+			return nil, fmt.Errorf("get signing payload: %w", err)
 		}
-
 	case inherents.InvalidDisputeStatementKind:
 		data := ExplicitDisputeStatement{
 			Valid:         false,
 			CandidateHash: candidateHash,
 			Session:       session,
 		}
-		payload = data.SigningPayload()
-
+		payload, err = data.SigningPayload()
+		if err != nil {
+			return nil, fmt.Errorf("get signing payload: %w", err)
+		}
 	default:
 		return nil, fmt.Errorf("invalid dispute statement kind")
-
 	}
 
 	return payload, nil
