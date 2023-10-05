@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package collatorprotocol
 
 import (
 	_ "embed"
@@ -29,6 +29,14 @@ func init() {
 	}
 }
 
+func getDummyHash(num byte) common.Hash {
+	hash := common.Hash{}
+	for i := 0; i < 32; i++ {
+		hash[i] = num
+	}
+	return hash
+}
+
 func TestCollationProtocol(t *testing.T) {
 	t.Parallel()
 
@@ -37,7 +45,7 @@ func TestCollationProtocol(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature := common.MustHexToBytes(testDataStatement["collatorSignature"])
+	tempSignature := common.MustHexToBytes(testDataCollationProtocol["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
 	var validatorSignature parachaintypes.ValidatorSignature
@@ -94,8 +102,8 @@ func TestCollationProtocol(t *testing.T) {
 		{
 			name: "CollationSeconded",
 			enumValue: CollationSeconded{
-				Hash: hash5,
-				UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
+				RelayParent: hash5,
+				Statement: parachaintypes.UncheckedSignedFullStatement{
 					Payload:        statementVDTWithSeconded,
 					ValidatorIndex: parachaintypes.ValidatorIndex(5),
 					Signature:      validatorSignature,
