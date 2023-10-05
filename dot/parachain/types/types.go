@@ -563,21 +563,22 @@ func (PoV) Index() uint {
 	return 0
 }
 
+// NoSuchPoV indicates that the requested PoV was not found in the store.
+type NoSuchPoV struct{}
+
+// Index returns the index of varying data type
+func (NoSuchPoV) Index() uint {
+	return 1
+}
+
 // BlockData represents parachain block data.
 // It contains everything required to validate para-block, may contain block and witness data.
 type BlockData []byte
 
-// UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
-type UncheckedSignedFullStatement struct {
-	// The payload is part of the signed data. The rest is the signing context,
-	// which is known both at signing and at validation.
-	Payload StatementVDT `scale:"1"`
-
-	// The index of the validator signing this statement.
-	ValidatorIndex ValidatorIndex `scale:"2"`
-
-	// The signature by the validator of the signed payload.
-	Signature ValidatorSignature `scale:"3"`
+// Collation represents a requested collation to be delivered
+type Collation struct {
+	CandidateReceipt CandidateReceipt `scale:"1"`
+	PoV              PoV              `scale:"2"`
 }
 
 // ValidatorSignature represents the signature with which parachain validators sign blocks.
