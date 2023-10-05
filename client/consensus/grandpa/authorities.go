@@ -780,7 +780,7 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID auth
 			case a.blockNumber < b:
 				return -1
 			default:
-				panic("huh?")
+				panic("invalid return in binary search")
 			}
 		},
 	)
@@ -828,7 +828,7 @@ func (asc *AuthoritySetChanges[N]) insert(blockNumber N) {
 				case a.blockNumber < b:
 					return -1
 				default:
-					panic("huh?")
+					panic("invalid return in binary search")
 				}
 			},
 		)
@@ -881,7 +881,7 @@ func (asc *AuthoritySetChanges[N]) IterFrom(blockNumber N) *AuthoritySetChanges[
 			case a.blockNumber < b:
 				return -1
 			default:
-				panic("huh?")
+				panic("invalid return in binary search")
 			}
 		},
 	)
