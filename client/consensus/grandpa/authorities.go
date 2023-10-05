@@ -728,10 +728,7 @@ func (asc *authoritySetChangeID) Value() (val scale.VaryingDataTypeValue, err er
 }
 
 func newAuthoritySetChangeID[N constraints.Unsigned]() authoritySetChangeID {
-	vdt, err := scale.NewVaryingDataType(latest{}, set[N]{}, unknown{})
-	if err != nil {
-		panic(err)
-	}
+	vdt := scale.MustNewVaryingDataType(latest{}, set[N]{}, unknown{})
 	return authoritySetChangeID(vdt)
 }
 
