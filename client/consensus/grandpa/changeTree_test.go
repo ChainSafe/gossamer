@@ -54,7 +54,7 @@ func TestSwapRemove(t *testing.T) {
 		exp  pendingChangeNode[string, uint]
 	}{
 		{
-			name: "2 elem slice deleting last element",
+			name: "TwoElemSliceDeletingLastElement",
 			args: args{
 				ct: ChangeTree[string, uint]{
 					roots: changeNodes1,
@@ -64,7 +64,7 @@ func TestSwapRemove(t *testing.T) {
 			exp: *pendingChangeNode2,
 		},
 		{
-			name: "3 elem slice deleting first element",
+			name: "ThreeElemSliceDeletingFirstElement",
 			args: args{
 				ct: ChangeTree[string, uint]{
 					roots: changeNodes2,
