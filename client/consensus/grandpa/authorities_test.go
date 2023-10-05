@@ -1383,21 +1383,21 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 		exp  bool
 	}{
 		{
-			name: "nil authorities",
+			name: "nilAuthorities",
 			args: args{
 				authorities: nil,
 			},
 			exp: true,
 		},
 		{
-			name: "empty authorities",
+			name: "emptyAuthorities",
 			args: args{
 				authorities: []Authority{},
 			},
 			exp: true,
 		},
 		{
-			name: "invalid authorities weight",
+			name: "invalidAuthoritiesWeight",
 			args: args{
 				authorities: []Authority{
 					{
@@ -1408,7 +1408,7 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 			exp: true,
 		},
 		{
-			name: "valid authority list",
+			name: "validAuthorityList",
 			args: args{
 				authorities: []Authority{
 					{
