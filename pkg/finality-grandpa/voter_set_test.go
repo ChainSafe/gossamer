@@ -69,6 +69,7 @@ func TestVoterSet_Equality(t *testing.T) {
 		}
 		return sum.Cmp(new(big.Int).SetUint64(uint64(math.MaxUint64))) > 0
 	}
+
 	if err := quick.Check(f, nil); err != nil {
 		t.Error(err)
 	}

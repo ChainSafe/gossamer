@@ -43,8 +43,8 @@ type hashNumber[H, N any] struct {
 	number N
 }
 
-// appliedChanges represents the median and new set when a forced hashNumber has occured
-type appliedChanges[H comparable, N constraints.Unsigned] struct {
+// medianAuthoritySet represents the median and new set when a forced hashNumber has occured
+type medianAuthoritySet[H comparable, N constraints.Unsigned] struct {
 	median N
 	set    AuthoritySet[H, N]
 }
@@ -114,7 +114,7 @@ func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 	return sas.inner.currentLimit(min)
 }
 
-func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, bestNumber N, isDescendentOf IsDescendentOf[H], telemetry *Telemetry) (newSet *appliedChanges[H, N], err error) {
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, bestNumber N, isDescendentOf IsDescendentOf[H], telemetry *Telemetry) (newSet *medianAuthoritySet[H, N], err error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, telemetry)
@@ -465,7 +465,7 @@ func (authSet *AuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H,
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
-	_ Telemetry) (newSet *appliedChanges[H, N], err error) {
+	_ Telemetry) (newSet *medianAuthoritySet[H, N], err error) {
 
 	for _, change := range authSet.pendingForcedChanges {
 		effectiveNumber := change.EffectiveNumber()
@@ -506,7 +506,7 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H,
 
 				authSetChanges := authSet.authoritySetChanges
 				authSetChanges.append(authSet.setID, medianLastFinalized)
-				newSet = &appliedChanges[H, N]{
+				newSet = &medianAuthoritySet[H, N]{
 					medianLastFinalized,
 					AuthoritySet[H, N]{
 						currentAuthorities:     change.nextAuthorities,

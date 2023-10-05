@@ -11,7 +11,9 @@ import (
 )
 
 /*
-	TODO give a summary of how this works in context of grandpa
+	The grandpa ChangeTree is a structure built to track pending changes across forks for the Grandpa Protocol.
+	This structure is intended to represent an acyclic directed graph where the children are
+    placed in descending order and number, you can ensure node ancestry using the `isDescendantOfFunc`.
 */
 
 var (
@@ -20,11 +22,7 @@ var (
 	errRevert              = errors.New("tried to import or finalize node that is an ancestor of a previously finalized node")
 )
 
-// ChangeTree keeps track of the changes per fork allowing
-// n forks in the same structure. This structure is intended
-// to represent an acyclic directed graph where the hashNumber children are
-// placed by descendency order and number, you can ensure an
-// node ancestry using the `isDescendantOfFunc`
+// ChangeTree keeps track of changes across forks
 type ChangeTree[H comparable, N constraints.Unsigned] struct {
 	roots               []*pendingChangeNode[H, N]
 	bestFinalizedNumber *N

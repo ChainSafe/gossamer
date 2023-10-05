@@ -580,7 +580,7 @@ func TestForceChanges(t *testing.T) {
 	require.Nil(t, resForced)
 
 	// on time -- chooses the right hashNumber for this fork
-	exp := appliedChanges[string, uint]{
+	exp := medianAuthoritySet[string, uint]{
 		median: 42,
 		set: AuthoritySet[string, uint]{
 			currentAuthorities:     setA,
@@ -749,7 +749,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		setID:       2,
 		blockNumber: 31,
 	})
-	exp := appliedChanges[string, uint]{
+	exp := medianAuthoritySet[string, uint]{
 		median: 31,
 		set: AuthoritySet[string, uint]{
 			currentAuthorities:     setA,
