@@ -1,9 +1,9 @@
 package keystore
 
 import (
-	"crypto/ed25519"
-
 	"github.com/ChainSafe/gossamer/core/crypto"
+	"github.com/ChainSafe/gossamer/core/ecdsa"
+	"github.com/ChainSafe/gossamer/core/ed25519"
 	"github.com/ChainSafe/gossamer/core/sr25519"
 )
 
@@ -54,7 +54,7 @@ type KeyStore interface {
 
 	// /// Returns all ed25519 public keys for the given key type.
 	// fn ed25519_public_keys(&self, key_type: KeyTypeId) -> Vec<ed25519::Public>;
-	Ed25519PublicKeys(keyType crypto.KeyTypeID) []ed25519.PublicKey
+	Ed25519PublicKeys(keyType crypto.KeyTypeID) []ed25519.Public
 
 	/// Generate a new ed25519 key pair for the given key type and an optional seed.
 	///
@@ -65,7 +65,7 @@ type KeyStore interface {
 	// 	key_type: KeyTypeId,
 	// 	seed: Option<&str>,
 	// ) -> Result<ed25519::Public, Error>;
-	Ed25519GenerateNew(keyType crypto.KeyTypeID, seed *string) (ed25519.PublicKey, error)
+	Ed25519GenerateNew(keyType crypto.KeyTypeID, seed *string) (ed25519.Public, error)
 
 	// /// Generate an ed25519 signature for a given message.
 	// ///
@@ -81,10 +81,11 @@ type KeyStore interface {
 	// 	public: &ed25519::Public,
 	// 	msg: &[u8],
 	// ) -> Result<Option<ed25519::Signature>, Error>;
-	Ed25519Sign(keyType crypto.KeyTypeID, public ed25519.PublicKey, msg []byte) (ed25519.Signature, error)
+	Ed25519Sign(keyType crypto.KeyTypeID, public ed25519.Public, msg []byte) (*ed25519.Signature, error)
 
 	// /// Returns all ecdsa public keys for the given key type.
 	// fn ecdsa_public_keys(&self, key_type: KeyTypeId) -> Vec<ecdsa::Public>;
+	ECDSAPublicKeys(keyType crypto.KeyTypeID) []ecdsa.Public
 
 	// /// Generate a new ecdsa key pair for the given key type and an optional seed.
 	// ///
@@ -95,6 +96,7 @@ type KeyStore interface {
 	// 	key_type: KeyTypeId,
 	// 	seed: Option<&str>,
 	// ) -> Result<ecdsa::Public, Error>;
+	ECDSAGenerateNew(keyType crypto.KeyTypeID, seed *string) (ecdsa.Public, error)
 
 	// /// Generate an ecdsa signature for a given message.
 	// ///
@@ -110,6 +112,7 @@ type KeyStore interface {
 	// 	public: &ecdsa::Public,
 	// 	msg: &[u8],
 	// ) -> Result<Option<ecdsa::Signature>, Error>;
+	ECDSASign(keyType crypto.KeyTypeID, public ecdsa.Public, msg []byte) (*ecdsa.Signature, error)
 
 	// /// Generate an ecdsa signature for a given pre-hashed message.
 	// ///
@@ -125,5 +128,5 @@ type KeyStore interface {
 	// 	public: &ecdsa::Public,
 	// 	msg: &[u8; 32],
 	// ) -> Result<Option<ecdsa::Signature>, Error>;
-
+	ECDSASignPrehashed(keyType crypto.KeyTypeID, public ecdsa.Public, msg [32]byte) (*ecdsa.Signature, error)
 }
