@@ -8,6 +8,8 @@ import (
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/emirpasic/gods/sets/treeset"
 	"time"
@@ -25,8 +27,9 @@ type CoordinatorSubsystem interface {
 
 // disputeCoordinator implements the CoordinatorSubsystem interface.
 type disputeCoordinator struct {
-	store   *overlayBackend
-	runtime parachain.RuntimeInstance
+	keystore keystore.Keystore
+	store    *overlayBackend
+	runtime  parachain.RuntimeInstance
 }
 
 func (d *disputeCoordinator) Run(context overseer.Context) error {
@@ -237,7 +240,8 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 	}, nil
 }
 
-func (d *disputeCoordinator) sendDisputeMessages(context overseer.Context,
+func (d *disputeCoordinator) sendDisputeMessages(
+	context overseer.Context,
 	env types.CandidateEnvironment,
 	voteState types.CandidateVoteState,
 ) {
@@ -255,6 +259,12 @@ func (d *disputeCoordinator) sendDisputeMessages(context overseer.Context,
 			logger.Errorf("failed to get validator public key for index %d", vote.ValidatorIndex)
 			continue
 		}
+		pubKey, err := sr25519.NewPublicKey(publicKey[:])
+		if err != nil {
+			logger.Errorf("failed to create public key: %s", err)
+			continue
+		}
+		keypair := d.keystore.GetKeypairFromAddress(pubKey.Address())
 
 		candidateHash, err := voteState.Votes.CandidateReceipt.Hash()
 		if err != nil {
@@ -262,18 +272,19 @@ func (d *disputeCoordinator) sendDisputeMessages(context overseer.Context,
 			continue
 		}
 
-		ourVoteSigned, err := types.NewCheckedSignedDisputeStatement(vote.DisputeStatement,
-			candidateHash,
-			env.SessionIndex,
-			publicKey,
-			vote.ValidatorSignature,
-		)
+		isValid, err := vote.DisputeStatement.IsValid()
 		if err != nil {
-			logger.Errorf("Checking our own signature - db corruption?: %s", err)
+			logger.Errorf("failed to check if dispute statement is valid: %s", err)
 			continue
 		}
 
-		disputeMessage, err := types.NewDisputeMessage(env.Session, voteState.Votes, ourVoteSigned, vote.ValidatorIndex)
+		signedDisputeStatement, err := types.NewSignedDisputeStatement(keypair, isValid, candidateHash, env.SessionIndex)
+		if err != nil {
+			logger.Errorf("create signed dispute statement: %s", err)
+			continue
+		}
+
+		disputeMessage, err := types.NewDisputeMessage(keypair, voteState.Votes, &signedDisputeStatement, vote.ValidatorIndex, env.Session)
 		if err != nil {
 			logger.Errorf("create dispute message: %s", err)
 			continue
