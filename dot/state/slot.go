@@ -46,7 +46,7 @@ type headerAndSigner struct {
 }
 
 func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header,
-	signer types.AuthorityID) (*types.BabeEquivocationProof, error) {
+	signer types.AuthorityID) (*types.BabeEquivocationProof, error) { //skipcq: GO-R1005
 	// We don't check equivocations for old headers out of our capacity.
 	// checking slotNow is greater than slot to avoid overflow, same as saturating_sub
 	if primitives.SaturatingSub(slotNow, slot) > maxSlotCapacity {
