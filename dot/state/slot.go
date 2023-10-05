@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/lib/primitives"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -48,7 +49,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	signer types.AuthorityID) (*types.BabeEquivocationProof, error) {
 	// We don't check equivocations for old headers out of our capacity.
 	// checking slotNow is greater than slot to avoid overflow, same as saturating_sub
-	if saturatingSub(slotNow, slot) > maxSlotCapacity {
+	if primitives.SaturatingSub(slotNow, slot) > maxSlotCapacity {
 		return nil, nil
 	}
 
@@ -127,7 +128,7 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	newFirstSavedSlot := firstSavedSlot
 
 	if slotNow-firstSavedSlot >= pruningBound {
-		newFirstSavedSlot = saturatingSub(slotNow, maxSlotCapacity)
+		newFirstSavedSlot = primitives.SaturatingSub(slotNow, maxSlotCapacity)
 
 		for s := firstSavedSlot; s < newFirstSavedSlot; s++ {
 			slotEncoded := make([]byte, 8)
@@ -183,11 +184,4 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 	}
 
 	return nil, nil
-}
-
-func saturatingSub(a, b uint64) uint64 {
-	if a > b {
-		return a - b
-	}
-	return 0
 }
