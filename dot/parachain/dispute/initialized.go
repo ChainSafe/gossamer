@@ -10,6 +10,8 @@ import (
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/gammazero/deque"
 	"time"
 )
@@ -24,7 +26,7 @@ const (
 const ChainImportMaxBatchSize = 6
 
 type Initialized struct {
-	// TODO: keystore
+	keystore              keystore.Keystore
 	runtime               parachainRuntime.RuntimeInstance
 	HighestSessionSeen    parachainTypes.SessionIndex
 	GapsInCache           bool
@@ -40,6 +42,19 @@ type InitialData struct {
 	Participation []ParticipationRequestWithPriority
 	Votes         []parachainTypes.ScrapedOnChainVotes
 	Leaf          *overseer.ActivatedLeaf
+}
+
+type MaybeCandidateReceipt struct {
+	CandidateReceipt *parachainTypes.CandidateReceipt
+	CandidateHash    common.Hash
+}
+
+func (m MaybeCandidateReceipt) Hash() (common.Hash, error) {
+	if m.CandidateReceipt != nil {
+		return m.CandidateReceipt.Hash()
+	}
+
+	return m.CandidateHash, nil
 }
 
 func (i *Initialized) Run(context overseer.Context, backend DBBackend, initialData *InitialData) error {
@@ -338,7 +353,13 @@ func (i *Initialized) ProcessOnChainVotes(
 				continue
 			}
 
-			if _, err := types.NewCheckedSignedDisputeStatement(disputeStatement, candidateHash, votes.Session, validatorPublic, parachain.ValidatorSignature(validatorSignature)); err != nil {
+			signedDisputeStatement, err := types.NewCheckedSignedDisputeStatement(disputeStatement,
+				candidateHash,
+				votes.Session,
+				validatorPublic,
+				parachain.ValidatorSignature(validatorSignature),
+			)
+			if err != nil {
 				logger.Errorf("scraped backing votes had invalid signature. Candidate: %v, session: %v, validatorPublic: %v, validatorIndex: %v",
 					candidateHash,
 					votes.Session,
@@ -348,21 +369,23 @@ func (i *Initialized) ProcessOnChainVotes(
 				return fmt.Errorf("new checked signed dispute statement: %w", err)
 			}
 
-			signedDisputeStatement := types.NewSignedDisputeStatement(disputeStatement, candidateHash, votes.Session, validatorPublic, parachain.ValidatorSignature(validatorSignature))
 			statements = append(statements, types.Statement{
-				SignedDisputeStatement: signedDisputeStatement,
+				SignedDisputeStatement: *signedDisputeStatement,
 				ValidatorIndex:         backers.ValidatorIndex,
 			})
 
 			// Importantly, handling import statements for backing votes also
 			// clears spam slots for any newly backed candidates
-			if outcome := i.HandleImportStatements(context,
+			candidateReceipt := MaybeCandidateReceipt{
+				CandidateReceipt: &backingValidators.CandidateReceipt,
+			}
+			if outcome, err := i.HandleImportStatements(context,
 				backend,
-				backingValidators.CandidateReceipt,
+				candidateReceipt,
 				votes.Session,
 				statements,
 				now,
-			); outcome == InvalidImport {
+			); err != nil || outcome == InvalidImport {
 				logger.Errorf("attempted import of on-chain backing votes failed. session: %v, relayParent: %v",
 					votes.Session,
 					backingValidators.CandidateReceipt.Descriptor.RelayParent,
@@ -378,45 +401,7 @@ func (i *Initialized) ProcessOnChainVotes(
 				dispute.Session,
 			)
 
-			sessionInfo, err := i.runtime.ParachainHostSessionInfo(
-				blockHash,
-				parachainTypes.SessionIndex(dispute.Session),
-			)
-			if err != nil {
-				logger.Warnf("could not retrieve session info for recently concluded dispute. "+
-					"session: %v, candidateHash: %v, error: %v",
-					dispute.Session,
-					dispute.CandidateHash,
-					err,
-				)
-				continue
-			}
-
-			var filteredStatements []types.Statement
-			for _, statement := range statements {
-				if int(statement.ValidatorIndex) < len(sessionInfo.Validators) {
-					logger.Errorf("missing validator public key that participated in concluded dispute. "+
-						"session: %v, validatorIndex: %v",
-						statement.SignedDisputeStatement.SessionIndex,
-						statement.ValidatorIndex,
-					)
-					continue
-				}
-
-				validatorPublic := sessionInfo.Validators[statement.ValidatorIndex]
-				disputeStatement := types.NewSignedDisputeStatement(statement.SignedDisputeStatement.DisputeStatement,
-					statement.SignedDisputeStatement.CandidateHash,
-					statement.SignedDisputeStatement.SessionIndex,
-					validatorPublic,
-					statement.SignedDisputeStatement.ValidatorSignature,
-				)
-				filteredStatements = append(filteredStatements, types.Statement{
-					SignedDisputeStatement: disputeStatement,
-					ValidatorIndex:         statement.ValidatorIndex,
-				})
-			}
-
-			if len(filteredStatements) == 0 {
+			if len(statements) == 0 {
 				logger.Errorf("skipping empty from chain dispute import. session: %v, candidateHash: %v",
 					votes.Session,
 					candidateHash,
@@ -424,13 +409,16 @@ func (i *Initialized) ProcessOnChainVotes(
 				continue
 			}
 
-			if outcome := i.HandleImportStatements(context,
+			candidateReceipt := MaybeCandidateReceipt{
+				CandidateHash: candidateHash,
+			}
+			if outcome, err := i.HandleImportStatements(context,
 				backend,
-				backingValidators.CandidateReceipt,
+				candidateReceipt,
 				votes.Session,
-				filteredStatements,
+				statements,
 				now,
-			); outcome == InvalidImport {
+			); err != nil || outcome == InvalidImport {
 				logger.Errorf("attempted import of on-chain dispute votes failed. "+
 					"session: %v, candidateHash: %v",
 					votes.Session,
@@ -458,13 +446,19 @@ func (i *Initialized) HandleIncoming(
 	switch {
 	case message.ImportStatements != nil:
 		logger.Tracef("HandleIncoming::ImportStatements")
-		outcome := i.HandleImportStatements(context,
+		candidateReceipt := MaybeCandidateReceipt{
+			CandidateReceipt: &message.ImportStatements.CandidateReceipt,
+		}
+		outcome, err := i.HandleImportStatements(context,
 			backend,
-			message.ImportStatements.CandidateReceipt,
+			candidateReceipt,
 			message.ImportStatements.Session,
 			message.ImportStatements.Statements,
 			now,
 		)
+		if err != nil {
+			return nil, fmt.Errorf("handle import statements: %w", err)
+		}
 
 		report := func() error {
 			if message.ImportStatements.PendingConfirmation != nil {
@@ -560,14 +554,378 @@ func (i *Initialized) HandleIncoming(
 func (i *Initialized) HandleImportStatements(
 	context overseer.Context,
 	backend OverlayBackend,
-	candidateReceipt parachainTypes.CandidateReceipt,
+	maybeCandidateReceipt MaybeCandidateReceipt,
 	session parachainTypes.SessionIndex,
 	statements []types.Statement,
 	now uint64,
-) ImportStatementResult {
+) (ImportStatementResult, error) {
 	logger.Tracef("in HandleImportStatements")
+	if i.sessionIsAncient(session) {
+		return InvalidImport, nil
+	}
 
-	return InvalidImport
+	candidateHash, err := maybeCandidateReceipt.Hash()
+	if err != nil {
+		return InvalidImport, fmt.Errorf("hash candidate receipt: %w", err)
+	}
+
+	votesInDB, err := backend.GetCandidateVotes(session, candidateHash)
+	if err != nil {
+		return InvalidImport, fmt.Errorf("get candidate votes: %w", err)
+	}
+
+	var relayParent common.Hash
+	if maybeCandidateReceipt.CandidateReceipt != nil {
+		relayParent = maybeCandidateReceipt.CandidateReceipt.Descriptor.RelayParent
+	} else {
+		if votesInDB == nil {
+			return InvalidImport, fmt.Errorf("cannot obtain relay parent without `CandidateReceipt` available")
+		}
+
+		relayParent = votesInDB.CandidateReceipt.Descriptor.RelayParent
+	}
+
+	env, err := types.NewCandidateEnvironment(session, relayParent, i.runtime)
+	if err != nil {
+		return InvalidImport, fmt.Errorf("new candidate environment: %w", err)
+	}
+
+	logger.Tracef("number of validators: %v, candidateHash: %v, session: %v",
+		len(env.Session.Validators),
+		candidateHash,
+		session,
+	)
+
+	// In case we are not provided with a candidate receipt
+	// we operate under the assumption, that a previous vote
+	// which included a `CandidateReceipt` was seen.
+	// This holds since every block is preceded by the `Backing`-phase.
+	//
+	// There is one exception: A sufficiently sophisticated attacker could prevent
+	// us from seeing the backing votes by withholding arbitrary blocks, and hence we do
+	// not have a `CandidateReceipt` available.
+	var oldState types.CandidateVoteState
+	if votesInDB != nil {
+		oldState, err = types.NewCandidateVoteState(*votesInDB, now)
+		if err != nil {
+			return InvalidImport, fmt.Errorf("new candidate vote state: %w", err)
+		}
+	} else {
+		if maybeCandidateReceipt.CandidateReceipt != nil {
+			oldState, err = types.NewCandidateVoteStateFromReceipt(*maybeCandidateReceipt.CandidateReceipt)
+			if err != nil {
+				return InvalidImport, fmt.Errorf("new candidate vote state from receipt: %w", err)
+			}
+		} else {
+			return InvalidImport, fmt.Errorf("cannot import votes without `CandidateReceipt` available")
+		}
+	}
+
+	logger.Tracef("votes loaded. candidateHash: %v, session: %v",
+		candidateHash,
+		session,
+	)
+
+	var importResult *ImportResultHandler
+	intermediateResult, err := NewImportResultFromStatements(env, statements, oldState, now)
+	if err != nil {
+		return InvalidImport, fmt.Errorf("new import result from statements: %w", err)
+	}
+
+	isFreshlyConcluded, err := intermediateResult.IsFreshlyConcluded()
+	if err != nil {
+		return InvalidImport, fmt.Errorf("is freshly concluded: %w", err)
+	}
+
+	if intermediateResult.IsFreshlyDisputed() || isFreshlyConcluded {
+		logger.Tracef("requesting approval signatures. candidateHash: %v, session: %v",
+			candidateHash,
+			session,
+		)
+
+		// Use of unbounded channels justified because:
+		// 1. Only triggered twice per dispute.
+		// 2. Raising a dispute is costly (requires validation + recovery) by honest nodes,
+		// dishonest nodes are limited by spam slots.
+		// 3. Concluding a dispute is even more costly.
+		// Therefore, it is reasonable to expect a simple vote request to succeed way faster
+		// than disputes are raised.
+		// 4. We are waiting (and blocking the whole subsystem) on a response right after -
+		// therefore even with all else failing we will never have more than
+		// one message in flight at any given time.
+		responseChan := make(chan *overseer.ApprovalSignatureResponse, 1)
+		message := overseer.ApprovalVotingMessage{
+			GetApprovalSignature: &overseer.GetApprovalSignatureForCandidate{
+				CandidateHash: candidateHash,
+				ResponseChan:  responseChan,
+			},
+		}
+		if err := context.Sender.SendUnboundedMessage(message); err != nil {
+			logger.Warnf("failed to fetch approval signatures for candidate %s: %s",
+				candidateHash,
+				err,
+			)
+			importResult = intermediateResult
+		} else {
+			response := <-responseChan
+			if response.Error != nil {
+				return InvalidImport, fmt.Errorf("approval signature response: %w", response.Error)
+			}
+
+			result, err := intermediateResult.ImportApprovalVotes(response.Signature, now)
+			if err != nil {
+				return InvalidImport, fmt.Errorf("import approval votes: %w", err)
+			}
+
+			var ok bool
+			importResult, ok = result.(*ImportResultHandler)
+			if !ok {
+				return InvalidImport, fmt.Errorf("invalid import result")
+			}
+		}
+	} else {
+		logger.Tracef("not requested approval signatures. candidateHash: %v, session: %v",
+			candidateHash,
+			session,
+		)
+	}
+
+	logger.Tracef("import result ready. candidateHash: %v, session: %v",
+		candidateHash,
+		session,
+	)
+
+	newState := importResult.newState
+	isIncluded := i.Scraper.IsCandidateIncluded(candidateHash)
+	ownVoteMissing := newState.Own.VoteMissing()
+	isDisputed := newState.IsDisputed()
+	isConfirmed, err := newState.IsConfirmed()
+	if err != nil {
+		return InvalidImport, fmt.Errorf("is confirmed: %w", err)
+	}
+	potentialSpam, err := i.Scraper.IsPotentialSpam(newState, candidateHash)
+	if err != nil {
+		return InvalidImport, fmt.Errorf("is potential spam: %w", err)
+	}
+	allowParticipation := !potentialSpam
+	logger.Tracef("ownVoteMissing: %v, potentialSpam: %v, isIncluded: %v, candidateHash: %v, confirmed: %v, hasInvalidVoters: %v",
+		ownVoteMissing,
+		potentialSpam,
+		isIncluded,
+		candidateHash,
+		isConfirmed,
+		len(importResult.newInvalidVoters) == 0,
+	)
+
+	// This check is responsible for all clearing of spam slots. It runs
+	// whenever a vote is imported from on or off chain, and decrements
+	// slots whenever a candidate is newly backed, confirmed, or has our
+	// own vote.
+	if !potentialSpam {
+		i.SpamSlots.Clear(session, candidateHash)
+	} else if len(importResult.newInvalidVoters) > 0 {
+		freeSpamSlotsAvailable := false
+		// Only allow import if at least one validator voting invalid, has not exceeded
+		// its spam slots:
+		for _, index := range importResult.newInvalidVoters {
+			// Disputes can only be triggered via an invalidity stating vote, thus we only
+			// need to increase spam slots on invalid votes. (If we did not, we would also
+			// increase spam slots for backing validators for example - as validators have to
+			// provide some opposing vote for dispute-distribution).
+			freeSpamSlotsAvailable = freeSpamSlotsAvailable || i.SpamSlots.AddUnconfirmed(session, candidateHash, index)
+		}
+
+		if !freeSpamSlotsAvailable {
+			logger.Debugf("rejecting import because of full spam slots. candidateHash: %v, session: %v, invalidVoters: %v",
+				candidateHash,
+				session,
+				importResult.newInvalidVoters,
+			)
+			return InvalidImport, nil
+		}
+	}
+
+	// Participate in dispute if we did not cast a vote before and actually have keys to cast a
+	// local vote. Disputes should fall in one of the categories below, otherwise we will refrain
+	// from participation:
+	// - `isIncluded` lands in prioritised queue
+	// - `isConfirmed` | `isBacked` lands in the best effort queue
+	// We don't participate in disputes on finalized candidates.
+	if ownVoteMissing && isDisputed && allowParticipation {
+		priority := ParticipationPriorityBestEffort
+		if isIncluded {
+			priority = ParticipationPriorityHigh
+		}
+		logger.Tracef("queuing participation for candidate: %v, session: %v, priority: %v",
+			candidateHash,
+			session,
+			priority,
+		)
+		// TODO: metrics
+		participationRequest := ParticipationRequest{
+			candidateHash:    candidateHash,
+			candidateReceipt: newState.Votes.CandidateReceipt,
+			session:          session,
+		}
+		if err := i.Participation.Queue(context, participationRequest, priority); err != nil {
+			logger.Errorf("failed to queue participation request: %s", err)
+		}
+	} else {
+		logger.Tracef("will not queue participation for candidate: %v, session: %v, ownVoteMissing: %v, isDisputed: %v, allowParticipation: %v",
+			candidateHash,
+			session,
+			ownVoteMissing,
+			isDisputed,
+			allowParticipation,
+		)
+		// TODO: metrics
+	}
+
+	// Also send any already existing approval vote on new disputes
+	if importResult.IsFreshlyDisputed() {
+		ourApprovalVotes, err := newState.Own.ApprovalVotes()
+		if err != nil {
+			return InvalidImport, fmt.Errorf("own approval votes: %w", err)
+		}
+
+		for _, vote := range ourApprovalVotes {
+			if int(vote.ValidatorIndex) >= len(env.Session.Validators) {
+				logger.Errorf("missing validator public key. session: %v, validatorIndex: %v",
+					session,
+					vote.ValidatorIndex,
+				)
+				continue
+			}
+
+			validatorPublic := env.Session.Validators[vote.ValidatorIndex]
+			keypair, err := getValidatorKeyPair(validatorPublic, i.keystore)
+			if err != nil {
+				logger.Warnf("missing validator keypair for validator index %d: %s",
+					vote.ValidatorIndex,
+					err,
+				)
+				continue
+			}
+			statement, err := types.NewSignedDisputeStatement(keypair, true, candidateHash, session)
+			if err != nil {
+				logger.Warnf("failed to construct dispute statement for validator index %d: %s",
+					vote.ValidatorIndex,
+					err,
+				)
+				continue
+			}
+
+			logger.Tracef("sending out own approval vote. candidateHash: %v, session: %v, validatorIndex: %v",
+				candidateHash,
+				session,
+				vote.ValidatorIndex,
+			)
+
+			disputeMessage, err := types.NewDisputeMessage(keypair, newState.Votes, &statement, vote.ValidatorIndex, env.Session)
+			if err != nil {
+				return InvalidImport, fmt.Errorf("new dispute message: %w", err)
+			}
+
+			if err := context.Sender.SendMessage(disputeMessage); err != nil {
+				return InvalidImport, fmt.Errorf("send dispute message: %w", err)
+			}
+		}
+	}
+
+	// All good, update recent disputes if state has changed
+	if newState.DisputeStatus != nil {
+		stateChanged, err := importResult.DisputeStateChanged()
+		if err != nil {
+			return InvalidImport, fmt.Errorf("dispute state changed: %w", err)
+		}
+
+		if stateChanged {
+			recentDisputes, err := backend.GetRecentDisputes()
+			if err != nil {
+				return InvalidImport, fmt.Errorf("get recent disputes: %w", err)
+			}
+
+			dispute, err := types.NewDispute()
+			if err != nil {
+				return InvalidImport, fmt.Errorf("new dispute: %w", err)
+			}
+
+			dispute.Comparator.CandidateHash = candidateHash
+			dispute.Comparator.SessionIndex = session
+			dispute.DisputeStatus = *newState.DisputeStatus
+			if existing := recentDisputes.Get(dispute); existing == nil {
+				activeStatus, err := types.NewDisputeStatus()
+				if err != nil {
+					return InvalidImport, fmt.Errorf("new dispute status: %w", err)
+				}
+				if err := activeStatus.Set(types.ActiveStatus{}); err != nil {
+					return InvalidImport, fmt.Errorf("set active status: %w", err)
+				}
+				dispute.DisputeStatus = activeStatus
+				recentDisputes.Set(dispute)
+				logger.Infof("new dispute initiated for candidate %s, session %d",
+					candidateHash,
+					session,
+				)
+			}
+
+			logger.Tracef("writing recent disputes with updates for candidate. candidateHash: %v, session: %v, status:%v, hasConcludedFor: %v, hasConcludedAgainst: %v",
+				candidateHash,
+				session,
+				dispute.DisputeStatus,
+				interface{}(newState.IsConcludedFor()),
+				interface{}(newState.IsConcludedAgainst()),
+			)
+
+			if err := backend.SetRecentDisputes(recentDisputes); err != nil {
+				return InvalidImport, fmt.Errorf("set recent disputes: %w", err)
+			}
+		}
+	}
+
+	// Notify ChainSelection if a dispute has concluded against a candidate. ChainSelection
+	// will need to mark the candidate's relay parent as reverted.
+	isFreshlyConcludedAgainst, err := importResult.IsFreshlyConcludedAgainst()
+	if err != nil {
+		return InvalidImport, fmt.Errorf("is freshly concluded against: %w", err)
+	}
+	if isFreshlyConcludedAgainst {
+		blocksIncluding := i.Scraper.GetBlocksIncludingCandidate(candidateHash)
+		for _, inclusion := range blocksIncluding {
+			logger.Tracef("dispute has just concluded against the candidate hash noted. Its parent will be marked as reverted."+
+				"candidateHash: %v, parentBlockNumber: %v, parentBlockHash: %v",
+				candidateHash,
+				inclusion.BlockNumber,
+				inclusion.BlockHash,
+			)
+		}
+
+		if len(blocksIncluding) > 0 {
+			message := overseer.ChainSelectionMessage{
+				RevertBlocks: &overseer.RevertBlocksRequest{Blocks: blocksIncluding},
+			}
+			if err := context.Sender.SendMessage(message); err != nil {
+				return InvalidImport, fmt.Errorf("send revert blocks request: %w", err)
+			}
+		} else {
+			logger.Debugf("could not find an including block for candidate against which a dispute has concluded"+
+				"candidateHash: %v, session: %v",
+				candidateHash,
+				session,
+			)
+		}
+	}
+
+	// TODO: update metrics
+
+	// Only write when votes have changed.
+	if importResult.VotesChanged() {
+		if err := backend.SetCandidateVotes(session, candidateHash, &newState.Votes); err != nil {
+			return InvalidImport, fmt.Errorf("set candidate votes: %w", err)
+		}
+	}
+
+	return ValidImport, nil
 }
 
 func (i *Initialized) IssueLocalStatement(
@@ -579,8 +937,113 @@ func (i *Initialized) IssueLocalStatement(
 	valid bool,
 	now uint64,
 ) error {
-	//TODO: implement
-	panic("Initialized.IssueLocalStatement not implemented")
+	logger.Tracef("issuing local statement for candidate %s", candidateHash)
+
+	env, err := types.NewCandidateEnvironment(session, candidateReceipt.Descriptor.RelayParent, i.runtime)
+	if err != nil {
+		logger.Warnf("missing session info for candidate %s, session %d: %s",
+			candidateHash,
+			session,
+		)
+		return fmt.Errorf("new candidate environment: %w", err)
+	}
+
+	votes, err := backend.GetCandidateVotes(session, candidateHash)
+	if err != nil {
+		return fmt.Errorf("get candidate votes: %w", err)
+	}
+	if votes == nil {
+		candidateVotes := types.NewCandidateVotesFromReceipt(candidateReceipt)
+		votes = &candidateVotes
+	}
+
+	// Sign a statement for each validator index we control which has
+	// not already voted. This should generally be maximum 1 statement.
+	votedIndices := votes.VotedIndices()
+	var statements []types.Statement
+
+	for index := range env.ControlledIndices {
+		if votedIndices.Contains(index) {
+			continue
+		}
+
+		if int(index) > len(env.Session.Validators) {
+			return fmt.Errorf("missing validator public key. session: %v, validatorIndex: %v",
+				session,
+				index,
+			)
+		}
+
+		validatorPublic := env.Session.Validators[index]
+		keypair, err := getValidatorKeyPair(validatorPublic, i.keystore) // i.keystore.GetKeypairFromAddress(pubKey.Address())
+		if err != nil {
+			return fmt.Errorf("get validator key pair: %w", err)
+		}
+
+		signedDisputeStatement, err := types.NewSignedDisputeStatement(keypair, valid, candidateHash, session)
+		if err != nil {
+			return fmt.Errorf("new signed dispute statement: %w", err)
+		}
+
+		statements = append(statements, types.Statement{
+			SignedDisputeStatement: signedDisputeStatement,
+			ValidatorIndex:         index,
+		})
+	}
+
+	// Get the message out
+	for _, statement := range statements {
+		keypair, err := getValidatorKeyPair(env.Session.Validators[statement.ValidatorIndex], i.keystore)
+		if err != nil {
+			logger.Warnf("missing validator keypair for validator index %d: %s",
+				statement.ValidatorIndex,
+				err,
+			)
+			continue
+		}
+
+		disputeMessage, err := types.NewDisputeMessage(keypair, *votes, &statement.SignedDisputeStatement, statement.ValidatorIndex, env.Session)
+		if err != nil {
+			logger.Warnf("failed to construct dispute message for validator index %d: %s",
+				statement.ValidatorIndex,
+				err,
+			)
+			continue
+		}
+
+		if err := context.Sender.SendMessage(disputeMessage); err != nil {
+			logger.Warnf("failed to send dispute message for validator index %d: %s",
+				statement.ValidatorIndex,
+				err,
+			)
+			continue
+		}
+	}
+
+	// Do import
+	if len(statements) > 0 {
+		if outcome, err := i.HandleImportStatements(context,
+			backend,
+			MaybeCandidateReceipt{
+				CandidateReceipt: &candidateReceipt,
+			},
+			session,
+			statements,
+			now,
+		); err != nil || outcome == InvalidImport {
+			logger.Errorf("attempted import of our own votes failed. session: %v, candidateHash: %v",
+				session,
+				candidateHash,
+			)
+		} else {
+			logger.Tracef("successfully imported our own votes. session: %v, candidateHash: %v",
+				session,
+				candidateHash,
+			)
+		}
+	}
+
+	return nil
 }
 
 func (i *Initialized) sessionIsAncient(session parachainTypes.SessionIndex) bool {
@@ -637,6 +1100,14 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 	}
 
 	return last, nil
+}
+
+func getValidatorKeyPair(validatorPublic parachainTypes.ValidatorID, keystore keystore.Keystore) (keystore.KeyPair, error) {
+	pubKey, err := sr25519.NewPublicKey(validatorPublic[:])
+	if err != nil {
+		return nil, fmt.Errorf("new public key: %w", err)
+	}
+	return keystore.GetKeypairFromAddress(pubKey.Address()), nil
 }
 
 func NewInitializedState(sender overseer.Sender,
