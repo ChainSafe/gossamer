@@ -4,10 +4,18 @@ package grandpa
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	hashA = "hash_a"
+	hashB = "hash_b"
+	hashC = "hash_c"
+	hashD = "hash_d"
 )
 
 func staticIsDescendentOf[H comparable](value bool) IsDescendentOf[H] {
@@ -19,8 +27,8 @@ func isDescendentof[H comparable](f IsDescendentOf[H]) IsDescendentOf[H] {
 }
 
 func TestDelayKind(t *testing.T) {
-	finalizedKind := Finalized{}
-	delayKind := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKind := newDelayKind[uint](finalisedKind)
 	_, isFinalizedType := delayKind.value.(Finalized)
 	require.True(t, isFinalizedType)
 
@@ -41,8 +49,8 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 		Weight: 1,
 	})
 
-	finalizedKind := Finalized{}
-	delayKind := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKind := newDelayKind[uint](finalisedKind)
 
 	pendingChange1 := PendingChange[string, uint]{
 		nextAuthorities: currentAuthorities,
@@ -89,8 +97,8 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 		Weight: 1,
 	})
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	bestKind := Best[uint]{}
 	delayKindBest := newDelayKind[uint](bestKind)
@@ -107,7 +115,7 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 		nextAuthorities: currentAuthorities,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -115,7 +123,7 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     5,
-		canonHash:       "hash_b",
+		canonHash:       hashB,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -123,7 +131,7 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 		nextAuthorities: currentAuthorities,
 		delay:           5,
 		canonHeight:     10,
-		canonHash:       "hash_c",
+		canonHash:       hashC,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -134,9 +142,9 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	err = authorities.addPendingChange(changeC, isDescendentof(func(h1, h2 string) (bool, error) {
-		if h1 == "hash_a" && h2 == "hash_c" {
+		if h1 == hashA && h2 == hashC {
 			return true, nil
-		} else if h1 == "hash_b" && h2 == "hash_c" {
+		} else if h1 == hashB && h2 == hashC {
 			return false, nil
 		} else {
 			panic("unreachable")
@@ -148,7 +156,7 @@ func TestChangesIteratedInPreOrder(t *testing.T) {
 		nextAuthorities: currentAuthorities,
 		delay:           2,
 		canonHeight:     1,
-		canonHash:       "hash_d",
+		canonHash:       hashD,
 		delayKind:       delayKindBest,
 	}
 
@@ -198,14 +206,14 @@ func TestApplyChange(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	changeA := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -213,7 +221,7 @@ func TestApplyChange(t *testing.T) {
 		nextAuthorities: setB,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_b",
+		canonHash:       hashB,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -229,15 +237,15 @@ func TestApplyChange(t *testing.T) {
 	pendingChanges := authorities.pendingChanges()
 	require.Equal(t, expectedChanges, pendingChanges)
 
-	// finalizing "hash_c" won't enact the hashNumber signaled at "hash_a" but it will prune out
-	// "hash_b"
+	// finalising hashC won't enact the hashNumber signalled at hashA but it will prune out
+	// hashB
 	status, err := authorities.applyStandardChanges(
-		"hash_c",
+		hashC,
 		11,
 		isDescendentof(func(h1 string, h2 string) (bool, error) {
-			if h1 == "hash_a" && h2 == "hash_c" {
+			if h1 == hashA && h2 == hashC {
 				return true, nil
-			} else if h1 == "hash_b" && h2 == "hash_c" {
+			} else if h1 == hashB && h2 == hashC {
 				return false, nil
 			} else {
 				panic("unreachable")
@@ -258,10 +266,10 @@ func TestApplyChange(t *testing.T) {
 	require.True(t, len(authorities.authoritySetChanges) == 0)
 
 	status, err = authorities.applyStandardChanges(
-		"hash_d",
+		hashD,
 		15,
 		isDescendentof(func(h1 string, h2 string) (bool, error) {
-			if h1 == "hash_a" && h2 == "hash_d" {
+			if h1 == hashA && h2 == hashD {
 				return true, nil
 			} else {
 				panic("unreachable")
@@ -269,9 +277,10 @@ func TestApplyChange(t *testing.T) {
 		}),
 		nil,
 	)
+	require.NoError(t, err)
 
 	expectedBlockInfo := &hashNumber[string, uint]{
-		hash:   "hash_d",
+		hash:   hashD,
 		number: 15,
 	}
 
@@ -314,14 +323,14 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	changeA := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -329,7 +338,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		nextAuthorities: setC,
 		delay:           10,
 		canonHeight:     30,
-		canonHash:       "hash_c",
+		canonHash:       hashC,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -340,40 +349,41 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.NoError(t, err)
 
 	isDescOf := isDescendentof(func(h1 string, h2 string) (bool, error) {
-		if h1 == "hash_a" && h2 == "hash_b" ||
-			h1 == "hash_a" && h2 == "hash_c" ||
-			h1 == "hash_a" && h2 == "hash_d" ||
-			h1 == "hash_c" && h2 == "hash_d" ||
-			h1 == "hash_b" && h2 == "hash_c" {
+		if h1 == hashA && h2 == hashB ||
+			h1 == hashA && h2 == hashC ||
+			h1 == hashA && h2 == hashD ||
+			h1 == hashC && h2 == hashD ||
+			h1 == hashB && h2 == hashC {
 			return true, nil
-		} else if h1 == "hash_c" && h2 == "hash_b" {
+		} else if h1 == hashC && h2 == hashB {
 			return false, nil
 		} else {
 			panic("unreachable")
 		}
 	})
 
-	// trying to finalize past `change_c` without finalizing `change_a` first
+	// trying to finalise past `change_c` without finalising `change_a` first
 	_, err = authorities.applyStandardChanges(
-		"hash_d",
+		hashD,
 		40,
 		isDescOf,
 		nil,
 	)
 
-	require.ErrorIs(t, err, errUnfinalizedAncestor)
+	require.ErrorIs(t, err, errUnfinalisedAncestor)
 	require.Equal(t, AuthoritySetChanges[uint]{}, authorities.authoritySetChanges)
 
 	status, err := authorities.applyStandardChanges(
-		"hash_b",
+		hashB,
 		15,
 		isDescOf,
 		nil,
 	)
+	require.NoError(t, err)
 	require.True(t, status.changed)
 
 	expectedBlockInfo := &hashNumber[string, uint]{
-		hash:   "hash_b",
+		hash:   hashB,
 		number: 15,
 	}
 	expAuthSetChange := AuthoritySetChanges[uint]{setIDNumber[uint]{
@@ -386,15 +396,16 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.Equal(t, expAuthSetChange, authorities.authoritySetChanges)
 
 	status, err = authorities.applyStandardChanges(
-		"hash_d",
+		hashD,
 		40,
 		isDescOf,
 		nil,
 	)
+	require.NoError(t, err)
 	require.True(t, status.changed)
 
 	expectedBlockInfo = &hashNumber[string, uint]{
-		hash:   "hash_d",
+		hash:   hashD,
 		number: 40,
 	}
 	expAuthSetChange = AuthoritySetChanges[uint]{
@@ -431,14 +442,14 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	changeA := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -446,7 +457,7 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     20,
-		canonHash:       "hash_b",
+		canonHash:       hashB,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -457,36 +468,36 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	isDescOf := isDescendentof(func(h1 string, h2 string) (bool, error) {
-		if h1 == "hash_a" && h2 == "hash_d" ||
-			h1 == "hash_a" && h2 == "hash_e" ||
-			h1 == "hash_b" && h2 == "hash_d" ||
-			h1 == "hash_b" && h2 == "hash_e" {
+		if h1 == hashA && h2 == hashD ||
+			h1 == hashA && h2 == "hash_e" ||
+			h1 == hashB && h2 == hashD ||
+			h1 == hashB && h2 == "hash_e" {
 			return true, nil
-		} else if h1 == "hash_a" && h2 == "hash_c" ||
-			h1 == "hash_b" && h2 == "hash_c" {
+		} else if h1 == hashA && h2 == hashC ||
+			h1 == hashB && h2 == hashC {
 			return false, nil
 		} else {
 			panic("unreachable")
 		}
 	})
 
-	// "hash_c" won't finalize the existing hashNumber since it isn't a descendent
-	res, err := authorities.EnactsStandardChange("hash_c", 15, isDescOf)
+	// hashC won't finalise the existing hashNumber since it isn't a descendent
+	res, err := authorities.EnactsStandardChange(hashC, 15, isDescOf)
 	require.NoError(t, err)
 	require.Nil(t, res)
 
-	// "hash_d" at depth 14 won't work either
-	res, err = authorities.EnactsStandardChange("hash_d", 14, isDescOf)
+	// hashD at depth 14 won't work either
+	res, err = authorities.EnactsStandardChange(hashD, 14, isDescOf)
 	require.NoError(t, err)
 	require.Nil(t, res)
 
 	// but it should work at depth 15 (hashNumber height + depth)
-	res, err = authorities.EnactsStandardChange("hash_d", 15, isDescOf)
+	res, err = authorities.EnactsStandardChange(hashD, 15, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, true, *res)
 
-	// finalizing "hash_e" at depth 20 will trigger hashNumber at "hash_b", but
-	// it can't be applied yet since "hash_a" must be applied first
+	// finalising "hash_e" at depth 20 will trigger hashNumber at hashB, but
+	// it can't be applied yet since hashA must be applied first
 	res, err = authorities.EnactsStandardChange("hash_e", 30, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, false, *res)
@@ -517,25 +528,25 @@ func TestForceChanges(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKindA := Best[uint]{42}
-	delayKindFinalizedA := newDelayKind[uint](finalizedKindA)
+	finalisedKindA := Best[uint]{42}
+	delayKindFinalizedA := newDelayKind[uint](finalisedKindA)
 
-	finalizedKindB := Best[uint]{0}
-	delayKindFinalizedB := newDelayKind[uint](finalizedKindB)
+	finalisedKindB := Best[uint]{0}
+	delayKindFinalizedB := newDelayKind[uint](finalisedKindB)
 
 	changeA := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalizedA,
 	}
 
 	changeB := PendingChange[string, uint]{
-		nextAuthorities: setA,
+		nextAuthorities: setB,
 		delay:           10,
 		canonHeight:     5,
-		canonHash:       "hash_b",
+		canonHash:       hashB,
 		delayKind:       delayKindFinalizedB,
 	}
 
@@ -549,7 +560,7 @@ func TestForceChanges(t *testing.T) {
 	err = authorities.addPendingChange(changeB, staticIsDescendentOf[string](false))
 	require.ErrorIs(t, err, errDuplicateAuthoritySetChanges)
 
-	res, err := authorities.EnactsStandardChange("hash_c", 1, staticIsDescendentOf[string](true))
+	res, err := authorities.EnactsStandardChange(hashC, 1, staticIsDescendentOf[string](true))
 	require.NoError(t, err)
 	require.Nil(t, res)
 
@@ -562,7 +573,7 @@ func TestForceChanges(t *testing.T) {
 	}
 
 	isDescOfA := isDescendentof(func(h1 string, _ string) (bool, error) {
-		return strings.HasPrefix(h1, "hash_a"), nil
+		return strings.HasPrefix(h1, hashA), nil
 	})
 
 	err = authorities.addPendingChange(changeC, isDescOfA)
@@ -619,15 +630,15 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKind := Best[uint]{0}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Best[uint]{0}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	// we create a forced hashNumber with no delay
 	changeA := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           0,
 		canonHeight:     5,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -635,8 +646,8 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	err = authorities.addPendingChange(changeA, staticIsDescendentOf[string](false))
 	require.NoError(t, err)
 
-	// it should be enacted at the same block that signaled it
-	resForced, err := authorities.applyForcedChanges("hash_a", 5, staticIsDescendentOf[string](false), nil)
+	// it should be enacted at the same block that signalled it
+	resForced, err := authorities.applyForcedChanges(hashA, 5, staticIsDescendentOf[string](false), nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 }
@@ -658,15 +669,15 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		Weight: 5,
 	})
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	// effective at #15
 	changeA := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           5,
 		canonHeight:     10,
-		canonHash:       "hash_a",
+		canonHash:       hashA,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -675,7 +686,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		nextAuthorities: setA,
 		delay:           0,
 		canonHeight:     20,
-		canonHash:       "hash_b",
+		canonHash:       hashB,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -684,7 +695,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		nextAuthorities: setA,
 		delay:           5,
 		canonHeight:     30,
-		canonHash:       "hash_c",
+		canonHash:       hashC,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -698,15 +709,15 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 	err = authorities.addPendingChange(changeC, staticIsDescendentOf[string](true))
 	require.NoError(t, err)
 
-	finalizedKind2 := Best[uint]{31}
-	delayKindFinalized2 := newDelayKind[uint](finalizedKind2)
+	finalisedKind2 := Best[uint]{31}
+	delayKindFinalized2 := newDelayKind[uint](finalisedKind2)
 
 	// effective at #45
 	changeD := PendingChange[string, uint]{
 		nextAuthorities: setA,
 		delay:           5,
 		canonHeight:     40,
-		canonHash:       "hash_d",
+		canonHash:       hashD,
 		delayKind:       delayKindFinalized2,
 	}
 
@@ -727,6 +738,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		},
 	}
 	_, err = authorities.applyStandardChanges("hash_a15", 15, staticIsDescendentOf[string](true), nil)
+	require.NoError(t, err)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// but the forced hashNumber still depends on the next standard hashNumber
@@ -739,7 +751,8 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		setID:       1,
 		blockNumber: 20,
 	})
-	_, err = authorities.applyStandardChanges("hash_b", 20, staticIsDescendentOf[string](true), nil)
+	_, err = authorities.applyStandardChanges(hashB, 20, staticIsDescendentOf[string](true), nil)
+	require.NoError(t, err)
 	require.Equal(t, expChanges, authorities.authoritySetChanges)
 
 	// afterwards the forced hashNumber at #45 can already be applied since it signals
@@ -759,7 +772,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			authoritySetChanges:    expChanges,
 		},
 	}
-	resForced, err := authorities.applyForcedChanges("hash_d", 45, staticIsDescendentOf[string](true), nil)
+	resForced, err := authorities.applyForcedChanges(hashD, 45, staticIsDescendentOf[string](true), nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -782,8 +795,8 @@ func TestNextChangeWorks(t *testing.T) {
 		authoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 
 	// We have three pending changes with 2 possible roots that are enacted
 	// immediately on finality (i.e. standard changes).
@@ -807,7 +820,7 @@ func TestNextChangeWorks(t *testing.T) {
 		nextAuthorities: currentAuthorities,
 		delay:           0,
 		canonHeight:     4,
-		canonHash:       "hash_b",
+		canonHash:       hashB,
 		delayKind:       delayKindFinalized,
 	}
 
@@ -815,10 +828,10 @@ func TestNextChangeWorks(t *testing.T) {
 	// B (#4) <- best_b
 	isDescOf := isDescendentof(func(h1 string, h2 string) (bool, error) {
 		if h1 == "hash_a0" && h2 == "hash_a1" ||
-			h1 == "hash_a0" && h2 == "hash_b" ||
+			h1 == "hash_a0" && h2 == hashB ||
 			h1 == "hash_a1" && h2 == "best_a" ||
 			h1 == "hash_a10" && h2 == "best_a" ||
-			h1 == "hash_b" && h2 == "best_b" {
+			h1 == hashB && h2 == "best_b" {
 			return true, nil
 		} else {
 			return false, nil
@@ -840,13 +853,13 @@ func TestNextChangeWorks(t *testing.T) {
 		hash:   "hash_a0",
 		number: 5,
 	}
-	c, err := authorities.nextChange("hash_b", isDescOf)
+	c, err := authorities.nextChange(hashB, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
 	// the earliest hashNumber at block `best_b` should be the hashNumber at B (#4)
 	expChange = &hashNumber[string, uint]{
-		hash:   "hash_b",
+		hash:   hashB,
 		number: 4,
 	}
 	c, err = authorities.nextChange("best_b", isDescOf)
@@ -872,8 +885,8 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Nil(t, c)
 
 	// we a forced hashNumber at A10 (#8)
-	finalizedKind2 := Best[uint]{0}
-	delayKindFinalized2 := newDelayKind[uint](finalizedKind2)
+	finalisedKind2 := Best[uint]{0}
+	delayKindFinalized2 := newDelayKind[uint](finalisedKind2)
 	changeA10 := PendingChange[string, uint]{
 		nextAuthorities: currentAuthorities,
 		delay:           0,
@@ -925,14 +938,14 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	_, err = NewAuthoritySet[string, uint](invalidAuthoritiesWeight, 0, NewChangeTree[string, uint](), nil, nil)
 	require.NotNil(t, err)
 
-	authoritySet, err := NewGenesisAuthoritySet[string, uint]([]Authority{Authority{
+	authoritySet, err := NewGenesisAuthoritySet[string, uint]([]Authority{{
 		Key:    kpA.Public(),
 		Weight: 5,
 	}})
 	require.NoError(t, err)
 
-	finalizedKind := Finalized{}
-	delayKindFinalized := newDelayKind[uint](finalizedKind)
+	finalisedKind := Finalized{}
+	delayKindFinalized := newDelayKind[uint](finalisedKind)
 	invalidChangeEmptyAuthorities := PendingChange[string, uint]{
 		nextAuthorities: nil,
 		delay:           10,
@@ -1063,7 +1076,7 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.pendingChanges()))
 
-	// finalizing C2 should clear all forced changes
+	// finalising C2 should clear all forced changes
 	_, err = authorities.applyStandardChanges("C2", 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(authorities.pendingForcedChanges))
@@ -1170,7 +1183,7 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.pendingChanges()))
 
-	// finalizing C0 should clear all forced changes but D
+	// finalising C0 should clear all forced changes but D
 	_, err = authorities.applyStandardChanges("C0", 15, isDescOf, nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(authorities.pendingForcedChanges))
