@@ -22,7 +22,7 @@ func (p PoVFetchingRequest) Encode() ([]byte, error) {
 }
 
 type PoVFetchingResponseValues interface {
-	parachaintypes.PoV | NoSuchPoV
+	parachaintypes.PoV | parachaintypes.NoSuchPoV
 }
 
 // PoVFetchingResponse represents the possible responses to a PoVFetchingRequest.
@@ -40,7 +40,7 @@ func (mvdt *PoVFetchingResponse) SetValue(value any) (err error) {
 		setPoVFetchingResponse(mvdt, value)
 		return
 
-	case NoSuchPoV:
+	case parachaintypes.NoSuchPoV:
 		setPoVFetchingResponse(mvdt, value)
 		return
 
@@ -54,7 +54,7 @@ func (mvdt PoVFetchingResponse) IndexValue() (index uint, value any, err error) 
 	case parachaintypes.PoV:
 		return 0, mvdt.inner, nil
 
-	case NoSuchPoV:
+	case parachaintypes.NoSuchPoV:
 		return 1, mvdt.inner, nil
 
 	}
@@ -72,7 +72,7 @@ func (mvdt PoVFetchingResponse) ValueAt(index uint) (value any, err error) {
 		return *new(parachaintypes.PoV), nil
 
 	case 1:
-		return *new(NoSuchPoV), nil
+		return *new(parachaintypes.NoSuchPoV), nil
 
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
@@ -82,9 +82,6 @@ func (mvdt PoVFetchingResponse) ValueAt(index uint) (value any, err error) {
 func NewPoVFetchingResponse() PoVFetchingResponse {
 	return PoVFetchingResponse{}
 }
-
-// NoSuchPoV indicates that the requested PoV was not found in the store.
-type NoSuchPoV struct{}
 
 // Encode returns the SCALE encoding of the PoVFetchingResponse
 func (p *PoVFetchingResponse) Encode() ([]byte, error) {

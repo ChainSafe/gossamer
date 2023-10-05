@@ -42,7 +42,7 @@ func TestPoVFetchingResponse(t *testing.T) {
 		},
 		{
 			name:        "NoSuchPoV",
-			value:       NoSuchPoV{},
+			value:       parachaintypes.NoSuchPoV{},
 			encodeValue: []byte{1},
 		},
 	}
