@@ -4,9 +4,12 @@
 package grandpa
 
 import (
+	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/client/network"
 	"github.com/ChainSafe/gossamer/client/network/config"
+	"github.com/ChainSafe/gossamer/client/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -86,9 +89,44 @@ func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID]
 	return valid, nil
 }
 
+type SharedVoterState[AuthorityID comparable] struct {
+	inner grandpa.VoterState[AuthorityID]
+	sync.Mutex
+}
+
+// impl SharedVoterState {
+// 	/// Create a new empty `SharedVoterState` instance.
+// 	pub fn empty() -> Self {
+// 		Self { inner: Arc::new(RwLock::new(None)) }
+// 	}
+
+// 	fn reset(
+// 		&self,
+// 		voter_state: Box<dyn voter::VoterState<AuthorityId> + Sync + Send>,
+// 	) -> Option<()> {
+// 		let mut shared_voter_state = self.inner.try_write_for(Duration::from_secs(1))?;
+
+// 		*shared_voter_state = Some(voter_state);
+// 		Some(())
+// 	}
+
+// 	/// Get the inner `VoterState` instance.
+// 	pub fn voter_state(&self) -> Option<report::VoterState<AuthorityId>> {
+// 		self.inner.read().as_ref().map(|vs| vs.get())
+// 	}
+// }
+
+// impl Clone for SharedVoterState {
+// 	fn clone(&self) -> Self {
+// 		SharedVoterState { inner: self.inner.clone() }
+// 	}
+// }
+
 type ClientForGrandpa interface{}
 
 type Backend interface{}
+
+type environment struct{}
 
 type Config struct {
 	/// The expected duration for a message to be gossiped across the network.
@@ -109,22 +147,23 @@ type Config struct {
 	/// The keystore that manages the keys of this node.
 	KeyStore *keystore.KeyStore
 	/// TelemetryHandle instance.
-	Telemetry *TelemetryHandle
+	Telemetry *telemetry.TelemetryHandle
 	/// Chain specific GRANDPA protocol name. See [`crate::protocol_standard_name`].
-	ProtocolName ProtocolName
+	ProtocolName network.ProtocolName
 }
 
-type VoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
+// / Future that powers the voter.
+type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
 	voter            *grandpa.Voter[Hash, Number, Signature, ID]
-	sharedVoterState any
-	env              any
+	sharedVoterState SharedVoterState[ID]
+	env              environment
 	voterCommandsRx  any
 	network          any
 	telemetry        any
 	metrics          any
 }
 
-func NewVoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
+func newVoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
 	client ClientForGrandpa,
 	config Config,
 	network NetworkBridge,
@@ -136,7 +175,7 @@ func NewVoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signatu
 	sharedVoterState SharedVoterState,
 	JustificationSender GrandpaJustificationSender,
 	telemetry TelemetryHandle,
-) *VoterWork[Hash, Number, Signature, ID] {
+) *voterWork[Hash, Number, Signature, ID] {
 	// grandpa.NewVoter[]()
 	return nil
 }
