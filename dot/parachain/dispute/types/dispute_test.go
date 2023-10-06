@@ -20,7 +20,7 @@ func TestDispute_Codec(t *testing.T) {
 	dispute := Dispute{
 		Comparator: Comparator{
 			SessionIndex:  1,
-			CandidateHash: getRandomHash(),
+			CandidateHash: GetRandomHash(),
 		},
 		DisputeStatus: disputeStatus,
 	}

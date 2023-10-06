@@ -144,7 +144,7 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 					}
 				case message.Signal.BlockFinalised != nil:
 					logger.Tracef("OverseerSignal::BlockFinalised")
-					i.Scraper.ProcessFinalisedBlock(message.Signal.BlockFinalised.BlockNumber)
+					i.Scraper.ProcessFinalisedBlock(message.Signal.BlockFinalised.Number)
 
 				// TODO: case: FromOrchestra::Communication
 				default:
@@ -890,19 +890,24 @@ func (i *Initialized) HandleImportStatements(
 		return InvalidImport, fmt.Errorf("is freshly concluded against: %w", err)
 	}
 	if isFreshlyConcludedAgainst {
-		blocksIncluding := i.Scraper.GetBlocksIncludingCandidate(candidateHash)
-		for _, inclusion := range blocksIncluding {
+		inclusions := i.Scraper.GetBlocksIncludingCandidate(candidateHash)
+		blocks := make([]overseer.Block, len(inclusions))
+		for _, inclusion := range inclusions {
 			logger.Tracef("dispute has just concluded against the candidate hash noted. Its parent will be marked as reverted."+
 				"candidateHash: %v, parentBlockNumber: %v, parentBlockHash: %v",
 				candidateHash,
 				inclusion.BlockNumber,
 				inclusion.BlockHash,
 			)
+			blocks = append(blocks, overseer.Block{
+				Number: inclusion.BlockNumber,
+				Hash:   inclusion.BlockHash,
+			})
 		}
 
-		if len(blocksIncluding) > 0 {
+		if len(blocks) > 0 {
 			message := overseer.ChainSelectionMessage{
-				RevertBlocks: &overseer.RevertBlocksRequest{Blocks: blocksIncluding},
+				RevertBlocks: &overseer.RevertBlocksRequest{Blocks: blocks},
 			}
 			if err := context.Sender.SendMessage(message); err != nil {
 				return InvalidImport, fmt.Errorf("send revert blocks request: %w", err)
@@ -1052,16 +1057,16 @@ func (i *Initialized) sessionIsAncient(session parachainTypes.SessionIndex) bool
 }
 
 func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
-	baseBlock types.Block,
+	baseBlock overseer.Block,
 	blockDescriptions []types.BlockDescription,
-) (types.Block, error) {
-	last := types.NewBlock(baseBlock.BlockNumber+uint32(len(blockDescriptions)),
+) (overseer.Block, error) {
+	last := overseer.NewBlock(baseBlock.Number+uint32(len(blockDescriptions)),
 		blockDescriptions[len(blockDescriptions)-1].BlockHash,
 	)
 
 	recentDisputes, err := backend.GetRecentDisputes()
 	if err != nil {
-		return types.Block{}, fmt.Errorf("get recent disputes: %w", err)
+		return overseer.Block{}, fmt.Errorf("get recent disputes: %w", err)
 	}
 
 	if recentDisputes == nil || recentDisputes.Len() == 0 {
@@ -1091,7 +1096,7 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 				if i == 0 {
 					return baseBlock, nil
 				} else {
-					return types.NewBlock(baseBlock.BlockNumber+uint32(i-1),
+					return overseer.NewBlock(baseBlock.Number+uint32(i-1),
 						blockDescriptions[i-1].BlockHash,
 					), nil
 				}

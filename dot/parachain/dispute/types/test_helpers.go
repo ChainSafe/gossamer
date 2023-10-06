@@ -3,6 +3,7 @@ package types
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/tidwall/btree"
 	"testing"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -81,29 +82,34 @@ func DummyCandidateVotes(t *testing.T) *CandidateVotes {
 		CommitmentsHash: common.Hash{1},
 	}
 
-	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
-	validVotes[1] = Vote{
+	validVotes := ValidCandidateVotes{
+		VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
+		Value:           btree.New(CompareVoteIndices),
+	}
+	validVotes.Value.Set(Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{1},
-	}
-	validVotes[2] = Vote{
+	})
+	validVotes.VotedValidators[1] = struct{}{}
+	validVotes.Value.Set(Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
-	}
+	})
+	validVotes.VotedValidators[2] = struct{}{}
 
-	invalidVotes := make(map[parachainTypes.ValidatorIndex]Vote)
-	invalidVotes[2] = Vote{
+	invalidVotes := btree.New(CompareVoteIndices)
+	invalidVotes.Set(Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
-	}
-	invalidVotes[3] = Vote{
+	})
+	invalidVotes.Set(Vote{
 		ValidatorIndex:     3,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{3},
-	}
+	})
 
 	return &CandidateVotes{
 		CandidateReceipt: receipt,
@@ -136,7 +142,7 @@ func DummyInvalidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	return invalidDisputeStatement
 }
 
-func getRandomHash() common.Hash {
+func GetRandomHash() common.Hash {
 	var hash [32]byte
 	randomBytes := make([]byte, len(hash))
 	_, err := rand.Read(randomBytes)

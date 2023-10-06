@@ -1,7 +1,6 @@
 package types
 
 import (
-	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -15,8 +14,8 @@ func TestCompactStatement_Codec(t *testing.T) {
 	compactStatement, err := NewCompactStatement()
 	require.NoError(t, err)
 	compactStatementList := scale.NewVaryingDataTypeSlice(scale.VaryingDataType(compactStatement))
-	err = compactStatementList.Add(ValidCompactStatement{CandidateHash: parachainTypes.CandidateHash{Value: GetRandomHash()}},
-		SecondedCompactStatement{CandidateHash: parachainTypes.CandidateHash{Value: GetRandomHash()}},
+	err = compactStatementList.Add(ValidCompactStatement{CandidateHash: GetRandomHash()},
+		SecondedCompactStatement{CandidateHash: GetRandomHash()},
 	)
 	require.NoError(t, err)
 

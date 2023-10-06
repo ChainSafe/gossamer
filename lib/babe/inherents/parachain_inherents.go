@@ -17,12 +17,12 @@ type Signature [64]byte
 
 func (s Signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
 
-// validityAttestation is an Implicit or Explicit attestation to the validity of a parachain
+// ValidityAttestation is an Implicit or Explicit attestation to the validity of a parachain
 // candidate.
-type validityAttestation scale.VaryingDataType
+type ValidityAttestation scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (va *validityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
+func (va *ValidityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*va)
 	err = vdt.Set(val)
@@ -30,12 +30,12 @@ func (va *validityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*va = validityAttestation(vdt)
+	*va = ValidityAttestation(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (va *validityAttestation) Value() (scale.VaryingDataTypeValue, error) {
+func (va *ValidityAttestation) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*va)
 	return vdt.Value()
 }
@@ -82,13 +82,13 @@ func (va *ValidityAttestation) Signature() (Signature, error) {
 }
 
 // newValidityAttestation creates a ValidityAttestation varying data type.
-func newValidityAttestation() validityAttestation { //skipcq
+func newValidityAttestation() ValidityAttestation { //skipcq
 	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
 	if err != nil {
 		panic(err)
 	}
 
-	return validityAttestation(vdt)
+	return ValidityAttestation(vdt)
 }
 
 // DisputeStatement is a statement about a candidate, to be used within the dispute
@@ -427,13 +427,13 @@ type backedCandidate struct {
 	// The candidate referred to.
 	Candidate committedCandidateReceipt `scale:"1"`
 	// The validity votes themselves, expressed as signatures.
-	ValidityVotes []validityAttestation `scale:"2"`
+	ValidityVotes []ValidityAttestation `scale:"2"`
 	// The indices of the validators within the group, expressed as a bitfield.
 	ValidatorIndices []byte `scale:"3"`
 }
 
-// multiDisputeStatementSet is a set of dispute statements.
-type multiDisputeStatementSet []disputeStatementSet
+// MultiDisputeStatementSet is a set of dispute statements.
+type MultiDisputeStatementSet []disputeStatementSet
 
 // validatorIndex is the index of the validator.
 type validatorIndex uint32
@@ -468,7 +468,7 @@ type ParachainInherentData struct {
 	// Backed candidates for inclusion in the block.
 	BackedCandidates []backedCandidate `scale:"2"`
 	// Sets of dispute votes for inclusion,
-	Disputes multiDisputeStatementSet `scale:"3"`
+	Disputes MultiDisputeStatementSet `scale:"3"`
 	// The parent block header. Used for checking state proofs.
 	ParentHeader types.Header `scale:"4"`
 }
