@@ -70,7 +70,7 @@ func (cs *ChainScraper) ProcessActiveLeavesUpdate(
 	}
 
 	earliestBlockNumber := update.Activated.Number - uint32(len(ancestors))
-	var blockNumbers []uint32
+	blockNumbers := make([]uint32, 0, update.Activated.Number-earliestBlockNumber+1)
 	for i := update.Activated.Number; i >= earliestBlockNumber; i-- {
 		blockNumbers = append(blockNumbers, i)
 	}
@@ -127,6 +127,10 @@ func (cs *ChainScraper) ProcessCandidateEvents(
 	events, err := cs.Runtime.ParachainHostCandidateEvents(blockHash)
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate events: %w", err)
+	}
+
+	if events == nil {
+		return nil, nil
 	}
 
 	for _, event := range events.Types {
@@ -301,9 +305,8 @@ func getBlockAncestors(
 
 // saturatingSub returns the result of a - b, saturating at 0.
 func saturatingSub(a, b uint32) uint32 {
-	result := int(a) - int(b)
-	if result < 0 {
-		return 0
+	if a > b {
+		return a - b
 	}
-	return uint32(result)
+	return 0
 }

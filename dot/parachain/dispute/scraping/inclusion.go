@@ -57,25 +57,27 @@ func (i *Inclusions) RemoveUpToHeight(blockNumber uint32, candidatesModified []c
 func (i *Inclusions) Get(candidateHash common.Hash) []Inclusion {
 	var inclusionsAsSlice []Inclusion
 	blocksIncluding, ok := i.inner[candidateHash]
-	if ok {
-		// Convert the map to a sorted slice for iteration
-		var sortedKeys []uint32
-		for h := range blocksIncluding {
-			sortedKeys = append(sortedKeys, h)
-		}
-		sort.Slice(sortedKeys, func(i, j int) bool {
-			return sortedKeys[i] < sortedKeys[j]
-		})
+	if !ok {
+		return inclusionsAsSlice
+	}
 
-		// Extract inclusions as a slice of structs
-		for _, height := range sortedKeys {
-			blocksAtHeight := blocksIncluding[height]
-			for _, block := range blocksAtHeight {
-				inclusionsAsSlice = append(inclusionsAsSlice, Inclusion{
-					BlockNumber: height,
-					BlockHash:   block,
-				})
-			}
+	// Convert the map to a sorted slice for iteration
+	var sortedKeys []uint32
+	for h := range blocksIncluding {
+		sortedKeys = append(sortedKeys, h)
+	}
+	sort.Slice(sortedKeys, func(i, j int) bool {
+		return sortedKeys[i] < sortedKeys[j]
+	})
+
+	// Extract inclusions as a slice of structs
+	for _, height := range sortedKeys {
+		blocksAtHeight := blocksIncluding[height]
+		for _, block := range blocksAtHeight {
+			inclusionsAsSlice = append(inclusionsAsSlice, Inclusion{
+				BlockNumber: height,
+				BlockHash:   block,
+			})
 		}
 	}
 
