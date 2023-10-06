@@ -459,6 +459,6 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*pendingChangeNode[H, N], index N
 // - `KeepTree` if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
-func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000
+func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013
 	// TODO implement
 }
