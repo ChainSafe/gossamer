@@ -1,7 +1,6 @@
 package overseer
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/scraping"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -122,8 +121,22 @@ type ApprovalVotingMessage struct {
 	GetApprovalSignature *GetApprovalSignatureForCandidate
 }
 
+// Block represents a block
+type Block struct {
+	Number uint32
+	Hash   common.Hash
+}
+
+// NewBlock creates a new block
+func NewBlock(blockNumber uint32, hash common.Hash) Block {
+	return Block{
+		Number: blockNumber,
+		Hash:   hash,
+	}
+}
+
 type RevertBlocksRequest struct {
-	Blocks []scraping.Inclusion
+	Blocks []Block
 }
 
 type ChainSelectionMessage struct {

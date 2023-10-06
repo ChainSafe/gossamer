@@ -83,7 +83,7 @@ func (va *ValidityAttestation) Signature() (Signature, error) {
 
 // newValidityAttestation creates a ValidityAttestation varying data type.
 func newValidityAttestation() ValidityAttestation { //skipcq
-	vdt, err := scale.NewVaryingDataType(implicit{}, explicit{})
+	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
 	if err != nil {
 		panic(err)
 	}

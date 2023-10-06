@@ -17,6 +17,21 @@ type Vote struct {
 	ValidatorSignature [64]byte                      `scale:"3"`
 }
 
+// CompareVoteIndices compares two votes by their validator index
+func CompareVoteIndices(a, b interface{}) bool {
+	voteA, ok := a.(Vote)
+	if !ok {
+		panic(fmt.Errorf("invalid type for vote: expected Vote, got %T", a))
+	}
+
+	voteB, ok := b.(Vote)
+	if !ok {
+		panic(fmt.Errorf("invalid type for vote: expected Vote, got %T", b))
+	}
+
+	return parachainTypes.CompareValidatorIndices(voteA.ValidatorIndex, voteB.ValidatorIndex)
+}
+
 // Voted represents the voted state with the votes for a dispute statement
 type Voted struct {
 	Votes []Vote
@@ -285,7 +300,7 @@ type ValidCandidateVotes struct {
 }
 
 func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
-	existingVote := vcv.Value.Get(vote.ValidatorIndex)
+	existingVote := vcv.Value.Get(vote)
 	if existingVote == nil {
 		vcv.Value.Set(vote)
 		vcv.VotedValidators[vote.ValidatorIndex] = struct{}{}
@@ -319,9 +334,8 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 // CandidateVotes is a struct containing the votes for a candidate.
 type CandidateVotes struct {
 	CandidateReceipt parachainTypes.CandidateReceipt `scale:"1"`
-	// TODO: check if we need to use btree for this in the future
-	Valid   ValidCandidateVotes `scale:"2"`
-	Invalid *btree.BTree        `scale:"3"`
+	Valid            ValidCandidateVotes             `scale:"2"`
+	Invalid          *btree.BTree                    `scale:"3"`
 }
 
 func (cv *CandidateVotes) VotedIndices() *treeset.Set {
@@ -351,9 +365,9 @@ func NewCandidateVotes() *CandidateVotes {
 	return &CandidateVotes{
 		Valid: ValidCandidateVotes{
 			VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
-			Value:           btree.New(parachainTypes.CompareValidatorIndices),
+			Value:           btree.New(CompareVoteIndices),
 		},
-		Invalid: btree.New(parachainTypes.CompareValidatorIndices),
+		Invalid: btree.New(CompareVoteIndices),
 	}
 }
 
