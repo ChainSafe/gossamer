@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
