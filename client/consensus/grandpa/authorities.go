@@ -108,13 +108,13 @@ func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
 //
 // Only standard changes are taken into account for the current
 // limit, since any existing forced change should preclude the voter from voting.
-func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) { //nolint
+func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) { //nolint //skipcq: SCC-U1000
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.currentLimit(min)
 }
 
-func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //skipcq: SCC-U1000
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
 	telemetry *Telemetry) (newSet *medianAuthoritySet[H, N], err error) {
@@ -133,7 +133,7 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint
 // When the set has changed, the return value will be a status type where newSetBlockInfo
 // is the canonical block where the set last changed (i.e. the given
 // hash and number).
-func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nolint
+func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nolint //skipcq: SCC-U1000
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
 	telemetry *Telemetry) (status[H, N], error) {
@@ -241,7 +241,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](authorities []Authori
 }
 
 // current Get the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) current() (uint64, *[]Authority) {
+func (authSet *AuthoritySet[H, N]) current() (uint64, *[]Authority) { //skipcq: RVV-B0001
 	return authSet.setID, &authSet.currentAuthorities
 }
 

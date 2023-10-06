@@ -44,7 +44,7 @@ type pendingChangeNode[H comparable, N constraints.Unsigned] struct {
 
 // Roots returns the roots of each fork in the ChangeTree
 // This is the equivalent of the slice in the outermost layer of the roots
-func (ct *ChangeTree[H, N]) Roots() []*pendingChangeNode[H, N] { //skipcq: RVV-B0001
+func (ct *ChangeTree[H, N]) Roots() []*pendingChangeNode[H, N] { //skipcq: RVV-B0011
 	return ct.roots
 }
 
@@ -398,7 +398,7 @@ func getPreOrder[H comparable, N constraints.Unsigned](changes *[]PendingChange[
 	}
 }
 
-func getPreOrderChangeNodes[H comparable, N constraints.Unsigned]( //skipcq: RVV-A0006 skipcq:  RVV-B0001
+func getPreOrderChangeNodes[H comparable, N constraints.Unsigned]( //skipcq: RVV-A0006 //skipcq: RVV-B0001
 	changes *[]*pendingChangeNode[H, N],
 	changeNode *pendingChangeNode[H, N]) {
 	if changeNode == nil {
@@ -459,6 +459,6 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*pendingChangeNode[H, N], index N
 // - `KeepTree` if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
-func (ct *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000
+func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000
 	// TODO implement
 }
