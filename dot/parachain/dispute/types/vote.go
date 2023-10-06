@@ -195,12 +195,12 @@ func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 	return c.DisputeStatus.IsConcludedAgainst()
 }
 
-func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState, error) {
+func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState) {
 	return c.Votes, CandidateVoteState{
 		Votes:         CandidateVotes{},
 		Own:           c.Own,
 		DisputeStatus: c.DisputeStatus,
-	}, nil
+	}
 }
 
 // NewCandidateVoteState creates a new CandidateVoteState
@@ -280,13 +280,12 @@ func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (
 type ValidCandidateVotes map[parachainTypes.ValidatorIndex]Vote
 
 func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
-	_, ok := vcv[vote.ValidatorIndex]
+	existingVote, ok := vcv[vote.ValidatorIndex]
 	if !ok {
 		vcv[vote.ValidatorIndex] = vote
 		return true, nil
 	}
 
-	existingVote := vcv[vote.ValidatorIndex]
 	disputeStatement, err := existingVote.DisputeStatement.Value()
 	if err != nil {
 		return false, fmt.Errorf("getting value from DisputeStatement vdt: %w", err)

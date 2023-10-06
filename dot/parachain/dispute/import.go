@@ -171,10 +171,7 @@ func NewImportResultFromStatements(env types.CandidateEnvironment,
 	candidateVoteState types.CandidateVoteState,
 	now uint64,
 ) (*ImportResultHandler, error) {
-	votes, oldState, err := candidateVoteState.IntoOldState()
-	if err != nil {
-		return nil, fmt.Errorf("get old state: %w", err)
-	}
+	votes, oldState := candidateVoteState.IntoOldState()
 
 	var (
 		newInvalidVoters     []parachainTypes.ValidatorIndex
@@ -204,6 +201,7 @@ func NewImportResultFromStatements(env types.CandidateEnvironment,
 
 		disputeStatement, err := statement.SignedDisputeStatement.DisputeStatement.Value()
 		if err != nil {
+			logger.Warnf("get dispute statement value: %s", err)
 			continue
 		}
 		switch disputeStatement.(type) {

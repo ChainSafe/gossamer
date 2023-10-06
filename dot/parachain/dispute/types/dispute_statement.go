@@ -30,23 +30,23 @@ func (ValidCompactStatement) Index() uint {
 	return 1
 }
 
-// CompactStatement is the statement that can be made about parachain candidates
+// CompactStatementVDT is the statement that can be made about parachain candidates
 // These are the actual values that are signed.
-type CompactStatement scale.VaryingDataType
+type CompactStatementVDT scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cs *CompactStatement) Set(val scale.VaryingDataTypeValue) (err error) {
+func (cs *CompactStatementVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*cs)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	*cs = CompactStatement(vdt)
+	*cs = CompactStatementVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (cs *CompactStatement) Value() (val scale.VaryingDataTypeValue, err error) {
+func (cs *CompactStatementVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*cs)
 	val, err = vdt.Value()
 	if err != nil {
@@ -55,14 +55,10 @@ func (cs *CompactStatement) Value() (val scale.VaryingDataTypeValue, err error) 
 	return val, nil
 }
 
-// NewCompactStatement creates a new CompactStatement.
-func NewCompactStatement() (CompactStatement, error) {
-	vdt, err := scale.NewVaryingDataType(ValidCompactStatement{}, SecondedCompactStatement{})
-	if err != nil {
-		return CompactStatement{}, fmt.Errorf("failed to create varying data type: %w", err)
-	}
-
-	return CompactStatement(vdt), nil
+// NewCompactStatement creates a new CompactStatementVDT.
+func NewCompactStatement() CompactStatementVDT {
+	vdt := scale.MustNewVaryingDataType(ValidCompactStatement{}, SecondedCompactStatement{})
+	return CompactStatementVDT(vdt)
 }
 
 // ExplicitDisputeStatement An explicit statement on a candidate issued as part of a dispute.
