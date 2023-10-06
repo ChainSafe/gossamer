@@ -5,7 +5,7 @@ package availability_store
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
@@ -24,18 +24,61 @@ type AvailabilityStoreSubsystem struct {
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
 	SubsystemToOverseer chan any) error {
 	av.processMessages()
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) processMessages() {
 	for msg := range av.OverseerToSubSystem {
-		switch msg.(type) {
+		logger.Debugf("received message %v", msg)
+		switch msg := msg.(type) {
 		case QueryAvailableData:
-			av.handleQueryAvailableData(msg.(QueryAvailableData))
+			av.handleQueryAvailableData(msg)
+		case QueryDataAvailability:
+			av.handleQueryDataAvailability(msg)
+		case QueryChunk:
+			av.handleQueryChunk(msg)
+		case QueryChunkSize:
+			av.handleQueryChunkSize(msg)
+		case QueryAllChunks:
+			av.handleQueryAllChunks(msg)
+		case QueryChunkAvailability:
+			av.handleQueryChunkAvailability(msg)
+		case StoreChunk:
+			av.handleStoreChunk(msg)
+		case StoreAvailableData:
+			av.handleStoreAvailableData(msg)
 		}
 	}
-	fmt.Printf("AvailabilityStore: Got message %v\n", msg)
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) {
 	// TODO: handle query available data
+}
+
+func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataAvailability) {
+	// TODO: handle query data availability
+}
+
+func (av *AvailabilityStoreSubsystem) handleQueryChunk(msg QueryChunk) {
+	// TODO: handle query chunk
+}
+
+func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) {
+	// TODO: handle query chunk size
+}
+
+func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) {
+	// TODO: handle query all chunks
+}
+
+func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChunkAvailability) {
+	// TODO: handle query chunk availability
+}
+
+func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) {
+	// TODO: handle store chunk
+}
+
+func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) {
+	// TODO: handle store available data
 }
