@@ -398,7 +398,8 @@ func getPreOrder[H comparable, N constraints.Unsigned](changes *[]PendingChange[
 	}
 }
 
-func getPreOrderChangeNodes[H comparable, N constraints.Unsigned](changes *[]*pendingChangeNode[H, N], //skipcq: RVV-A0006 skipcq:  RVV-B0001
+func getPreOrderChangeNodes[H comparable, N constraints.Unsigned]( //skipcq: RVV-A0006 skipcq:  RVV-B0001
+	changes *[]*pendingChangeNode[H, N],
 	changeNode *pendingChangeNode[H, N]) {
 	if changeNode == nil {
 		return
@@ -458,6 +459,6 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*pendingChangeNode[H, N], index N
 // - `KeepTree` if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
-func (ct *ChangeTree[H, N]) drainFilter() { //nolint skipcq: SCC-U1000
+func (ct *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000
 	// TODO implement
 }

@@ -59,34 +59,34 @@ func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *[]Authority) {
 	return sas.inner.current()
 }
 
-func (sas *SharedAuthoritySet[H, N]) revert() { //nolint skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	sas.inner.revert()
 }
 
-func (sas *SharedAuthoritySet[H, N]) nextChange(bestHash H, //nolint skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) nextChange(bestHash H, //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.nextChange(bestHash, isDescendentOf)
 }
 
-func (sas *SharedAuthoritySet[H, N]) addStandardChange(pending PendingChange[H, N], //nolint skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) addStandardChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.addStandardChange(pending, isDescendentOf)
 }
 
-func (sas *SharedAuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], //nolint skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.addForcedChange(pending, isDescendentOf)
 }
 
-func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], //nolint skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
@@ -249,14 +249,15 @@ func (authSet *AuthoritySet[H, N]) current() (uint64, *[]Authority) {
 // This removes all the authority set changes that were announced after
 // the revert point.
 // Revert point is identified by `number` and `hash`.
-func (authSet *AuthoritySet[H, N]) revert() { //nolint skipcq: SCC-U1000 skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000 //skipcq:  RVV-B0001
 	panic("AuthoritySet.revert not implemented yet")
 }
 
 // Returns the block hash and height at which the next pending hashNumber in
 // the given chain (i.e. it includes `best_hash`) was signalled, nil if
 // there are no pending changes for the given chain.
-func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) { //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
+	isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
 	var forced *hashNumber[H, N]
 	for _, c := range authSet.pendingForcedChanges {
 		isDesc, err := isDescendentOf(c.canonHash, bestHash)
