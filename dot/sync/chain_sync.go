@@ -5,6 +5,7 @@ package sync
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -27,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -888,12 +888,12 @@ func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.Bloc
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
 	announceImportedBlock bool) (err error) {
-	// err = cs.babeVerifier.VerifyBlock(blockData.Header)
-	// if err != nil {
-	// 	return fmt.Errorf("babe verifying block: %w", err)
-	// }
+	err = cs.babeVerifier.VerifyBlock(blockData.Header)
+	if err != nil {
+		return fmt.Errorf("babe verifying block: %w", err)
+	}
 
-	if blockData.Header.Number == 8077850 {
+	if blockData.Header.Number == 9412096 {
 		latest, err := cs.blockState.BestBlockHeader()
 		if err != nil {
 			fmt.Printf("getting best block header: %s \n", err.Error())
@@ -907,7 +907,7 @@ func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData
 
 		entries := state.Trie().EntriesList()
 
-		data, err := scale.Marshal(entries)
+		data, err := json.Marshal(entries)
 		if err != nil {
 			fmt.Printf("scale marshallign trie state: %s \n", err.Error())
 			return err
