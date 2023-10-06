@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/tidwall/btree"
 	"testing"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -26,29 +27,37 @@ func Test_CandidateVotes(t *testing.T) {
 		CommitmentsHash: GetRandomHash(),
 	}
 
-	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
-	validVotes[1] = Vote{
+	validVotes := ValidCandidateVotes{
+		VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
+		Value:           btree.New(CompareVoteIndices),
+	}
+	inserted, err := validVotes.InsertVote(Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{1},
-	}
-	validVotes[2] = Vote{
+	})
+	require.NoError(t, err)
+	require.True(t, inserted)
+	validVotes.VotedValidators[1] = struct{}{}
+	inserted, err = validVotes.InsertVote(Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
-	}
+	})
+	require.NoError(t, err)
+	require.True(t, inserted)
 
-	invalidVotes := make(map[parachainTypes.ValidatorIndex]Vote)
-	invalidVotes[2] = Vote{
+	invalidVotes := btree.New(CompareVoteIndices)
+	invalidVotes.Set(Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
-	}
-	invalidVotes[3] = Vote{
+	})
+	invalidVotes.Set(Vote{
 		ValidatorIndex:     3,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{3},
-	}
+	})
 
 	votes := CandidateVotes{CandidateReceipt: receipt, Valid: validVotes, Invalid: invalidVotes}
 
@@ -56,10 +65,7 @@ func Test_CandidateVotes(t *testing.T) {
 	encoded, err := scale.Marshal(votes)
 	require.NoError(t, err)
 
-	decoded := CandidateVotes{
-		Valid:   make(map[parachainTypes.ValidatorIndex]Vote),
-		Invalid: make(map[parachainTypes.ValidatorIndex]Vote),
-	}
+	decoded := NewCandidateVotes()
 	err = scale.Unmarshal(encoded, &decoded)
 	require.NoError(t, err)
 

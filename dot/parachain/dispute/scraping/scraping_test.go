@@ -57,7 +57,7 @@ func configureMockExpectations(
 
 func configureMockOverseer(
 	t *testing.T,
-	sender *overseer.MockSender,
+	sender *MockSender,
 	chain *[]common.Hash,
 	messages expectedMessages,
 	finalisedBlock uint32,
@@ -276,7 +276,7 @@ func configureMockRuntime(
 
 func newTestState(
 	t *testing.T,
-	sender *overseer.MockSender,
+	sender *MockSender,
 	runtime *MockRuntimeInstance,
 	messages expectedMessages,
 	calls expectedRuntimeCalls,
@@ -299,7 +299,7 @@ func TestChainScraper(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		candidate1, err := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(1)).Hash()
 		require.NoError(t, err)
@@ -340,7 +340,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(0)
 		expectedAncestryLength := int(BlocksToSkip - finalisedBlock)
@@ -370,7 +370,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(0)
 		messages, calls := configureMockExpectations(BlocksToSkip)
@@ -399,7 +399,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(17)
 		expectedAncestryLength := int(BlocksToSkip - (finalisedBlock - DisputeCandidateLifetimeAfterFinalization))
@@ -425,7 +425,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
@@ -475,7 +475,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
@@ -532,7 +532,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
@@ -595,7 +595,7 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)

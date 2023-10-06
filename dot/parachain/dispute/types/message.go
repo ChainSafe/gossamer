@@ -275,20 +275,6 @@ type IssueLocalStatementMessage struct {
 	Valid            bool
 }
 
-// Block represents a block
-type Block struct {
-	BlockNumber uint32
-	Hash        common.Hash
-}
-
-// NewBlock creates a new block
-func NewBlock(blockNumber uint32, hash common.Hash) Block {
-	return Block{
-		BlockNumber: blockNumber,
-		Hash:        hash,
-	}
-}
-
 // BlockDescription describes a block with its session and candidates
 type BlockDescription struct {
 	BlockHash  common.Hash
@@ -298,7 +284,7 @@ type BlockDescription struct {
 
 // DetermineUndisputedChainMessage message to determine the undisputed chain
 type DetermineUndisputedChainMessage struct {
-	Base              Block
+	Base              overseer.Block
 	BlockDescriptions []BlockDescription
 	Tx                overseer.Sender
 }
@@ -316,6 +302,6 @@ type DisputeCoordinatorMessage struct {
 // OverseerSignal signals received by the overseer subsystem
 type OverseerSignal struct {
 	ActiveLeaves   *overseer.ActiveLeavesUpdate
-	BlockFinalised *Block
+	BlockFinalised *overseer.Block
 	Concluded      bool
 }

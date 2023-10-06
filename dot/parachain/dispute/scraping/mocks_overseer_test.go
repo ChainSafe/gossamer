@@ -2,11 +2,12 @@
 // Source: github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer (interfaces: Sender)
 
 // Package parachain is a generated GoMock package.
-package overseer
+package scraping
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockSender is a mock of Sender interface.
@@ -58,4 +59,18 @@ func (m *MockSender) SendMessage(arg0 interface{}) error {
 func (mr *MockSenderMockRecorder) SendMessage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockSender)(nil).SendMessage), arg0)
+}
+
+// SendUnboundedMessage mocks base method.
+func (m *MockSender) SendUnboundedMessage(arg0 interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendUnboundedMessage", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendUnboundedMessage indicates an expected call of SendUnboundedMessage.
+func (mr *MockSenderMockRecorder) SendUnboundedMessage(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendUnboundedMessage", reflect.TypeOf((*MockSender)(nil).SendUnboundedMessage), arg0)
 }

@@ -230,7 +230,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		requestHandler := func() {
 			defer wg.Done()
 
-			// If we receive `BlockNumber` request this implicitly proves that the participation is queued
+			// If we receive `Number` request this implicitly proves that the participation is queued
 			mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 				switch message := msg.(type) {
 				case overseer.ChainAPIMessage:
