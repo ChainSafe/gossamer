@@ -1,7 +1,7 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf
+	github.com/ChainSafe/go-schnorrkel v1.1.0
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
@@ -12,7 +12,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
-	github.com/ethereum/go-ethereum v1.13.1
+	github.com/ethereum/go-ethereum v1.13.2
 	github.com/fatih/color v1.15.0
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/golang/mock v1.6.0
@@ -30,8 +30,8 @@ require (
 	github.com/minio/sha256-simd v1.0.1
 	github.com/multiformats/go-multiaddr v0.11.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
-	github.com/prometheus/client_golang v1.16.0
-	github.com/prometheus/client_model v0.4.0
+	github.com/prometheus/client_golang v1.17.0
+	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16
 	github.com/qdm12/gotree v0.2.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
