@@ -374,13 +374,14 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 	shouldHash := version.ShouldHashValue(value)
 	if shouldHash {
 		hashedValue := common.MustBlake2bHash(value)
-
+		valueKey := hashedValue.ToBytes()
 		// Add the original value as value node in db using the hashed value as key
-		err = t.db.Put(hashedValue.ToBytes(), value)
+		err = t.db.Put(valueKey, value)
 		if err != nil {
 			return err
 		}
-		value = hashedValue.ToBytes()
+		// Put the value key as this trie node value
+		value = valueKey
 	}
 
 	root, _, _, err := t.insert(t.root, nibblesKey, value, shouldHash, pendingDeltas)
