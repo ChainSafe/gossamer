@@ -31,7 +31,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.11.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.17.0
-	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16
+	github.com/prometheus/client_model v0.5.0
 	github.com/qdm12/gotree v0.2.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.17.0
