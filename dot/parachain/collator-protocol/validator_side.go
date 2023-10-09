@@ -125,7 +125,7 @@ type PeerData struct {
 	state PeerStateInfo
 }
 
-func (peerData PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool {
+func (peerData *PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool {
 	if peerData.state.PeerState == Connected {
 		return false
 	}
@@ -133,7 +133,17 @@ func (peerData PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool 
 	return slices.Contains(peerData.view.heads, relayParent)
 }
 
-func (peerData PeerData) InsertAdvertisement() error {
+func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, paraID parachaintypes.ParaID) {
+	peerData.state = PeerStateInfo{
+		PeerState: Collating,
+		CollatingPeerState: CollatingPeerState{
+			CollatorID: collatorID,
+			ParaID:     paraID,
+		},
+	}
+}
+
+func (peerData *PeerData) InsertAdvertisement() error {
 	// TODO: part of https://github.com/ChainSafe/gossamer/issues/3514
 	return nil
 }
@@ -208,6 +218,10 @@ type CollatorProtocolValidatorSide struct {
 
 	// Keep track of all pending candidate collations
 	pendingCandidates map[common.Hash]CollationEvent
+
+	// Parachains we're currently assigned to. With async backing enabled
+	// this includes assignments from the implicit view.
+	currentAssignments map[parachaintypes.ParaID]uint
 }
 
 func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,

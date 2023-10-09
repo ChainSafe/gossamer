@@ -11,6 +11,8 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -175,6 +177,16 @@ const (
 	Seconded
 )
 
+// getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.
+// The payload is a the local peed id of the node, which serves to prove that it controls the
+// collator key it is declaring and intends to collate under.
+func getDeclareSignaturePayload(peerID peer.ID) []byte {
+	payload := []byte("COLL")
+	payload = append(payload, peerID...)
+
+	return payload
+}
+
 func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
 	if msg.Type() != network.CollationMsgType {
@@ -196,11 +208,74 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		return false, errors.New("expected value to be collator protocol message")
 	}
 
+	collatorProtocolMessageV, err := collatorProtocolMessage.Value()
+	if err != nil {
+		return false, fmt.Errorf("getting collator protocol message value: %w", err)
+	}
+
 	switch collatorProtocolMessage.Index() {
-	// TODO: Make sure that V1 and VStaging both types are covered
-	// All the types covered currently are V1.
+	// TODO: Make sure that V1 types are covered.
+	// TODO: Create an issue to cover v2 types.
 	case 0: // Declare
-		// TODO: handle collator declaration https://github.com/ChainSafe/gossamer/issues/3513
+		declareMessage, ok := collatorProtocolMessageV.(Declare)
+		if !ok {
+			return false, errors.New("expected message to be declare")
+		}
+
+		// check if we already have the collator id declared in this message. If so, punish the
+		// peer who sent us this message by reducing its reputation
+		peerID, ok := cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
+		if ok {
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			}, peerID)
+			return true, nil
+		}
+
+		peerData := cpvs.peerData[sender]
+		if peerData.state.PeerState == Collating {
+			logger.Error("peer is already in the collating state")
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			}, sender)
+			return true, nil
+		}
+
+		// check signature declareMessage.CollatorSignature
+		err = sr25519.VerifySignature(declareMessage.CollatorId[:], declareMessage.CollatorSignature[:],
+			getDeclareSignaturePayload(peerID))
+		if errors.Is(err, crypto.ErrSignatureVerificationFailed) {
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.InvalidSignatureValue,
+				Reason: peerset.InvalidSignatureReason,
+			}, sender)
+			return true, fmt.Errorf("invalid signature: %w", err)
+		}
+		if err != nil {
+			return false, fmt.Errorf("verifying signature: %w", err)
+		}
+
+		_, ok = cpvs.currentAssignments[parachaintypes.ParaID(declareMessage.ParaID)]
+		if ok {
+			logger.Errorf("declared as collator for current para: %d", declareMessage.ParaID)
+
+			peerData.SetCollating(declareMessage.CollatorId, parachaintypes.ParaID(declareMessage.ParaID))
+			cpvs.peerData[sender] = peerData
+		} else {
+			logger.Errorf("declared as collator for unneeded para: %d", declareMessage.ParaID)
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnneededCollatorValue,
+				Reason: peerset.UnneededCollatorReason,
+			}, sender)
+
+			// TODO: Disconnect peer.
+			// Do a thorough review of substrate/client/network/src/
+			// check how are they managing peerset of different protocol.
+			// Currently we have a Handler in dot/peerset, but it does not get used anywhere.
+			delete(cpvs.peerData, sender)
+		}
 	case 1: // AdvertiseCollation
 		// TODO: handle collation advertisement https://github.com/ChainSafe/gossamer/issues/3514
 	case 2: // CollationSeconded
