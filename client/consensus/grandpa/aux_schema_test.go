@@ -270,7 +270,7 @@ func TestWriteVoterSetState(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := &completedRound[string, uint]{
+	completedRound := completedRound[string, uint]{
 		Number: 1,
 		State: finalityGrandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -321,7 +321,7 @@ func TestWriteConcludedRound(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := &completedRound[string, uint]{
+	completedRound := completedRound[string, uint]{
 		Number: 1,
 		State: finalityGrandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -345,14 +345,14 @@ func TestWriteConcludedRound(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, voterSetState)
 
-	err = WriteConcludedRound[string, uint](*completedRound, write(store))
+	err = WriteConcludedRound[string, uint](completedRound, write(store))
 	require.NoError(t, err)
 
 	key := concludedRounds
 	encodedRoundNumber := scale.MustMarshal(completedRound.Number)
 	key = append(key, encodedRoundNumber...)
 
-	encRoundData := scale.MustMarshal(*completedRound)
+	encRoundData := scale.MustMarshal(completedRound)
 
 	val, err := store.Get(key)
 	require.NoError(t, err)

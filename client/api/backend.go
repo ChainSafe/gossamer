@@ -20,7 +20,7 @@ type AuxStore interface {
 	// Insert auxiliary data into key-Value store.
 	//
 	// Deletions occur after insertions.
-	Insert(insert []KeyValue, deleted []Key) error
+	Insert(insert []KeyValue, delete []Key) error
 	// Get Query auxiliary data from key-Value store.
 	Get(key Key) (*[]byte, error)
 }

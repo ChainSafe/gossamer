@@ -98,7 +98,7 @@ func TestCompletedRoundsEncoding(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := &completedRound[string, uint]{
+	completedRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -133,7 +133,7 @@ func TestCompletedRounds_Last(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := completedRound[string, uint]{
+	compRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -143,12 +143,12 @@ func TestCompletedRounds_Last(t *testing.T) {
 		},
 		Base: dummyHashNumber,
 	}
-	completedRounds := NewCompletedRounds[string, uint](&completedRound, 1, authorities)
-	lastCompletedRound := completedRounds.last()
-	require.Equal(t, completedRound, lastCompletedRound)
+	compRounds := NewCompletedRounds[string, uint](compRound, 1, authorities)
+	lastCompletedRound := compRounds.last()
+	require.Equal(t, compRound, lastCompletedRound)
 
-	completedRounds = NewCompletedRounds[string, uint](nil, 1, authorities)
-	require.Panics(t, func() { completedRounds.last() }, "last did not panic")
+	emptyCompletedRounds := completedRounds[string, uint]{}
+	require.Panics(t, func() { emptyCompletedRounds.last() }, "last did not panic")
 }
 
 func TestCompletedRounds_Push(t *testing.T) {
@@ -197,7 +197,7 @@ func TestCompletedRounds_Push(t *testing.T) {
 		},
 		Base: dummyHashNumber,
 	}
-	completedRounds := NewCompletedRounds[string, uint](&completedRound1, 1, authorities)
+	completedRounds := NewCompletedRounds[string, uint](completedRound1, 1, authorities)
 	completedRounds.push(completedRound0)
 
 	lastCompletedRound := completedRounds.last()
@@ -249,7 +249,7 @@ func TestVoterSetStateEncoding(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := &completedRound[string, uint]{
+	compRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -260,7 +260,7 @@ func TestVoterSetStateEncoding(t *testing.T) {
 		Base: dummyHashNumber,
 	}
 
-	completedRounds := NewCompletedRounds[string, uint](completedRound, 1, authorities)
+	completedRounds := NewCompletedRounds[string, uint](compRound, 1, authorities)
 	currentRounds := make(map[uint64]hasVoted[string, uint])
 
 	liveState := voterSetStateLive[string, uint]{
@@ -327,7 +327,7 @@ func TestVoterSetState_CompletedRounds(t *testing.T) {
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
 	completedRounds := NewCompletedRounds[string, uint](
-		&completedRound[string, uint]{
+		completedRound[string, uint]{
 			10,
 			state,
 			dummyHashNumber,
@@ -363,7 +363,7 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
 	completedRounds := NewCompletedRounds[string, uint](
-		&completedRound[string, uint]{
+		completedRound[string, uint]{
 			10,
 			state,
 			dummyHashNumber,
@@ -407,7 +407,7 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
 	completedRounds := NewCompletedRounds[string, uint](
-		&completedRound[string, uint]{
+		completedRound[string, uint]{
 			10,
 			state,
 			dummyHashNumber,

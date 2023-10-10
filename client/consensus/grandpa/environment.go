@@ -27,13 +27,13 @@ type completedRound[H comparable, N constraints.Unsigned] struct {
 	Votes []grandpa.SignedMessage[H, N, ed25519.SignatureBytes, ed25519.PublicKey]
 }
 
-// NumLastCompletedRounds NOTE: the current strategy for persisting completed rounds is very naive
+// numLastCompletedRounds NOTE: the current strategy for persisting completed rounds is very naive
 // (update everything) and we also rely on cloning to do atomic updates,
 // therefore this value should be kept small for now.
-const NumLastCompletedRounds = 2
+const numLastCompletedRounds = 2
 
 // completedRounds Data about last completed rounds within a single voter set. Stores
-// NumLastCompletedRounds and always contains data about at least one round
+// numLastCompletedRounds and always contains data about at least one round
 // (genesis).
 type completedRounds[H comparable, N constraints.Unsigned] struct {
 	Rounds []completedRound[H, N]
@@ -42,11 +42,9 @@ type completedRounds[H comparable, N constraints.Unsigned] struct {
 }
 
 // NewCompletedRounds Create a new completed rounds tracker with NUM_LAST_COMPLETED_ROUNDS capacity.
-func NewCompletedRounds[H comparable, N constraints.Unsigned](genesis *completedRound[H, N], setId uint64, voters AuthoritySet[H, N]) completedRounds[H, N] {
-	rounds := make([]completedRound[H, N], 0, NumLastCompletedRounds)
-	if genesis != nil {
-		rounds = append(rounds, *genesis)
-	}
+func NewCompletedRounds[H comparable, N constraints.Unsigned](genesis completedRound[H, N], setId uint64, voters AuthoritySet[H, N]) completedRounds[H, N] {
+	rounds := make([]completedRound[H, N], 0, numLastCompletedRounds)
+	rounds = append(rounds, genesis)
 
 	var voterIDs []ed25519.PublicKey
 	currentAuthorities := voters.CurrentAuthorities
@@ -62,19 +60,19 @@ func NewCompletedRounds[H comparable, N constraints.Unsigned](genesis *completed
 }
 
 // last Returns the last (latest) completed round
-func (compRounds *completedRounds[H, N]) last() completedRound[H, N] {
-	if len(compRounds.Rounds) == 0 {
+func (cr *completedRounds[H, N]) last() completedRound[H, N] {
+	if len(cr.Rounds) == 0 {
 		panic("inner is never empty; always contains at least genesis; qed")
 	}
-	return compRounds.Rounds[0]
+	return cr.Rounds[0]
 }
 
 // push a new completed round, oldest round is evicted if number of rounds
 // is higher than `NUM_LAST_COMPLETED_ROUNDS`.
-func (compRounds *completedRounds[H, N]) push(compRound completedRound[H, N]) {
+func (cr *completedRounds[H, N]) push(compRound completedRound[H, N]) {
 	// TODO they use reverse, double check this
 	idx, found := slices.BinarySearchFunc(
-		compRounds.Rounds,
+		cr.Rounds,
 		N(compRound.Number),
 		func(a completedRound[H, N], b N) int {
 			switch {
@@ -91,18 +89,18 @@ func (compRounds *completedRounds[H, N]) push(compRound completedRound[H, N]) {
 	)
 
 	if found {
-		compRounds.Rounds[idx] = compRound
+		cr.Rounds[idx] = compRound
 	} else {
-		if len(compRounds.Rounds) <= idx {
-			compRounds.Rounds = append(compRounds.Rounds, compRound)
+		if len(cr.Rounds) <= idx {
+			cr.Rounds = append(cr.Rounds, compRound)
 		} else {
-			compRounds.Rounds = append(compRounds.Rounds[:idx+1], compRounds.Rounds[idx:]...)
-			compRounds.Rounds[idx] = compRound
+			cr.Rounds = append(cr.Rounds[:idx+1], cr.Rounds[idx:]...)
+			cr.Rounds[idx] = compRound
 		}
 	}
 
-	if len(compRounds.Rounds) > NumLastCompletedRounds {
-		compRounds.Rounds = compRounds.Rounds[:len(compRounds.Rounds)-1]
+	if len(cr.Rounds) > numLastCompletedRounds {
+		cr.Rounds = cr.Rounds[:len(cr.Rounds)-1]
 	}
 }
 
@@ -242,7 +240,7 @@ func (tve *voterSetState[H, N]) Value() (val scale.VaryingDataTypeValue, err err
 func (tve voterSetState[H, N]) New() voterSetState[H, N] {
 	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N]{
 		CompletedRounds: completedRounds[H, N]{
-			Rounds: make([]completedRound[H, N], 0, NumLastCompletedRounds),
+			Rounds: make([]completedRound[H, N], 0, numLastCompletedRounds),
 		},
 		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
 	}, voterSetStatePaused[H, N]{})
@@ -257,7 +255,7 @@ func (tve voterSetState[H, N]) New() voterSetState[H, N] {
 func NewVoterSetState[H comparable, N constraints.Unsigned]() *voterSetState[H, N] {
 	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N]{
 		CompletedRounds: completedRounds[H, N]{
-			Rounds: make([]completedRound[H, N], 0, NumLastCompletedRounds),
+			Rounds: make([]completedRound[H, N], 0, numLastCompletedRounds),
 		},
 		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
 	}, voterSetStatePaused[H, N]{})
@@ -274,7 +272,7 @@ func NewVoterSetState[H comparable, N constraints.Unsigned]() *voterSetState[H, 
 func NewLiveVoterSetState[H comparable, N constraints.Unsigned](setId uint64, authSet AuthoritySet[H, N], genesisState grandpa.HashNumber[H, N]) (voterSetState[H, N], error) {
 	state := grandpa.NewRoundState[H, N](genesisState)
 	completedRounds := NewCompletedRounds[H, N](
-		&completedRound[H, N]{
+		completedRound[H, N]{
 			State: state,
 			Base:  genesisState,
 		},
@@ -429,8 +427,8 @@ func (yes[H, N]) New() yes[H, N] {
 }
 
 // propose Returns the proposal we should vote with (if any.)
-func (hasVoted *hasVoted[H, N]) Propose() *grandpa.PrimaryPropose[H, N] {
-	value, err := hasVoted.Value()
+func (hv *hasVoted[H, N]) Propose() *grandpa.PrimaryPropose[H, N] {
+	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
@@ -454,8 +452,8 @@ func (hasVoted *hasVoted[H, N]) Propose() *grandpa.PrimaryPropose[H, N] {
 }
 
 // prevote Returns the prevote we should vote with (if any.)
-func (hasVoted *hasVoted[H, N]) Prevote() *grandpa.Prevote[H, N] {
-	value, err := hasVoted.Value()
+func (hv *hasVoted[H, N]) Prevote() *grandpa.Prevote[H, N] {
+	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
@@ -477,8 +475,8 @@ func (hasVoted *hasVoted[H, N]) Prevote() *grandpa.Prevote[H, N] {
 }
 
 // precommit Returns the precommit we should vote with (if any.)
-func (hasVoted *hasVoted[H, N]) Precommit() *grandpa.Precommit[H, N] {
-	value, err := hasVoted.Value()
+func (hv *hasVoted[H, N]) Precommit() *grandpa.Precommit[H, N] {
+	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
@@ -498,18 +496,18 @@ func (hasVoted *hasVoted[H, N]) Precommit() *grandpa.Precommit[H, N] {
 }
 
 // CanPropose Returns true if the voter can still propose, false otherwise
-func (hasVoted *hasVoted[H, N]) CanPropose() bool {
-	return hasVoted.Propose() == nil
+func (hv *hasVoted[H, N]) CanPropose() bool {
+	return hv.Propose() == nil
 }
 
 // CanPrevote Returns true if the voter can still prevote, false otherwise
-func (hasVoted *hasVoted[H, N]) CanPrevote() bool {
-	return hasVoted.Prevote() == nil
+func (hv *hasVoted[H, N]) CanPrevote() bool {
+	return hv.Prevote() == nil
 }
 
 // CanPrecommit Returns true if the voter can still precommit, false otherwise
-func (hasVoted *hasVoted[H, N]) CanPrecommit() bool {
-	return hasVoted.Precommit() == nil
+func (hv *hasVoted[H, N]) CanPrecommit() bool {
+	return hv.Precommit() == nil
 }
 
 // vote Whether we've voted already during a prior run of the program

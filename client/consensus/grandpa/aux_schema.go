@@ -342,8 +342,3 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned](roundData complet
 	return nil
 
 }
-
-func LoadAuthorities() {
-	// Not sure if this is really needed or just used in tests
-	panic("impl")
-}
