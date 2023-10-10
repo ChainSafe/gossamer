@@ -10,9 +10,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
@@ -171,4 +173,15 @@ func TestDecodeCollationHandshake(t *testing.T) {
 	msg, err := decodeCollatorHandshake(enc)
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
+}
+
+func TestHandleCollationMessage(t *testing.T) {
+	cpvs := CollatorProtocolValidatorSide{}
+
+	// test with wrong message type
+	msg1 := &network.BlockAnnounceMessage{}
+	peerID1 := peer.ID("testPeerID1")
+	propagate, err := cpvs.handleCollationMessage(peerID1, msg1)
+	require.False(t, propagate)
+	require.ErrorIs(t, err, ErrUnexpectedMessageOnCollationProtocol)
 }

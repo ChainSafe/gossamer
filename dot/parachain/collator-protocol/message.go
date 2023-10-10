@@ -189,28 +189,32 @@ func getDeclareSignaturePayload(peerID peer.ID) []byte {
 
 func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+
+	// we don't propagate collation messages, so it will always be false
+	propagate := false
+
 	if msg.Type() != network.CollationMsgType {
-		return false, fmt.Errorf("unexpected message type, expected: %d, found:%d",
+		return propagate, fmt.Errorf("%w, expected: %d, found:%d", ErrUnexpectedMessageOnCollationProtocol,
 			network.CollationMsgType, msg.Type())
 	}
 
 	collatorProtocol, ok := msg.(*CollationProtocol)
 	if !ok {
-		return false, fmt.Errorf("failed to cast into collator protocol message, expected: *CollationProtocol, got: %T", msg)
+		return propagate, fmt.Errorf("failed to cast into collator protocol message, expected: *CollationProtocol, got: %T", msg)
 	}
 
 	collatorProtocolV, err := collatorProtocol.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting collator protocol value: %w", err)
+		return propagate, fmt.Errorf("getting collator protocol value: %w", err)
 	}
 	collatorProtocolMessage, ok := collatorProtocolV.(CollatorProtocolMessage)
 	if !ok {
-		return false, errors.New("expected value to be collator protocol message")
+		return propagate, errors.New("expected value to be collator protocol message")
 	}
 
 	collatorProtocolMessageV, err := collatorProtocolMessage.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting collator protocol message value: %w", err)
+		return propagate, fmt.Errorf("getting collator protocol message value: %w", err)
 	}
 
 	switch collatorProtocolMessage.Index() {
@@ -219,7 +223,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	case 0: // Declare
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
 		if !ok {
-			return false, errors.New("expected message to be declare")
+			return propagate, errors.New("expected message to be declare")
 		}
 
 		// check if we already have the collator id declared in this message. If so, punish the
@@ -230,17 +234,26 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				Value:  peerset.UnexpectedMessageValue,
 				Reason: peerset.UnexpectedMessageReason,
 			}, peerID)
-			return true, nil
+			return propagate, nil
 		}
 
-		peerData := cpvs.peerData[sender]
+		// NOTE: peerData for sender will be filled when it gets connected to us
+		peerData, ok := cpvs.peerData[sender]
+		if !ok {
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			}, sender)
+			return propagate, fmt.Errorf("%w: %s", ErrUnknownPeer, sender)
+		}
+
 		if peerData.state.PeerState == Collating {
 			logger.Error("peer is already in the collating state")
 			cpvs.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.UnexpectedMessageValue,
 				Reason: peerset.UnexpectedMessageReason,
 			}, sender)
-			return true, nil
+			return propagate, nil
 		}
 
 		// check signature declareMessage.CollatorSignature
@@ -251,12 +264,13 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				Value:  peerset.InvalidSignatureValue,
 				Reason: peerset.InvalidSignatureReason,
 			}, sender)
-			return true, fmt.Errorf("invalid signature: %w", err)
+			return propagate, fmt.Errorf("invalid signature: %w", err)
 		}
 		if err != nil {
-			return false, fmt.Errorf("verifying signature: %w", err)
+			return propagate, fmt.Errorf("verifying signature: %w", err)
 		}
 
+		// NOTE: assingments are setting when we handle view changes
 		_, ok = cpvs.currentAssignments[parachaintypes.ParaID(declareMessage.ParaID)]
 		if ok {
 			logger.Errorf("declared as collator for current para: %d", declareMessage.ParaID)
@@ -270,11 +284,10 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				Reason: peerset.UnneededCollatorReason,
 			}, sender)
 
-			// TODO: Disconnect peer.
+			// TODO: Disconnect peer. #3530
 			// Do a thorough review of substrate/client/network/src/
 			// check how are they managing peerset of different protocol.
 			// Currently we have a Handler in dot/peerset, but it does not get used anywhere.
-			delete(cpvs.peerData, sender)
 		}
 	case 1: // AdvertiseCollation
 		// TODO: handle collation advertisement https://github.com/ChainSafe/gossamer/issues/3514
@@ -286,7 +299,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		}, sender)
 	}
 
-	return false, nil
+	return propagate, nil
 }
 
 func getCollatorHandshake() (network.Handshake, error) {
