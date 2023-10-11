@@ -30,165 +30,61 @@ type persistentData[H comparable, N constraints.Unsigned] struct {
 	setState     SharedVoterSetState[H, N]
 }
 
-// TODO determine if I can actually do this
-func loadDecoded(store api.AuxStore, key []byte, destination any) (any, error) {
-	// This causes a panic: reflect.Value.Convert: value of type interface {} cannot be converted to type scale.VaryingDataType
+func loadDecoded(store api.AuxStore, key []byte, destination any) error {
 	encodedValue, err := store.Get(key)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if encodedValue != nil {
-		err = scale.Unmarshal(*encodedValue, &destination)
+		err = scale.Unmarshal(*encodedValue, destination)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		return destination, nil
+		return nil
 	}
 
-	return nil, errValueNotFound
+	return errValueNotFound
 }
-
-//func loadPersistent[H comparable, N constraints.Unsigned](store api.AuxStore, genesisHash H, genesisNumber N, genesisAuths getGenesisAuthorities) (*persistentData[H, N], error) {
-//	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
-//	makeGenesisRound := grandpa.NewRoundState[H, N]
-//
-//	authSetOld, err := loadDecoded(store, authoritySetKey, AuthoritySet[H, N]{})
-//	if err != nil && !errors.Is(err, errValueNotFound) {
-//		return nil, err
-//	}
-//
-//	authSet := authSetOld.(AuthoritySet[H, N])
-//
-//	if !errors.Is(err, errValueNotFound) {
-//		// This fails currently
-//		setStateOld, err := loadDecoded(store, setStateKey, voterSetState[H, N]{})
-//		if err != nil && !errors.Is(err, errValueNotFound) {
-//			return nil, err
-//		}
-//
-//		setState := setStateOld.(voterSetState[H, N])
-//
-//		if !errors.Is(err, errValueNotFound) {
-//			state := makeGenesisRound(genesis)
-//			base := state.PrevoteGHOST
-//			if base != nil {
-//				state, err := NewLiveVoterSetState(authSet.SetID, authSet, *base)
-//				if err != nil {
-//					return nil, err
-//				}
-//				setStateOld = &state
-//
-//			} else {
-//				panic("state is for completed round; completed rounds must have a prevote ghost; qed")
-//			}
-//		}
-//
-//		newSharedVoterSetState := sharedVoterSetState[H, N]{
-//			Inner: setState,
-//		}
-//
-//		return &persistentData[H, N]{
-//			authoritySet: SharedAuthoritySet[H, N]{inner: authSet},
-//			setState:     SharedVoterSetState[H, N]{Inner: newSharedVoterSetState},
-//		}, nil
-//	}
-//
-//	logger.Info("👴 Loading GRANDPA authority set from genesis on what appears to be first startup")
-//	genesisAuthorities, err := genesisAuths()
-//	if err != nil {
-//		return nil, err
-//	}
-//	genesisSet, err := NewGenesisAuthoritySet[H, N](genesisAuthorities)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	state := grandpa.NewRoundState(grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber})
-//	base := state.PrevoteGHOST
-//	if base == nil {
-//		panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
-//	}
-//
-//	genesisState, err := NewLiveVoterSetState(0, *genesisSet, *base)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	insert := []api.KeyValue{
-//		{authoritySetKey, scale.MustMarshal(*genesisSet)},
-//		{setStateKey, scale.MustMarshal(genesisState)},
-//	}
-//
-//	err = store.Insert(insert, nil)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	newSharedVoterSetState := sharedVoterSetState[H, N]{
-//		Inner: genesisState,
-//	}
-//
-//	return &persistentData[H, N]{
-//		authoritySet: SharedAuthoritySet[H, N]{inner: *genesisSet},
-//		setState:     SharedVoterSetState[H, N]{Inner: newSharedVoterSetState},
-//	}, nil
-//}
 
 func loadPersistent[H comparable, N constraints.Unsigned](store api.AuxStore, genesisHash H, genesisNumber N, genesisAuths getGenesisAuthorities) (*persistentData[H, N], error) {
 	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
 	makeGenesisRound := grandpa.NewRoundState[H, N]
 
-	set := AuthoritySet[H, N]{
-		PendingStandardChanges: NewChangeTree[H, N](),
-	}
-	var setState voterSetState[H, N]
-	encodedAuthSet, err := store.Get(authoritySetKey)
-	if err != nil {
+	authSet := &AuthoritySet[H, N]{}
+	err := loadDecoded(store, authoritySetKey, authSet)
+	if err != nil && !errors.Is(err, errValueNotFound) {
 		return nil, err
 	}
 
-	// If there is no authoritySet data stored, then we are starting from genesis
-	if encodedAuthSet != nil {
-		err = scale.Unmarshal(*encodedAuthSet, &set)
-		if err != nil {
+	if !errors.Is(err, errValueNotFound) {
+		setState := &voterSetState[H, N]{}
+		err = loadDecoded(store, setStateKey, setState)
+		if err != nil && !errors.Is(err, errValueNotFound) {
 			return nil, err
 		}
-
-		encodedSetState, err := store.Get(setStateKey)
-		if err != nil {
-			return nil, err
-		}
-
-		if encodedSetState != nil {
-			// Some case
-			err = scale.Unmarshal(*encodedSetState, &setState)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			// None case
+		
+		if errors.Is(err, errValueNotFound) {
 			state := makeGenesisRound(genesis)
 			base := state.PrevoteGHOST
 			if base != nil {
-				state, err := NewLiveVoterSetState(set.SetID, set, *base)
+				state, err := NewLiveVoterSetState(authSet.SetID, *authSet, *base)
 				if err != nil {
 					return nil, err
 				}
-				setState = state
-
+				setState = &state
 			} else {
 				panic("state is for completed round; completed rounds must have a prevote ghost; qed")
 			}
 		}
 
 		newSharedVoterSetState := sharedVoterSetState[H, N]{
-			Inner: setState,
+			Inner: *setState,
 		}
 
 		return &persistentData[H, N]{
-			authoritySet: SharedAuthoritySet[H, N]{inner: set},
+			authoritySet: SharedAuthoritySet[H, N]{inner: *authSet},
 			setState:     SharedVoterSetState[H, N]{Inner: newSharedVoterSetState},
 		}, nil
 	}
@@ -227,6 +123,7 @@ func loadPersistent[H comparable, N constraints.Unsigned](store api.AuxStore, ge
 	newSharedVoterSetState := sharedVoterSetState[H, N]{
 		Inner: genesisState,
 	}
+
 	return &persistentData[H, N]{
 		authoritySet: SharedAuthoritySet[H, N]{inner: *genesisSet},
 		setState:     SharedVoterSetState[H, N]{Inner: newSharedVoterSetState},
