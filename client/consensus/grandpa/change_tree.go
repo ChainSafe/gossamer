@@ -29,25 +29,25 @@ var (
 // to represent an acyclic directed graph where the hashNumber children are
 // placed by descendency order and number, you can ensure an
 // node ancestry using the `isDescendantOfFunc`
-type ChangeTree[H comparable, N constraints.Unsigned] struct {
-	TreeRoots           []*PendingChangeNode[H, N]
+type ChangeTree[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	TreeRoots           []*PendingChangeNode[H, N, ID]
 	BestFinalizedNumber *N
 }
 
 // NewChangeTree create an empty ChangeTree
-func NewChangeTree[H comparable, N constraints.Unsigned]() ChangeTree[H, N] {
-	return ChangeTree[H, N]{}
+func NewChangeTree[H comparable, N constraints.Unsigned, ID AuthorityID]() ChangeTree[H, N, ID] {
+	return ChangeTree[H, N, ID]{}
 }
 
 // PendingChangeNode Represents a node in the ChangeTree
-type PendingChangeNode[H comparable, N constraints.Unsigned] struct {
-	Change   *PendingChange[H, N]
-	Children []*PendingChangeNode[H, N]
+type PendingChangeNode[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	Change   *PendingChange[H, N, ID]
+	Children []*PendingChangeNode[H, N, ID]
 }
 
 // Roots returns the roots of each fork in the ChangeTree
 // This is the equivalent of the slice in the outermost layer of the roots
-func (ct *ChangeTree[H, N]) Roots() []*PendingChangeNode[H, N] { //skipcq: RVV-B0011
+func (ct *ChangeTree[H, N, ID]) Roots() []*PendingChangeNode[H, N, ID] { //skipcq: RVV-B0011
 	return ct.TreeRoots
 }
 
@@ -64,9 +64,9 @@ func (ct *ChangeTree[H, N]) Roots() []*PendingChangeNode[H, N] { //skipcq: RVV-B
 // then the `is_descendent_of` closure, when used after a warp-sync, may end up querying the
 // backend for a block (the one corresponding to the root) that is not present and thus will
 // return a wrong result.
-func (ct *ChangeTree[H, N]) Import(hash H,
+func (ct *ChangeTree[H, N, ID]) Import(hash H,
 	number N,
-	change PendingChange[H, N],
+	change PendingChange[H, N, ID],
 	isDescendentOf IsDescendentOf[H]) (bool, error) {
 	for _, root := range ct.TreeRoots {
 		imported, err := root.importNode(hash, number, change, isDescendentOf)
@@ -81,7 +81,7 @@ func (ct *ChangeTree[H, N]) Import(hash H,
 		}
 	}
 
-	pendingChangeNode := &PendingChangeNode[H, N]{
+	pendingChangeNode := &PendingChangeNode[H, N, ID]{
 		Change: &change,
 	}
 
@@ -90,12 +90,12 @@ func (ct *ChangeTree[H, N]) Import(hash H,
 }
 
 // PendingChanges does a preorder traversal of the ChangeTree to get all pending changes
-func (ct *ChangeTree[H, N]) PendingChanges() []PendingChange[H, N] {
+func (ct *ChangeTree[H, N, ID]) PendingChanges() []PendingChange[H, N, ID] {
 	if len(ct.TreeRoots) == 0 {
 		return nil
 	}
 
-	changes := make([]PendingChange[H, N], 0, len(ct.TreeRoots))
+	changes := make([]PendingChange[H, N, ID], 0, len(ct.TreeRoots))
 
 	for i := 0; i < len(ct.TreeRoots); i++ {
 		getPreOrder(&changes, ct.TreeRoots[i])
@@ -105,12 +105,12 @@ func (ct *ChangeTree[H, N]) PendingChanges() []PendingChange[H, N] {
 }
 
 // getPreOrderChangeNodes does a preorder traversal of the ChangeTree to get all pending changes
-func (ct *ChangeTree[H, N]) getPreOrderChangeNodes() []*PendingChangeNode[H, N] {
+func (ct *ChangeTree[H, N, ID]) getPreOrderChangeNodes() []*PendingChangeNode[H, N, ID] {
 	if len(ct.TreeRoots) == 0 {
 		return nil
 	}
 
-	changes := &[]*PendingChangeNode[H, N]{}
+	changes := &[]*PendingChangeNode[H, N, ID]{}
 
 	for i := 0; i < len(ct.TreeRoots); i++ {
 		getPreOrderChangeNodes(changes, ct.TreeRoots[i])
@@ -128,7 +128,7 @@ func (ct *ChangeTree[H, N]) getPreOrderChangeNodes() []*PendingChangeNode[H, N] 
 // checked on the prospective finalized root and must pass for finalization
 // to occur. The given function `is_descendent_of` should return `true` if
 // the second hash (target) is a descendent of the first hash (base). func(T) bool
-func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (*bool, error) {
+func (ct *ChangeTree[H, N, ID]) FinalizesAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N, ID]) bool) (*bool, error) {
 	if ct.BestFinalizedNumber != nil {
 		if number <= *ct.BestFinalizedNumber {
 			return nil, errRevert
@@ -196,19 +196,19 @@ func (fr *FinalizationResult) Value() (val scale.VaryingDataTypeValue, err error
 	return vdt.Value()
 }
 
-func newFinalizationResult[H comparable, N constraints.Unsigned]() FinalizationResult {
-	vdt, err := scale.NewVaryingDataType(changed[H, N]{}, unchanged{})
+func newFinalizationResult[H comparable, N constraints.Unsigned, ID AuthorityID]() FinalizationResult {
+	vdt, err := scale.NewVaryingDataType(changed[H, N, ID]{}, unchanged{})
 	if err != nil {
 		panic(err)
 	}
 	return FinalizationResult(vdt)
 }
 
-type changed[H comparable, N constraints.Unsigned] struct {
-	value *PendingChange[H, N]
+type changed[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	value *PendingChange[H, N, ID]
 }
 
-func (changed[H, N]) Index() uint {
+func (changed[H, N, ID]) Index() uint {
 	return 0
 }
 
@@ -225,7 +225,7 @@ func (unchanged) Index() uint {
 // root and must pass for finalization to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N]) bool) (result FinalizationResult, err error) {
+func (ct *ChangeTree[H, N, ID]) FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N, ID]) bool) (result FinalizationResult, err error) {
 	if ct.BestFinalizedNumber != nil {
 		if number <= *ct.BestFinalizedNumber {
 			return result, errRevert
@@ -260,7 +260,7 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescen
 		}
 	}
 
-	var nodeData *PendingChange[H, N]
+	var nodeData *PendingChange[H, N, ID]
 	if position != nil {
 		node := ct.swapRemove(ct.Roots(), *position)
 		ct.TreeRoots = node.Children
@@ -276,7 +276,7 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescen
 	didChange := false
 	roots = ct.Roots()
 
-	ct.TreeRoots = []*PendingChangeNode[H, N]{}
+	ct.TreeRoots = []*PendingChangeNode[H, N, ID]{}
 	for _, root := range roots {
 		retain := false
 		if root.Change.CanonHeight > number {
@@ -309,10 +309,10 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescen
 		ct.BestFinalizedNumber = &number
 	}
 
-	result = newFinalizationResult[H, N]()
+	result = newFinalizationResult[H, N, ID]()
 
 	if nodeData != nil {
-		err = result.Set(changed[H, N]{
+		err = result.Set(changed[H, N, ID]{
 			value: nodeData,
 		})
 		if err != nil {
@@ -321,7 +321,7 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescen
 		return result, nil
 	} else {
 		if didChange {
-			err = result.Set(changed[H, N]{})
+			err = result.Set(changed[H, N, ID]{})
 			if err != nil {
 				return result, err
 			}
@@ -336,9 +336,9 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, number N, isDescen
 	}
 }
 
-func (pcn *PendingChangeNode[H, N]) importNode(hash H,
+func (pcn *PendingChangeNode[H, N, ID]) importNode(hash H,
 	number N,
-	change PendingChange[H, N],
+	change PendingChange[H, N, ID],
 	isDescendentOf IsDescendentOf[H]) (bool, error) {
 	announcingHash := pcn.Change.CanonHash
 	if hash == announcingHash {
@@ -368,14 +368,14 @@ func (pcn *PendingChangeNode[H, N]) importNode(hash H,
 			return true, nil
 		}
 	}
-	childrenNode := &PendingChangeNode[H, N]{
+	childrenNode := &PendingChangeNode[H, N, ID]{
 		Change: &change,
 	}
 	pcn.Children = append(pcn.Children, childrenNode)
 	return true, nil
 }
 
-func getPreOrder[H comparable, N constraints.Unsigned](changes *[]PendingChange[H, N], changeNode *PendingChangeNode[H, N]) {
+func getPreOrder[H comparable, N constraints.Unsigned, ID AuthorityID](changes *[]PendingChange[H, N, ID], changeNode *PendingChangeNode[H, N, ID]) {
 	if changeNode == nil {
 		return
 	}
@@ -385,7 +385,7 @@ func getPreOrder[H comparable, N constraints.Unsigned](changes *[]PendingChange[
 		tempChanges = append(tempChanges, *changeNode.Change)
 		*changes = tempChanges
 	} else {
-		change := []PendingChange[H, N]{*changeNode.Change}
+		change := []PendingChange[H, N, ID]{*changeNode.Change}
 		changes = &change
 	}
 
@@ -394,7 +394,7 @@ func getPreOrder[H comparable, N constraints.Unsigned](changes *[]PendingChange[
 	}
 }
 
-func getPreOrderChangeNodes[H comparable, N constraints.Unsigned](changes *[]*PendingChangeNode[H, N], changeNode *PendingChangeNode[H, N]) {
+func getPreOrderChangeNodes[H comparable, N constraints.Unsigned, ID AuthorityID](changes *[]*PendingChangeNode[H, N, ID], changeNode *PendingChangeNode[H, N, ID]) {
 	if changeNode == nil {
 		return
 	}
@@ -404,7 +404,7 @@ func getPreOrderChangeNodes[H comparable, N constraints.Unsigned](changes *[]*Pe
 		tempChanges = append(tempChanges, changeNode)
 		*changes = tempChanges
 	} else {
-		change := []*PendingChangeNode[H, N]{changeNode}
+		change := []*PendingChangeNode[H, N, ID]{changeNode}
 		changes = &change
 	}
 
@@ -420,12 +420,12 @@ func getPreOrderChangeNodes[H comparable, N constraints.Unsigned](changes *[]*Pe
 // This does not preserve ordering, but is *O*(1).
 //
 // Panics if `index` is out of bounds.
-func (ct *ChangeTree[H, N]) swapRemove(roots []*PendingChangeNode[H, N], index N) PendingChangeNode[H, N] {
+func (ct *ChangeTree[H, N, ID]) swapRemove(roots []*PendingChangeNode[H, N, ID], index N) PendingChangeNode[H, N, ID] {
 	if index >= N(len(roots)) {
 		panic("swap_remove index out of bounds")
 	}
 
-	val := PendingChangeNode[H, N]{}
+	val := PendingChangeNode[H, N, ID]{}
 	if roots[index] != nil {
 		val = *roots[index]
 	} else {
@@ -453,6 +453,6 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*PendingChangeNode[H, N], index N
 // - `KeepTree` if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
-func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013
+func (_ *ChangeTree[H, N, ID]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013
 	// TODO implement
 }
