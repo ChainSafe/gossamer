@@ -179,223 +179,212 @@ func TestDecodeCollationHandshake(t *testing.T) {
 	require.Equal(t, testHandshake, msg)
 }
 
-func TestHandleCollationMessage(t *testing.T) {
+func TestHandleCollationMessageCommon(t *testing.T) {
 	cpvs := CollatorProtocolValidatorSide{}
+
+	peerID := peer.ID("testPeerID")
 
 	// fail with wrong message type
 	msg1 := &network.BlockAnnounceMessage{}
-	peerID1 := peer.ID("testPeerID1")
-	propagate, err := cpvs.handleCollationMessage(peerID1, msg1)
+	propagate, err := cpvs.handleCollationMessage(peerID, msg1)
 	require.False(t, propagate)
 	require.ErrorIs(t, err, ErrUnexpectedMessageOnCollationProtocol)
 
 	// fail if we can't cast the message to type `*CollationProtocol`
 	msg2 := NewCollationProtocol()
-	peerID2 := peer.ID("testPeerID2")
-	propagate, err = cpvs.handleCollationMessage(peerID2, msg2)
+	propagate, err = cpvs.handleCollationMessage(peerID, msg2)
 	require.False(t, propagate)
 	require.ErrorContains(t, err, "failed to cast into collator protocol message, expected: *CollationProtocol, got: collatorprotocol.CollationProtocol")
 
 	// fail if no value set in the collator protocol message
 	msg3 := NewCollationProtocol()
-	peerID3 := peer.ID("testPeerID3")
-	propagate, err = cpvs.handleCollationMessage(peerID3, &msg3)
+	propagate, err = cpvs.handleCollationMessage(peerID, &msg3)
 	require.False(t, propagate)
 	require.ErrorContains(t, err, "getting collator protocol value: varying data type not set")
+}
 
-	// fail with unknown peer and report the sender if sender is not stored in our peerdata
-	msg4 := NewCollationProtocol()
-	vdt_child := NewCollatorProtocolMessage()
-
-	err = vdt_child.Set(Declare{})
-	require.NoError(t, err)
-
-	err = msg4.Set(vdt_child)
-	require.NoError(t, err)
-
-	peerID4 := peer.ID("testPeerID4")
-
-	ctrl := gomock.NewController(t)
-	net := NewMockNetwork(ctrl)
-	cpvs.net = net
-
-	net.EXPECT().ReportPeer(peerset.ReputationChange{
-		Value:  peerset.UnexpectedMessageValue,
-		Reason: peerset.UnexpectedMessageReason,
-	}, peerID4)
-	propagate, err = cpvs.handleCollationMessage(peerID4, &msg4)
-	require.False(t, propagate)
-	require.ErrorIs(t, err, ErrUnknownPeer)
-
-	// report the sender if the collatorId in the Declare message belongs to any peer stored in our peer data
-	var collatorID parachaintypes.CollatorID
-	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
-	copy(collatorID[:], tempCollatID)
-
-	msg5 := NewCollationProtocol()
-	vdt_child = NewCollatorProtocolMessage()
-
-	err = vdt_child.Set(Declare{
-		CollatorId: collatorID,
-	})
-	require.NoError(t, err)
-
-	err = msg5.Set(vdt_child)
-	require.NoError(t, err)
-
-	peerID5 := peer.ID("testPeerID5")
-
-	cpvs.peerData = map[peer.ID]PeerData{
-		peerID5: {
-			view: View{},
-			state: PeerStateInfo{
-				PeerState: Collating,
-				CollatingPeerState: CollatingPeerState{
-					CollatorID: collatorID,
-				},
-			},
-		},
-	}
-
-	ctrl = gomock.NewController(t)
-	net = NewMockNetwork(ctrl)
-	cpvs.net = net
-	net.EXPECT().ReportPeer(peerset.ReputationChange{
-		Value:  peerset.UnexpectedMessageValue,
-		Reason: peerset.UnexpectedMessageReason,
-	}, peerID5)
-
-	propagate, err = cpvs.handleCollationMessage(peerID5, &msg5)
-	require.False(t, propagate)
-	require.NoError(t, err)
-
-	// fail if collator signature is invalid and report the sender
-	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature := common.MustHexToBytes(testDataCollationProtocol["collatorSignature"])
-	copy(collatorSignature[:], tempSignature)
-
-	msg6 := NewCollationProtocol()
-	vdt_child = NewCollatorProtocolMessage()
-
-	err = vdt_child.Set(Declare{
-		CollatorId:        collatorID,
-		ParaID:            uint32(5),
-		CollatorSignature: collatorSignature,
-	})
-	require.NoError(t, err)
-
-	err = msg6.Set(vdt_child)
-	require.NoError(t, err)
-
-	peerID6 := peer.ID("testPeerID6")
-
-	cpvs.peerData = map[peer.ID]PeerData{
-		peerID6: {
-			view: View{},
-			state: PeerStateInfo{
-				PeerState: Connected,
-			},
-		},
-	}
-
-	ctrl = gomock.NewController(t)
-	net = NewMockNetwork(ctrl)
-	cpvs.net = net
-	net.EXPECT().ReportPeer(peerset.ReputationChange{
-		Value:  peerset.InvalidSignatureValue,
-		Reason: peerset.InvalidSignatureReason,
-	}, peerID6)
-
-	propagate, err = cpvs.handleCollationMessage(peerID6, &msg6)
-	require.False(t, propagate)
-	require.ErrorIs(t, err, crypto.ErrSignatureVerificationFailed)
-
-	// fail if paraID in Declare message is not assigned to our peer and report the sender
-	peerID7 := peer.ID("testPeerID7")
+func TestHandleCollationMessageDeclare(t *testing.T) {
+	peerID := peer.ID("testPeerID")
 
 	collatorKeypair, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
-	collatorID1, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
+	collatorID, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
 	require.NoError(t, err)
 
-	payload := getDeclareSignaturePayload(peerID7)
+	payload := getDeclareSignaturePayload(peerID)
 	signatureBytes, err := collatorKeypair.Sign(payload)
 	require.NoError(t, err)
-	collatorSignature1 := [sr25519.SignatureLength]byte{}
-	copy(collatorSignature1[:], signatureBytes)
+	collatorSignature := [sr25519.SignatureLength]byte{}
+	copy(collatorSignature[:], signatureBytes)
 
-	msg7 := NewCollationProtocol()
-	vdt_child = NewCollatorProtocolMessage()
+	var invalidCollatorSignature parachaintypes.CollatorSignature
+	tempSignature := common.MustHexToBytes(testDataCollationProtocol["collatorSignature"])
+	copy(invalidCollatorSignature[:], tempSignature)
 
-	err = vdt_child.Set(Declare{
-		CollatorId:        collatorID1.AsBytes(),
-		ParaID:            uint32(5),
-		CollatorSignature: collatorSignature1,
-	})
-	require.NoError(t, err)
-
-	err = msg7.Set(vdt_child)
-	require.NoError(t, err)
-
-	cpvs.peerData = map[peer.ID]PeerData{
-		peerID7: {
-			view: View{},
-			state: PeerStateInfo{
-				PeerState: Connected,
+	testCases := []struct {
+		description        string
+		declareMsg         Declare
+		peerData           map[peer.ID]PeerData
+		currentAssignments map[parachaintypes.ParaID]uint
+		net                Network
+		errString          string
+	}{
+		{
+			description: " fail with unknown peer and report the sender if sender is not stored in our peerdata",
+			declareMsg:  Declare{},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+				return net
+			}(),
+			errString: ErrUnknownPeer.Error(),
+		},
+		{
+			description: "report the sender if the collatorId in the Declare message belongs to any peer stored in our peer data",
+			declareMsg: Declare{
+				CollatorId: collatorID.AsBytes(),
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							CollatorID: collatorID.AsBytes(),
+						},
+					},
+				},
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+				return net
+			}(),
+		},
+		{
+			description: "fail if collator signature could not be verified",
+			declareMsg: Declare{
+				CollatorId:        collatorID.AsBytes(),
+				ParaID:            uint32(5),
+				CollatorSignature: parachaintypes.CollatorSignature{},
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Connected,
+					},
+				},
+			},
+			errString: "verifying signature",
+		},
+		{
+			description: "fail if collator signature is invalid and report the sender",
+			declareMsg: Declare{
+				CollatorId:        collatorID.AsBytes(),
+				ParaID:            uint32(5),
+				CollatorSignature: invalidCollatorSignature,
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Connected,
+					},
+				},
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.InvalidSignatureValue,
+					Reason: peerset.InvalidSignatureReason,
+				}, peerID)
+				return net
+			}(),
+			errString: crypto.ErrSignatureVerificationFailed.Error(),
+		},
+		{
+			// TODO: test that we disconnect sender in this case, after we add that functionality
+			description: "fail if paraID in Declare message is not assigned to our peer and report the sender",
+			declareMsg: Declare{
+				CollatorId:        collatorID.AsBytes(),
+				ParaID:            uint32(5),
+				CollatorSignature: collatorSignature,
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Connected,
+					},
+				},
+			},
+			currentAssignments: make(map[parachaintypes.ParaID]uint),
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnneededCollatorValue,
+					Reason: peerset.UnneededCollatorReason,
+				}, peerID)
+				return net
+			}(),
+		},
+		{
+			description: "success case: check if PeerState of the sender has changed to Collating from Connected",
+			declareMsg: Declare{
+				CollatorId:        collatorID.AsBytes(),
+				ParaID:            uint32(5),
+				CollatorSignature: collatorSignature,
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Connected,
+					},
+				},
+			},
+			currentAssignments: map[parachaintypes.ParaID]uint{
+				parachaintypes.ParaID(5): 1,
 			},
 		},
 	}
 
-	ctrl = gomock.NewController(t)
-	net = NewMockNetwork(ctrl)
-	cpvs.net = net
-	net.EXPECT().ReportPeer(peerset.ReputationChange{
-		Value:  peerset.UnneededCollatorValue,
-		Reason: peerset.UnneededCollatorReason,
-	}, peerID7)
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+			cpvs := CollatorProtocolValidatorSide{
+				net:                c.net,
+				peerData:           c.peerData,
+				currentAssignments: c.currentAssignments,
+			}
+			msg := NewCollationProtocol()
+			vdt_child := NewCollatorProtocolMessage()
 
-	propagate, err = cpvs.handleCollationMessage(peerID7, &msg7)
-	require.False(t, propagate)
-	require.NoError(t, err)
+			err = vdt_child.Set(c.declareMsg)
+			require.NoError(t, err)
 
-	// success case: check if PeerState of the sender has changed to Collating from Connected
-	peerID8 := peer.ID("testPeerID7")
+			err = msg.Set(vdt_child)
+			require.NoError(t, err)
 
-	msg8 := NewCollationProtocol()
-	vdt_child = NewCollatorProtocolMessage()
-
-	err = vdt_child.Set(Declare{
-		CollatorId:        collatorID1.AsBytes(),
-		ParaID:            uint32(5),
-		CollatorSignature: collatorSignature1,
-	})
-	require.NoError(t, err)
-
-	err = msg8.Set(vdt_child)
-	require.NoError(t, err)
-
-	cpvs.peerData = map[peer.ID]PeerData{
-		peerID8: {
-			view: View{},
-			state: PeerStateInfo{
-				PeerState: Connected,
-			},
-		},
+			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
+			require.False(t, propagate)
+			if c.errString == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, c.errString)
+			}
+		})
 	}
-
-	// ctrl = gomock.NewController(t)
-	// net = NewMockNetwork(ctrl)
-	// cpvs.net = net
-	// net.EXPECT().ReportPeer(peerset.ReputationChange{
-	// 	Value:  peerset.UnneededCollatorValue,
-	// 	Reason: peerset.UnneededCollatorReason,
-	// }, peerID7)
-
-	cpvs.currentAssignments = map[parachaintypes.ParaID]uint{
-		parachaintypes.ParaID(5): 1,
-	}
-
-	propagate, err = cpvs.handleCollationMessage(peerID8, &msg8)
-	require.False(t, propagate)
-	require.NoError(t, err)
 }
