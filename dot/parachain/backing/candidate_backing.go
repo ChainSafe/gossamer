@@ -5,6 +5,7 @@ package backing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -15,7 +16,11 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
-var ErrRejectedByProspectiveParachains error = fmt.Errorf("rejected by prospective parachains")
+var (
+	ErrRejectedByProspectiveParachains = errors.New("rejected by prospective parachains")
+	ErrValidationFailed                = errors.New("validation failed")
+	ErrInvalidErasureRoot              = errors.New("Erasure root doesn't match the announced by the candidate receipt")
+)
 
 type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
@@ -26,12 +31,11 @@ type CandidateBacking struct {
 
 type perCandidateState struct {
 	persistedValidationData parachaintypes.PersistedValidationData
-	secondedLocally         bool
-	paraID                  parachaintypes.ParaID
-	relayParent             common.Hash
 }
 
 type perRelayParentState struct {
+	// The hash of the relay parent on top of which this job is doing it's work.
+	RelayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
 	Assignment parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
@@ -42,6 +46,8 @@ type perRelayParentState struct {
 	fallbacks map[parachaintypes.CandidateHash]AttestingData
 	// These candidates are undergoing validation in the background.
 	AwaitingValidation map[parachaintypes.CandidateHash]bool
+	// We issued `Seconded` or `Valid` statements on about these candidates.
+	issuedStatements map[parachaintypes.CandidateHash]bool
 }
 
 // In case a backing validator does not provide a PoV, we need to retry with other backing
@@ -62,7 +68,6 @@ type AttestingData struct {
 
 type TableContext struct {
 	validator  *Validator
-	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
 }
 
@@ -71,9 +76,7 @@ type TableContext struct {
 // It can be created if the local node is a validator in the context of a particular
 // relay chain block.
 type Validator struct {
-	signing_context SigningContext
-	key             parachaintypes.ValidatorID
-	index           parachaintypes.ValidatorIndex
+	index parachaintypes.ValidatorIndex
 }
 
 // A type returned by runtime with current session index and a parent hash.
@@ -89,38 +92,38 @@ type ActiveLeavesUpdate struct {
 	// TODO: Complete this struct #3503
 }
 
-// GetBackedCandidates is a message received from overseer that requests a set of backable
+// GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
-type GetBackedCandidates []struct {
+type GetBackedCandidatesMessage []struct {
 	CandidateHash        parachaintypes.CandidateHash
 	CandidateRelayParent common.Hash
 }
 
-// CanSecond is a request made to the candidate backing subsystem to determine whether it is permissible
+// CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
 // to second a given candidate.
 // The rule for seconding candidates is: Collations must either be built on top of the root of a fragment tree
 // or have a parent node that represents the backed candidate.
-type CanSecond struct {
+type CanSecondMessage struct {
 	CandidateParaID      parachaintypes.ParaID
 	CandidateRelayParent common.Hash
 	CandidateHash        parachaintypes.CandidateHash
 	ParentHeadDataHash   common.Hash
 }
 
-// Second is a message received from overseer. Candidate Backing subsystem should second the given
+// SecondMessage is a message received from overseer. Candidate Backing subsystem should second the given
 // candidate in the context of the given relay parent. This candidate must be validated.
-type Second struct {
+type SecondMessage struct {
 	RelayParent             common.Hash
 	CandidateReceipt        parachaintypes.CandidateReceipt
 	PersistedValidationData parachaintypes.PersistedValidationData
 	PoV                     parachaintypes.PoV
 }
 
-// Statement represents a validator's assessment of a specific candidate. If there are disagreements
+// StatementMessage represents a validator's assessment of a specific candidate. If there are disagreements
 // regarding the validity of this assessment, they should be addressed through the Disputes Subsystem,
 // with the actual escalation deferred until the approval voting stage to ensure its availability.
 // Meanwhile, agreements are straightforwardly counted until a quorum is achieved.
-type Statement struct {
+type StatementMessage struct {
 	RelayParent         common.Hash
 	SignedFullStatement SignedFullStatementWithPVD
 }
@@ -138,33 +141,32 @@ func New(overseerChan chan<- any) *CandidateBacking {
 }
 
 func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) error {
-	// TODO: handle_validated_candidate_command
-	// There is one more case where we handle results of candidate validation.
-	// My feeling is that instead of doing it here, we would be able to do that along with processing
-	// other backing related overseer message.
-	// This would become more clear after we complete processMessages function. It would give us clarity
-	// if we need background_validation_rx or background_validation_tx, as done in rust.
-	cb.processMessages()
-	return nil
-}
+	chRelayParentAndCommand := make(chan RelayParentAndCommand)
 
-func (cb *CandidateBacking) processMessages() {
-	for msg := range cb.OverseerToSubSystem {
-		// process these received messages by referencing
-		// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
-		switch msg := msg.(type) {
-		case ActiveLeavesUpdate:
-			cb.handleActiveLeavesUpdate()
-		case GetBackedCandidates:
-			cb.handleGetBackedCandidates()
-		case CanSecond:
-			cb.handleCanSecond()
-		case Second:
-			cb.handleSecond()
-		case Statement:
-			cb.handleStatement(msg.RelayParent, msg.SignedFullStatement)
-		default:
-			logger.Error("unknown message type")
+	for {
+		select {
+		case ValidationCommandWithData := <-chRelayParentAndCommand:
+			fmt.Println(ValidationCommandWithData)
+
+		case msg := <-cb.OverseerToSubSystem:
+			// process these received messages by referencing
+			// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
+			switch msg := msg.(type) {
+			case ActiveLeavesUpdate:
+				cb.handleActiveLeavesUpdate()
+			case GetBackedCandidatesMessage:
+				cb.handleGetBackedCandidatesMessage()
+			case CanSecondMessage:
+				cb.handleCanSecondMessage()
+			case SecondMessage:
+				cb.handleSecondMessage()
+			case StatementMessage:
+				if err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand); err != nil {
+					logger.Error(err.Error())
+				}
+			default:
+				logger.Error("unknown message type")
+			}
 		}
 	}
 }
@@ -173,38 +175,36 @@ func (cb *CandidateBacking) handleActiveLeavesUpdate() {
 	// TODO: Implement this #3503
 }
 
-func (cb *CandidateBacking) handleGetBackedCandidates() {
+func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
 	// TODO: Implement this #3504
 }
 
-func (cb *CandidateBacking) handleCanSecond() {
+func (cb *CandidateBacking) handleCanSecondMessage() {
 	// TODO: Implement this #3505
 }
 
-func (cb *CandidateBacking) handleSecond() {
+func (cb *CandidateBacking) handleSecondMessage() {
 	// TODO: Implement this #3506
 }
 
-func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement SignedFullStatementWithPVD) error {
-	// TODO: Implement this #3507
-
+// Import the statement and kick off validation work if it is a part of our assignment.
+func (cb *CandidateBacking) handleStatementMessage(
+	relayParent common.Hash,
+	statement SignedFullStatementWithPVD,
+	chRelayParentAndCommand chan RelayParentAndCommand,
+) error {
 	rpState, ok := cb.perRelayParent[relayParent]
 	if !ok {
-		logger.Tracef("Received statement for unknown relay parent %s", relayParent)
-		return nil
+		return fmt.Errorf("Received statement for unknown relay parent %s", relayParent)
 	}
 
 	summery, err := importStatement()
 	if err != nil {
-		if err == ErrRejectedByProspectiveParachains {
-			logger.Debug("Statement rejected by prospective parachains")
-			return nil
-		}
-		return err
+		return fmt.Errorf("importing statement: %w", err)
 	}
 
 	if err := postImportStatement(); err != nil {
-		return err
+		return fmt.Errorf("post import statement: %w", err)
 	}
 
 	if summery == nil || summery.GroupID != uint32(rpState.Assignment) {
@@ -213,10 +213,10 @@ func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement S
 
 	statementVDT, err := statement.SignedFullStatement.Payload.Value()
 	if err != nil {
-		return fmt.Errorf("getting statementVDT value: %w", err)
+		return fmt.Errorf("getting value from statementVDT: %w", err)
 	}
 
-	var attestingData AttestingData
+	var attesting AttestingData
 	switch statementVDT.Index() {
 	case 1: // Seconded
 		commitedCandidateReceipt, err := rpState.Table.getCandidate(summery.Candidate)
@@ -229,17 +229,17 @@ func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement S
 			CommitmentsHash: common.MustBlake2bHash(scale.MustMarshal(commitedCandidateReceipt.Commitments)),
 		}
 
-		attestingData = AttestingData{
+		attesting = AttestingData{
 			candidate:     candidateReceipt,
 			povHash:       statementVDT.(parachaintypes.Seconded).Descriptor.PovHash,
 			fromValidator: statement.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 
-		rpState.fallbacks[summery.Candidate] = attestingData
+		rpState.fallbacks[summery.Candidate] = attesting
 
 	case 2: // Valid
-		attesting, ok := rpState.fallbacks[summery.Candidate]
+		attesting, ok = rpState.fallbacks[summery.Candidate]
 		if !ok {
 			return nil
 		}
@@ -256,32 +256,293 @@ func (cb *CandidateBacking) handleStatement(relayParent common.Hash, statement S
 		}
 		// No job, so start another with current validator:
 		attesting.fromValidator = statement.SignedFullStatement.ValidatorIndex
-		attestingData = attesting
 
 	default:
 		return fmt.Errorf("invalid statementVDT index: %d", statementVDT.Index())
 	}
 
+	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
 	if pc, ok := cb.perCandidate[summery.Candidate]; ok {
-		if err := kickOffValidationWork(pc.persistedValidationData); err != nil {
-			return fmt.Errorf("validating candidate: %w", err)
-		}
+		rpState.kickOffValidationWork(
+			cb.SubSystemToOverseer,
+			chRelayParentAndCommand,
+			pc.persistedValidationData,
+			attesting,
+		)
 	}
 
 	return nil
 }
 
 func importStatement() (*Summary, error) {
-	// TODO: Implement this
+	// TODO: Implement this by referencing
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1487
 	return &Summary{}, nil
 }
 
 func postImportStatement() error {
-	// TODO: Implement this
+	//	TODO: Implement this by referencing
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1573-L1574
 	return nil
 }
 
-func kickOffValidationWork(parachaintypes.PersistedValidationData) error {
+// Kick off validation work and distribute the result as a signed statement.
+func (rpState *perRelayParentState) kickOffValidationWork(
+	subSystemToOverseer chan<- any,
+	chRelayParentAndCommand chan RelayParentAndCommand,
+	pvd parachaintypes.PersistedValidationData,
+	attesting AttestingData,
+) {
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
+	}
+
+	if rpState.issuedStatements[candidateHash] {
+		return
+	}
+
+	if !rpState.AwaitingValidation[candidateHash] {
+		rpState.AwaitingValidation[candidateHash] = true
+
+		pov := GetPovFromValidator()
+
+		go backgroundValidateAndMakeAvailable(
+			subSystemToOverseer,
+			chRelayParentAndCommand,
+			attesting.candidate,
+			rpState.RelayParent,
+			pvd,
+			pov,
+			uint32(len(rpState.TableContext.validators)),
+			Attest,
+		)
+	}
+}
+
+func backgroundValidateAndMakeAvailable(
+	subSystemToOverseer chan<- any,
+	chRelayParentAndCommand chan RelayParentAndCommand,
+	candidateReceipt parachaintypes.CandidateReceipt,
+	relayPaent common.Hash,
+	pvd parachaintypes.PersistedValidationData,
+	pov parachaintypes.PoV,
+	numValidator uint32,
+	makeCommand ValidatedCandidateCommand,
+
+) {
+	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(candidateReceipt)),
+	}
+
+	chValidationCodeByHashRes := make(chan OverseerFuncRes[parachaintypes.ValidationCode])
+	subSystemToOverseer <- RuntimeApiMessage{
+		RelayParent: relayPaent,
+		RuntimeApiRequest: ValidationCodeByHash{
+			ValidationCodeHash: validationCodeHash,
+			Ch:                 chValidationCodeByHashRes,
+		},
+	}
+
+	ValidationCodeByHashRes := <-chValidationCodeByHashRes
+	if ValidationCodeByHashRes.err != nil {
+		logger.Error(ValidationCodeByHashRes.err.Error())
+		return
+	}
+
+	executorParams, err := executorParamsAtRelayParent(relayPaent, subSystemToOverseer)
+	if err != nil {
+		logger.Errorf("could not get executor params at relay parent: %w", err)
+	}
+
+	chValidationResultRes := make(chan OverseerFuncRes[ValidationResult])
+	subSystemToOverseer <- CandidateValidationMessage{
+		Value: ValidateFromExhaustive{
+			PersistedValidationData: pvd,
+			ValidationCode:          ValidationCodeByHashRes.data,
+			CandidateReceipt:        candidateReceipt,
+			pov:                     pov,
+			ExecutorParams:          executorParams,
+			PvfPrepTimeoutKind:      Approval,
+			Ch:                      chValidationResultRes,
+		},
+	}
+
+	ValidationResultRes := <-chValidationResultRes
+	if ValidationResultRes.err != nil {
+		logger.Error(ValidationResultRes.err.Error())
+	}
+
+	var backgroundValidationResult BackgroundValidationResult
+
+	if ValidationResultRes.data.IsValid { // Valid
+		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
+		// matches `expected_erasure_root` which was provided by the collator in the `CandidateReceipt`.
+		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
+		// candidate validity.
+
+		chStoreAvailableDataError := make(chan error)
+		subSystemToOverseer <- AvailabilityStoreMessage{
+			Value: StoreAvailableData{
+				CandidateHash: candidateHash,
+				NumValidators: numValidator,
+				AvailableData: AvailableData{pov, pvd},
+				Ch:            chStoreAvailableDataError,
+			},
+		}
+
+		storeAvailableDataError := <-chStoreAvailableDataError
+		switch storeAvailableDataError {
+		case nil:
+			backgroundValidationResult = BackgroundValidationResult{
+				CandidateReceipt:        &candidateReceipt,
+				CandidateCommitments:    &ValidationResultRes.data.CandidateCommitments,
+				PersistedValidationData: &ValidationResultRes.data.PersistedValidationData,
+				Err:                     nil,
+			}
+		case ErrInvalidErasureRoot:
+			logger.Debug(ErrInvalidErasureRoot.Error())
+
+			backgroundValidationResult = BackgroundValidationResult{
+				CandidateReceipt: &candidateReceipt,
+				Err:              ErrInvalidErasureRoot,
+			}
+		default:
+			logger.Error(storeAvailableDataError.Error())
+			return
+		}
+
+	} else { // Invalid
+		logger.Error(ValidationResultRes.data.err.Error())
+		backgroundValidationResult = BackgroundValidationResult{
+			CandidateReceipt: &candidateReceipt,
+			Err:              ErrInvalidErasureRoot,
+		}
+	}
+
+	// handle validated candidate command
+	chRelayParentAndCommand <- RelayParentAndCommand{
+		RelayParent:   relayPaent,
+		Command:       makeCommand,
+		ValidationRes: backgroundValidationResult,
+		CandidateHash: candidateHash,
+	}
+}
+
+func GetPovFromValidator() parachaintypes.PoV {
+	//	TODO: Implement this
+	//	github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744
+	return parachaintypes.PoV{}
+}
+
+type ExecutorParams struct {
 	// TODO: Implement this
-	return nil
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/primitives/src/v6/executor_params.rs#L97-L98
+}
+
+func executorParamsAtRelayParent(relayParent common.Hash, subSystemToOverseer chan<- any) (ExecutorParams, error) {
+	// TODO: Implement this
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
+	return ExecutorParams{}, nil
+}
+
+type RuntimeApiMessage struct {
+	RelayParent       common.Hash
+	RuntimeApiRequest any
+}
+
+type ValidationCodeByHash struct {
+	ValidationCodeHash parachaintypes.ValidationCodeHash
+	Ch                 chan OverseerFuncRes[parachaintypes.ValidationCode]
+}
+
+type CandidateValidationMessage struct {
+	Value any
+}
+
+type ValidateFromExhaustive struct {
+	PersistedValidationData parachaintypes.PersistedValidationData
+	ValidationCode          parachaintypes.ValidationCode
+	CandidateReceipt        parachaintypes.CandidateReceipt
+	pov                     parachaintypes.PoV
+	ExecutorParams          ExecutorParams
+	PvfPrepTimeoutKind      PvfPrepTimeoutKind
+	Ch                      chan OverseerFuncRes[ValidationResult]
+}
+
+// Type discriminator for PVF execution timeouts
+type PvfPrepTimeoutKind byte
+
+const (
+	// The amount of time to spend on execution during backing.
+	Backing PvfPrepTimeoutKind = iota
+	/// The amount of time to spend on execution during approval or disputes.
+	///
+	/// This should be much longer than the backing execution timeout to ensure that in the
+	/// absence of extremely large disparities between hardware, blocks that pass backing are
+	/// considered executable by approval checkers or dispute participants.
+	Approval
+)
+
+// ValidationResult coming from candidate validation subsystem
+type ValidationResult struct {
+	IsValid                 bool
+	CandidateCommitments    parachaintypes.CandidateCommitments
+	PersistedValidationData parachaintypes.PersistedValidationData
+	err                     error
+}
+
+type AvailabilityStoreMessage struct {
+	Value any
+}
+
+// Computes and checks the erasure root of `AvailableData` before storing all of its chunks in
+// the AV store.
+type StoreAvailableData struct {
+	CandidateHash       parachaintypes.CandidateHash
+	NumValidators       uint32
+	AvailableData       AvailableData
+	ExpectedErasureRoot common.Hash
+	Ch                  chan error
+}
+
+// AvailableData represents the data that is kept available for each candidate included in the relay chain.
+type AvailableData struct {
+	// The Proof-of-Validation (PoV) of the candidate
+	PoV parachaintypes.PoV `scale:"1"`
+
+	// The persisted validation data needed for approval checks
+	ValidationData parachaintypes.PersistedValidationData `scale:"2"`
+}
+
+type BackgroundValidationResult struct {
+	CandidateReceipt        *parachaintypes.CandidateReceipt
+	CandidateCommitments    *parachaintypes.CandidateCommitments
+	PersistedValidationData *parachaintypes.PersistedValidationData
+	Err                     error
+}
+
+// RelayParentAndCommand contains the relay parent and the command to be executed on validated candidate,
+// along with the result of the background validation.
+type RelayParentAndCommand struct {
+	RelayParent   common.Hash
+	Command       ValidatedCandidateCommand
+	ValidationRes BackgroundValidationResult
+	CandidateHash parachaintypes.CandidateHash
+}
+
+type ValidatedCandidateCommand byte
+
+const (
+	// We were instructed to second the candidate that has been already validated.
+	Second = ValidatedCandidateCommand(iota)
+	// We were instructed to validate the candidate.
+	Attest
+	// We were not able to `Attest` because backing validator did not send us the PoV.
+	AttestNoPoV
+)
+
+type OverseerFuncRes[T any] struct {
+	err  error
+	data T
 }
