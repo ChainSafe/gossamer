@@ -227,6 +227,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		peerData           map[peer.ID]PeerData
 		currentAssignments map[parachaintypes.ParaID]uint
 		net                Network
+		success            bool
 		errString          string
 	}{
 		{
@@ -357,6 +358,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			currentAssignments: map[parachaintypes.ParaID]uint{
 				parachaintypes.ParaID(5): 1,
 			},
+			success: true,
 		},
 	}
 
@@ -384,6 +386,13 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.ErrorContains(t, err, c.errString)
+			}
+
+			if c.success {
+				peerData, ok := cpvs.peerData[peerID]
+				require.True(t, ok)
+				require.Equal(t, Collating, peerData.state.PeerState)
+				require.Equal(t, c.declareMsg.CollatorId, peerData.state.CollatingPeerState.CollatorID)
 			}
 		})
 	}
