@@ -142,33 +142,39 @@ func New(overseerChan chan<- any) *CandidateBacking {
 
 func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) error {
 	chRelayParentAndCommand := make(chan RelayParentAndCommand)
-
 	for {
 		select {
-		case ValidationCommandWithData := <-chRelayParentAndCommand:
-			fmt.Println(ValidationCommandWithData)
-
+		case rpAndCmd := <-chRelayParentAndCommand:
+			if err := cb.processValidatedCandidateCommand(rpAndCmd); err != nil {
+				logger.Error(err.Error())
+			}
 		case msg := <-cb.OverseerToSubSystem:
-			// process these received messages by referencing
-			// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
-			switch msg := msg.(type) {
-			case ActiveLeavesUpdate:
-				cb.handleActiveLeavesUpdate()
-			case GetBackedCandidatesMessage:
-				cb.handleGetBackedCandidatesMessage()
-			case CanSecondMessage:
-				cb.handleCanSecondMessage()
-			case SecondMessage:
-				cb.handleSecondMessage()
-			case StatementMessage:
-				if err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand); err != nil {
-					logger.Error(err.Error())
-				}
-			default:
-				logger.Error("unknown message type")
+			if err := cb.processOverseerMessage(msg, chRelayParentAndCommand); err != nil {
+				logger.Error(err.Error())
 			}
 		}
 	}
+}
+
+// processOverseerMessage processes incoming messages from overseer
+func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndCommand chan RelayParentAndCommand) error {
+	// process these received messages by referencing
+	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
+	switch msg := msg.(type) {
+	case ActiveLeavesUpdate:
+		cb.handleActiveLeavesUpdate()
+	case GetBackedCandidatesMessage:
+		cb.handleGetBackedCandidatesMessage()
+	case CanSecondMessage:
+		cb.handleCanSecondMessage()
+	case SecondMessage:
+		cb.handleSecondMessage()
+	case StatementMessage:
+		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
+	default:
+		return errors.New("unknown message type")
+	}
+	return nil
 }
 
 func (cb *CandidateBacking) handleActiveLeavesUpdate() {
@@ -328,7 +334,6 @@ func backgroundValidateAndMakeAvailable(
 	pov parachaintypes.PoV,
 	numValidator uint32,
 	makeCommand ValidatedCandidateCommand,
-
 ) {
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 	candidateHash := parachaintypes.CandidateHash{
@@ -444,6 +449,11 @@ func executorParamsAtRelayParent(relayParent common.Hash, subSystemToOverseer ch
 	// TODO: Implement this
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
 	return ExecutorParams{}, nil
+}
+
+func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd RelayParentAndCommand) error {
+	// TODO: Implement this
+	return nil
 }
 
 type RuntimeApiMessage struct {
