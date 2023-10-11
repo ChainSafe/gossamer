@@ -99,7 +99,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	if err != nil {
 		return nil, err
 	}
-	genesisSet, err := NewGenesisAuthoritySet[H, N](genesisAuthorities)
+	genesisSet, err := NewGenesisAuthoritySet[H, N, ID](genesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
