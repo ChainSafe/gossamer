@@ -228,12 +228,12 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 
 		// check if we already have the collator id declared in this message. If so, punish the
 		// peer who sent us this message by reducing its reputation
-		peerID, ok := cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
+		_, ok = cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
 		if ok {
 			cpvs.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.UnexpectedMessageValue,
 				Reason: peerset.UnexpectedMessageReason,
-			}, peerID)
+			}, sender)
 			return propagate, nil
 		}
 
@@ -258,7 +258,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 
 		// check signature declareMessage.CollatorSignature
 		err = sr25519.VerifySignature(declareMessage.CollatorId[:], declareMessage.CollatorSignature[:],
-			getDeclareSignaturePayload(peerID))
+			getDeclareSignaturePayload(sender))
 		if errors.Is(err, crypto.ErrSignatureVerificationFailed) {
 			cpvs.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.InvalidSignatureValue,

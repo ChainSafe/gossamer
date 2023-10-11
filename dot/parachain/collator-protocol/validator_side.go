@@ -229,7 +229,7 @@ type CollatorProtocolValidatorSide struct {
 func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,
 ) (peer.ID, bool) {
 	for peerID, peerData := range cpvs.peerData {
-		if peerData.state.PeerState == Collating && peerData.state.CollatingPeerState.CollatorID == collatorID {
+		if /*peerData.state.PeerState == Collating &&*/ peerData.state.CollatingPeerState.CollatorID == collatorID {
 			return peerID, true
 		}
 	}
