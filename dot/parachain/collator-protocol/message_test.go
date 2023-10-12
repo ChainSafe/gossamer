@@ -194,7 +194,8 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 	msg2 := NewCollationProtocol()
 	propagate, err = cpvs.handleCollationMessage(peerID, msg2)
 	require.False(t, propagate)
-	require.ErrorContains(t, err, "failed to cast into collator protocol message, expected: *CollationProtocol, got: collatorprotocol.CollationProtocol")
+	require.ErrorContains(t, err, "failed to cast into collator protocol message, "+
+		"expected: *CollationProtocol, got: collatorprotocol.CollationProtocol")
 
 	// fail if no value set in the collator protocol message
 	msg3 := NewCollationProtocol()
@@ -204,6 +205,8 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 }
 
 func TestHandleCollationMessageDeclare(t *testing.T) {
+	t.Parallel()
+
 	peerID := peer.ID("testPeerID")
 
 	collatorKeypair, err := sr25519.GenerateKeypair()
@@ -231,7 +234,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		errString          string
 	}{
 		{
-			description: " fail with unknown peer and report the sender if sender is not stored in our peerdata",
+			description: "fail with unknown peer and report the sender if sender is not stored in our peerdata",
 			declareMsg:  Declare{},
 			net: func() Network {
 				ctrl := gomock.NewController(t)
@@ -245,7 +248,8 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			errString: ErrUnknownPeer.Error(),
 		},
 		{
-			description: "report the sender if the collatorId in the Declare message belongs to any peer stored in our peer data",
+			description: "report the sender if the collatorId in the Declare message belongs to " +
+				"any peer stored in our peer data",
 			declareMsg: Declare{
 				CollatorId: collatorID.AsBytes(),
 			},

@@ -200,7 +200,9 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 
 	collatorProtocol, ok := msg.(*CollationProtocol)
 	if !ok {
-		return propagate, fmt.Errorf("failed to cast into collator protocol message, expected: *CollationProtocol, got: %T", msg)
+		return propagate, fmt.Errorf(
+			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
+			msg)
 	}
 
 	collatorProtocolV, err := collatorProtocol.Value()
@@ -270,7 +272,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			return propagate, fmt.Errorf("verifying signature: %w", err)
 		}
 
-		// NOTE: assingments are setting when we handle view changes
+		// NOTE: assignments are setting when we handle view changes
 		_, ok = cpvs.currentAssignments[parachaintypes.ParaID(declareMessage.ParaID)]
 		if ok {
 			logger.Errorf("declared as collator for current para: %d", declareMessage.ParaID)
