@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"github.com/ChainSafe/gossamer/client/api"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -128,7 +127,6 @@ func TestLoadPersistentGenesis(t *testing.T) {
 }
 
 func TestLoadPersistentNotGenesis(t *testing.T) {
-	fmt.Println("----------------- Starting Test ---------------")
 	store := newDummyStore(t)
 	genesisHash := "a"
 	genesisNumber := uint(21)

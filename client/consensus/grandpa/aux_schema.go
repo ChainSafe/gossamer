@@ -5,7 +5,6 @@ package grandpa
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 
@@ -38,7 +37,6 @@ func loadDecoded(store api.AuxStore, key []byte, destination any) error {
 	}
 
 	if encodedValue != nil {
-		fmt.Println("-------- Unmarshalling ---------------")
 		err = scale.Unmarshal(*encodedValue, destination)
 		if err != nil {
 			return err
@@ -51,7 +49,6 @@ func loadDecoded(store api.AuxStore, key []byte, destination any) error {
 }
 
 func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](store api.AuxStore, genesisHash H, genesisNumber N, genesisAuths getGenesisAuthorities[ID]) (*persistentData[H, N, ID, Sig], error) {
-	fmt.Println("----- LoadPersistant ---------")
 	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
 	makeGenesisRound := grandpa.NewRoundState[H, N]
 
@@ -62,17 +59,12 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	}
 
 	if !errors.Is(err, errValueNotFound) {
-		// Going to manually decode for tests
-		encodedValue, err := store.Get(setStateKey)
-
-		setState := voterSetState[H, N, ID, Sig]{}
-		err = scale.Unmarshal(*encodedValue, &setState)
-
-		//setState := voterSetState[H, N, ID, Sig]{}
-		//err = loadDecoded(store, setStateKey, &setState)
-		//if err != nil && !errors.Is(err, errValueNotFound) {
-		//	return nil, err
-		//}
+		setStateOld := voterSetState[H, N, ID, Sig]{}
+		setState := setStateOld.New()
+		err = loadDecoded(store, setStateKey, &setState)
+		if err != nil && !errors.Is(err, errValueNotFound) {
+			return nil, err
+		}
 
 		if errors.Is(err, errValueNotFound) {
 			state := makeGenesisRound(genesis)

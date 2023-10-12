@@ -38,7 +38,7 @@ const numLastCompletedRounds = 2
 type completedRounds[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
 	Rounds []completedRound[H, N, ID, Sig]
 	SetId  uint64
-	Voters []AuthorityID
+	Voters []ID
 }
 
 // NewCompletedRounds Create a new completed rounds tracker with NUM_LAST_COMPLETED_ROUNDS capacity.
@@ -46,7 +46,7 @@ func NewCompletedRounds[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 	rounds := make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds)
 	rounds = append(rounds, genesis)
 
-	var voterIDs []AuthorityID
+	var voterIDs []ID
 	currentAuthorities := voters.CurrentAuthorities
 	for _, auth := range currentAuthorities {
 		voterIDs = append(voterIDs, auth.Key)
@@ -238,7 +238,6 @@ func (tve *voterSetState[H, N, ID, Sig]) Value() (val scale.VaryingDataTypeValue
 
 // New Creates a new voterSetState
 func (tve voterSetState[H, N, ID, Sig]) New() voterSetState[H, N, ID, Sig] {
-	fmt.Println("--- New VoterSetState ---------")
 	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N, ID, Sig]{
 		CompletedRounds: completedRounds[H, N, ID, Sig]{
 			Rounds: make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds),
@@ -280,6 +279,7 @@ func NewLiveVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, 
 		setId,
 		authSet,
 	)
+	//currentRounds := make(map[uint64]hasVoted[string, uint])
 	currentRounds := CurrentRounds[H, N](
 		make(map[uint64]hasVoted[H, N]),
 	)
@@ -291,11 +291,13 @@ func NewLiveVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, 
 	}
 	currentRounds[1] = hasVoted
 
-	newVoterSetState := *NewVoterSetState[H, N, ID, Sig]()
-	err = newVoterSetState.Set(voterSetStateLive[H, N, ID, Sig]{
+	liveState := voterSetStateLive[H, N, ID, Sig]{
 		CompletedRounds: completedRounds,
 		CurrentRounds:   currentRounds,
-	})
+	}
+
+	newVoterSetState := *NewVoterSetState[H, N, ID, Sig]()
+	err = newVoterSetState.Set(liveState)
 
 	if err != nil {
 		return voterSetState[H, N, ID, Sig]{}, err
@@ -398,7 +400,6 @@ func (hv *hasVoted[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { 
 
 // New is constructor for hasVoted
 func (hv hasVoted[H, N]) New() hasVoted[H, N] {
-	fmt.Println("--- New HasVoted ---------")
 	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N]{})
 
 	newHv := hasVoted[H, N](vdt)

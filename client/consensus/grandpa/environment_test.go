@@ -236,13 +236,7 @@ func TestCurrentRoundsEncoding(t *testing.T) {
 }
 
 func TestVoterSetStateEncoding(t *testing.T) {
-	authorities := AuthoritySet[string, uint, uint]{
-		CurrentAuthorities:     []Authority[uint]{},
-		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
-		PendingForcedChanges:   []PendingChange[string, uint, uint]{},
-		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
-	}
+	authorities := AuthoritySet[string, uint, uint]{}
 
 	dummyHashNumber := grandpa.HashNumber[string, uint]{
 		Hash:   "a",
@@ -261,7 +255,9 @@ func TestVoterSetStateEncoding(t *testing.T) {
 	}
 
 	completedRounds := NewCompletedRounds[string, uint, uint, uint](compRound, 1, authorities)
-	currentRounds := make(map[uint64]hasVoted[string, uint])
+	currentRounds := CurrentRounds[string, uint](
+		make(map[uint64]hasVoted[string, uint]),
+	)
 
 	liveState := voterSetStateLive[string, uint, uint, uint]{
 		CompletedRounds: completedRounds,
