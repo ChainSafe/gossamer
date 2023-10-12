@@ -50,12 +50,12 @@ func (CannotVote) Index() uint {
 	return 1
 }
 
-// OwnVoteState is the state of the vote for a candidate
-type OwnVoteState scale.VaryingDataType
+// OwnVoteStateVDT is the state of the vote for a candidate
+type OwnVoteStateVDT scale.VaryingDataType
 
-// New returns a new OwnVoteState
-func (OwnVoteState) New() OwnVoteState {
-	ownVoteState, err := NewOwnVoteState(CannotVote{})
+// New returns a new OwnVoteStateVDT
+func (OwnVoteStateVDT) New() OwnVoteStateVDT {
+	ownVoteState, err := NewOwnVoteStateVDT(CannotVote{})
 	if err != nil {
 		panic(err)
 	}
@@ -64,24 +64,24 @@ func (OwnVoteState) New() OwnVoteState {
 }
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (v *OwnVoteState) Set(val scale.VaryingDataTypeValue) (err error) {
+func (v *OwnVoteStateVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*v)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	*v = OwnVoteState(vdt)
+	*v = OwnVoteStateVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (v *OwnVoteState) Value() (scale.VaryingDataTypeValue, error) {
+func (v *OwnVoteStateVDT) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*v)
 	return vdt.Value()
 }
 
 // VoteMissing returns true if a vote from us is missing for the candidate
-func (v *OwnVoteState) VoteMissing() bool {
+func (v *OwnVoteStateVDT) VoteMissing() bool {
 	vdt := scale.VaryingDataType(*v)
 	val, err := vdt.Value()
 	if err != nil {
@@ -102,11 +102,11 @@ func (v *OwnVoteState) VoteMissing() bool {
 }
 
 // ApprovalVotes returns the approval votes for the candidate
-func (v *OwnVoteState) ApprovalVotes() ([]Vote, error) {
+func (v *OwnVoteStateVDT) ApprovalVotes() ([]Vote, error) {
 	vdt := scale.VaryingDataType(*v)
 	val, err := vdt.Value()
 	if err != nil {
-		return nil, fmt.Errorf("getting value from OwnVoteState vdt: %w", err)
+		return nil, fmt.Errorf("getting value from OwnVoteStateVDT vdt: %w", err)
 	}
 
 	_, ok := val.(CannotVote)
@@ -116,7 +116,7 @@ func (v *OwnVoteState) ApprovalVotes() ([]Vote, error) {
 
 	voted, ok := val.(Voted)
 	if !ok {
-		return nil, fmt.Errorf("invalid type for OwnVoteState: expected Voted, got %T", val)
+		return nil, fmt.Errorf("invalid type for OwnVoteStateVDT: expected Voted, got %T", val)
 	}
 
 	var votes []Vote
@@ -142,11 +142,11 @@ func (v *OwnVoteState) ApprovalVotes() ([]Vote, error) {
 }
 
 // Votes returns the votes for the candidate
-func (v *OwnVoteState) Votes() ([]Vote, error) {
+func (v *OwnVoteStateVDT) Votes() ([]Vote, error) {
 	vdt := scale.VaryingDataType(*v)
 	val, err := vdt.Value()
 	if err != nil {
-		return nil, fmt.Errorf("getting value from OwnVoteState vdt: %w", err)
+		return nil, fmt.Errorf("getting value from OwnVoteStateVDT vdt: %w", err)
 	}
 
 	_, ok := val.(CannotVote)
@@ -156,38 +156,40 @@ func (v *OwnVoteState) Votes() ([]Vote, error) {
 
 	voted, ok := val.(Voted)
 	if !ok {
-		return nil, fmt.Errorf("invalid type for OwnVoteState: expected Voted, got %T", val)
+		return nil, fmt.Errorf("invalid type for OwnVoteStateVDT: expected Voted, got %T", val)
 	}
 
 	return voted.Votes, nil
 }
 
-// NewOwnVoteState returns a new OwnVoteState with the given value
-func NewOwnVoteState(value scale.VaryingDataTypeValue) (OwnVoteState, error) {
+// NewOwnVoteStateVDT returns a new OwnVoteStateVDT with the given value
+func NewOwnVoteStateVDT(value scale.VaryingDataTypeValue) (OwnVoteStateVDT, error) {
 	vdt, err := scale.NewVaryingDataType(Voted{}, CannotVote{})
 	if err != nil {
-		return OwnVoteState{}, fmt.Errorf("creating new OwnVoteState vdt: %w", err)
+		return OwnVoteStateVDT{}, fmt.Errorf("creating new OwnVoteStateVDT vdt: %w", err)
 	}
 
 	err = vdt.Set(value)
 	if err != nil {
-		return OwnVoteState{}, fmt.Errorf("setting value to OwnVoteState vdt: %w", err)
+		return OwnVoteStateVDT{}, fmt.Errorf("setting value to OwnVoteStateVDT vdt: %w", err)
 	}
 
-	return OwnVoteState(vdt), nil
+	return OwnVoteStateVDT(vdt), nil
 }
 
 // CandidateVoteState is the state of the votes for a candidate
 type CandidateVoteState struct {
 	Votes         CandidateVotes
-	Own           OwnVoteState
-	DisputeStatus *DisputeStatus
+	Own           OwnVoteStateVDT
+	DisputeStatus *DisputeStatusVDT
 }
 
+// IsDisputed returns true if we have an ongoing dispute
 func (c *CandidateVoteState) IsDisputed() bool {
 	return c.DisputeStatus != nil
 }
 
+// IsConfirmed returns true if there is an ongoing confirmed dispute
 func (c *CandidateVoteState) IsConfirmed() (bool, error) {
 	if c.DisputeStatus == nil {
 		return false, nil
@@ -196,6 +198,7 @@ func (c *CandidateVoteState) IsConfirmed() (bool, error) {
 	return c.DisputeStatus.IsConfirmedConcluded()
 }
 
+// IsConcludedFor returns true if there is a dispute, and it has already enough valid votes to conclude
 func (c *CandidateVoteState) IsConcludedFor() (bool, error) {
 	if c.DisputeStatus == nil {
 		return false, nil
@@ -204,6 +207,7 @@ func (c *CandidateVoteState) IsConcludedFor() (bool, error) {
 	return c.DisputeStatus.IsConcludedFor()
 }
 
+// IsConcludedAgainst returns true if there is a dispute, and it has already enough invalid votes to conclude.
 func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 	if c.DisputeStatus == nil {
 		return false, nil
@@ -212,6 +216,7 @@ func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 	return c.DisputeStatus.IsConcludedAgainst()
 }
 
+// IntoOldState Extracts `CandidateVotes` for handling import of new statements.
 func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState, error) {
 	return c.Votes, CandidateVoteState{
 		Votes:         CandidateVotes{},
@@ -224,12 +229,12 @@ func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState,
 // TODO: implement this later since nothing is using it yet
 func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState, error) {
 	var (
-		status DisputeStatus
+		status DisputeStatusVDT
 		err    error
 	)
 
 	// TODO: initialize own vote state with the votes
-	ownVoteState, err := NewOwnVoteState(CannotVote{})
+	ownVoteState, err := NewOwnVoteStateVDT(CannotVote{})
 	if err != nil {
 		return CandidateVoteState{}, fmt.Errorf("failed to create own vote state: %w", err)
 	}
@@ -242,7 +247,7 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState
 
 	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Value.Len() == 0)
 	if isDisputed {
-		status, err = NewDisputeStatus()
+		status, err = NewDisputeStatusVDT()
 		if err != nil {
 			return CandidateVoteState{}, fmt.Errorf("failed to create dispute status: %w", err)
 		}
@@ -282,7 +287,7 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState
 // NewCandidateVoteStateFromReceipt creates a new CandidateVoteState from a CandidateReceipt
 func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (CandidateVoteState, error) {
 	votes := NewCandidateVotesFromReceipt(receipt)
-	ownVoteState, err := NewOwnVoteState(CannotVote{})
+	ownVoteState, err := NewOwnVoteStateVDT(CannotVote{})
 	if err != nil {
 		return CandidateVoteState{}, fmt.Errorf("failed to create own vote state: %w", err)
 	}
@@ -299,6 +304,12 @@ type ValidCandidateVotes struct {
 	Value           *btree.BTree
 }
 
+// InsertVote Inserts a vote, replacing any already existing vote.
+// Except, for backing votes: Backing votes are always kept, and will never get overridden.
+// Import of other king of `valid` votes, will be ignored if a backing vote is already
+// present. Any already existing `valid` vote, will be overridden by any given backing vote.
+//
+// Returns: true, if the insert had any effect.
 func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 	existingVote := vcv.Value.Get(vote)
 	if existingVote == nil {
@@ -338,6 +349,7 @@ type CandidateVotes struct {
 	Invalid          *btree.BTree                    `scale:"3"`
 }
 
+// VotedIndices returns the set of all validators who have votes in the set, ascending.
 func (cv *CandidateVotes) VotedIndices() *treeset.Set {
 	votedIndices := treeset.NewWithIntComparator()
 	cv.Valid.Value.Ascend(nil, func(i interface{}) bool {
@@ -361,6 +373,7 @@ func (cv *CandidateVotes) VotedIndices() *treeset.Set {
 	return votedIndices
 }
 
+// NewCandidateVotes creates a new CandidateVotes.
 func NewCandidateVotes() *CandidateVotes {
 	return &CandidateVotes{
 		Valid: ValidCandidateVotes{

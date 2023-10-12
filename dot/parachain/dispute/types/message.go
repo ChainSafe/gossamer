@@ -24,22 +24,22 @@ func (UncheckedDisputeMessage) Index() uint {
 	return 0
 }
 
-// DisputeMessage is a dispute message.
-type DisputeMessage scale.VaryingDataType
+// DisputeMessageVDT is a dispute message.
+type DisputeMessageVDT scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (dm *DisputeMessage) Set(val scale.VaryingDataTypeValue) (err error) {
+func (dm *DisputeMessageVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*dm)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	*dm = DisputeMessage(vdt)
+	*dm = DisputeMessageVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (dm *DisputeMessage) Value() (val scale.VaryingDataTypeValue, err error) {
+func (dm *DisputeMessageVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*dm)
 	val, err = vdt.Value()
 	if err != nil {
@@ -73,63 +73,63 @@ func NewDisputeMessageFromSignedStatements(
 	invalidIndex parachainTypes.ValidatorIndex,
 	candidateReceipt parachainTypes.CandidateReceipt,
 	sessionInfo parachainTypes.SessionInfo,
-) (DisputeMessage, error) {
+) (DisputeMessageVDT, error) {
 	candidateHash := validStatement.CandidateHash
 
 	// check that both statements concern the same candidate
 	if candidateHash != invalidStatement.CandidateHash {
-		return DisputeMessage{}, fmt.Errorf("candidate hashes do not match")
+		return DisputeMessageVDT{}, fmt.Errorf("candidate hashes do not match")
 	}
 
 	sessionIndex := validStatement.SessionIndex
 
 	// check that both statements concern the same session
 	if sessionIndex != invalidStatement.SessionIndex {
-		return DisputeMessage{}, fmt.Errorf("session indices do not match")
+		return DisputeMessageVDT{}, fmt.Errorf("session indices do not match")
 	}
 
 	if validIndex > parachainTypes.ValidatorIndex(len(sessionInfo.Validators)) {
-		return DisputeMessage{}, fmt.Errorf("invalid validator index")
+		return DisputeMessageVDT{}, fmt.Errorf("invalid validator index")
 	}
 	validID := sessionInfo.Validators[validIndex]
 	if validID != validStatement.ValidatorPublic {
-		return DisputeMessage{}, fmt.Errorf("valid validator ID does not match")
+		return DisputeMessageVDT{}, fmt.Errorf("valid validator ID does not match")
 	}
 
 	if invalidIndex > parachainTypes.ValidatorIndex(len(sessionInfo.Validators)) {
-		return DisputeMessage{}, fmt.Errorf("invalid validator index")
+		return DisputeMessageVDT{}, fmt.Errorf("invalid validator index")
 	}
 	invalidID := sessionInfo.Validators[invalidIndex]
 	if invalidID != invalidStatement.ValidatorPublic {
-		return DisputeMessage{}, fmt.Errorf("invalid validator ID does not match")
+		return DisputeMessageVDT{}, fmt.Errorf("invalid validator ID does not match")
 	}
 
 	candidateReceiptHash, err := candidateReceipt.Hash()
 	if err != nil {
-		return DisputeMessage{}, fmt.Errorf("hash candidate receipt: %w", err)
+		return DisputeMessageVDT{}, fmt.Errorf("hash candidate receipt: %w", err)
 	}
 
 	// check that the passed `CandidateReceipt` has the correct hash (as signed in the statements)
 	if candidateReceiptHash != candidateHash {
-		return DisputeMessage{}, fmt.Errorf("candidate receipt hash does not match")
+		return DisputeMessageVDT{}, fmt.Errorf("candidate receipt hash does not match")
 	}
 
 	kind, err := validStatement.DisputeStatement.Value()
 	if err != nil {
-		return DisputeMessage{}, fmt.Errorf("get valid dispute statement value: %w", err)
+		return DisputeMessageVDT{}, fmt.Errorf("get valid dispute statement value: %w", err)
 	}
 	validKind, ok := kind.(inherents.ValidDisputeStatementKind)
 	if !ok {
-		return DisputeMessage{}, fmt.Errorf("valid dispute statement kind has invalid type")
+		return DisputeMessageVDT{}, fmt.Errorf("valid dispute statement kind has invalid type")
 	}
 
 	kind, err = invalidStatement.DisputeStatement.Value()
 	if err != nil {
-		return DisputeMessage{}, fmt.Errorf("get invalid dispute statement value: %w", err)
+		return DisputeMessageVDT{}, fmt.Errorf("get invalid dispute statement value: %w", err)
 	}
 	invalidKind, ok := kind.(inherents.InvalidDisputeStatementKind)
 	if !ok {
-		return DisputeMessage{}, fmt.Errorf("invalid dispute statement kind has valid type")
+		return DisputeMessageVDT{}, fmt.Errorf("invalid dispute statement kind has valid type")
 	}
 
 	validVote := Vote{
@@ -145,7 +145,7 @@ func NewDisputeMessageFromSignedStatements(
 
 	vdt, err := scale.NewVaryingDataType(UncheckedDisputeMessage{})
 	if err != nil {
-		return DisputeMessage{}, fmt.Errorf("failed to create varying data type: %w", err)
+		return DisputeMessageVDT{}, fmt.Errorf("failed to create varying data type: %w", err)
 	}
 	disputeMessage := UncheckedDisputeMessage{
 		candidateReceipt: candidateReceipt,
@@ -154,10 +154,10 @@ func NewDisputeMessageFromSignedStatements(
 		validVote:        validVote,
 	}
 	if err := vdt.Set(disputeMessage); err != nil {
-		return DisputeMessage{}, fmt.Errorf("set dispute message: %w", err)
+		return DisputeMessageVDT{}, fmt.Errorf("set dispute message: %w", err)
 	}
 
-	return DisputeMessage(vdt), nil
+	return DisputeMessageVDT(vdt), nil
 }
 
 // NewDisputeMessage creates a new dispute message.
@@ -167,10 +167,10 @@ func NewDisputeMessage(
 	ourVote *SignedDisputeStatement,
 	ourIndex parachainTypes.ValidatorIndex,
 	info parachainTypes.SessionInfo,
-) (DisputeMessage, error) {
+) (DisputeMessageVDT, error) {
 	disputeStatement, err := ourVote.DisputeStatement.Value()
 	if err != nil {
-		return DisputeMessage{}, fmt.Errorf("get dispute statement value: %w", err)
+		return DisputeMessageVDT{}, fmt.Errorf("get dispute statement value: %w", err)
 	}
 
 	var (
@@ -198,7 +198,7 @@ func NewDisputeMessage(
 			ourVote.SessionIndex,
 		)
 		if err != nil {
-			return DisputeMessage{}, fmt.Errorf("new signed dispute statement: %w", err)
+			return DisputeMessageVDT{}, fmt.Errorf("new signed dispute statement: %w", err)
 		}
 
 		invalidIndex = firstVote.ValidatorIndex

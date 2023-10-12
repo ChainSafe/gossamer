@@ -31,23 +31,23 @@ func (ValidCompactStatement) Index() uint {
 	return 1
 }
 
-// CompactStatement is the statement that can be made about parachain candidates
+// CompactStatementVDT is the statement that can be made about parachain candidates
 // These are the actual values that are signed.
-type CompactStatement scale.VaryingDataType
+type CompactStatementVDT scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cs *CompactStatement) Set(val scale.VaryingDataTypeValue) (err error) {
+func (cs *CompactStatementVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*cs)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	*cs = CompactStatement(vdt)
+	*cs = CompactStatementVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (cs *CompactStatement) Value() (val scale.VaryingDataTypeValue, err error) {
+func (cs *CompactStatementVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*cs)
 	val, err = vdt.Value()
 	if err != nil {
@@ -61,7 +61,7 @@ type SigningContext struct {
 	CandidateHash common.Hash
 }
 
-func (cs *CompactStatement) SigningPayload(signingContext SigningContext) ([]byte, error) {
+func (cs *CompactStatementVDT) SigningPayload(signingContext SigningContext) ([]byte, error) {
 	// scale encode the compact statement
 	encodedStatement, err := scale.Marshal(*cs)
 	if err != nil {
@@ -79,14 +79,14 @@ func (cs *CompactStatement) SigningPayload(signingContext SigningContext) ([]byt
 	return encoded, nil
 }
 
-// NewCompactStatement creates a new CompactStatement.
-func NewCompactStatement() (CompactStatement, error) {
+// NewCompactStatement creates a new CompactStatementVDT.
+func NewCompactStatement() (CompactStatementVDT, error) {
 	vdt, err := scale.NewVaryingDataType(ValidCompactStatement{}, SecondedCompactStatement{})
 	if err != nil {
-		return CompactStatement{}, fmt.Errorf("failed to create varying data type: %w", err)
+		return CompactStatementVDT{}, fmt.Errorf("failed to create varying data type: %w", err)
 	}
 
-	return CompactStatement(vdt), nil
+	return CompactStatementVDT(vdt), nil
 }
 
 type CompactStatementKind uint
@@ -96,10 +96,10 @@ const (
 	ValidCompactStatementKind
 )
 
-func NewCustomCompactStatement(kind CompactStatementKind, candidateHash common.Hash) (CompactStatement, error) {
+func NewCustomCompactStatement(kind CompactStatementKind, candidateHash common.Hash) (CompactStatementVDT, error) {
 	vdt, err := NewCompactStatement()
 	if err != nil {
-		return CompactStatement{}, fmt.Errorf("create new compact statement: %w", err)
+		return CompactStatementVDT{}, fmt.Errorf("create new compact statement: %w", err)
 	}
 
 	switch kind {
@@ -112,11 +112,11 @@ func NewCustomCompactStatement(kind CompactStatementKind, candidateHash common.H
 			CandidateHash: candidateHash,
 		})
 	default:
-		return CompactStatement{}, fmt.Errorf("invalid compact statement kind")
+		return CompactStatementVDT{}, fmt.Errorf("invalid compact statement kind")
 	}
 
 	if err != nil {
-		return CompactStatement{}, fmt.Errorf("set compact statement: %w", err)
+		return CompactStatementVDT{}, fmt.Errorf("set compact statement: %w", err)
 	}
 
 	return vdt, nil
@@ -125,16 +125,16 @@ func NewCustomCompactStatement(kind CompactStatementKind, candidateHash common.H
 func NewCompactStatementFromAttestation(
 	attestation inherents.ValidityAttestation,
 	candidateHash common.Hash,
-) (CompactStatement, error) {
+) (CompactStatementVDT, error) {
 	compactStatementVDT, err := NewCompactStatement()
 	if err != nil {
-		return CompactStatement{}, fmt.Errorf("create new compact statement: %w", err)
+		return CompactStatementVDT{}, fmt.Errorf("create new compact statement: %w", err)
 	}
 
 	attestationVDT := scale.VaryingDataType(attestation)
 	val, err := attestationVDT.Value()
 	if err != nil {
-		return CompactStatement{}, fmt.Errorf("get attestation value: %w", err)
+		return CompactStatementVDT{}, fmt.Errorf("get attestation value: %w", err)
 	}
 
 	switch val.(type) {
@@ -147,7 +147,7 @@ func NewCompactStatementFromAttestation(
 			CandidateHash: candidateHash,
 		})
 	default:
-		return CompactStatement{}, fmt.Errorf("invalid compact statement kind")
+		return CompactStatementVDT{}, fmt.Errorf("invalid compact statement kind")
 	}
 	return compactStatementVDT, nil
 }

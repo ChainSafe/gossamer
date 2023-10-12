@@ -26,13 +26,13 @@ func NewDisputeComparator(sessionIndex parachainTypes.SessionIndex, candidateHas
 // Dispute is a dispute for a candidate.
 // It is used as an item in the btree.BTree ordered by the Comparator.
 type Dispute struct {
-	Comparator    Comparator    `scale:"1"`
-	DisputeStatus DisputeStatus `scale:"2"`
+	Comparator    Comparator       `scale:"1"`
+	DisputeStatus DisputeStatusVDT `scale:"2"`
 }
 
 // NewDispute creates a new dispute for a candidate.
 func NewDispute() (*Dispute, error) {
-	disputeStatus, err := NewDisputeStatus()
+	disputeStatus, err := NewDisputeStatusVDT()
 	if err != nil {
 		return nil, err
 	}
@@ -62,14 +62,14 @@ func (SendDispute) Index() uint {
 	return 0
 }
 
-// DisputeDistributionMessage is the message sent to the collator to distribute the dispute
-type DisputeDistributionMessage scale.VaryingDataType
+// DisputeDistributionMessageVDT is the message sent to the collator to distribute the dispute
+type DisputeDistributionMessageVDT scale.VaryingDataType
 
-// NewDisputeDistributionMessage returns a new dispute distribution message
-func NewDisputeDistributionMessage() (DisputeDistributionMessage, error) {
+// NewDisputeDistributionMessageVDT returns a new dispute distribution message
+func NewDisputeDistributionMessageVDT() (DisputeDistributionMessageVDT, error) {
 	vdt, err := scale.NewVaryingDataType(SendDispute{})
 	if err != nil {
-		return DisputeDistributionMessage{}, fmt.Errorf("failed to create new varying data type: %w", err)
+		return DisputeDistributionMessageVDT{}, fmt.Errorf("failed to create new varying data type: %w", err)
 	}
-	return DisputeDistributionMessage(vdt), nil
+	return DisputeDistributionMessageVDT(vdt), nil
 }

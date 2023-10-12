@@ -109,14 +109,14 @@ func Test_Vote(t *testing.T) {
 func TestOwnVoteState_CannotVote(t *testing.T) {
 	t.Parallel()
 	// with
-	ownVoteState, err := NewOwnVoteState(CannotVote{})
+	ownVoteState, err := NewOwnVoteStateVDT(CannotVote{})
 	require.NoError(t, err)
 
 	// when
 	encoded, err := scale.Marshal(ownVoteState)
 	require.NoError(t, err)
 
-	decoded := OwnVoteState{}
+	decoded := OwnVoteStateVDT{}
 	err = scale.Unmarshal(encoded, &decoded)
 	require.NoError(t, err)
 
@@ -140,14 +140,14 @@ func TestOwnVoteState_Voted(t *testing.T) {
 		},
 	}
 
-	ownVoteState, err := NewOwnVoteState(Voted{Votes: votes})
+	ownVoteState, err := NewOwnVoteStateVDT(Voted{Votes: votes})
 	require.NoError(t, err)
 
 	// when
 	encoded, err := scale.Marshal(ownVoteState)
 	require.NoError(t, err)
 
-	decoded, err := NewOwnVoteState(CannotVote{})
+	decoded, err := NewOwnVoteStateVDT(CannotVote{})
 	require.NoError(t, err)
 	err = scale.Unmarshal(encoded, &decoded)
 	require.NoError(t, err)

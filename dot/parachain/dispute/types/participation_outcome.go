@@ -38,28 +38,28 @@ func (ErrorOutcome) Index() uint {
 	return 3
 }
 
-// ParticipationOutcome is the outcome of the validation process.
-type ParticipationOutcome scale.VaryingDataType
+// ParticipationOutcomeVDT is the outcome of the validation process.
+type ParticipationOutcomeVDT scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (po *ParticipationOutcome) Set(val scale.VaryingDataTypeValue) (err error) {
+func (po *ParticipationOutcomeVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*po)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	*po = ParticipationOutcome(vdt)
+	*po = ParticipationOutcomeVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (po *ParticipationOutcome) Value() (scale.VaryingDataTypeValue, error) {
+func (po *ParticipationOutcomeVDT) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*po)
 	return vdt.Value()
 }
 
 // Validity returns true if the outcome is valid.
-func (po *ParticipationOutcome) Validity() (bool, error) {
+func (po *ParticipationOutcomeVDT) Validity() (bool, error) {
 	val, err := po.Value()
 	if err != nil {
 		return false, fmt.Errorf("getting value from varying data type: %w", err)
@@ -73,10 +73,10 @@ func (po *ParticipationOutcome) Validity() (bool, error) {
 	return false, nil
 }
 
-// NewParticipationOutcome returns a new ParticipationOutcome.
-func NewParticipationOutcome() (ParticipationOutcome, error) {
+// NewParticipationOutcomeVDT returns a new ParticipationOutcomeVDT.
+func NewParticipationOutcomeVDT() (ParticipationOutcomeVDT, error) {
 	outcome, err := scale.NewVaryingDataType(ValidOutcome{}, InvalidOutcome{}, UnAvailableOutcome{}, ErrorOutcome{})
-	return ParticipationOutcome(outcome), err
+	return ParticipationOutcomeVDT(outcome), err
 }
 
 // ParticipationOutcomeType is the type of the participation outcome.
@@ -89,11 +89,11 @@ const (
 	ParticipationOutcomeError
 )
 
-// NewCustomParticipationOutcome returns a new ParticipationOutcome vdt by setting the outcome to the given type
-func NewCustomParticipationOutcome(outcome ParticipationOutcomeType) (ParticipationOutcome, error) {
-	participationOutcome, err := NewParticipationOutcome()
+// NewCustomParticipationOutcomeVDT returns a new ParticipationOutcomeVDT vdt by setting the outcome to the given type
+func NewCustomParticipationOutcomeVDT(outcome ParticipationOutcomeType) (ParticipationOutcomeVDT, error) {
+	participationOutcome, err := NewParticipationOutcomeVDT()
 	if err != nil {
-		return ParticipationOutcome{}, fmt.Errorf("creating new participation outcome: %w", err)
+		return ParticipationOutcomeVDT{}, fmt.Errorf("creating new participation outcome: %w", err)
 	}
 
 	switch outcome {
@@ -106,7 +106,7 @@ func NewCustomParticipationOutcome(outcome ParticipationOutcomeType) (Participat
 	case ParticipationOutcomeError:
 		err = participationOutcome.Set(ErrorOutcome{})
 	default:
-		return ParticipationOutcome{}, fmt.Errorf("invalid participation outcome type: %d", outcome)
+		return ParticipationOutcomeVDT{}, fmt.Errorf("invalid participation outcome type: %d", outcome)
 	}
 
 	return participationOutcome, err

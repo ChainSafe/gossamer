@@ -26,7 +26,7 @@ func DummyDispute(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 	status disputeStatusEnum,
 ) (*Dispute, error) {
-	disputeStatus, err := NewDisputeStatus()
+	disputeStatus, err := NewDisputeStatusVDT()
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 func TestDispute_Codec(t *testing.T) {
 	t.Parallel()
 
-	disputeStatus, err := NewDisputeStatus()
+	disputeStatus, err := NewDisputeStatusVDT()
 	require.NoError(t, err)
 	err = disputeStatus.Set(ActiveStatus{})
 	require.NoError(t, err)
@@ -41,7 +41,7 @@ func TestDispute_Codec(t *testing.T) {
 func TestDispute_Comparator(t *testing.T) {
 	t.Parallel()
 
-	status, err := NewDisputeStatus()
+	status, err := NewDisputeStatusVDT()
 	require.NoError(t, err)
 	err = status.Set(ActiveStatus{})
 	require.NoError(t, err)
