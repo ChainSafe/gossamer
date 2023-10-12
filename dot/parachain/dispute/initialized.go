@@ -880,12 +880,10 @@ func (i *Initialized) HandleImportStatements(
 			}
 
 			logger.Tracef("writing recent disputes with updates for candidate. "+
-				"candidateHash: %v, session: %v, status:%v, hasConcludedFor: %v, hasConcludedAgainst: %v",
+				"candidateHash: %v, session: %v, status:%v",
 				candidateHash,
 				session,
 				dispute.DisputeStatus,
-				interface{}(newState.IsConcludedFor()),
-				interface{}(newState.IsConcludedAgainst()),
 			)
 
 			if err := backend.SetRecentDisputes(recentDisputes); err != nil {
