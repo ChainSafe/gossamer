@@ -11,7 +11,7 @@ import (
 func TestDisputeStatus_Codec(t *testing.T) {
 	t.Parallel()
 	// with
-	status, err := NewDisputeStatus()
+	status, err := NewDisputeStatusVDT()
 	require.NoError(t, err)
 
 	statusList := scale.NewVaryingDataTypeSlice(scale.VaryingDataType(status))
@@ -37,7 +37,7 @@ func TestDisputeStatus_Confirm(t *testing.T) {
 	t.Parallel()
 
 	// with
-	status, err := NewDisputeStatus()
+	status, err := NewDisputeStatusVDT()
 	require.NoError(t, err)
 	err = status.Set(ActiveStatus{})
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestDisputeStatus_ConcludeFor(t *testing.T) {
 	t.Parallel()
 
 	// with
-	status, err := NewDisputeStatus()
+	status, err := NewDisputeStatusVDT()
 	require.NoError(t, err)
 	concludedAt := uint64(time.Now().Unix())
 	err = status.Set(ActiveStatus{})
@@ -88,7 +88,7 @@ func TestDisputeStatus_ConcludeAgainst(t *testing.T) {
 	t.Parallel()
 
 	// with
-	status, err := NewDisputeStatus()
+	status, err := NewDisputeStatusVDT()
 	require.NoError(t, err)
 	concludedAt := uint64(time.Now().Unix())
 	err = status.Set(ActiveStatus{})

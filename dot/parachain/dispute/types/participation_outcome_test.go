@@ -11,16 +11,16 @@ func TestNewCustomParticipationOutcome(t *testing.T) {
 	t.Parallel()
 
 	// with
-	validOutcome, err := NewCustomParticipationOutcome(ParticipationOutcomeValid)
+	validOutcome, err := NewCustomParticipationOutcomeVDT(ParticipationOutcomeValid)
 	require.NoError(t, err)
 
-	invalidOutcome, err := NewCustomParticipationOutcome(ParticipationOutcomeInvalid)
+	invalidOutcome, err := NewCustomParticipationOutcomeVDT(ParticipationOutcomeInvalid)
 	require.NoError(t, err)
 
-	unavailableOutcome, err := NewCustomParticipationOutcome(ParticipationOutcomeUnAvailable)
+	unavailableOutcome, err := NewCustomParticipationOutcomeVDT(ParticipationOutcomeUnAvailable)
 	require.NoError(t, err)
 
-	errorOutcome, err := NewCustomParticipationOutcome(ParticipationOutcomeError)
+	errorOutcome, err := NewCustomParticipationOutcomeVDT(ParticipationOutcomeError)
 	require.NoError(t, err)
 
 	// then
@@ -45,7 +45,7 @@ func TestParticipationOutcome_Codec(t *testing.T) {
 	t.Parallel()
 
 	// with
-	outcome, err := NewParticipationOutcome()
+	outcome, err := NewParticipationOutcomeVDT()
 	require.NoError(t, err)
 	outcomeList := scale.NewVaryingDataTypeSlice(scale.VaryingDataType(outcome))
 

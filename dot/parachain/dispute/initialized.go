@@ -360,7 +360,8 @@ func (i *Initialized) ProcessOnChainVotes(
 				parachain.ValidatorSignature(validatorSignature),
 			)
 			if err != nil {
-				logger.Errorf("scraped backing votes had invalid signature. Candidate: %v, session: %v, validatorPublic: %v, validatorIndex: %v",
+				logger.Errorf("scraped backing votes had invalid signature. "+
+					"Candidate: %v, session: %v, validatorPublic: %v, validatorIndex: %v",
 					candidateHash,
 					votes.Session,
 					validatorPublic,
@@ -585,7 +586,7 @@ func (i *Initialized) HandleImportStatements(
 		relayParent = votesInDB.CandidateReceipt.Descriptor.RelayParent
 	}
 
-	env, err := types.NewCandidateEnvironment(session, relayParent, i.runtime)
+	env, err := types.NewCandidateEnvironment(i.keystore, i.runtime, session, relayParent)
 	if err != nil {
 		return InvalidImport, fmt.Errorf("new candidate environment: %w", err)
 	}
@@ -708,7 +709,8 @@ func (i *Initialized) HandleImportStatements(
 		return InvalidImport, fmt.Errorf("is potential spam: %w", err)
 	}
 	allowParticipation := !potentialSpam
-	logger.Tracef("ownVoteMissing: %v, potentialSpam: %v, isIncluded: %v, candidateHash: %v, confirmed: %v, hasInvalidVoters: %v",
+	logger.Tracef("ownVoteMissing: %v, potentialSpam: %v, isIncluded: %v, "+
+		"candidateHash: %v, confirmed: %v, hasInvalidVoters: %v",
 		ownVoteMissing,
 		potentialSpam,
 		isIncluded,
@@ -732,11 +734,13 @@ func (i *Initialized) HandleImportStatements(
 			// need to increase spam slots on invalid votes. (If we did not, we would also
 			// increase spam slots for backing validators for example - as validators have to
 			// provide some opposing vote for dispute-distribution).
-			freeSpamSlotsAvailable = freeSpamSlotsAvailable || i.SpamSlots.AddUnconfirmed(session, candidateHash, index)
+			freeSpamSlotsAvailable = freeSpamSlotsAvailable ||
+				i.SpamSlots.AddUnconfirmed(session, candidateHash, index)
 		}
 
 		if !freeSpamSlotsAvailable {
-			logger.Debugf("rejecting import because of full spam slots. candidateHash: %v, session: %v, invalidVoters: %v",
+			logger.Debugf("rejecting import because of full spam slots. "+
+				"candidateHash: %v, session: %v, invalidVoters: %v",
 				candidateHash,
 				session,
 				importResult.newInvalidVoters,
@@ -771,7 +775,8 @@ func (i *Initialized) HandleImportStatements(
 			logger.Errorf("failed to queue participation request: %s", err)
 		}
 	} else {
-		logger.Tracef("will not queue participation for candidate: %v, session: %v, ownVoteMissing: %v, isDisputed: %v, allowParticipation: %v",
+		logger.Tracef("will not queue participation for candidate: %v, "+
+			"session: %v, ownVoteMissing: %v, isDisputed: %v, allowParticipation: %v",
 			candidateHash,
 			session,
 			ownVoteMissing,
@@ -821,7 +826,12 @@ func (i *Initialized) HandleImportStatements(
 				vote.ValidatorIndex,
 			)
 
-			disputeMessage, err := types.NewDisputeMessage(keypair, newState.Votes, &statement, vote.ValidatorIndex, env.Session)
+			disputeMessage, err := types.NewDisputeMessage(keypair,
+				newState.Votes,
+				&statement,
+				vote.ValidatorIndex,
+				env.Session,
+			)
 			if err != nil {
 				return InvalidImport, fmt.Errorf("new dispute message: %w", err)
 			}
@@ -854,7 +864,7 @@ func (i *Initialized) HandleImportStatements(
 			dispute.Comparator.SessionIndex = session
 			dispute.DisputeStatus = *newState.DisputeStatus
 			if existing := recentDisputes.Get(dispute); existing == nil {
-				activeStatus, err := types.NewDisputeStatus()
+				activeStatus, err := types.NewDisputeStatusVDT()
 				if err != nil {
 					return InvalidImport, fmt.Errorf("new dispute status: %w", err)
 				}
@@ -869,7 +879,8 @@ func (i *Initialized) HandleImportStatements(
 				)
 			}
 
-			logger.Tracef("writing recent disputes with updates for candidate. candidateHash: %v, session: %v, status:%v, hasConcludedFor: %v, hasConcludedAgainst: %v",
+			logger.Tracef("writing recent disputes with updates for candidate. "+
+				"candidateHash: %v, session: %v, status:%v, hasConcludedFor: %v, hasConcludedAgainst: %v",
 				candidateHash,
 				session,
 				dispute.DisputeStatus,
@@ -893,8 +904,8 @@ func (i *Initialized) HandleImportStatements(
 		inclusions := i.Scraper.GetBlocksIncludingCandidate(candidateHash)
 		blocks := make([]overseer.Block, len(inclusions))
 		for _, inclusion := range inclusions {
-			logger.Tracef("dispute has just concluded against the candidate hash noted. Its parent will be marked as reverted."+
-				"candidateHash: %v, parentBlockNumber: %v, parentBlockHash: %v",
+			logger.Tracef("dispute has just concluded against the candidate hash noted."+
+				"Its parent will be marked as reverted. candidateHash: %v, parentBlockNumber: %v, parentBlockHash: %v",
 				candidateHash,
 				inclusion.BlockNumber,
 				inclusion.BlockHash,
@@ -913,8 +924,8 @@ func (i *Initialized) HandleImportStatements(
 				return InvalidImport, fmt.Errorf("send revert blocks request: %w", err)
 			}
 		} else {
-			logger.Debugf("could not find an including block for candidate against which a dispute has concluded"+
-				"candidateHash: %v, session: %v",
+			logger.Debugf("could not find an including block for candidate against which"+
+				"a dispute has concluded candidateHash: %v, session: %v",
 				candidateHash,
 				session,
 			)
@@ -944,7 +955,7 @@ func (i *Initialized) IssueLocalStatement(
 ) error {
 	logger.Tracef("issuing local statement for candidate %s", candidateHash)
 
-	env, err := types.NewCandidateEnvironment(session, candidateReceipt.Descriptor.RelayParent, i.runtime)
+	env, err := types.NewCandidateEnvironment(i.keystore, i.runtime, session, candidateReceipt.Descriptor.RelayParent)
 	if err != nil {
 		logger.Warnf("missing session info for candidate %s, session %d: %s",
 			candidateHash,
@@ -980,7 +991,7 @@ func (i *Initialized) IssueLocalStatement(
 		}
 
 		validatorPublic := env.Session.Validators[index]
-		keypair, err := getValidatorKeyPair(validatorPublic, i.keystore) // i.keystore.GetKeypairFromAddress(pubKey.Address())
+		keypair, err := getValidatorKeyPair(validatorPublic, i.keystore)
 		if err != nil {
 			return fmt.Errorf("get validator key pair: %w", err)
 		}
@@ -1007,7 +1018,12 @@ func (i *Initialized) IssueLocalStatement(
 			continue
 		}
 
-		disputeMessage, err := types.NewDisputeMessage(keypair, *votes, &statement.SignedDisputeStatement, statement.ValidatorIndex, env.Session)
+		disputeMessage, err := types.NewDisputeMessage(keypair,
+			*votes,
+			&statement.SignedDisputeStatement,
+			statement.ValidatorIndex,
+			env.Session,
+		)
 		if err != nil {
 			logger.Warnf("failed to construct dispute message for validator index %d: %s",
 				statement.ValidatorIndex,
@@ -1075,9 +1091,9 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 
 	isPossiblyInvalid := func(session parachainTypes.SessionIndex, candidateHash common.Hash) bool {
 		disputeStatus := recentDisputes.Get(types.NewDisputeComparator(session, candidateHash))
-		status, ok := disputeStatus.(types.DisputeStatus)
+		status, ok := disputeStatus.(types.DisputeStatusVDT)
 		if !ok {
-			logger.Errorf("cast to dispute status. Expected types.DisputeStatus, got %T", disputeStatus)
+			logger.Errorf("cast to dispute status. Expected types.DisputeStatusVDT, got %T", disputeStatus)
 			return false
 		}
 
@@ -1107,7 +1123,10 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 	return last, nil
 }
 
-func getValidatorKeyPair(validatorPublic parachainTypes.ValidatorID, keystore keystore.Keystore) (keystore.KeyPair, error) {
+// getValidatorKeyPair returns the keypair for the given validator public key.
+func getValidatorKeyPair(validatorPublic parachainTypes.ValidatorID,
+	keystore keystore.Keystore,
+) (keystore.KeyPair, error) {
 	pubKey, err := sr25519.NewPublicKey(validatorPublic[:])
 	if err != nil {
 		return nil, fmt.Errorf("new public key: %w", err)
@@ -1115,6 +1134,7 @@ func getValidatorKeyPair(validatorPublic parachainTypes.ValidatorID, keystore ke
 	return keystore.GetKeypairFromAddress(pubKey.Address()), nil
 }
 
+// NewInitializedState creates a new initialized state.
 func NewInitializedState(sender overseer.Sender,
 	runtime parachainRuntime.RuntimeInstance,
 	spamSlots SpamSlots,
@@ -1143,6 +1163,7 @@ func saturatingSub(a, b uint32) uint32 {
 	return uint32(result)
 }
 
+// minInt returns the smallest of a or b.
 func minInt(a, b int) int {
 	if a < b {
 		return a

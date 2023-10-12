@@ -61,7 +61,7 @@ type SigningContext struct {
 	CandidateHash common.Hash
 }
 
-func (cs *CompactStatementVDT) SigningPayload() ([]byte, error) {
+func (cs *CompactStatementVDT) SigningPayload(signingContext SigningContext) ([]byte, error) {
 	// scale encode the compact statement
 	encodedStatement, err := scale.Marshal(*cs)
 	if err != nil {
@@ -119,16 +119,13 @@ func NewCustomCompactStatement(kind CompactStatementKind, candidateHash parachai
 func NewCompactStatementFromAttestation(
 	attestation inherents.ValidityAttestation,
 	candidateHash common.Hash,
-) (CompactStatement, error) {
-	compactStatementVDT, err := NewCompactStatement()
-	if err != nil {
-		return CompactStatement{}, fmt.Errorf("create new compact statement: %w", err)
-	}
+) (CompactStatementVDT, error) {
+	compactStatementVDT := NewCompactStatement()
 
 	attestationVDT := scale.VaryingDataType(attestation)
 	val, err := attestationVDT.Value()
 	if err != nil {
-		return CompactStatement{}, fmt.Errorf("get attestation value: %w", err)
+		return CompactStatementVDT{}, fmt.Errorf("get attestation value: %w", err)
 	}
 
 	switch val.(type) {
@@ -141,7 +138,7 @@ func NewCompactStatementFromAttestation(
 			CandidateHash: candidateHash,
 		})
 	default:
-		return CompactStatement{}, fmt.Errorf("invalid compact statement kind")
+		return CompactStatementVDT{}, fmt.Errorf("invalid compact statement kind")
 	}
 	return compactStatementVDT, nil
 }
