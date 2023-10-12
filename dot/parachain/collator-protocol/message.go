@@ -178,7 +178,7 @@ const (
 )
 
 // getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.
-// The payload is a the local peed id of the node, which serves to prove that it controls the
+// The payload is a the local peer id of the node, which serves to prove that it controls the
 // collator key it is declaring and intends to collate under.
 func getDeclareSignaturePayload(peerID peer.ID) []byte {
 	payload := []byte("COLL")
@@ -220,8 +220,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	}
 
 	switch collatorProtocolMessage.Index() {
-	// TODO: Make sure that V1 types are covered.
-	// TODO: Create an issue to cover v2 types.
+	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
 		if !ok {
