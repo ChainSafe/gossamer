@@ -4,9 +4,15 @@
 package availability_store
 
 func Register(overseerChan chan<- any) (*AvailabilityStoreSubsystem, error) {
-	availabilityStore := AvailabilityStoreSubsystem{
-		SubSystemToOverseer: overseerChan,
+	availabilityStore, err := NewAvailabilityStore(Config{basepath: "availability_store"})
+	if err != nil {
+		return nil, err
 	}
 
-	return &availabilityStore, nil
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		SubSystemToOverseer: overseerChan,
+		availabilityStore:   *availabilityStore,
+	}
+
+	return &availabilityStoreSubsystem, nil
 }

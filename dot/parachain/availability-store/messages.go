@@ -10,7 +10,7 @@ import (
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
 	CandidateHash common.Hash
-	AvailableData AvailableData
+	Sender        chan AvailableData
 }
 
 type QueryDataAvailability struct {

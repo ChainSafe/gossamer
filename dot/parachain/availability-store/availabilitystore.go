@@ -6,8 +6,11 @@ package availability_store
 import (
 	"context"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
@@ -15,11 +18,42 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-sto
 type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
-	//db            interface{} // Define the actual database type
-	//config        Config      // Define the actual config type
+	availabilityStore   AvailabilityStore
 	//pruningConfig PruningConfig
 	//clock         Clock
 	//metrics       Metrics
+}
+
+type AvailabilityStore struct {
+	db database.Database
+}
+
+type Config struct {
+	basepath string
+}
+
+func NewAvailabilityStore(config Config) (*AvailabilityStore, error) {
+
+	db, err := database.LoadDatabase(config.basepath,
+		false) // TODO: determine if this is the best configuration for this db
+	if err != nil {
+		return nil, err
+	}
+
+	return &AvailabilityStore{
+		db: db,
+	}, nil
+}
+
+func (as *AvailabilityStore) LoadAvailableData(candidate common.Hash) (AvailableData, error) {
+	resultBytes, err := as.db.Get(candidate[:]) // TODO: check if this is the correct way to get the value from the
+	// database
+	if err != nil {
+		return AvailableData{}, err
+	}
+	result := AvailableData{}
+	err = scale.Unmarshal(resultBytes, &result)
+	return result, err
 }
 
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
@@ -57,7 +91,11 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) {
-	// TODO: handle query available data
+	result, err := av.availabilityStore.LoadAvailableData(msg.CandidateHash)
+	if err != nil {
+		logger.Errorf("failed to load available data: %w", err)
+	}
+	msg.Sender <- result
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataAvailability) {
