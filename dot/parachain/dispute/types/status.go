@@ -46,32 +46,32 @@ func (ConfirmedStatus) Index() uint {
 	return 3
 }
 
-// DisputeStatus is the status of a dispute.
-type DisputeStatus scale.VaryingDataType
+// DisputeStatusVDT is the status of a dispute.
+type DisputeStatusVDT scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (ds *DisputeStatus) Set(val scale.VaryingDataTypeValue) (err error) {
+func (ds *DisputeStatusVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	vdt := scale.VaryingDataType(*ds)
 	err = vdt.Set(val)
 	if err != nil {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
-	*ds = DisputeStatus(vdt)
+	*ds = DisputeStatusVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (ds *DisputeStatus) Value() (scale.VaryingDataTypeValue, error) {
+func (ds *DisputeStatusVDT) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*ds)
 	return vdt.Value()
 }
 
 // Confirm confirms the dispute, if not concluded/confirmed already.
-func (ds *DisputeStatus) Confirm() error {
+func (ds *DisputeStatusVDT) Confirm() error {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	switch val.(type) {
@@ -83,11 +83,11 @@ func (ds *DisputeStatus) Confirm() error {
 }
 
 // ConcludeFor transitions the status to a new status where the dispute is concluded for the candidate.
-func (ds *DisputeStatus) ConcludeFor(since uint64) error {
+func (ds *DisputeStatusVDT) ConcludeFor(since uint64) error {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	switch status := val.(type) {
@@ -107,11 +107,11 @@ func (ds *DisputeStatus) ConcludeFor(since uint64) error {
 }
 
 // ConcludeAgainst transitions the status to a new status where the dispute is concluded against the candidate.
-func (ds *DisputeStatus) ConcludeAgainst(since uint64) error {
+func (ds *DisputeStatusVDT) ConcludeAgainst(since uint64) error {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	switch status := val.(type) {
@@ -137,11 +137,11 @@ func (ds *DisputeStatus) ConcludeAgainst(since uint64) error {
 }
 
 // ConcludedAt returns the time the dispute was concluded, if it is concluded.
-func (ds *DisputeStatus) ConcludedAt() (*uint64, error) {
+func (ds *DisputeStatusVDT) ConcludedAt() (*uint64, error) {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return nil, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return nil, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	switch status := val.(type) {
@@ -157,11 +157,11 @@ func (ds *DisputeStatus) ConcludedAt() (*uint64, error) {
 }
 
 // IsConfirmedConcluded returns true if the dispute is confirmed or concluded.
-func (ds *DisputeStatus) IsConfirmedConcluded() (bool, error) {
+func (ds *DisputeStatusVDT) IsConfirmedConcluded() (bool, error) {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return false, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	switch val.(type) {
@@ -173,11 +173,11 @@ func (ds *DisputeStatus) IsConfirmedConcluded() (bool, error) {
 }
 
 // IsConfirmed returns true if the dispute is confirmed.
-func (ds *DisputeStatus) IsConfirmed() (bool, error) {
+func (ds *DisputeStatusVDT) IsConfirmed() (bool, error) {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return false, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	if _, ok := val.(ConfirmedStatus); ok {
@@ -188,11 +188,11 @@ func (ds *DisputeStatus) IsConfirmed() (bool, error) {
 }
 
 // IsConcludedFor returns true if the dispute is concluded for the candidate.
-func (ds *DisputeStatus) IsConcludedFor() (bool, error) {
+func (ds *DisputeStatusVDT) IsConcludedFor() (bool, error) {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return false, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	if _, ok := val.(ConcludedForStatus); ok {
@@ -203,11 +203,11 @@ func (ds *DisputeStatus) IsConcludedFor() (bool, error) {
 }
 
 // IsConcludedAgainst returns true if the dispute is concluded against the candidate.
-func (ds *DisputeStatus) IsConcludedAgainst() (bool, error) {
+func (ds *DisputeStatusVDT) IsConcludedAgainst() (bool, error) {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return false, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	if _, ok := val.(ConcludedAgainstStatus); ok {
@@ -218,11 +218,11 @@ func (ds *DisputeStatus) IsConcludedAgainst() (bool, error) {
 }
 
 // IsPossiblyInvalid returns true if the dispute is possibly invalid.
-func (ds *DisputeStatus) IsPossiblyInvalid() (bool, error) {
+func (ds *DisputeStatusVDT) IsPossiblyInvalid() (bool, error) {
 	vdt := scale.VaryingDataType(*ds)
 	val, err := vdt.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting value from DisputeStatus vdt: %w", err)
+		return false, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
 	}
 
 	switch val.(type) {
@@ -233,16 +233,16 @@ func (ds *DisputeStatus) IsPossiblyInvalid() (bool, error) {
 	}
 }
 
-// NewDisputeStatus returns a new DisputeStatus.
-func NewDisputeStatus() (DisputeStatus, error) {
+// NewDisputeStatusVDT returns a new DisputeStatusVDT.
+func NewDisputeStatusVDT() (DisputeStatusVDT, error) {
 	vdt, err := scale.NewVaryingDataType(ActiveStatus{},
 		ConcludedForStatus{},
 		ConcludedAgainstStatus{},
 		ConfirmedStatus{},
 	)
 	if err != nil {
-		return DisputeStatus{}, fmt.Errorf("creating new dispute status vdt: %w", err)
+		return DisputeStatusVDT{}, fmt.Errorf("creating new dispute status vdt: %w", err)
 	}
 
-	return DisputeStatus(vdt), nil
+	return DisputeStatusVDT(vdt), nil
 }

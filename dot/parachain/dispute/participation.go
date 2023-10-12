@@ -50,7 +50,7 @@ type ParticipationStatement struct {
 	Session          parachainTypes.SessionIndex
 	CandidateHash    common.Hash
 	CandidateReceipt parachainTypes.CandidateReceipt
-	Outcome          types.ParticipationOutcome
+	Outcome          types.ParticipationOutcomeVDT
 }
 
 // MuxedMessage messages to be handled in this subsystem.
@@ -353,7 +353,7 @@ func getBlockNumber(sender overseer.Sender, receipt parachainTypes.CandidateRece
 }
 
 func sendResult(sender overseer.Sender, request ParticipationRequest, outcome types.ParticipationOutcomeType) {
-	participationOutcome, err := types.NewCustomParticipationOutcome(outcome)
+	participationOutcome, err := types.NewCustomParticipationOutcomeVDT(outcome)
 	if err != nil {
 		logger.Errorf(
 			"failed to create participation outcome: %s, error: %s",
