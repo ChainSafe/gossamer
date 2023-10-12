@@ -218,8 +218,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	}
 
 	switch collatorProtocolMessage.Index() {
-	// TODO: Make sure that V1 types are covered.
-	// TODO: Create an issue to cover v2 types.
+	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
 		if !ok {
