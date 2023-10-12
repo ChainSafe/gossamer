@@ -178,7 +178,7 @@ const (
 )
 
 // getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.
-// The payload is a the local peed id of the node, which serves to prove that it controls the
+// The payload is a the local peer id of the node, which serves to prove that it controls the
 // collator key it is declaring and intends to collate under.
 func getDeclareSignaturePayload(peerID peer.ID) []byte {
 	payload := []byte("COLL")
