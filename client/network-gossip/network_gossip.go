@@ -1,5 +1,10 @@
 package gossip
 
+import (
+	"github.com/ChainSafe/gossamer/client/network/service"
+	"github.com/ChainSafe/gossamer/client/network/sync"
+)
+
 // / Abstraction over a network.
 //
 //	pub trait Network<B: BlockT>: NetworkPeers + NetworkEventStream + NetworkNotification {
@@ -13,3 +18,10 @@ package gossip
 //		}
 //	}
 type Network interface{}
+
+// / Abstraction over the syncing subsystem.
+// pub trait Syncing<B: BlockT>: SyncEventStream + NetworkBlock<B::Hash, NumberFor<B>> {}
+type Syncing interface {
+	sync.SyncEventStream
+	service.NetworkBlock
+}
