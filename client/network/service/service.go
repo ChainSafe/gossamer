@@ -26,9 +26,3 @@ type NetworkSyncForkRequest interface{}
 //		fn new_best_block_imported(&self, hash: BlockHash, number: BlockNumber);
 //	}
 type NetworkBlock interface{}
-
-//	pub trait SyncEventStream: Send + Sync {
-//		/// Subscribe to syncing-related events.
-//		fn event_stream(&self, name: &'static str) -> Pin<Box<dyn Stream<Item = SyncEvent> + Send>>;
-//	}
-type SyncEventStream interface{}

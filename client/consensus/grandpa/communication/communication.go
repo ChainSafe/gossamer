@@ -3,6 +3,7 @@ package communication
 import (
 	gossip "github.com/ChainSafe/gossamer/client/network-gossip"
 	"github.com/ChainSafe/gossamer/client/network/service"
+	"github.com/ChainSafe/gossamer/client/network/sync"
 )
 
 // / A handle to the network.
@@ -18,10 +19,11 @@ type Network interface {
 type Syncing interface {
 	service.NetworkSyncForkRequest
 	service.NetworkBlock
-	service.SyncEventStream
+	sync.SyncEventStream
 }
 
 // / Bridge between the underlying network service, gossiping consensus messages and Grandpa
 type NetworkBridge struct {
 	service Network
+	sync    Syncing
 }
