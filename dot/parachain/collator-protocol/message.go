@@ -177,6 +177,108 @@ const (
 	Seconded
 )
 
+// BlockedAdvertisement is vstaging advertisement that was rejected by the backing
+// subsystem. Validator may fetch it later if its fragment
+// membership gets recognized before relay parent goes out of view.
+type BlockedAdvertisement struct {
+	// peer that advertised the collation
+	peerID               peer.ID
+	collatorID           parachaintypes.CollatorID
+	candidateRelayParent common.Hash
+	candidateHash        parachaintypes.CandidateHash
+}
+
+func canSecond() bool {
+	// TODO
+	// https://github.com/paritytech/polkadot-sdk/blob/6079b6dd3aaba56ef257111fda74a57a800f16d0/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L955
+	return false
+}
+
+func (cpvs CollatorProtocolValidatorSide) enqueueCollation(collations Collations) {
+	switch collations.status {
+	case Fetching, WaitingOnValidation:
+
+	}
+
+}
+func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, peerID peer.ID, prospectiveCandidate *ProspectiveCandidate) error {
+	// TODO:
+	// - tracks advertisements received and the source (peer id) of the advertisement
+
+	// - accept one advertisement per collator per source per relay-parent
+
+	perRelayParent, ok := cpvs.perRelayParent[relayParent]
+	if !ok {
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.UnexpectedMessageValue,
+			Reason: peerset.UnexpectedMessageReason,
+		}, peerID)
+		return ErrRelayParentUnknown
+	}
+
+	peerData, ok := cpvs.peerData[peerID]
+	if !ok {
+		return ErrUnknownPeer
+	}
+
+	if peerData.state.PeerState != Collating {
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.UnexpectedMessageValue,
+			Reason: peerset.UnexpectedMessageReason,
+		}, peerID)
+		return ErrUndeclaredPara
+	}
+
+	collatorParaID := peerData.state.CollatingPeerState.ParaID
+
+	if perRelayParent.assignment == nil || *perRelayParent.assignment != collatorParaID {
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.WrongParaValue,
+			Reason: peerset.WrongParaReason,
+		}, peerID)
+		return ErrInvalidAssignment
+	}
+
+	if perRelayParent.prospectiveParachainMode.isEnabled && prospectiveCandidate == nil {
+		return ErrProtocolMismatch
+	}
+
+	isAdvertisementInvalid, err := peerData.InsertAdvertisement()
+	if isAdvertisementInvalid {
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.UnexpectedMessageValue,
+			Reason: peerset.UnexpectedMessageReason,
+		}, peerID)
+		logger.Errorf(ErrInvalidAdvertisement.Error())
+	}
+	if err != nil {
+		return fmt.Errorf("inserting advertisement: %w", err)
+	}
+
+	if perRelayParent.collations.IsSecondedLimitReached(perRelayParent.prospectiveParachainMode) {
+		return ErrSecondedLimitReached
+	}
+
+	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || canSecond()
+
+	if !isSecondingAllowed {
+		logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
+			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
+
+		cpvs.BlockedAdvertisements = append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
+			peerID:               peerID,
+			collatorID:           peerData.state.CollatingPeerState.CollatorID,
+			candidateRelayParent: relayParent,
+			candidateHash:        prospectiveCandidate.CandidateHash,
+		})
+		return nil
+	}
+
+	cpvs.enqueueCollation(perRelayParent.collations)
+
+	return nil
+}
+
 // getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.
 // The payload is a the local peer id of the node, which serves to prove that it controls the
 // collator key it is declaring and intends to collate under.
@@ -291,7 +393,20 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			// Currently we have a Handler in dot/peerset, but it does not get used anywhere.
 		}
 	case 1: // AdvertiseCollation
-		// TODO: handle collation advertisement https://github.com/ChainSafe/gossamer/issues/3514
+		advertiseCollationMessage, ok := collatorProtocolMessageV.(AdvertiseCollation)
+		if !ok {
+			return propagate, errors.New("expected message to be advertise collation")
+		}
+
+		err := cpvs.handleAdvertisement(common.Hash(advertiseCollationMessage))
+		if err != nil {
+			return propagate, fmt.Errorf("handling v1 advertisement: %w", err)
+		}
+		// TODO:
+		// - tracks advertisements received and the source (peer id) of the advertisement
+
+		// - accept one advertisement per collator per source per relay-parent
+
 	case 2: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.net.ReportPeer(peerset.ReputationChange{

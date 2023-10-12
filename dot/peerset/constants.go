@@ -76,17 +76,17 @@ const (
 	BadJustificationReason = "Bad justification"
 
 	// GenesisMismatch is used when peer has a different genesis
-	GenesisMismatch Reputation = Malicious
+	GenesisMismatch = Malicious
 	// GenesisMismatchReason used when a peer has a different genesis
 	GenesisMismatchReason = "Genesis mismatch"
 
 	// BenefitNotifyGoodValue is used when a collator was noted good by another subsystem
-	BenefitNotifyGoodValue Reputation = BenefitMinor
+	BenefitNotifyGoodValue = BenefitMinor
 	// BenefitNotifyGoodReason is used when a collator was noted good by another subsystem
 	BenefitNotifyGoodReason = "A collator was noted good by another subsystem"
 
 	// UnexpectedMessageValue is used when validator side of the collator protocol receives an unexpected message
-	UnexpectedMessageValue Reputation = CostMinor
+	UnexpectedMessageValue = CostMinor
 	// UnexpectedMessageReason is used when validator side of the collator protocol receives an unexpected message
 	UnexpectedMessageReason = "An unexpected message"
 
@@ -101,17 +101,17 @@ const (
 	NetworkErrorReason = "Some network error"
 
 	// InvalidSignatureValue is used when signature of the network message is invalid.
-	InvalidSignatureValue Reputation = Malicious
+	InvalidSignatureValue = Malicious
 	// InvalidSignatureReason is used when signature of the network message is invalid.
 	InvalidSignatureReason = "Invalid network message signature"
 
 	// ReportBadCollatorValue is used when a collator was reported to be bad by another subsystem
-	ReportBadCollatorValue Reputation = Malicious
+	ReportBadCollatorValue = Malicious
 	// ReportBadCollatorReason is used when a collator was reported to be bad by another subsystem
 	ReportBadCollatorReason = "A collator was reported by another subsystem"
 
 	// WrongParaValue is used when a collator provided a collation for the wrong para
-	WrongParaValue Reputation = Malicious
+	WrongParaValue = Malicious
 	// WrongParaReason is used when a collator provided a collation for the wrong para
 	WrongParaReason = "A collator provided a collation for the wrong para"
 

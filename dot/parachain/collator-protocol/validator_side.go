@@ -33,6 +33,12 @@ var (
 	ErrNotExpectedOnValidatorSide           = errors.New("message is not expected on the validator side of the protocol")
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
+	ErrProtocolMismatch                     = errors.New("An advertisement format doesn't match the relay parent")
+	ErrSecondedLimitReached                 = errors.New("Para reached a limit of seconded candidates for this relay parent.")
+	ErrRelayParentUnknown                   = errors.New("relay parent is unknown")
+	ErrUndeclaredPara                       = errors.New("peer has not declared its para id")
+	ErrInvalidAssignment                    = errors.New("we're assigned to a different para at the given relay parent")
+	ErrInvalidAdvertisement                 = errors.New("advertisement is invalid")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -145,9 +151,9 @@ func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, par
 	}
 }
 
-func (peerData *PeerData) InsertAdvertisement() error {
+func (peerData *PeerData) InsertAdvertisement() (isAdvertisementInvalid bool, err error) {
 	// TODO: part of https://github.com/ChainSafe/gossamer/issues/3514
-	return nil
+	return false, nil
 }
 
 type PeerStateInfo struct {
@@ -224,6 +230,57 @@ type CollatorProtocolValidatorSide struct {
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
+
+	// state tracked per relay parent
+	perRelayParent map[common.Hash]PerRelayParent // map[replay parent]PerRelayParent
+
+	// TODO: In rust this is a map, let's see if we can get away with a map
+	// blocked_advertisements: HashMap<(ParaId, Hash), Vec<BlockedAdvertisement>>,
+	BlockedAdvertisements []BlockedAdvertisement
+}
+
+//	struct PerRelayParent {
+//		prospective_parachains_mode: ProspectiveParachainsMode,
+//		assignment: GroupAssignments,
+//		collations: Collations,
+//	}
+type ProspectiveParachainsMode struct {
+	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
+	isEnabled bool
+
+	// these values would be present only if `isEnabled` is true
+
+	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
+	// Restricts nodes from building arbitrary long chains and spamming other validators.
+	maxCandidateDepth uint
+
+	// How many ancestors of a relay parent are allowed to build candidates on top of.
+	allowedAncestryLen uint
+}
+
+type PerRelayParent struct {
+	prospectiveParachainMode ProspectiveParachainsMode
+	assignment               *parachaintypes.ParaID
+	collations               Collations
+}
+
+type Collations struct {
+	// What is the current status in regards to a collation for this relay parent?
+	status CollationStatus
+	// how many collations have been seconded
+	secondedCount uint
+}
+
+// IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
+func (collations Collations) IsSecondedLimitReached(relayParentMode ProspectiveParachainsMode) bool {
+	var secondedLimit uint
+	if relayParentMode.isEnabled {
+		secondedLimit = relayParentMode.maxCandidateDepth + 1
+	} else {
+		secondedLimit = 1
+	}
+
+	return collations.secondedCount >= secondedLimit
 }
 
 func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,
