@@ -166,7 +166,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 			return true
 		}
 
-		env, err := types.NewCandidateEnvironment(highestSession, leafHash, d.runtime)
+		env, err := types.NewCandidateEnvironment(d.keystore, d.runtime, highestSession, leafHash)
 		if err != nil {
 			logger.Errorf("we are lacking a `SessionInfo` for handling db votes on startup.: %s", err)
 			return true
