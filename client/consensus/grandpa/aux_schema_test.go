@@ -275,7 +275,7 @@ func TestWriteVoterSetState(t *testing.T) {
 	}
 
 	completedRounds := NewCompletedRounds[string, uint](completedRound, 1, authorities)
-	currentRounds := make(map[uint64]hasVoted[string, uint])
+	currentRounds := make(map[uint64]hasVoted[string, uint, uint])
 
 	liveState := voterSetStateLive[string, uint, uint, uint]{
 		CompletedRounds: completedRounds,
@@ -326,7 +326,7 @@ func TestWriteConcludedRound(t *testing.T) {
 	}
 
 	completedRounds := NewCompletedRounds[string, uint](completedRound, 1, authorities)
-	currentRounds := make(map[uint64]hasVoted[string, uint])
+	currentRounds := make(map[uint64]hasVoted[string, uint, uint])
 
 	liveState := voterSetStateLive[string, uint, uint, uint]{
 		CompletedRounds: completedRounds,

@@ -1,7 +1,6 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -10,7 +9,7 @@ import (
 
 func TestSharedVoterSetState_hasVoted(t *testing.T) {
 	// Has Not Voted
-	hasNotVoted := hasVoted[string, uint]{}
+	hasNotVoted := hasVoted[string, uint, uint]{}
 	hasNotVoted = hasNotVoted.New()
 	err := hasNotVoted.Set(no{})
 	require.NoError(t, err)
@@ -21,27 +20,24 @@ func TestSharedVoterSetState_hasVoted(t *testing.T) {
 	require.Equal(t, hasNotVoted, voted)
 
 	// Has Voted
-	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
-	require.NoError(t, err)
-
 	vote := vote[string, uint]{}
 	vote = vote.New()
 	err = vote.Set(propose[string, uint]{})
 	require.NoError(t, err)
 
-	yes := yes[string, uint]{
-		AuthId: *pub,
+	yes := yes[string, uint, uint]{
+		AuthId: key,
 		Vote:   vote,
 	}
 
-	hasIndeedVoted := hasVoted[string, uint]{}
+	hasIndeedVoted := hasVoted[string, uint, uint]{}
 	hasIndeedVoted = hasIndeedVoted.New()
 	err = hasIndeedVoted.Set(yes)
 	require.NoError(t, err)
 
-	example := make(map[uint64]hasVoted[string, uint])
+	example := make(map[uint64]hasVoted[string, uint, uint])
 	example[1] = hasIndeedVoted
-	newCurrentRounds := CurrentRounds[string, uint](
+	newCurrentRounds := CurrentRounds[string, uint, uint](
 		example,
 	)
 	liveState := voterSetStateLive[string, uint, uint, uint]{
@@ -210,11 +206,11 @@ func TestCompletedRounds_Push(t *testing.T) {
 
 func TestCurrentRoundsEncoding(t *testing.T) {
 	// TODO this fails
-	currentRounds := CurrentRounds[string, uint](
-		make(map[uint64]hasVoted[string, uint]),
+	currentRounds := CurrentRounds[string, uint, uint](
+		make(map[uint64]hasVoted[string, uint, uint]),
 	)
 
-	hv := hasVoted[string, uint]{}
+	hv := hasVoted[string, uint, uint]{}
 	hv = hv.New()
 	err := hv.Set(no{})
 	require.NoError(t, err)
@@ -223,11 +219,11 @@ func TestCurrentRoundsEncoding(t *testing.T) {
 	enc, err := scale.Marshal(currentRounds)
 	require.NoError(t, err)
 
-	hasVotedNew := hasVoted[string, uint]{}
+	hasVotedNew := hasVoted[string, uint, uint]{}
 	hasVotedNew = hv.New()
-	example := make(map[uint64]hasVoted[string, uint])
+	example := make(map[uint64]hasVoted[string, uint, uint])
 	example[1] = hasVotedNew
-	newCurrentRounds := CurrentRounds[string, uint](
+	newCurrentRounds := CurrentRounds[string, uint, uint](
 		example,
 	)
 	err = scale.Unmarshal(enc, &newCurrentRounds)
@@ -255,8 +251,8 @@ func TestVoterSetStateEncoding(t *testing.T) {
 	}
 
 	completedRounds := NewCompletedRounds[string, uint, uint, uint](compRound, 1, authorities)
-	currentRounds := CurrentRounds[string, uint](
-		make(map[uint64]hasVoted[string, uint]),
+	currentRounds := CurrentRounds[string, uint, uint](
+		make(map[uint64]hasVoted[string, uint, uint]),
 	)
 
 	liveState := voterSetStateLive[string, uint, uint, uint]{
@@ -434,11 +430,11 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 	require.Equal(t, "voter acting on a live round we are not tracking", err.Error())
 
 	// Valid
-	currentRounds := CurrentRounds[string, uint](
-		make(map[uint64]hasVoted[string, uint]),
+	currentRounds := CurrentRounds[string, uint, uint](
+		make(map[uint64]hasVoted[string, uint, uint]),
 	)
 
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(no{})
 	require.NoError(t, err)
@@ -455,19 +451,16 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 }
 
 func TestHasVotedEncoding(t *testing.T) {
-	pub, err := ed25519.NewPublicKey([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
-	require.NoError(t, err)
-
 	vote := vote[string, uint]{}
 	vote = vote.New()
-	err = vote.Set(propose[string, uint]{})
+	err := vote.Set(propose[string, uint]{})
 	require.NoError(t, err)
 
-	yes := yes[string, uint]{
-		AuthId: *pub,
+	yes := yes[string, uint, uint]{
+		AuthId: key,
 		Vote:   vote,
 	}
-	hv := hasVoted[string, uint]{}
+	hv := hasVoted[string, uint, uint]{}
 	hv = hv.New()
 	err = hv.Set(yes)
 	require.NoError(t, err)
@@ -475,7 +468,7 @@ func TestHasVotedEncoding(t *testing.T) {
 	res, err := scale.Marshal(hv)
 	require.NoError(t, err)
 
-	newHasVoted := hasVoted[string, uint]{}
+	newHasVoted := hasVoted[string, uint, uint]{}
 	newHasVoted = hv.New()
 	err = scale.Unmarshal(res, &newHasVoted)
 	require.NoError(t, err)
@@ -492,10 +485,10 @@ func TestHasVoted_Propose(t *testing.T) {
 	err := vote.Set(propose[string, uint]{*primaryPropose})
 	require.NoError(t, err)
 
-	yes := yes[string, uint]{
+	yes := yes[string, uint, uint]{
 		Vote: vote,
 	}
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(yes)
 	require.NoError(t, err)
@@ -514,10 +507,10 @@ func TestHasVoted_Prevote(t *testing.T) {
 	err := voteVal.Set(prevote[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, *prevoteVal})
 	require.NoError(t, err)
 
-	y := yes[string, uint]{
+	y := yes[string, uint, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(y)
 	require.NoError(t, err)
@@ -534,7 +527,7 @@ func TestHasVoted_Prevote(t *testing.T) {
 	err = proposeVote.Set(propose[string, uint]{PrimaryPropose: *primaryPropose})
 	require.NoError(t, err)
 
-	y = yes[string, uint]{
+	y = yes[string, uint, uint]{
 		Vote: proposeVote,
 	}
 	hasVoted = hasVoted.New()
@@ -555,10 +548,10 @@ func TestHasVoted_Precommit(t *testing.T) {
 	err := voteVal.Set(precommit[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, grandpa.Prevote[string, uint]{}, *precommitVal})
 	require.NoError(t, err)
 
-	y := yes[string, uint]{
+	y := yes[string, uint, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(y)
 	require.NoError(t, err)
@@ -575,7 +568,7 @@ func TestHasVoted_Precommit(t *testing.T) {
 	err = proposeVote.Set(propose[string, uint]{PrimaryPropose: *primaryPropose})
 	require.NoError(t, err)
 
-	y = yes[string, uint]{
+	y = yes[string, uint, uint]{
 		Vote: proposeVote,
 	}
 	hasVoted = hasVoted.New()
@@ -596,10 +589,10 @@ func TestHasVoted_CanPropose(t *testing.T) {
 	err := voteVal.Set(propose[string, uint]{*primaryPropose})
 	require.NoError(t, err)
 
-	yes := yes[string, uint]{
+	yes := yes[string, uint, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(yes)
 	require.NoError(t, err)
@@ -621,10 +614,10 @@ func TestHasVoted_CanPrevote(t *testing.T) {
 	err := voteVal.Set(prevote[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, *prevoteVal})
 	require.NoError(t, err)
 
-	yes := yes[string, uint]{
+	yes := yes[string, uint, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(yes)
 	require.NoError(t, err)
@@ -646,10 +639,10 @@ func TestHasVoted_CanPrecommit(t *testing.T) {
 	err := vote.Set(precommit[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, grandpa.Prevote[string, uint]{}, *precommitVal})
 	require.NoError(t, err)
 
-	yes := yes[string, uint]{
+	yes := yes[string, uint, uint]{
 		Vote: vote,
 	}
-	hasVoted := hasVoted[string, uint]{}
+	hasVoted := hasVoted[string, uint, uint]{}
 	hasVoted = hasVoted.New()
 	err = hasVoted.Set(yes)
 	require.NoError(t, err)

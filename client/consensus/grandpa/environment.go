@@ -5,7 +5,7 @@ package grandpa
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -107,7 +107,7 @@ func (cr *completedRounds[H, N, ID, Sig]) push(compRound completedRound[H, N, ID
 // CurrentRounds A map with voter status information for currently live rounds,
 // which votes have we cast and what are they.
 // TODO convert to btree after #3480 is implemented
-type CurrentRounds[H comparable, N constraints.Unsigned] map[uint64]hasVoted[H, N]
+type CurrentRounds[H comparable, N constraints.Unsigned, ID AuthorityID] map[uint64]hasVoted[H, N, ID]
 
 // A tracker for the rounds that we are actively participating on (i.e. voting)
 // and the authority id under which we are doing it.
@@ -171,11 +171,11 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) finishedVotingOn(round uint64) {
 }
 
 // Return vote status information for the current round
-func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted[H, N], error) {
+func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted[H, N, ID], error) {
 	svss.Inner.Lock()
 	defer svss.Inner.Unlock()
 
-	hasNotVotedFunc := func(newHasVoted hasVoted[H, N]) (hasVoted[H, N], error) {
+	hasNotVotedFunc := func(newHasVoted hasVoted[H, N, ID]) (hasVoted[H, N, ID], error) {
 		err := newHasVoted.Set(no{})
 		if err != nil {
 			return newHasVoted, err
@@ -184,7 +184,7 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted
 		return newHasVoted, nil
 	}
 
-	newHasVoted := hasVoted[H, N]{}
+	newHasVoted := hasVoted[H, N, ID]{}
 	newHasVoted = newHasVoted.New()
 
 	vss, err := svss.Inner.Inner.Value()
@@ -204,7 +204,7 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted
 			return newHasVoted, err
 		}
 		switch hasVotedValue.(type) {
-		case yes[H, N]:
+		case yes[H, N, ID]:
 			return hasVoted, nil
 		}
 	}
@@ -242,7 +242,7 @@ func (tve voterSetState[H, N, ID, Sig]) New() voterSetState[H, N, ID, Sig] {
 		CompletedRounds: completedRounds[H, N, ID, Sig]{
 			Rounds: make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds),
 		},
-		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
+		CurrentRounds: make(map[uint64]hasVoted[H, N, ID]), // init the map
 	}, voterSetStatePaused[H, N, ID, Sig]{})
 	if err != nil {
 		panic(err)
@@ -257,7 +257,7 @@ func NewVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig 
 		CompletedRounds: completedRounds[H, N, ID, Sig]{
 			Rounds: make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds),
 		},
-		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
+		CurrentRounds: make(map[uint64]hasVoted[H, N, ID]), // init the map
 	}, voterSetStatePaused[H, N, ID, Sig]{})
 	if err != nil {
 		panic(err)
@@ -280,10 +280,10 @@ func NewLiveVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, 
 		authSet,
 	)
 	//currentRounds := make(map[uint64]hasVoted[string, uint])
-	currentRounds := CurrentRounds[H, N](
-		make(map[uint64]hasVoted[H, N]),
+	currentRounds := CurrentRounds[H, N, ID](
+		make(map[uint64]hasVoted[H, N, ID]),
 	)
-	hasVoted := hasVoted[H, N]{}
+	hasVoted := hasVoted[H, N, ID]{}
 	hasVoted = hasVoted.New()
 	err := hasVoted.Set(no{})
 	if err != nil {
@@ -339,10 +339,10 @@ func (tve *voterSetState[H, N, ID, Sig]) lastCompletedRound() (completedRound[H,
 
 // withCurrentRound Returns the voter set state validating that it includes the given round
 // in current rounds and that the voter isn't paused
-func (tve *voterSetState[H, N, ID, Sig]) withCurrentRound(round uint64) (completedRounds[H, N, ID, Sig], CurrentRounds[H, N], error) {
+func (tve *voterSetState[H, N, ID, Sig]) withCurrentRound(round uint64) (completedRounds[H, N, ID, Sig], CurrentRounds[H, N, ID], error) {
 	value, err := tve.Value()
 	if err != nil {
-		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N]{}, err
+		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N, ID]{}, err
 	}
 	switch v := value.(type) {
 	case voterSetStateLive[H, N, ID, Sig]:
@@ -350,9 +350,9 @@ func (tve *voterSetState[H, N, ID, Sig]) withCurrentRound(round uint64) (complet
 		if contains {
 			return v.CompletedRounds, v.CurrentRounds, nil
 		}
-		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N]{}, fmt.Errorf("voter acting on a live round we are not tracking")
+		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N, ID]{}, fmt.Errorf("voter acting on a live round we are not tracking")
 	case voterSetStatePaused[H, N, ID, Sig]:
-		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N]{}, fmt.Errorf("voter acting while in paused state")
+		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N, ID]{}, fmt.Errorf("voter acting while in paused state")
 	default:
 		panic("completedRounds: invalid voter set state")
 	}
@@ -363,7 +363,7 @@ type voterSetStateLive[H comparable, N constraints.Unsigned, ID AuthorityID, Sig
 	// The previously completed rounds
 	CompletedRounds completedRounds[H, N, ID, Sig]
 	// Voter status for the currently live rounds.
-	CurrentRounds CurrentRounds[H, N]
+	CurrentRounds CurrentRounds[H, N, ID]
 }
 
 // Index returns VDT index
@@ -379,30 +379,30 @@ type voterSetStatePaused[H comparable, N constraints.Unsigned, ID AuthorityID, S
 func (voterSetStatePaused[H, N, ID, Sig]) Index() uint { return 1 }
 
 // hasVoted Whether we've voted already during a prior run of the program
-type hasVoted[H comparable, N constraints.Unsigned] scale.VaryingDataType
+type hasVoted[H comparable, N constraints.Unsigned, ID AuthorityID] scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (hv *hasVoted[H, N]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
+func (hv *hasVoted[H, N, ID]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*hv)
 	err = vdt.Set(val)
 	if err != nil {
 		return err
 	}
-	*hv = hasVoted[H, N](vdt)
+	*hv = hasVoted[H, N, ID](vdt)
 	return nil
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (hv *hasVoted[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
+func (hv *hasVoted[H, N, ID]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*hv)
 	return vdt.Value()
 }
 
 // New is constructor for hasVoted
-func (hv hasVoted[H, N]) New() hasVoted[H, N] {
-	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N]{})
+func (hv hasVoted[H, N, ID]) New() hasVoted[H, N, ID] {
+	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N, ID]{})
 
-	newHv := hasVoted[H, N](vdt)
+	newHv := hasVoted[H, N, ID](vdt)
 	return newHv
 }
 
@@ -413,30 +413,30 @@ type no struct{}
 func (no) Index() uint { return 0 }
 
 // yes Has voted in this round
-type yes[H comparable, N constraints.Unsigned] struct {
-	AuthId ed25519.PublicKey
+type yes[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	AuthId ID
 	Vote   vote[H, N]
 }
 
 // Index returns VDT index
-func (yes[H, N]) Index() uint { return 1 }
+func (yes[H, N, ID]) Index() uint { return 1 }
 
-func (yes[H, N]) New() yes[H, N] {
+func (yes[H, N, ID]) New() yes[H, N, ID] {
 	vote := vote[H, N]{}
 	vote = vote.New()
-	return yes[H, N]{
+	return yes[H, N, ID]{
 		Vote: vote,
 	}
 }
 
 // propose Returns the proposal we should vote with (if any.)
-func (hv *hasVoted[H, N]) Propose() *grandpa.PrimaryPropose[H, N] {
+func (hv *hasVoted[H, N, ID]) Propose() *grandpa.PrimaryPropose[H, N] {
 	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
 	switch v := value.(type) {
-	case yes[H, N]:
+	case yes[H, N, ID]:
 		value, err = v.Vote.Value()
 		if err != nil {
 			return nil
@@ -455,13 +455,13 @@ func (hv *hasVoted[H, N]) Propose() *grandpa.PrimaryPropose[H, N] {
 }
 
 // prevote Returns the prevote we should vote with (if any.)
-func (hv *hasVoted[H, N]) Prevote() *grandpa.Prevote[H, N] {
+func (hv *hasVoted[H, N, ID]) Prevote() *grandpa.Prevote[H, N] {
 	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
 	switch v := value.(type) {
-	case yes[H, N]:
+	case yes[H, N, ID]:
 		value, err = v.Vote.Value()
 		if err != nil {
 			return nil
@@ -478,13 +478,13 @@ func (hv *hasVoted[H, N]) Prevote() *grandpa.Prevote[H, N] {
 }
 
 // precommit Returns the precommit we should vote with (if any.)
-func (hv *hasVoted[H, N]) Precommit() *grandpa.Precommit[H, N] {
+func (hv *hasVoted[H, N, ID]) Precommit() *grandpa.Precommit[H, N] {
 	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
 	switch v := value.(type) {
-	case yes[H, N]:
+	case yes[H, N, ID]:
 		value, err = v.Vote.Value()
 		if err != nil {
 			return nil
@@ -499,17 +499,17 @@ func (hv *hasVoted[H, N]) Precommit() *grandpa.Precommit[H, N] {
 }
 
 // CanPropose Returns true if the voter can still propose, false otherwise
-func (hv *hasVoted[H, N]) CanPropose() bool {
+func (hv *hasVoted[H, N, ID]) CanPropose() bool {
 	return hv.Propose() == nil
 }
 
 // CanPrevote Returns true if the voter can still prevote, false otherwise
-func (hv *hasVoted[H, N]) CanPrevote() bool {
+func (hv *hasVoted[H, N, ID]) CanPrevote() bool {
 	return hv.Prevote() == nil
 }
 
 // CanPrecommit Returns true if the voter can still precommit, false otherwise
-func (hv *hasVoted[H, N]) CanPrecommit() bool {
+func (hv *hasVoted[H, N, ID]) CanPrecommit() bool {
 	return hv.Precommit() == nil
 }
 
