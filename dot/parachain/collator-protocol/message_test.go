@@ -126,16 +126,16 @@ func TestCollationProtocol(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
-				vdt_parent := NewCollationProtocol()
-				vdt_child := NewCollatorProtocolMessage()
+				vdtParent := NewCollationProtocol()
+				vdtChild := NewCollatorProtocolMessage()
 
-				err := vdt_child.Set(c.enumValue)
+				err := vdtChild.Set(c.enumValue)
 				require.NoError(t, err)
 
-				err = vdt_parent.Set(vdt_child)
+				err = vdtParent.Set(vdtChild)
 				require.NoError(t, err)
 
-				bytes, err := scale.Marshal(vdt_parent)
+				bytes, err := scale.Marshal(vdtParent)
 				require.NoError(t, err)
 
 				require.Equal(t, c.encodingValue, bytes)
@@ -144,18 +144,18 @@ func TestCollationProtocol(t *testing.T) {
 			t.Run("unmarshal", func(t *testing.T) {
 				t.Parallel()
 
-				vdt_parent := NewCollationProtocol()
-				err := scale.Unmarshal(c.encodingValue, &vdt_parent)
+				vdtParent := NewCollationProtocol()
+				err := scale.Unmarshal(c.encodingValue, &vdtParent)
 				require.NoError(t, err)
 
-				vdt_child_temp, err := vdt_parent.Value()
+				vdtChildTemp, err := vdtParent.Value()
 				require.NoError(t, err)
-				require.Equal(t, uint(0), vdt_child_temp.Index())
+				require.Equal(t, uint(0), vdtChildTemp.Index())
 
-				vdt_child := vdt_child_temp.(CollatorProtocolMessage)
+				vdtChild := vdtChildTemp.(CollatorProtocolMessage)
 				require.NoError(t, err)
 
-				actualData, err := vdt_child.Value()
+				actualData, err := vdtChild.Value()
 				require.NoError(t, err)
 
 				require.Equal(t, c.enumValue.Index(), actualData.Index())
@@ -376,12 +376,12 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 				currentAssignments: c.currentAssignments,
 			}
 			msg := NewCollationProtocol()
-			vdt_child := NewCollatorProtocolMessage()
+			vdtChild := NewCollatorProtocolMessage()
 
-			err = vdt_child.Set(c.declareMsg)
+			err = vdtChild.Set(c.declareMsg)
 			require.NoError(t, err)
 
-			err = msg.Set(vdt_child)
+			err = msg.Set(vdtChild)
 			require.NoError(t, err)
 
 			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
