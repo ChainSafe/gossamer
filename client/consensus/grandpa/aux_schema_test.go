@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/client/api"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -12,8 +13,8 @@ import (
 	"testing"
 )
 
-func genesisAuthorities(auths []Authority[uint], err error) getGenesisAuthorities[uint] {
-	return func() ([]Authority[uint], error) { return auths, err }
+func genesisAuthorities[ID AuthorityID](auths []Authority[ID], err error) getGenesisAuthorities[ID] {
+	return func() ([]Authority[ID], error) { return auths, err }
 }
 
 func write(store api.AuxStore) writeAux {
@@ -127,6 +128,7 @@ func TestLoadPersistentGenesis(t *testing.T) {
 }
 
 func TestLoadPersistentNotGenesis(t *testing.T) {
+	fmt.Println("----------------- Starting Test ---------------")
 	store := newDummyStore(t)
 	genesisHash := "a"
 	genesisNumber := uint(21)

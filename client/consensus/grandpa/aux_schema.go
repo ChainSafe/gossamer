@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 
@@ -37,6 +38,7 @@ func loadDecoded(store api.AuxStore, key []byte, destination any) error {
 	}
 
 	if encodedValue != nil {
+		fmt.Println("-------- Unmarshalling ---------------")
 		err = scale.Unmarshal(*encodedValue, destination)
 		if err != nil {
 			return err
@@ -49,6 +51,7 @@ func loadDecoded(store api.AuxStore, key []byte, destination any) error {
 }
 
 func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](store api.AuxStore, genesisHash H, genesisNumber N, genesisAuths getGenesisAuthorities[ID]) (*persistentData[H, N, ID, Sig], error) {
+	fmt.Println("----- LoadPersistant ---------")
 	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
 	makeGenesisRound := grandpa.NewRoundState[H, N]
 
@@ -59,11 +62,17 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	}
 
 	if !errors.Is(err, errValueNotFound) {
-		setState := &voterSetState[H, N, ID, Sig]{}
-		err = loadDecoded(store, setStateKey, setState)
-		if err != nil && !errors.Is(err, errValueNotFound) {
-			return nil, err
-		}
+		// Going to manually decode for tests
+		encodedValue, err := store.Get(setStateKey)
+
+		setState := voterSetState[H, N, ID, Sig]{}
+		err = scale.Unmarshal(*encodedValue, &setState)
+
+		//setState := voterSetState[H, N, ID, Sig]{}
+		//err = loadDecoded(store, setStateKey, &setState)
+		//if err != nil && !errors.Is(err, errValueNotFound) {
+		//	return nil, err
+		//}
 
 		if errors.Is(err, errValueNotFound) {
 			state := makeGenesisRound(genesis)
@@ -73,14 +82,14 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 				if err != nil {
 					return nil, err
 				}
-				setState = &state
+				setState = state
 			} else {
 				panic("state is for completed round; completed rounds must have a prevote ghost; qed")
 			}
 		}
 
 		newSharedVoterSetState := sharedVoterSetState[H, N, ID, Sig]{
-			Inner: *setState,
+			Inner: setState,
 		}
 
 		return &persistentData[H, N, ID, Sig]{
@@ -94,7 +103,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	if err != nil {
 		return nil, err
 	}
-	genesisSet, err := NewGenesisAuthoritySet[H, N, ID](genesisAuthorities)
+	genesisSet, err := NewGenesisAuthoritySet[H, N](genesisAuthorities)
 	if err != nil {
 		return nil, err
 	}

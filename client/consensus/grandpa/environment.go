@@ -238,6 +238,7 @@ func (tve *voterSetState[H, N, ID, Sig]) Value() (val scale.VaryingDataTypeValue
 
 // New Creates a new voterSetState
 func (tve voterSetState[H, N, ID, Sig]) New() voterSetState[H, N, ID, Sig] {
+	fmt.Println("--- New VoterSetState ---------")
 	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N, ID, Sig]{
 		CompletedRounds: completedRounds[H, N, ID, Sig]{
 			Rounds: make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds),
@@ -397,6 +398,7 @@ func (hv *hasVoted[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { 
 
 // New is constructor for hasVoted
 func (hv hasVoted[H, N]) New() hasVoted[H, N] {
+	fmt.Println("--- New HasVoted ---------")
 	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N]{})
 
 	newHv := hasVoted[H, N](vdt)
