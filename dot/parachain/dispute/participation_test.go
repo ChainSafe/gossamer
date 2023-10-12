@@ -53,7 +53,7 @@ func TestNewParticipation(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockRuntime := NewMockRuntimeInstance(ctrl)
-	mockSender := overseer.NewMockSender(ctrl)
+	mockSender := NewMockSender(ctrl)
 
 	participation := NewParticipation(mockSender, mockRuntime)
 	require.NotNil(t, participation, "should not be nil")
@@ -66,7 +66,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
@@ -123,7 +123,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		var wg sync.WaitGroup
@@ -197,7 +197,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		var wg sync.WaitGroup
@@ -274,7 +274,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
@@ -324,7 +324,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
@@ -382,7 +382,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
@@ -430,7 +430,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
@@ -500,7 +500,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
@@ -569,7 +569,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := overseer.NewMockSender(ctrl)
+		mockSender := NewMockSender(ctrl)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		participationHandler := NewParticipation(mockSender, mockRuntime)
