@@ -201,7 +201,9 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(collations Collations
 	}
 
 }
-func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, peerID peer.ID, prospectiveCandidate *ProspectiveCandidate) error {
+
+func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
+	prospectiveCandidate *ProspectiveCandidate) error {
 	// TODO:
 	// - tracks advertisements received and the source (peer id) of the advertisement
 
@@ -212,11 +214,11 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 		cpvs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
 			Reason: peerset.UnexpectedMessageReason,
-		}, peerID)
+		}, sender)
 		return ErrRelayParentUnknown
 	}
 
-	peerData, ok := cpvs.peerData[peerID]
+	peerData, ok := cpvs.peerData[sender]
 	if !ok {
 		return ErrUnknownPeer
 	}
@@ -225,7 +227,7 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 		cpvs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
 			Reason: peerset.UnexpectedMessageReason,
-		}, peerID)
+		}, sender)
 		return ErrUndeclaredPara
 	}
 
@@ -235,11 +237,13 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 		cpvs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.WrongParaValue,
 			Reason: peerset.WrongParaReason,
-		}, peerID)
+		}, sender)
 		return ErrInvalidAssignment
 	}
 
+	// Note: Prospective Parachain mode would be set or edited when the view gets updated.
 	if perRelayParent.prospectiveParachainMode.isEnabled && prospectiveCandidate == nil {
+		// Expected v2 advertisement.
 		return ErrProtocolMismatch
 	}
 
@@ -248,7 +252,7 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 		cpvs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
 			Reason: peerset.UnexpectedMessageReason,
-		}, peerID)
+		}, sender)
 		logger.Errorf(ErrInvalidAdvertisement.Error())
 	}
 	if err != nil {
@@ -266,7 +270,7 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
 		cpvs.BlockedAdvertisements = append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
-			peerID:               peerID,
+			peerID:               sender,
 			collatorID:           peerData.state.CollatingPeerState.CollatorID,
 			candidateRelayParent: relayParent,
 			candidateHash:        prospectiveCandidate.CandidateHash,
@@ -398,7 +402,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			return propagate, errors.New("expected message to be advertise collation")
 		}
 
-		err := cpvs.handleAdvertisement(common.Hash(advertiseCollationMessage))
+		err := cpvs.handleAdvertisement(common.Hash(advertiseCollationMessage), sender, nil)
 		if err != nil {
 			return propagate, fmt.Errorf("handling v1 advertisement: %w", err)
 		}

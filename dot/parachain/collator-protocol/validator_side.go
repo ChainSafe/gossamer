@@ -33,12 +33,14 @@ var (
 	ErrNotExpectedOnValidatorSide           = errors.New("message is not expected on the validator side of the protocol")
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
-	ErrProtocolMismatch                     = errors.New("An advertisement format doesn't match the relay parent")
-	ErrSecondedLimitReached                 = errors.New("Para reached a limit of seconded candidates for this relay parent.")
+	ErrProtocolMismatch                     = errors.New("an advertisement format doesn't match the relay parent")
+	ErrSecondedLimitReached                 = errors.New("para reached a limit of seconded candidates for this relay parent")
 	ErrRelayParentUnknown                   = errors.New("relay parent is unknown")
 	ErrUndeclaredPara                       = errors.New("peer has not declared its para id")
 	ErrInvalidAssignment                    = errors.New("we're assigned to a different para at the given relay parent")
 	ErrInvalidAdvertisement                 = errors.New("advertisement is invalid")
+	ErrUndeclaredCollator                   = errors.New("no prior declare message received for this collator ")
+	ErrOutOfView                            = errors.New("collation relay parent is out of our view")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -151,8 +153,47 @@ func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, par
 	}
 }
 
-func (peerData *PeerData) InsertAdvertisement() (isAdvertisementInvalid bool, err error) {
+func IsRelayParentInImplicitView(
+	relayParent common.Hash,
+	relayParentMode ProspectiveParachainsMode,
+	implicitView ImplicitView,
+	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+	paraID parachaintypes.ParaID,
+) bool {
+	if !relayParentMode.isEnabled {
+		_, ok := activeLeaves[relayParent]
+		return ok
+	}
+
+	for hash, mode := range activeLeaves {
+		knownAllowedRelayParent := implicitView.KnownAllowedRelayParentsUnder(hash, paraID)
+		if mode.isEnabled && knownAllowedRelayParent.String() == relayParent.String() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (peerData *PeerData) InsertAdvertisement(
+	onRelayParent common.Hash,
+	relayParentMode ProspectiveParachainsMode,
+	candidateHash *common.Hash,
+	implicitView ImplicitView,
+	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+) (isAdvertisementInvalid bool, err error) {
 	// TODO: part of https://github.com/ChainSafe/gossamer/issues/3514
+
+	switch peerData.state.PeerState {
+	case Connected:
+		return true, ErrUndeclaredCollator
+	case Collating:
+		if !IsRelayParentInImplicitView(onRelayParent, relayParentMode, implicitView,
+			activeLeaves, peerData.state.CollatingPeerState.ParaID) {
+			return true, ErrOutOfView
+		}
+
+	}
 	return false, nil
 }
 
@@ -239,11 +280,10 @@ type CollatorProtocolValidatorSide struct {
 	BlockedAdvertisements []BlockedAdvertisement
 }
 
-//	struct PerRelayParent {
-//		prospective_parachains_mode: ProspectiveParachainsMode,
-//		assignment: GroupAssignments,
-//		collations: Collations,
-//	}
+// Prospective parachains mode of a relay parent. Defined by
+// the Runtime API version.
+//
+// Needed for the period of transition to asynchronous backing.
 type ProspectiveParachainsMode struct {
 	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
 	isEnabled bool
