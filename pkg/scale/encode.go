@@ -85,6 +85,8 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeVaryingDataType(in)
 	case VaryingDataTypeSlice:
 		err = es.encodeVaryingDataTypeSlice(in)
+	case BTree:
+		err = es.encodeBTree(in)
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
@@ -203,6 +205,21 @@ func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 
 func (es *encodeState) encodeVaryingDataTypeSlice(vdts VaryingDataTypeSlice) (err error) {
 	err = es.marshal(vdts.Types)
+	return
+}
+
+func (es *encodeState) encodeBTree(tree BTree) (err error) {
+	// write the number of items in the tree
+	err = es.encodeLength(tree.Len())
+	if err != nil {
+		return
+	}
+
+	// iterate through the tree and encode each item
+	tree.Ascend(nil, func(item any) bool {
+		err = es.marshal(item)
+		return err == nil
+	})
 	return
 }
 
