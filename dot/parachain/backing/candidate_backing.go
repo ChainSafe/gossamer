@@ -17,9 +17,9 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
 var (
-	ErrRejectedByProspectiveParachains = errors.New("rejected by prospective parachains")
+	ErrRejectedByProspectiveParachains = errors.New("candidate rejected by prospective parachains subsystem")
 	ErrValidationFailed                = errors.New("validation failed")
-	ErrInvalidErasureRoot              = errors.New("Erasure root doesn't match the announced by the candidate receipt")
+	ErrInvalidErasureRoot              = errors.New("erasure root doesn't match the announced by the candidate receipt")
 )
 
 type CandidateBacking struct {
@@ -31,9 +31,13 @@ type CandidateBacking struct {
 
 type perCandidateState struct {
 	persistedValidationData parachaintypes.PersistedValidationData
+	SecondedLocally         bool
+	ParaID                  parachaintypes.ParaID
+	RelayParent             common.Hash
 }
 
 type perRelayParentState struct {
+	ProspectiveParachainsMode ProspectiveParachainsMode
 	// The hash of the relay parent on top of which this job is doing it's work.
 	RelayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
@@ -196,7 +200,7 @@ func (cb *CandidateBacking) handleSecondMessage() {
 // Import the statement and kick off validation work if it is a part of our assignment.
 func (cb *CandidateBacking) handleStatementMessage(
 	relayParent common.Hash,
-	statement SignedFullStatementWithPVD,
+	signedStatementWithPVD SignedFullStatementWithPVD,
 	chRelayParentAndCommand chan RelayParentAndCommand,
 ) error {
 	rpState, ok := cb.perRelayParent[relayParent]
@@ -204,7 +208,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return fmt.Errorf("Received statement for unknown relay parent %s", relayParent)
 	}
 
-	summery, err := importStatement()
+	summery, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
 	if err != nil {
 		return fmt.Errorf("importing statement: %w", err)
 	}
@@ -217,7 +221,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	statementVDT, err := statement.SignedFullStatement.Payload.Value()
+	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 	if err != nil {
 		return fmt.Errorf("getting value from statementVDT: %w", err)
 	}
@@ -238,7 +242,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting = AttestingData{
 			candidate:     candidateReceipt,
 			povHash:       statementVDT.(parachaintypes.Seconded).Descriptor.PovHash,
-			fromValidator: statement.SignedFullStatement.ValidatorIndex,
+			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 
@@ -251,17 +255,17 @@ func (cb *CandidateBacking) handleStatementMessage(
 		}
 
 		ourIndex := rpState.TableContext.validator.index
-		if statement.SignedFullStatement.ValidatorIndex == ourIndex {
+		if signedStatementWithPVD.SignedFullStatement.ValidatorIndex == ourIndex {
 			return nil
 		}
 
 		if rpState.AwaitingValidation[summery.Candidate] {
 			// Job already running
-			attesting.backing = append(attesting.backing, statement.SignedFullStatement.ValidatorIndex)
+			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
 			return nil
 		}
 		// No job, so start another with current validator:
-		attesting.fromValidator = statement.SignedFullStatement.ValidatorIndex
+		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
 
 	default:
 		return fmt.Errorf("invalid statementVDT index: %d", statementVDT.Index())
@@ -280,10 +284,113 @@ func (cb *CandidateBacking) handleStatementMessage(
 	return nil
 }
 
-func importStatement() (*Summary, error) {
-	// TODO: Implement this by referencing
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1487
-	return &Summary{}, nil
+func (rpState *perRelayParentState) importStatement(
+	subSystemToOverseer chan<- any,
+	signedStatementWithPVD SignedFullStatementWithPVD,
+	perCandidate map[parachaintypes.CandidateHash]perCandidateState,
+) (*Summary, error) {
+	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting value from statementVDT: %w", err)
+	}
+
+	if statementVDT.Index() == 2 { // Valid
+		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
+	}
+
+	// PersistedValidationData should not be nil if the statementVDT is Seconded.
+	if signedStatementWithPVD.PersistedValidationData == nil {
+		return nil, fmt.Errorf("persisted validation data is nil")
+	}
+
+	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(statementVDTSeconded)),
+	}
+
+	if _, ok := perCandidate[candidateHash]; ok {
+		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
+	}
+
+	if rpState.ProspectiveParachainsMode.IsEnabled {
+		chIntroduceCandidate := make(chan error)
+		subSystemToOverseer <- ProspectiveParachainsMessage{
+			Value: IntroduceCandidate{
+				IntroduceCandidateRequest: IntroduceCandidateRequest{
+					CandidateParaID:           parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
+					CommittedCandidateReceipt: parachaintypes.CommittedCandidateReceipt(statementVDTSeconded),
+					PersistedValidationData:   *signedStatementWithPVD.PersistedValidationData,
+				},
+				Ch: chIntroduceCandidate,
+			},
+		}
+
+		introduceCandidateErr := <-chIntroduceCandidate
+		if introduceCandidateErr != nil {
+			return nil, fmt.Errorf("%w: %w", ErrRejectedByProspectiveParachains, introduceCandidateErr)
+		}
+
+		subSystemToOverseer <- ProspectiveParachainsMessage{
+			Value: CandidateSeconded{
+				ParaID:        parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
+				CandidateHash: candidateHash,
+			},
+		}
+	}
+
+	// Only save the candidate if it was approved by prospective parachains.
+	perCandidate[candidateHash] = perCandidateState{
+		persistedValidationData: *signedStatementWithPVD.PersistedValidationData,
+		SecondedLocally:         false, // This is set after importing when seconding locally.
+		ParaID:                  parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
+		RelayParent:             statementVDTSeconded.Descriptor.RelayParent,
+	}
+
+	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
+}
+
+type ProspectiveParachainsMessage struct {
+	Value any
+}
+
+// Inform the Prospective Parachains Subsystem of a new candidate.
+//
+// The response sender accepts the candidate membership, which is the existing
+// membership of the candidate if it was already known.
+type IntroduceCandidate struct {
+	IntroduceCandidateRequest IntroduceCandidateRequest
+	Ch                        chan error
+}
+
+// Inform the Prospective Parachains Subsystem that a previously introduced candidate
+// has been seconded. This requires that the candidate was successfully introduced in
+// the past.
+type CandidateSeconded struct {
+	ParaID        parachaintypes.ParaID
+	CandidateHash parachaintypes.CandidateHash
+}
+
+type IntroduceCandidateRequest struct {
+	// The para-id of the candidate.
+	CandidateParaID parachaintypes.ParaID
+	// The candidate receipt itself.
+	CommittedCandidateReceipt parachaintypes.CommittedCandidateReceipt
+	// The persisted validation data of the candidate.
+	PersistedValidationData parachaintypes.PersistedValidationData
+}
+
+type ProspectiveParachainsMode struct {
+	// Runtime API without support of `async_backing_params`: no prospective parachains.
+	// v6 runtime API: prospective parachains.
+	// NOTE: MaxCandidateDepth and AllowedAncestryLen need to be set if this is enabled.
+	IsEnabled bool
+
+	// The maximum number of para blocks between the para head in a relay parent
+	// and a new candidate. Restricts nodes from building arbitrary long chains
+	// and spamming other validators.
+	MaxCandidateDepth uint
+	// How many ancestors of a relay parent are allowed to build candidates on top of.
+	AllowedAncestryLen uint
 }
 
 func postImportStatement() error {
@@ -425,7 +532,6 @@ func backgroundValidateAndMakeAvailable(
 		}
 	}
 
-	// handle validated candidate command
 	chRelayParentAndCommand <- RelayParentAndCommand{
 		RelayParent:   relayPaent,
 		Command:       makeCommand,
@@ -436,7 +542,7 @@ func backgroundValidateAndMakeAvailable(
 
 func GetPovFromValidator() parachaintypes.PoV {
 	//	TODO: Implement this
-	//	github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744
+	//	https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744
 	return parachaintypes.PoV{}
 }
 
