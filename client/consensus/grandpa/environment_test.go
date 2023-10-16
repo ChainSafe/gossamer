@@ -207,7 +207,7 @@ func TestCompletedRounds_Last(t *testing.T) {
 	require.Panics(t, func() { emptyCompletedRounds.last() }, "last did not panic")
 }
 
-func TestCompletedRounds_NewPush(t *testing.T) {
+func TestCompletedRounds_Push(t *testing.T) {
 	authorities := AuthoritySet[string, uint, uint]{
 		CurrentAuthorities:     []Authority[uint]{},
 		SetID:                  1,
