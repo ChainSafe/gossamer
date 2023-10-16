@@ -59,6 +59,14 @@ func NewCompletedRounds[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 	}
 }
 
+func (cr *completedRounds[H, N, ID, Sig]) iter() []completedRound[H, N, ID, Sig] {
+	var reversed []completedRound[H, N, ID, Sig]
+	for i := len(cr.Rounds) - 1; i >= 0; i-- {
+		reversed = append(reversed, cr.Rounds[i])
+	}
+	return reversed
+}
+
 // last Returns the last (latest) completed round
 func (cr *completedRounds[H, N, ID, Sig]) last() completedRound[H, N, ID, Sig] {
 	if len(cr.Rounds) == 0 {

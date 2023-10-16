@@ -115,6 +115,62 @@ func TestCompletedRoundsEncoding(t *testing.T) {
 	require.Equal(t, compRounds, newCompletedRounds)
 }
 
+func TestCompletedRounds_Iter(t *testing.T) {
+	dummyHashNumber := grandpa.HashNumber[string, uint]{
+		Hash:   "a",
+		Number: 1,
+	}
+
+	completedRound0 := completedRound[string, uint, uint, uint]{
+		Number: 0,
+		State: grandpa.RoundState[string, uint]{
+			PrevoteGHOST: &dummyHashNumber,
+			Finalized:    &dummyHashNumber,
+			Estimate:     &dummyHashNumber,
+			Completable:  true,
+		},
+		Base: dummyHashNumber,
+	}
+
+	completedRound1 := completedRound[string, uint, uint, uint]{
+		Number: 1,
+		State: grandpa.RoundState[string, uint]{
+			PrevoteGHOST: &dummyHashNumber,
+			Finalized:    &dummyHashNumber,
+			Estimate:     &dummyHashNumber,
+			Completable:  true,
+		},
+		Base: dummyHashNumber,
+	}
+
+	completedRound2 := completedRound[string, uint, uint, uint]{
+		Number: 2,
+		State: grandpa.RoundState[string, uint]{
+			PrevoteGHOST: &dummyHashNumber,
+			Finalized:    &dummyHashNumber,
+			Estimate:     &dummyHashNumber,
+			Completable:  true,
+		},
+		Base: dummyHashNumber,
+	}
+	rounds := make([]completedRound[string, uint, uint, uint], 0, 3)
+	rounds = append(rounds, completedRound0)
+	rounds = append(rounds, completedRound1)
+	rounds = append(rounds, completedRound2)
+
+	expRounds := make([]completedRound[string, uint, uint, uint], 0, 3)
+	expRounds = append(expRounds, completedRound2)
+	expRounds = append(expRounds, completedRound1)
+	expRounds = append(expRounds, completedRound0)
+
+	compRounds := completedRounds[string, uint, uint, uint]{
+		Rounds: rounds,
+	}
+
+	revRounds := compRounds.iter()
+	require.Equal(t, expRounds, revRounds)
+}
+
 func TestCompletedRounds_Last(t *testing.T) {
 	authorities := AuthoritySet[string, uint, uint]{
 		CurrentAuthorities:     []Authority[uint]{},
@@ -147,7 +203,7 @@ func TestCompletedRounds_Last(t *testing.T) {
 	require.Panics(t, func() { emptyCompletedRounds.last() }, "last did not panic")
 }
 
-func TestCompletedRounds_NewPush(t *testing.T) {
+func TestCompletedRounds_Push(t *testing.T) {
 	authorities := AuthoritySet[string, uint, uint]{
 		CurrentAuthorities:     []Authority[uint]{},
 		SetID:                  1,
