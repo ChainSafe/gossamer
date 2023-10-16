@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -145,7 +146,7 @@ func (ct *ChangeTree[H, N, ID]) FinalizesAnyWithDescendentIf(
 
 	// check if the given hash is equal or a descendent of any node in the
 	// tree, if we find a valid node that passes the Predicate then we must
-	// ensure that we're not finalizing past any of its child nodes.
+	// ensure that we're not finalising past any of its child nodes.
 	for i := 0; i < len(nodes); i++ {
 		root := nodes[i]
 		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
@@ -222,7 +223,7 @@ func (unchanged) Index() uint {
 	return 1
 }
 
-// FinalizeWithDescendentIf Finalize a root in the roots by either finalizing the node itself or a
+// FinalizeWithDescendentIf Finalize a root in the roots by either finalising the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
 // children. The given `Predicate` is checked on the prospective finalized
@@ -244,7 +245,7 @@ func (ct *ChangeTree[H, N, ID]) FinalizeWithDescendentIf(
 
 	// check if the given hash is equal or a descendent of any root, if we
 	// find a valid root that passes the Predicate then we must ensure that
-	// we're not finalizing past any children node.
+	// we're not finalising past any children node.
 	var position *N
 	for i, root := range roots {
 		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)

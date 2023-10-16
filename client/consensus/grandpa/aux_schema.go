@@ -16,7 +16,7 @@ var (
 	setStateKey       = []byte("grandpa_completed_round")
 	concludedRounds   = []byte("grandpa_concluded_rounds")
 	authoritySetKey   = []byte("grandpa_voters")
-	bestJustification = []byte("grandpa_best_justification")
+	bestJustification = []byte("grandpa_best_justification") //nolint
 
 	errValueNotFound = errors.New("value not found")
 )
