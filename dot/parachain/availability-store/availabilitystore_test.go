@@ -1,6 +1,7 @@
 package availability_store
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -39,4 +40,15 @@ func TestAvailabilityStore_LoadAvailableData(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAvailabilityStore_LoadAvailableData2(t *testing.T) {
+	basePath := t.TempDir()
+	as, err := NewAvailabilityStore(Config{basepath: basePath})
+	as.db.Put(common.Hash{0x01}.ToBytes(), []byte("test"))
+	require.NoError(t, err)
+
+	got, err := as.LoadAvailableData(common.Hash{0x01})
+	require.NoError(t, err)
+	fmt.Printf("got: %v\n", got)
 }
