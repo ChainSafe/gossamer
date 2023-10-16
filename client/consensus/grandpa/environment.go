@@ -70,7 +70,6 @@ func (cr *completedRounds[H, N, ID, Sig]) last() completedRound[H, N, ID, Sig] {
 // push a new completed round, oldest round is evicted if number of rounds
 // is higher than `NUM_LAST_COMPLETED_ROUNDS`.
 func (cr *completedRounds[H, N, ID, Sig]) push(compRound completedRound[H, N, ID, Sig]) {
-	// TODO they use reverse, double check this
 	idx, found := slices.BinarySearchFunc(
 		cr.Rounds,
 		N(compRound.Number),
@@ -78,12 +77,12 @@ func (cr *completedRounds[H, N, ID, Sig]) push(compRound completedRound[H, N, ID
 			switch {
 			case N(a.Number) == b:
 				return 0
-			case N(a.Number) > b:
-				return 1
 			case N(a.Number) < b:
+				return 1
+			case N(a.Number) > b:
 				return -1
 			default:
-				panic("huh?")
+				panic("invalid result in binary search")
 			}
 		},
 	)

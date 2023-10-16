@@ -147,7 +147,7 @@ func TestCompletedRounds_Last(t *testing.T) {
 	require.Panics(t, func() { emptyCompletedRounds.last() }, "last did not panic")
 }
 
-func TestCompletedRounds_Push(t *testing.T) {
+func TestCompletedRounds_NewPush(t *testing.T) {
 	authorities := AuthoritySet[string, uint, uint]{
 		CurrentAuthorities:     []Authority[uint]{},
 		SetID:                  1,
@@ -162,7 +162,7 @@ func TestCompletedRounds_Push(t *testing.T) {
 	}
 
 	completedRound0 := completedRound[string, uint, uint, uint]{
-		Number: 1,
+		Number: 0,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
 			Finalized:    &dummyHashNumber,
@@ -184,7 +184,7 @@ func TestCompletedRounds_Push(t *testing.T) {
 	}
 
 	completedRound2 := completedRound[string, uint, uint, uint]{
-		Number: 1,
+		Number: 2,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
 			Finalized:    &dummyHashNumber,
@@ -197,15 +197,14 @@ func TestCompletedRounds_Push(t *testing.T) {
 	completedRounds.push(completedRound0)
 
 	lastCompletedRound := completedRounds.last()
-	require.Equal(t, completedRound0, lastCompletedRound)
+	require.Equal(t, completedRound1, lastCompletedRound)
 
 	completedRounds.push(completedRound2)
 	lastCompletedRound = completedRounds.last()
-	require.Equal(t, completedRound0, lastCompletedRound)
+	require.Equal(t, completedRound2, lastCompletedRound)
 }
 
 func TestCurrentRoundsEncoding(t *testing.T) {
-	// TODO this fails
 	currentRounds := CurrentRounds[string, uint, uint](
 		make(map[uint64]hasVoted[string, uint, uint]),
 	)
@@ -354,13 +353,15 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 		Number: 1,
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
+
+	originalCompletedRound := completedRound[string, uint, uint, uint]{
+		8,
+		state,
+		dummyHashNumber,
+		[]grandpa.SignedMessage[string, uint, uint, uint]{},
+	}
 	completedRounds := NewCompletedRounds[string, uint, uint, uint](
-		completedRound[string, uint, uint, uint]{
-			10,
-			state,
-			dummyHashNumber,
-			[]grandpa.SignedMessage[string, uint, uint, uint]{},
-		},
+		originalCompletedRound,
 		5,
 		authorities,
 	)
@@ -382,7 +383,7 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 
 	lastCompletedRound, err := voterSetState.lastCompletedRound()
 	require.NoError(t, err)
-	require.Equal(t, addedCompletedRound, lastCompletedRound)
+	require.Equal(t, originalCompletedRound, lastCompletedRound)
 }
 
 func TestVoterSetState_WithCurrentRound(t *testing.T) {
