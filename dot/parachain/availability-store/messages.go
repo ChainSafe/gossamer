@@ -4,6 +4,7 @@
 package availability_store
 
 import (
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -54,4 +55,7 @@ type StoreAvailableData struct {
 	Sender              chan any
 }
 
-type AvailableData struct{} // Define your AvailableData type
+type AvailableData struct {
+	PoV            parachaintypes.PoV
+	ValidationData parachaintypes.PersistedValidationData
+} // Define your AvailableData type

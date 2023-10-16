@@ -15,6 +15,10 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
 
+const (
+	avaliableDataPrefix = "available"
+)
+
 type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
@@ -46,14 +50,21 @@ func NewAvailabilityStore(config Config) (*AvailabilityStore, error) {
 }
 
 func (as *AvailabilityStore) LoadAvailableData(candidate common.Hash) (AvailableData, error) {
-	resultBytes, err := as.db.Get(candidate[:]) // TODO: check if this is the correct way to get the value from the
-	// database
+	resultBytes, err := as.db.Get(append([]byte(avaliableDataPrefix), candidate[:]...))
 	if err != nil {
 		return AvailableData{}, err
 	}
 	result := AvailableData{}
 	err = scale.Unmarshal(resultBytes, &result)
 	return result, err
+}
+
+func (as *AvailabilityStore) StoreAvailableData(candidate common.Hash, data AvailableData) error {
+	dataBytes, err := scale.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return as.db.Put(append([]byte(avaliableDataPrefix), candidate[:]...), dataBytes)
 }
 
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
@@ -123,5 +134,9 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) {
-	// TODO: handle store available data
+	err := av.availabilityStore.StoreAvailableData(msg.CandidateHash, msg.AvailableData)
+	if err != nil {
+		logger.Errorf("failed to load available data: %w", err)
+	}
+	msg.Sender <- err // TODO: determine how to replicate Rust's Result type
 }
