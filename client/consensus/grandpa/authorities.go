@@ -209,7 +209,8 @@ func invalidAuthorityList[ID AuthorityID](authorities []Authority[ID]) bool { //
 }
 
 // NewGenesisAuthoritySet Get a genesis set with given authorities.
-func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID](initial []Authority[ID]) (authSet *AuthoritySet[H, N, ID], err error) {
+func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID](initial []Authority[ID]) (
+	authSet *AuthoritySet[H, N, ID], err error) {
 	if invalidAuthorityList(initial) {
 		return nil, errInvalidAuthorityList
 	}
@@ -305,12 +306,14 @@ func (authSet *AuthoritySet[H, N, ID]) nextChange(bestHash H, //skipcq:  RVV-B00
 	}
 }
 
-func (authSet *AuthoritySet[H, N, ID]) addStandardChange(pending PendingChange[H, N, ID], isDescendentOf IsDescendentOf[H]) error {
+func (authSet *AuthoritySet[H, N, ID]) addStandardChange(
+	pending PendingChange[H, N, ID],
+	isDescendentOf IsDescendentOf[H]) error {
 	hash := pending.CanonHash
 	number := pending.CanonHeight
 
 	logger.Debugf(
-		"inserting potential standard set hashNumber signaled at block %d (delayed by %d blocks).",
+		"inserting potential standard set hashNumber signalled at block %d (delayed by %d blocks).",
 		number, pending.Delay,
 	)
 
@@ -344,7 +347,9 @@ func (pc PendingChange[H, N, ID]) LessThan(other PendingChange[H, N, ID]) bool {
 	return effectiveNumberLessThan || cannonHeighLessThan
 }
 
-func (authSet *AuthoritySet[H, N, ID]) addForcedChange(pending PendingChange[H, N, ID], isDescendentOf IsDescendentOf[H]) error {
+func (authSet *AuthoritySet[H, N, ID]) addForcedChange(
+	pending PendingChange[H, N, ID],
+	isDescendentOf IsDescendentOf[H]) error {
 	for _, change := range authSet.PendingForcedChanges {
 		if change.CanonHash == pending.CanonHash {
 			return errDuplicateAuthoritySetChanges
@@ -406,7 +411,9 @@ func (authSet *AuthoritySet[H, N, ID]) addForcedChange(pending PendingChange[H, 
 // on the same branch will be added in-order. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (authSet *AuthoritySet[H, N, ID]) addPendingChange(pending PendingChange[H, N, ID], isDescendentOf IsDescendentOf[H]) error {
+func (authSet *AuthoritySet[H, N, ID]) addPendingChange(
+	pending PendingChange[H, N, ID],
+	isDescendentOf IsDescendentOf[H]) error {
 	if invalidAuthorityList[ID](pending.NextAuthorities) {
 		return errInvalidAuthoritySet
 	}
@@ -482,7 +489,7 @@ func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq: 
 			continue
 		}
 		// check if the given best block is in the same branch as
-		// the block that signaled the hashNumber.
+		// the block that signalled the hashNumber.
 		isDesc, err := isDescendentOf(change.CanonHash, bestHash)
 		// Avoid case where err is returned because canonHash == bestHash
 		if change.CanonHash != bestHash && err != nil {
@@ -502,7 +509,8 @@ func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq: 
 					}
 					if standardChange.EffectiveNumber() <= medianLastFinalized && isDescStandard {
 						logger.Infof(
-							"Not applying authority set hashNumber forced at block %d, due to pending standard hashNumber at block %d",
+							"Not applying authority set hashNumber forced at block %d, "+
+								"due to pending standard hashNumber at block %d",
 							change.CanonHeight, standardChange.EffectiveNumber())
 						return nil, errForcedAuthoritySetChangeDependencyUnsatisfied
 					}

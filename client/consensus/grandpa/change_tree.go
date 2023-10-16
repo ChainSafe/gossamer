@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -119,16 +120,20 @@ func (ct *ChangeTree[H, N, ID]) getPreOrderChangeNodes() []*PendingChangeNode[H,
 	return *changes
 }
 
-// FinalizesAnyWithDescendentIf Checks if any node in the tree is finalized by either finalizing the
+// FinalizesAnyWithDescendentIf Checks if any node in the tree is finalized by either finalising the
 // node itself or a node's descendent that's not in the tree, guaranteeing
 // that the node being finalized isn't a descendent of (or equal to) any of
 // the node's children. Returns *true if the node being finalized is
 // a root, *false if the node being finalized is not a root, and
 // nil if no node in the tree is finalized. The given `Predicate` is
-// checked on the prospective finalized root and must pass for finalization
+// checked on the prospective finalized root and must pass for finalisation
 // to occur. The given function `is_descendent_of` should return `true` if
 // the second hash (target) is a descendent of the first hash (base). func(T) bool
-func (ct *ChangeTree[H, N, ID]) FinalizesAnyWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N, ID]) bool) (*bool, error) {
+func (ct *ChangeTree[H, N, ID]) FinalizesAnyWithDescendentIf(
+	hash *H,
+	number N,
+	isDescendentOf IsDescendentOf[H],
+	predicate func(*PendingChange[H, N, ID]) bool) (*bool, error) {
 	if ct.BestFinalizedNumber != nil {
 		if number <= *ct.BestFinalizedNumber {
 			return nil, errRevert
@@ -141,7 +146,7 @@ func (ct *ChangeTree[H, N, ID]) FinalizesAnyWithDescendentIf(hash *H, number N, 
 
 	// check if the given hash is equal or a descendent of any node in the
 	// tree, if we find a valid node that passes the Predicate then we must
-	// ensure that we're not finalizing past any of its child nodes.
+	// ensure that we're not finalising past any of its child nodes.
 	for i := 0; i < len(nodes); i++ {
 		root := nodes[i]
 		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
@@ -218,14 +223,18 @@ func (unchanged) Index() uint {
 	return 1
 }
 
-// FinalizeWithDescendentIf Finalize a root in the roots by either finalizing the node itself or a
+// FinalizeWithDescendentIf Finalize a root in the roots by either finalising the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
 // children. The given `Predicate` is checked on the prospective finalized
-// root and must pass for finalization to occur. The given function
+// root and must pass for finalisation to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (ct *ChangeTree[H, N, ID]) FinalizeWithDescendentIf(hash *H, number N, isDescendentOf IsDescendentOf[H], predicate func(*PendingChange[H, N, ID]) bool) (result FinalizationResult, err error) {
+func (ct *ChangeTree[H, N, ID]) FinalizeWithDescendentIf(
+	hash *H,
+	number N,
+	isDescendentOf IsDescendentOf[H],
+	predicate func(*PendingChange[H, N, ID]) bool) (result FinalizationResult, err error) {
 	if ct.BestFinalizedNumber != nil {
 		if number <= *ct.BestFinalizedNumber {
 			return result, errRevert
@@ -236,7 +245,7 @@ func (ct *ChangeTree[H, N, ID]) FinalizeWithDescendentIf(hash *H, number N, isDe
 
 	// check if the given hash is equal or a descendent of any root, if we
 	// find a valid root that passes the Predicate then we must ensure that
-	// we're not finalizing past any children node.
+	// we're not finalising past any children node.
 	var position *N
 	for i, root := range roots {
 		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
@@ -375,7 +384,9 @@ func (pcn *PendingChangeNode[H, N, ID]) importNode(hash H,
 	return true, nil
 }
 
-func getPreOrder[H comparable, N constraints.Unsigned, ID AuthorityID](changes *[]PendingChange[H, N, ID], changeNode *PendingChangeNode[H, N, ID]) {
+func getPreOrder[H comparable, N constraints.Unsigned, ID AuthorityID](
+	changes *[]PendingChange[H, N, ID],
+	changeNode *PendingChangeNode[H, N, ID]) {
 	if changeNode == nil {
 		return
 	}
@@ -394,7 +405,9 @@ func getPreOrder[H comparable, N constraints.Unsigned, ID AuthorityID](changes *
 	}
 }
 
-func getPreOrderChangeNodes[H comparable, N constraints.Unsigned, ID AuthorityID](changes *[]*PendingChangeNode[H, N, ID], changeNode *PendingChangeNode[H, N, ID]) {
+func getPreOrderChangeNodes[H comparable, N constraints.Unsigned, ID AuthorityID](
+	changes *[]*PendingChangeNode[H, N, ID],
+	changeNode *PendingChangeNode[H, N, ID]) {
 	if changeNode == nil {
 		return
 	}

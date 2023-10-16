@@ -4,10 +4,11 @@
 package grandpa
 
 import (
+	"testing"
+
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSharedVoterSetState_hasVoted(t *testing.T) {
@@ -334,7 +335,8 @@ func TestVoterSetStateEncoding(t *testing.T) {
 
 	newVal, err := newVoterSetState.Value()
 	require.NoError(t, err)
-	require.Equal(t, oldVal.(voterSetStateLive[string, uint, uint, uint]), newVal.(voterSetStateLive[string, uint, uint, uint]))
+	require.Equal(t, oldVal.(voterSetStateLive[string, uint, uint, uint]),
+		newVal.(voterSetStateLive[string, uint, uint, uint]))
 }
 
 func TestVoterSetState_Live(t *testing.T) {
@@ -605,7 +607,10 @@ func TestHasVoted_Precommit(t *testing.T) {
 	}
 	voteVal := vote[string, uint]{}
 	voteVal = voteVal.New()
-	err := voteVal.Set(precommit[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, grandpa.Prevote[string, uint]{}, *precommitVal})
+	err := voteVal.Set(precommit[string, uint]{
+		&grandpa.PrimaryPropose[string, uint]{},
+		grandpa.Prevote[string, uint]{},
+		*precommitVal})
 	require.NoError(t, err)
 
 	y := yes[string, uint, uint]{
@@ -696,7 +701,10 @@ func TestHasVoted_CanPrecommit(t *testing.T) {
 	}
 	vote := vote[string, uint]{}
 	vote = vote.New()
-	err := vote.Set(precommit[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, grandpa.Prevote[string, uint]{}, *precommitVal})
+	err := vote.Set(precommit[string, uint]{
+		&grandpa.PrimaryPropose[string, uint]{},
+		grandpa.Prevote[string, uint]{},
+		*precommitVal})
 	require.NoError(t, err)
 
 	yes := yes[string, uint, uint]{

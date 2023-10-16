@@ -4,12 +4,13 @@
 package grandpa
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/client/api"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
-	"testing"
 )
 
 func genesisAuthorities[ID AuthorityID](auths []Authority[ID], err error) getGenesisAuthorities[ID] {
@@ -64,8 +65,8 @@ func newDummyStore(t *testing.T) *dummyStore {
 func TestDummyStore(t *testing.T) {
 	store := newDummyStore(t)
 	insert := []api.KeyValue{
-		{authoritySetKey, scale.MustMarshal([]byte{1})},
-		{setStateKey, scale.MustMarshal([]byte{2})},
+		{authoritySetKey, scale.MustMarshal([]byte{1})}, //nolint
+		{setStateKey, scale.MustMarshal([]byte{2})},     //nolint
 	}
 	err := store.Insert(insert, nil)
 	require.NoError(t, err)
@@ -98,14 +99,20 @@ func TestLoadPersistentGenesis(t *testing.T) {
 	}}
 
 	// Genesis Case
-	persistentData, err := loadPersistent[string, uint, uint, uint](store, genesisHash, genesisNumber, genesisAuthorities(genesisAuths, nil))
+	persistentData, err := loadPersistent[string, uint, uint, uint](
+		store,
+		genesisHash,
+		genesisNumber,
+		genesisAuthorities(genesisAuths, nil))
 	require.NoError(t, err)
 	require.NotNil(t, persistentData)
 
 	genesisSet, err := NewGenesisAuthoritySet[string, uint, uint](genesisAuths)
 	require.NoError(t, err)
 
-	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{Hash: genesisHash, Number: genesisNumber})
+	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{
+		Hash:   genesisHash,
+		Number: genesisNumber})
 	base := state.PrevoteGHOST
 	genesisState, err := NewLiveVoterSetState[string, uint, uint, uint](0, *genesisSet, *base)
 	require.NoError(t, err)
@@ -139,19 +146,25 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	genesisSet, err := NewGenesisAuthoritySet[string, uint, uint](genesisAuths)
 	require.NoError(t, err)
 
-	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{Hash: genesisHash, Number: genesisNumber})
+	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{
+		Hash:   genesisHash,
+		Number: genesisNumber})
 	base := state.PrevoteGHOST
 	genesisState, err := NewLiveVoterSetState[string, uint, uint, uint](0, *genesisSet, *base)
 	require.NoError(t, err)
 
 	insert := []api.KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)},
-		{setStateKey, scale.MustMarshal(genesisState)},
+		{authoritySetKey, scale.MustMarshal(*genesisSet)}, //nolint
+		{setStateKey, scale.MustMarshal(genesisState)},    //nolint
 	}
 
 	err = store.Insert(insert, nil)
 	require.NoError(t, err)
-	persistentData, err := loadPersistent[string, uint, uint, uint](store, genesisHash, genesisNumber, genesisAuthorities(genesisAuths, nil))
+	persistentData, err := loadPersistent[string, uint, uint, uint](
+		store,
+		genesisHash,
+		genesisNumber,
+		genesisAuthorities(genesisAuths, nil))
 	require.NoError(t, err)
 	require.NotNil(t, persistentData)
 	require.Equal(t, *genesisSet, persistentData.authoritySet.inner)
@@ -165,12 +178,16 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	// Auth set written but not set state
 	store = newDummyStore(t)
 	insert = []api.KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)},
+		{authoritySetKey, scale.MustMarshal(*genesisSet)}, //nolint
 	}
 
 	err = store.Insert(insert, nil)
 	require.NoError(t, err)
-	persistentData, err = loadPersistent[string, uint, uint, uint](store, genesisHash, genesisNumber, genesisAuthorities(genesisAuths, nil))
+	persistentData, err = loadPersistent[string, uint, uint, uint](
+		store,
+		genesisHash,
+		genesisNumber,
+		genesisAuthorities(genesisAuths, nil))
 	require.NoError(t, err)
 
 	newState, err := NewLiveVoterSetState[string, uint, uint, uint](genesisSet.SetID, *genesisSet, *base)

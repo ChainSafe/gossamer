@@ -526,7 +526,7 @@ func TestForceChanges(t *testing.T) {
 	}
 
 	changeB := PendingChange[string, uint, uint]{
-		NextAuthorities: setA,
+		NextAuthorities: setB,
 		Delay:           10,
 		CanonHeight:     5,
 		CanonHash:       hashB,
