@@ -11,6 +11,8 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -222,25 +224,46 @@ const (
 	Seconded
 )
 
+// getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.
+// The payload is a the local peer id of the node, which serves to prove that it controls the
+// collator key it is declaring and intends to collate under.
+func getDeclareSignaturePayload(peerID peer.ID) []byte {
+	payload := []byte("COLL")
+	payload = append(payload, peerID...)
+
+	return payload
+}
+
 func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+
+	// we don't propagate collation messages, so it will always be false
+	propagate := false
+
 	if msg.Type() != network.CollationMsgType {
-		return false, fmt.Errorf("unexpected message type, expected: %d, found:%d",
+		return propagate, fmt.Errorf("%w, expected: %d, found:%d", ErrUnexpectedMessageOnCollationProtocol,
 			network.CollationMsgType, msg.Type())
 	}
 
 	collatorProtocol, ok := msg.(*CollationProtocol)
 	if !ok {
-		return false, fmt.Errorf("failed to cast into collator protocol message, expected: *CollationProtocol, got: %T", msg)
+		return propagate, fmt.Errorf(
+			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
+			msg)
 	}
 
 	collatorProtocolV, err := collatorProtocol.Value()
 	if err != nil {
-		return false, fmt.Errorf("getting collator protocol value: %w", err)
+		return propagate, fmt.Errorf("getting collator protocol value: %w", err)
 	}
 	collatorProtocolMessage, ok := collatorProtocolV.(CollatorProtocolMessage)
 	if !ok {
-		return false, errors.New("expected value to be collator protocol message")
+		return propagate, errors.New("expected value to be collator protocol message")
+	}
+
+	collatorProtocolMessageV, err := collatorProtocolMessage.Value()
+	if err != nil {
+		return propagate, fmt.Errorf("getting collator protocol message value: %w", err)
 	}
 
 	index, _, err := collatorProtocolMessage.IndexValue()
@@ -248,10 +271,76 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		return false, err
 	}
 	switch index {
-	// TODO: Make sure that V1 and VStaging both types are covered
-	// All the types covered currently are V1.
+	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
-		// TODO: handle collator declaration https://github.com/ChainSafe/gossamer/issues/3513
+		declareMessage, ok := collatorProtocolMessageV.(Declare)
+		if !ok {
+			return propagate, errors.New("expected message to be declare")
+		}
+
+		// check if we already have the collator id declared in this message. If so, punish the
+		// peer who sent us this message by reducing its reputation
+		_, ok = cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
+		if ok {
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			}, sender)
+			return propagate, nil
+		}
+
+		// NOTE: peerData for sender will be filled when it gets connected to us
+		peerData, ok := cpvs.peerData[sender]
+		if !ok {
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			}, sender)
+			return propagate, fmt.Errorf("%w: %s", ErrUnknownPeer, sender)
+		}
+
+		if peerData.state.PeerState == Collating {
+			logger.Error("peer is already in the collating state")
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			}, sender)
+			return propagate, nil
+		}
+
+		// check signature declareMessage.CollatorSignature
+		err = sr25519.VerifySignature(declareMessage.CollatorId[:], declareMessage.CollatorSignature[:],
+			getDeclareSignaturePayload(sender))
+		if errors.Is(err, crypto.ErrSignatureVerificationFailed) {
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.InvalidSignatureValue,
+				Reason: peerset.InvalidSignatureReason,
+			}, sender)
+			return propagate, fmt.Errorf("invalid signature: %w", err)
+		}
+		if err != nil {
+			return propagate, fmt.Errorf("verifying signature: %w", err)
+		}
+
+		// NOTE: assignments are setting when we handle view changes
+		_, ok = cpvs.currentAssignments[parachaintypes.ParaID(declareMessage.ParaID)]
+		if ok {
+			logger.Errorf("declared as collator for current para: %d", declareMessage.ParaID)
+
+			peerData.SetCollating(declareMessage.CollatorId, parachaintypes.ParaID(declareMessage.ParaID))
+			cpvs.peerData[sender] = peerData
+		} else {
+			logger.Errorf("declared as collator for unneeded para: %d", declareMessage.ParaID)
+			cpvs.net.ReportPeer(peerset.ReputationChange{
+				Value:  peerset.UnneededCollatorValue,
+				Reason: peerset.UnneededCollatorReason,
+			}, sender)
+
+			// TODO: Disconnect peer. #3530
+			// Do a thorough review of substrate/client/network/src/
+			// check how are they managing peerset of different protocol.
+			// Currently we have a Handler in dot/peerset, but it does not get used anywhere.
+		}
 	case 1: // AdvertiseCollation
 		// TODO: handle collation advertisement https://github.com/ChainSafe/gossamer/issues/3514
 	case 2: // CollationSeconded
@@ -262,7 +351,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		}, sender)
 	}
 
-	return false, nil
+	return propagate, nil
 }
 
 func getCollatorHandshake() (network.Handshake, error) {
