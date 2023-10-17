@@ -29,7 +29,7 @@ func Test_CandidateVotes(t *testing.T) {
 
 	validVotes := ValidCandidateVotes{
 		VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
-		Value:           btree.New(CompareVoteIndices),
+		BTree:           btree.New(CompareVoteIndices),
 	}
 	inserted, err := validVotes.InsertVote(Vote{
 		ValidatorIndex:     1,

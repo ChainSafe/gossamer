@@ -2,12 +2,10 @@ package types
 
 import (
 	"fmt"
-	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/tidwall/btree"
-
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/emirpasic/gods/sets/treeset"
 )
 
 // Vote is a vote from a validator for a dispute statement
@@ -245,7 +243,7 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState
 	// TODO: get supermajority threshold
 	superMajorityThreshold := 0
 
-	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Value.Len() == 0)
+	isDisputed := !(votes.Invalid.Value.Len() == 0) && !(votes.Valid.BTree.Value.Len() == 0)
 	if isDisputed {
 		status, err = NewDisputeStatusVDT()
 		if err != nil {
@@ -255,21 +253,21 @@ func NewCandidateVoteState(votes CandidateVotes, now uint64) (CandidateVoteState
 		// TODO: get byzantine threshold
 		byzantineThreshold := 0
 
-		isConfirmed := votes.Valid.Value.Len() > byzantineThreshold
+		isConfirmed := votes.Valid.BTree.Value.Len() > byzantineThreshold
 		if isConfirmed {
 			if err := status.Confirm(); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to confirm dispute status: %w", err)
 			}
 		}
 
-		isConcludedFor := votes.Valid.Value.Len() > superMajorityThreshold
+		isConcludedFor := votes.Valid.BTree.Value.Len() > superMajorityThreshold
 		if isConcludedFor {
 			if err := status.ConcludeFor(now); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status for: %w", err)
 			}
 		}
 
-		isConcludedAgainst := votes.Invalid.Len() >= superMajorityThreshold
+		isConcludedAgainst := votes.Invalid.Value.Len() >= superMajorityThreshold
 		if isConcludedAgainst {
 			if err := status.ConcludeAgainst(now); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status against: %w", err)
@@ -301,7 +299,7 @@ func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (
 // ValidCandidateVotes is a list of valid votes for a candidate.
 type ValidCandidateVotes struct {
 	VotedValidators map[parachainTypes.ValidatorIndex]struct{}
-	Value           *btree.BTree
+	BTree           scale.BTree
 }
 
 // InsertVote Inserts a vote, replacing any already existing vote.
@@ -311,9 +309,9 @@ type ValidCandidateVotes struct {
 //
 // Returns: true, if the insert had any effect.
 func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
-	existingVote := vcv.Value.Get(vote)
+	existingVote := vcv.BTree.Value.Get(vote)
 	if existingVote == nil {
-		vcv.Value.Set(vote)
+		vcv.BTree.Value.Set(vote)
 		vcv.VotedValidators[vote.ValidatorIndex] = struct{}{}
 		return true, nil
 	}
@@ -334,7 +332,7 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 	case inherents.ExplicitValidDisputeStatementKind,
 		inherents.ExplicitInvalidDisputeStatementKind,
 		inherents.ApprovalChecking:
-		vcv.Value.Set(vote)
+		vcv.BTree.Value.Set(vote)
 		vcv.VotedValidators[vote.ValidatorIndex] = struct{}{}
 		return true, nil
 	default:
@@ -346,13 +344,13 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 type CandidateVotes struct {
 	CandidateReceipt parachainTypes.CandidateReceipt `scale:"1"`
 	Valid            ValidCandidateVotes             `scale:"2"`
-	Invalid          *btree.BTree                    `scale:"3"`
+	Invalid          scale.BTree                     `scale:"3"`
 }
 
 // VotedIndices returns the set of all validators who have votes in the set, ascending.
 func (cv *CandidateVotes) VotedIndices() *treeset.Set {
 	votedIndices := treeset.NewWithIntComparator()
-	cv.Valid.Value.Ascend(nil, func(i interface{}) bool {
+	cv.Valid.BTree.Value.Ascend(nil, func(i interface{}) bool {
 		vote, ok := i.(Vote)
 		if ok {
 			votedIndices.Add(vote.ValidatorIndex)
@@ -361,7 +359,7 @@ func (cv *CandidateVotes) VotedIndices() *treeset.Set {
 		return true
 	})
 
-	cv.Invalid.Ascend(nil, func(i interface{}) bool {
+	cv.Invalid.Value.Ascend(nil, func(i interface{}) bool {
 		vote, ok := i.(Vote)
 		if ok {
 			votedIndices.Add(vote.ValidatorIndex)
@@ -378,9 +376,9 @@ func NewCandidateVotes() *CandidateVotes {
 	return &CandidateVotes{
 		Valid: ValidCandidateVotes{
 			VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
-			Value:           btree.New(CompareVoteIndices),
+			BTree:           scale.NewBTree[Vote](CompareVoteIndices),
 		},
-		Invalid: btree.New(CompareVoteIndices),
+		Invalid: scale.NewBTree[Vote](CompareVoteIndices),
 	}
 }
 

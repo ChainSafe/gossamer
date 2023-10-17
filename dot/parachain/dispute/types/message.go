@@ -183,7 +183,7 @@ func NewDisputeMessage(
 	var firstVote Vote
 	_, ok := disputeStatement.(inherents.ValidDisputeStatementKind)
 	if ok {
-		votes.Invalid.Descend(nil, func(i interface{}) bool {
+		votes.Invalid.Value.Descend(nil, func(i interface{}) bool {
 			firstVote, ok = i.(Vote)
 			return ok
 		})
@@ -203,7 +203,7 @@ func NewDisputeMessage(
 
 		invalidIndex = firstVote.ValidatorIndex
 	} else {
-		votes.Valid.Value.Descend(nil, func(i interface{}) bool {
+		votes.Valid.BTree.Value.Descend(nil, func(i interface{}) bool {
 			firstVote, ok = i.(Vote)
 			return ok
 		})

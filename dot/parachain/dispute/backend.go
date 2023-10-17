@@ -2,13 +2,13 @@ package dispute
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/tidwall/btree"
 )
 
 // Backend is the backend for the dispute coordinator module.
@@ -16,14 +16,14 @@ type Backend interface {
 	// GetEarliestSession returns the earliest session index, if any.
 	GetEarliestSession() (*parachainTypes.SessionIndex, error)
 	// GetRecentDisputes returns the recent disputes, if any.
-	GetRecentDisputes() (*btree.BTree, error)
+	GetRecentDisputes() (scale.BTree, error)
 	// GetCandidateVotes returns the votes for the given candidate for the specific session-candidate pair, if any.
 	GetCandidateVotes(session parachainTypes.SessionIndex, candidateHash common.Hash) (*types.CandidateVotes, error)
 
 	// SetEarliestSession sets the earliest session index.
 	SetEarliestSession(session *parachainTypes.SessionIndex) error
 	// SetRecentDisputes sets the recent disputes.
-	SetRecentDisputes(recentDisputes *btree.BTree) error
+	SetRecentDisputes(recentDisputes scale.BTree) error
 	// SetCandidateVotes sets the votes for the given candidate for the specific session-candidate pair.
 	SetCandidateVotes(session parachainTypes.SessionIndex, candidateHash common.Hash, votes *types.CandidateVotes) error
 }
@@ -37,7 +37,7 @@ type OverlayBackend interface {
 	// WriteToDB writes the given dispute to the database.
 	WriteToDB() error
 	// GetActiveDisputes returns the active disputes.
-	GetActiveDisputes(now uint64) (*btree.BTree, error)
+	GetActiveDisputes(now uint64) (scale.BTree, error)
 	// NoteEarliestSession prunes data in the DB based on the provided session index.
 	NoteEarliestSession(session parachainTypes.SessionIndex) error
 }
@@ -48,7 +48,7 @@ type DBBackend interface {
 
 	// Write writes the given data to the database.
 	Write(earliestSession *parachainTypes.SessionIndex,
-		recentDisputes *btree.BTree,
+		recentDisputes scale.BTree,
 		candidateVotes map[types.Comparator]*types.CandidateVotes) error
 }
 
@@ -63,12 +63,12 @@ func newSyncedEarliestSession() syncedEarliestSession {
 
 type syncedRecentDisputes struct {
 	sync.RWMutex
-	*btree.BTree
+	BTree scale.BTree
 }
 
 func newSyncedRecentDisputes() syncedRecentDisputes {
 	return syncedRecentDisputes{
-		BTree: btree.New(types.CompareDisputes),
+		BTree: scale.NewBTree[types.Dispute](types.CompareDisputes),
 	}
 }
 
@@ -101,10 +101,10 @@ func (b *overlayBackend) GetEarliestSession() (*parachainTypes.SessionIndex, err
 	return b.inner.GetEarliestSession()
 }
 
-func (b *overlayBackend) GetRecentDisputes() (*btree.BTree, error) {
+func (b *overlayBackend) GetRecentDisputes() (scale.BTree, error) {
 	b.recentDisputes.RLock()
 	defer b.recentDisputes.RUnlock()
-	if b.recentDisputes.Len() > 0 {
+	if b.recentDisputes.BTree.Value.Len() > 0 {
 		return b.recentDisputes.BTree.Copy(), nil
 	}
 
@@ -135,7 +135,7 @@ func (b *overlayBackend) SetEarliestSession(session *parachainTypes.SessionIndex
 	return nil
 }
 
-func (b *overlayBackend) SetRecentDisputes(recentDisputes *btree.BTree) error {
+func (b *overlayBackend) SetRecentDisputes(recentDisputes scale.BTree) error {
 	b.recentDisputes.Lock()
 	defer b.recentDisputes.Unlock()
 	b.recentDisputes.BTree = recentDisputes
@@ -161,13 +161,13 @@ func (b *overlayBackend) SetCandidateVotes(session parachainTypes.SessionIndex,
 const ActiveDuration = 180 * time.Second
 
 // GetActiveDisputes returns the active disputes, if any.
-func (b *overlayBackend) GetActiveDisputes(now uint64) (*btree.BTree, error) {
+func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 	b.recentDisputes.RLock()
-	recentDisputes := b.recentDisputes.Copy()
+	recentDisputes := b.recentDisputes.BTree.Copy()
 	b.recentDisputes.RUnlock()
 
-	activeDisputes := btree.New(types.CompareDisputes)
-	recentDisputes.Ascend(nil, func(i interface{}) bool {
+	activeDisputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
+	recentDisputes.Value.Ascend(nil, func(i interface{}) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
 			logger.Errorf("cast to dispute. Expected *types.Dispute, got %T", i)
@@ -181,7 +181,7 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (*btree.BTree, error) {
 		}
 
 		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > now {
-			activeDisputes.Set(dispute)
+			activeDisputes.Value.Set(dispute)
 		}
 
 		return true
@@ -191,7 +191,7 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (*btree.BTree, error) {
 }
 
 func (b *overlayBackend) IsEmpty() bool {
-	return b.earliestSession.SessionIndex == nil && b.recentDisputes.Len() == 0 && len(b.candidateVotes.votes) == 0
+	return b.earliestSession.SessionIndex == nil && b.recentDisputes.BTree.Value.Len() == 0 && len(b.candidateVotes.votes) == 0
 }
 
 func (b *overlayBackend) WriteToDB() error {
@@ -213,26 +213,26 @@ func (b *overlayBackend) NoteEarliestSession(session parachainTypes.SessionIndex
 		}
 
 		// determine new recent disputes
-		newRecentDisputes := btree.New(types.CompareDisputes)
-		recentDisputes.Ascend(nil, func(item interface{}) bool {
+		newRecentDisputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
+		recentDisputes.Value.Ascend(nil, func(item interface{}) bool {
 			dispute := item.(*types.Dispute)
 			if dispute.Comparator.SessionIndex >= session {
-				newRecentDisputes.Set(dispute)
+				newRecentDisputes.Value.Set(dispute)
 			}
 			return true
 		})
 
 		// prune obsolete disputes
-		recentDisputes.Ascend(nil, func(item interface{}) bool {
+		recentDisputes.Value.Ascend(nil, func(item interface{}) bool {
 			dispute := item.(*types.Dispute)
 			if dispute.Comparator.SessionIndex < session {
-				recentDisputes.Delete(dispute)
+				recentDisputes.Value.Delete(dispute)
 			}
 			return true
 		})
 
 		// update db
-		if recentDisputes.Len() > 0 {
+		if recentDisputes.Value.Len() > 0 {
 			if err = b.SetRecentDisputes(newRecentDisputes); err != nil {
 				return fmt.Errorf("set recent disputes: %w", err)
 			}

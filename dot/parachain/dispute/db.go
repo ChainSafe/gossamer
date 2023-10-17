@@ -8,7 +8,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/dgraph-io/badger/v4"
-	"github.com/tidwall/btree"
 )
 
 const (
@@ -72,8 +71,8 @@ func (b *BadgerBackend) GetEarliestSession() (*parachainTypes.SessionIndex, erro
 	return earliestSession, nil
 }
 
-func (b *BadgerBackend) GetRecentDisputes() (*btree.BTree, error) {
-	recentDisputes := btree.New(types.CompareDisputes)
+func (b *BadgerBackend) GetRecentDisputes() (scale.BTree, error) {
+	recentDisputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 
 	if err := b.db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
@@ -94,12 +93,12 @@ func (b *BadgerBackend) GetRecentDisputes() (*btree.BTree, error) {
 			}); err != nil {
 				return err
 			}
-			recentDisputes.Set(dispute)
+			recentDisputes.Value.Set(dispute)
 		}
 
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("get recent disputes from db: %w", err)
+		return recentDisputes, fmt.Errorf("get recent disputes from db: %w", err)
 	}
 
 	return recentDisputes, nil
@@ -138,12 +137,12 @@ func (b *BadgerBackend) setEarliestSessionTxn(txn *badger.Txn, session *parachai
 }
 
 // setRecentDisputesTxn sets the badger txn to store the recent disputes.
-func (b *BadgerBackend) setRecentDisputesTxn(txn *badger.Txn, recentDisputes *btree.BTree) error {
+func (b *BadgerBackend) setRecentDisputesTxn(txn *badger.Txn, recentDisputes scale.BTree) error {
 	var (
 		val []byte
 		err error
 	)
-	recentDisputes.Descend(nil, func(item interface{}) bool {
+	recentDisputes.Value.Descend(nil, func(item interface{}) bool {
 		dispute := item.(*types.Dispute)
 		key := newRecentDisputesKey(dispute.Comparator.SessionIndex, dispute.Comparator.CandidateHash)
 		val, err = scale.Marshal(dispute)
@@ -182,7 +181,7 @@ func (b *BadgerBackend) SetEarliestSession(session *parachainTypes.SessionIndex)
 	})
 }
 
-func (b *BadgerBackend) SetRecentDisputes(recentDisputes *btree.BTree) error {
+func (b *BadgerBackend) SetRecentDisputes(recentDisputes scale.BTree) error {
 	return b.db.Update(func(txn *badger.Txn) error {
 		return b.setRecentDisputesTxn(txn, recentDisputes)
 	})
@@ -272,7 +271,7 @@ func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession para
 }
 
 func (b *BadgerBackend) Write(earliestSession *parachainTypes.SessionIndex,
-	recentDisputes *btree.BTree,
+	recentDisputes scale.BTree,
 	candidateVotes map[types.Comparator]*types.CandidateVotes,
 ) error {
 	return b.db.Update(func(txn *badger.Txn) error {
