@@ -360,7 +360,7 @@ func (mr *MockTransactionStateMockRecorder) PendingInPool() *gomock.Call {
 // Push mocks base method.
 func (m *MockTransactionState) Push(arg0 *transaction.ValidTransaction) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "push", arg0)
+	ret := m.ctrl.Call(m, "Push", arg0)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -369,7 +369,7 @@ func (m *MockTransactionState) Push(arg0 *transaction.ValidTransaction) (common.
 // Push indicates an expected call of Push.
 func (mr *MockTransactionStateMockRecorder) Push(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "push", reflect.TypeOf((*MockTransactionState)(nil).Push), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*MockTransactionState)(nil).Push), arg0)
 }
 
 // RemoveExtrinsic mocks base method.
