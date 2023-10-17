@@ -20,13 +20,35 @@ var (
 	ErrRejectedByProspectiveParachains = errors.New("candidate rejected by prospective parachains subsystem")
 	ErrValidationFailed                = errors.New("validation failed")
 	ErrInvalidErasureRoot              = errors.New("erasure root doesn't match the announced by the candidate receipt")
+	ErrStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
+	ErrCandidateStateNotFound          = errors.New("candidate state not found")
+	ErrAttestingDataNotFound           = errors.New("attesting data not found")
 )
 
 type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
-	perRelayParent      map[common.Hash]perRelayParentState
-	perCandidate        map[parachaintypes.CandidateHash]perCandidateState
+	// State tracked for all relay-parents backing work is ongoing for. This includes
+	// all active leaves.
+	//
+	// relay-parents fall into one of 3 categories.
+	//   1. active leaves which do support prospective parachains
+	//   2. active leaves which do not support prospective parachains
+	//   3. relay-chain blocks which are ancestors of an active leaf and do support prospective
+	//      parachains.
+	//
+	// Relay-chain blocks which don't support prospective parachains are
+	// never included in the fragment trees of active leaves which do.
+	//
+	// While it would be technically possible to support such leaves in
+	// fragment trees, it only benefits the transition period when asynchronous
+	// backing is being enabled and complicates code complexity.
+	perRelayParent map[common.Hash]perRelayParentState
+	// State tracked for all candidates relevant to the implicit view.
+	//
+	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
+	// or explicit view for which a `Seconded` statement has been successfully imported.
+	perCandidate map[parachaintypes.CandidateHash]perCandidateState
 }
 
 type perCandidateState struct {
@@ -158,6 +180,10 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 			if err := cb.processOverseerMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Error(err.Error())
 			}
+		case <-ctx.Done():
+			close(cb.SubSystemToOverseer)
+			close(chRelayParentAndCommand)
+
 		}
 	}
 }
@@ -207,19 +233,25 @@ func (cb *CandidateBacking) handleStatementMessage(
 ) error {
 	rpState, ok := cb.perRelayParent[relayParent]
 	if !ok {
-		return fmt.Errorf("Received statement for unknown relay parent %s", relayParent)
+		return fmt.Errorf("%w: %s", ErrStatementForUnknownRelayParent, relayParent)
 	}
 
-	summery, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
+	summary, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
 	if err != nil {
 		return fmt.Errorf("importing statement: %w", err)
 	}
 
-	if err := rpState.postImportStatement(cb.SubSystemToOverseer, summery); err != nil {
-		return fmt.Errorf("post import statement: %w", err)
+	if err := rpState.postImportStatement(cb.SubSystemToOverseer, summary); err != nil {
+		return fmt.Errorf("processing post import statement actions: %w", err)
 	}
 
-	if summery == nil || summery.GroupID != uint32(rpState.Assignment) {
+	if summary == nil {
+		logger.Debug("statement is nil")
+		return nil
+	}
+
+	if summary.GroupID != uint32(rpState.Assignment) {
+		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s", summary.GroupID, relayParent)
 		return nil
 	}
 
@@ -231,7 +263,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	var attesting AttestingData
 	switch statementVDT.Index() {
 	case 1: // Seconded
-		commitedCandidateReceipt, err := rpState.Table.getCandidate(summery.Candidate)
+		commitedCandidateReceipt, err := rpState.Table.getCandidate(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}
@@ -248,12 +280,12 @@ func (cb *CandidateBacking) handleStatementMessage(
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 
-		rpState.fallbacks[summery.Candidate] = attesting
+		rpState.fallbacks[summary.Candidate] = attesting
 
 	case 2: // Valid
-		attesting, ok = rpState.fallbacks[summery.Candidate]
+		attesting, ok = rpState.fallbacks[summary.Candidate]
 		if !ok {
-			return nil
+			return ErrAttestingDataNotFound
 		}
 
 		ourIndex := rpState.TableContext.validator.index
@@ -261,12 +293,13 @@ func (cb *CandidateBacking) handleStatementMessage(
 			return nil
 		}
 
-		if rpState.AwaitingValidation[summery.Candidate] {
-			// Job already running
+		if rpState.AwaitingValidation[summary.Candidate] {
+			logger.Debug("Job already running")
 			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
 			return nil
 		}
-		// No job, so start another with current validator:
+
+		logger.Debug("No job, so start another with current validator")
 		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
 
 	default:
@@ -274,15 +307,17 @@ func (cb *CandidateBacking) handleStatementMessage(
 	}
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
-	if pc, ok := cb.perCandidate[summery.Candidate]; ok {
-		rpState.kickOffValidationWork(
-			cb.SubSystemToOverseer,
-			chRelayParentAndCommand,
-			pc.persistedValidationData,
-			attesting,
-		)
+	pc, ok := cb.perCandidate[summary.Candidate]
+	if !ok {
+		return ErrCandidateStateNotFound
 	}
 
+	rpState.kickOffValidationWork(
+		cb.SubSystemToOverseer,
+		chRelayParentAndCommand,
+		pc.persistedValidationData,
+		attesting,
+	)
 	return nil
 }
 
