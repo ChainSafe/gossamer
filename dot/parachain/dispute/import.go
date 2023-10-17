@@ -131,9 +131,9 @@ func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.Approv
 	for _, approvalVote := range approvalVotes {
 		// TODO: validate signature
 
-		existingVote := votes.Valid.Value.Get(approvalVote)
+		existingVote := votes.Valid.BTree.Value.Get(approvalVote)
 		if existingVote == nil {
-			votes.Valid.Value.Set(approvalVote)
+			votes.Valid.BTree.Value.Set(approvalVote)
 			i.importedValidVotes++
 			i.importedApprovalVotes++
 		}
@@ -224,8 +224,8 @@ func NewImportResultFromStatements(
 				ValidatorSignature: statement.SignedDisputeStatement.ValidatorSignature,
 				DisputeStatement:   statement.SignedDisputeStatement.DisputeStatement,
 			}
-			if v := votes.Invalid.Get(vote); v == nil {
-				votes.Invalid.Set(vote)
+			if v := votes.Invalid.Value.Get(vote); v == nil {
+				votes.Invalid.Value.Set(vote)
 				importedInvalidVotes++
 				newInvalidVoters = append(newInvalidVoters, statement.ValidatorIndex)
 			}

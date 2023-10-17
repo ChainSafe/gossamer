@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/tidwall/btree"
 	"io"
 	"math/big"
 	"reflect"
@@ -46,7 +47,7 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 			dstv.Set(reflect.New(dstv.Type().Elem()))
 		}
 		if haveAddr {
-			dstv = dstv0 // restore original value after round-trip Value.Addr().Elem()
+			dstv = dstv0 // restore original value after round-trip BTree.Addr().Elem()
 			haveAddr = false
 		} else {
 			dstv = dstv.Elem()
@@ -132,6 +133,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeVaryingDataType(dstv)
 	case VaryingDataTypeSlice:
 		err = ds.decodeVaryingDataTypeSlice(dstv)
+	case BTree:
+		err = ds.decodeBTree(dstv)
 	default:
 		t := reflect.TypeOf(in)
 		switch t.Kind() {
@@ -797,4 +800,43 @@ func (ds *decodeState) decodeBitVec(dstv reflect.Value) error {
 
 	dstv.Set(reflect.ValueOf(bitvec))
 	return nil
+}
+
+// decodeBTree accepts a byte array representing a SCALE encoded
+// BTree and performs SCALE decoding of the BTree
+func (ds *decodeState) decodeBTree(dstv reflect.Value) (err error) {
+	// Decode the number of items in the tree
+	length, err := ds.decodeLength()
+	if err != nil {
+		return
+	}
+
+	tree, ok := dstv.Interface().(BTree)
+	if !ok {
+		return fmt.Errorf("expected a BTree type")
+	}
+
+	if tree.Comparator == nil {
+		return fmt.Errorf("no Comparator function provided for BTree")
+	}
+
+	if tree.Value == nil {
+		tree.Value = btree.New(tree.Comparator)
+	}
+
+	// Decode each item in the tree
+	for i := uint(0); i < length; i++ {
+		// Decode the value
+		value := reflect.New(tree.ItemType).Elem()
+		err = ds.unmarshal(value)
+		if err != nil {
+			return
+		}
+
+		// convert the value to the correct type for the BTree
+		tree.Value.Set(value.Interface())
+	}
+
+	dstv.Set(reflect.ValueOf(tree))
+	return
 }

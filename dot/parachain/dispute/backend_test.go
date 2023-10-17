@@ -1,6 +1,7 @@
 package dispute
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 	"testing"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
 )
 
 func TestOverlayBackend_EarliestSession(t *testing.T) {
@@ -40,15 +40,15 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(types.CompareDisputes)
+	disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Set(dispute1)
+	disputes.Value.Set(dispute1)
 
 	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
-	disputes.Set(dispute2)
+	disputes.Value.Set(dispute2)
 
 	// when
 	dbBackend := NewDBBackend(db)
@@ -59,7 +59,7 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	// then
 	recentDisputes, err := backend.GetRecentDisputes()
 	require.NoError(t, err)
-	require.True(t, compareBTrees(disputes, recentDisputes))
+	require.True(t, compareBTrees(disputes.Value, recentDisputes.Value))
 }
 
 func TestOverlayBackend_CandidateVotes(t *testing.T) {
@@ -88,15 +88,15 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(types.CompareDisputes)
+	disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Set(dispute1)
+	disputes.Value.Set(dispute1)
 
 	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Set(dispute2)
+	disputes.Value.Set(dispute2)
 
 	// when
 	dbBackend := NewDBBackend(db)
@@ -107,7 +107,7 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 	// then
 	activeDisputes, err := backend.GetActiveDisputes(uint64(time.Now().Unix()))
 	require.NoError(t, err)
-	require.True(t, compareBTrees(disputes, activeDisputes))
+	require.True(t, compareBTrees(disputes.Value, activeDisputes.Value))
 }
 
 func TestOverlayBackend_Concurrency(t *testing.T) {
@@ -160,19 +160,19 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < numIterations; j++ {
-				disputes := btree.New(types.CompareDisputes)
+				disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 
 				dispute1, err := types.DummyDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)},
 					types.DisputeStatusActive,
 				)
 				require.NoError(t, err)
-				disputes.Set(dispute1)
+				disputes.Value.Set(dispute1)
 
 				dispute2, err := types.DummyDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)}, types.DisputeStatusConcludedFor)
 				require.NoError(t, err)
-				disputes.Set(dispute2)
+				disputes.Value.Set(dispute2)
 
 				err = backend.SetRecentDisputes(disputes)
 				require.NoError(t, err)
