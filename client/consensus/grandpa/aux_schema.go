@@ -214,7 +214,7 @@ func UpdateBestJustification[H HashI, N constraints.Unsigned, S comparable, ID c
 }
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
-func BestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](store AuxStore) (*Justification[H, N, S, ID, Header], error) {
+func BestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](store api.AuxStore) (*Justification[H, N, S, ID, Header], error) {
 	encodedJustification, err := store.Get(bestJustification)
 	if err != nil {
 		return nil, err
