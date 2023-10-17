@@ -52,6 +52,8 @@ type perRelayParentState struct {
 	AwaitingValidation map[parachaintypes.CandidateHash]bool
 	// We issued `Seconded` or `Valid` statements on about these candidates.
 	issuedStatements map[parachaintypes.CandidateHash]bool
+	// The candidates that are backed by enough validators in their group, by hash.
+	backed map[parachaintypes.CandidateHash]bool
 }
 
 // In case a backing validator does not provide a PoV, we need to retry with other backing
@@ -213,7 +215,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return fmt.Errorf("importing statement: %w", err)
 	}
 
-	if err := postImportStatement(); err != nil {
+	if err := rpState.postImportStatement(cb.SubSystemToOverseer, summery); err != nil {
 		return fmt.Errorf("post import statement: %w", err)
 	}
 
@@ -349,14 +351,25 @@ func (rpState *perRelayParentState) importStatement(
 	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
 }
 
+// Messages sent to the Prospective Parachains subsystem.
 type ProspectiveParachainsMessage struct {
 	Value any
+}
+
+// Inform the Prospective Parachains Subsystem that a previously introduced candidate
+// has been backed. This requires that the candidate was successfully introduced in
+// the past.
+// this is prospective parachains message.
+type CandidateBacked struct {
+	ParaID        parachaintypes.ParaID
+	CandidateHash parachaintypes.CandidateHash
 }
 
 // Inform the Prospective Parachains Subsystem of a new candidate.
 //
 // The response sender accepts the candidate membership, which is the existing
 // membership of the candidate if it was already known.
+// this is prospective parachains message.
 type IntroduceCandidate struct {
 	IntroduceCandidateRequest IntroduceCandidateRequest
 	Ch                        chan error
@@ -365,6 +378,7 @@ type IntroduceCandidate struct {
 // Inform the Prospective Parachains Subsystem that a previously introduced candidate
 // has been seconded. This requires that the candidate was successfully introduced in
 // the past.
+// this is prospective parachains message.
 type CandidateSeconded struct {
 	ParaID        parachaintypes.ParaID
 	CandidateHash parachaintypes.CandidateHash
@@ -393,10 +407,92 @@ type ProspectiveParachainsMode struct {
 	AllowedAncestryLen uint
 }
 
-func postImportStatement() error {
-	//	TODO: Implement this by referencing
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1573-L1574
+func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) error {
+	if summary == nil {
+		// TODO: issue_new_misbehaviors
+		return nil
+	}
+
+	attested, err := rpState.Table.attestedCandidate(&summary.Candidate, &rpState.TableContext)
+	if err != nil {
+		logger.Error(err.Error())
+	}
+
+	if attested == nil {
+		// TODO: issue_new_misbehaviors
+		return nil
+	}
+
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(attested.Candidate)),
+	}
+
+	if rpState.backed[candidateHash] {
+		// TODO: issue_new_misbehaviors
+		return nil
+	}
+
+	rpState.backed[candidateHash] = true
+
+	// candidate is backed now
+	backedCandidate := attestedToBackedCandidate(*attested, &rpState.TableContext)
+	if backedCandidate == nil {
+		// TODO: issue_new_misbehaviors
+		return nil
+	}
+
+	paraID := backedCandidate.Candidate.Descriptor.ParaID
+
+	if rpState.ProspectiveParachainsMode.IsEnabled {
+
+		// Inform the prospective parachains subsystem that the candidate is now backed.
+		subSystemToOverseer <- ProspectiveParachainsMessage{
+			Value: CandidateBacked{
+				ParaID:        parachaintypes.ParaID(paraID),
+				CandidateHash: candidateHash,
+			},
+		}
+
+		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
+		subSystemToOverseer <- CollatorProtocolMessage{
+			Value: CPMBacked{
+				ParaID:   parachaintypes.ParaID(paraID),
+				ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
+			},
+		}
+
+		// Notify statement distribution of backed candidate.
+		subSystemToOverseer <- StatementDistributionMessage{
+			Value: SDMBacked(candidateHash),
+		}
+
+	} else {
+		// TODO: figure what this comment mean by 'avoid cycles'.
+		// The provisioner waits on candidate-backing, which means
+		// that we need to send unbounded messages to avoid cycles.
+		//
+		// Backed candidates are bounded by the number of validators,
+		// parachains, and the block production rate of the relay chain.
+		subSystemToOverseer <- ProvisionerMessage{
+			Value: PMProvisionableData{
+				RelayParent: rpState.RelayParent,
+				ProvisionableData: ProvisionableData{
+					Value: PDBackedCandidate(backedCandidate.Candidate.ToCandidateReceipt()),
+				},
+			},
+		}
+	}
+
+	// TODO: issue_new_misbehaviors
 	return nil
+}
+
+func attestedToBackedCandidate(
+	attested AttestedCandidate,
+	tableContext *TableContext,
+) *parachaintypes.BackedCandidate {
+	// TODO: implement this function
+	return new(parachaintypes.BackedCandidate)
 }
 
 // Kick off validation work and distribute the result as a signed statement.
@@ -657,6 +753,57 @@ const (
 	// We were not able to `Attest` because backing validator did not send us the PoV.
 	AttestNoPoV
 )
+
+// Messages received by the Collator Protocol subsystem.
+type CollatorProtocolMessage struct {
+	Value any
+}
+
+// The candidate received enough validity votes from the backing group.
+// this is a collator protocol message
+type CPMBacked struct {
+	// Candidate's para id.
+	ParaID parachaintypes.ParaID
+	// Hash of the para head generated by candidate.
+	ParaHead common.Hash
+}
+
+// Statement distribution message.
+type StatementDistributionMessage struct {
+	Value any
+}
+
+// The candidate received enough validity votes from the backing group.
+//
+// If the candidate is backed as a result of a local statement, this message MUST
+// be preceded by a `Share` message for that statement. This ensures that Statement
+// Distribution is always aware of full candidates prior to receiving the `Backed`
+// notification, even when the group size is 1 and the candidate is seconded locally.
+type SDMBacked parachaintypes.CandidateHash
+
+// Message to the Provisioner.
+//
+// In all cases, the Hash is that of the relay parent.
+type ProvisionerMessage struct {
+	Value any
+}
+
+// PMProvisionableData is a provisioner message
+// This data should become part of a relay chain block
+type PMProvisionableData struct {
+	RelayParent       common.Hash
+	ProvisionableData any
+}
+
+// This data becomes intrinsics or extrinsics which should be included in a future relay chain block.
+type ProvisionableData struct {
+	Value any
+}
+
+// The Candidate Backing subsystem believes that this candidate is valid, pending
+// availability.
+// this is a provisionable data
+type PDBackedCandidate parachaintypes.CandidateReceipt
 
 type OverseerFuncRes[T any] struct {
 	err  error

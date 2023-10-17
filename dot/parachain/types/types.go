@@ -252,6 +252,13 @@ type CommittedCandidateReceipt struct {
 	Commitments CandidateCommitments `scale:"2"`
 }
 
+func (c CommittedCandidateReceipt) ToCandidateReceipt() CandidateReceipt {
+	return CandidateReceipt{
+		Descriptor:      c.Descriptor,
+		CommitmentsHash: common.MustBlake2bHash(scale.MustMarshal(c.Commitments)),
+	}
+}
+
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte
@@ -535,3 +542,13 @@ type ValidatorSignature Signature
 
 // Signature represents a cryptographic signature.
 type Signature [64]byte
+
+// BackedCandidate is a backed (or backable, depending on context) candidate.
+type BackedCandidate struct {
+	// The candidate referred to.
+	Candidate CommittedCandidateReceipt `scale:"1"`
+	// The validity votes themselves, expressed as signatures.
+	ValidityVotes []ValidityAttestation `scale:"2"`
+	// The indices of the validators within the group, expressed as a bitfield.
+	ValidatorIndices []byte `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
+}
