@@ -863,7 +863,7 @@ func (i *Initialized) HandleImportStatements(
 			dispute.Comparator.CandidateHash = candidateHash
 			dispute.Comparator.SessionIndex = session
 			dispute.DisputeStatus = *newState.DisputeStatus
-			if existing := recentDisputes.Get(dispute); existing == nil {
+			if existing := recentDisputes.Value.Get(dispute); existing == nil {
 				activeStatus, err := types.NewDisputeStatusVDT()
 				if err != nil {
 					return InvalidImport, fmt.Errorf("new dispute status: %w", err)
@@ -872,7 +872,7 @@ func (i *Initialized) HandleImportStatements(
 					return InvalidImport, fmt.Errorf("set active status: %w", err)
 				}
 				dispute.DisputeStatus = activeStatus
-				recentDisputes.Set(dispute)
+				recentDisputes.Value.Set(dispute)
 				logger.Infof("new dispute initiated for candidate %s, session %d",
 					candidateHash,
 					session,
@@ -1083,12 +1083,12 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 		return overseer.Block{}, fmt.Errorf("get recent disputes: %w", err)
 	}
 
-	if recentDisputes == nil || recentDisputes.Len() == 0 {
+	if recentDisputes.Value.Len() == 0 {
 		return last, nil
 	}
 
 	isPossiblyInvalid := func(session parachainTypes.SessionIndex, candidateHash common.Hash) bool {
-		disputeStatus := recentDisputes.Get(types.NewDisputeComparator(session, candidateHash))
+		disputeStatus := recentDisputes.Value.Get(types.NewDisputeComparator(session, candidateHash))
 		status, ok := disputeStatus.(types.DisputeStatusVDT)
 		if !ok {
 			logger.Errorf("cast to dispute status. Expected types.DisputeStatusVDT, got %T", disputeStatus)

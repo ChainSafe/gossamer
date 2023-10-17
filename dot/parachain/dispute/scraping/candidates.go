@@ -2,7 +2,7 @@ package scraping
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/tidwall/btree"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ScrapedCandidate is an item in the ScrapedCandidates btree.
@@ -19,7 +19,7 @@ func ScrapedCandidateComparator(a, b any) bool {
 // ScrapedCandidates stores the scraped candidates.
 type ScrapedCandidates struct {
 	Candidates              map[common.Hash]uint32
-	CandidatesByBlockNumber *btree.BTree
+	CandidatesByBlockNumber scale.BTree
 }
 
 // Contains returns true if the ScrapedCandidates contains the given hash.
@@ -35,32 +35,32 @@ func (sc *ScrapedCandidates) Insert(blockNumber uint32, hash common.Hash) {
 		BlockNumber: blockNumber,
 		Hash:        hash,
 	}
-	if sc.CandidatesByBlockNumber.Get(candidate) != nil {
+	if sc.CandidatesByBlockNumber.Value.Get(candidate) != nil {
 		return
 	}
 
-	sc.CandidatesByBlockNumber.Set(candidate)
+	sc.CandidatesByBlockNumber.Value.Set(candidate)
 }
 
 // RemoveUptoHeight removes all candidates up to the given block number.
 func (sc *ScrapedCandidates) RemoveUptoHeight(blockNumber uint32) []common.Hash {
 	var modifiedCandidates []common.Hash
 
-	notStale := btree.New(ScrapedCandidateComparator)
-	stale := btree.New(ScrapedCandidateComparator)
+	notStale := scale.NewBTree[ScrapedCandidates](ScrapedCandidateComparator)
+	stale := scale.NewBTree[ScrapedCandidates](ScrapedCandidateComparator)
 
-	sc.CandidatesByBlockNumber.Descend(nil, func(i interface{}) bool {
+	sc.CandidatesByBlockNumber.Value.Descend(nil, func(i interface{}) bool {
 		candidate := i.(*ScrapedCandidate)
 		if candidate.BlockNumber < blockNumber {
-			stale.Set(i)
+			stale.Value.Set(i)
 		} else {
-			notStale.Set(i)
+			notStale.Value.Set(i)
 		}
 		return true
 	})
 	sc.CandidatesByBlockNumber = notStale
 
-	stale.Ascend(nil, func(i interface{}) bool {
+	stale.Value.Ascend(nil, func(i interface{}) bool {
 		candidate := i.(*ScrapedCandidate)
 		sc.Candidates[candidate.Hash]--
 		if sc.Candidates[candidate.Hash] == 0 {
@@ -78,6 +78,6 @@ func (sc *ScrapedCandidates) RemoveUptoHeight(blockNumber uint32) []common.Hash 
 func NewScrapedCandidates() ScrapedCandidates {
 	return ScrapedCandidates{
 		Candidates:              make(map[common.Hash]uint32),
-		CandidatesByBlockNumber: btree.New(ScrapedCandidateComparator),
+		CandidatesByBlockNumber: scale.NewBTree[ScrapedCandidate](ScrapedCandidateComparator),
 	}
 }

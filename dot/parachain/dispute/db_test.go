@@ -1,6 +1,7 @@
 package dispute
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
@@ -65,13 +66,13 @@ func TestDBBackend_SetRecentDisputes(t *testing.T) {
 	// with
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
-	disputes := btree.New(types.CompareDisputes)
+	disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Set(dispute1)
+	disputes.Value.Set(dispute1)
 	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
-	disputes.Set(dispute2)
+	disputes.Value.Set(dispute2)
 
 	// when
 	backend := NewDBBackend(db)
@@ -81,7 +82,7 @@ func TestDBBackend_SetRecentDisputes(t *testing.T) {
 	// then
 	recentDisputes, err := backend.GetRecentDisputes()
 	require.NoError(t, err)
-	require.True(t, compareBTrees(disputes, recentDisputes))
+	require.True(t, compareBTrees(disputes.Value, recentDisputes.Value))
 }
 
 func TestDBBackend_SetCandidateVotes(t *testing.T) {
@@ -100,7 +101,9 @@ func TestDBBackend_SetCandidateVotes(t *testing.T) {
 	// then
 	actualCandidateVotes, err := backend.GetCandidateVotes(1, common.Hash{1})
 	require.NoError(t, err)
-	require.Equal(t, candidateVotes, actualCandidateVotes)
+	require.Equal(t, candidateVotes.CandidateReceipt, actualCandidateVotes.CandidateReceipt)
+	require.True(t, compareBTrees(candidateVotes.Valid.BTree.Value, actualCandidateVotes.Valid.BTree.Value))
+	require.True(t, compareBTrees(candidateVotes.Invalid.Value, actualCandidateVotes.Invalid.Value))
 }
 
 func TestDBBackend_Write(t *testing.T) {
@@ -110,13 +113,13 @@ func TestDBBackend_Write(t *testing.T) {
 	db, err := badger.Open(badger.DefaultOptions(t.TempDir()))
 	require.NoError(t, err)
 	earliestSession := getSessionIndex(1)
-	disputes := btree.New(types.CompareDisputes)
+	disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Set(dispute1)
+	disputes.Value.Set(dispute1)
 	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
-	disputes.Set(dispute2)
+	disputes.Value.Set(dispute2)
 	candidateVotes := make(map[types.Comparator]*types.CandidateVotes)
 	candidateVotes[types.Comparator{
 		SessionIndex:  1,
@@ -139,14 +142,17 @@ func TestDBBackend_Write(t *testing.T) {
 
 	actualRecentDisputes, err := backend.GetRecentDisputes()
 	require.NoError(t, err)
-	require.True(t, compareBTrees(disputes, actualRecentDisputes))
+	require.True(t, compareBTrees(disputes.Value, actualRecentDisputes.Value))
 
 	actualCandidateVotes, err := backend.GetCandidateVotes(1, common.Hash{1})
 	require.NoError(t, err)
-	require.Equal(t, candidateVotes[types.Comparator{
+	expectedCandidateVotes := candidateVotes[types.Comparator{
 		SessionIndex:  1,
 		CandidateHash: common.Hash{1},
-	}], actualCandidateVotes)
+	}]
+	require.Equal(t, expectedCandidateVotes.CandidateReceipt, actualCandidateVotes.CandidateReceipt)
+	require.True(t, compareBTrees(expectedCandidateVotes.Valid.BTree.Value, actualCandidateVotes.Valid.BTree.Value))
+	require.True(t, compareBTrees(expectedCandidateVotes.Invalid.Value, actualCandidateVotes.Invalid.Value))
 }
 
 func TestDBBackend_setVotesCleanupTxn(t *testing.T) {
@@ -219,11 +225,11 @@ func BenchmarkBadgerBackend_SetRecentDisputes(b *testing.B) {
 	require.NoError(b, err)
 	backend := NewDBBackend(db)
 
-	disputes := btree.New(types.CompareDisputes)
+	disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 	for i := 0; i < 10000; i++ {
 		dispute, err := types.DummyDispute(parachainTypes.SessionIndex(i), common.Hash{byte(i)}, types.DisputeStatusActive)
 		require.NoError(b, err)
-		disputes.Set(dispute)
+		disputes.Value.Set(dispute)
 	}
 
 	b.ResetTimer()
@@ -267,11 +273,11 @@ func BenchmarkBadgerBackend_GetRecentDisputes(b *testing.B) {
 	require.NoError(b, err)
 	backend := NewDBBackend(db)
 
-	disputes := btree.New(types.CompareDisputes)
+	disputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
 	for i := 0; i < 1000; i++ {
 		dispute, err := types.DummyDispute(parachainTypes.SessionIndex(i), common.Hash{byte(1)}, types.DisputeStatusActive)
 		require.NoError(b, err)
-		disputes.Set(dispute)
+		disputes.Value.Set(dispute)
 	}
 
 	err = backend.SetRecentDisputes(disputes)
