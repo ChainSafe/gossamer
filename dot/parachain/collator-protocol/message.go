@@ -218,11 +218,41 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 
 // Enqueue collation for fetching. The advertisement is expected to be
 // validated.
-func (cpvs CollatorProtocolValidatorSide) enqueueCollation(collations Collations) {
+func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
+	collations Collations,
+	relayParent common.Hash,
+	paraID parachaintypes.ParaID,
+	peerID peer.ID,
+	collatorID parachaintypes.CollatorID,
+	prospectiveCandidate *ProspectiveCandidate) {
 	switch collations.status {
+	// TODO: In rust code, a lot of thing that are being done in handle_advertisement
+	// are being repeated here.
+	// Currently enqueueCollation is being called from handle_advertisement only, so we might not need to
+	// repeat that here.
+	// If enqueueCollation gets used somewhere else, we would need to repeat those things here.
+
 	case Fetching, WaitingOnValidation:
+		logger.Debug("added collation to unfetched list")
+		collations.waitingQueue = append(collations.waitingQueue, UnfetchedCollation{
+			CollatorID: collatorID,
+			PendingCollation: PendingCollation{
+				RelayParent:          relayParent,
+				ParaID:               paraID,
+				PeerID:               peerID,
+				ProspectiveCandidate: prospectiveCandidate,
+			},
+		})
+	case Waiting:
+
+	case Seconded:
 
 	}
+
+}
+
+func (cpvs *CollatorProtocolValidatorSide) fetchedCollation(pendingCollation PendingCollation,
+	collatorID parachaintypes.CollatorID) {
 
 }
 

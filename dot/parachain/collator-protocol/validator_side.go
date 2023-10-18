@@ -130,10 +130,11 @@ type UnfetchedCollation struct {
 }
 
 type PendingCollation struct {
-	RelayParent    common.Hash
-	ParaID         parachaintypes.ParaID
-	PeerID         peer.ID
-	CommitmentHash *common.Hash
+	RelayParent          common.Hash
+	ParaID               parachaintypes.ParaID
+	PeerID               peer.ID
+	CommitmentHash       *common.Hash
+	ProspectiveCandidate *ProspectiveCandidate
 }
 
 type PeerData struct {
@@ -354,6 +355,8 @@ type Collations struct {
 	status CollationStatus
 	// how many collations have been seconded
 	secondedCount uint
+	// Collation that were advertised to us, but we did not yet fetch.
+	waitingQueue []UnfetchedCollation // : VecDeque<(PendingCollation, CollatorId)>,
 }
 
 // IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
