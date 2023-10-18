@@ -10,64 +10,64 @@ import (
 )
 
 func TestSwapRemove(t *testing.T) {
-	change1 := &PendingChange[string, uint]{
-		canonHash: "a",
+	change1 := &PendingChange[string, uint, uint]{
+		CanonHash: "a",
 	}
 
-	change2 := &PendingChange[string, uint]{
-		canonHash: "b",
+	change2 := &PendingChange[string, uint, uint]{
+		CanonHash: "b",
 	}
 
-	change3 := &PendingChange[string, uint]{
-		canonHash: "b",
+	change3 := &PendingChange[string, uint, uint]{
+		CanonHash: "c",
 	}
 
-	pendingChangeNode1 := &pendingChangeNode[string, uint]{
-		change: change1,
+	pendingChangeNode1 := &PendingChangeNode[string, uint, uint]{
+		Change: change1,
 	}
 
-	pendingChangeNode2 := &pendingChangeNode[string, uint]{
-		change: change2,
+	pendingChangeNode2 := &PendingChangeNode[string, uint, uint]{
+		Change: change2,
 	}
 
-	pendingChangeNode3 := &pendingChangeNode[string, uint]{
-		change: change3,
+	pendingChangeNode3 := &PendingChangeNode[string, uint, uint]{
+		Change: change3,
 	}
 
-	changeNodes1 := []*pendingChangeNode[string, uint]{
+	changeNodes1 := []*PendingChangeNode[string, uint, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 	}
 
-	changeNodes2 := []*pendingChangeNode[string, uint]{
+	changeNodes2 := []*PendingChangeNode[string, uint, uint]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 		pendingChangeNode3,
 	}
 	type args struct {
-		ct    ChangeTree[string, uint]
+		ct    ChangeTree[string, uint, uint]
 		index uint
 	}
 	tests := []struct {
 		name string
 		args args
-		exp  pendingChangeNode[string, uint]
+		exp  PendingChangeNode[string, uint, uint]
 	}{
 		{
-			name: "TwoElemSliceDeletingLastElement",
+			name: "2ElemSliceDeletingLastElement",
 			args: args{
-				ct: ChangeTree[string, uint]{
-					roots: changeNodes1,
+				ct: ChangeTree[string, uint, uint]{
+					TreeRoots: changeNodes1,
 				},
 				index: 1,
 			},
 			exp: *pendingChangeNode2,
 		},
 		{
-			name: "ThreeElemSliceDeletingFirstElement",
+			name: "3ElemSliceDeletingFirstElement",
 			args: args{
-				ct: ChangeTree[string, uint]{
-					roots: changeNodes2,
+				ct: ChangeTree[string, uint, uint]{
+					TreeRoots: changeNodes2,
 				},
 				index: 0,
 			},
