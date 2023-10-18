@@ -25,27 +25,31 @@ var (
 		"a previously finalised node")
 )
 
-// ChangeTree keeps track of changes across forks
-type ChangeTree[H comparable, N constraints.Unsigned] struct {
-	roots               []*pendingChangeNode[H, N]
-	bestFinalizedNumber *N
+// ChangeTree keeps track of the changes per fork allowing
+// n forks in the same structure. This structure is intended
+// to represent an acyclic directed graph where the hashNumber children are
+// placed by descendency order and number, you can ensure an
+// node ancestry using the `isDescendantOfFunc`
+type ChangeTree[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	TreeRoots           []*PendingChangeNode[H, N, ID]
+	BestFinalizedNumber *N
 }
 
 // NewChangeTree create an empty ChangeTree
-func NewChangeTree[H comparable, N constraints.Unsigned]() ChangeTree[H, N] {
-	return ChangeTree[H, N]{}
+func NewChangeTree[H comparable, N constraints.Unsigned, ID AuthorityID]() ChangeTree[H, N, ID] {
+	return ChangeTree[H, N, ID]{}
 }
 
-// pendingChangeNode Represents a node in the ChangeTree
-type pendingChangeNode[H comparable, N constraints.Unsigned] struct {
-	change   *PendingChange[H, N]
-	children []*pendingChangeNode[H, N]
+// PendingChangeNode Represents a node in the ChangeTree
+type PendingChangeNode[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	Change   *PendingChange[H, N, ID]
+	Children []*PendingChangeNode[H, N, ID]
 }
 
 // Roots returns the roots of each fork in the ChangeTree
 // This is the equivalent of the slice in the outermost layer of the roots
-func (ct *ChangeTree[H, N]) Roots() []*pendingChangeNode[H, N] { //skipcq: RVV-B0011
-	return ct.roots
+func (ct *ChangeTree[H, N, ID]) Roots() []*PendingChangeNode[H, N, ID] { //skipcq: RVV-B0011
+	return ct.TreeRoots
 }
 
 // Import a new node into the roots.
@@ -61,11 +65,11 @@ func (ct *ChangeTree[H, N]) Roots() []*pendingChangeNode[H, N] { //skipcq: RVV-B
 // then the `is_descendent_of` closure, when used after a warp-sync, may end up querying the
 // backend for a block (the one corresponding to the root) that is not present and thus will
 // return a wrong result.
-func (ct *ChangeTree[H, N]) Import(hash H,
+func (ct *ChangeTree[H, N, ID]) Import(hash H,
 	number N,
-	change PendingChange[H, N],
+	change PendingChange[H, N, ID],
 	isDescendentOf IsDescendentOf[H]) (bool, error) {
-	for _, root := range ct.roots {
+	for _, root := range ct.TreeRoots {
 		imported, err := root.importNode(hash, number, change, isDescendentOf)
 		if err != nil {
 			return false, err
@@ -78,59 +82,60 @@ func (ct *ChangeTree[H, N]) Import(hash H,
 		}
 	}
 
-	pendingChangeNode := &pendingChangeNode[H, N]{
-		change: &change,
+	pendingChangeNode := &PendingChangeNode[H, N, ID]{
+		Change: &change,
 	}
 
-	ct.roots = append(ct.roots, pendingChangeNode)
+	ct.TreeRoots = append(ct.TreeRoots, pendingChangeNode)
 	return true, nil
 }
 
 // PendingChanges does a preorder traversal of the ChangeTree to get all pending changes
-func (ct *ChangeTree[H, N]) PendingChanges() []PendingChange[H, N] {
-	if len(ct.roots) == 0 {
+func (ct *ChangeTree[H, N, ID]) PendingChanges() []PendingChange[H, N, ID] {
+	if len(ct.TreeRoots) == 0 {
 		return nil
 	}
 
-	changes := make([]PendingChange[H, N], 0, len(ct.roots))
+	changes := make([]PendingChange[H, N, ID], 0, len(ct.TreeRoots))
 
-	for i := 0; i < len(ct.roots); i++ {
-		getPreOrder(&changes, ct.roots[i])
+	for i := 0; i < len(ct.TreeRoots); i++ {
+		getPreOrder(&changes, ct.TreeRoots[i])
 	}
 
 	return changes
 }
 
 // getPreOrderChangeNodes does a preorder traversal of the ChangeTree to get all pending changes
-func (ct *ChangeTree[H, N]) getPreOrderChangeNodes() []*pendingChangeNode[H, N] {
-	if len(ct.roots) == 0 {
+func (ct *ChangeTree[H, N, ID]) getPreOrderChangeNodes() []*PendingChangeNode[H, N, ID] {
+	if len(ct.TreeRoots) == 0 {
 		return nil
 	}
 
-	changes := &[]*pendingChangeNode[H, N]{}
+	changes := &[]*PendingChangeNode[H, N, ID]{}
 
-	for i := 0; i < len(ct.roots); i++ {
-		getPreOrderChangeNodes(changes, ct.roots[i])
+	for i := 0; i < len(ct.TreeRoots); i++ {
+		getPreOrderChangeNodes(changes, ct.TreeRoots[i])
 	}
 
 	return *changes
 }
 
-// FinalizesAnyWithDescendentIf Checks if any node in the tree is finalised by either finalising the
+// FinalizesAnyWithDescendentIf Checks if any node in the tree is finalized by either finalising the
 // node itself or a node's descendent that's not in the tree, guaranteeing
-// that the node being finalised isn't a descendent of (or equal to) any of
-// the node's children. Returns *true if the node being finalised is
-// a root, *false if the node being finalised is not a root, and
-// nil if no node in the tree is finalised. The given `Predicate` is
-// checked on the prospective finalised root and must pass for finalisation
+// that the node being finalized isn't a descendent of (or equal to) any of
+// the node's children. Returns *true if the node being finalized is
+// a root, *false if the node being finalized is not a root, and
+// nil if no node in the tree is finalized. The given `Predicate` is
+// checked on the prospective finalized root and must pass for finalisation
 // to occur. The given function `is_descendent_of` should return `true` if
 // the second hash (target) is a descendent of the first hash (base). func(T) bool
-func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(hash *H,
+func (ct *ChangeTree[H, N, ID]) FinalizesAnyWithDescendentIf(
+	hash *H,
 	number N,
 	isDescendentOf IsDescendentOf[H],
-	predicate func(*PendingChange[H, N]) bool) (*bool, error) {
-	if ct.bestFinalizedNumber != nil {
-		if number <= *ct.bestFinalizedNumber {
+	predicate func(*PendingChange[H, N, ID]) bool) (*bool, error) {
+	if ct.BestFinalizedNumber != nil {
+		if number <= *ct.BestFinalizedNumber {
 			return nil, errRevert
 		}
 	}
@@ -144,29 +149,29 @@ func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(hash *H,
 	// ensure that we're not finalising past any of its child nodes.
 	for i := 0; i < len(nodes); i++ {
 		root := nodes[i]
-		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
+		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
 		if err != nil {
 			return nil, err
 		}
 
-		if predicate(root.change) && (root.change.canonHash == *hash || isDesc) {
-			children := root.children
+		if predicate(root.Change) && (root.Change.CanonHash == *hash || isDesc) {
+			children := root.Children
 			for _, child := range children {
-				isChildDescOf, err := isDescendentOf(child.change.canonHash, *hash)
+				isChildDescOf, err := isDescendentOf(child.Change.CanonHash, *hash)
 				if err != nil {
 					return nil, err
 				}
 
-				if child.change.canonHeight <= number && (child.change.canonHash == *hash || isChildDescOf) {
+				if child.Change.CanonHeight <= number && (child.Change.CanonHash == *hash || isChildDescOf) {
 					return nil, errUnfinalisedAncestor
 				}
 			}
 
 			isEqual := false
 			for _, val := range roots {
-				if val.change.canonHash == root.change.canonHash {
+				if val.Change.CanonHash == root.Change.CanonHash {
 					isEqual = true
-					return &isEqual, nil
+					break
 				}
 			}
 			return &isEqual, nil
@@ -196,19 +201,19 @@ func (fr *FinalizationResult) Value() (val scale.VaryingDataTypeValue, err error
 	return vdt.Value()
 }
 
-func newFinalizationResult[H comparable, N constraints.Unsigned]() FinalizationResult {
-	vdt, err := scale.NewVaryingDataType(changed[H, N]{}, unchanged{})
+func newFinalizationResult[H comparable, N constraints.Unsigned, ID AuthorityID]() FinalizationResult {
+	vdt, err := scale.NewVaryingDataType(changed[H, N, ID]{}, unchanged{})
 	if err != nil {
 		panic(err)
 	}
 	return FinalizationResult(vdt)
 }
 
-type changed[H comparable, N constraints.Unsigned] struct {
-	value *PendingChange[H, N]
+type changed[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+	value *PendingChange[H, N, ID]
 }
 
-func (changed[H, N]) Index() uint {
+func (changed[H, N, ID]) Index() uint {
 	return 0
 }
 
@@ -220,17 +225,18 @@ func (unchanged) Index() uint {
 
 // FinalizeWithDescendentIf Finalize a root in the roots by either finalising the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
-// being finalised isn't a descendent of (or equal to) any of the root's
-// children. The given `Predicate` is checked on the prospective finalised
+// being finalized isn't a descendent of (or equal to) any of the root's
+// children. The given `Predicate` is checked on the prospective finalized
 // root and must pass for finalisation to occur. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R1005
+func (ct *ChangeTree[H, N, ID]) FinalizeWithDescendentIf(
+	hash *H,
 	number N,
 	isDescendentOf IsDescendentOf[H],
-	predicate func(*PendingChange[H, N]) bool) (result FinalizationResult, err error) {
-	if ct.bestFinalizedNumber != nil {
-		if number <= *ct.bestFinalizedNumber {
+	predicate func(*PendingChange[H, N, ID]) bool) (result FinalizationResult, err error) {
+	if ct.BestFinalizedNumber != nil {
+		if number <= *ct.BestFinalizedNumber {
 			return result, errRevert
 		}
 	}
@@ -242,18 +248,18 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R10
 	// we're not finalising past any children node.
 	var position *N
 	for i, root := range roots {
-		isDesc, err := isDescendentOf(root.change.canonHash, *hash)
+		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
 		if err != nil {
 			return result, err
 		}
 
-		if predicate(root.change) && (root.change.canonHash == *hash || isDesc) {
-			for _, child := range root.children {
-				isDesc, err := isDescendentOf(child.change.canonHash, *hash)
+		if predicate(root.Change) && (root.Change.CanonHash == *hash || isDesc) {
+			for _, child := range root.Children {
+				isDesc, err := isDescendentOf(child.Change.CanonHash, *hash)
 				if err != nil {
 					return result, err
 				}
-				if child.change.canonHeight <= number && (child.change.canonHash == *hash || isDesc) {
+				if child.Change.CanonHeight <= number && (child.Change.CanonHash == *hash || isDesc) {
 					return result, errUnfinalisedAncestor
 				}
 			}
@@ -263,27 +269,27 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R10
 		}
 	}
 
-	var nodeData *PendingChange[H, N]
+	var nodeData *PendingChange[H, N, ID]
 	if position != nil {
 		node := ct.swapRemove(ct.Roots(), *position)
-		ct.roots = node.children
-		ct.bestFinalizedNumber = &node.change.canonHeight
-		nodeData = node.change
+		ct.TreeRoots = node.Children
+		ct.BestFinalizedNumber = &node.Change.CanonHeight
+		nodeData = node.Change
 	}
 
-	// Retain only roots that are descendents of the finalised block (this
-	// happens if the node has been properly finalised) or that are
-	// ancestors (or equal) to the finalised block (in this case the node
-	// wasn't finalised earlier presumably because the Predicate didn't
+	// Retain only roots that are descendents of the finalized block (this
+	// happens if the node has been properly finalized) or that are
+	// ancestors (or equal) to the finalized block (in this case the node
+	// wasn't finalized earlier presumably because the Predicate didn't
 	// pass).
 	didChange := false
 	roots = ct.Roots()
 
-	ct.roots = []*pendingChangeNode[H, N]{}
+	ct.TreeRoots = []*PendingChangeNode[H, N, ID]{}
 	for _, root := range roots {
 		retain := false
-		if root.change.canonHeight > number {
-			isDescA, err := isDescendentOf(*hash, root.change.canonHash)
+		if root.Change.CanonHeight > number {
+			isDescA, err := isDescendentOf(*hash, root.Change.CanonHash)
 			if err != nil {
 				return result, err
 			}
@@ -291,10 +297,10 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R10
 			if isDescA {
 				retain = true
 			}
-		} else if root.change.canonHeight == number && root.change.canonHash == *hash {
+		} else if root.Change.CanonHeight == number && root.Change.CanonHash == *hash {
 			retain = true
 		} else {
-			isDescB, err := isDescendentOf(root.change.canonHash, *hash)
+			isDescB, err := isDescendentOf(root.Change.CanonHash, *hash)
 			if err != nil {
 				return result, err
 			}
@@ -304,18 +310,18 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R10
 			}
 		}
 		if retain {
-			ct.roots = append(ct.roots, root)
+			ct.TreeRoots = append(ct.TreeRoots, root)
 		} else {
 			didChange = true
 		}
 
-		ct.bestFinalizedNumber = &number
+		ct.BestFinalizedNumber = &number
 	}
 
-	result = newFinalizationResult[H, N]()
+	result = newFinalizationResult[H, N, ID]()
 
 	if nodeData != nil {
-		err = result.Set(changed[H, N]{
+		err = result.Set(changed[H, N, ID]{
 			value: nodeData,
 		})
 		if err != nil {
@@ -324,7 +330,7 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R10
 		return result, nil
 	} else {
 		if didChange {
-			err = result.Set(changed[H, N]{})
+			err = result.Set(changed[H, N, ID]{})
 			if err != nil {
 				return result, err
 			}
@@ -339,11 +345,11 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(hash *H, //skipcq:   GO-R10
 	}
 }
 
-func (pcn *pendingChangeNode[H, N]) importNode(hash H,
+func (pcn *PendingChangeNode[H, N, ID]) importNode(hash H,
 	number N,
-	change PendingChange[H, N],
+	change PendingChange[H, N, ID],
 	isDescendentOf IsDescendentOf[H]) (bool, error) {
-	announcingHash := pcn.change.canonHash
+	announcingHash := pcn.Change.CanonHash
 	if hash == announcingHash {
 		return false, fmt.Errorf("%w: %v", errDuplicateHashes, hash)
 	}
@@ -357,11 +363,11 @@ func (pcn *pendingChangeNode[H, N]) importNode(hash H,
 		return false, nil
 	}
 
-	if number <= pcn.change.canonHeight {
+	if number <= pcn.Change.CanonHeight {
 		return false, nil
 	}
 
-	for _, childrenNodes := range pcn.children {
+	for _, childrenNodes := range pcn.Children {
 		imported, err := childrenNodes.importNode(hash, number, change, isDescendentOf)
 		if err != nil {
 			return false, err
@@ -371,36 +377,37 @@ func (pcn *pendingChangeNode[H, N]) importNode(hash H,
 			return true, nil
 		}
 	}
-	childrenNode := &pendingChangeNode[H, N]{
-		change: &change,
+	childrenNode := &PendingChangeNode[H, N, ID]{
+		Change: &change,
 	}
-	pcn.children = append(pcn.children, childrenNode)
+	pcn.Children = append(pcn.Children, childrenNode)
 	return true, nil
 }
 
-func getPreOrder[H comparable, N constraints.Unsigned](changes *[]PendingChange[H, N], //skipcq: RVV-A0006
-	changeNode *pendingChangeNode[H, N]) {
+func getPreOrder[H comparable, N constraints.Unsigned, ID AuthorityID](
+	changes *[]PendingChange[H, N, ID],
+	changeNode *PendingChangeNode[H, N, ID]) {
 	if changeNode == nil {
 		return
 	}
 
 	if changes != nil {
 		tempChanges := *changes
-		tempChanges = append(tempChanges, *changeNode.change)
+		tempChanges = append(tempChanges, *changeNode.Change)
 		*changes = tempChanges
 	} else {
-		change := []PendingChange[H, N]{*changeNode.change}
+		change := []PendingChange[H, N, ID]{*changeNode.Change}
 		changes = &change
 	}
 
-	for i := 0; i < len(changeNode.children); i++ {
-		getPreOrder(changes, changeNode.children[i])
+	for i := 0; i < len(changeNode.Children); i++ {
+		getPreOrder(changes, changeNode.Children[i])
 	}
 }
 
-func getPreOrderChangeNodes[H comparable, N constraints.Unsigned]( //skipcq: RVV-A0006 //skipcq: RVV-B0001
-	changes *[]*pendingChangeNode[H, N],
-	changeNode *pendingChangeNode[H, N]) {
+func getPreOrderChangeNodes[H comparable, N constraints.Unsigned, ID AuthorityID](
+	changes *[]*PendingChangeNode[H, N, ID],
+	changeNode *PendingChangeNode[H, N, ID]) {
 	if changeNode == nil {
 		return
 	}
@@ -410,12 +417,12 @@ func getPreOrderChangeNodes[H comparable, N constraints.Unsigned]( //skipcq: RVV
 		tempChanges = append(tempChanges, changeNode)
 		*changes = tempChanges
 	} else {
-		change := []*pendingChangeNode[H, N]{changeNode}
+		change := []*PendingChangeNode[H, N, ID]{changeNode}
 		changes = &change
 	}
 
-	for i := 0; i < len(changeNode.children); i++ {
-		getPreOrderChangeNodes(changes, changeNode.children[i])
+	for i := 0; i < len(changeNode.Children); i++ {
+		getPreOrderChangeNodes(changes, changeNode.Children[i])
 	}
 }
 
@@ -426,12 +433,12 @@ func getPreOrderChangeNodes[H comparable, N constraints.Unsigned]( //skipcq: RVV
 // This does not preserve ordering, but is *O*(1).
 //
 // Panics if `index` is out of bounds.
-func (ct *ChangeTree[H, N]) swapRemove(roots []*pendingChangeNode[H, N], index N) pendingChangeNode[H, N] {
+func (ct *ChangeTree[H, N, ID]) swapRemove(roots []*PendingChangeNode[H, N, ID], index N) PendingChangeNode[H, N, ID] {
 	if index >= N(len(roots)) {
 		panic("swap_remove index out of bounds")
 	}
 
-	val := pendingChangeNode[H, N]{}
+	val := PendingChangeNode[H, N, ID]{}
 	if roots[index] != nil {
 		val = *roots[index]
 	} else {
@@ -443,11 +450,11 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*pendingChangeNode[H, N], index N
 	newRoots := roots[:len(roots)-1]
 	// This should be the case where last elem was removed
 	if index == N(len(newRoots)) {
-		ct.roots = newRoots
+		ct.TreeRoots = newRoots
 		return val
 	}
 	newRoots[index] = lastElem
-	ct.roots = newRoots
+	ct.TreeRoots = newRoots
 	return val
 }
 
@@ -459,6 +466,6 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*pendingChangeNode[H, N], index N
 // - `KeepTree` if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
-func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013
+func (_ *ChangeTree[H, N, ID]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013
 	// TODO implement
 }
