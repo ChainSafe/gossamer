@@ -275,5 +275,4 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned, ID AuthorityID, S
 		return err
 	}
 	return nil
-
 }
