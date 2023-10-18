@@ -41,6 +41,8 @@ var (
 	ErrInvalidAdvertisement                 = errors.New("advertisement is invalid")
 	ErrUndeclaredCollator                   = errors.New("no prior declare message received for this collator ")
 	ErrOutOfView                            = errors.New("collation relay parent is out of our view")
+	ErrDuplicateAdvertisement               = errors.New("advertisement is already known")
+	ErrPeerLimitReached                     = errors.New("limit for announcements per peer is reached")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -81,6 +83,10 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 
 		}
 	}
+}
+
+func (cpvs CollatorProtocolValidatorSide) String() parachaintypes.SubSystemName {
+	return parachaintypes.CollationProtocol
 }
 
 // requestCollation requests a collation from the network.
@@ -175,15 +181,16 @@ func IsRelayParentInImplicitView(
 	return false
 }
 
+// Note an advertisement by the collator. Returns `true` if the advertisement was imported
+// successfully. Fails if the advertisement is duplicate, out of view, or the peer has not
+// declared itself a collator.
 func (peerData *PeerData) InsertAdvertisement(
 	onRelayParent common.Hash,
 	relayParentMode ProspectiveParachainsMode,
-	candidateHash *common.Hash,
+	candidateHash *parachaintypes.CandidateHash,
 	implicitView ImplicitView,
 	activeLeaves map[common.Hash]ProspectiveParachainsMode,
 ) (isAdvertisementInvalid bool, err error) {
-	// TODO: part of https://github.com/ChainSafe/gossamer/issues/3514
-
 	switch peerData.state.PeerState {
 	case Connected:
 		return true, ErrUndeclaredCollator
@@ -193,6 +200,27 @@ func (peerData *PeerData) InsertAdvertisement(
 			return true, ErrOutOfView
 		}
 
+		if relayParentMode.isEnabled {
+			// relayParentMode.maxCandidateDepth
+			candidates, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
+			if ok && slices.Contains[[]parachaintypes.CandidateHash](candidates, *candidateHash) {
+				return true, ErrDuplicateAdvertisement
+			}
+
+			if len(candidates) > int(relayParentMode.maxCandidateDepth) {
+				return true, ErrPeerLimitReached
+			}
+			candidates = append(candidates, *candidateHash)
+			peerData.state.CollatingPeerState.advertisements[onRelayParent] = candidates
+		} else {
+			_, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
+			if ok {
+				return true, ErrDuplicateAdvertisement
+			}
+			peerData.state.CollatingPeerState.advertisements[onRelayParent] = []parachaintypes.CandidateHash{*candidateHash}
+		}
+
+		peerData.state.CollatingPeerState.lastActive = time.Now()
 	}
 	return false, nil
 }
@@ -205,10 +233,11 @@ type PeerStateInfo struct {
 }
 
 type CollatingPeerState struct {
-	CollatorID     parachaintypes.CollatorID
-	ParaID         parachaintypes.ParaID
-	advertisements []common.Hash //nolint
-	lastActive     time.Time     //nolint
+	CollatorID parachaintypes.CollatorID
+	ParaID     parachaintypes.ParaID
+	// collations advertised by peer per relay parent
+	advertisements map[common.Hash][]parachaintypes.CandidateHash
+	lastActive     time.Time //nolint
 }
 
 type PeerState uint
@@ -278,6 +307,22 @@ type CollatorProtocolValidatorSide struct {
 	// TODO: In rust this is a map, let's see if we can get away with a map
 	// blocked_advertisements: HashMap<(ParaId, Hash), Vec<BlockedAdvertisement>>,
 	BlockedAdvertisements []BlockedAdvertisement
+
+	// Leaves that do support asynchronous backing along with
+	// implicit ancestry. Leaves from the implicit view are present in
+	// `active_leaves`, the opposite doesn't hold true.
+	//
+	// Relay-chain blocks which don't support prospective parachains are
+	// never included in the fragment trees of active leaves which do. In
+	// particular, this means that if a given relay parent belongs to implicit
+	// ancestry of some active leaf, then it does support prospective parachains.
+	implicitView ImplicitView
+
+	/// All active leaves observed by us, including both that do and do not
+	/// support prospective parachains. This mapping works as a replacement for
+	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
+	/// to asynchronous backing is done.
+	activeLeaves map[common.Hash]ProspectiveParachainsMode
 }
 
 // Prospective parachains mode of a relay parent. Defined by

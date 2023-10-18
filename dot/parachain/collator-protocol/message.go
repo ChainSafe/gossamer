@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -188,12 +189,35 @@ type BlockedAdvertisement struct {
 	candidateHash        parachaintypes.CandidateHash
 }
 
-func canSecond() bool {
-	// TODO
-	// https://github.com/paritytech/polkadot-sdk/blob/6079b6dd3aaba56ef257111fda74a57a800f16d0/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L955
-	return false
+func (cpvs CollatorProtocolValidatorSide) canSecond(
+	candidateParaID parachaintypes.ParaID,
+	candidateRelayParent common.Hash,
+	candidateHash parachaintypes.CandidateHash,
+	parentHeadDataHash common.Hash,
+) bool {
+	canSecondRequest := backing.CanSecond{
+		CandidateParaID:      candidateParaID,
+		CandidateRelayParent: candidateRelayParent,
+		CandidateHash:        candidateHash,
+		ParentHeadDataHash:   parentHeadDataHash,
+	}
+
+	responseChan := make(chan bool)
+
+	cpvs.SubSystemToOverseer <- struct {
+		responseChan     chan bool
+		canSecondRequest backing.CanSecond
+	}{
+		responseChan:     responseChan,
+		canSecondRequest: canSecondRequest,
+	}
+
+	// TODO: Add timeout
+	return <-responseChan
 }
 
+// Enqueue collation for fetching. The advertisement is expected to be
+// validated.
 func (cpvs CollatorProtocolValidatorSide) enqueueCollation(collations Collations) {
 	switch collations.status {
 	case Fetching, WaitingOnValidation:
@@ -202,7 +226,7 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(collations Collations
 
 }
 
-func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
+func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
 	prospectiveCandidate *ProspectiveCandidate) error {
 	// TODO:
 	// - tracks advertisements received and the source (peer id) of the advertisement
@@ -247,7 +271,13 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 		return ErrProtocolMismatch
 	}
 
-	isAdvertisementInvalid, err := peerData.InsertAdvertisement()
+	isAdvertisementInvalid, err := peerData.InsertAdvertisement(
+		relayParent,
+		perRelayParent.prospectiveParachainMode,
+		&prospectiveCandidate.CandidateHash,
+		cpvs.implicitView,
+		cpvs.activeLeaves,
+	)
 	if isAdvertisementInvalid {
 		cpvs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
@@ -263,18 +293,25 @@ func (cpvs CollatorProtocolValidatorSide) handleAdvertisement(relayParent common
 		return ErrSecondedLimitReached
 	}
 
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || canSecond()
+	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
+		collatorParaID,
+		relayParent,
+		prospectiveCandidate.CandidateHash,
+		prospectiveCandidate.ParentHeadDataHash,
+	)
 
 	if !isSecondingAllowed {
 		logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
 			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
-		cpvs.BlockedAdvertisements = append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
+		blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
 			peerID:               sender,
 			collatorID:           peerData.state.CollatingPeerState.CollatorID,
 			candidateRelayParent: relayParent,
 			candidateHash:        prospectiveCandidate.CandidateHash,
 		})
+
+		cpvs.BlockedAdvertisements = blockedAdvertisements
 		return nil
 	}
 

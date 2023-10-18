@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,6 +39,10 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 			counter++
 		}
 	}
+}
+
+func (s *TestSubsystem) String() parachaintypes.SubSystemName {
+	return parachaintypes.SubSystemName(s.name)
 }
 
 func TestStart2SubsytemsActivate1(t *testing.T) {

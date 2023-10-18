@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
@@ -22,6 +24,7 @@ type Overseer struct {
 	errChan              chan error // channel for overseer to send errors to service that started it
 	SubsystemsToOverseer chan any
 	subsystems           map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
+	nameToSubsystem      map[parachaintypes.SubSystemName]Subsystem
 	wg                   sync.WaitGroup
 }
 
@@ -34,6 +37,7 @@ func NewOverseer() *Overseer {
 		errChan:              make(chan error),
 		SubsystemsToOverseer: make(chan any),
 		subsystems:           make(map[Subsystem]chan any),
+		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
 	}
 }
 
@@ -42,6 +46,7 @@ func NewOverseer() *Overseer {
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
 	OverseerToSubSystem := make(chan any)
 	o.subsystems[subsystem] = OverseerToSubSystem
+	o.nameToSubsystem[subsystem.String()] = subsystem
 
 	return OverseerToSubSystem
 }
@@ -71,6 +76,10 @@ func (o *Overseer) processMessages() {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
 			switch msg.(type) {
+			case backing.CanSecond:
+				subsystem := o.nameToSubsystem[parachaintypes.CandidateBacking]
+				overseerToSubsystem := o.subsystems[subsystem]
+				overseerToSubsystem <- msg
 			default:
 				logger.Error("unknown message type")
 			}
@@ -89,6 +98,10 @@ func (o *Overseer) Stop() error {
 
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
+
+	for _, sub := range o.subsystems {
+		close(sub)
+	}
 
 	// wait for subsystems to stop
 	// TODO: determine reasonable timeout duration for production, currently this is just for testing

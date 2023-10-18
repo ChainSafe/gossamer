@@ -76,6 +76,10 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 	return nil
 }
 
+func (cb *CandidateBacking) String() parachaintypes.SubSystemName {
+	return parachaintypes.CandidateBacking
+}
+
 func (cb *CandidateBacking) processMessages() {
 	for msg := range cb.OverseerToSubSystem {
 		// process these received messages by referencing
