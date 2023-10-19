@@ -225,6 +225,14 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	peerID peer.ID,
 	collatorID parachaintypes.CollatorID,
 	prospectiveCandidate *ProspectiveCandidate) {
+
+	pendingCollation := PendingCollation{
+		RelayParent:          relayParent,
+		ParaID:               paraID,
+		PeerID:               peerID,
+		ProspectiveCandidate: prospectiveCandidate,
+	}
+
 	switch collations.status {
 	// TODO: In rust code, a lot of thing that are being done in handle_advertisement
 	// are being repeated here.
@@ -235,25 +243,49 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	case Fetching, WaitingOnValidation:
 		logger.Debug("added collation to unfetched list")
 		collations.waitingQueue = append(collations.waitingQueue, UnfetchedCollation{
-			CollatorID: collatorID,
-			PendingCollation: PendingCollation{
-				RelayParent:          relayParent,
-				ParaID:               paraID,
-				PeerID:               peerID,
-				ProspectiveCandidate: prospectiveCandidate,
-			},
+			CollatorID:       collatorID,
+			PendingCollation: pendingCollation,
 		})
 	case Waiting:
-
+		// limit is not reached, it's allowed to second another collation
+		cpvs.fetchCollation(pendingCollation, collatorID)
 	case Seconded:
-
+		perRelayParent := cpvs.perRelayParent[relayParent]
+		if perRelayParent.prospectiveParachainMode.isEnabled {
+			cpvs.fetchCollation(pendingCollation, collatorID)
+		} else {
+			logger.Debug("a collation has already been seconded")
+		}
 	}
 
 }
 
-func (cpvs *CollatorProtocolValidatorSide) fetchedCollation(pendingCollation PendingCollation,
-	collatorID parachaintypes.CollatorID) {
+func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation,
+	collatorID parachaintypes.CollatorID) error {
 
+	candidateHash := pendingCollation.ProspectiveCandidate.CandidateHash
+	peerData, ok := cpvs.peerData[pendingCollation.PeerID]
+	if !ok {
+		return ErrUnknownPeer
+	}
+
+	if !peerData.HasAdvertised(pendingCollation.RelayParent, &candidateHash) {
+		return ErrNotAdvertised
+	}
+
+	// TODO: Add it to collation_fetch_timeouts if we can't process this in timeout time.
+	// state
+	// .collation_fetch_timeouts
+	// .push(timeout(id.clone(), candidate_hash, relay_parent).boxed());
+	collation, err := cpvs.requestCollation(pendingCollation.RelayParent, pendingCollation.ParaID,
+		pendingCollation.PeerID)
+	if err != nil {
+		return fmt.Errorf("requesting collation: %w", err)
+	}
+
+	cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
+
+	return nil
 }
 
 func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
@@ -345,7 +377,12 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		return nil
 	}
 
-	cpvs.enqueueCollation(perRelayParent.collations)
+	cpvs.enqueueCollation(perRelayParent.collations,
+		relayParent,
+		collatorParaID,
+		sender,
+		peerData.state.CollatingPeerState.CollatorID,
+		prospectiveCandidate)
 
 	return nil
 }

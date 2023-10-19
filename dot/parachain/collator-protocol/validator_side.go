@@ -43,6 +43,7 @@ var (
 	ErrOutOfView                            = errors.New("collation relay parent is out of our view")
 	ErrDuplicateAdvertisement               = errors.New("advertisement is already known")
 	ErrPeerLimitReached                     = errors.New("limit for announcements per peer is reached")
+	ErrNotAdvertised                        = errors.New("collation was not previously advertised")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -71,7 +72,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 
 			// check if this peer id has advertised this relay parent
 			peerData := cpvs.peerData[unfetchedCollation.PendingCollation.PeerID]
-			if peerData.HasAdvertisedRelayParent(unfetchedCollation.PendingCollation.RelayParent) {
+			if peerData.HasAdvertised(unfetchedCollation.PendingCollation.RelayParent, nil) {
 				// if so request collation from this peer id
 				collation, err := cpvs.requestCollation(unfetchedCollation.PendingCollation.RelayParent,
 					unfetchedCollation.PendingCollation.ParaID, unfetchedCollation.PendingCollation.PeerID)
@@ -95,6 +96,8 @@ func (cpvs CollatorProtocolValidatorSide) String() parachaintypes.SubSystemName 
 // - check if the requested collation is in our view
 func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Hash,
 	paraID parachaintypes.ParaID, peerID peer.ID) (*parachaintypes.Collation, error) {
+
+	// TODO: Make sure that the request can be done in MAX_UNSHARED_DOWNLOAD_TIME timeout
 	if !slices.Contains[[]common.Hash](cpvs.ourView.heads, relayParent) {
 		return nil, ErrCollationNotInView
 	}
@@ -142,12 +145,19 @@ type PeerData struct {
 	state PeerStateInfo
 }
 
-func (peerData *PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool {
+func (peerData *PeerData) HasAdvertised(
+	relayParent common.Hash,
+	mayBeCandidateHash *parachaintypes.CandidateHash) bool {
 	if peerData.state.PeerState == Connected {
 		return false
 	}
 
-	return slices.Contains(peerData.view.heads, relayParent)
+	candidates, ok := peerData.state.CollatingPeerState.advertisements[relayParent]
+	if mayBeCandidateHash == nil {
+		return ok
+	}
+
+	return slices.Contains(candidates, *mayBeCandidateHash)
 }
 
 func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, paraID parachaintypes.ParaID) {
