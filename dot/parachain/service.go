@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
