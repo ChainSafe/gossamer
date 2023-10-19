@@ -75,7 +75,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 	}
 }
 
-func (cpvs CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
+func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 

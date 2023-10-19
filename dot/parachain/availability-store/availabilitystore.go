@@ -28,7 +28,7 @@ func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsyst
 	return nil
 }
 
-func (av *AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
+func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.AvailabilityStore
 }
 
