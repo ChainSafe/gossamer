@@ -376,14 +376,14 @@ func Test_newAncestryChain(t *testing.T) {
 	}
 	tests := []testCase[testHash, uint]{
 		{
-			name:    "no input headers",
+			name:    "noInputHeaders",
 			headers: []testHeader[testHash, uint]{},
 			want: ancestryChain[testHash, uint, testHeader[testHash, uint]]{
 				ancestry: make(map[testHash]testHeader[testHash, uint]),
 			},
 		},
 		{
-			name: "valid input",
+			name: "validInput",
 			headers: []testHeader[testHash, uint]{
 				dummyHeader,
 			},
@@ -441,21 +441,21 @@ func TestAncestryChain_Ancestry(t *testing.T) {
 	}
 	tests := []testCase[testHash, uint]{
 		{
-			name:  "base equals block",
+			name:  "baseEqualsBlock",
 			chain: validAncestryMap,
 			base:  "a",
 			block: "a",
 			want:  []testHash{},
 		},
 		{
-			name:   "base equals block",
+			name:   "baseEqualsBlock",
 			chain:  validAncestryMap,
 			base:   "a",
 			block:  "d",
 			expErr: errBlockNotDescendentOfBase,
 		},
 		{
-			name:   "invalid parent HashField",
+			name:   "invalidParentHashField",
 			chain:  invalidAncestryMap,
 			base:   "a",
 			block:  "b",
@@ -509,14 +509,14 @@ func TestAncestryChain_IsEqualOrDescendantOf(t *testing.T) {
 	}
 	tests := []testCase[testHash, uint]{
 		{
-			name:  "base equals block",
+			name:  "baseEqualsBlock",
 			chain: validAncestryMap,
 			base:  "a",
 			block: "a",
 			want:  true,
 		},
 		{
-			name:  "base equals block",
+			name:  "baseEqualsBlock",
 			chain: validAncestryMap,
 			base:  "a",
 			block: "d",
