@@ -19,8 +19,7 @@ var (
 	authoritySetKey   = []byte("grandpa_voters")
 	bestJustification = []byte("grandpa_best_justification") //nolint
 
-	errJustificationNotFound = errors.New("justification not found")
-	errValueNotFound         = errors.New("value not found")
+	errValueNotFound = errors.New("value not found")
 )
 
 type writeAux func(insertions []api.KeyValue) error
@@ -215,20 +214,12 @@ func UpdateBestJustification[H HashI, N constraints.Unsigned, S comparable, ID c
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
 func BestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](store api.AuxStore) (*Justification[H, N, S, ID, Header], error) {
-	encodedJustification, err := store.Get(bestJustification)
+	justification := Justification[H, N, S, ID, Header]{}
+	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {
 		return nil, err
 	}
 
-	if encodedJustification == nil {
-		return nil, fmt.Errorf("%w", errJustificationNotFound)
-	}
-
-	justification := Justification[H, N, S, ID, Header]{}
-	err = scale.Unmarshal(*encodedJustification, &justification)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshalling: %w", err)
-	}
 	return &justification, nil
 }
 
