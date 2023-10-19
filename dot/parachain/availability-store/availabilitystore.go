@@ -6,6 +6,7 @@ package availability_store
 import (
 	"context"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
@@ -25,6 +26,10 @@ func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsyst
 	SubsystemToOverseer chan any) error {
 	av.processMessages()
 	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
+	return parachaintypes.AvailabilityStore
 }
 
 func (av *AvailabilityStoreSubsystem) processMessages() {

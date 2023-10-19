@@ -6,6 +6,7 @@ package overseer
 import (
 	"context"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -26,4 +27,5 @@ type ActiveLeavesUpdate struct {
 type Subsystem interface {
 	// Run runs the subsystem.
 	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
+	Name() parachaintypes.SubSystemName
 }

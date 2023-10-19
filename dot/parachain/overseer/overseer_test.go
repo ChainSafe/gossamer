@@ -10,11 +10,16 @@ import (
 	"testing"
 	"time"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/stretchr/testify/require"
 )
 
 type TestSubsystem struct {
 	name string
+}
+
+func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
+	return parachaintypes.SubSystemName(s.name)
 }
 
 func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
