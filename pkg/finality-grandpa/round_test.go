@@ -278,7 +278,7 @@ func TestRound_HistoricalVotesWorks(t *testing.T) {
 		seen: []SignedMessage[string, uint32, string, string]{
 			{
 				Message: Message[string, uint32]{
-					value: Prevote[string, uint32]{
+					Value: Prevote[string, uint32]{
 						TargetHash:   "FC",
 						TargetNumber: 10,
 					},
@@ -288,7 +288,7 @@ func TestRound_HistoricalVotesWorks(t *testing.T) {
 			},
 			{
 				Message: Message[string, uint32]{
-					value: Prevote[string, uint32]{
+					Value: Prevote[string, uint32]{
 						TargetHash:   "EA",
 						TargetNumber: 7,
 					},
@@ -298,7 +298,7 @@ func TestRound_HistoricalVotesWorks(t *testing.T) {
 			},
 			{
 				Message: Message[string, uint32]{
-					value: Precommit[string, uint32]{
+					Value: Precommit[string, uint32]{
 						TargetHash:   "EA",
 						TargetNumber: 7,
 					},
@@ -308,7 +308,7 @@ func TestRound_HistoricalVotesWorks(t *testing.T) {
 			},
 			{
 				Message: Message[string, uint32]{
-					value: Prevote[string, uint32]{
+					Value: Prevote[string, uint32]{
 						TargetHash:   "EC",
 						TargetNumber: 10,
 					},

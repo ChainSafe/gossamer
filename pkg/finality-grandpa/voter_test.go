@@ -296,7 +296,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	item := <-roundIn
 	// wait for a prevote
 	assert.NoError(t, item.Error)
-	assert.IsType(t, Prevote[string, uint32]{}, item.SignedMessage.Message.value)
+	assert.IsType(t, Prevote[string, uint32]{}, item.SignedMessage.Message.Value)
 	assert.Equal(t, localID, item.SignedMessage.ID)
 
 	// send our prevote and precommit
@@ -310,7 +310,7 @@ waitForPrecommit:
 		item = <-roundIn
 		// wait for a precommit
 		assert.NoError(t, item.Error)
-		switch item.SignedMessage.Message.value.(type) {
+		switch item.SignedMessage.Message.Value.(type) {
 		case Precommit[string, uint32]:
 			if item.SignedMessage.ID == localID {
 				break waitForPrecommit
@@ -649,7 +649,7 @@ waitForPrevote:
 			t.Errorf("wtf?")
 		}
 
-		msg := sme.SignedMessage.Message.Value()
+		msg := sme.SignedMessage.Message.Value
 		switch msg.(type) {
 		case Prevote[string, uint32]:
 			if sme.SignedMessage.ID == localID {
