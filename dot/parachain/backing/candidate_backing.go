@@ -59,7 +59,7 @@ type perCandidateState struct {
 }
 
 type perRelayParentState struct {
-	ProspectiveParachainsMode ProspectiveParachainsMode
+	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	// The hash of the relay parent on top of which this job is doing it's work.
 	RelayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
@@ -351,9 +351,9 @@ func (rpState *perRelayParentState) importStatement(
 
 	if rpState.ProspectiveParachainsMode.IsEnabled {
 		chIntroduceCandidate := make(chan error)
-		subSystemToOverseer <- ProspectiveParachainsMessage{
-			Value: IntroduceCandidate{
-				IntroduceCandidateRequest: IntroduceCandidateRequest{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessage{
+			Value: parachaintypes.PPMIntroduceCandidate{
+				IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
 					CandidateParaID:           parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
 					CommittedCandidateReceipt: parachaintypes.CommittedCandidateReceipt(statementVDTSeconded),
 					PersistedValidationData:   *signedStatementWithPVD.PersistedValidationData,
@@ -367,8 +367,8 @@ func (rpState *perRelayParentState) importStatement(
 			return nil, fmt.Errorf("%w: %w", ErrRejectedByProspectiveParachains, introduceCandidateErr)
 		}
 
-		subSystemToOverseer <- ProspectiveParachainsMessage{
-			Value: CandidateSeconded{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessage{
+			Value: parachaintypes.PPMCandidateSeconded{
 				ParaID:        parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
 				CandidateHash: candidateHash,
 			},
@@ -384,62 +384,6 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
-}
-
-// Messages sent to the Prospective Parachains subsystem.
-type ProspectiveParachainsMessage struct {
-	Value any
-}
-
-// Inform the Prospective Parachains Subsystem that a previously introduced candidate
-// has been backed. This requires that the candidate was successfully introduced in
-// the past.
-// this is prospective parachains message.
-type CandidateBacked struct {
-	ParaID        parachaintypes.ParaID
-	CandidateHash parachaintypes.CandidateHash
-}
-
-// Inform the Prospective Parachains Subsystem of a new candidate.
-//
-// The response sender accepts the candidate membership, which is the existing
-// membership of the candidate if it was already known.
-// this is prospective parachains message.
-type IntroduceCandidate struct {
-	IntroduceCandidateRequest IntroduceCandidateRequest
-	Ch                        chan error
-}
-
-// Inform the Prospective Parachains Subsystem that a previously introduced candidate
-// has been seconded. This requires that the candidate was successfully introduced in
-// the past.
-// this is prospective parachains message.
-type CandidateSeconded struct {
-	ParaID        parachaintypes.ParaID
-	CandidateHash parachaintypes.CandidateHash
-}
-
-type IntroduceCandidateRequest struct {
-	// The para-id of the candidate.
-	CandidateParaID parachaintypes.ParaID
-	// The candidate receipt itself.
-	CommittedCandidateReceipt parachaintypes.CommittedCandidateReceipt
-	// The persisted validation data of the candidate.
-	PersistedValidationData parachaintypes.PersistedValidationData
-}
-
-type ProspectiveParachainsMode struct {
-	// Runtime API without support of `async_backing_params`: no prospective parachains.
-	// v6 runtime API: prospective parachains.
-	// NOTE: MaxCandidateDepth and AllowedAncestryLen need to be set if this is enabled.
-	IsEnabled bool
-
-	// The maximum number of para blocks between the para head in a relay parent
-	// and a new candidate. Restricts nodes from building arbitrary long chains
-	// and spamming other validators.
-	MaxCandidateDepth uint
-	// How many ancestors of a relay parent are allowed to build candidates on top of.
-	AllowedAncestryLen uint
 }
 
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) error {
@@ -481,24 +425,24 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	if rpState.ProspectiveParachainsMode.IsEnabled {
 
 		// Inform the prospective parachains subsystem that the candidate is now backed.
-		subSystemToOverseer <- ProspectiveParachainsMessage{
-			Value: CandidateBacked{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessage{
+			Value: parachaintypes.PPMCandidateBacked{
 				ParaID:        parachaintypes.ParaID(paraID),
 				CandidateHash: candidateHash,
 			},
 		}
 
 		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
-		subSystemToOverseer <- CollatorProtocolMessage{
-			Value: CPMBacked{
+		subSystemToOverseer <- parachaintypes.CollatorProtocolMessage{
+			Value: parachaintypes.CPMBacked{
 				ParaID:   parachaintypes.ParaID(paraID),
 				ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
 			},
 		}
 
 		// Notify statement distribution of backed candidate.
-		subSystemToOverseer <- StatementDistributionMessage{
-			Value: SDMBacked(candidateHash),
+		subSystemToOverseer <- parachaintypes.StatementDistributionMessage{
+			Value: parachaintypes.SDMBacked(candidateHash),
 		}
 
 	} else {
@@ -508,11 +452,11 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		//
 		// Backed candidates are bounded by the number of validators,
 		// parachains, and the block production rate of the relay chain.
-		subSystemToOverseer <- ProvisionerMessage{
-			Value: PMProvisionableData{
+		subSystemToOverseer <- parachaintypes.ProvisionerMessage{
+			Value: parachaintypes.PMProvisionableData{
 				RelayParent: rpState.RelayParent,
-				ProvisionableData: ProvisionableData{
-					Value: PDBackedCandidate(backedCandidate.Candidate.ToCandidateReceipt()),
+				ProvisionableData: parachaintypes.ProvisionableData{
+					Value: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToCandidateReceipt()),
 				},
 			},
 		}
@@ -578,18 +522,18 @@ func backgroundValidateAndMakeAvailable(
 		Value: common.MustBlake2bHash(scale.MustMarshal(candidateReceipt)),
 	}
 
-	chValidationCodeByHashRes := make(chan OverseerFuncRes[parachaintypes.ValidationCode])
-	subSystemToOverseer <- RuntimeApiMessage{
+	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
+	subSystemToOverseer <- parachaintypes.RuntimeApiMessage{
 		RelayParent: relayPaent,
-		RuntimeApiRequest: ValidationCodeByHash{
+		RuntimeApiRequest: parachaintypes.RAMValidationCodeByHash{
 			ValidationCodeHash: validationCodeHash,
 			Ch:                 chValidationCodeByHashRes,
 		},
 	}
 
 	ValidationCodeByHashRes := <-chValidationCodeByHashRes
-	if ValidationCodeByHashRes.err != nil {
-		logger.Error(ValidationCodeByHashRes.err.Error())
+	if ValidationCodeByHashRes.Err != nil {
+		logger.Error(ValidationCodeByHashRes.Err.Error())
 		return
 	}
 
@@ -598,39 +542,42 @@ func backgroundValidateAndMakeAvailable(
 		logger.Errorf("could not get executor params at relay parent: %w", err)
 	}
 
-	chValidationResultRes := make(chan OverseerFuncRes[ValidationResult])
-	subSystemToOverseer <- CandidateValidationMessage{
-		Value: ValidateFromExhaustive{
+	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
+	subSystemToOverseer <- parachaintypes.CandidateValidationMessage{
+		Value: parachaintypes.CVMValidateFromExhaustive{
 			PersistedValidationData: pvd,
-			ValidationCode:          ValidationCodeByHashRes.data,
+			ValidationCode:          ValidationCodeByHashRes.Data,
 			CandidateReceipt:        candidateReceipt,
-			pov:                     pov,
+			PoV:                     pov,
 			ExecutorParams:          executorParams,
-			PvfPrepTimeoutKind:      Approval,
+			PvfPrepTimeoutKind:      parachaintypes.Approval,
 			Ch:                      chValidationResultRes,
 		},
 	}
 
 	ValidationResultRes := <-chValidationResultRes
-	if ValidationResultRes.err != nil {
-		logger.Error(ValidationResultRes.err.Error())
+	if ValidationResultRes.Err != nil {
+		logger.Error(ValidationResultRes.Err.Error())
 	}
 
 	var backgroundValidationResult BackgroundValidationResult
 
-	if ValidationResultRes.data.IsValid { // Valid
+	if ValidationResultRes.Data.IsValid { // Valid
 		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
 		// matches `expected_erasure_root` which was provided by the collator in the `CandidateReceipt`.
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
 		// candidate validity.
 
 		chStoreAvailableDataError := make(chan error)
-		subSystemToOverseer <- AvailabilityStoreMessage{
-			Value: StoreAvailableData{
+		subSystemToOverseer <- parachaintypes.AvailabilityStoreMessage{
+			Value: parachaintypes.ASMStoreAvailableData{
 				CandidateHash: candidateHash,
 				NumValidators: numValidator,
-				AvailableData: AvailableData{pov, pvd},
-				Ch:            chStoreAvailableDataError,
+				AvailableData: parachaintypes.AvailableData{
+					PoV:            pov,
+					ValidationData: pvd,
+				},
+				Ch: chStoreAvailableDataError,
 			},
 		}
 
@@ -639,8 +586,8 @@ func backgroundValidateAndMakeAvailable(
 		case nil:
 			backgroundValidationResult = BackgroundValidationResult{
 				CandidateReceipt:        &candidateReceipt,
-				CandidateCommitments:    &ValidationResultRes.data.CandidateCommitments,
-				PersistedValidationData: &ValidationResultRes.data.PersistedValidationData,
+				CandidateCommitments:    &ValidationResultRes.Data.CandidateCommitments,
+				PersistedValidationData: &ValidationResultRes.Data.PersistedValidationData,
 				Err:                     nil,
 			}
 		case ErrInvalidErasureRoot:
@@ -656,7 +603,7 @@ func backgroundValidateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(ValidationResultRes.data.err.Error())
+		logger.Error(ValidationResultRes.Data.Err.Error())
 		backgroundValidationResult = BackgroundValidationResult{
 			CandidateReceipt: &candidateReceipt,
 			Err:              ErrInvalidErasureRoot,
@@ -677,89 +624,15 @@ func GetPovFromValidator() parachaintypes.PoV {
 	return parachaintypes.PoV{}
 }
 
-type ExecutorParams struct {
-	// TODO: Implement this
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/primitives/src/v6/executor_params.rs#L97-L98
-}
-
-func executorParamsAtRelayParent(relayParent common.Hash, subSystemToOverseer chan<- any) (ExecutorParams, error) {
+func executorParamsAtRelayParent(relayParent common.Hash, subSystemToOverseer chan<- any) (parachaintypes.ExecutorParams, error) {
 	// TODO: Implement this
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
-	return ExecutorParams{}, nil
+	return parachaintypes.ExecutorParams{}, nil
 }
 
 func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd RelayParentAndCommand) error {
 	// TODO: Implement this
 	return nil
-}
-
-type RuntimeApiMessage struct {
-	RelayParent       common.Hash
-	RuntimeApiRequest any
-}
-
-type ValidationCodeByHash struct {
-	ValidationCodeHash parachaintypes.ValidationCodeHash
-	Ch                 chan OverseerFuncRes[parachaintypes.ValidationCode]
-}
-
-type CandidateValidationMessage struct {
-	Value any
-}
-
-type ValidateFromExhaustive struct {
-	PersistedValidationData parachaintypes.PersistedValidationData
-	ValidationCode          parachaintypes.ValidationCode
-	CandidateReceipt        parachaintypes.CandidateReceipt
-	pov                     parachaintypes.PoV
-	ExecutorParams          ExecutorParams
-	PvfPrepTimeoutKind      PvfPrepTimeoutKind
-	Ch                      chan OverseerFuncRes[ValidationResult]
-}
-
-// Type discriminator for PVF execution timeouts
-type PvfPrepTimeoutKind byte
-
-const (
-	// The amount of time to spend on execution during backing.
-	Backing PvfPrepTimeoutKind = iota
-	/// The amount of time to spend on execution during approval or disputes.
-	///
-	/// This should be much longer than the backing execution timeout to ensure that in the
-	/// absence of extremely large disparities between hardware, blocks that pass backing are
-	/// considered executable by approval checkers or dispute participants.
-	Approval
-)
-
-// ValidationResult coming from candidate validation subsystem
-type ValidationResult struct {
-	IsValid                 bool
-	CandidateCommitments    parachaintypes.CandidateCommitments
-	PersistedValidationData parachaintypes.PersistedValidationData
-	err                     error
-}
-
-type AvailabilityStoreMessage struct {
-	Value any
-}
-
-// Computes and checks the erasure root of `AvailableData` before storing all of its chunks in
-// the AV store.
-type StoreAvailableData struct {
-	CandidateHash       parachaintypes.CandidateHash
-	NumValidators       uint32
-	AvailableData       AvailableData
-	ExpectedErasureRoot common.Hash
-	Ch                  chan error
-}
-
-// AvailableData represents the data that is kept available for each candidate included in the relay chain.
-type AvailableData struct {
-	// The Proof-of-Validation (PoV) of the candidate
-	PoV parachaintypes.PoV `scale:"1"`
-
-	// The persisted validation data needed for approval checks
-	ValidationData parachaintypes.PersistedValidationData `scale:"2"`
 }
 
 type BackgroundValidationResult struct {
@@ -788,59 +661,3 @@ const (
 	// We were not able to `Attest` because backing validator did not send us the PoV.
 	AttestNoPoV
 )
-
-// Messages received by the Collator Protocol subsystem.
-type CollatorProtocolMessage struct {
-	Value any
-}
-
-// The candidate received enough validity votes from the backing group.
-// this is a collator protocol message
-type CPMBacked struct {
-	// Candidate's para id.
-	ParaID parachaintypes.ParaID
-	// Hash of the para head generated by candidate.
-	ParaHead common.Hash
-}
-
-// Statement distribution message.
-type StatementDistributionMessage struct {
-	Value any
-}
-
-// The candidate received enough validity votes from the backing group.
-//
-// If the candidate is backed as a result of a local statement, this message MUST
-// be preceded by a `Share` message for that statement. This ensures that Statement
-// Distribution is always aware of full candidates prior to receiving the `Backed`
-// notification, even when the group size is 1 and the candidate is seconded locally.
-type SDMBacked parachaintypes.CandidateHash
-
-// Message to the Provisioner.
-//
-// In all cases, the Hash is that of the relay parent.
-type ProvisionerMessage struct {
-	Value any
-}
-
-// PMProvisionableData is a provisioner message
-// This data should become part of a relay chain block
-type PMProvisionableData struct {
-	RelayParent       common.Hash
-	ProvisionableData any
-}
-
-// This data becomes intrinsics or extrinsics which should be included in a future relay chain block.
-type ProvisionableData struct {
-	Value any
-}
-
-// The Candidate Backing subsystem believes that this candidate is valid, pending
-// availability.
-// this is a provisionable data
-type PDBackedCandidate parachaintypes.CandidateReceipt
-
-type OverseerFuncRes[T any] struct {
-	err  error
-	data T
-}

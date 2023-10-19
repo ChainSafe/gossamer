@@ -552,3 +552,17 @@ type BackedCandidate struct {
 	// The indices of the validators within the group, expressed as a bitfield.
 	ValidatorIndices []byte `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
 }
+
+type ProspectiveParachainsMode struct {
+	// Runtime API without support of `async_backing_params`: no prospective parachains.
+	// v6 runtime API: prospective parachains.
+	// NOTE: MaxCandidateDepth and AllowedAncestryLen need to be set if this is enabled.
+	IsEnabled bool
+
+	// The maximum number of para blocks between the para head in a relay parent
+	// and a new candidate. Restricts nodes from building arbitrary long chains
+	// and spamming other validators.
+	MaxCandidateDepth uint
+	// How many ancestors of a relay parent are allowed to build candidates on top of.
+	AllowedAncestryLen uint
+}
