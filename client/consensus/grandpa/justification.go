@@ -34,7 +34,10 @@ type Justification[H HashI, N constraints.Unsigned, S comparable, ID constraints
 
 // Create a GRANDPA justification from the given commit. This method
 // assumes the commit is valid and well-formed.
-func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](client HeaderBackend[H, N, Header], round uint64, commit finalityGrandpa.Commit[H, N, S, ID]) (Justification[H, N, S, ID, Header], error) {
+func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
+	client HeaderBackend[H, N, Header],
+	round uint64,
+	commit finalityGrandpa.Commit[H, N, S, ID]) (Justification[H, N, S, ID, Header], error) {
 	votesAncestriesHashes := make(map[H]struct{})
 	voteAncestries := make([]Header, 0)
 
@@ -57,7 +60,8 @@ func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Or
 		}
 	}
 	if minPrecommit == nil {
-		return Justification[H, N, S, ID, Header]{}, fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
+		return Justification[H, N, S, ID, Header]{},
+			fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 	}
 
 	baseNumber := minPrecommit.number
@@ -71,7 +75,8 @@ func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Or
 
 			header, err := client.Header(currentHash)
 			if err != nil || header == nil {
-				return Justification[H, N, S, ID, Header]{}, fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
+				return Justification[H, N, S, ID, Header]{},
+					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 
 			currentHeader := *header
@@ -80,7 +85,8 @@ func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Or
 			// as base and only traverse backwards from the other blocks
 			// in the commit. but better be safe to avoid an unbound loop.
 			if currentHeader.Number() <= baseNumber {
-				return Justification[H, N, S, ID, Header]{}, fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
+				return Justification[H, N, S, ID, Header]{},
+					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 			parentHash := currentHeader.ParentHash()
 
@@ -103,7 +109,15 @@ func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Or
 
 // Decode a GRANDPA justification and validate the commit and the votes'
 // ancestry proofs finalize the given block.
-func decodeAndVerifyFinalizes[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](encoded []byte, finalizedTarget hashNumber[H, N], setID uint64, voters finalityGrandpa.VoterSet[ID]) (Justification[H, N, S, ID, Header], error) {
+func decodeAndVerifyFinalizes[H HashI,
+	N constraints.Unsigned,
+	S comparable,
+	ID constraints.Ordered,
+	Header HeaderI[H, N]](
+	encoded []byte,
+	finalizedTarget hashNumber[H, N],
+	setID uint64,
+	voters finalityGrandpa.VoterSet[ID]) (Justification[H, N, S, ID, Header], error) {
 	justification := Justification[H, N, S, ID, Header]{
 		VotesAncestries: make([]Header, 0),
 	}
@@ -166,16 +180,16 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(setID uint64, vo
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
 	precommits := j.Commit.Precommits
-	//minPrecommit := &finalityGrandpa.SignedPrecommit[H, N, S, ID]{}
 	var minPrecommit *finalityGrandpa.SignedPrecommit[H, N, S, ID]
 	if len(precommits) == 0 {
 		panic("can only fail if precommits is empty; commit has been validated above; valid commits must include precommits; qed.")
 	}
 	for _, precommit := range precommits {
+		currPrecommit := precommit
 		if minPrecommit == nil {
-			minPrecommit = &precommit
-		} else if precommit.Precommit.TargetNumber <= minPrecommit.Precommit.TargetNumber {
-			minPrecommit = &precommit
+			minPrecommit = &currPrecommit
+		} else if currPrecommit.Precommit.TargetNumber <= minPrecommit.Precommit.TargetNumber {
+			minPrecommit = &currPrecommit
 		}
 	}
 
@@ -194,8 +208,12 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(setID uint64, vo
 			continue
 		}
 
+		fmt.Printf("baseHash: %v\n", baseHash)
+		fmt.Printf("signed.Precommit.TargetHash: %v\n", signed.Precommit.TargetHash)
+
 		route, err := ancestryChain.Ancestry(baseHash, signed.Precommit.TargetHash)
 		if err != nil {
+			fmt.Println("err here")
 			return fmt.Errorf("%w: invalid precommit ancestry proof in grandpa justification", errBadJustification)
 		}
 

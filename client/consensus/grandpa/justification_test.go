@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
@@ -182,6 +183,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	require.Equal(t, "invalid commit target in grandpa justification", err.Error())
 
 	// Happy path
+	fmt.Println("happy path")
 	headerB := testHeader[testHash, uint]{
 		HashField:       "b",
 		ParentHashField: "a",
