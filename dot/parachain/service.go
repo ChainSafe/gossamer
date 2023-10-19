@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -32,8 +33,9 @@ type Service struct {
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
-func NewService(net Network, forkID string, genesisHash common.Hash) (*Service, error) {
+func NewService(net Network, forkID string, st *state.Service) (*Service, error) {
 	overseer := overseer.NewOverseer()
+	genesisHash := st.Block.GenesisHash()
 
 	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer)
 	if err != nil {
