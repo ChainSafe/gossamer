@@ -39,7 +39,7 @@ type messageData[H comparable, N constraints.Unsigned] struct {
 	Message finalityGrandpa.Message[H, N]
 }
 
-// Check a message signature by encoding the message as a localized payload and
+// Check a message signature by encoding the message as a localised payload and
 // verifying the provided signature using the expected authority id.
 // The encoding necessary to verify the signature will be done using the given
 // buffer, the original content of the buffer will be cleared.

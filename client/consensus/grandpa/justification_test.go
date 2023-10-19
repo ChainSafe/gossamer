@@ -5,23 +5,24 @@ package grandpa
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/constraints"
-	"reflect"
-	"testing"
 )
 
-// Fulfills HashI interface
+// Fulfils HashI interface
 type testHash string
 
 func (s testHash) IsEmpty() bool {
 	return len(s) == 0
 }
 
-// Fulfills Header interface
+// Fulfils Header interface
 type testHeader[H HashI, N constraints.Unsigned] struct {
 	ParentHashField H
 	NumberField     N
@@ -42,7 +43,7 @@ func (s testHeader[H, N]) Number() N {
 	return s.NumberField
 }
 
-// Fulfills HeaderBackend interface
+// Fulfils HeaderBackend interface
 type testBackend[H HashI, N constraints.Unsigned, Header testHeader[H, N]] struct {
 	header *testHeader[H, N]
 }
@@ -51,7 +52,9 @@ func (backend testBackend[H, N, Header]) Header(hash H) (*testHeader[H, N], erro
 	return backend.header, nil
 }
 
-func makePrecommit(t *testing.T, targetHash string, targetNumber uint, id int32) finalityGrandpa.SignedPrecommit[testHash, uint, string, int32] {
+func makePrecommit(t *testing.T,
+	targetHash string,
+	targetNumber uint, id int32) finalityGrandpa.SignedPrecommit[testHash, uint, string, int32] {
 	t.Helper()
 	return finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]{
 		Precommit: finalityGrandpa.Precommit[testHash, uint]{
@@ -64,10 +67,6 @@ func makePrecommit(t *testing.T, targetHash string, targetNumber uint, id int32)
 
 func TestJustificationEncoding(t *testing.T) {
 	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
-	ids := make([]int32, 0)
-	for i := 1; i < 4; i++ {
-		ids = append(ids, int32(i))
-	}
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -106,11 +105,6 @@ func TestJustification_fromCommit(t *testing.T) {
 
 	// nil header
 	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
-	ids := make([]int32, 0)
-	for i := 1; i < 4; i++ {
-		ids = append(ids, int32(i))
-	}
-
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -157,7 +151,10 @@ func TestJustification_fromCommit(t *testing.T) {
 		},
 		VotesAncestries: expAncestries,
 	}
-	justification, err := fromCommit[testHash, uint, string, int32, testHeader[testHash, uint]](clientLargeNum, 2, validCommit)
+	justification, err := fromCommit[testHash, uint, string, int32, testHeader[testHash, uint]](
+		clientLargeNum,
+		2,
+		validCommit)
 	require.NoError(t, err)
 	require.Equal(t, expJustification, justification)
 }
@@ -165,7 +162,11 @@ func TestJustification_fromCommit(t *testing.T) {
 func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	// Invalid Encoding
 	invalidEncoding := []byte{21}
-	_, err := decodeAndVerifyFinalizes[testHash, uint, string, int32, testHeader[testHash, uint]](invalidEncoding, hashNumber[testHash, uint]{}, 2, finalityGrandpa.VoterSet[int32]{})
+	_, err := decodeAndVerifyFinalizes[testHash, uint, string, int32, testHeader[testHash, uint]](
+		invalidEncoding,
+		hashNumber[testHash, uint]{},
+		2,
+		finalityGrandpa.VoterSet[int32]{})
 	require.NotNil(t, err)
 
 	// Invalid target
@@ -178,7 +179,11 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	encWrongTarget, err := scale.Marshal(justification)
 	require.NoError(t, err)
-	_, err = decodeAndVerifyFinalizes[testHash, uint, string, int32, testHeader[testHash, uint]](encWrongTarget, hashNumber[testHash, uint]{}, 2, finalityGrandpa.VoterSet[int32]{})
+	_, err = decodeAndVerifyFinalizes[testHash, uint, string, int32, testHeader[testHash, uint]](
+		encWrongTarget,
+		hashNumber[testHash, uint]{},
+		2,
+		finalityGrandpa.VoterSet[int32]{})
 	require.NotNil(t, err)
 	require.Equal(t, "invalid commit target in grandpa justification", err.Error())
 
@@ -194,11 +199,6 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	}
 
 	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
-	ids := make([]int32, 0)
-	for i := 1; i < 4; i++ {
-		ids = append(ids, int32(i))
-	}
-
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -227,11 +227,15 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	IDWeights := make([]finalityGrandpa.IDWeight[int32], 0)
 	for i := 1; i <= 4; i++ {
-		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1})
+		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1}) //nolint
 	}
 	voters := finalityGrandpa.NewVoterSet(IDWeights)
 
-	newJustification, err := decodeAndVerifyFinalizes[testHash, uint, string, int32, testHeader[testHash, uint]](encValid, target, 2, *voters)
+	newJustification, err := decodeAndVerifyFinalizes[testHash, uint, string, int32, testHeader[testHash, uint]](
+		encValid,
+		target,
+		2,
+		*voters)
 	require.NoError(t, err)
 	require.Equal(t, validJustification, newJustification)
 
@@ -246,7 +250,7 @@ func TestJustification_verify(t *testing.T) {
 
 	// happy path
 	for i := 1; i <= 4; i++ {
-		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1})
+		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1}) //nolint
 	}
 
 	headerB := testHeader[testHash, uint]{
@@ -259,11 +263,6 @@ func TestJustification_verify(t *testing.T) {
 	}
 
 	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
-	ids := make([]int32, 0)
-	for i := 1; i < 4; i++ {
-		ids = append(ids, int32(i))
-	}
-
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -290,7 +289,7 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 	// 1) invalid commit
 	IDWeights := make([]finalityGrandpa.IDWeight[int32], 0)
 	for i := 1; i <= 4; i++ {
-		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1})
+		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1}) //nolint
 	}
 	voters := finalityGrandpa.NewVoterSet(IDWeights)
 
@@ -322,11 +321,6 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 	}
 
 	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
-	ids := make([]int32, 0)
-	for i := 1; i < 4; i++ {
-		ids = append(ids, int32(i))
-	}
-
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -347,7 +341,8 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 
 	err = validJustification.verifyWithVoterSet(2, *voters)
 	require.ErrorIs(t, err, errBadJustification)
-	require.Equal(t, err.Error(), "bad justification for header: invalid precommit ancestries in grandpa justification with unused headers")
+	require.Equal(t, err.Error(), "bad justification for header: "+
+		"invalid precommit ancestries in grandpa justification with unused headers")
 
 	// Valid case
 	headerList = []testHeader[testHash, uint]{
@@ -437,13 +432,12 @@ func TestAncestryChain_Ancestry(t *testing.T) {
 	validAncestryMap := newAncestryChain[testHash, uint](headerList)
 	invalidAncestryMap := newAncestryChain[testHash, uint](invalidHeaderList)
 	type testCase[H HashI, N constraints.Unsigned] struct {
-		name      string
-		chain     ancestryChain[H, N, testHeader[H, N]]
-		base      H
-		block     H
-		want      []H
-		expErr    error
-		expErrMsg string
+		name   string
+		chain  ancestryChain[H, N, testHeader[H, N]]
+		base   H
+		block  H
+		want   []H
+		expErr error
 	}
 	tests := []testCase[testHash, uint]{
 		{

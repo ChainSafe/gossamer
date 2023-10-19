@@ -17,7 +17,7 @@ var (
 	setStateKey       = []byte("grandpa_completed_round")
 	concludedRounds   = []byte("grandpa_concluded_rounds")
 	authoritySetKey   = []byte("grandpa_voters")
-	bestJustification = []byte("grandpa_best_justification") //nolint
+	bestJustification = []byte("grandpa_best_justification")
 
 	errValueNotFound = errors.New("value not found")
 )
@@ -196,14 +196,21 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 // We always keep around the justification for the best finalized block and overwrite it
 // as we finalize new blocks, this makes sure that we don't store useless justifications
 // but can always prove finality of the latest block.
-func UpdateBestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](justification Justification[H, N, S, ID, Header], write writeAux) error {
+func UpdateBestJustification[
+	H HashI,
+	N constraints.Unsigned,
+	S comparable,
+	ID constraints.Ordered,
+	Header HeaderI[H, N]](
+	justification Justification[H, N, S, ID, Header],
+	write writeAux) error {
 	encodedJustificaiton, err := scale.Marshal(justification)
 	if err != nil {
-		return fmt.Errorf("marshaling: %w", err)
+		return fmt.Errorf("marshalling: %w", err)
 	}
 
 	insert := []api.KeyValue{
-		{bestJustification, encodedJustificaiton},
+		{bestJustification, encodedJustificaiton}, //nolint
 	}
 	err = write(insert)
 	if err != nil {
@@ -213,7 +220,8 @@ func UpdateBestJustification[H HashI, N constraints.Unsigned, S comparable, ID c
 }
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
-func BestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](store api.AuxStore) (*Justification[H, N, S, ID, Header], error) {
+func BestJustification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
+	store api.AuxStore) (*Justification[H, N, S, ID, Header], error) {
 	justification := Justification[H, N, S, ID, Header]{}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {

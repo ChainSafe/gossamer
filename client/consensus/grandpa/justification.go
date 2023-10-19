@@ -6,10 +6,11 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
-	"reflect"
 )
 
 var (
@@ -165,7 +166,9 @@ func (j *Justification[H, N, S, ID, Header]) verify(setID uint64, weights []fina
 }
 
 // Validate the commit and the votes' ancestry proofs.
-func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(setID uint64, voters finalityGrandpa.VoterSet[ID]) error {
+func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
+	_ uint64,
+	voters finalityGrandpa.VoterSet[ID]) error {
 	ancestryChain := newAncestryChain[H, N](j.VotesAncestries)
 	commitValidationResult, err := finalityGrandpa.ValidateCommit[H, N, S, ID](j.Commit, voters, ancestryChain)
 	if err != nil {
@@ -182,7 +185,8 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(setID uint64, vo
 	precommits := j.Commit.Precommits
 	var minPrecommit *finalityGrandpa.SignedPrecommit[H, N, S, ID]
 	if len(precommits) == 0 {
-		panic("can only fail if precommits is empty; commit has been validated above; valid commits must include precommits; qed.")
+		panic("can only fail if precommits is empty; commit has been validated above; " +
+			"valid commits must include precommits")
 	}
 	for _, precommit := range precommits {
 		currPrecommit := precommit
@@ -232,19 +236,21 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(setID uint64, vo
 	}
 
 	if len(visitedHashes) != len(ancestryHashes) {
-		return fmt.Errorf("%w: invalid precommit ancestries in grandpa justification with unused headers", errBadJustification)
+		return fmt.Errorf("%w: invalid precommit ancestries in grandpa justification with unused headers",
+			errBadJustification)
 	}
 
 	// Check if maps are equal
 	if !reflect.DeepEqual(ancestryHashes, visitedHashes) {
-		return fmt.Errorf("%w: invalid precommit ancestries in grandpa justification with unused headers", errBadJustification)
+		return fmt.Errorf("%w: invalid precommit ancestries in grandpa justification with unused headers",
+			errBadJustification)
 	}
 
 	return nil
 }
 
 // The target block NumberField and HashField that this justifications proves finality for
-func (j *Justification[H, N, S, ID, Header]) target() hashNumber[H, N] {
+func (j *Justification[H, N, S, ID, Header]) target() hashNumber[H, N] { //nolint
 	return hashNumber[H, N]{
 		number: j.Commit.TargetNumber,
 		hash:   j.Commit.TargetHash,
@@ -258,7 +264,8 @@ type ancestryChain[H HashI, N constraints.Unsigned, Header HeaderI[H, N]] struct
 	ancestry map[H]Header
 }
 
-func newAncestryChain[H HashI, N constraints.Unsigned, Header HeaderI[H, N]](headers []Header) ancestryChain[H, N, Header] {
+func newAncestryChain[H HashI, N constraints.Unsigned, Header HeaderI[H, N]](
+	headers []Header) ancestryChain[H, N, Header] {
 	ancestry := make(map[H]Header)
 	for _, header := range headers {
 		hash := header.Hash()

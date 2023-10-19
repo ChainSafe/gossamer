@@ -4,11 +4,12 @@
 package grandpa
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_checkMessageSignature(t *testing.T) {

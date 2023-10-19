@@ -373,10 +373,6 @@ func TestWriteJustification(t *testing.T) {
 	store := newDummyStore(t)
 
 	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
-	ids := make([]int32, 0)
-	for i := 1; i < 4; i++ {
-		ids = append(ids, int32(i))
-	}
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -396,14 +392,14 @@ func TestWriteJustification(t *testing.T) {
 		VotesAncestries: expAncestries,
 	}
 
-	bestJustification, err := BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
+	_, err := BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
 	require.ErrorIs(t, err, errValueNotFound)
 
 	err = UpdateBestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](justification, write(store))
 	require.NoError(t, err)
 
-	bestJustification, err = BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
+	bestJust, err := BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
 	require.NoError(t, err)
-	require.NotNil(t, bestJustification)
-	require.Equal(t, justification, *bestJustification)
+	require.NotNil(t, bestJust)
+	require.Equal(t, justification, *bestJust)
 }
