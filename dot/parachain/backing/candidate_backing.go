@@ -446,7 +446,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		}
 
 	} else {
-		// TODO: figure what this comment mean by 'avoid cycles'.
+		// TODO: figure out what this comment mean by 'avoid cycles'.
 		// The provisioner waits on candidate-backing, which means
 		// that we need to send unbounded messages to avoid cycles.
 		//
@@ -492,7 +492,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	if !rpState.AwaitingValidation[candidateHash] {
 		rpState.AwaitingValidation[candidateHash] = true
 
-		pov := GetPovFromValidator()
+		pov := getPovFromValidator()
 
 		go backgroundValidateAndMakeAvailable(
 			subSystemToOverseer,
@@ -618,14 +618,14 @@ func backgroundValidateAndMakeAvailable(
 	}
 }
 
-func GetPovFromValidator() parachaintypes.PoV {
-	//	TODO: Implement this
+func getPovFromValidator() parachaintypes.PoV {
+	//	TODO: Implement this #3545
 	//	https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744
 	return parachaintypes.PoV{}
 }
 
 func executorParamsAtRelayParent(relayParent common.Hash, subSystemToOverseer chan<- any) (parachaintypes.ExecutorParams, error) {
-	// TODO: Implement this
+	// TODO: Implement this #3544
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
 	return parachaintypes.ExecutorParams{}, nil
 }
