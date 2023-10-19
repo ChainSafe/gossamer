@@ -401,3 +401,103 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
+	t.Parallel()
+
+	peerID := peer.ID("testPeerID")
+
+	testCases := []struct {
+		description        string
+		advertiseCollation AdvertiseCollation
+		// peerData           map[peer.ID]PeerData
+		// currentAssignments map[parachaintypes.ParaID]uint
+		net Network
+		// success            bool
+		errString string
+	}{
+		{
+			description: "fail with relay parent is unknown if we don't have the relay parent tracked and report the peer",
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+				return net
+			}(),
+			errString: ErrRelayParentUnknown.Error(),
+		},
+		{
+			description: "fail with unknown peer if peer is not tracked in our list of active collators",
+			errString:   ErrUnknownPeer.Error(),
+		},
+		{
+			description: "fail with undeclared para if peer has not declared its para id and report the peer",
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+				return net
+			}(),
+			errString: ErrUndeclaredPara.Error(),
+		},
+		{
+			description: "fail with invalid assignment if para id is not currently assigned to us for this relay parent and report the peer",
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.WrongParaValue,
+					Reason: peerset.WrongParaReason,
+				}, peerID)
+				return net
+			}(),
+			errString: ErrInvalidAssignment.Error(),
+		},
+		{
+			// NOTE: prospective parachain mode and prospective candidates were added in V2,
+			// In V1, prospective parachain mode is disabled by and prospective candidates is nil
+			// In V2, prospective parachain mode is enabled by and prospective candidates is not nil
+			description: "fail with protocol mismatch is prospective parachain mode in enable but with got a nil value for prospective candidate",
+			errString:   ErrProtocolMismatch.Error(),
+		},
+		{
+			description: "fail if para reached a limit of seconded candidates for this relay parent",
+			errString:   ErrSecondedLimitReached.Error(),
+		},
+		{},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+			cpvs := CollatorProtocolValidatorSide{
+				net: c.net,
+				// peerData:           c.peerData,
+				// currentAssignments: c.currentAssignments,
+			}
+			msg := NewCollationProtocol()
+			vdtChild := NewCollatorProtocolMessage()
+
+			err := vdtChild.Set(c.advertiseCollation)
+			require.NoError(t, err)
+
+			err = msg.Set(vdtChild)
+			require.NoError(t, err)
+
+			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
+			require.False(t, propagate)
+			if c.errString == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, c.errString)
+			}
+
+		})
+	}
+}
