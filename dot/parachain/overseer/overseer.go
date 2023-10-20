@@ -68,6 +68,7 @@ func (o *Overseer) Start() error {
 		}(subsystem, overseerToSubSystem)
 	}
 
+	o.wg.Add(1)
 	go o.processMessages()
 
 	// TODO: add logic to start listening for Block Imported events and Finalisation events

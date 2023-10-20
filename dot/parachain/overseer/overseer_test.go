@@ -52,8 +52,13 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 	subSystem1 := &TestSubsystem{name: "subSystem1"}
 	subSystem2 := &TestSubsystem{name: "subSystem2"}
 
-	overseer.RegisterSubsystem(subSystem1)
-	overseer.RegisterSubsystem(subSystem2)
+	overseerToSubSystem1 := overseer.RegisterSubsystem(subSystem1)
+	overseerToSubSystem2 := overseer.RegisterSubsystem(subSystem2)
+
+	go func() {
+		<-overseerToSubSystem1
+		<-overseerToSubSystem2
+	}()
 
 	err := overseer.Start()
 	require.NoError(t, err)
@@ -91,8 +96,13 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 	subSystem1 := &TestSubsystem{name: "subSystem1"}
 	subSystem2 := &TestSubsystem{name: "subSystem2"}
 
-	overseer.RegisterSubsystem(subSystem1)
-	overseer.RegisterSubsystem(subSystem2)
+	overseerToSubSystem1 := overseer.RegisterSubsystem(subSystem1)
+	overseerToSubSystem2 := overseer.RegisterSubsystem(subSystem2)
+
+	go func() {
+		<-overseerToSubSystem1
+		<-overseerToSubSystem2
+	}()
 
 	err := overseer.Start()
 	require.NoError(t, err)
@@ -133,8 +143,13 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 	subSystem1 := &TestSubsystem{name: "subSystem1"}
 	subSystem2 := &TestSubsystem{name: "subSystem2"}
 
-	overseer.RegisterSubsystem(subSystem1)
-	overseer.RegisterSubsystem(subSystem2)
+	overseerToSubSystem1 := overseer.RegisterSubsystem(subSystem1)
+	overseerToSubSystem2 := overseer.RegisterSubsystem(subSystem2)
+
+	go func() {
+		<-overseerToSubSystem1
+		<-overseerToSubSystem2
+	}()
 
 	err := overseer.Start()
 	require.NoError(t, err)
