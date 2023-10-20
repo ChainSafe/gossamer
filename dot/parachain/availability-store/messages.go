@@ -4,8 +4,11 @@
 package availability_store
 
 import (
+	"time"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // QueryAvailableData query a AvailableData from the AV store
@@ -16,13 +19,18 @@ type QueryAvailableData struct {
 
 type QueryDataAvailability struct {
 	CandidateHash common.Hash
-	Sender        chan AvailableData
+	Sender        chan bool
 }
 
+type ErasureChunk struct {
+	Chunk []byte
+	Index uint32
+	Proof []byte
+}
 type QueryChunk struct {
 	CandidateHash  common.Hash
 	ValidatorIndex uint32
-	Sender         chan []byte
+	Sender         chan ErasureChunk
 }
 
 type QueryChunkSize struct {
@@ -43,7 +51,7 @@ type QueryChunkAvailability struct {
 
 type StoreChunk struct {
 	CandidateHash common.Hash
-	Chunk         []byte
+	Chunk         ErasureChunk
 	Sender        chan any
 }
 
@@ -58,4 +66,47 @@ type StoreAvailableData struct {
 type AvailableData struct {
 	PoV            parachaintypes.PoV
 	ValidationData parachaintypes.PersistedValidationData
-} // Define your AvailableData type
+}
+
+type CandidateMeta struct {
+	State         State
+	DataAvailable bool
+	ChunksStored  []byte
+}
+
+type State scale.VaryingDataType
+
+func NewState() State {
+	vdt := scale.MustNewVaryingDataType(Unavailable{}, Unfinalized{}, Finalized{})
+	return State(vdt)
+}
+
+type Unavailable struct {
+	Timestamp time.Time
+}
+
+func (Unavailable) Index() uint {
+	return 0
+}
+
+type Unfinalized struct {
+	Timestamp       time.Time
+	BlockNumberHash []BlockNumberHash
+}
+
+func (Unfinalized) Index() uint {
+	return 1
+}
+
+type Finalized struct {
+	Timestamp time.Time
+}
+
+func (Finalized) Index() uint {
+	return 2
+}
+
+type BlockNumberHash struct {
+	blockNumber parachaintypes.BlockNumber
+	blockHash   common.Hash
+}

@@ -3,8 +3,10 @@
 
 package availability_store
 
-func Register(overseerChan chan<- any) (*AvailabilityStoreSubsystem, error) {
-	availabilityStore, err := NewAvailabilityStore(Config{basepath: "availability_store"})
+import "github.com/ChainSafe/gossamer/dot/state"
+
+func Register(overseerChan chan<- any, st *state.Service) (*AvailabilityStoreSubsystem, error) {
+	availabilityStore, err := NewAvailabilityStore(st.DB())
 	if err != nil {
 		return nil, err
 	}

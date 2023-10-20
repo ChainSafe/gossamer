@@ -120,7 +120,7 @@ func TestNewNode(t *testing.T) {
 		return stateSrvc, nil
 	})
 
-	phs, err := parachain.NewService(testNetworkService, "random_fork_id", common.Hash{})
+	phs, err := parachain.NewService(testNetworkService, "random_fork_id", &state.Service{})
 	require.NoError(t, err)
 
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.

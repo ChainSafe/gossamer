@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
-	basePath := t.TempDir()
-	as, err := NewAvailabilityStore(Config{basepath: basePath})
+	inmemoryDB := state.NewInMemoryDB(t)
+	as, err := NewAvailabilityStore(inmemoryDB)
 	require.NoError(t, err)
 
 	availabeData := AvailableData{

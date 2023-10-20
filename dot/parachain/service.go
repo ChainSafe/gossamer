@@ -5,7 +5,6 @@ package parachain
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -15,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -37,7 +37,7 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 	overseer := overseer.NewOverseer()
 	genesisHash := st.Block.GenesisHash()
 
-	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer)
+	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st)
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
