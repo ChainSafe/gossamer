@@ -76,7 +76,7 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 	return nil
 }
 
-func (cb *CandidateBacking) String() parachaintypes.SubSystemName {
+func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
 }
 

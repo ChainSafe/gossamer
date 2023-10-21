@@ -9,7 +9,10 @@ import (
 	"sync"
 	"time"
 
+	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 )
@@ -46,7 +49,7 @@ func NewOverseer() *Overseer {
 func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
 	OverseerToSubSystem := make(chan any)
 	o.subsystems[subsystem] = OverseerToSubSystem
-	o.nameToSubsystem[subsystem.String()] = subsystem
+	o.nameToSubsystem[subsystem.Name()] = subsystem
 
 	return OverseerToSubSystem
 }
@@ -65,6 +68,7 @@ func (o *Overseer) Start() error {
 		}(subsystem, overseerToSubSystem)
 	}
 
+	o.wg.Add(1)
 	go o.processMessages()
 
 	// TODO: add logic to start listening for Block Imported events and Finalisation events
@@ -75,14 +79,32 @@ func (o *Overseer) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
+			var subsystem Subsystem
+
 			switch msg.(type) {
-			case backing.CanSecond:
-				subsystem := o.nameToSubsystem[parachaintypes.CandidateBacking]
-				overseerToSubsystem := o.subsystems[subsystem]
-				overseerToSubsystem <- msg
+			case backing.GetBackedCandidates, backing.CanSecond, backing.Second, backing.Statement:
+				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
+
+			case collatorprotocol.CollateOn, collatorprotocol.DistributeCollation, collatorprotocol.ReportCollator,
+				collatorprotocol.Backed, collatorprotocol.AdvertiseCollation, collatorprotocol.InvalidOverseerMsg,
+				collatorprotocol.SecondedOverseerMsg:
+
+				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
+
+			case availability_store.QueryAvailableData, availability_store.QueryDataAvailability,
+				availability_store.QueryChunk, availability_store.QueryChunkSize, availability_store.QueryAllChunks,
+				availability_store.QueryChunkAvailability, availability_store.StoreChunk,
+				availability_store.StoreAvailableData:
+
+				subsystem = o.nameToSubsystem[parachaintypes.AvailabilityStore]
+
 			default:
 				logger.Error("unknown message type")
 			}
+
+			overseerToSubsystem := o.subsystems[subsystem]
+			overseerToSubsystem <- msg
+
 		case <-o.ctx.Done():
 			if err := o.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)

@@ -27,5 +27,5 @@ type ActiveLeavesUpdate struct {
 type Subsystem interface {
 	// Run runs the subsystem.
 	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
-	String() parachaintypes.SubSystemName
+	Name() parachaintypes.SubSystemName
 }

@@ -86,7 +86,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 	}
 }
 
-func (cpvs CollatorProtocolValidatorSide) String() parachaintypes.SubSystemName {
+func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
@@ -416,7 +416,7 @@ type Backed struct {
 	ParaHead common.Hash
 }
 
-type InvalidOverseeMsg struct {
+type InvalidOverseerMsg struct {
 	Parent           common.Hash
 	CandidateReceipt parachaintypes.CandidateReceipt
 }
@@ -447,7 +447,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 
 	case Backed:
 		// TODO: handle backed message https://github.com/ChainSafe/gossamer/issues/3517
-	case InvalidOverseeMsg:
+	case InvalidOverseerMsg:
 		invalidOverseerMsg := msg
 
 		collationEvent, ok := cpvs.pendingCandidates[invalidOverseerMsg.Parent]
