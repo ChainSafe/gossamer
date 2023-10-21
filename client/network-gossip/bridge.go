@@ -4,32 +4,49 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/client/network"
+	"github.com/ChainSafe/gossamer/client/network/event"
+	"github.com/ChainSafe/gossamer/client/network/sync"
+	"github.com/ChainSafe/gossamer/primitives/runtime"
 )
 
-/// Wraps around an implementation of the [`Network`] trait and provides gossiping capabilities on
-/// top of it.
-// pub struct GossipEngine<B: BlockT> {
-// 	state_machine: ConsensusGossip<B>,
-// 	network: Box<dyn Network<B> + Send>,
-// 	sync: Box<dyn Syncing<B>>,
-// 	periodic_maintenance_interval: futures_timer::Delay,
-// 	protocol: ProtocolName,
-
-// 	/// Incoming events from the network.
-// 	network_event_stream: Pin<Box<dyn Stream<Item = Event> + Send>>,
-// 	/// Incoming events from the syncing service.
-// 	sync_event_stream: Pin<Box<dyn Stream<Item = SyncEvent> + Send>>,
-// 	/// Outgoing events to the consumer.
-// 	message_sinks: HashMap<B::Hash, Vec<Sender<TopicNotification>>>,
-// 	/// Buffered messages (see [`ForwardingState`]).
-// 	forwarding_state: ForwardingState<B>,
-
-//		is_terminated: bool,
-//	}
-type GossipEngine struct {
-	stateMachine                ConsensusGossip
+// / Wraps around an implementation of the [`Network`] trait and provides gossiping capabilities on
+// / top of it.
+type GossipEngine[H runtime.Hash] struct {
+	stateMachine                ConsensusGossip[H]
 	network                     Network
 	sync                        Syncing
 	periodicMaintenanceInterval time.Timer
 	protocol                    network.ProtocolName
+
+	/// Incoming events from the network.
+	networkEventStream chan event.Event
+	/// Incoming events from the syncing service.
+	syncEventStream chan sync.SyncEvent
+	/// Outgoing events to the consumer.
+	messageSinks map[H]chan TopicNotification
+	/// Buffered messages (see [`ForwardingState`]).
+	forwardingState forwardingState
+
+	isTerminated bool
 }
+
+// / The gossip engine is currently not forwarding any messages and will poll the network for
+// / more messages to forward.
+type idle struct{}
+
+// / The gossip engine is in the progress of forwarding messages and thus will not poll the
+// / network for more messages until it has send all current messages into the subscribed
+// / message sinks.
+type busy[H runtime.Hash] []struct {
+	Hash H
+	TopicNotification
+}
+
+// / A gossip engine receives messages from the network via the `network_event_stream` and forwards
+// / them to upper layers via the `message_sinks`. In the scenario where messages have been received
+// / from the network but a subscribed message sink is not yet ready to receive the messages, the
+// / messages are buffered. To model this process a gossip engine can be in two states.
+type forwardingStates[H runtime.Hash] interface {
+	idle | busy[H]
+}
+type forwardingState any

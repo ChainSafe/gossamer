@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/client/consensus/grandpa/communication"
 	"github.com/ChainSafe/gossamer/client/network"
 	"github.com/ChainSafe/gossamer/client/network/config"
 	"github.com/ChainSafe/gossamer/client/telemetry"
@@ -110,7 +111,7 @@ type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature 
 func newVoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
 	client ClientForGrandpa,
 	config Config,
-	network NetworkBridge,
+	network communication.NetworkBridge[Hash],
 	selectChain SelectChain,
 	votingRule VotingRule,
 	persistendData persistentData,

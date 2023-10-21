@@ -4,6 +4,7 @@ import (
 	gossip "github.com/ChainSafe/gossamer/client/network-gossip"
 	"github.com/ChainSafe/gossamer/client/network/service"
 	"github.com/ChainSafe/gossamer/client/network/sync"
+	"github.com/ChainSafe/gossamer/primitives/runtime"
 )
 
 // / A handle to the network.
@@ -23,7 +24,8 @@ type Syncing interface {
 }
 
 // / Bridge between the underlying network service, gossiping consensus messages and Grandpa
-type NetworkBridge struct {
-	service Network
-	sync    Syncing
+type NetworkBridge[H runtime.Hash] struct {
+	service      Network
+	sync         Syncing
+	gossipEngine gossip.GossipEngine[H]
 }
