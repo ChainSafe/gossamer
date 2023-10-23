@@ -5,7 +5,6 @@ package sync
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -28,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -894,9 +894,7 @@ func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData
 	}
 
 	// this is for westend
-	if blockData.Header.Number == 9412096 ||
-		// this is for kusama
-		blockData.Header.Number == 1492436 {
+	if blockData.Header.Number == 9412261 {
 		latest, err := cs.blockState.BestBlockHeader()
 		if err != nil {
 			fmt.Printf("getting best block header: %s \n", err.Error())
@@ -910,7 +908,7 @@ func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData
 
 		entries := state.Trie().EntriesList()
 
-		data, err := json.Marshal(entries)
+		data, err := scale.Marshal(entries)
 		if err != nil {
 			fmt.Printf("scale marshallign trie state: %s \n", err.Error())
 			return err
