@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -44,23 +45,38 @@ type messageData[H comparable, N constraints.Unsigned] struct {
 // The encoding necessary to verify the signature will be done using the given
 // buffer, the original content of the buffer will be cleared.
 func checkMessageSignature[H comparable, N constraints.Unsigned](
-	message finalityGrandpa.Message[H, N],
-	id *ed25519.PublicKey,
-	signature []byte,
+	message any,
+	id any,
+	signature any,
 	round uint64,
 	setID uint64) (bool, error) {
+
+	msg, ok := message.(finalityGrandpa.Message[H, N])
+	if !ok {
+		return false, fmt.Errorf("invalid cast to finalityGrandpa.Message[H, N]")
+	}
+
+	castedID, ok := id.(*ed25519.PublicKey)
+	if !ok {
+		return false, fmt.Errorf("invalid cast to *ed25519.PublicKey")
+	}
+
+	sig, ok := signature.([]byte)
+	if !ok {
+		return false, fmt.Errorf("invalid cast to []byte")
+	}
 
 	m := messageData[H, N]{
 		round,
 		setID,
-		message,
+		msg,
 	}
 
 	enc, err := scale.Marshal(m)
 	if err != nil {
 		return false, err
 	}
-	valid, err := id.Verify(enc, signature[:])
+	valid, err := castedID.Verify(enc, sig[:])
 	if err != nil {
 		return false, err
 	}

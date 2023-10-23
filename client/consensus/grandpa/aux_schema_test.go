@@ -395,7 +395,7 @@ func TestWriteJustification(t *testing.T) {
 	_, err := BestJustification[string, uint, string, int32, testHeader[string, uint]](store)
 	require.ErrorIs(t, err, errValueNotFound)
 
-	err = UpdateBestJustification[string, uint, string, int32, testHeader[string, uint]](justification, write(store))
+	err = updateBestJustification[string, uint, string, int32, testHeader[string, uint]](justification, write(store))
 	require.NoError(t, err)
 
 	bestJust, err := BestJustification[string, uint, string, int32, testHeader[string, uint]](store)

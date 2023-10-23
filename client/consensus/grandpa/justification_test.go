@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -91,7 +90,7 @@ func TestJustificationEncoding(t *testing.T) {
 func TestJustification_fromCommit(t *testing.T) {
 	commit := finalityGrandpa.Commit[string, uint, string, int32]{}
 	client := testBackend[string, uint, testHeader[string, uint]]{}
-	_, err := fromCommit[string, uint, string, int32, testHeader[string, uint]](client, 2, commit)
+	_, err := NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](client, 2, commit)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
@@ -112,13 +111,13 @@ func TestJustification_fromCommit(t *testing.T) {
 
 	clientNil := testBackend[string, uint, testHeader[string, uint]]{}
 
-	_, err = fromCommit[string, uint, string, int32, testHeader[string, uint]](clientNil, 2, validCommit)
+	_, err = NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](clientNil, 2, validCommit)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
 	// currentHeader.Number() <= baseNumber
-	_, err = fromCommit[string, uint, string, int32, testHeader[string, uint]](client, 2, validCommit)
+	_, err = NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](client, 2, validCommit)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
@@ -144,7 +143,7 @@ func TestJustification_fromCommit(t *testing.T) {
 		},
 		VotesAncestries: expAncestries,
 	}
-	justification, err := fromCommit[string, uint, string, int32, testHeader[string, uint]](
+	justification, err := NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](
 		clientLargeNum,
 		2,
 		validCommit)
@@ -181,7 +180,6 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	require.Equal(t, "invalid commit target in grandpa justification", err.Error())
 
 	// Happy path
-	fmt.Println("happy path")
 	headerB := testHeader[string, uint]{
 		HashField:       "b",
 		ParentHashField: "a",
@@ -236,14 +234,17 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 func TestJustification_verify(t *testing.T) {
 	// Nil voter case
-	IDWeights := make([]finalityGrandpa.IDWeight[int32], 0)
+	auths := make(AuthorityList[int32], 0)
 	justification := Justification[string, uint, string, int32, testHeader[string, uint]]{}
-	err := justification.verify(2, IDWeights)
+	err := justification.Verify(2, auths)
 	require.ErrorIs(t, err, errInvalidAuthoritiesSet)
 
 	// happy path
 	for i := 1; i <= 4; i++ {
-		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1}) //nolint
+		auths = append(auths, Authority[int32]{
+			int32(i),
+			1,
+		})
 	}
 
 	headerB := testHeader[string, uint]{
@@ -274,7 +275,7 @@ func TestJustification_verify(t *testing.T) {
 		VotesAncestries: headerList,
 	}
 
-	err = validJustification.verify(2, IDWeights)
+	err = validJustification.Verify(2, auths)
 	require.NoError(t, err)
 }
 

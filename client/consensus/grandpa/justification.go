@@ -33,9 +33,9 @@ type Justification[H constraints.Ordered, N constraints.Unsigned, S comparable, 
 	VotesAncestries []Header
 }
 
-// Create a GRANDPA justification from the given commit. This method
+// NewJustificationFromCommit Create a GRANDPA justification from the given commit. This method
 // assumes the commit is valid and well-formed.
-func fromCommit[H constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
+func NewJustificationFromCommit[H constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
 	client HeaderBackend[H, N, Header],
 	round uint64,
 	commit finalityGrandpa.Commit[H, N, S, ID]) (Justification[H, N, S, ID, Header], error) {
@@ -139,25 +139,17 @@ func decodeAndVerifyFinalizes[H constraints.Ordered,
 	return justification, justification.verifyWithVoterSet(setID, voters)
 }
 
-// TODO get feedback on if I can avoid this, see below
-//type NewAuthority[ID constraints.Ordered] struct {
-//	Key    ID
-//	Weight uint64
-//}
-
 // Validate the commit and the votes' ancestry proofs.
-func (j *Justification[H, N, S, ID, Header]) verify(setID uint64, weights []finalityGrandpa.IDWeight[ID]) error {
-	// TODO Get reviewer feedback on this. In substrate they pass in data then convert to IDWeight, however for
-	// us we do no ever use this input type, so I think better to just directly take IDWeights as a param.
-	// Can revert if people disagree
+func (j *Justification[H, N, S, ID, Header]) Verify(setID uint64, authorities AuthorityList[ID]) error {
+	var weights []finalityGrandpa.IDWeight[ID]
+	for _, authority := range authorities {
+		weight := finalityGrandpa.IDWeight[ID]{
+			ID:     authority.Key,
+			Weight: finalityGrandpa.VoterWeight(authority.Weight),
+		}
+		weights = append(weights, weight)
+	}
 
-	//var weights []finalityGrandpa.IDWeight[ID]
-	//for _, authority := range authorities {
-	//	weight := finalityGrandpa.IDWeight[ID]{
-	//		ID: authority.Key,
-	//	}
-	//	weights = append(weights, weight)
-	//}
 	voters := finalityGrandpa.NewVoterSet[ID](weights)
 	if voters != nil {
 		err := j.verifyWithVoterSet(setID, *voters)
@@ -168,7 +160,7 @@ func (j *Justification[H, N, S, ID, Header]) verify(setID uint64, weights []fina
 
 // Validate the commit and the votes' ancestry proofs.
 func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
-	_ uint64,
+	setID uint64,
 	voters finalityGrandpa.VoterSet[ID]) error {
 	ancestryChain := newAncestryChain[H, N](j.VotesAncestries)
 	commitValidationResult, err := finalityGrandpa.ValidateCommit[H, N, S, ID](j.Commit, voters, ancestryChain)
@@ -201,11 +193,15 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 	baseHash := minPrecommit.Precommit.TargetHash
 	visitedHashes := make(map[H]struct{})
 	for _, signed := range precommits {
-		/*
-				TODO signature is generic type any, but signature verification in Gossamer uses []byte
-			    TODO need access to message.value both for encoding and so I can set it
-		*/
-		//if !checkMessageSignature[H, N](signed.Precommit, signed.ID, signed.Signature, j.Round, setID) {
+		// TODO this is weird. ID for justification needs to be constrainsts.Ordered I believe, but that doesnt work for pub key type,
+		// and we need to use concrete type for verification I believe.
+		//mgs := finalityGrandpa.Message[H, N]{Value: signed.Precommit}
+		//isValidSignature, err := checkMessageSignature[H, N](mgs, signed.ID, signed.Signature, j.Round, setID)
+		//if err != nil {
+		//	return err
+		//}
+
+		//if !isValidSignature {
 		//	return fmt.Errorf("%w: invalid signature for precommit in grandpa justification", errBadJustification)
 		//}
 
@@ -246,8 +242,8 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 	return nil
 }
 
-// The target block NumberField and HashField that this justifications proves finality for
-func (j *Justification[H, N, S, ID, Header]) target() hashNumber[H, N] { //nolint
+// Target The target block NumberField and HashField that this justifications proves finality for
+func (j *Justification[H, N, S, ID, Header]) Target() hashNumber[H, N] { //nolint
 	return hashNumber[H, N]{
 		number: j.Commit.TargetNumber,
 		hash:   j.Commit.TargetHash,
