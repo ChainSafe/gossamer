@@ -10,18 +10,18 @@ import (
 // Telemetry TODO issue #3474
 type Telemetry interface{}
 
-type HashI interface {
-	constraints.Ordered
-	IsEmpty() bool
-}
+//type HashI interface {
+//	constraints.Ordered
+//	IsEmpty() bool
+//}
 
-type HeaderI[H HashI, N constraints.Unsigned] interface {
+type HeaderI[H constraints.Ordered, N constraints.Unsigned] interface {
 	ParentHash() H
 	Hash() H
 	Number() N
 }
 
-type HeaderBackend[H HashI, N constraints.Unsigned, Header HeaderI[H, N]] interface {
+type HeaderBackend[H constraints.Ordered, N constraints.Unsigned, Header HeaderI[H, N]] interface {
 	// Header Get block header. Returns None if block is not found.
 	Header(H) (*Header, error)
 }

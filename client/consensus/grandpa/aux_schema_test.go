@@ -372,19 +372,19 @@ func TestWriteConcludedRound(t *testing.T) {
 func TestWriteJustification(t *testing.T) {
 	store := newDummyStore(t)
 
-	var precommits []finalityGrandpa.SignedPrecommit[testHash, uint, string, int32]
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, int32]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
-	expAncestries := make([]testHeader[testHash, uint], 0)
-	expAncestries = append(expAncestries, testHeader[testHash, uint]{
+	expAncestries := make([]testHeader[string, uint], 0)
+	expAncestries = append(expAncestries, testHeader[string, uint]{
 		NumberField:     100,
 		ParentHashField: "a",
 	})
 
-	justification := Justification[testHash, uint, string, int32, testHeader[testHash, uint]]{
+	justification := Justification[string, uint, string, int32, testHeader[string, uint]]{
 		Round: 2,
-		Commit: finalityGrandpa.Commit[testHash, uint, string, int32]{
+		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -392,13 +392,13 @@ func TestWriteJustification(t *testing.T) {
 		VotesAncestries: expAncestries,
 	}
 
-	_, err := BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
+	_, err := BestJustification[string, uint, string, int32, testHeader[string, uint]](store)
 	require.ErrorIs(t, err, errValueNotFound)
 
-	err = UpdateBestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](justification, write(store))
+	err = UpdateBestJustification[string, uint, string, int32, testHeader[string, uint]](justification, write(store))
 	require.NoError(t, err)
 
-	bestJust, err := BestJustification[testHash, uint, string, int32, testHeader[testHash, uint]](store)
+	bestJust, err := BestJustification[string, uint, string, int32, testHeader[string, uint]](store)
 	require.NoError(t, err)
 	require.NotNil(t, bestJust)
 	require.Equal(t, justification, *bestJust)

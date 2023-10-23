@@ -27,7 +27,7 @@ var (
 //
 // This is meant to be stored in the db and passed around the network to other
 // nodes, and are used by syncing nodes to prove authority set handoffs.
-type Justification[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]] struct {
+type Justification[H constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]] struct {
 	Round           uint64
 	Commit          finalityGrandpa.Commit[H, N, S, ID]
 	VotesAncestries []Header
@@ -35,7 +35,7 @@ type Justification[H HashI, N constraints.Unsigned, S comparable, ID constraints
 
 // Create a GRANDPA justification from the given commit. This method
 // assumes the commit is valid and well-formed.
-func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
+func fromCommit[H constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
 	client HeaderBackend[H, N, Header],
 	round uint64,
 	commit finalityGrandpa.Commit[H, N, S, ID]) (Justification[H, N, S, ID, Header], error) {
@@ -110,7 +110,7 @@ func fromCommit[H HashI, N constraints.Unsigned, S comparable, ID constraints.Or
 
 // Decode a GRANDPA justification and validate the commit and the votes'
 // ancestry proofs finalize the given block.
-func decodeAndVerifyFinalizes[H HashI,
+func decodeAndVerifyFinalizes[H constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
 	ID constraints.Ordered,
@@ -150,6 +150,7 @@ func (j *Justification[H, N, S, ID, Header]) verify(setID uint64, weights []fina
 	// TODO Get reviewer feedback on this. In substrate they pass in data then convert to IDWeight, however for
 	// us we do no ever use this input type, so I think better to just directly take IDWeights as a param.
 	// Can revert if people disagree
+
 	//var weights []finalityGrandpa.IDWeight[ID]
 	//for _, authority := range authorities {
 	//	weight := finalityGrandpa.IDWeight[ID]{
@@ -212,12 +213,8 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 			continue
 		}
 
-		fmt.Printf("baseHash: %v\n", baseHash)
-		fmt.Printf("signed.Precommit.TargetHash: %v\n", signed.Precommit.TargetHash)
-
 		route, err := ancestryChain.Ancestry(baseHash, signed.Precommit.TargetHash)
 		if err != nil {
-			fmt.Println("err here")
 			return fmt.Errorf("%w: invalid precommit ancestry proof in grandpa justification", errBadJustification)
 		}
 
@@ -260,11 +257,11 @@ func (j *Justification[H, N, S, ID, Header]) target() hashNumber[H, N] { //nolin
 // ancestryChain A utility trait implementing `finality_grandpa::Chain` using a given set of headers.
 // This is useful when validating commits, using the given set of headers to
 // verify a valid ancestry route to the target commit block.
-type ancestryChain[H HashI, N constraints.Unsigned, Header HeaderI[H, N]] struct {
+type ancestryChain[H constraints.Ordered, N constraints.Unsigned, Header HeaderI[H, N]] struct {
 	ancestry map[H]Header
 }
 
-func newAncestryChain[H HashI, N constraints.Unsigned, Header HeaderI[H, N]](
+func newAncestryChain[H constraints.Ordered, N constraints.Unsigned, Header HeaderI[H, N]](
 	headers []Header) ancestryChain[H, N, Header] {
 	ancestry := make(map[H]Header)
 	for _, header := range headers {
@@ -290,13 +287,8 @@ func (ac ancestryChain[H, N, Header]) Ancestry(base H, block H) ([]H, error) {
 			return nil, fmt.Errorf("%w", errBlockNotDescendentOfBase)
 		}
 		block = br.ParentHash()
-
-		if !block.IsEmpty() {
-			currentHash = block
-			route = append(route, currentHash)
-		} else {
-			return nil, fmt.Errorf("%w", errBlockNotDescendentOfBase)
-		}
+		currentHash = block
+		route = append(route, currentHash)
 	}
 
 	if len(route) != 0 {
