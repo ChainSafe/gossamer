@@ -204,36 +204,36 @@ func (peerData *PeerData) InsertAdvertisement(
 ) (isAdvertisementInvalid bool, err error) {
 	switch peerData.state.PeerState {
 	case Connected:
-		return true, ErrUndeclaredCollator
+		return false, ErrUndeclaredCollator
 	case Collating:
 		if !IsRelayParentInImplicitView(onRelayParent, relayParentMode, implicitView,
 			activeLeaves, peerData.state.CollatingPeerState.ParaID) {
-			return true, ErrOutOfView
+			return false, ErrOutOfView
 		}
 
 		if relayParentMode.isEnabled {
 			// relayParentMode.maxCandidateDepth
 			candidates, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
 			if ok && slices.Contains[[]parachaintypes.CandidateHash](candidates, *candidateHash) {
-				return true, ErrDuplicateAdvertisement
+				return false, ErrDuplicateAdvertisement
 			}
 
 			if len(candidates) > int(relayParentMode.maxCandidateDepth) {
-				return true, ErrPeerLimitReached
+				return false, ErrPeerLimitReached
 			}
 			candidates = append(candidates, *candidateHash)
 			peerData.state.CollatingPeerState.advertisements[onRelayParent] = candidates
 		} else {
 			_, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
 			if ok {
-				return true, ErrDuplicateAdvertisement
+				return false, ErrDuplicateAdvertisement
 			}
 			peerData.state.CollatingPeerState.advertisements[onRelayParent] = []parachaintypes.CandidateHash{*candidateHash}
 		}
 
 		peerData.state.CollatingPeerState.lastActive = time.Now()
 	}
-	return false, nil
+	return true, nil
 }
 
 type PeerStateInfo struct {

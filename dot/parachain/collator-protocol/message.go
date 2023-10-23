@@ -226,6 +226,7 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	collatorID parachaintypes.CollatorID,
 	prospectiveCandidate *ProspectiveCandidate) {
 
+	// TODO: return errors
 	pendingCollation := PendingCollation{
 		RelayParent:          relayParent,
 		ParaID:               paraID,
@@ -263,13 +264,16 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation,
 	collatorID parachaintypes.CollatorID) error {
 
-	candidateHash := pendingCollation.ProspectiveCandidate.CandidateHash
+	var candidateHash *parachaintypes.CandidateHash
+	if pendingCollation.ProspectiveCandidate != nil {
+		candidateHash = &pendingCollation.ProspectiveCandidate.CandidateHash
+	}
 	peerData, ok := cpvs.peerData[pendingCollation.PeerID]
 	if !ok {
 		return ErrUnknownPeer
 	}
 
-	if !peerData.HasAdvertised(pendingCollation.RelayParent, &candidateHash) {
+	if !peerData.HasAdvertised(pendingCollation.RelayParent, candidateHash) {
 		return ErrNotAdvertised
 	}
 
@@ -333,21 +337,25 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		return ErrProtocolMismatch
 	}
 
-	isAdvertisementInvalid, err := peerData.InsertAdvertisement(
+	var prospectiveCandidateHash *parachaintypes.CandidateHash
+	if prospectiveCandidate != nil {
+		prospectiveCandidateHash = &prospectiveCandidate.CandidateHash
+	}
+
+	isAdvertisementValid, err := peerData.InsertAdvertisement(
 		relayParent,
 		perRelayParent.prospectiveParachainMode,
-		&prospectiveCandidate.CandidateHash,
+		prospectiveCandidateHash,
 		cpvs.implicitView,
 		cpvs.activeLeaves,
 	)
-	if isAdvertisementInvalid {
+	if !isAdvertisementValid {
 		cpvs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
 			Reason: peerset.UnexpectedMessageReason,
 		}, sender)
 		logger.Errorf(ErrInvalidAdvertisement.Error())
-	}
-	if err != nil {
+	} else if err != nil {
 		return fmt.Errorf("inserting advertisement: %w", err)
 	}
 
@@ -355,27 +363,28 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		return ErrSecondedLimitReached
 	}
 
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
-		collatorParaID,
-		relayParent,
-		prospectiveCandidate.CandidateHash,
-		prospectiveCandidate.ParentHeadDataHash,
-	)
+	// NOTE: Matters only in V2
+	// isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
+	// 	collatorParaID,
+	// 	relayParent,
+	// 	prospectiveCandidate.CandidateHash,
+	// 	prospectiveCandidate.ParentHeadDataHash,
+	// )
 
-	if !isSecondingAllowed {
-		logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
-			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
+	// if !isSecondingAllowed {
+	// 	logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
+	// 		relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
-		blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
-			peerID:               sender,
-			collatorID:           peerData.state.CollatingPeerState.CollatorID,
-			candidateRelayParent: relayParent,
-			candidateHash:        prospectiveCandidate.CandidateHash,
-		})
+	// 	blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
+	// 		peerID:               sender,
+	// 		collatorID:           peerData.state.CollatingPeerState.CollatorID,
+	// 		candidateRelayParent: relayParent,
+	// 		candidateHash:        prospectiveCandidate.CandidateHash,
+	// 	})
 
-		cpvs.BlockedAdvertisements = blockedAdvertisements
-		return nil
-	}
+	// 	cpvs.BlockedAdvertisements = blockedAdvertisements
+	// 	return nil
+	// }
 
 	cpvs.enqueueCollation(perRelayParent.collations,
 		relayParent,
@@ -429,7 +438,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		return propagate, fmt.Errorf("getting collator protocol message value: %w", err)
 	}
 
-	switch collatorProtocolMessage.Index() {
+	switch collatorProtocolMessageV.Index() {
 	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
