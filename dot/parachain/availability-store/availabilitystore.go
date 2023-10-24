@@ -69,10 +69,16 @@ func (as *AvailabilityStore) LoadMetaData(candidate common.Hash) (CandidateMeta,
 	return result, err
 }
 
+func (as *AvailabilityStore) StoreMetaData(candidate common.Hash, meta CandidateMeta) error {
+	dataBytes, err := json.Marshal(meta)
+	if err != nil {
+		return err
+	}
+	return as.metaTable.Put(candidate[:], dataBytes)
+}
+
 func (as *AvailabilityStore) LoadChunk(candidate common.Hash, validatorIndex uint32) (ErasureChunk, error) {
-	validatorIndexBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(validatorIndexBytes, validatorIndex)
-	resultBytes, err := as.chunkTable.Get(append(candidate[:], validatorIndexBytes...))
+	resultBytes, err := as.chunkTable.Get(append(candidate[:], uint32ToBytes(validatorIndex)...))
 	if err != nil {
 		return ErasureChunk{}, err
 	}
@@ -82,21 +88,37 @@ func (as *AvailabilityStore) LoadChunk(candidate common.Hash, validatorIndex uin
 }
 
 func (as *AvailabilityStore) StoreChunk(candidate common.Hash, chunk ErasureChunk) error {
-	dataBytes, err := json.Marshal(chunk)
+	meta, err := as.LoadMetaData(candidate)
 	if err != nil {
-		return err
+		if err.Error() == "pebble: not found" {
+			meta = CandidateMeta{
+				ChunksStored: make([]bool, chunk.Index+1),
+			}
+		} else {
+			return err
+		}
 	}
-	meta, err := as.metaTable.Get(candidate[:])
-	if err != nil {
-		return err
+
+	if meta.ChunksStored[chunk.Index] {
+		return nil // already stored
+	} else {
+		dataBytes, err := json.Marshal(chunk)
+		if err != nil {
+			return err
+		}
+		err = as.chunkTable.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
+		if err != nil {
+			return err
+		}
+
+		meta.ChunksStored[chunk.Index] = true
+		err = as.StoreMetaData(candidate, meta)
+		if err != nil {
+			return err
+		}
 	}
-	metaData := CandidateMeta{}
-	err = json.Unmarshal(meta, &metaData)
-	if err != nil {
-		return err
-	}
-	// TODO: determine how to update and store meta data
-	return as.chunkTable.Put(candidate[:], dataBytes)
+	logger.Debugf("Stored chuck %i for %v", chunk.Index, candidate)
+	return nil
 }
 
 func (as *AvailabilityStore) StoreAvailableData(candidate common.Hash, data AvailableData) error {
@@ -105,6 +127,12 @@ func (as *AvailabilityStore) StoreAvailableData(candidate common.Hash, data Avai
 		return err
 	}
 	return as.availableTable.Put(candidate[:], dataBytes)
+}
+
+func uint32ToBytes(value uint32) []byte {
+	result := make([]byte, 4)
+	binary.LittleEndian.PutUint32(result, value)
+	return result
 }
 
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
@@ -168,12 +196,19 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunk(msg QueryChunk) {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) {
-	_, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
 	if err != nil {
 		logger.Errorf("failed to load meta data: %w", err)
 	}
-	validatorIndex := 0 // TODO: determine how to get validator index
-	chunk, err := av.availabilityStore.LoadChunk(msg.CandidateHash, uint32(validatorIndex))
+	var validatorIndex uint32
+	for i, v := range meta.ChunksStored {
+		if v {
+			validatorIndex = uint32(i)
+			break
+		}
+	}
+
+	chunk, err := av.availabilityStore.LoadChunk(msg.CandidateHash, validatorIndex)
 	if err != nil {
 		logger.Errorf("failed to load chunk: %w", err)
 	}

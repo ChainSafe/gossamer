@@ -4,12 +4,15 @@
 package availability_store
 
 import (
+	"errors"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var errorCandidateMetaNotFound = errors.New("candidate meta not found")
 
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
@@ -71,7 +74,7 @@ type AvailableData struct {
 type CandidateMeta struct {
 	State         State
 	DataAvailable bool
-	ChunksStored  []byte
+	ChunksStored  []bool
 }
 
 type State scale.VaryingDataType
