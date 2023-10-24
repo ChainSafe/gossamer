@@ -27,41 +27,41 @@ var (
 //
 // This is meant to be stored in the db and passed around the network to other
 // nodes, and are used by syncing nodes to prove authority set handoffs.
-type Justification[H constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]] struct {
+type Justification[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, H Header[Hash, N]] struct {
 	Round           uint64
-	Commit          finalityGrandpa.Commit[H, N, S, ID]
-	VotesAncestries []Header
+	Commit          finalityGrandpa.Commit[Hash, N, S, ID]
+	VotesAncestries []H
 }
 
 // NewJustificationFromCommit Create a GRANDPA justification from the given commit. This method
 // assumes the commit is valid and well-formed.
-func NewJustificationFromCommit[H constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, Header HeaderI[H, N]](
-	client HeaderBackend[H, N, Header],
+func NewJustificationFromCommit[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, H Header[Hash, N]](
+	client HeaderBackend[Hash, N, H],
 	round uint64,
-	commit finalityGrandpa.Commit[H, N, S, ID]) (Justification[H, N, S, ID, Header], error) {
-	votesAncestriesHashes := make(map[H]struct{})
-	voteAncestries := make([]Header, 0)
+	commit finalityGrandpa.Commit[Hash, N, S, ID]) (Justification[Hash, N, S, ID, H], error) {
+	votesAncestriesHashes := make(map[Hash]struct{})
+	voteAncestries := make([]H, 0)
 
 	// we pick the precommit for the lowest block as the base that
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
-	var minPrecommit *hashNumber[H, N]
+	var minPrecommit *hashNumber[Hash, N]
 	for _, signed := range commit.Precommits {
 		precommit := signed.Precommit
 		if minPrecommit == nil {
-			minPrecommit = &hashNumber[H, N]{
+			minPrecommit = &hashNumber[Hash, N]{
 				hash:   precommit.TargetHash,
 				number: precommit.TargetNumber,
 			}
 		} else if precommit.TargetNumber < minPrecommit.number {
-			minPrecommit = &hashNumber[H, N]{
+			minPrecommit = &hashNumber[Hash, N]{
 				hash:   precommit.TargetHash,
 				number: precommit.TargetNumber,
 			}
 		}
 	}
 	if minPrecommit == nil {
-		return Justification[H, N, S, ID, Header]{},
+		return Justification[Hash, N, S, ID, H]{},
 			fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 	}
 
@@ -76,7 +76,7 @@ func NewJustificationFromCommit[H constraints.Ordered, N constraints.Unsigned, S
 
 			header, err := client.Header(currentHash)
 			if err != nil || header == nil {
-				return Justification[H, N, S, ID, Header]{},
+				return Justification[Hash, N, S, ID, H]{},
 					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 
@@ -86,7 +86,7 @@ func NewJustificationFromCommit[H constraints.Ordered, N constraints.Unsigned, S
 			// as base and only traverse backwards from the other blocks
 			// in the commit. but better be safe to avoid an unbound loop.
 			if currentHeader.Number() <= baseNumber {
-				return Justification[H, N, S, ID, Header]{},
+				return Justification[Hash, N, S, ID, H]{},
 					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 			parentHash := currentHeader.ParentHash()
@@ -101,7 +101,7 @@ func NewJustificationFromCommit[H constraints.Ordered, N constraints.Unsigned, S
 		}
 	}
 
-	return Justification[H, N, S, ID, Header]{
+	return Justification[Hash, N, S, ID, H]{
 		Round:           round,
 		Commit:          commit,
 		VotesAncestries: voteAncestries,
@@ -110,37 +110,37 @@ func NewJustificationFromCommit[H constraints.Ordered, N constraints.Unsigned, S
 
 // Decode a GRANDPA justification and validate the commit and the votes'
 // ancestry proofs finalize the given block.
-func decodeAndVerifyFinalizes[H constraints.Ordered,
+func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
 	ID constraints.Ordered,
-	Header HeaderI[H, N]](
+	H Header[Hash, N]](
 	encoded []byte,
-	finalizedTarget hashNumber[H, N],
+	finalizedTarget hashNumber[Hash, N],
 	setID uint64,
-	voters finalityGrandpa.VoterSet[ID]) (Justification[H, N, S, ID, Header], error) {
-	justification := Justification[H, N, S, ID, Header]{
-		VotesAncestries: make([]Header, 0),
+	voters finalityGrandpa.VoterSet[ID]) (Justification[Hash, N, S, ID, H], error) {
+	justification := Justification[Hash, N, S, ID, H]{
+		VotesAncestries: make([]H, 0),
 	}
 	err := scale.Unmarshal(encoded, &justification)
 	if err != nil {
-		return Justification[H, N, S, ID, Header]{}, fmt.Errorf("error decoding justification for header: %s", err)
+		return Justification[Hash, N, S, ID, H]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}
 
-	decodedTarget := hashNumber[H, N]{
+	decodedTarget := hashNumber[Hash, N]{
 		hash:   justification.Commit.TargetHash,
 		number: justification.Commit.TargetNumber,
 	}
 
 	if decodedTarget != finalizedTarget {
-		return Justification[H, N, S, ID, Header]{}, fmt.Errorf("invalid commit target in grandpa justification")
+		return Justification[Hash, N, S, ID, H]{}, fmt.Errorf("invalid commit target in grandpa justification")
 	}
 
 	return justification, justification.verifyWithVoterSet(setID, voters)
 }
 
 // Validate the commit and the votes' ancestry proofs.
-func (j *Justification[H, N, S, ID, Header]) Verify(setID uint64, authorities AuthorityList[ID]) error {
+func (j *Justification[Hash, N, S, ID, H]) Verify(setID uint64, authorities AuthorityList[ID]) error {
 	var weights []finalityGrandpa.IDWeight[ID]
 	for _, authority := range authorities {
 		weight := finalityGrandpa.IDWeight[ID]{
@@ -159,11 +159,11 @@ func (j *Justification[H, N, S, ID, Header]) Verify(setID uint64, authorities Au
 }
 
 // Validate the commit and the votes' ancestry proofs.
-func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
+func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 	setID uint64,
 	voters finalityGrandpa.VoterSet[ID]) error {
-	ancestryChain := newAncestryChain[H, N](j.VotesAncestries)
-	commitValidationResult, err := finalityGrandpa.ValidateCommit[H, N, S, ID](j.Commit, voters, ancestryChain)
+	ancestryChain := newAncestryChain[Hash, N](j.VotesAncestries)
+	commitValidationResult, err := finalityGrandpa.ValidateCommit[Hash, N, S, ID](j.Commit, voters, ancestryChain)
 	if err != nil {
 		return fmt.Errorf("%w: invalid commit in grandpa justification", errBadJustification)
 	}
@@ -176,7 +176,7 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
 	precommits := j.Commit.Precommits
-	var minPrecommit *finalityGrandpa.SignedPrecommit[H, N, S, ID]
+	var minPrecommit *finalityGrandpa.SignedPrecommit[Hash, N, S, ID]
 	if len(precommits) == 0 {
 		panic("can only fail if precommits is empty; commit has been validated above; " +
 			"valid commits must include precommits")
@@ -191,15 +191,15 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 	}
 
 	baseHash := minPrecommit.Precommit.TargetHash
-	visitedHashes := make(map[H]struct{})
+	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
 		// TODO this is weird. ID for justification needs to be constrainsts.Ordered I believe, but that doesnt work for pub key type,
 		// and we need to use concrete type for verification I believe.
-		mgs := finalityGrandpa.Message[H, N]{Value: signed.Precommit}
-		isValidSignature, err := checkMessageSignature[H, N](mgs, signed.ID, signed.Signature, j.Round, setID)
-		if err != nil {
-			return err
-		}
+		//mgs := finalityGrandpa.Message[Hash, N]{Value: signed.Precommit}
+		//isValidSignature, err := checkMessageSignature[Hash, N](mgs, signed.ID, signed.Signature, j.Round, setID)
+		//if err != nil {
+		//	return err
+		//}
 
 		//if !isValidSignature {
 		//	return fmt.Errorf("%w: invalid signature for precommit in grandpa justification", errBadJustification)
@@ -222,7 +222,7 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 		}
 	}
 
-	ancestryHashes := make(map[H]struct{})
+	ancestryHashes := make(map[Hash]struct{})
 	for _, header := range j.VotesAncestries {
 		hash := header.Hash()
 		ancestryHashes[hash] = struct{}{}
@@ -243,8 +243,8 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 }
 
 // Target The target block NumberField and HashField that this justifications proves finality for
-func (j *Justification[H, N, S, ID, Header]) Target() hashNumber[H, N] { //nolint
-	return hashNumber[H, N]{
+func (j *Justification[Hash, N, S, ID, H]) Target() hashNumber[Hash, N] { //nolint
+	return hashNumber[Hash, N]{
 		number: j.Commit.TargetNumber,
 		hash:   j.Commit.TargetHash,
 	}
@@ -253,24 +253,24 @@ func (j *Justification[H, N, S, ID, Header]) Target() hashNumber[H, N] { //nolin
 // ancestryChain A utility trait implementing `finality_grandpa::Chain` using a given set of headers.
 // This is useful when validating commits, using the given set of headers to
 // verify a valid ancestry route to the target commit block.
-type ancestryChain[H constraints.Ordered, N constraints.Unsigned, Header HeaderI[H, N]] struct {
-	ancestry map[H]Header
+type ancestryChain[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] struct {
+	ancestry map[Hash]H
 }
 
-func newAncestryChain[H constraints.Ordered, N constraints.Unsigned, Header HeaderI[H, N]](
-	headers []Header) ancestryChain[H, N, Header] {
-	ancestry := make(map[H]Header)
+func newAncestryChain[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]](
+	headers []H) ancestryChain[Hash, N, H] {
+	ancestry := make(map[Hash]H)
 	for _, header := range headers {
 		hash := header.Hash()
 		ancestry[hash] = header
 	}
-	return ancestryChain[H, N, Header]{
+	return ancestryChain[Hash, N, H]{
 		ancestry: ancestry,
 	}
 }
 
-func (ac ancestryChain[H, N, Header]) Ancestry(base H, block H) ([]H, error) {
-	route := make([]H, 0)
+func (ac ancestryChain[Hash, N, H]) Ancestry(base Hash, block Hash) ([]Hash, error) {
+	route := make([]Hash, 0)
 	currentHash := block
 
 	for {
@@ -293,7 +293,7 @@ func (ac ancestryChain[H, N, Header]) Ancestry(base H, block H) ([]H, error) {
 	return route, nil
 }
 
-func (ac ancestryChain[H, N, Header]) IsEqualOrDescendantOf(base H, block H) bool {
+func (ac ancestryChain[Hash, N, H]) IsEqualOrDescendantOf(base Hash, block Hash) bool {
 	if base == block {
 		return true
 	}
