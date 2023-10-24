@@ -50,8 +50,8 @@ type Database interface {
 
 	Path() string
 	NewBatch() Batch
-	NewIterator() Iterator
-	NewPrefixIterator(prefix []byte) Iterator
+	NewIterator() (Iterator, error)
+	NewPrefixIterator(prefix []byte) (Iterator, error)
 }
 
 type Table interface {
@@ -59,7 +59,7 @@ type Table interface {
 	Writer
 	Path() string
 	NewBatch() Batch
-	NewIterator() Iterator
+	NewIterator() (Iterator, error)
 }
 
 const DefaultDatabaseDir = "db"

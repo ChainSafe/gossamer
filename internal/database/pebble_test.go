@@ -177,7 +177,8 @@ func testIteratorSetup(t *testing.T, db Database) {
 func testNextKeyIterator(t *testing.T, db Database) {
 	testIteratorSetup(t, db)
 
-	it := db.NewIterator()
+	it, err := db.NewIterator()
+	require.NoError(t, err)
 	defer it.Release()
 
 	counter := 0
@@ -202,7 +203,8 @@ func testSeekKeyValueIterator(t *testing.T, db Database) {
 		"camel-4": "camel-value-4",
 	}
 
-	it := db.NewIterator()
+	it, err := db.NewIterator()
+	require.NoError(t, err)
 	defer it.Release()
 
 	for succ := it.SeekGE([]byte("camel-")); succ; succ = it.Next() {
