@@ -56,6 +56,6 @@ func (t *table) NewBatch() Batch {
 	}
 }
 
-func (t *table) NewIterator() Iterator {
+func (t *table) NewIterator() (Iterator, error) {
 	return t.db.NewPrefixIterator(t.prefix)
 }
