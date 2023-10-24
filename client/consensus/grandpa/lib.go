@@ -6,7 +6,6 @@ package grandpa
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -14,7 +13,10 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 
-type AuthorityID any
+type AuthorityID interface {
+	constraints.Ordered // TODO might not need this constraint
+	Verify(msg []byte, sig []byte) (bool, error)
+}
 
 type AuthoritySignature any
 
@@ -44,9 +46,9 @@ type messageData[H comparable, N constraints.Unsigned] struct {
 // verifying the provided signature using the expected authority id.
 // The encoding necessary to verify the signature will be done using the given
 // buffer, the original content of the buffer will be cleared.
-func checkMessageSignature[H comparable, N constraints.Unsigned](
+func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID](
 	message any,
-	id any,
+	id ID,
 	signature any,
 	round uint64,
 	setID uint64) (bool, error) {
@@ -56,10 +58,10 @@ func checkMessageSignature[H comparable, N constraints.Unsigned](
 		return false, fmt.Errorf("invalid cast to finalityGrandpa.Message[H, N]")
 	}
 
-	castedID, ok := id.(*ed25519.PublicKey)
-	if !ok {
-		return false, fmt.Errorf("invalid cast to *ed25519.PublicKey")
-	}
+	//castedID, ok := id.(*ed25519.PublicKey)
+	//if !ok {
+	//	return false, fmt.Errorf("invalid cast to *ed25519.PublicKey")
+	//}
 
 	sig, ok := signature.([]byte)
 	if !ok {
@@ -76,7 +78,7 @@ func checkMessageSignature[H comparable, N constraints.Unsigned](
 	if err != nil {
 		return false, err
 	}
-	valid, err := castedID.Verify(enc, sig[:])
+	valid, err := id.Verify(enc, sig[:])
 	if err != nil {
 		return false, err
 	}

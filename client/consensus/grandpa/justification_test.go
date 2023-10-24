@@ -46,9 +46,9 @@ func (backend testBackend[H, N, Header]) Header(hash H) (*testHeader[H, N], erro
 
 func makePrecommit(t *testing.T,
 	targetHash string,
-	targetNumber uint, id int32) finalityGrandpa.SignedPrecommit[string, uint, string, int32] {
+	targetNumber uint, id dummyAuthID) finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID] {
 	t.Helper()
-	return finalityGrandpa.SignedPrecommit[string, uint, string, int32]{
+	return finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]{
 		Precommit: finalityGrandpa.Precommit[string, uint]{
 			TargetHash:   targetHash,
 			TargetNumber: targetNumber,
@@ -58,7 +58,7 @@ func makePrecommit(t *testing.T,
 }
 
 func TestJustificationEncoding(t *testing.T) {
-	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, int32]
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -68,9 +68,9 @@ func TestJustificationEncoding(t *testing.T) {
 		ParentHashField: "a",
 	})
 
-	justification := Justification[string, uint, string, int32, testHeader[string, uint]]{
+	justification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
 		Round: 2,
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -81,29 +81,29 @@ func TestJustificationEncoding(t *testing.T) {
 	encodedJustification, err := scale.Marshal(justification)
 	require.NoError(t, err)
 
-	newJustificaiton := Justification[string, uint, string, int32, testHeader[string, uint]]{}
+	newJustificaiton := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{}
 	err = scale.Unmarshal(encodedJustification, &newJustificaiton)
 	require.NoError(t, err)
 	require.Equal(t, justification, newJustificaiton)
 }
 
 func TestJustification_fromCommit(t *testing.T) {
-	commit := finalityGrandpa.Commit[string, uint, string, int32]{}
+	commit := finalityGrandpa.Commit[string, uint, string, dummyAuthID]{}
 	client := testBackend[string, uint, testHeader[string, uint]]{}
-	_, err := NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](client, 2, commit)
+	_, err := NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](client, 2, commit)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
 	// nil header
-	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, int32]
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
 	precommit = makePrecommit(t, "b", 2, 3)
 	precommits = append(precommits, precommit)
 
-	validCommit := finalityGrandpa.Commit[string, uint, string, int32]{
+	validCommit := finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 		TargetHash:   "a",
 		TargetNumber: 1,
 		Precommits:   precommits,
@@ -111,13 +111,13 @@ func TestJustification_fromCommit(t *testing.T) {
 
 	clientNil := testBackend[string, uint, testHeader[string, uint]]{}
 
-	_, err = NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](clientNil, 2, validCommit)
+	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](clientNil, 2, validCommit)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
 	// currentHeader.Number() <= baseNumber
-	_, err = NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](client, 2, validCommit)
+	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](client, 2, validCommit)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
@@ -134,16 +134,16 @@ func TestJustification_fromCommit(t *testing.T) {
 		NumberField:     100,
 		ParentHashField: "a",
 	})
-	expJustification := Justification[string, uint, string, int32, testHeader[string, uint]]{
+	expJustification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
 		Round: 2,
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
 		},
 		VotesAncestries: expAncestries,
 	}
-	justification, err := NewJustificationFromCommit[string, uint, string, int32, testHeader[string, uint]](
+	justification, err := NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		clientLargeNum,
 		2,
 		validCommit)
@@ -154,16 +154,16 @@ func TestJustification_fromCommit(t *testing.T) {
 func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	// Invalid Encoding
 	invalidEncoding := []byte{21}
-	_, err := decodeAndVerifyFinalizes[string, uint, string, int32, testHeader[string, uint]](
+	_, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		invalidEncoding,
 		hashNumber[string, uint]{},
 		2,
-		finalityGrandpa.VoterSet[int32]{})
+		finalityGrandpa.VoterSet[dummyAuthID]{})
 	require.NotNil(t, err)
 
 	// Invalid target
-	justification := Justification[string, uint, string, int32, testHeader[string, uint]]{
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+	justification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 		},
@@ -171,11 +171,11 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	encWrongTarget, err := scale.Marshal(justification)
 	require.NoError(t, err)
-	_, err = decodeAndVerifyFinalizes[string, uint, string, int32, testHeader[string, uint]](
+	_, err = decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		encWrongTarget,
 		hashNumber[string, uint]{},
 		2,
-		finalityGrandpa.VoterSet[int32]{})
+		finalityGrandpa.VoterSet[dummyAuthID]{})
 	require.NotNil(t, err)
 	require.Equal(t, "invalid commit target in grandpa justification", err.Error())
 
@@ -189,7 +189,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 		headerB,
 	}
 
-	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, int32]
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -199,8 +199,8 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	precommit = makePrecommit(t, "b", 2, 3)
 	precommits = append(precommits, precommit)
 
-	validJustification := Justification[string, uint, string, int32, testHeader[string, uint]]{
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+	validJustification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -216,13 +216,13 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 		number: 1,
 	}
 
-	IDWeights := make([]finalityGrandpa.IDWeight[int32], 0)
+	IDWeights := make([]finalityGrandpa.IDWeight[dummyAuthID], 0)
 	for i := 1; i <= 4; i++ {
-		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1}) //nolint
+		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[dummyAuthID]{dummyAuthID(i), 1}) //nolint
 	}
 	voters := finalityGrandpa.NewVoterSet(IDWeights)
 
-	newJustification, err := decodeAndVerifyFinalizes[string, uint, string, int32, testHeader[string, uint]](
+	newJustification, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		encValid,
 		target,
 		2,
@@ -234,15 +234,15 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 func TestJustification_verify(t *testing.T) {
 	// Nil voter case
-	auths := make(AuthorityList[int32], 0)
-	justification := Justification[string, uint, string, int32, testHeader[string, uint]]{}
+	auths := make(AuthorityList[dummyAuthID], 0)
+	justification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{}
 	err := justification.Verify(2, auths)
 	require.ErrorIs(t, err, errInvalidAuthoritiesSet)
 
 	// happy path
 	for i := 1; i <= 4; i++ {
-		auths = append(auths, Authority[int32]{
-			int32(i),
+		auths = append(auths, Authority[dummyAuthID]{
+			dummyAuthID(i),
 			1,
 		})
 	}
@@ -256,7 +256,7 @@ func TestJustification_verify(t *testing.T) {
 		headerB,
 	}
 
-	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, int32]
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -266,8 +266,8 @@ func TestJustification_verify(t *testing.T) {
 	precommit = makePrecommit(t, "b", 2, 3)
 	precommits = append(precommits, precommit)
 
-	validJustification := Justification[string, uint, string, int32, testHeader[string, uint]]{
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+	validJustification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -281,17 +281,17 @@ func TestJustification_verify(t *testing.T) {
 
 func TestJustification_verifyWithVoterSet(t *testing.T) {
 	// 1) invalid commit
-	IDWeights := make([]finalityGrandpa.IDWeight[int32], 0)
+	IDWeights := make([]finalityGrandpa.IDWeight[dummyAuthID], 0)
 	for i := 1; i <= 4; i++ {
-		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[int32]{int32(i), 1}) //nolint
+		IDWeights = append(IDWeights, finalityGrandpa.IDWeight[dummyAuthID]{dummyAuthID(i), 1}) //nolint
 	}
 	voters := finalityGrandpa.NewVoterSet(IDWeights)
 
-	invalidJustification := Justification[string, uint, string, int32, testHeader[string, uint]]{
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+	invalidJustification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "B",
 			TargetNumber: 2,
-			Precommits:   []finalityGrandpa.SignedPrecommit[string, uint, string, int32]{},
+			Precommits:   []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]{},
 		},
 	}
 
@@ -314,7 +314,7 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 		headerB,
 	}
 
-	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, int32]
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -324,8 +324,8 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 	precommit = makePrecommit(t, "b", 2, 3)
 	precommits = append(precommits, precommit)
 
-	validJustification := Justification[string, uint, string, int32, testHeader[string, uint]]{
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+	validJustification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -343,8 +343,8 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 		headerB,
 	}
 
-	validJustification = Justification[string, uint, string, int32, testHeader[string, uint]]{
-		Commit: finalityGrandpa.Commit[string, uint, string, int32]{
+	validJustification = Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,

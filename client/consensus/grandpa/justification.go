@@ -27,7 +27,7 @@ var (
 //
 // This is meant to be stored in the db and passed around the network to other
 // nodes, and are used by syncing nodes to prove authority set handoffs.
-type Justification[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, H Header[Hash, N]] struct {
+type Justification[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID AuthorityID, H Header[Hash, N]] struct {
 	Round           uint64
 	Commit          finalityGrandpa.Commit[Hash, N, S, ID]
 	VotesAncestries []H
@@ -35,7 +35,7 @@ type Justification[Hash constraints.Ordered, N constraints.Unsigned, S comparabl
 
 // NewJustificationFromCommit Create a GRANDPA justification from the given commit. This method
 // assumes the commit is valid and well-formed.
-func NewJustificationFromCommit[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, H Header[Hash, N]](
+func NewJustificationFromCommit[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID AuthorityID, H Header[Hash, N]](
 	client HeaderBackend[Hash, N, H],
 	round uint64,
 	commit finalityGrandpa.Commit[Hash, N, S, ID]) (Justification[Hash, N, S, ID, H], error) {
@@ -113,7 +113,7 @@ func NewJustificationFromCommit[Hash constraints.Ordered, N constraints.Unsigned
 func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
-	ID constraints.Ordered,
+	ID AuthorityID,
 	H Header[Hash, N]](
 	encoded []byte,
 	finalizedTarget hashNumber[Hash, N],
@@ -195,15 +195,15 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 	for _, signed := range precommits {
 		// TODO this is weird. ID for justification needs to be constrainsts.Ordered I believe, but that doesnt work for pub key type,
 		// and we need to use concrete type for verification I believe.
-		//mgs := finalityGrandpa.Message[Hash, N]{Value: signed.Precommit}
-		//isValidSignature, err := checkMessageSignature[Hash, N](mgs, signed.ID, signed.Signature, j.Round, setID)
-		//if err != nil {
-		//	return err
-		//}
+		mgs := finalityGrandpa.Message[Hash, N]{Value: signed.Precommit}
+		isValidSignature, err := checkMessageSignature[Hash, N](mgs, signed.ID, signed.Signature, j.Round, setID)
+		if err != nil {
+			return err
+		}
 
-		//if !isValidSignature {
-		//	return fmt.Errorf("%w: invalid signature for precommit in grandpa justification", errBadJustification)
-		//}
+		if !isValidSignature {
+			return fmt.Errorf("%w: invalid signature for precommit in grandpa justification", errBadJustification)
+		}
 
 		if baseHash == signed.Precommit.TargetHash {
 			continue

@@ -6,18 +6,26 @@ package grandpa
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_checkMessageSignature(t *testing.T) {
-	kp, err := ed25519.GenerateKeypair()
-	require.NoError(t, err)
+type dummyAuthID uint
 
-	kp2, err := ed25519.GenerateKeypair()
-	require.NoError(t, err)
+func (dummyAuthID) Verify(msg []byte, sig []byte) (bool, error) {
+	return true, nil
+}
+
+type dummyInvalidAuthID uint
+
+func (dummyInvalidAuthID) Verify(msg []byte, sig []byte) (bool, error) {
+	return false, nil
+}
+
+func Test_checkMessageSignature(t *testing.T) {
+	pubKeyValid := dummyAuthID(1)
+	pubKeyInvalid := dummyInvalidAuthID(1)
 
 	message := finalityGrandpa.Message[string, uint]{
 		Value: 4,
@@ -29,17 +37,15 @@ func Test_checkMessageSignature(t *testing.T) {
 		message,
 	}
 
+	// Dummy signature
 	encMsg, err := scale.Marshal(msg)
 	require.NoError(t, err)
 
-	sig, err := kp.Sign(encMsg)
-	require.NoError(t, err)
-
-	valid, err := checkMessageSignature[string, uint](message, kp.Public().(*ed25519.PublicKey), sig, 1, 2)
+	valid, err := checkMessageSignature[string, uint, dummyAuthID](message, pubKeyValid, encMsg, 1, 2)
 	require.NoError(t, err)
 	require.True(t, valid)
 
-	invalid, err := checkMessageSignature[string, uint](message, kp2.Public().(*ed25519.PublicKey), sig, 1, 2)
+	invalid, err := checkMessageSignature[string, uint, dummyInvalidAuthID](message, pubKeyInvalid, encMsg, 1, 2)
 	require.NoError(t, err)
 	require.False(t, invalid)
 }

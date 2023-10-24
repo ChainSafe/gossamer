@@ -200,7 +200,7 @@ func updateBestJustification[
 	Hash constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
-	ID constraints.Ordered,
+	ID AuthorityID,
 	H Header[Hash, N]](
 	justification Justification[Hash, N, S, ID, H],
 	write writeAux) error {
@@ -220,7 +220,7 @@ func updateBestJustification[
 }
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
-func BestJustification[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID constraints.Ordered, H Header[Hash, N]](
+func BestJustification[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID AuthorityID, H Header[Hash, N]](
 	store api.AuxStore) (*Justification[Hash, N, S, ID, H], error) {
 	justification := Justification[Hash, N, S, ID, H]{}
 	err := loadDecoded(store, bestJustification, &justification)
