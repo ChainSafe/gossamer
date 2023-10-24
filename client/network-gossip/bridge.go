@@ -11,10 +11,10 @@ import (
 
 // / Wraps around an implementation of the [`Network`] trait and provides gossiping capabilities on
 // / top of it.
-type GossipEngine[H runtime.Hash] struct {
+type GossipEngine[H runtime.Hash, N runtime.Number] struct {
 	stateMachine                ConsensusGossip[H]
 	network                     Network
-	sync                        Syncing
+	sync                        Syncing[H, N]
 	periodicMaintenanceInterval time.Timer
 	protocol                    network.ProtocolName
 

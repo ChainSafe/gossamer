@@ -13,9 +13,9 @@ import (
 	"github.com/ChainSafe/gossamer/client/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/keystore"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/primitives/runtime"
 	"golang.org/x/exp/constraints"
 )
 
@@ -91,7 +91,7 @@ func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID]
 }
 
 type SharedVoterState[AuthorityID comparable] struct {
-	inner grandpa.VoterState[AuthorityID]
+	inner finalityGrandpa.VoterState[AuthorityID]
 	sync.Mutex
 }
 
@@ -155,7 +155,7 @@ type Config struct {
 
 // / Future that powers the voter.
 type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
-	voter            *grandpa.Voter[Hash, Number, Signature, ID]
+	voter            *finalityGrandpa.Voter[Hash, Number, Signature, ID]
 	sharedVoterState SharedVoterState[ID]
 	env              environment
 	voterCommandsRx  any
@@ -164,10 +164,10 @@ type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature 
 	metrics          any
 }
 
-func newVoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
+func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID constraints.Ordered](
 	client ClientForGrandpa,
 	config Config,
-	network communication.NetworkBridge[Hash],
+	network communication.NetworkBridge[Hash, Number],
 	selectChain SelectChain,
 	votingRule VotingRule,
 	persistendData persistentData,
