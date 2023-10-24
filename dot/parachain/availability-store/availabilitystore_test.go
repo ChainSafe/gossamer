@@ -31,3 +31,12 @@ func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, AvailableData{}, got)
 }
+
+func TestAvailabilityStore_StoreChuckData(t *testing.T) {
+	inmemoryDB := state.NewInMemoryDB(t)
+	as, err := NewAvailabilityStore(inmemoryDB)
+	require.NoError(t, err)
+
+	err = as.StoreChunk(common.Hash{0x01}, ErasureChunk{Chunk: []byte("chunk1"), Index: 0, Proof: []byte("proof1")})
+	require.NoError(t, err)
+}
