@@ -195,11 +195,11 @@ func (j *Justification[H, N, S, ID, Header]) verifyWithVoterSet(
 	for _, signed := range precommits {
 		// TODO this is weird. ID for justification needs to be constrainsts.Ordered I believe, but that doesnt work for pub key type,
 		// and we need to use concrete type for verification I believe.
-		//mgs := finalityGrandpa.Message[H, N]{Value: signed.Precommit}
-		//isValidSignature, err := checkMessageSignature[H, N](mgs, signed.ID, signed.Signature, j.Round, setID)
-		//if err != nil {
-		//	return err
-		//}
+		mgs := finalityGrandpa.Message[H, N]{Value: signed.Precommit}
+		isValidSignature, err := checkMessageSignature[H, N](mgs, signed.ID, signed.Signature, j.Round, setID)
+		if err != nil {
+			return err
+		}
 
 		//if !isValidSignature {
 		//	return fmt.Errorf("%w: invalid signature for precommit in grandpa justification", errBadJustification)

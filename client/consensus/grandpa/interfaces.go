@@ -15,13 +15,13 @@ type Telemetry interface{}
 //	IsEmpty() bool
 //}
 
-type HeaderI[H constraints.Ordered, N constraints.Unsigned] interface {
+type Header[H constraints.Ordered, N constraints.Unsigned] interface {
 	ParentHash() H
 	Hash() H
 	Number() N
 }
 
-type HeaderBackend[H constraints.Ordered, N constraints.Unsigned, Header HeaderI[H, N]] interface {
+type HeaderBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
 	// Header Get block header. Returns None if block is not found.
-	Header(H) (*Header, error)
+	Header(H) (*H, error)
 }
