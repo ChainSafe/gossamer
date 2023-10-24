@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	"github.com/ChainSafe/gossamer/primitives/runtime"
 	"golang.org/x/exp/constraints"
 )
 
@@ -108,10 +109,10 @@ type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature 
 	metrics          any
 }
 
-func newVoterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
+func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID constraints.Ordered](
 	client ClientForGrandpa,
 	config Config,
-	network communication.NetworkBridge[Hash],
+	network communication.NetworkBridge[Hash, Number],
 	selectChain SelectChain,
 	votingRule VotingRule,
 	persistendData persistentData,
