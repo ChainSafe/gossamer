@@ -16,8 +16,8 @@ type PeerConnected libp2p.PeerID
 // / Peer that the syncing implementation was tracking disconnected.
 type PeerDisconnected libp2p.PeerID
 
-//	pub trait SyncEventStream: Send + Sync {
-//		/// Subscribe to syncing-related events.
-//		fn event_stream(&self, name: &'static str) -> Pin<Box<dyn Stream<Item = SyncEvent> + Send>>;
-//	}
-type SyncEventStream interface{}
+type SyncEventStream interface {
+	// Subscribe to syncing-related events.
+	// fn event_stream(&self, name: &'static str) -> Pin<Box<dyn Stream<Item = SyncEvent> + Send>>;
+	EventStream(name string) chan SyncEvent
+}
