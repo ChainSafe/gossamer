@@ -139,7 +139,7 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	return justification, justification.verifyWithVoterSet(setID, voters)
 }
 
-// Validate the commit and the votes' ancestry proofs.
+// Verify Validate the commit and the votes' ancestry proofs.
 func (j *Justification[Hash, N, S, ID, H]) Verify(setID uint64, authorities AuthorityList[ID]) error {
 	var weights []finalityGrandpa.IDWeight[ID]
 	for _, authority := range authorities {
@@ -196,7 +196,7 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 		// TODO this is weird. ID for justification needs to be constrainsts.Ordered I believe, but that doesnt work for pub key type,
 		// and we need to use concrete type for verification I believe.
 		mgs := finalityGrandpa.Message[Hash, N]{Value: signed.Precommit}
-		isValidSignature, err := checkMessageSignature[Hash, N](mgs, signed.ID, signed.Signature, j.Round, setID)
+		isValidSignature, err := checkMessageSignature[Hash, N, ID](mgs, signed.ID, signed.Signature, j.Round, setID)
 		if err != nil {
 			return err
 		}

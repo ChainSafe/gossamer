@@ -229,7 +229,6 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 		*voters)
 	require.NoError(t, err)
 	require.Equal(t, validJustification, newJustification)
-
 }
 
 func TestJustification_verify(t *testing.T) {
