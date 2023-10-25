@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -149,7 +150,8 @@ func DummyActivatedLeaf(blockNumber parachainTypes.BlockNumber) overseer.Activat
 	}
 }
 
-func NextLeaf(chain *[]common.Hash) overseer.ActivatedLeaf {
+func NextLeaf(t *testing.T, chain *[]common.Hash) overseer.ActivatedLeaf {
+	t.Helper()
 	nextBlockNumber := len(*chain)
 	nextHash := GetBlockNumberHash(parachainTypes.BlockNumber(nextBlockNumber))
 	*chain = append(*(chain), nextHash)

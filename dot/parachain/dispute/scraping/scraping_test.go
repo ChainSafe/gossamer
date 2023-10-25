@@ -324,7 +324,7 @@ func TestChainScraper(t *testing.T) {
 		require.True(t, scraper.IsCandidateIncluded(candidate1))
 		require.True(t, scraper.IsCandidateBacked(candidate1))
 
-		nextLeaf := dispute.NextLeaf(chain)
+		nextLeaf := dispute.NextLeaf(t, chain)
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 
 		_, err = scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -349,7 +349,7 @@ func TestChainScraper(t *testing.T) {
 
 		var nextLeaf overseer.ActivatedLeaf
 		for i := 0; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -378,14 +378,14 @@ func TestChainScraper(t *testing.T) {
 
 		var nextLeaf overseer.ActivatedLeaf
 		for i := 0; i < BlocksToSkip[0]; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
 		for i := 0; i < BlocksToSkip[1]; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate = overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err = scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -409,7 +409,7 @@ func TestChainScraper(t *testing.T) {
 		var nextLeaf overseer.ActivatedLeaf
 		// 1 because `TestState` starts at leaf 1.
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -449,7 +449,7 @@ func TestChainScraper(t *testing.T) {
 
 		var nextLeaf overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -500,7 +500,7 @@ func TestChainScraper(t *testing.T) {
 
 		var nextLeaf overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -560,7 +560,7 @@ func TestChainScraper(t *testing.T) {
 
 		var nextLeaf overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
@@ -623,7 +623,7 @@ func TestChainScraper(t *testing.T) {
 
 		var nextLeaf overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(chain)
+			nextLeaf = dispute.NextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
