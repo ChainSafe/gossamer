@@ -224,7 +224,7 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	paraID parachaintypes.ParaID,
 	peerID peer.ID,
 	collatorID parachaintypes.CollatorID,
-	prospectiveCandidate *ProspectiveCandidate) {
+	prospectiveCandidate *ProspectiveCandidate) error {
 
 	// TODO: return errors
 	pendingCollation := PendingCollation{
@@ -249,16 +249,17 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 		})
 	case Waiting:
 		// limit is not reached, it's allowed to second another collation
-		cpvs.fetchCollation(pendingCollation, collatorID)
+		return cpvs.fetchCollation(pendingCollation, collatorID)
 	case Seconded:
 		perRelayParent := cpvs.perRelayParent[relayParent]
 		if perRelayParent.prospectiveParachainMode.isEnabled {
-			cpvs.fetchCollation(pendingCollation, collatorID)
+			return cpvs.fetchCollation(pendingCollation, collatorID)
 		} else {
 			logger.Debug("a collation has already been seconded")
 		}
 	}
 
+	return nil
 }
 
 func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation,
@@ -363,37 +364,37 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		return ErrSecondedLimitReached
 	}
 
-	// NOTE: Matters only in V2
-	// isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
-	// 	collatorParaID,
-	// 	relayParent,
-	// 	prospectiveCandidate.CandidateHash,
-	// 	prospectiveCandidate.ParentHeadDataHash,
-	// )
+	/*NOTE:---------------------------------------Matters only in V2----------------------------------------------*/
+	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
+		collatorParaID,
+		relayParent,
+		prospectiveCandidate.CandidateHash,
+		prospectiveCandidate.ParentHeadDataHash,
+	)
 
-	// if !isSecondingAllowed {
-	// 	logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
-	// 		relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
+	if !isSecondingAllowed {
+		logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
+			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
-	// 	blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
-	// 		peerID:               sender,
-	// 		collatorID:           peerData.state.CollatingPeerState.CollatorID,
-	// 		candidateRelayParent: relayParent,
-	// 		candidateHash:        prospectiveCandidate.CandidateHash,
-	// 	})
+		blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
+			peerID:               sender,
+			collatorID:           peerData.state.CollatingPeerState.CollatorID,
+			candidateRelayParent: relayParent,
+			candidateHash:        prospectiveCandidate.CandidateHash,
+		})
 
-	// 	cpvs.BlockedAdvertisements = blockedAdvertisements
-	// 	return nil
-	// }
+		cpvs.BlockedAdvertisements = blockedAdvertisements
+		return nil
+	}
+	/*--------------------------------------------END----------------------------------------------------------*/
 
-	cpvs.enqueueCollation(perRelayParent.collations,
+	return cpvs.enqueueCollation(perRelayParent.collations,
 		relayParent,
 		collatorParaID,
 		sender,
 		peerData.state.CollatingPeerState.CollatorID,
 		prospectiveCandidate)
 
-	return nil
 }
 
 // getDeclareSignaturePayload gives the payload that should be signed and included in a Declare message.

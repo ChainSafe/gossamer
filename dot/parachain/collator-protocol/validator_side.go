@@ -39,7 +39,7 @@ var (
 	ErrUndeclaredPara                       = errors.New("peer has not declared its para id")
 	ErrInvalidAssignment                    = errors.New("we're assigned to a different para at the given relay parent")
 	ErrInvalidAdvertisement                 = errors.New("advertisement is invalid")
-	ErrUndeclaredCollator                   = errors.New("no prior declare message received for this collator ")
+	ErrUndeclaredCollator                   = errors.New("no prior declare message received for this collator")
 	ErrOutOfView                            = errors.New("collation relay parent is out of our view")
 	ErrDuplicateAdvertisement               = errors.New("advertisement is already known")
 	ErrPeerLimitReached                     = errors.New("limit for announcements per peer is reached")

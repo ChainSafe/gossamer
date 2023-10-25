@@ -661,3 +661,118 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 }
 
 // TODO: test InsertAdvertisement seperately
+
+func TestInsertAdvertisement(t *testing.T) {
+	relayParent := getDummyHash(5)
+
+	candidateHash := parachaintypes.CandidateHash{
+		Value: getDummyHash(9),
+	}
+
+	testCases := []struct {
+		description     string
+		peerData        PeerData
+		relayParentMode ProspectiveParachainsMode
+		candidateHash   *parachaintypes.CandidateHash
+		implicitView    ImplicitView
+		activeLeaves    map[common.Hash]ProspectiveParachainsMode
+		err             error
+	}{
+		{
+			description: "fail with undeclared collator",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Connected,
+				},
+			},
+			err: ErrUndeclaredCollator,
+		},
+		{
+			description: "fail with error out of view",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Collating,
+				},
+			},
+			relayParentMode: ProspectiveParachainsMode{},
+			candidateHash:   nil,
+			activeLeaves:    map[common.Hash]ProspectiveParachainsMode{},
+			err:             ErrOutOfView,
+		},
+		{
+			description: "fail with error duplicate advertisement",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Collating,
+					CollatingPeerState: CollatingPeerState{
+						ParaID: parachaintypes.ParaID(5),
+						advertisements: map[common.Hash][]parachaintypes.CandidateHash{
+							relayParent: {},
+						},
+					},
+				},
+			},
+			relayParentMode: ProspectiveParachainsMode{},
+			candidateHash:   nil,
+			activeLeaves: map[common.Hash]ProspectiveParachainsMode{
+				relayParent: {
+					isEnabled: false,
+				},
+			},
+			err: ErrDuplicateAdvertisement,
+		},
+		// {
+		// 	description: "fail with error peer limit reached",
+		// },
+		{
+			description: "success case",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Collating,
+					CollatingPeerState: CollatingPeerState{
+						ParaID:         parachaintypes.ParaID(5),
+						advertisements: map[common.Hash][]parachaintypes.CandidateHash{},
+					},
+				},
+			},
+			relayParentMode: ProspectiveParachainsMode{},
+			candidateHash:   &candidateHash,
+			activeLeaves: map[common.Hash]ProspectiveParachainsMode{
+				relayParent: {
+					isEnabled: false,
+				},
+			},
+		},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := c.peerData.InsertAdvertisement(relayParent, c.relayParentMode, c.candidateHash, c.implicitView, c.activeLeaves)
+			require.ErrorIs(t, err, c.err)
+		},
+		)
+	}
+
+}
+
+func TestEnqueueCollation(t *testing.T) {
+
+	testCases := []struct {
+		description string
+	}{
+		{},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+		},
+		)
+	}
+}
