@@ -147,8 +147,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeVaryingDataType(dstv)
 	case VaryingDataTypeSlice:
 		err = ds.decodeVaryingDataTypeSlice(dstv)
-	case BTree:
-		err = ds.decodeBTree(dstv)
 	default:
 		t := reflect.TypeOf(in)
 		switch t.Kind() {

@@ -5,16 +5,11 @@ package scale
 
 import (
 	"fmt"
+	"golang.org/x/exp/constraints"
 	"reflect"
 
 	"github.com/tidwall/btree"
 )
-
-type Ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
-		~float32 | ~float64 | ~string
-}
 
 type BTreeCodec interface {
 	Encode(es *encodeState) error
@@ -90,11 +85,7 @@ func (bt *BTree) Copy() *BTree {
 
 // NewBTree creates a new BTree with the given comparator function.
 func NewBTree[T any](comparator func(a, b any) bool) *BTree {
-	// There's no instantiation overhead of the actual type T because we're only creating a slice type and
-	// getting the element type from it.
-	var dummySlice []T
-	elementType := reflect.TypeOf(dummySlice).Elem()
-
+	elementType := reflect.TypeOf((*T)(nil)).Elem()
 	return &BTree{
 		BTree:      btree.New(comparator),
 		Comparator: comparator,
@@ -103,7 +94,7 @@ func NewBTree[T any](comparator func(a, b any) bool) *BTree {
 }
 
 // BTreeMap is a wrapper around tidwall/btree.Map
-type BTreeMap[K Ordered, V any] struct {
+type BTreeMap[K constraints.Ordered, V any] struct {
 	*btree.Map[K, V]
 	Degree int
 }
@@ -180,7 +171,7 @@ func (btm *BTreeMap[K, V]) Copy() BTreeMap[K, V] {
 }
 
 // NewBTreeMap creates a new BTreeMap with the given degree.
-func NewBTreeMap[K Ordered, V any](degree int) *BTreeMap[K, V] {
+func NewBTreeMap[K constraints.Ordered, V any](degree int) *BTreeMap[K, V] {
 	return &BTreeMap[K, V]{
 		Map: btree.NewMap[K, V](degree),
 	}
