@@ -9,6 +9,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,6 +36,21 @@ func (m *MockRuntimeInstance) EXPECT() *MockRuntimeInstanceMockRecorder {
 	return m.recorder
 }
 
+// ParachainHostCandidateEvents mocks base method.
+func (m *MockRuntimeInstance) ParachainHostCandidateEvents(arg0 common.Hash) (*scale.VaryingDataTypeSlice, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCandidateEvents", arg0)
+	ret0, _ := ret[0].(*scale.VaryingDataTypeSlice)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCandidateEvents indicates an expected call of ParachainHostCandidateEvents.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCandidateEvents(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidateEvents", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostCandidateEvents), arg0)
+}
+
 // ParachainHostCheckValidationOutputs mocks base method.
 func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 uint32, arg1 parachaintypes.CandidateCommitments) (bool, error) {
 	m.ctrl.T.Helper()
@@ -48,6 +64,21 @@ func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 uint32, a
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCheckValidationOutputs", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostCheckValidationOutputs), arg0, arg1)
+}
+
+// ParachainHostOnChainVotes mocks base method.
+func (m *MockRuntimeInstance) ParachainHostOnChainVotes(arg0 common.Hash) (*parachaintypes.ScrapedOnChainVotes, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostOnChainVotes", arg0)
+	ret0, _ := ret[0].(*parachaintypes.ScrapedOnChainVotes)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostOnChainVotes indicates an expected call of ParachainHostOnChainVotes.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostOnChainVotes(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostOnChainVotes", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostOnChainVotes), arg0)
 }
 
 // ParachainHostPersistedValidationData mocks base method.

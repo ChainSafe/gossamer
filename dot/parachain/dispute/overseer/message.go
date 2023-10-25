@@ -81,3 +81,23 @@ type ValidationResult struct {
 	ValidResult   *ValidValidationResult
 	InvalidResult *InvalidValidationResult
 }
+
+type FinalizedBlockNumberResponse struct {
+	Number uint32
+	Err    error
+}
+
+type FinalizedBlockNumberRequest struct {
+	ResponseChannel chan FinalizedBlockNumberResponse
+}
+
+type AncestorsResponse struct {
+	Ancestors []common.Hash
+	Error     error
+}
+
+type AncestorsRequest struct {
+	Hash            common.Hash
+	K               uint32
+	ResponseChannel chan AncestorsResponse
+}
