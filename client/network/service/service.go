@@ -5,7 +5,7 @@ import (
 	"github.com/ChainSafe/gossamer/client/network/config"
 	"github.com/ChainSafe/gossamer/client/network/event"
 	"github.com/ChainSafe/gossamer/client/peerset"
-	"github.com/libp2p/go-libp2p/core"
+	libp2p "github.com/libp2p/go-libp2p/core"
 )
 
 // / Provides an ability to set a fork sync request for a particular block.
@@ -17,7 +17,7 @@ type NetworkSyncForkRequest[BlockHash, BlockNumber any] interface {
 	/// should make a best effort to fetch the block from any peers it is
 	/// connected to (NOTE: this assumption will change in the future #3629).
 	// fn set_sync_fork_request(&self, peers: Vec<PeerId>, hash: BlockHash, number: BlockNumber);
-	SetSyncForkRequest(peers []core.PeerID, hash BlockHash, number BlockNumber)
+	SetSyncForkRequest(peers []libp2p.PeerID, hash BlockHash, number BlockNumber)
 }
 
 // / Provides low-level API for manipulating network peers.
@@ -27,7 +27,7 @@ type NetworkPeers interface {
 	/// Need a better solution to manage authorized peers, but now just use reserved peers for
 	/// prototyping.
 	// 	fn set_authorized_peers(&self, peers: HashSet<PeerId>);
-	SetAuthorizedPeers(peers map[core.PeerID]any)
+	SetAuthorizedPeers(peers map[libp2p.PeerID]any)
 	/// Set authorized_only flag.
 	///
 	/// Need a better solution to decide authorized_only, but now just use reserved_only flag for
@@ -36,11 +36,11 @@ type NetworkPeers interface {
 	SetAuthorizedOnly(reservedOnly bool)
 	//  Adds an address known to a node.
 	// 	fn add_known_address(&self, peer_id: PeerId, addr: Multiaddr);
-	AddKnownAddress(peerID core.PeerID, addr core.Multiaddr)
+	AddKnownAddress(peerID libp2p.PeerID, addr libp2p.Multiaddr)
 	//  Report a given peer as either beneficial (+) or costly (-) according to the
 	//  given scalar.
 	// 	fn report_peer(&self, who: PeerId, cost_benefit: ReputationChange);
-	ReportPeer(peerID core.PeerID, costBenefit peerset.ReputationChange)
+	ReportPeer(peerID libp2p.PeerID, costBenefit peerset.ReputationChange)
 	//  Disconnect from a node as soon as possible.
 	//
 	//  This triggers the same effects as if the connection had closed itself spontaneously.
@@ -49,7 +49,7 @@ type NetworkPeers interface {
 	//  prevents the local node from re-establishing an outgoing substream to this peer until it
 	//  is added again.
 	// 	fn disconnect_peer(&self, who: PeerId, protocol: ProtocolName);
-	DisconnectPeer(who core.PeerID, protocol network.ProtocolName)
+	DisconnectPeer(who libp2p.PeerID, protocol network.ProtocolName)
 	// /// Connect to unreserved peers and allow unreserved peers to connect for syncing purposes.
 	// fn accept_unreserved_peers(&self);
 	AcceptUnreservedPeers()
@@ -65,7 +65,7 @@ type NetworkPeers interface {
 	AddReservedPeer(peer config.MultiaddrPeerId) error
 	//  Removes a `PeerId` from the list of reserved peers for a sync protocol (default peer set).
 	// 	fn remove_reserved_peer(&self, peer_id: PeerId);
-	RemoveReservedPeer(peerID core.PeerID)
+	RemoveReservedPeer(peerID libp2p.PeerID)
 	//  Sets the reserved set of a protocol to the given set of peers.
 	//
 	//  Each `Multiaddr` must end with a `/p2p/` component containing the `PeerId`. It can also
@@ -87,7 +87,7 @@ type NetworkPeers interface {
 	// 		protocol: ProtocolName,
 	// 		peers: HashSet<Multiaddr>,
 	// 	) -> Result<(), String>;
-	SetReservedPeers(protocol network.ProtocolName, peers map[core.Multiaddr]any) error
+	SetReservedPeers(protocol network.ProtocolName, peers map[libp2p.Multiaddr]any) error
 	//  Add peers to a peer set.
 	//
 	//  Each `Multiaddr` must end with a `/p2p/` component containing the `PeerId`. It can also
@@ -100,10 +100,10 @@ type NetworkPeers interface {
 	// 		protocol: ProtocolName,
 	// 		peers: HashSet<Multiaddr>,
 	// 	) -> Result<(), String>;
-	AddPeersToReservedSet(protocol network.ProtocolName, peers map[core.Multiaddr]any) error
+	AddPeersToReservedSet(protocol network.ProtocolName, peers map[libp2p.Multiaddr]any) error
 	//  Remove peers from a peer set.
 	// 	fn remove_peers_from_reserved_set(&self, protocol: ProtocolName, peers: Vec<PeerId>);
-	RemovePeersFromReservedSet(protocol network.ProtocolName, peers []core.PeerID)
+	RemovePeersFromReservedSet(protocol network.ProtocolName, peers []libp2p.PeerID)
 	//  Add a peer to a set of peers.
 	//
 	//  If the set has slots available, it will try to open a substream with this peer.
@@ -118,12 +118,12 @@ type NetworkPeers interface {
 	// 		protocol: ProtocolName,
 	// 		peers: HashSet<Multiaddr>,
 	// 	) -> Result<(), String>;
-	AddToPeersSet(protocol network.ProtocolName, peers map[core.Multiaddr]any) error
+	AddToPeersSet(protocol network.ProtocolName, peers map[libp2p.Multiaddr]any) error
 	//  Remove peers from a peer set.
 	//
 	//  If we currently have an open substream with this peer, it will soon be closed.
 	// 	fn remove_from_peers_set(&self, protocol: ProtocolName, peers: Vec<PeerId>);
-	RemoveFromPeersSet(protocol network.ProtocolName, peers []core.PeerID)
+	RemoveFromPeersSet(protocol network.ProtocolName, peers []libp2p.PeerID)
 	//  Returns the number of peers in the sync peer set we're connected to.
 	// 	fn sync_num_connected(&self) -> usize;
 	SyncNumConnected() uint

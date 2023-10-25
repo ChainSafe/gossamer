@@ -1,8 +1,10 @@
 package config
 
-import "github.com/libp2p/go-libp2p/core"
+import (
+	libp2p "github.com/libp2p/go-libp2p/core"
+)
 
 type MultiaddrPeerId struct {
-	core.Multiaddr
-	core.PeerID
+	libp2p.Multiaddr
+	libp2p.PeerID
 }

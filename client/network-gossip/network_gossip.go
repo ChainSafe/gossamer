@@ -4,7 +4,7 @@ import (
 	"github.com/ChainSafe/gossamer/client/network"
 	"github.com/ChainSafe/gossamer/client/network/service"
 	"github.com/ChainSafe/gossamer/client/network/sync"
-	"github.com/libp2p/go-libp2p/core"
+	libp2p "github.com/libp2p/go-libp2p/core"
 )
 
 // / Abstraction over a network.
@@ -14,7 +14,7 @@ type Network interface {
 	service.NetworkPeers
 	service.NetworkEventStream
 	service.NetworkNotification
-	AddSetReserved(who core.PeerID, protocol network.ProtocolName)
+	AddSetReserved(who libp2p.PeerID, protocol network.ProtocolName)
 }
 
 // / Abstraction over the syncing subsystem.
