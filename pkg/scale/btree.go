@@ -5,8 +5,9 @@ package scale
 
 import (
 	"fmt"
-	"golang.org/x/exp/constraints"
 	"reflect"
+
+	"golang.org/x/exp/constraints"
 
 	"github.com/tidwall/btree"
 )
@@ -84,14 +85,16 @@ func (bt *BTree) Copy() *BTree {
 }
 
 // NewBTree creates a new BTree with the given comparator function.
-func NewBTree[T any](comparator func(a, b any) bool) *BTree {
+func NewBTree[T any](comparator func(a, b any) bool) BTree {
 	elementType := reflect.TypeOf((*T)(nil)).Elem()
-	return &BTree{
+	return BTree{
 		BTree:      btree.New(comparator),
 		Comparator: comparator,
 		ItemType:   elementType,
 	}
 }
+
+var _ BTreeCodec = (*BTree)(nil)
 
 // BTreeMap is a wrapper around tidwall/btree.Map
 type BTreeMap[K constraints.Ordered, V any] struct {
@@ -171,8 +174,10 @@ func (btm *BTreeMap[K, V]) Copy() BTreeMap[K, V] {
 }
 
 // NewBTreeMap creates a new BTreeMap with the given degree.
-func NewBTreeMap[K constraints.Ordered, V any](degree int) *BTreeMap[K, V] {
-	return &BTreeMap[K, V]{
+func NewBTreeMap[K constraints.Ordered, V any](degree int) BTreeMap[K, V] {
+	return BTreeMap[K, V]{
 		Map: btree.NewMap[K, V](degree),
 	}
 }
+
+var _ BTreeCodec = (*BTreeMap[int, string])(nil)

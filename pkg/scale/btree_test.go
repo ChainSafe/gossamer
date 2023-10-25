@@ -27,7 +27,7 @@ func TestBTree_Codec(t *testing.T) {
 	tree.Set(dummy{Field1: 2})
 	tree.Set(dummy{Field1: 3})
 
-	encoded, err := Marshal(tree)
+	encoded, err := Marshal(&tree)
 	require.NoError(t, err)
 
 	//let mut btree = BTreeMap::<u32, Hash>::new();
@@ -44,7 +44,7 @@ func TestBTree_Codec(t *testing.T) {
 	require.Equal(t, expectedEncoded, encoded)
 
 	expected := NewBTree[dummy](comparator)
-	err = Unmarshal(encoded, expected)
+	err = Unmarshal(encoded, &expected)
 	require.NoError(t, err)
 
 	// Check that the expected BTree has the same items as the original
@@ -63,7 +63,7 @@ func TestBTreeMap_Codec(t *testing.T) {
 	btreeMap.Set(uint32(2), dummy{Field1: 2})
 	btreeMap.Set(uint32(3), dummy{Field1: 3})
 
-	encoded, err := Marshal(btreeMap)
+	encoded, err := Marshal(&btreeMap)
 	require.NoError(t, err)
 
 	//let mut btree = BTreeMap::<u32, (u32, Hash)>::new();
@@ -80,7 +80,7 @@ func TestBTreeMap_Codec(t *testing.T) {
 	require.Equal(t, expectedEncoded, encoded)
 
 	expected := NewBTreeMap[uint32, dummy](32)
-	err = Unmarshal(encoded, expected)
+	err = Unmarshal(encoded, &expected)
 	require.NoError(t, err)
 
 	require.Equal(t, btreeMap.Len(), expected.Len())
