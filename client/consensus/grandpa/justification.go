@@ -193,8 +193,6 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 	baseHash := minPrecommit.Precommit.TargetHash
 	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
-		// TODO this is weird. ID for justification needs to be constrainsts.Ordered I believe, but that doesnt work for pub key type,
-		// and we need to use concrete type for verification I believe.
 		mgs := finalityGrandpa.Message[Hash, N]{Value: signed.Precommit}
 		isValidSignature, err := checkMessageSignature[Hash, N, ID](mgs, signed.ID, signed.Signature, j.Round, setID)
 		if err != nil {

@@ -58,14 +58,13 @@ func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID]
 		return false, fmt.Errorf("invalid cast to finalityGrandpa.Message[H, N]")
 	}
 
-	//castedID, ok := id.(*ed25519.PublicKey)
-	//if !ok {
-	//	return false, fmt.Errorf("invalid cast to *ed25519.PublicKey")
-	//}
-
 	sig, ok := signature.([]byte)
-	if !ok {
-		return false, fmt.Errorf("invalid cast to []byte")
+
+	// Verify takes []byte, but string is a valid signature type,
+	// so if signature is not already type []byte, check if it is a string
+	sigString, okString := signature.(string)
+	if !okString && !ok {
+		sig = []byte(sigString)
 	}
 
 	m := messageData[H, N]{
