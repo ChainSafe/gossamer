@@ -761,18 +761,46 @@ func TestInsertAdvertisement(t *testing.T) {
 
 }
 
-func TestEnqueueCollation(t *testing.T) {
-
+func TestFetchCollation(t *testing.T) {
+	cpvs := CollatorProtocolValidatorSide{}
+	collatorID := parachaintypes.CollatorID{}
+	testPeerID := peer.ID("testPeerID")
+	pendingCollation := PendingCollation{
+		PeerID: testPeerID,
+	}
 	testCases := []struct {
 		description string
+		peerData    map[peer.ID]PeerData
+		err         error
 	}{
-		{},
+		{
+			description: "fail with unknown peer",
+			peerData:    map[peer.ID]PeerData{},
+			err:         ErrUnknownPeer,
+		},
+		{
+			description: "fail with collation not previously advertised",
+			peerData: map[peer.ID]PeerData{
+				testPeerID: {
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							advertisements: make(map[common.Hash][]parachaintypes.CandidateHash),
+						},
+					},
+				},
+			},
+			err: ErrNotAdvertised,
+		},
 	}
 	for _, c := range testCases {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
-		},
-		)
+
+			cpvs.peerData = c.peerData
+			err := cpvs.fetchCollation(pendingCollation, collatorID)
+			require.ErrorIs(t, err, c.err)
+		})
 	}
 }
