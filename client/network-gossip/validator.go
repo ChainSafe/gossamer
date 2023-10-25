@@ -3,21 +3,21 @@ package gossip
 import (
 	"github.com/ChainSafe/gossamer/client/network/role"
 	"github.com/ChainSafe/gossamer/primitives/runtime"
-	"github.com/libp2p/go-libp2p/core"
+	libp2p "github.com/libp2p/go-libp2p/core"
 )
 
 // / Validates consensus messages.
 type Validator[H runtime.Hash] interface {
 	/// New peer is connected.
-	NewPeer(context ValidatorContext[H], who core.PeerID, role role.ObservedRole)
+	NewPeer(context ValidatorContext[H], who libp2p.PeerID, role role.ObservedRole)
 	/// New connection is dropped.
-	PeerDisconnected(context ValidatorContext[H], who core.PeerID)
+	PeerDisconnected(context ValidatorContext[H], who libp2p.PeerID)
 	/// Validate consensus message.
-	Validate(context ValidatorContext[H], sender core.PeerID, data []byte) ValidationResult
+	Validate(context ValidatorContext[H], sender libp2p.PeerID, data []byte) ValidationResult
 	/// Produce a closure for validating messages on a given topic.
 	MessageExpired() func(topic H, message []byte) bool
 	/// Produce a closure for filtering egress messages.
-	MessageAllowed() func(who core.PeerID, intent MessageIntent, topic H, data []byte) bool
+	MessageAllowed() func(who libp2p.PeerID, intent MessageIntent, topic H, data []byte) bool
 }
 
 // / Validation context. Allows reacting to incoming messages by sending out further messages.
@@ -27,9 +27,9 @@ type ValidatorContext[H runtime.Hash] interface {
 	// /// Broadcast a message to all peers that have not received it previously.
 	BroadcastMessage(topic H, message []byte, force bool)
 	// /// Send addressed message to a peer.
-	SendMessage(who core.PeerID, message []byte)
+	SendMessage(who libp2p.PeerID, message []byte)
 	// /// Send all messages with given topic to a peer.
-	SendTopic(who core.PeerID, topic H, force bool)
+	SendTopic(who libp2p.PeerID, topic H, force bool)
 }
 
 // / Requested broadcast.
