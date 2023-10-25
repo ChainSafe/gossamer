@@ -55,9 +55,9 @@ type ParticipationStatement struct {
 
 // MuxedMessage messages to be handled in this subsystem.
 type MuxedMessage struct {
-	Subsystem     *types.DisputeCoordinatorMessage
 	Participation *ParticipationStatement
-	Signal        types.OverseerSignal
+	Signal        *overseer.Signal
+	Communication *types.DisputeCoordinatorMessage
 }
 
 // Participation keeps track of the disputes we need to participate in.
