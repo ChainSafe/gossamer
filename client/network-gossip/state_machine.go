@@ -5,11 +5,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/client/network"
 	"github.com/ChainSafe/gossamer/primitives/runtime"
-	"github.com/libp2p/go-libp2p/core"
 	libp2p "github.com/libp2p/go-libp2p/core"
 )
 
-type PeerConsensus[H comparable] struct {
+type peerConsensus[H comparable] struct {
 	knownMessages map[H]any
 }
 
@@ -36,7 +35,7 @@ type MessageEntry[H runtime.Hash] struct {
 
 // / Consensus network protocol handler. Manages statements and candidate requests.
 type ConsensusGossip[H runtime.Hash] struct {
-	peers    map[core.PeerID]PeerConsensus[H]
+	peers    map[libp2p.PeerID]peerConsensus[H]
 	messages []MessageEntry[H]
 	// TODO: known_messages: LruCache<B::Hash, ()>,
 	knownMessages map[H]any

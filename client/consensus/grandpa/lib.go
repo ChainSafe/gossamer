@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/client/consensus"
 	"github.com/ChainSafe/gossamer/client/consensus/grandpa/communication"
 	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/client/network/config"
+	"github.com/ChainSafe/gossamer/client/network/role"
 	"github.com/ChainSafe/gossamer/client/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/keystore"
@@ -142,7 +143,7 @@ type Config struct {
 	/// observer protocol is enabled).
 	ObserverEnabled bool
 	/// The role of the local node (i.e. authority, full-node or light).
-	LocalRole config.Role
+	LocalRole role.Role
 	/// Some local identifier of the voter.
 	Name *string
 	/// The keystore that manages the keys of this node.
@@ -168,14 +169,14 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	client ClientForGrandpa,
 	config Config,
 	network communication.NetworkBridge[Hash, Number],
-	selectChain SelectChain,
+	selectChain consensus.SelectChain,
 	votingRule VotingRule,
 	persistendData persistentData,
 	voterCommandsRX any,
 	prometheusRegistry any,
 	sharedVoterState SharedVoterState,
 	JustificationSender GrandpaJustificationSender,
-	telemetry TelemetryHandle,
+	telemetry *telemetry.TelemetryHandle,
 ) *voterWork[Hash, Number, Signature, ID] {
 	// grandpa.NewVoter[]()
 	return nil
