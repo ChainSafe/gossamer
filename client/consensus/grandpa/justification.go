@@ -27,7 +27,12 @@ var (
 //
 // This is meant to be stored in the db and passed around the network to other
 // nodes, and are used by syncing nodes to prove authority set handoffs.
-type Justification[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID AuthorityID, H Header[Hash, N]] struct {
+type Justification[
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	ID AuthorityID,
+	H Header[Hash, N]] struct {
 	Round           uint64
 	Commit          finalityGrandpa.Commit[Hash, N, S, ID]
 	VotesAncestries []H
@@ -35,7 +40,12 @@ type Justification[Hash constraints.Ordered, N constraints.Unsigned, S comparabl
 
 // NewJustificationFromCommit Create a GRANDPA justification from the given commit. This method
 // assumes the commit is valid and well-formed.
-func NewJustificationFromCommit[Hash constraints.Ordered, N constraints.Unsigned, S comparable, ID AuthorityID, H Header[Hash, N]](
+func NewJustificationFromCommit[
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	ID AuthorityID,
+	H Header[Hash, N]](
 	client HeaderBackend[Hash, N, H],
 	round uint64,
 	commit finalityGrandpa.Commit[Hash, N, S, ID]) (Justification[Hash, N, S, ID, H], error) {
@@ -200,7 +210,8 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 		}
 
 		if !isValidSignature {
-			return fmt.Errorf("%w: invalid signature for precommit in grandpa justification", errBadJustification)
+			return fmt.Errorf("%w: invalid signature for precommit in grandpa justification",
+				errBadJustification)
 		}
 
 		if baseHash == signed.Precommit.TargetHash {
@@ -209,7 +220,8 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 
 		route, err := ancestryChain.Ancestry(baseHash, signed.Precommit.TargetHash)
 		if err != nil {
-			return fmt.Errorf("%w: invalid precommit ancestry proof in grandpa justification", errBadJustification)
+			return fmt.Errorf("%w: invalid precommit ancestry proof in grandpa justification",
+				errBadJustification)
 		}
 
 		// ancestry starts from parent HashField but the precommit target HashField has been
@@ -241,7 +253,7 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 }
 
 // Target The target block NumberField and HashField that this justifications proves finality for
-func (j *Justification[Hash, N, S, ID, H]) Target() hashNumber[Hash, N] { //nolint
+func (j *Justification[Hash, N, S, ID, H]) Target() hashNumber[Hash, N] {
 	return hashNumber[Hash, N]{
 		number: j.Commit.TargetNumber,
 		hash:   j.Commit.TargetHash,

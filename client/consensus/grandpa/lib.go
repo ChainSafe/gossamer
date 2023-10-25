@@ -5,16 +5,18 @@ package grandpa
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/internal/log"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"golang.org/x/exp/constraints"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 
 type AuthorityID interface {
-	constraints.Ordered // TODO might not need this constraint
+	constraints.Ordered
 	Verify(msg []byte, sig []byte) (bool, error)
 }
 

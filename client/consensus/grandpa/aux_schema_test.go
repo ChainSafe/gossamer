@@ -256,7 +256,11 @@ func TestUpdateAuthoritySet(t *testing.T) {
 		Number: newAuthSet.CanonNumber,
 	}
 
-	setState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](uint64(newAuthSet.SetId), authorities, genesisState)
+	setState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](
+		uint64(newAuthSet.SetId),
+		authorities,
+		genesisState,
+	)
 	require.NoError(t, err)
 
 	encodedVoterSet, err := scale.Marshal(setState)

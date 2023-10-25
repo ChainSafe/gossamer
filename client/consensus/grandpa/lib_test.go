@@ -13,13 +13,13 @@ import (
 
 type dummyAuthID uint
 
-func (dummyAuthID) Verify(msg []byte, sig []byte) (bool, error) {
+func (dummyAuthID) Verify(_ []byte, _ []byte) (bool, error) {
 	return true, nil
 }
 
 type dummyInvalidAuthID uint
 
-func (dummyInvalidAuthID) Verify(msg []byte, sig []byte) (bool, error) {
+func (dummyInvalidAuthID) Verify(_ []byte, _ []byte) (bool, error) {
 	return false, nil
 }
 

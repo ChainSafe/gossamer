@@ -564,7 +564,12 @@ func TestForceChanges(t *testing.T) {
 
 	// let's try and apply the forced changes.
 	// too early and there's no forced changes to apply
-	resForced, err := authorities.applyForcedChanges("hash_a10", 10, staticIsDescendentOf[string](true), nil)
+	resForced, err := authorities.applyForcedChanges(
+		"hash_a10",
+		10,
+		staticIsDescendentOf[string](true),
+		nil,
+	)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
@@ -628,7 +633,12 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 	require.NoError(t, err)
 
 	// it should be enacted at the same block that signalled it
-	resForced, err := authorities.applyForcedChanges(hashA, 5, staticIsDescendentOf[string](false), nil)
+	resForced, err := authorities.applyForcedChanges(
+		hashA,
+		5,
+		staticIsDescendentOf[string](false),
+		nil,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 }
@@ -705,7 +715,12 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 
 	// the forced hashNumber cannot be applied since the pending changes it depends on
 	// have not been applied yet.
-	_, err = authorities.applyForcedChanges("hash_d45", 45, staticIsDescendentOf[string](true), nil)
+	_, err = authorities.applyForcedChanges(
+		"hash_d45",
+		45,
+		staticIsDescendentOf[string](true),
+		nil,
+	)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, 0, len(authorities.AuthoritySetChanges))
 
@@ -716,12 +731,22 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			BlockNumber: 15,
 		},
 	}
-	_, err = authorities.applyStandardChanges("hash_a15", 15, staticIsDescendentOf[string](true), nil)
+	_, err = authorities.applyStandardChanges(
+		"hash_a15",
+		15,
+		staticIsDescendentOf[string](true),
+		nil,
+	)
 	require.NoError(t, err)
 	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
 
 	// but the forced hashNumber still depends on the next standard hashNumber
-	_, err = authorities.applyForcedChanges("hash_d45", 45, staticIsDescendentOf[string](true), nil)
+	_, err = authorities.applyForcedChanges(
+		"hash_d45",
+		45,
+		staticIsDescendentOf[string](true),
+		nil,
+	)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
 
@@ -730,7 +755,12 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		SetID:       1,
 		BlockNumber: 20,
 	})
-	_, err = authorities.applyStandardChanges(hashB, 20, staticIsDescendentOf[string](true), nil)
+	_, err = authorities.applyStandardChanges(
+		hashB,
+		20,
+		staticIsDescendentOf[string](true),
+		nil,
+	)
 	require.NoError(t, err)
 	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
 
@@ -751,7 +781,11 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 			AuthoritySetChanges:    expChanges,
 		},
 	}
-	resForced, err := authorities.applyForcedChanges(hashD, 45, staticIsDescendentOf[string](true), nil)
+	resForced, err := authorities.applyForcedChanges(
+		hashD,
+		45,
+		staticIsDescendentOf[string](true),
+		nil)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -889,7 +923,13 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	// empty authority lists are invalid
 	_, err := NewGenesisAuthoritySet[string, uint, dummyAuthID]([]Authority[dummyAuthID]{})
 	require.NotNil(t, err)
-	_, err = NewAuthoritySet[string, uint, dummyAuthID]([]Authority[dummyAuthID]{}, 0, NewChangeTree[string, uint, dummyAuthID](), nil, nil)
+	_, err = NewAuthoritySet[string, uint, dummyAuthID](
+		[]Authority[dummyAuthID]{},
+		0,
+		NewChangeTree[string, uint, dummyAuthID](),
+		nil,
+		nil,
+	)
 	require.NotNil(t, err)
 
 	invalidAuthoritiesWeight := []Authority[dummyAuthID]{
@@ -906,7 +946,13 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	// authority weight of zero is invalid
 	_, err = NewGenesisAuthoritySet[string, uint](invalidAuthoritiesWeight)
 	require.NotNil(t, err)
-	_, err = NewAuthoritySet[string, uint](invalidAuthoritiesWeight, 0, NewChangeTree[string, uint, dummyAuthID](), nil, nil)
+	_, err = NewAuthoritySet[string, uint](
+		invalidAuthoritiesWeight,
+		0,
+		NewChangeTree[string, uint, dummyAuthID](),
+		nil,
+		nil,
+	)
 	require.NotNil(t, err)
 
 	authoritySet, err := NewGenesisAuthoritySet[string, uint, dummyAuthID]([]Authority[dummyAuthID]{{

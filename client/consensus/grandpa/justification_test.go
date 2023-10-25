@@ -111,13 +111,21 @@ func TestJustification_fromCommit(t *testing.T) {
 
 	clientNil := testBackend[string, uint, testHeader[string, uint]]{}
 
-	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](clientNil, 2, validCommit)
+	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](
+		clientNil,
+		2,
+		validCommit,
+	)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
 	// currentHeader.Number() <= baseNumber
-	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](client, 2, validCommit)
+	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID, testHeader[string, uint]](
+		client,
+		2,
+		validCommit,
+	)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, errBadJustification)
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
