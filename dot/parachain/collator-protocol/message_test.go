@@ -413,15 +413,14 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 		description        string
 		advertiseCollation AdvertiseCollation
 		peerData           map[peer.ID]PeerData
-		// currentAssignments map[parachaintypes.ParaID]uint
-		perRelayParent map[common.Hash]PerRelayParent
-		net            Network
-		activeLeaves   map[common.Hash]ProspectiveParachainsMode
-		// success            bool
-		errString string
+		perRelayParent     map[common.Hash]PerRelayParent
+		net                Network
+		activeLeaves       map[common.Hash]ProspectiveParachainsMode
+		errString          string
 	}{
 		{
-			description:        "fail with relay parent is unknown if we don't have the relay parent tracked and report the peer",
+			description: "fail with relay parent is unknown if we don't have the relay" +
+				" parent tracked and report the peer",
 			advertiseCollation: AdvertiseCollation(testRelayParent),
 			net: func() Network {
 				ctrl := gomock.NewController(t)
@@ -444,7 +443,8 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			errString: ErrUnknownPeer.Error(),
 		},
 		{
-			description:        "fail with undeclared para if peer has not declared its para id and report the peer",
+			description: "fail with undeclared para if peer has not declared its para id" +
+				" and report the peer",
 			advertiseCollation: AdvertiseCollation(testRelayParent),
 			perRelayParent: map[common.Hash]PerRelayParent{
 				testRelayParent: {},
@@ -469,7 +469,8 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			errString: ErrUndeclaredPara.Error(),
 		},
 		{
-			description:        "fail with invalid assignment if para id is not currently assigned to us for this relay parent and report the peer",
+			description: "fail with invalid assignment if para id is not currently" +
+				" assigned to us for this relay parent and report the peer",
 			advertiseCollation: AdvertiseCollation(testRelayParent),
 			perRelayParent: map[common.Hash]PerRelayParent{
 				testRelayParent: {
@@ -502,7 +503,8 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			// NOTE: prospective parachain mode and prospective candidates were added in V2,
 			// In V1, prospective parachain mode is disabled by and prospective candidates is nil
 			// In V2, prospective parachain mode is enabled by and prospective candidates is not nil
-			description:        "fail with protocol mismatch is prospective parachain mode in enable but with got a nil value for prospective candidate",
+			description: "fail with protocol mismatch is prospective parachain mode in" +
+				" enable but with got a nil value for prospective candidate",
 			advertiseCollation: AdvertiseCollation(testRelayParent),
 			perRelayParent: map[common.Hash]PerRelayParent{
 				testRelayParent: {
@@ -525,36 +527,6 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			},
 			errString: ErrProtocolMismatch.Error(),
 		},
-		// {
-		// 	description:        "fail with error out of view and report the peer",
-		// 	advertiseCollation: AdvertiseCollation(testRelayParent),
-		// 	perRelayParent: map[common.Hash]PerRelayParent{
-		// 		testRelayParent: {
-		// 			assignment: &testParaID,
-		// 		},
-		// 	},
-		// 	peerData: map[peer.ID]PeerData{
-		// 		peerID: {
-		// 			view: View{},
-		// 			state: PeerStateInfo{
-		// 				PeerState: Collating,
-		// 				CollatingPeerState: CollatingPeerState{
-		// 					ParaID: testParaID,
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// 	net: func() Network {
-		// 		ctrl := gomock.NewController(t)
-		// 		net := NewMockNetwork(ctrl)
-		// 		net.EXPECT().ReportPeer(peerset.ReputationChange{
-		// 			Value:  peerset.UnexpectedMessageValue,
-		// 			Reason: peerset.UnexpectedMessageReason,
-		// 		}, peerID)
-		// 		return net
-		// 	}(),
-		// 	activeLeaves: map[common.Hash]ProspectiveParachainsMode{},
-		// },
 		{
 			description:        "fail if para reached a limit of seconded candidates for this relay parent",
 			advertiseCollation: AdvertiseCollation(testRelayParent),
@@ -592,41 +564,6 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			activeLeaves: map[common.Hash]ProspectiveParachainsMode{},
 			errString:    ErrSecondedLimitReached.Error(),
 		},
-		{
-			description:        "fail if para reached a limit of seconded candidates for this relay parent",
-			advertiseCollation: AdvertiseCollation(testRelayParent),
-			perRelayParent: map[common.Hash]PerRelayParent{
-				testRelayParent: {
-					assignment: &testParaID,
-					collations: Collations{
-						secondedCount: 0,
-					},
-				},
-			},
-			peerData: map[peer.ID]PeerData{
-				peerID: {
-					view: View{},
-					state: PeerStateInfo{
-						PeerState: Collating,
-						CollatingPeerState: CollatingPeerState{
-							ParaID: testParaID,
-						},
-					},
-				},
-			},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				// reporting for error out of view
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
-					Value:  peerset.UnexpectedMessageValue,
-					Reason: peerset.UnexpectedMessageReason,
-				}, peerID)
-				return net
-			}(),
-			activeLeaves: map[common.Hash]ProspectiveParachainsMode{},
-			errString:    "",
-		},
 	}
 	for _, c := range testCases {
 		c := c
@@ -637,7 +574,6 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 				perRelayParent: c.perRelayParent,
 				peerData:       c.peerData,
 				activeLeaves:   c.activeLeaves,
-				// currentAssignments: c.currentAssignments,
 			}
 			msg := NewCollationProtocol()
 			vdtChild := NewCollatorProtocolMessage()
@@ -660,9 +596,9 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 	}
 }
 
-// TODO: test InsertAdvertisement seperately
-
 func TestInsertAdvertisement(t *testing.T) {
+	t.Parallel()
+
 	relayParent := getDummyHash(5)
 
 	candidateHash := parachaintypes.CandidateHash{
@@ -724,9 +660,6 @@ func TestInsertAdvertisement(t *testing.T) {
 			},
 			err: ErrDuplicateAdvertisement,
 		},
-		// {
-		// 	description: "fail with error peer limit reached",
-		// },
 		{
 			description: "success case",
 			peerData: PeerData{
@@ -753,7 +686,8 @@ func TestInsertAdvertisement(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := c.peerData.InsertAdvertisement(relayParent, c.relayParentMode, c.candidateHash, c.implicitView, c.activeLeaves)
+			_, err := c.peerData.InsertAdvertisement(
+				relayParent, c.relayParentMode, c.candidateHash, c.implicitView, c.activeLeaves)
 			require.ErrorIs(t, err, c.err)
 		},
 		)
@@ -762,8 +696,9 @@ func TestInsertAdvertisement(t *testing.T) {
 }
 
 func TestFetchCollation(t *testing.T) {
+	t.Parallel()
+
 	cpvs := CollatorProtocolValidatorSide{}
-	collatorID := parachaintypes.CollatorID{}
 	testPeerID := peer.ID("testPeerID")
 	pendingCollation := PendingCollation{
 		PeerID: testPeerID,
@@ -799,7 +734,7 @@ func TestFetchCollation(t *testing.T) {
 			t.Parallel()
 
 			cpvs.peerData = c.peerData
-			err := cpvs.fetchCollation(pendingCollation, collatorID)
+			err := cpvs.fetchCollation(pendingCollation)
 			require.ErrorIs(t, err, c.err)
 		})
 	}

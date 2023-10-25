@@ -180,7 +180,7 @@ const (
 
 // BlockedAdvertisement is vstaging advertisement that was rejected by the backing
 // subsystem. Validator may fetch it later if its fragment
-// membership gets recognized before relay parent goes out of view.
+// membership gets recognised before relay parent goes out of view.
 type BlockedAdvertisement struct {
 	// peer that advertised the collation
 	peerID               peer.ID
@@ -249,11 +249,11 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 		})
 	case Waiting:
 		// limit is not reached, it's allowed to second another collation
-		return cpvs.fetchCollation(pendingCollation, collatorID)
+		return cpvs.fetchCollation(pendingCollation)
 	case Seconded:
 		perRelayParent := cpvs.perRelayParent[relayParent]
 		if perRelayParent.prospectiveParachainMode.isEnabled {
-			return cpvs.fetchCollation(pendingCollation, collatorID)
+			return cpvs.fetchCollation(pendingCollation)
 		} else {
 			logger.Debug("a collation has already been seconded")
 		}
@@ -262,8 +262,7 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	return nil
 }
 
-func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation,
-	collatorID parachaintypes.CollatorID) error {
+func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation) error {
 
 	var candidateHash *parachaintypes.CandidateHash
 	if pendingCollation.ProspectiveCandidate != nil {
@@ -373,7 +372,8 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	)
 
 	if !isSecondingAllowed {
-		logger.Infof("Seconding is not allowed by backing, queueing advertisement, relay parent: %s, para id: %d, candidate hash: %s",
+		logger.Infof("Seconding is not allowed by backing, queueing advertisement,"+
+			" relay parent: %s, para id: %d, candidate hash: %s",
 			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
 		blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{

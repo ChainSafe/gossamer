@@ -34,16 +34,17 @@ var (
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
 	ErrProtocolMismatch                     = errors.New("an advertisement format doesn't match the relay parent")
-	ErrSecondedLimitReached                 = errors.New("para reached a limit of seconded candidates for this relay parent")
-	ErrRelayParentUnknown                   = errors.New("relay parent is unknown")
-	ErrUndeclaredPara                       = errors.New("peer has not declared its para id")
-	ErrInvalidAssignment                    = errors.New("we're assigned to a different para at the given relay parent")
-	ErrInvalidAdvertisement                 = errors.New("advertisement is invalid")
-	ErrUndeclaredCollator                   = errors.New("no prior declare message received for this collator")
-	ErrOutOfView                            = errors.New("collation relay parent is out of our view")
-	ErrDuplicateAdvertisement               = errors.New("advertisement is already known")
-	ErrPeerLimitReached                     = errors.New("limit for announcements per peer is reached")
-	ErrNotAdvertised                        = errors.New("collation was not previously advertised")
+	ErrSecondedLimitReached                 = errors.New("para reached a limit of seconded" +
+		" candidates for this relay parent")
+	ErrRelayParentUnknown     = errors.New("relay parent is unknown")
+	ErrUndeclaredPara         = errors.New("peer has not declared its para id")
+	ErrInvalidAssignment      = errors.New("we're assigned to a different para at the given relay parent")
+	ErrInvalidAdvertisement   = errors.New("advertisement is invalid")
+	ErrUndeclaredCollator     = errors.New("no prior declare message received for this collator")
+	ErrOutOfView              = errors.New("collation relay parent is out of our view")
+	ErrDuplicateAdvertisement = errors.New("advertisement is already known")
+	ErrPeerLimitReached       = errors.New("limit for announcements per peer is reached")
+	ErrNotAdvertised          = errors.New("collation was not previously advertised")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -248,7 +249,7 @@ type CollatingPeerState struct {
 	ParaID     parachaintypes.ParaID
 	// collations advertised by peer per relay parent
 	advertisements map[common.Hash][]parachaintypes.CandidateHash
-	lastActive     time.Time //nolint
+	lastActive     time.Time
 }
 
 type PeerState uint
@@ -349,9 +350,6 @@ type ProspectiveParachainsMode struct {
 	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
 	// Restricts nodes from building arbitrary long chains and spamming other validators.
 	maxCandidateDepth uint
-
-	// How many ancestors of a relay parent are allowed to build candidates on top of.
-	allowedAncestryLen uint
 }
 
 type PerRelayParent struct {
