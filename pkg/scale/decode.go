@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/tidwall/btree"
 	"io"
 	"math/big"
 	"reflect"
+	"strings"
 )
 
 // indirect walks down v allocating pointers as needed,
@@ -110,6 +110,21 @@ type decodeState struct {
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	in := dstv.Interface()
+
+	// Handle BTreeMap type separately for the following reasons:
+	// 1. BTreeMap is a generic type, so we can't use the normal type switch
+	// 2. We cannot use BTreeCodec because we are comparing the type of the dstv.Interface() in the type switch
+	if isBTree(dstv.Type()) {
+		if btm, ok := dstv.Addr().Interface().(BTreeCodec); ok {
+			if err := btm.Decode(ds, dstv); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("could not type assert to BTreeCodec")
+		}
+		return nil
+	}
+
 	switch in.(type) {
 	case *big.Int:
 		err = ds.decodeBigInt(dstv)
@@ -133,8 +148,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeVaryingDataType(dstv)
 	case VaryingDataTypeSlice:
 		err = ds.decodeVaryingDataTypeSlice(dstv)
-	case BTree:
-		err = ds.decodeBTree(dstv)
 	default:
 		t := reflect.TypeOf(in)
 		switch t.Kind() {
@@ -802,41 +815,36 @@ func (ds *decodeState) decodeBitVec(dstv reflect.Value) error {
 	return nil
 }
 
-// decodeBTree accepts a byte array representing a SCALE encoded
-// BTree and performs SCALE decoding of the BTree
-func (ds *decodeState) decodeBTree(dstv reflect.Value) (err error) {
-	// Decode the number of items in the tree
-	length, err := ds.decodeLength()
-	if err != nil {
-		return
+func isBTree(t reflect.Type) bool {
+	if t.Kind() != reflect.Struct {
+		return false
 	}
 
-	tree, ok := dstv.Interface().(BTree)
-	if !ok {
-		return fmt.Errorf("expected a BTree type")
+	// For BTreeMap
+	mapField, hasMap := t.FieldByName("Map")
+	_, hasDegree := t.FieldByName("Degree")
+
+	// For BTree
+	btreeField, hasBTree := t.FieldByName("BTree")
+	comparatorField, hasComparator := t.FieldByName("Comparator")
+	itemTypeField, hasItemType := t.FieldByName("ItemType")
+
+	if hasMap && hasDegree && mapField.Type.Kind() == reflect.Ptr && strings.HasPrefix(mapField.Type.String(), "*btree.Map[") {
+		return true
 	}
 
-	if tree.Comparator == nil {
-		return fmt.Errorf("no Comparator function provided for BTree")
-	}
-
-	if tree.Value == nil {
-		tree.Value = btree.New(tree.Comparator)
-	}
-
-	// Decode each item in the tree
-	for i := uint(0); i < length; i++ {
-		// Decode the value
-		value := reflect.New(tree.ItemType).Elem()
-		err = ds.unmarshal(value)
-		if err != nil {
-			return
+	if hasBTree && hasComparator && hasItemType {
+		if btreeField.Type.Kind() != reflect.Ptr || btreeField.Type.String() != "*btree.BTree" {
+			return false
 		}
-
-		// convert the value to the correct type for the BTree
-		tree.Value.Set(value.Interface())
+		if comparatorField.Type.Kind() != reflect.Func {
+			return false
+		}
+		if itemTypeField.Type != reflect.TypeOf((*reflect.Type)(nil)).Elem() {
+			return false
+		}
+		return true
 	}
 
-	dstv.Set(reflect.ValueOf(tree))
-	return
+	return false
 }
