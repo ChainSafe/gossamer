@@ -91,6 +91,7 @@ func (as *AvailabilityStore) StoreChunk(candidate common.Hash, chunk ErasureChun
 	meta, err := as.LoadMetaData(candidate)
 	if err != nil {
 		if err.Error() == "pebble: not found" {
+			// TODO: were creating metadata here, but we should be doing it in the parachain block import?
 			meta = CandidateMeta{
 				ChunksStored: make([]bool, chunk.Index+1),
 			}
@@ -180,7 +181,6 @@ func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailabl
 func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataAvailability) {
 	_, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
 	if err != nil {
-		//TODO: add check to see if error is not found
 		msg.Sender <- false
 	} else {
 		msg.Sender <- true
@@ -216,11 +216,33 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) {
-	// TODO: handle query all chunks
+	meta, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	if err != nil {
+		logger.Errorf("failed to load meta data: %w", err)
+		msg.Sender <- []ErasureChunk{}
+		return
+	}
+	chunks := []ErasureChunk{}
+	for i, v := range meta.ChunksStored {
+		if v {
+			chunk, err := av.availabilityStore.LoadChunk(msg.CandidateHash, uint32(i))
+			if err != nil {
+				logger.Errorf("failed to load chunk: %w", err)
+			}
+			chunks = append(chunks, chunk)
+		} else {
+			logger.Warnf("chunk %i not stored for %v", i, msg.CandidateHash)
+		}
+	}
+	msg.Sender <- chunks
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChunkAvailability) {
-	// TODO: handle query chunk availability
+	meta, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	if err != nil {
+		logger.Errorf("failed to load meta data: %w", err)
+	}
+	msg.Sender <- meta.ChunksStored[msg.ValidatorIndex]
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) {

@@ -4,15 +4,12 @@
 package availability_store
 
 import (
-	"errors"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-var errorCandidateMetaNotFound = errors.New("candidate meta not found")
 
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
@@ -43,7 +40,7 @@ type QueryChunkSize struct {
 
 type QueryAllChunks struct {
 	CandidateHash common.Hash
-	Sender        chan []byte
+	Sender        chan []ErasureChunk
 }
 
 type QueryChunkAvailability struct {
