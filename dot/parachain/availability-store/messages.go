@@ -4,15 +4,12 @@
 package availabilitystore
 
 import (
-	"errors"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-var errorCandidateMetaNotFound = errors.New("candidate meta not found")
 
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
