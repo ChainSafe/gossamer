@@ -23,9 +23,9 @@ func TestBTree(t *testing.T) {
 
 	// Create a BTree with 3 dummy items
 	tree := NewBTree[dummy](comparator)
-	tree.BTree.Set(dummy{Field1: 1})
-	tree.BTree.Set(dummy{Field1: 2})
-	tree.BTree.Set(dummy{Field1: 3})
+	tree.Set(dummy{Field1: 1})
+	tree.Set(dummy{Field1: 2})
+	tree.Set(dummy{Field1: 3})
 
 	encoded, err := Marshal(tree)
 	require.NoError(t, err)
@@ -43,17 +43,34 @@ func TestBTree(t *testing.T) {
 	}
 	require.Equal(t, expectedEncoded, encoded)
 
-	// Output:
 	expected := NewBTree[dummy](comparator)
-	err = Unmarshal(encoded, &expected)
+	err = Unmarshal(encoded, expected)
 	require.NoError(t, err)
 
 	// Check that the expected BTree has the same items as the original
-	require.Equal(t, tree.BTree.Len(), expected.BTree.Len())
-	require.Equal(t, tree.ItemType, expected.ItemType)
-	require.Equal(t, tree.BTree.Min(), expected.BTree.Min())
-	require.Equal(t, tree.BTree.Max(), expected.BTree.Max())
-	require.Equal(t, tree.BTree.Get(dummy{Field1: 1}), expected.BTree.Get(dummy{Field1: 1}))
-	require.Equal(t, tree.BTree.Get(dummy{Field1: 2}), expected.BTree.Get(dummy{Field1: 2}))
-	require.Equal(t, tree.BTree.Get(dummy{Field1: 3}), expected.BTree.Get(dummy{Field1: 3}))
+	actualTree := tree.GetTree()
+	expectedTree := expected.GetTree()
+	require.Equal(t, actualTree.Len(), expectedTree.Len())
+	require.Equal(t, actualTree.ItemType, expectedTree.ItemType)
+	require.Equal(t, actualTree.Min(), expectedTree.Min())
+	require.Equal(t, actualTree.Max(), expectedTree.Max())
+	require.Equal(t, actualTree.Get(dummy{Field1: 1}), expectedTree.Get(dummy{Field1: 1}))
+	require.Equal(t, actualTree.Get(dummy{Field1: 2}), expectedTree.Get(dummy{Field1: 2}))
+	require.Equal(t, actualTree.Get(dummy{Field1: 3}), expectedTree.Get(dummy{Field1: 3}))
+}
+
+func TestBTreeMap_Codec(t *testing.T) {
+	btreeMap := NewBTreeMap[uint32, dummy](32)
+	btreeMap.Set(uint32(1), dummy{Field1: 1})
+	btreeMap.Set(uint32(2), dummy{Field1: 2})
+	btreeMap.Set(uint32(3), dummy{Field1: 3})
+
+	encoded, err := Marshal(btreeMap)
+	require.NoError(t, err)
+
+	expected := NewBTreeMap[uint32, dummy](32)
+	err = Unmarshal(encoded, expected)
+	require.NoError(t, err)
+
+	require.Equal(t, btreeMap.Len(), expected.Len())
 }

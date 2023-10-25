@@ -97,7 +97,7 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 
 	for {
 		overlayDB := newOverlayBackend(backend)
-		defaultConfirm := func() error { return nil }
+		confirmWrite := func() error { return nil }
 		select {
 		case message := <-i.ParticipationReceiver:
 			if message.Participation != nil {
@@ -130,9 +130,9 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 						return fmt.Errorf("issue local statement: %w", err)
 					}
 				}
-			} else if message.Subsystem != nil {
+			} else if message.Signal != nil {
 				switch {
-				case message.Signal.Concluded:
+				case message.Signal.Conclude == true:
 					return nil
 				case message.Signal.ActiveLeaves != nil:
 					logger.Tracef("OverseerSignal::ActiveLeavesUpdate")
@@ -146,9 +146,18 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 					logger.Tracef("OverseerSignal::BlockFinalised")
 					i.Scraper.ProcessFinalisedBlock(message.Signal.BlockFinalised.Number)
 
-				// TODO: case: FromOrchestra::Communication
 				default:
 					logger.Errorf("OverseerSignal::Unknown")
+				}
+			} else if message.Communication != nil {
+				var err error
+				confirmWrite, err = i.HandleIncoming(context,
+					overlayDB,
+					*message.Communication,
+					uint64(time.Now().Unix()),
+				)
+				if err != nil {
+					return fmt.Errorf("handle incoming: %w", err)
 				}
 			}
 		}
@@ -159,7 +168,7 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 			}
 		}
 
-		err := defaultConfirm()
+		err := confirmWrite()
 		if err != nil {
 			return fmt.Errorf("default confirm: %w", err)
 		}

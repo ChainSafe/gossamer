@@ -183,9 +183,9 @@ func NewDisputeMessage(
 	var firstVote Vote
 	_, ok := disputeStatement.(inherents.ValidDisputeStatementKind)
 	if ok {
-		votes.Invalid.Value.Descend(nil, func(i interface{}) bool {
-			firstVote, ok = i.(Vote)
-			return ok
+		votes.Invalid.Descend(0, func(key parachainTypes.ValidatorIndex, vote Vote) bool {
+			firstVote = vote
+			return true
 		})
 
 		validStatement = *ourVote

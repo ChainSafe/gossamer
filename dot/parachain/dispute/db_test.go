@@ -41,6 +41,25 @@ func compareBTrees(tree1, tree2 *btree.BTree) bool {
 	return equal
 }
 
+func compareBTreeMaps[K types.Ordered, V any](map1, map2 *btree.Map[K, V]) bool {
+	if map1.Len() != map2.Len() {
+		return false
+	}
+
+	mismatch := false
+
+	map1.Ascend(nil, func(key K, value V) bool {
+		// TODO: check if we can compare the values as well
+		if _, ok := map2.Get(key); !ok {
+			mismatch = true
+			return false
+		}
+		return true
+	})
+
+	return !mismatch
+}
+
 func TestDBBackend_SetEarliestSession(t *testing.T) {
 	t.Parallel()
 
@@ -103,7 +122,7 @@ func TestDBBackend_SetCandidateVotes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, candidateVotes.CandidateReceipt, actualCandidateVotes.CandidateReceipt)
 	require.True(t, compareBTrees(candidateVotes.Valid.BTree.Value, actualCandidateVotes.Valid.BTree.Value))
-	require.True(t, compareBTrees(candidateVotes.Invalid.Value, actualCandidateVotes.Invalid.Value))
+	require.True(t, compareBTreeMaps(candidateVotes.Invalid, actualCandidateVotes.Invalid))
 }
 
 func TestDBBackend_Write(t *testing.T) {
@@ -152,7 +171,7 @@ func TestDBBackend_Write(t *testing.T) {
 	}]
 	require.Equal(t, expectedCandidateVotes.CandidateReceipt, actualCandidateVotes.CandidateReceipt)
 	require.True(t, compareBTrees(expectedCandidateVotes.Valid.BTree.Value, actualCandidateVotes.Valid.BTree.Value))
-	require.True(t, compareBTrees(expectedCandidateVotes.Invalid.Value, actualCandidateVotes.Invalid.Value))
+	require.True(t, compareBTreeMaps(expectedCandidateVotes.Invalid, actualCandidateVotes.Invalid))
 }
 
 func TestDBBackend_setVotesCleanupTxn(t *testing.T) {

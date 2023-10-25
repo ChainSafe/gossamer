@@ -131,9 +131,9 @@ func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.Approv
 	for _, approvalVote := range approvalVotes {
 		// TODO: validate signature
 
-		existingVote := votes.Valid.BTree.Value.Get(approvalVote)
-		if existingVote == nil {
-			votes.Valid.BTree.Value.Set(approvalVote)
+		existingVote, ok := votes.Valid.Get(approvalVote.ValidatorIndex)
+		if !ok {
+			votes.Valid.Set(approvalVote.ValidatorIndex, existingVote)
 			i.importedValidVotes++
 			i.importedApprovalVotes++
 		}
@@ -219,13 +219,13 @@ func NewImportResultFromStatements(
 				importedValidVotes++
 			}
 		case inherents.InvalidDisputeStatementKind:
-			vote := types.Vote{
-				ValidatorIndex:     statement.ValidatorIndex,
-				ValidatorSignature: statement.SignedDisputeStatement.ValidatorSignature,
-				DisputeStatement:   statement.SignedDisputeStatement.DisputeStatement,
-			}
-			if v := votes.Invalid.Value.Get(vote); v == nil {
-				votes.Invalid.Value.Set(vote)
+			if _, ok := votes.Invalid.Get(statement.ValidatorIndex); !ok {
+				vote := types.Vote{
+					ValidatorIndex:     statement.ValidatorIndex,
+					ValidatorSignature: statement.SignedDisputeStatement.ValidatorSignature,
+					DisputeStatement:   statement.SignedDisputeStatement.DisputeStatement,
+				}
+				votes.Invalid.Set(statement.ValidatorIndex, vote)
 				importedInvalidVotes++
 				newInvalidVoters = append(newInvalidVoters, statement.ValidatorIndex)
 			}

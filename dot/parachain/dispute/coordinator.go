@@ -38,7 +38,6 @@ func (d *disputeCoordinator) Run(context overseer.Context) error {
 		return fmt.Errorf("initialize dispute coordinator: %w", err)
 	}
 
-	//TODO: run the subsystem
 	initData := InitialData{
 		Participation: initResult.participation,
 		Votes:         initResult.votes,
@@ -69,12 +68,13 @@ type initializeResult struct {
 }
 
 func (d *disputeCoordinator) waitForFirstLeaf(context overseer.Context) (*overseer.ActivatedLeaf, error) {
-	// TODO: implement
+	// TODO: handle other signals
 	for {
 		select {
 		case overseerSignal := <-context.Receiver:
-			if overseerSignal == nil {
-				return nil, fmt.Errorf("received nil signal from overseer")
+			switch {
+			case overseerSignal.ActiveLeaves != nil:
+				return overseerSignal.ActiveLeaves.Activated, nil
 			}
 		}
 	}
@@ -130,8 +130,6 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 		return nil, fmt.Errorf("getting highest session: %w", err)
 	}
 
-	// TODO: we need to cache the sessionInfo. Polkadot has a module for it in subsystems
-	// https://github.com/paritytech/polkadot/blob/master/node/subsystem-util/src/runtime/mod.rs
 	gapsInCache := false
 	for idx := highestSession - (DisputeWindow - 1); idx <= highestSession; idx++ {
 		_, err = d.runtime.ParachainHostSessionInfo(initialHead.Hash, idx)
@@ -179,7 +177,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 			return false
 		}
 
-		voteState, err := types.NewCandidateVoteState(*votes, uint64(now))
+		voteState, err := types.NewCandidateVoteState(*votes, env, uint64(now))
 		if err != nil {
 			logger.Errorf("failed to create candidate vote state for dispute %s: %s",
 				dispute.Comparator.CandidateHash, err)
