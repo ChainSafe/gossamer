@@ -11,6 +11,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"github.com/tidwall/btree"
 )
@@ -110,6 +111,20 @@ type decodeState struct {
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
+	// Handle BTreeMap type separately for the following reasons:
+	// 1. BTreeMap is a generic type, so we can't use the normal type switch
+	// 2. We cannot use BTreeCodec because we are comparing the type of the dstv.Interface() in the type switch
+	if isBTree(dstv.Type()) {
+		if btm, ok := dstv.Addr().Interface().(BTreeCodec); ok {
+			if err := btm.Decode(ds, dstv); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("could not type assert to BTreeCodec")
+		}
+		return nil
+	}
+
 	in := dstv.Interface()
 	switch in.(type) {
 	case *big.Int:
@@ -810,4 +825,40 @@ func (ds *decodeState) decodeBTree(dstv reflect.Value) (err error) {
 
 	dstv.Set(reflect.ValueOf(btreeValue))
 	return
+}
+
+func isBTree(t reflect.Type) bool {
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+
+	// For BTreeMap
+	mapField, hasMap := t.FieldByName("Map")
+	_, hasDegree := t.FieldByName("Degree")
+
+	// For BTree
+	btreeField, hasBTree := t.FieldByName("BTree")
+	comparatorField, hasComparator := t.FieldByName("Comparator")
+	itemTypeField, hasItemType := t.FieldByName("ItemType")
+
+	if hasMap && hasDegree &&
+		mapField.Type.Kind() == reflect.Ptr &&
+		strings.HasPrefix(mapField.Type.String(), "*btree.Map[") {
+		return true
+	}
+
+	if hasBTree && hasComparator && hasItemType {
+		if btreeField.Type.Kind() != reflect.Ptr || btreeField.Type.String() != "*btree.BTree" {
+			return false
+		}
+		if comparatorField.Type.Kind() != reflect.Func {
+			return false
+		}
+		if itemTypeField.Type != reflect.TypeOf((*reflect.Type)(nil)).Elem() {
+			return false
+		}
+		return true
+	}
+
+	return false
 }
