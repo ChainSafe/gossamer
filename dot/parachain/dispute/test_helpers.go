@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -50,6 +51,25 @@ func dummyCandidateDescriptorBadSignature(relayParent common.Hash) parachainType
 		ParaHead:                    zeros,
 		ValidationCodeHash:          validationCodeHash,
 		Signature:                   dummyCollatorSignature(),
+	}
+}
+
+func DummyCandidateReceipt(relayParent common.Hash) parachainTypes.CandidateReceipt {
+	descriptor := parachainTypes.CandidateDescriptor{
+		ParaID:                      0,
+		RelayParent:                 relayParent,
+		Collator:                    parachainTypes.CollatorID{},
+		PersistedValidationDataHash: common.Hash{},
+		PovHash:                     common.Hash{},
+		ErasureRoot:                 common.Hash{},
+		Signature:                   parachainTypes.CollatorSignature{},
+		ParaHead:                    common.Hash{},
+		ValidationCodeHash:          parachainTypes.ValidationCodeHash{},
+	}
+
+	return parachainTypes.CandidateReceipt{
+		Descriptor:      descriptor,
+		CommitmentsHash: common.Hash{},
 	}
 }
 
@@ -107,4 +127,33 @@ func activateLeaf(
 
 	participation.ProcessActiveLeavesUpdate(update)
 	return nil
+}
+
+func GetBlockNumberHash(blockNumber parachainTypes.BlockNumber) common.Hash {
+	encodedBlockNumber, err := scale.Marshal(blockNumber)
+	if err != nil {
+		panic("failed to encode block number:" + err.Error())
+	}
+
+	blockHash, err := common.Blake2bHash(encodedBlockNumber)
+	if err != nil {
+		panic("failed to hash block number:" + err.Error())
+	}
+
+	return blockHash
+}
+
+func DummyActivatedLeaf(blockNumber parachainTypes.BlockNumber) overseer.ActivatedLeaf {
+	return overseer.ActivatedLeaf{
+		Hash:   GetBlockNumberHash(blockNumber),
+		Number: uint32(blockNumber),
+	}
+}
+
+func NextLeaf(t *testing.T, chain *[]common.Hash) overseer.ActivatedLeaf {
+	t.Helper()
+	nextBlockNumber := len(*chain)
+	nextHash := GetBlockNumberHash(parachainTypes.BlockNumber(nextBlockNumber))
+	*chain = append(*(chain), nextHash)
+	return DummyActivatedLeaf(parachainTypes.BlockNumber(nextBlockNumber))
 }

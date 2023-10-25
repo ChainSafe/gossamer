@@ -5,19 +5,12 @@ package parachain
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	wazeroRuntime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-)
-
-var (
-	ErrCodeEmpty         = errors.New("code is empty")
-	ErrWASMDecompress    = errors.New("wasm decompression failed")
-	ErrInstanceIsStopped = errors.New("instance is stopped")
 )
 
 // ValidationResult is result received from validate_block. It is  similar to CandidateCommitments, but different order.
@@ -99,4 +92,6 @@ type RuntimeInstance interface {
 		blockHash common.Hash,
 		validationCodeHash parachaintypes.ValidationCodeHash,
 	) (*parachaintypes.ValidationCode, error)
+	ParachainHostOnChainVotes(blockHash common.Hash) (*parachaintypes.ScrapedOnChainVotes, error)
+	ParachainHostCandidateEvents(blockHash common.Hash) (*scale.VaryingDataTypeSlice, error)
 }
