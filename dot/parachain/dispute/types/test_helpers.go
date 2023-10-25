@@ -136,7 +136,7 @@ func DummyInvalidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	return invalidDisputeStatement
 }
 
-func GetRandomHash() common.Hash {
+func getRandomHash() common.Hash {
 	var hash [32]byte
 	randomBytes := make([]byte, len(hash))
 	_, err := rand.Read(randomBytes)

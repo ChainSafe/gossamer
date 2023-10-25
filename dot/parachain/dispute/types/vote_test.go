@@ -14,16 +14,16 @@ func Test_CandidateVotes(t *testing.T) {
 	receipt := parachainTypes.CandidateReceipt{
 		Descriptor: parachainTypes.CandidateDescriptor{
 			ParaID:                      100,
-			RelayParent:                 GetRandomHash(),
+			RelayParent:                 getRandomHash(),
 			Collator:                    parachainTypes.CollatorID{2},
-			PersistedValidationDataHash: GetRandomHash(),
-			PovHash:                     GetRandomHash(),
-			ErasureRoot:                 GetRandomHash(),
+			PersistedValidationDataHash: getRandomHash(),
+			PovHash:                     getRandomHash(),
+			ErasureRoot:                 getRandomHash(),
 			Signature:                   parachainTypes.CollatorSignature{2},
-			ParaHead:                    GetRandomHash(),
-			ValidationCodeHash:          parachainTypes.ValidationCodeHash(GetRandomHash()),
+			ParaHead:                    getRandomHash(),
+			ValidationCodeHash:          parachainTypes.ValidationCodeHash(getRandomHash()),
 		},
-		CommitmentsHash: GetRandomHash(),
+		CommitmentsHash: getRandomHash(),
 	}
 
 	validVotes := make(map[parachainTypes.ValidatorIndex]Vote)
