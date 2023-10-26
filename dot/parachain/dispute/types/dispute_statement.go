@@ -92,7 +92,9 @@ const (
 	ValidCompactStatementKind
 )
 
-func NewCustomCompactStatement(kind CompactStatementKind, candidateHash parachainTypes.CandidateHash) (CompactStatement, error) {
+func NewCustomCompactStatement(kind CompactStatementKind,
+	candidateHash common.Hash,
+) (CompactStatementVDT, error) {
 	vdt := NewCompactStatement()
 
 	var err error

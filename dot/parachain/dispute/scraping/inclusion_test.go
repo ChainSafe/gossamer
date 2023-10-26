@@ -1,7 +1,7 @@
 package scraping
 
 import (
-	"crypto/rand"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"testing"
 
 	"github.com/stretchr/testify/require"

@@ -238,7 +238,7 @@ func (cs *ChainScraper) IsPotentialSpam(voteState types.CandidateVoteState, cand
 func NewChainScraper(
 	sender overseer.Sender,
 	runtime parachain.RuntimeInstance,
-	initialHead overseer.ActivatedLeaf,
+	initialHead *overseer.ActivatedLeaf,
 ) (*ChainScraper, *parachainTypes.ScrapedUpdates, error) {
 	chainScraper := &ChainScraper{
 		IncludedCandidates: NewScrapedCandidates(),
@@ -249,7 +249,7 @@ func NewChainScraper(
 	}
 
 	update := overseer.ActiveLeavesUpdate{
-		Activated: &initialHead,
+		Activated: initialHead,
 	}
 	updates, err := chainScraper.ProcessActiveLeavesUpdate(sender, update)
 	if err != nil {
