@@ -68,8 +68,15 @@ func TestBTreeMap_Codec(t *testing.T) {
 	encoded, err := Marshal(btreeMap)
 	require.NoError(t, err)
 
+	expectedEncoded := []byte{12, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+	require.Equal(t, expectedEncoded, encoded)
+
 	expected := NewBTreeMap[uint32, dummy](32)
-	err = Unmarshal(encoded, expected)
+	err = Unmarshal(encoded, &expected)
 	require.NoError(t, err)
 
 	require.Equal(t, btreeMap.Len(), expected.Len())

@@ -93,7 +93,7 @@ func (b *BadgerBackend) GetRecentDisputes() (scale.BTree, error) {
 			}); err != nil {
 				return err
 			}
-			recentDisputes.Value.Set(dispute)
+			recentDisputes.Set(dispute)
 		}
 
 		return nil
@@ -142,7 +142,7 @@ func (b *BadgerBackend) setRecentDisputesTxn(txn *badger.Txn, recentDisputes sca
 		val []byte
 		err error
 	)
-	recentDisputes.Value.Descend(nil, func(item interface{}) bool {
+	recentDisputes.Descend(nil, func(item interface{}) bool {
 		dispute := item.(*types.Dispute)
 		key := newRecentDisputesKey(dispute.Comparator.SessionIndex, dispute.Comparator.CandidateHash)
 		val, err = scale.Marshal(dispute)

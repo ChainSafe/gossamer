@@ -80,8 +80,8 @@ func (bt *BTree) Decode(ds *decodeState, dstv reflect.Value) error {
 }
 
 // Copy returns a copy of the BTree.
-func (bt *BTree) Copy() *BTree {
-	return &BTree{
+func (bt *BTree) Copy() BTree {
+	return BTree{
 		BTree:      bt.BTree.Copy(),
 		Comparator: bt.Comparator,
 		ItemType:   bt.ItemType,
@@ -93,13 +93,13 @@ func (bt *BTree) GetTree() *BTree {
 }
 
 // NewBTree creates a new BTree with the given comparator function.
-func NewBTree[T any](comparator func(a, b any) bool) *BTree {
+func NewBTree[T any](comparator func(a, b any) bool) BTree {
 	// There's no instantiation overhead of the actual type T because we're only creating a slice type and
 	// getting the element type from it.
 	var dummySlice []T
 	elementType := reflect.TypeOf(dummySlice).Elem()
 
-	return &BTree{
+	return BTree{
 		BTree:      btree.New(comparator),
 		Comparator: comparator,
 		ItemType:   elementType,
@@ -113,7 +113,7 @@ type BTreeMap[K Ordered, V any] struct {
 }
 
 // Encode encodes the BTreeMap using the given encodeState.
-func (btm *BTreeMap[K, V]) Encode(es *encodeState) error {
+func (btm BTreeMap[K, V]) Encode(es *encodeState) error {
 	// write the number of items in the tree
 	err := es.encodeLength(btm.Len())
 	if err != nil {
@@ -137,7 +137,7 @@ func (btm *BTreeMap[K, V]) Encode(es *encodeState) error {
 }
 
 // Decode decodes the BTreeMap using the given decodeState.
-func (btm *BTreeMap[K, V]) Decode(ds *decodeState, dstv reflect.Value) error {
+func (btm BTreeMap[K, V]) Decode(ds *decodeState, dstv reflect.Value) error {
 	// Decode the number of items in the tree
 	length, err := ds.decodeLength()
 	if err != nil {
@@ -172,20 +172,20 @@ func (btm *BTreeMap[K, V]) Decode(ds *decodeState, dstv reflect.Value) error {
 		btm.Map.Set(key, value)
 	}
 
-	dstv.Set(reflect.ValueOf(*btm))
+	dstv.Set(reflect.ValueOf(btm))
 	return nil
 }
 
 // Copy returns a copy of the BTreeMap.
-func (btm *BTreeMap[K, V]) Copy() BTreeMap[K, V] {
+func (btm BTreeMap[K, V]) Copy() BTreeMap[K, V] {
 	return BTreeMap[K, V]{
 		Map: btm.Map.Copy(),
 	}
 }
 
 // NewBTreeMap creates a new BTreeMap with the given degree.
-func NewBTreeMap[K Ordered, V any](degree int) *BTreeMap[K, V] {
-	return &BTreeMap[K, V]{
+func NewBTreeMap[K Ordered, V any](degree int) BTreeMap[K, V] {
+	return BTreeMap[K, V]{
 		Map: btree.NewMap[K, V](degree),
 	}
 }

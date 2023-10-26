@@ -26,7 +26,7 @@ type ImportResult interface {
 	// IsFreshlyConcluded returns true if the dispute state changed to concluded during the import
 	IsFreshlyConcluded() (bool, error)
 	// ImportApprovalVotes imports the given approval votes into the current import
-	ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, now uint64) (ImportResult, error)
+	ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, env *types.CandidateEnvironment, now uint64) (ImportResult, error)
 	// IntoUpdatedVotes returns the updated votes after the import
 	IntoUpdatedVotes() types.CandidateVotes
 }
@@ -125,21 +125,21 @@ func (i ImportResultHandler) IsFreshlyConcluded() (bool, error) {
 	return isFreshlyConcludedFor || isFreshlyConcludedAgainst, nil
 }
 
-func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, now uint64) (ImportResult, error) {
+func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, env *types.CandidateEnvironment, now uint64) (ImportResult, error) {
 	votes := i.newState.Votes
 
 	for _, approvalVote := range approvalVotes {
 		// TODO: validate signature
 
-		existingVote, ok := votes.Valid.Get(approvalVote.ValidatorIndex)
+		existingVote, ok := votes.Valid.Value.Map.Get(approvalVote.ValidatorIndex)
 		if !ok {
-			votes.Valid.Set(approvalVote.ValidatorIndex, existingVote)
+			votes.Valid.Value.Map.Set(approvalVote.ValidatorIndex, existingVote)
 			i.importedValidVotes++
 			i.importedApprovalVotes++
 		}
 	}
 
-	newState, err := types.NewCandidateVoteState(votes, now)
+	newState, err := types.NewCandidateVoteState(votes, env, now)
 	if err != nil {
 		return nil, fmt.Errorf("creating new candidate vote state: %w", err)
 	}
@@ -234,7 +234,7 @@ func NewImportResultFromStatements(
 		}
 	}
 
-	newState, err := types.NewCandidateVoteState(votes, now)
+	newState, err := types.NewCandidateVoteState(votes, env, now)
 	if err != nil {
 		return nil, fmt.Errorf("creating new candidate vote state: %w", err)
 	}

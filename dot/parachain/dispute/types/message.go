@@ -203,9 +203,9 @@ func NewDisputeMessage(
 
 		invalidIndex = firstVote.ValidatorIndex
 	} else {
-		votes.Valid.BTree.Value.Descend(nil, func(i interface{}) bool {
-			firstVote, ok = i.(Vote)
-			return ok
+		votes.Valid.Value.Map.Descend(0, func(key parachainTypes.ValidatorIndex, vote Vote) bool {
+			firstVote = vote
+			return true
 		})
 
 		validIndex = firstVote.ValidatorIndex
