@@ -1,7 +1,6 @@
 package types
 
 import (
-	"github.com/tidwall/btree"
 	"testing"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -9,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_CandidateVotes(t *testing.T) {
+func Test_CandidateVotesCodec(t *testing.T) {
 	t.Parallel()
 	// with
 	receipt := parachainTypes.CandidateReceipt{
@@ -27,10 +26,7 @@ func Test_CandidateVotes(t *testing.T) {
 		CommitmentsHash: GetRandomHash(),
 	}
 
-	validVotes := ValidCandidateVotes{
-		VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
-		BTree:           btree.New(CompareVoteIndices),
-	}
+	validVotes := NewValidCandidateVotes(32)
 	inserted, err := validVotes.InsertVote(Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
@@ -38,7 +34,6 @@ func Test_CandidateVotes(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, inserted)
-	validVotes.VotedValidators[1] = struct{}{}
 	inserted, err = validVotes.InsertVote(Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyValidDisputeStatement(t),
@@ -47,13 +42,13 @@ func Test_CandidateVotes(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, inserted)
 
-	invalidVotes := btree.New(CompareVoteIndices)
-	invalidVotes.Set(Vote{
+	invalidVotes := NewInvalidCandidateVotes(32)
+	invalidVotes.Set(2, Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	})
-	invalidVotes.Set(Vote{
+	invalidVotes.Set(3, Vote{
 		ValidatorIndex:     3,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{3},
@@ -66,11 +61,13 @@ func Test_CandidateVotes(t *testing.T) {
 	require.NoError(t, err)
 
 	decoded := NewCandidateVotes()
-	err = scale.Unmarshal(encoded, &decoded)
+	err = scale.Unmarshal(encoded, decoded)
 	require.NoError(t, err)
 
 	// then
-	require.Equal(t, votes, decoded)
+	require.Equal(t, votes.CandidateReceipt, decoded.CandidateReceipt)
+	require.Equal(t, votes.Valid.Value.Len(), decoded.Valid.Value.Len())
+	require.Equal(t, votes.Invalid.Len(), decoded.Invalid.Len())
 }
 
 func Test_Vote(t *testing.T) {

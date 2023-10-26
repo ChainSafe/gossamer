@@ -3,7 +3,6 @@ package types
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -82,30 +81,25 @@ func DummyCandidateVotes(t *testing.T) *CandidateVotes {
 		CommitmentsHash: common.Hash{1},
 	}
 
-	validVotes := ValidCandidateVotes{
-		VotedValidators: make(map[parachainTypes.ValidatorIndex]struct{}),
-		BTree:           scale.NewBTree[Vote](CompareVoteIndices),
-	}
-	validVotes.BTree.Value.Set(Vote{
+	validVotes := NewValidCandidateVotes(32)
+	validVotes.Value.Map.Set(1, Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{1},
 	})
-	validVotes.VotedValidators[1] = struct{}{}
-	validVotes.BTree.Value.Set(Vote{
+	validVotes.Value.Map.Set(2, Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyValidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	})
-	validVotes.VotedValidators[2] = struct{}{}
 
-	invalidVotes := scale.NewBTree[Vote](CompareVoteIndices)
-	invalidVotes.Value.Set(Vote{
+	invalidVotes := NewInvalidCandidateVotes(32)
+	invalidVotes.Set(2, Vote{
 		ValidatorIndex:     2,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{2},
 	})
-	invalidVotes.Value.Set(Vote{
+	invalidVotes.Set(3, Vote{
 		ValidatorIndex:     3,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
 		ValidatorSignature: [64]byte{3},

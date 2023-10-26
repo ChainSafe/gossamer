@@ -1,11 +1,11 @@
 package scraping
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
 )
 
 func TestScrapedCandidates(t *testing.T) {
@@ -52,7 +52,7 @@ func TestScrapedCandidates(t *testing.T) {
 	// Test edge case: RemoveUptoHeight with blockNumber greater than all candidates.
 	sc3 := &ScrapedCandidates{
 		Candidates:              make(map[common.Hash]uint32),
-		CandidatesByBlockNumber: btree.New(ScrapedCandidateComparator),
+		CandidatesByBlockNumber: scale.NewBTree[ScrapedCandidate](ScrapedCandidateComparator),
 	}
 	sc3.Insert(1, common.NewHash([]byte{1}))
 	modifiedCandidates = sc3.RemoveUptoHeight(100)

@@ -616,7 +616,7 @@ func (i *Initialized) HandleImportStatements(
 	// not have a `CandidateReceipt` available.
 	var oldState types.CandidateVoteState
 	if votesInDB != nil {
-		oldState, err = types.NewCandidateVoteState(*votesInDB, now)
+		oldState, err = types.NewCandidateVoteState(*votesInDB, env, now)
 		if err != nil {
 			return InvalidImport, fmt.Errorf("new candidate vote state: %w", err)
 		}
@@ -682,7 +682,7 @@ func (i *Initialized) HandleImportStatements(
 				return InvalidImport, fmt.Errorf("approval signature response: %w", response.Error)
 			}
 
-			result, err := intermediateResult.ImportApprovalVotes(response.Signature, now)
+			result, err := intermediateResult.ImportApprovalVotes(response.Signature, env, now)
 			if err != nil {
 				return InvalidImport, fmt.Errorf("import approval votes: %w", err)
 			}
@@ -872,7 +872,7 @@ func (i *Initialized) HandleImportStatements(
 			dispute.Comparator.CandidateHash = candidateHash
 			dispute.Comparator.SessionIndex = session
 			dispute.DisputeStatus = *newState.DisputeStatus
-			if existing := recentDisputes.Value.Get(dispute); existing == nil {
+			if existing := recentDisputes.Get(dispute); existing == nil {
 				activeStatus, err := types.NewDisputeStatusVDT()
 				if err != nil {
 					return InvalidImport, fmt.Errorf("new dispute status: %w", err)
@@ -881,7 +881,7 @@ func (i *Initialized) HandleImportStatements(
 					return InvalidImport, fmt.Errorf("set active status: %w", err)
 				}
 				dispute.DisputeStatus = activeStatus
-				recentDisputes.Value.Set(dispute)
+				recentDisputes.Set(dispute)
 				logger.Infof("new dispute initiated for candidate %s, session %d",
 					candidateHash,
 					session,
@@ -1092,12 +1092,12 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 		return overseer.Block{}, fmt.Errorf("get recent disputes: %w", err)
 	}
 
-	if recentDisputes.Value.Len() == 0 {
+	if recentDisputes.Len() == 0 {
 		return last, nil
 	}
 
 	isPossiblyInvalid := func(session parachainTypes.SessionIndex, candidateHash common.Hash) bool {
-		disputeStatus := recentDisputes.Value.Get(types.NewDisputeComparator(session, candidateHash))
+		disputeStatus := recentDisputes.Get(types.NewDisputeComparator(session, candidateHash))
 		status, ok := disputeStatus.(types.DisputeStatusVDT)
 		if !ok {
 			logger.Errorf("cast to dispute status. Expected types.DisputeStatusVDT, got %T", disputeStatus)
