@@ -44,11 +44,11 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Value.Set(dispute1)
+	disputes.Set(dispute1)
 
 	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusConcludedFor)
 	require.NoError(t, err)
-	disputes.Value.Set(dispute2)
+	disputes.Set(dispute2)
 
 	// when
 	dbBackend := NewDBBackend(db)
@@ -59,7 +59,7 @@ func TestOverlayBackend_RecentDisputes(t *testing.T) {
 	// then
 	recentDisputes, err := backend.GetRecentDisputes()
 	require.NoError(t, err)
-	require.True(t, compareBTrees(disputes.Value, recentDisputes.Value))
+	require.True(t, compareBTrees(disputes.BTree, recentDisputes.BTree))
 }
 
 func TestOverlayBackend_CandidateVotes(t *testing.T) {
@@ -92,11 +92,11 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 
 	dispute1, err := types.DummyDispute(1, common.Hash{1}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Value.Set(dispute1)
+	disputes.Set(dispute1)
 
 	dispute2, err := types.DummyDispute(2, common.Hash{2}, types.DisputeStatusActive)
 	require.NoError(t, err)
-	disputes.Value.Set(dispute2)
+	disputes.Set(dispute2)
 
 	// when
 	dbBackend := NewDBBackend(db)
@@ -107,7 +107,7 @@ func TestOverlayBackend_GetActiveDisputes(t *testing.T) {
 	// then
 	activeDisputes, err := backend.GetActiveDisputes(uint64(time.Now().Unix()))
 	require.NoError(t, err)
-	require.True(t, compareBTrees(disputes.Value, activeDisputes.Value))
+	require.True(t, compareBTrees(disputes.BTree, activeDisputes.BTree))
 }
 
 func TestOverlayBackend_Concurrency(t *testing.T) {
@@ -167,12 +167,12 @@ func TestOverlayBackend_Concurrency(t *testing.T) {
 					types.DisputeStatusActive,
 				)
 				require.NoError(t, err)
-				disputes.Value.Set(dispute1)
+				disputes.Set(dispute1)
 
 				dispute2, err := types.DummyDispute(parachainTypes.SessionIndex(j),
 					common.Hash{byte(j)}, types.DisputeStatusConcludedFor)
 				require.NoError(t, err)
-				disputes.Value.Set(dispute2)
+				disputes.Set(dispute2)
 
 				err = backend.SetRecentDisputes(disputes)
 				require.NoError(t, err)

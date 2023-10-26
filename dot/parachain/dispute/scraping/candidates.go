@@ -35,11 +35,11 @@ func (sc *ScrapedCandidates) Insert(blockNumber uint32, hash common.Hash) {
 		BlockNumber: blockNumber,
 		Hash:        hash,
 	}
-	if sc.CandidatesByBlockNumber.Value.Get(candidate) != nil {
+	if sc.CandidatesByBlockNumber.Get(candidate) != nil {
 		return
 	}
 
-	sc.CandidatesByBlockNumber.Value.Set(candidate)
+	sc.CandidatesByBlockNumber.Set(candidate)
 }
 
 // RemoveUptoHeight removes all candidates up to the given block number.
@@ -49,18 +49,18 @@ func (sc *ScrapedCandidates) RemoveUptoHeight(blockNumber uint32) []common.Hash 
 	notStale := scale.NewBTree[ScrapedCandidates](ScrapedCandidateComparator)
 	stale := scale.NewBTree[ScrapedCandidates](ScrapedCandidateComparator)
 
-	sc.CandidatesByBlockNumber.Value.Descend(nil, func(i interface{}) bool {
+	sc.CandidatesByBlockNumber.Descend(nil, func(i interface{}) bool {
 		candidate := i.(*ScrapedCandidate)
 		if candidate.BlockNumber < blockNumber {
-			stale.Value.Set(i)
+			stale.Set(i)
 		} else {
-			notStale.Value.Set(i)
+			notStale.Set(i)
 		}
 		return true
 	})
 	sc.CandidatesByBlockNumber = notStale
 
-	stale.Value.Ascend(nil, func(i interface{}) bool {
+	stale.Ascend(nil, func(i interface{}) bool {
 		candidate := i.(*ScrapedCandidate)
 		sc.Candidates[candidate.Hash]--
 		if sc.Candidates[candidate.Hash] == 0 {

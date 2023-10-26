@@ -157,7 +157,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 		return nil, fmt.Errorf("new chain scraper: %w", err)
 	}
 
-	activeDisputes.Value.Descend(nil, func(i interface{}) bool {
+	activeDisputes.Descend(nil, func(i interface{}) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
 			logger.Error("active dispute is not a dispute")

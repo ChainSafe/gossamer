@@ -104,7 +104,7 @@ func (b *overlayBackend) GetEarliestSession() (*parachainTypes.SessionIndex, err
 func (b *overlayBackend) GetRecentDisputes() (scale.BTree, error) {
 	b.recentDisputes.RLock()
 	defer b.recentDisputes.RUnlock()
-	if b.recentDisputes.BTree.Value.Len() > 0 {
+	if b.recentDisputes.BTree.Len() > 0 {
 		return b.recentDisputes.BTree.Copy(), nil
 	}
 
@@ -167,7 +167,7 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 	b.recentDisputes.RUnlock()
 
 	activeDisputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
-	recentDisputes.Value.Ascend(nil, func(i interface{}) bool {
+	recentDisputes.Ascend(nil, func(i interface{}) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
 			logger.Errorf("cast to dispute. Expected *types.Dispute, got %T", i)
@@ -181,7 +181,7 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 		}
 
 		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > now {
-			activeDisputes.Value.Set(dispute)
+			activeDisputes.Set(dispute)
 		}
 
 		return true
@@ -191,7 +191,7 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 }
 
 func (b *overlayBackend) IsEmpty() bool {
-	return b.earliestSession.SessionIndex == nil && b.recentDisputes.BTree.Value.Len() == 0 && len(b.candidateVotes.votes) == 0
+	return b.earliestSession.SessionIndex == nil && b.recentDisputes.BTree.Len() == 0 && len(b.candidateVotes.votes) == 0
 }
 
 func (b *overlayBackend) WriteToDB() error {
@@ -214,25 +214,25 @@ func (b *overlayBackend) NoteEarliestSession(session parachainTypes.SessionIndex
 
 		// determine new recent disputes
 		newRecentDisputes := scale.NewBTree[types.Dispute](types.CompareDisputes)
-		recentDisputes.Value.Ascend(nil, func(item interface{}) bool {
+		recentDisputes.Ascend(nil, func(item interface{}) bool {
 			dispute := item.(*types.Dispute)
 			if dispute.Comparator.SessionIndex >= session {
-				newRecentDisputes.Value.Set(dispute)
+				newRecentDisputes.Set(dispute)
 			}
 			return true
 		})
 
 		// prune obsolete disputes
-		recentDisputes.Value.Ascend(nil, func(item interface{}) bool {
+		recentDisputes.Ascend(nil, func(item interface{}) bool {
 			dispute := item.(*types.Dispute)
 			if dispute.Comparator.SessionIndex < session {
-				recentDisputes.Value.Delete(dispute)
+				recentDisputes.Delete(dispute)
 			}
 			return true
 		})
 
 		// update db
-		if recentDisputes.Value.Len() > 0 {
+		if recentDisputes.Len() > 0 {
 			if err = b.SetRecentDisputes(newRecentDisputes); err != nil {
 				return fmt.Errorf("set recent disputes: %w", err)
 			}

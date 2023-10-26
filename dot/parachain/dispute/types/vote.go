@@ -6,7 +6,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/tidwall/btree"
 )
 
 // Vote is a vote from a validator for a dispute statement
@@ -187,7 +186,7 @@ func NewOwnVoteStateVDTWithVotes(voteState CandidateVotes, env *CandidateEnviron
 	)
 
 	for validatorIndex := range env.ControlledIndices {
-		if validVote, ok := voteState.Valid.Get(validatorIndex); ok {
+		if validVote, ok := voteState.Valid.Value.Get(validatorIndex); ok {
 			validVotes = append(validVotes, validVote)
 		}
 
@@ -272,21 +271,21 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 	byzantineThreshold := getByzantineThreshold(numberOfValidators)
 	superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
 
-	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Len() == 0)
+	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Value.Len() == 0)
 	if isDisputed {
 		status, err = NewDisputeStatusVDT()
 		if err != nil {
 			return CandidateVoteState{}, fmt.Errorf("failed to create dispute status: %w", err)
 		}
 
-		isConfirmed := votes.Valid.Len() > byzantineThreshold
+		isConfirmed := votes.Valid.Value.Len() > byzantineThreshold
 		if isConfirmed {
 			if err := status.Confirm(); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to confirm dispute status: %w", err)
 			}
 		}
 
-		isConcludedFor := votes.Valid.Len() > superMajorityThreshold
+		isConcludedFor := votes.Valid.Value.Len() > superMajorityThreshold
 		if isConcludedFor {
 			if err := status.ConcludeFor(now); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status for: %w", err)
@@ -324,13 +323,13 @@ func NewCandidateVoteStateFromReceipt(receipt parachainTypes.CandidateReceipt) (
 
 // ValidCandidateVotes is a list of valid votes for a candidate.
 type ValidCandidateVotes struct {
-	*btree.Map[parachainTypes.ValidatorIndex, Vote]
+	Value scale.BTreeMap[parachainTypes.ValidatorIndex, Vote]
 }
 
 // NewValidCandidateVotes creates a new ValidCandidateVotes.
 func NewValidCandidateVotes(degree int) ValidCandidateVotes {
 	return ValidCandidateVotes{
-		Map: btree.NewMap[parachainTypes.ValidatorIndex, Vote](degree),
+		scale.NewBTreeMap[parachainTypes.ValidatorIndex, Vote](degree),
 	}
 }
 
@@ -341,9 +340,9 @@ func NewValidCandidateVotes(degree int) ValidCandidateVotes {
 //
 // Returns: true, if the insert had any effect.
 func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
-	existingVote, ok := vcv.Get(vote.ValidatorIndex)
+	existingVote, ok := vcv.Value.Get(vote.ValidatorIndex)
 	if !ok {
-		vcv.Set(vote.ValidatorIndex, vote)
+		vcv.Value.Set(vote.ValidatorIndex, vote)
 		return true, nil
 	}
 
@@ -358,11 +357,15 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 	case inherents.ExplicitValidDisputeStatementKind,
 		inherents.ExplicitInvalidDisputeStatementKind,
 		inherents.ApprovalChecking:
-		vcv.Set(vote.ValidatorIndex, vote)
+		vcv.Value.Set(vote.ValidatorIndex, vote)
 		return true, nil
 	default:
 		return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
 	}
+}
+
+func NewInvalidCandidateVotes(degree int) scale.BTreeMap[parachainTypes.ValidatorIndex, Vote] {
+	return scale.NewBTreeMap[parachainTypes.ValidatorIndex, Vote](degree)
 }
 
 // CandidateVotes is a struct containing the votes for a candidate.
@@ -375,7 +378,7 @@ type CandidateVotes struct {
 // VotedIndices returns the set of all validators who have votes in the set, ascending.
 func (cv *CandidateVotes) VotedIndices() *treeset.Set {
 	votedIndices := treeset.NewWithIntComparator()
-	cv.Valid.Ascend(0, func(index parachainTypes.ValidatorIndex, vote Vote) bool {
+	cv.Valid.Value.Ascend(0, func(index parachainTypes.ValidatorIndex, vote Vote) bool {
 		votedIndices.Add(vote.ValidatorIndex)
 		return true
 	})
@@ -397,7 +400,7 @@ func (cv *CandidateVotes) Encode() ([]byte, error) {
 	}
 
 	var encodedValidVotes []byte
-	cv.Valid.Ascend(0, func(key parachainTypes.ValidatorIndex, value Vote) bool {
+	cv.Valid.Value.Ascend(0, func(key parachainTypes.ValidatorIndex, value Vote) bool {
 		encodedVote, err := scale.Marshal(value)
 		if err != nil {
 			return false
@@ -419,12 +422,6 @@ func (cv *CandidateVotes) Encode() ([]byte, error) {
 	})
 
 	return append(append(encodedReceipt, encodedValidVotes...), encodedInvalidVotes...), nil
-}
-
-// Decode decodes the SCALE encoded CandidateVotes into a CandidateVotes struct
-func (cv *CandidateVotes) Decode(in []byte) error {
-	// Scale doesn't support BTreeMap decoding, so we need to decode it manually
-	decodedReceipt := parachainTypes.CandidateReceipt{}
 }
 
 // NewCandidateVotes creates a new CandidateVotes.
