@@ -1,4 +1,4 @@
-package availability_store
+package availabilitystore
 
 import (
 	"testing"
