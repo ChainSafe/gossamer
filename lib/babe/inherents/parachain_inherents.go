@@ -17,7 +17,7 @@ type Signature [64]byte
 
 func (s Signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
 
-// ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
+// ValidityAttestation is an Implicit or Explicit attestation to the validity of a parachain
 // candidate.
 type ValidityAttestation scale.VaryingDataType
 
@@ -172,7 +172,7 @@ func (ExplicitValidDisputeStatementKind) Index() uint { //skipcq
 }
 
 func (ExplicitValidDisputeStatementKind) String() string { //skipcq:SCC-U1000
-	return "explicit valid dispute statement kind"
+	return "Explicit valid dispute statement kind"
 }
 
 // BackingSeconded is a seconded statement on a candidate from the backing phase.
@@ -249,7 +249,7 @@ func (ExplicitInvalidDisputeStatementKind) Index() uint { //skipcq
 }
 
 func (ExplicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
-	return "explicit invalid dispute statement kind"
+	return "Explicit invalid dispute statement kind"
 }
 
 // NewValidDisputeStatementKind create a new DisputeStatementKind varying data type.

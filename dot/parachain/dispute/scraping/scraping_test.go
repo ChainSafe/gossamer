@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -21,6 +20,54 @@ type expectedMessages struct {
 type expectedRuntimeCalls struct {
 	candidateEventsRequests int
 	candidateVotesRequests  int
+}
+
+func getBlockNumberHash(blockNumber parachainTypes.BlockNumber) common.Hash {
+	encodedBlockNumber, err := scale.Marshal(blockNumber)
+	if err != nil {
+		panic("failed to encode block number:" + err.Error())
+	}
+
+	blockHash, err := common.Blake2bHash(encodedBlockNumber)
+	if err != nil {
+		panic("failed to hash block number:" + err.Error())
+	}
+
+	return blockHash
+}
+
+func getNextLeaf(t *testing.T, chain *[]common.Hash) *overseer.ActivatedLeaf {
+	t.Helper()
+	nextBlockNumber := len(*chain)
+	nextHash := getBlockNumberHash(parachainTypes.BlockNumber(nextBlockNumber))
+	*chain = append(*(chain), nextHash)
+	return dummyActivatedLeaf(parachainTypes.BlockNumber(nextBlockNumber))
+}
+
+func dummyActivatedLeaf(blockNumber parachainTypes.BlockNumber) *overseer.ActivatedLeaf {
+	return &overseer.ActivatedLeaf{
+		Hash:   getBlockNumberHash(blockNumber),
+		Number: uint32(blockNumber),
+	}
+}
+
+func dummyCandidateReceipt(relayParent common.Hash) parachainTypes.CandidateReceipt {
+	descriptor := parachainTypes.CandidateDescriptor{
+		ParaID:                      0,
+		RelayParent:                 relayParent,
+		Collator:                    parachainTypes.CollatorID{},
+		PersistedValidationDataHash: common.Hash{},
+		PovHash:                     common.Hash{},
+		ErasureRoot:                 common.Hash{},
+		Signature:                   parachainTypes.CollatorSignature{},
+		ParaHead:                    common.Hash{},
+		ValidationCodeHash:          parachainTypes.ValidationCodeHash{},
+	}
+
+	return parachainTypes.CandidateReceipt{
+		Descriptor:      descriptor,
+		CommitmentsHash: common.Hash{},
+	}
 }
 
 func configureMockExpectations(
@@ -117,7 +164,7 @@ func mockBackedCandidateEvent(blockHash common.Hash) (*scale.VaryingDataTypeSlic
 	if err != nil {
 		return nil, fmt.Errorf("creating candidate events: %w", err)
 	}
-	candidateReceipt := dispute.DummyCandidateReceipt(blockHash)
+	candidateReceipt := dummyCandidateReceipt(blockHash)
 
 	backedEvent := parachainTypes.CandidateBacked{
 		CandidateReceipt: candidateReceipt,
@@ -138,7 +185,7 @@ func mockBackedAndIncludedCandidateEvent(blockHash common.Hash) (*scale.VaryingD
 	if err != nil {
 		return nil, fmt.Errorf("creating candidate events: %w", err)
 	}
-	candidateReceipt := dispute.DummyCandidateReceipt(blockHash)
+	candidateReceipt := dummyCandidateReceipt(blockHash)
 
 	includedEvent := parachainTypes.CandidateIncluded{
 		CandidateReceipt: candidateReceipt,
@@ -186,7 +233,7 @@ func mockMagicCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
 		return nil, fmt.Errorf("getting magic hash: %w", err)
 	}
 
-	candidateReceipt := dispute.DummyCandidateReceipt(blockHash)
+	candidateReceipt := dummyCandidateReceipt(blockHash)
 	includedEvent := parachainTypes.CandidateIncluded{
 		CandidateReceipt: candidateReceipt,
 		HeadData:         parachainTypes.HeadData{},
@@ -223,7 +270,7 @@ func mockCandidateEvents(blockHash common.Hash, chain *[]common.Hash) (*scale.Va
 	}
 
 	if maybeBlockNumber != -1 {
-		candidateReceipt := dispute.DummyCandidateReceipt(blockHash)
+		candidateReceipt := dummyCandidateReceipt(blockHash)
 		candidateEvent1 := parachainTypes.CandidateIncluded{
 			CandidateReceipt: candidateReceipt,
 			HeadData:         parachainTypes.HeadData{},
@@ -283,11 +330,11 @@ func newTestState(
 	finalisedBlock uint32,
 	eventGenerator func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error),
 ) (*ChainScraper, *[]common.Hash) {
-	chain := []common.Hash{dispute.GetBlockNumberHash(0), dispute.GetBlockNumberHash(1)}
+	chain := []common.Hash{getBlockNumberHash(0), getBlockNumberHash(1)}
 	configureMockOverseer(t, sender, &chain, messages, finalisedBlock)
 	configureMockRuntime(runtime, &chain, calls, eventGenerator)
 
-	scraper, _, err := NewChainScraper(sender, runtime, dispute.DummyActivatedLeaf(1))
+	scraper, _, err := NewChainScraper(sender, runtime, dummyActivatedLeaf(1))
 	require.NoError(t, err)
 	return scraper, &chain
 }
@@ -301,9 +348,9 @@ func TestChainScraper(t *testing.T) {
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 		mockSender := NewMockSender(ctrl)
 
-		candidate1, err := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(1)).Hash()
+		candidate1, err := dummyCandidateReceipt(getBlockNumberHash(1)).Hash()
 		require.NoError(t, err)
-		candidate2, err := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(2)).Hash()
+		candidate2, err := dummyCandidateReceipt(getBlockNumberHash(2)).Hash()
 		require.NoError(t, err)
 
 		expectedAncestryLength := 1
@@ -324,8 +371,8 @@ func TestChainScraper(t *testing.T) {
 		require.True(t, scraper.IsCandidateIncluded(candidate1))
 		require.True(t, scraper.IsCandidateBacked(candidate1))
 
-		nextLeaf := dispute.NextLeaf(t, chain)
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextLeaf := getNextLeaf(t, chain)
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 
 		_, err = scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
@@ -347,17 +394,17 @@ func TestChainScraper(t *testing.T) {
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
 		scraper, chain := newTestState(t, mockSender, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		for i := 0; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
 		nextBlockNumber := len(*chain)
 		for i := 1; i < nextBlockNumber; i++ {
-			candidateHash, err := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(parachainTypes.BlockNumber(i))).Hash()
+			candidateHash, err := dummyCandidateReceipt(getBlockNumberHash(parachainTypes.BlockNumber(i))).Hash()
 			require.NoError(t, err)
 			require.True(t, scraper.IsCandidateIncluded(candidateHash))
 			require.True(t, scraper.IsCandidateBacked(candidateHash))
@@ -376,18 +423,18 @@ func TestChainScraper(t *testing.T) {
 		messages, calls := configureMockExpectations(BlocksToSkip)
 		scraper, chain := newTestState(t, mockSender, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		for i := 0; i < BlocksToSkip[0]; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
 		for i := 0; i < BlocksToSkip[1]; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate = overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate = overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err = scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 	})
@@ -406,12 +453,12 @@ func TestChainScraper(t *testing.T) {
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
 		scraper, chain := newTestState(t, mockSender, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		// 1 because `TestState` starts at leaf 1.
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 	})
@@ -437,7 +484,7 @@ func TestChainScraper(t *testing.T) {
 			calls,
 			finalisedBlock,
 			func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error) {
-				if blockHash == dispute.GetBlockNumberHash(2) {
+				if blockHash == getBlockNumberHash(2) {
 					return mockCandidateEvents(blockHash, chain)
 				}
 				candidateEvents, err := parachainTypes.NewCandidateEvents()
@@ -447,18 +494,18 @@ func TestChainScraper(t *testing.T) {
 				return &candidateEvents, nil
 			})
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
 		finalisedBlockNumber := TargetBlockNumber + DisputeCandidateLifetimeAfterFinalization
 		scraper.ProcessFinalisedBlock(finalisedBlockNumber)
 
-		candidate := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(TargetBlockNumber))
+		candidate := dummyCandidateReceipt(getBlockNumberHash(TargetBlockNumber))
 		candidateHash, err := candidate.Hash()
 		require.NoError(t, err)
 
@@ -487,7 +534,7 @@ func TestChainScraper(t *testing.T) {
 			calls,
 			finalisedBlock,
 			func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error) {
-				if blockHash == dispute.GetBlockNumberHash(2) {
+				if blockHash == getBlockNumberHash(2) {
 					return mockBackedCandidateEvent(blockHash)
 				}
 				candidateEvents, err := parachainTypes.NewCandidateEvents()
@@ -498,18 +545,18 @@ func TestChainScraper(t *testing.T) {
 			},
 		)
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
 		finalisedBlock++
 		scraper.ProcessFinalisedBlock(finalisedBlock)
 
-		candidate := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(TargetBlockNumber))
+		candidate := dummyCandidateReceipt(getBlockNumberHash(TargetBlockNumber))
 		candidateHash, err := candidate.Hash()
 		require.NoError(t, err)
 
@@ -543,11 +590,11 @@ func TestChainScraper(t *testing.T) {
 			calls,
 			finalisedBlock,
 			func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error) {
-				if blockHash == dispute.GetBlockNumberHash(1) {
+				if blockHash == getBlockNumberHash(1) {
 					return mockBackedAndIncludedCandidateEvent(blockHash)
 				}
 
-				if blockHash == dispute.GetBlockNumberHash(testTarget1) || blockHash == dispute.GetBlockNumberHash(testTarget2) {
+				if blockHash == getBlockNumberHash(testTarget1) || blockHash == getBlockNumberHash(testTarget2) {
 					return mockMagicCandidateEvents()
 				}
 
@@ -558,11 +605,11 @@ func TestChainScraper(t *testing.T) {
 				return &candidateEvents, nil
 			})
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
@@ -573,7 +620,7 @@ func TestChainScraper(t *testing.T) {
 
 		magicHash, err := getMagicHash()
 		require.NoError(t, err)
-		magicCandidate := dispute.DummyCandidateReceipt(magicHash)
+		magicCandidate := dummyCandidateReceipt(magicHash)
 		magicCandidateHash, err := magicCandidate.Hash()
 		require.NoError(t, err)
 
@@ -606,12 +653,12 @@ func TestChainScraper(t *testing.T) {
 			calls,
 			finalisedBlock,
 			func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error) {
-				if blockHash == dispute.GetBlockNumberHash(1) {
+				if blockHash == getBlockNumberHash(1) {
 					return mockBackedAndIncludedCandidateEvent(blockHash)
 				}
 
-				if blockHash == dispute.GetBlockNumberHash(testTarget1) || blockHash == dispute.GetBlockNumberHash(testTarget2) {
-					return mockBackedAndIncludedCandidateEvent(dispute.GetBlockNumberHash(testTarget1))
+				if blockHash == getBlockNumberHash(testTarget1) || blockHash == getBlockNumberHash(testTarget2) {
+					return mockBackedAndIncludedCandidateEvent(getBlockNumberHash(testTarget1))
 				}
 
 				candidateEvents, err := parachainTypes.NewCandidateEvents()
@@ -621,29 +668,29 @@ func TestChainScraper(t *testing.T) {
 				return &candidateEvents, nil
 			})
 
-		var nextLeaf overseer.ActivatedLeaf
+		var nextLeaf *overseer.ActivatedLeaf
 		for i := 1; i < BlocksToSkip; i++ {
-			nextLeaf = dispute.NextLeaf(t, chain)
+			nextLeaf = getNextLeaf(t, chain)
 		}
-		nextUpdate := overseer.ActiveLeavesUpdate{Activated: &nextLeaf}
+		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
 		require.NoError(t, err)
 
-		candidateHash, err := dispute.DummyCandidateReceipt(dispute.GetBlockNumberHash(testTarget1)).Hash()
+		candidateHash, err := dummyCandidateReceipt(getBlockNumberHash(testTarget1)).Hash()
 		require.NoError(t, err)
 		inclusions := scraper.GetBlocksIncludingCandidate(candidateHash)
 		require.Equal(t, 2, len(inclusions))
 		require.Equal(t,
 			Inclusion{
 				BlockNumber: uint32(testTarget1),
-				BlockHash:   dispute.GetBlockNumberHash(testTarget1),
+				BlockHash:   getBlockNumberHash(testTarget1),
 			},
 			inclusions[0],
 		)
 		require.Equal(t,
 			Inclusion{
 				BlockNumber: uint32(testTarget2),
-				BlockHash:   dispute.GetBlockNumberHash(testTarget2),
+				BlockHash:   getBlockNumberHash(testTarget2),
 			},
 			inclusions[1],
 		)
@@ -656,7 +703,7 @@ func TestChainScraper(t *testing.T) {
 		require.Equal(t,
 			Inclusion{
 				BlockNumber: uint32(testTarget2),
-				BlockHash:   dispute.GetBlockNumberHash(testTarget2),
+				BlockHash:   getBlockNumberHash(testTarget2),
 			},
 			inclusions[0],
 		)
