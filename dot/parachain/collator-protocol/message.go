@@ -521,7 +521,6 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		}
 		// TODO:
 		// - tracks advertisements received and the source (peer id) of the advertisement
-
 		// - accept one advertisement per collator per source per relay-parent
 
 	case 2: // CollationSeconded
