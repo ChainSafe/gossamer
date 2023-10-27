@@ -296,7 +296,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	prospectiveCandidate *ProspectiveCandidate) error {
 	// TODO:
 	// - tracks advertisements received and the source (peer id) of the advertisement
-
 	// - accept one advertisement per collator per source per relay-parent
 
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
