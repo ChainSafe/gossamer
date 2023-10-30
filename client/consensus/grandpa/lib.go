@@ -124,6 +124,28 @@ type SharedVoterState[AuthorityID comparable] struct {
 // 	}
 // }
 
+// / A trait that includes all the client functionalities grandpa requires.
+// / Ideally this would be a trait alias, we're not there yet.
+// / tracking issue <https://github.com/rust-lang/rust/issues/41517>
+// pub trait ClientForGrandpa<Block, BE>:
+//
+//	LockImportRun<Block, BE>
+//	+ Finalizer<Block, BE>
+//	+ AuxStore
+//	+ HeaderMetadata<Block, Error = sp_blockchain::Error>
+//	+ HeaderBackend<Block>
+//	+ BlockchainEvents<Block>
+//	+ ProvideRuntimeApi<Block>
+//	+ ExecutorProvider<Block>
+//	+ BlockImport<Block, Transaction = TransactionFor<BE, Block>, Error = sp_consensus::Error>
+//	+ StorageProvider<Block, BE>
+//
+// where
+//
+//	BE: Backend<Block>,
+//	Block: BlockT,
+//
+// {}
 type ClientForGrandpa interface{}
 
 type Backend interface{}
