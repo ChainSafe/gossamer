@@ -177,6 +177,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_ecdsa_verify_version_2).
 		Export("ext_crypto_ecdsa_verify_version_2").
 		NewFunctionBuilder().
+		WithFunc(ext_crypto_ecdsa_generate_version_1).
+		Export("ext_crypto_ecdsa_generate_version_1").
+		NewFunctionBuilder().
 		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
 		NewFunctionBuilder().

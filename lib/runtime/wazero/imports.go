@@ -370,6 +370,11 @@ func ext_crypto_secp256k1_ecdsa_recover_version_2(ctx context.Context, m api.Mod
 	return ext_crypto_secp256k1_ecdsa_recover_version_1(ctx, m, sig, msg)
 }
 
+func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
+	panic("ext_crypto_ecdsa_generate_version_1 not implemented yet")
+	return 0
+}
+
 func ext_crypto_ecdsa_verify_version_2(ctx context.Context, m api.Module, sig uint32, msg uint64, key uint32) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
