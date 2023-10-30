@@ -8,8 +8,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
-	"github.com/ChainSafe/gossamer/internal/database"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -92,8 +92,9 @@ func (as *AvailabilityStore) StoreChunk(candidate common.Hash, chunk ErasureChun
 	if err != nil {
 		if err.Error() == "pebble: not found" {
 			// TODO: were creating metadata here, but we should be doing it in the parachain block import?
+			// TODO: also we need to determine how many chunks we need to store
 			meta = CandidateMeta{
-				ChunksStored: make([]bool, chunk.Index+1),
+				ChunksStored: make([]bool, 16),
 			}
 		} else {
 			return err
