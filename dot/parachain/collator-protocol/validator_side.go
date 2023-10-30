@@ -306,9 +306,6 @@ type CollatorProtocolValidatorSide struct {
 
 	ourView View
 
-	// Keep track of all pending candidate collations
-	pendingCandidates map[common.Hash]CollationEvent
-
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
@@ -439,7 +436,7 @@ type InvalidOverseerMsg struct {
 	CandidateReceipt parachaintypes.CandidateReceipt
 }
 
-func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error {
+func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
@@ -460,9 +457,6 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
 	case SecondedOverseerMsg:
-		// TODO: handle seconded message https://github.com/ChainSafe/gossamer/issues/3516
-		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1466 //nolint
-
 		statementV, err := msg.Stmt.Value()
 		if err != nil {
 			return fmt.Errorf("getting value of statement: %w", err)
@@ -475,7 +469,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 		if !ok {
 			return fmt.Errorf("statement value expected: Seconded, got: %T", statementV)
 		}
-		candidateHashV, err := parachaintypes.CommittedCandidateReceipt(receipt).Hash()
+
+		candidateReceipt := parachaintypes.CommittedCandidateReceipt(receipt)
+
+		candidateHashV, err := candidateReceipt.ToPlain().Hash()
 		if err != nil {
 			return fmt.Errorf("getting candidate hash from receipt: %w", err)
 		}
@@ -547,13 +544,28 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 	case InvalidOverseerMsg:
 		invalidOverseerMsg := msg
 
-		collationEvent, ok := cpvs.pendingCandidates[invalidOverseerMsg.Parent]
+		candidateHashV, err := msg.CandidateReceipt.Hash()
+		if err != nil {
+			return fmt.Errorf("getting candidate hash from receipt: %w", err)
+		}
+		fetchedCollation := fetchedCollation{
+			relayParent:   msg.CandidateReceipt.Descriptor.RelayParent,
+			paraID:        parachaintypes.ParaID(msg.CandidateReceipt.Descriptor.ParaID),
+			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},
+			collatorID:    msg.CandidateReceipt.Descriptor.Collator,
+		}
+		fmt.Println("cpvs.fetchedCandidates")
+		fmt.Println(cpvs.fetchedCandidates)
+		fmt.Println("fetchedCollation.String()")
+		fmt.Println(fetchedCollation.String())
+
+		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {
 			return nil
 		}
 
 		if *collationEvent.PendingCollation.CommitmentHash == (invalidOverseerMsg.CandidateReceipt.CommitmentsHash) {
-			delete(cpvs.pendingCandidates, invalidOverseerMsg.Parent)
+			delete(cpvs.fetchedCandidates, fetchedCollation.String())
 		} else {
 			logger.Error("reported invalid candidate for unknown `pending_candidate`")
 			return nil

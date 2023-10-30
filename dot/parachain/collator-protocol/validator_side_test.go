@@ -1,0 +1,187 @@
+package collatorprotocol
+
+import (
+	"testing"
+
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/common"
+	gomock "github.com/golang/mock/gomock"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/stretchr/testify/require"
+)
+
+func TestProcessOverseerMessage(t *testing.T) {
+	t.Parallel()
+
+	var testCollatorID parachaintypes.CollatorID
+	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
+	copy(testCollatorID[:], tempCollatID)
+	peerID := peer.ID("testPeerID")
+	testRelayParent := getDummyHash(5)
+	// testParaID := parachaintypes.ParaID(5)
+
+	testCandidateReceipt := parachaintypes.CandidateReceipt{
+		Descriptor: parachaintypes.CandidateDescriptor{
+			ParaID:                      uint32(1000),
+			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"), //nolint:lll
+			Collator:                    testCollatorID,
+			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"), //nolint:lll
+			PovHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"), //nolint:lll
+			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), //nolint:lll
+			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"), //nolint:lll
+			// ValidationCodeHash:          parachaintypes.ValidationCodeHash(validationCodeHashV),
+		},
+
+		CommitmentsHash: common.MustHexToHash("0xa54a8dce5fd2a27e3715f99e4241f674a48f4529f77949a4474f5b283b823535"),
+	}
+	testCases := []struct {
+		description string
+		msg         any
+		peerData    map[peer.ID]PeerData
+		// perRelayParent map[common.Hash]PerRelayParent
+		net               Network
+		fetchedCandidates map[string]CollationEvent
+		// activeLeaves   map[common.Hash]ProspectiveParachainsMode
+		errString string
+	}{
+		{
+			description: "CollateOn message fails with message not expected",
+			msg:         CollateOn(2),
+			errString:   ErrNotExpectedOnValidatorSide.Error(),
+		},
+		{
+			description: "DistributeCollation message fails with message not expected",
+			msg:         DistributeCollation{},
+			errString:   ErrNotExpectedOnValidatorSide.Error(),
+		},
+		{
+			description: "ReportCollator message fails with peer not found for collator",
+			msg:         ReportCollator(testCollatorID),
+			errString:   ErrPeerIDNotFoundForCollator.Error(),
+		},
+		{
+			description: "ReportCollator message succeeds and reports a bad collator",
+			msg:         ReportCollator(testCollatorID),
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.ReportBadCollatorValue,
+					Reason: peerset.ReportBadCollatorReason,
+				}, peerID)
+
+				return net
+			}(),
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							CollatorID: testCollatorID,
+							ParaID:     parachaintypes.ParaID(6),
+						},
+					},
+				},
+			},
+			errString: "",
+		},
+		{
+			description: "InvalidOverseerMsg message fails with peer not found for collator",
+			msg: InvalidOverseerMsg{
+				Parent:           testRelayParent,
+				CandidateReceipt: testCandidateReceipt,
+			},
+			fetchedCandidates: func() map[string]CollationEvent {
+				candidateHash, _ := testCandidateReceipt.Hash()
+				fetchedCollation := fetchedCollation{
+					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
+					relayParent: testCandidateReceipt.Descriptor.RelayParent,
+					collatorID:  testCandidateReceipt.Descriptor.Collator,
+					candidateHash: parachaintypes.CandidateHash{
+						Value: candidateHash,
+					},
+				}
+				return map[string]CollationEvent{
+					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.Collator,
+						PendingCollation: PendingCollation{
+							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
+						},
+					},
+				}
+			}(),
+			errString: ErrPeerIDNotFoundForCollator.Error(),
+		},
+		{
+			description: "InvalidOverseerMsg message succeeds, reports a bad collator and removes fetchedCandidate",
+			msg: InvalidOverseerMsg{
+				Parent:           testRelayParent,
+				CandidateReceipt: testCandidateReceipt,
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.ReportBadCollatorValue,
+					Reason: peerset.ReportBadCollatorReason,
+				}, peerID)
+
+				return net
+			}(),
+			fetchedCandidates: func() map[string]CollationEvent {
+				candidateHash, _ := testCandidateReceipt.Hash()
+				fetchedCollation := fetchedCollation{
+					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
+					relayParent: testCandidateReceipt.Descriptor.RelayParent,
+					collatorID:  testCandidateReceipt.Descriptor.Collator,
+					candidateHash: parachaintypes.CandidateHash{
+						Value: candidateHash,
+					},
+				}
+				return map[string]CollationEvent{
+					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.Collator,
+						PendingCollation: PendingCollation{
+							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
+						},
+					},
+				}
+			}(),
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							CollatorID: testCollatorID,
+							ParaID:     parachaintypes.ParaID(6),
+						},
+					},
+				},
+			},
+			errString: "",
+		},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+			cpvs := CollatorProtocolValidatorSide{
+				net: c.net,
+				// perRelayParent: c.perRelayParent,
+				fetchedCandidates: c.fetchedCandidates,
+				peerData:          c.peerData,
+				// activeLeaves:   c.activeLeaves,
+			}
+
+			err := cpvs.processMessage(c.msg)
+			if c.errString == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, c.errString)
+			}
+		})
+	}
+}
