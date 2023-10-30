@@ -550,7 +550,7 @@ type BackedCandidate struct {
 	// The validity votes themselves, expressed as signatures.
 	ValidityVotes []ValidityAttestation `scale:"2"`
 	// The indices of the validators within the group, expressed as a bitfield.
-	ValidatorIndices []byte `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
+	ValidatorIndices scale.BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
 }
 
 type ProspectiveParachainsMode struct {

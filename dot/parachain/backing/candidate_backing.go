@@ -96,6 +96,7 @@ type AttestingData struct {
 
 type TableContext struct {
 	validator  *Validator
+	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
 }
 
@@ -250,7 +251,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	if summary.GroupID != uint32(rpState.Assignment) {
+	if summary.GroupID != rpState.Assignment {
 		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s", summary.GroupID, relayParent)
 		return nil
 	}
@@ -388,7 +389,7 @@ func (rpState *perRelayParentState) importStatement(
 
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) error {
 	if summary == nil {
-		// TODO: issue_new_misbehaviors
+		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
 		return nil
 	}
 
@@ -398,7 +399,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	}
 
 	if attested == nil {
-		// TODO: issue_new_misbehaviors
+		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
 		return nil
 	}
 
@@ -407,7 +408,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	}
 
 	if rpState.backed[candidateHash] {
-		// TODO: issue_new_misbehaviors
+		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
 		return nil
 	}
 
@@ -416,7 +417,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	// candidate is backed now
 	backedCandidate := attestedToBackedCandidate(*attested, &rpState.TableContext)
 	if backedCandidate == nil {
-		// TODO: issue_new_misbehaviors
+		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
 		return nil
 	}
 
@@ -462,16 +463,67 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		}
 	}
 
-	// TODO: issue_new_misbehaviors
+	issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
 	return nil
+}
+
+// issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
+func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Hash, table Table) {
+	// collect the misbehaviors to avoid double mutable self borrow issues
+	misbehaviors := table.drainMisbehaviors()
+
+	for _, m := range misbehaviors {
+		// TODO: figure out what this comment mean by 'avoid cycles'.
+		// The provisioner waits on candidate-backing, which means
+		// that we need to send unbounded messages to avoid cycles.
+		//
+		// Misbehaviors are bounded by the number of validators and
+		// the block production protocol.
+		subSystemToOverseer <- parachaintypes.ProvisionerMessage{
+			Value: parachaintypes.PMProvisionableData{
+				RelayParent: relayParent,
+				ProvisionableData: parachaintypes.ProvisionableData{
+					Value: parachaintypes.PDMisbehaviorReport{
+						ValidatorIndex: parachaintypes.ValidatorIndex(m.ValidatorIndex),
+						Misbehavior:    m.Misbehavior,
+					},
+				},
+			},
+		}
+
+	}
 }
 
 func attestedToBackedCandidate(
 	attested AttestedCandidate,
 	tableContext *TableContext,
 ) *parachaintypes.BackedCandidate {
-	// TODO: implement this function
-	return new(parachaintypes.BackedCandidate)
+	group := tableContext.groups[attested.GroupID]
+	validatorIndices := make([]bool, len(group))
+	var validityAttestations []parachaintypes.ValidityAttestation
+
+	// The order of the validity votes in the backed candidate must match
+	// the order of bits set in the bitfield, which is not necessarily
+	// the order of the `validity_votes` we got from the table.
+	for positionInGroup, validatorIndex := range group {
+		for _, validityVote := range attested.ValidityVotes {
+			if validityVote.ValidatorIndex == validatorIndex {
+				validatorIndices[positionInGroup] = true
+				validityAttestations = append(validityAttestations, validityVote.ValidityAttestation)
+			}
+		}
+
+		if !validatorIndices[positionInGroup] {
+			logger.Error("Validity vote from unknown validator")
+			return nil
+		}
+	}
+
+	return &parachaintypes.BackedCandidate{
+		Candidate:        attested.Candidate,
+		ValidityVotes:    validityAttestations,
+		ValidatorIndices: scale.NewBitVec(validatorIndices),
+	}
 }
 
 // Kick off validation work and distribute the result as a signed statement.

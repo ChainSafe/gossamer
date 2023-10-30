@@ -32,6 +32,16 @@ type ProvisionableData struct {
 // The Candidate Backing subsystem believes that this candidate is valid, pending availability.
 type PDBackedCandidate CandidateReceipt
 
+// PDMisbehaviorReport represents self-contained proofs of validator misbehavior.
+type PDMisbehaviorReport struct {
+	ValidatorIndex ValidatorIndex
+	Misbehavior    Misbehavior
+}
+
+type Misbehavior struct {
+	// TODO: implement this
+}
+
 // StatementDistributionMessage is a message to the Statement Distribution subsystem.
 type StatementDistributionMessage struct {
 	Value any
