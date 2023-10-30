@@ -184,9 +184,12 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 		case <-ctx.Done():
 			close(cb.SubSystemToOverseer)
 			close(chRelayParentAndCommand)
-
 		}
 	}
+}
+
+func (*CandidateBacking) Name() parachaintypes.SubSystemName {
+	return parachaintypes.CandidateBacking
 }
 
 // processOverseerMessage processes incoming messages from overseer
