@@ -335,6 +335,23 @@ type CollatorProtocolValidatorSide struct {
 	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
 	/// to asynchronous backing is done.
 	activeLeaves map[common.Hash]ProspectiveParachainsMode
+
+	fetchedCandidates map[string]CollationEvent
+}
+
+// Identifier of a fetched collation
+type fetchedCollation struct {
+	// Candidate's relay parent
+	relayParent   common.Hash
+	paraID        parachaintypes.ParaID
+	candidateHash parachaintypes.CandidateHash
+	// Id of the collator the collation was fetched from
+	collatorID parachaintypes.CollatorID
+}
+
+func (f fetchedCollation) String() string {
+	return fmt.Sprintf("relay parent: %s, para id: %d, candidate hash: %s, collator id: %+v",
+		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
 }
 
 // Prospective parachains mode of a relay parent. Defined by
@@ -403,6 +420,7 @@ type NetworkBridgeUpdate struct {
 	// TODO: not quite sure if we would need this or something similar to this
 }
 
+// SecondedOverseerMsg represents that the candidate we recommended to be seconded was validated successfully.
 type SecondedOverseerMsg struct {
 	Parent common.Hash
 	Stmt   parachaintypes.StatementVDT
@@ -414,6 +432,8 @@ type Backed struct {
 	ParaHead common.Hash
 }
 
+// InvalidOverseerMsg represents an invalid candidata.
+// We recommended a particular candidate to be seconded, but it was invalid; penalize the collator.
 type InvalidOverseerMsg struct {
 	Parent           common.Hash
 	CandidateReceipt parachaintypes.CandidateReceipt
@@ -443,6 +463,85 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 		// TODO: handle seconded message https://github.com/ChainSafe/gossamer/issues/3516
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1466 //nolint
 
+		statementV, err := msg.Stmt.Value()
+		if err != nil {
+			return fmt.Errorf("getting value of statement: %w", err)
+		}
+		if statementV.Index() != 1 {
+			logger.Error("expected a seconded statement")
+		}
+
+		receipt, ok := statementV.(parachaintypes.Seconded)
+		if !ok {
+			return fmt.Errorf("statement value expected: Seconded, got: %T", statementV)
+		}
+		candidateHashV, err := parachaintypes.CommittedCandidateReceipt(receipt).Hash()
+		if err != nil {
+			return fmt.Errorf("getting candidate hash from receipt: %w", err)
+		}
+		fetchedCollation := fetchedCollation{
+			relayParent:   receipt.Descriptor.RelayParent,
+			paraID:        parachaintypes.ParaID(receipt.Descriptor.ParaID),
+			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},
+			collatorID:    receipt.Descriptor.Collator,
+		}
+		// remove the candidate from the list of fetched candidates
+		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
+		if !ok {
+			logger.Error("collation has been seconded, but the relay parent is deactivated")
+			return nil
+		}
+
+		delete(cpvs.fetchedCandidates, fetchedCollation.String())
+
+		// notify good collation
+		peerID, ok := cpvs.getPeerIDFromCollatorID(collationEvent.CollatorId)
+		if !ok {
+			return ErrPeerIDNotFoundForCollator
+		}
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.BenefitNotifyGoodValue,
+			Reason: peerset.BenefitNotifyGoodReason,
+		}, peerID)
+
+		// notify candidate seconded
+		_, ok = cpvs.peerData[peerID]
+		if ok {
+			collatorProtocolMessage := NewCollatorProtocolMessage()
+			err = collatorProtocolMessage.Set(CollationSeconded{
+				RelayParent: msg.Parent,
+				Statement: parachaintypes.UncheckedSignedFullStatement{
+					Payload: msg.Stmt,
+					// TODO:
+					// ValidatorIndex: ,
+					// Signature: ,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("setting collation seconded: %w", err)
+			}
+			collationMessage := NewCollationProtocol()
+
+			err = collationMessage.Set(collatorProtocolMessage)
+			if err != nil {
+				return fmt.Errorf("setting collation message: %w", err)
+			}
+
+			err = cpvs.net.SendMessage(peerID, &collationMessage)
+			if err != nil {
+				return fmt.Errorf("sending collation message: %w", err)
+			}
+
+			perRelayParent, ok := cpvs.perRelayParent[msg.Parent]
+			if ok {
+				perRelayParent.collations.status = Seconded
+				perRelayParent.collations.secondedCount++
+				cpvs.perRelayParent[msg.Parent] = perRelayParent
+			}
+
+			// TODO: Few more things for async backing, but we don't have async backing yet
+			// https://github.com/paritytech/polkadot-sdk/blob/7035034710ecb9c6a786284e5f771364c520598d/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1531-L1532
+		}
 	case Backed:
 		// TODO: handle backed message https://github.com/ChainSafe/gossamer/issues/3517
 	case InvalidOverseerMsg:

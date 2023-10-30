@@ -252,6 +252,15 @@ type CommittedCandidateReceipt struct {
 	Commitments CandidateCommitments `scale:"2"`
 }
 
+func (ccr CommittedCandidateReceipt) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(ccr)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("failed to marshal CommittedCandidateReceipt: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
+}
+
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte
