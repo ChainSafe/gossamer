@@ -22,6 +22,16 @@ func TestProcessOverseerMessage(t *testing.T) {
 
 	// testParaID := parachaintypes.ParaID(5)
 
+	commitments := parachaintypes.CandidateCommitments{
+		UpwardMessages:    []parachaintypes.UpwardMessage{{1, 2, 3}},
+		NewValidationCode: &parachaintypes.ValidationCode{1, 2, 3},
+		HeadData: parachaintypes.HeadData{
+			Data: []byte{1, 2, 3},
+		},
+		ProcessedDownwardMessages: uint32(5),
+		HrmpWatermark:             uint32(0),
+	}
+
 	testCandidateReceipt := parachaintypes.CandidateReceipt{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1000),
@@ -34,8 +44,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 			// ValidationCodeHash:          parachaintypes.ValidationCodeHash(validationCodeHashV),
 		},
 
-		CommitmentsHash: common.MustHexToHash("0xa54a8dce5fd2a27e3715f99e4241f674a48f4529f77949a4474f5b283b823535"),
+		CommitmentsHash: commitments.Hash(),
 	}
+
 	testCases := []struct {
 		description string
 		msg         any
@@ -130,6 +141,104 @@ func TestProcessOverseerMessage(t *testing.T) {
 					Value:  peerset.ReportBadCollatorValue,
 					Reason: peerset.ReportBadCollatorReason,
 				}, peerID)
+
+				return net
+			}(),
+			fetchedCandidates: func() map[string]CollationEvent {
+				candidateHash, _ := testCandidateReceipt.Hash()
+				fetchedCollation := fetchedCollation{
+					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
+					relayParent: testCandidateReceipt.Descriptor.RelayParent,
+					collatorID:  testCandidateReceipt.Descriptor.Collator,
+					candidateHash: parachaintypes.CandidateHash{
+						Value: candidateHash,
+					},
+				}
+				return map[string]CollationEvent{
+					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.Collator,
+						PendingCollation: PendingCollation{
+							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
+						},
+					},
+				}
+			}(),
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							CollatorID: testCollatorID,
+							ParaID:     parachaintypes.ParaID(6),
+						},
+					},
+				},
+			},
+			deletesFetchCandidate: true,
+			errString:             "",
+		},
+		{
+			description: "SecondedOverseerMsg message fails with peer not found for collator and removes fetchedCandidate",
+			msg: SecondedOverseerMsg{
+				Parent: testRelayParent,
+				Stmt: func() parachaintypes.StatementVDT {
+					vdt := parachaintypes.NewStatementVDT()
+					vdt.Set(parachaintypes.Seconded(
+						parachaintypes.CommittedCandidateReceipt{
+							Descriptor:  testCandidateReceipt.Descriptor,
+							Commitments: commitments,
+						},
+					))
+					return vdt
+				}(),
+			},
+			fetchedCandidates: func() map[string]CollationEvent {
+				candidateHash, _ := testCandidateReceipt.Hash()
+				fetchedCollation := fetchedCollation{
+					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
+					relayParent: testCandidateReceipt.Descriptor.RelayParent,
+					collatorID:  testCandidateReceipt.Descriptor.Collator,
+					candidateHash: parachaintypes.CandidateHash{
+						Value: candidateHash,
+					},
+				}
+				return map[string]CollationEvent{
+					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.Collator,
+						PendingCollation: PendingCollation{
+							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
+						},
+					},
+				}
+			}(),
+			deletesFetchCandidate: true,
+			errString:             ErrPeerIDNotFoundForCollator.Error(),
+		},
+		{
+			description: "SecondedOverseerMsg message succceds, reports a good collator and removes fetchedCandidate",
+			msg: SecondedOverseerMsg{
+				Parent: testRelayParent,
+				Stmt: func() parachaintypes.StatementVDT {
+					vdt := parachaintypes.NewStatementVDT()
+					vdt.Set(parachaintypes.Seconded(
+						parachaintypes.CommittedCandidateReceipt{
+							Descriptor:  testCandidateReceipt.Descriptor,
+							Commitments: commitments,
+						},
+					))
+					return vdt
+				}(),
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.BenefitNotifyGoodValue,
+					Reason: peerset.BenefitNotifyGoodReason,
+				}, peerID)
+
+				net.EXPECT().SendMessage(peerID, gomock.AssignableToTypeOf(&CollationProtocol{}))
 
 				return net
 			}(),
