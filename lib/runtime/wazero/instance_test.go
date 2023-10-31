@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -35,9 +34,6 @@ import (
 
 //go:embed hex.yaml
 var hex []byte
-
-//go:embed runtime.yaml
-var runtimeBlob []byte
 
 func mustHexTo64BArray(t *testing.T, inputHex string) (outputArray [64]byte) {
 	t.Helper()
@@ -417,43 +413,6 @@ func TestInstance_BabeConfiguration_WestendRuntime_NoAuthorities(t *testing.T) {
 const blockResponse9412261 = "0x0ae5160a20baa8a27e8dfe65363fcd62a8fbb38f7a35d74d74feddef4c0c899493b460ddb212c9075a5de113c3fb216be19c55ba1ba165fb8649a80f3af7b9ba8775e46eadca4078967a3e02d3ef35f8555a4d687f9fadc772103daac39008454dd7b7672dcb02abbe57657ecf630b937b030c07a640937d27627b5bac6237a96a87810bf9b1f3809088025d0c0642414245b50103090000004fc1541000000000e2057d59fc150d564072389e1b3d9e4c600db5c9b7f46e556f59887865259a4c3e229351a04977203ace4a6a8cf5ecce427193ced92116dfe86914bd8ba64e0b55491496a8da3ca2280beebe3bbea508713c28252716eb18aba338487daf9a0c0442414245890a0140a2f559499573b5878287f8cc18abfb5d070229a6584a125113725a38ba62996f0100000000000000886a9fa1a9ee1cc5666fa0b6d5c16754617b923c364428ad51c79e6b52ad1d3e0100000000000000524c2bc612c5a6f22845e6a80944db9e197beaa50c242f34a2a45a3666a2eb7a01000000000000002cc19bd8a23c534f9f2ae91651c84bc2fdef757e8aca156edc5e92eeb589043d010000000000000036484c5ae34f2fcd3a56a9ac7681a183ec1628e495dd142d530d10e4e8c1432401000000000000006e4ada50950a8e35392dcf101c0c82b29e95e3da2d71d7e0909fde502de0ca5b0100000000000000f08a1a9eb8536a735b23b04d3d6501bc720d0d6a40a89c911a771f1c2d7a42600100000000000000eeb16c9f7722516fca6b3c1bc0fab270a5a3280f51ce1b21e834d8a7f3d452210100000000000000b24ced05d1e1fbadf98791e452f9d265a3118e9828a9ce0f64ed73d91764ea17010000000000000088c33bf243528e684e9b41c99abc2083e0d6cd391bcb2d8340723b12b4706514010000000000000056646045eeaee5ac194bd2436420c9070d81ba0d17624832c1eb12c3b353c6480100000000000000565bea8cf9db123c71a5015380a98560839b129030287e2008dc8337affc4b790100000000000000ac5c5c355619970c9c2049ace0551338e6f345ad01547338a90f317cc043a8200100000000000000642b60bdaaa80105756645e9d1e267ac7c384a73ed004f65e91180f99b49ef06010000000000000034e9be26ef44e368d4d438e2782b5b0805fc40257c7436026af4113a80245e530100000000000000c48aee5296e2911c4b3a9051fe0a4c4ae81741e110b6ae3e89b138cd874d90290100000000000000660c71d336a45d61cbf36f7e9139f992e54e4ee87b9516b996ebcb96c757b06e0542414245010124f8bb0940922d77a452fefa7c80a1827d1567c19ad56144a27bab7e7f5a502a542bc6c43e5db49bba6562a4e76ed9f765c421ac396d9dcbaa9308b404dfbe8d1a0b280402000b93ab72c27e011ae70e951d042d0034140000000000d27659588e86d32c918459c9348bd7e926ebe92434b8b3e01ca39b7433c27c4d2b9c5ac37c3fd31f76e4338f6afbb57157a2449220ab8f177eafdff14879c38e140001000000b095e24e4c630c84fae30364594aeb9d14610456a714fa9508b260908acf580e3dcc6c0bf3dbe85558bda15c5268aca5466789c2a4d226301f98045b727fb782140002000000fc7fbe2fb49cf33684f87ee7e190e5b439b3c2d78d084f6697c140825e5a712dbe2afad0aecfe658a3f74941ef86b62f2972a638ae1a4aef420656141e8658871400040000000654af42365bdbfa1bf302b70f901a88fdbf67962f10fd1f7152d49ce8043c1f37957e0155de14763922c87970adc1eaed96f0624c79347aee3c2ee098e92d821400060000007648cf5d9f6da7d7a6181071eda5f4da328459316a72f6a136f43c89b748a8008407008aab927a4bfc589ab98609dd20a4f59c4653975b1ec3907e606a804f88140007000000c269c0e96b74d3b0786fb00ed4b9ce9000adee36082caa0b52e2a5cf43fe453ff5edd4feaf8966544fcce3ee2907a77bf744c38c771055e95f73f962a497988a1400080000000c1a55952882e7fef23915f0f4ac0260c164787927920829a405d70e14335a285edd4602de88fd74a4b31a20bf5102c4165a81f1d90af2c2799dbd341811148914000a00000040588a32c0d340964add5ab3ee314ff354004e17c9d031fc44065defdb503f164e9f42b6057151af6275465f9194ab3266e32bc66d1ebc5324d9c4e1cca12a8414000b00000084ed4fb84603b8428963eb1d001e2df71ab3c72cdd193774e972c8f35ecdb549c4f9702d614c8afd93135aefc7bcadba44d8952c6a1616a350b38cd89797f88714000c00000042952ee385eb059243899bc479644dbbf083d31be14f30b85286aad4e135bd72c3a36ba97503877bb23221544dcff79b534c55c8bc5caea10bc1a39a111f368514000d0000006272b4044f9c8ab785ab1852c619e53611636915b4504238c53b0a57c9abc273f0029d01e9635a30e2164239ec6949fe5cd307ce7ab56ee570902ad113eb698814000e00000082e91851574f2a8e207e3063c62efdae94491d11dd61c3130bfe6e3298b66a7013014fbc0acce52f770998a759995c1681b97740d7016902ebdf9cf90f2faa8b14000f0000004417a846c734d159eb25925963e93f451f96650fb5b889e6fab3eab8b4a434016db24f9d7b94e7feda8f4a372cd3d27c0714ec584d4ebdaa4ed3bd8b328c998a04e80300005a5de113c3fb216be19c55ba1ba165fb8649a80f3af7b9ba8775e46eadca4078fe4ce0ced20f86087cdc506c6c357f3c6981a0da1c71370331907c92e809753108de8e3048b2b9eb7c83cceed594a5146f0f0c1eadb5bad4653a2821eece7045e04da348bb559224631e45aa287aed8efe1aef6a3469581eb3a23a29798a7a371bf5a6f475913fa02d4b485c57557e86fc5b54fb6a3a928e5ef2d7cbb0b0117cb28e48819f64d1a170a1fcc48052c74e9462438b160284918c29a9a0e006200d3dc3a853abdf134dceab23ff726a114d64286b229eafb8d94d78fde47d371582c4462f1de9e302efc74b6ccdea46df07079f41f1f7dcd697afbf82d1bb257d6bf3dadfb80eea51b35e54a5a1dfda4537635aded419fd197daa093a01f1e04c39000000e902db346f1d150f5a9a617a573f7a20508ab096d5fe719c6e0d61e22d828c57d2b5b2e55900fc2bfeed19dde4498ecf5659ef19a157cc71c15c99363e5aa79e2d3004c10ba23a5d9d8b28c97dc6117588edd890913d8fdf5ba086b00a8b213e6ef2637ac78008066175726120a7602a080000000005617572610101962af0f04c3c454ae05d7433f88e4cfee939741479f60006e8daee44a5af3b595ec854cfd0ef91c445e1fa6c5e1b68ae5ea3ffe41be528ab73cf6d5776fb198a00000000a49e8f000c0206c2866f2a19f4ce76cb160e6d90da52393ff0f2465ffbf6aa0d6e538c0a7e3050bb2b135b633dd1e4510ed9c4a59e3005e2c11cca35ea81f6480c3a3a2d2e87015641031b2e4830e806e379614bbe03727257505817434a17179f30e1a612e50dad3610e7dae4d7e603e35c8363149fc4df1ab59b0e6a336db09d403ca730838e0236d8504ccda394afc8fd55af9e02e29ab114e3ea8225dfc5d6436bce77790769c6132718955cb640c759aabdb2cda2083294f2432fd11eaea451d67d25dfb8810c0700fe1eaf8ce7001f3cccb31eb70e835ae8a9237f49e4b0c3db8340126be6eca54f927a3e02780530903c5102d03a8240fe2712f3dfdc84734192f360caf50050cb8d381e45fcdc63b25fca3a380005b6fa430fa1d7f1552417bfe9dfda8bacf0d107894c9a080642414245b50103060000004ec15410000000007e4d06f689b291ab1c3f3239ced29c9cf347740bd385912d6687046e661959291060e30dd95722640219c17c33b739e5b83cefa0f96146ad2ee9c22308786503126b1ba7068e5582aedb0e3f674d29348b90aa24d38f136cfa3b56753847aa0705424142450101849cd6d29dc1956045a8b0770c3a44acb6eea69f36203ae66ec455ecd532cf6c526bf13f4b9872bd00d2d2843e8bac000d69aa2cedcbe42f98bfdc68bbbca382"
 
 func TestInstance_Failure_WestednBlock9412261(t *testing.T) {
-
-	// runtimeFromGenesis := func() *Instance {
-	// 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
-	// 	gen := genesisFromRawJSON(t, genesisPath)
-
-	// 	genTrie, err := runtime.NewTrieFromGenesis(gen)
-	// 	require.NoError(t, err)
-
-	// 	wndTrie9412260 := newTrieFromScaledPairs(t, "../test_data/westend/entries9412260.out")
-	// 	expectedRoot := common.MustHexToHash("0x780530903c5102d03a8240fe2712f3dfdc84734192f360caf50050cb8d381e45")
-	// 	require.Equal(t, expectedRoot, wndTrie9412260.MustHash())
-
-	// 	code := wndTrie9412260.Get(common.CodeKey)
-	// 	require.Greater(t, len(code), 0)
-
-	// 	genState := storage.NewTrieState(&genTrie)
-
-	// 	offchaindb, err := database.NewPebble(t.TempDir(), true)
-	// 	require.NoError(t, err)
-
-	// 	err = genState.Put(common.CodeKey, code, trie.V0)
-	// 	require.NoError(t, err)
-
-	// 	cfg := Config{
-	// 		Storage: genState,
-	// 		LogLvl:  log.Critical,
-	// 		NodeStorage: runtime.NodeStorage{
-	// 			BaseDB: offchaindb,
-	// 		},
-	// 	}
-
-	// 	rt, err := NewRuntimeFromGenesis(cfg)
-	// 	require.NoError(t, err)
-
-	// 	return rt
-	// }
-
 	runtimeFrom9412260 := func() *Instance {
 		wndTrie9412260 := newTrieFromScaledPairs(t, "../test_data/westend/entries9412260.out")
 		expectedRoot := common.MustHexToHash("0x780530903c5102d03a8240fe2712f3dfdc84734192f360caf50050cb8d381e45")
@@ -481,73 +440,28 @@ func TestInstance_Failure_WestednBlock9412261(t *testing.T) {
 
 	instance := runtimeFrom9412260()
 
-	encodedResponseData := struct {
-		Data []string `yaml:"data"`
-	}{
-		Data: []string{
-			blockResponse9412261,
-		},
-	}
-
-	// err := yaml.Unmarshal(hex, &encodedResponseData)
-	// require.NoError(t, err)
-
-	acc := make([]*types.BlockData, 0)
-	for _, encodeData := range encodedResponseData.Data {
-		entireBlockData := common.MustHexToBytes(encodeData)
-
-		blockResponseData := new(network.BlockResponseMessage)
-		err := blockResponseData.Decode(entireBlockData)
-		require.NoError(t, err)
-
-		acc = append(acc, blockResponseData.BlockData...)
-	}
-
-	slices.SortFunc(acc, func(a, b *types.BlockData) int {
-		if int(a.Header.Number) < int(b.Header.Number) {
-			return -1
-		}
-
-		if int(a.Header.Number) == int(b.Header.Number) {
-			return 0
-		}
-
-		if int(a.Header.Number) > int(b.Header.Number) {
-			return 1
-		}
-
-		panic("comparision exhausted")
-	})
-
 	rtV, err := instance.Version()
 	require.NoError(t, err)
 
 	fmt.Println(rtV.SpecVersion)
 
-	for i := 0; i < 400; i++ {
-		block := acc[0]
-		fmt.Printf("Executing block #%d...\n", block.Header.Number)
+	entireBlockData := common.MustHexToBytes(blockResponse9412261)
 
-		_, err = instance.ExecuteBlock(&types.Block{
-			Header: *block.Header,
-			Body:   *block.Body,
-		})
-		require.NoError(t, err)
+	blockResponseData := new(network.BlockResponseMessage)
+	err = blockResponseData.Decode(entireBlockData)
+	require.NoError(t, err)
 
-		fmt.Printf("executed block #%d...\n\n", block.Header.Number)
-	}
+	block := blockResponseData.BlockData[0]
 
-	// for _, block := range acc {
-	// 	fmt.Printf("Executing block #%d...\n", block.Header.Number)
+	fmt.Printf("Executing block #%d...\n", block.Header.Number)
 
-	// 	_, err = instance.ExecuteBlock(&types.Block{
-	// 		Header: *block.Header,
-	// 		Body:   *block.Body,
-	// 	})
-	// 	require.NoError(t, err)
+	_, err = instance.ExecuteBlock(&types.Block{
+		Header: *block.Header,
+		Body:   *block.Body,
+	})
+	require.NoError(t, err)
 
-	// 	fmt.Printf("executed block #%d...\n\n", block.Header.Number)
-	// }
+	fmt.Printf("executed block #%d...\n\n", block.Header.Number)
 }
 
 func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
