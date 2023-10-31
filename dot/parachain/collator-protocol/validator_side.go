@@ -462,7 +462,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			return fmt.Errorf("getting value of statement: %w", err)
 		}
 		if statementV.Index() != 1 {
-			logger.Error("expected a seconded statement")
+			return fmt.Errorf("expected a seconded statement")
 		}
 
 		receipt, ok := statementV.(parachaintypes.Seconded)
@@ -554,10 +554,6 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},
 			collatorID:    msg.CandidateReceipt.Descriptor.Collator,
 		}
-		fmt.Println("cpvs.fetchedCandidates")
-		fmt.Println(cpvs.fetchedCandidates)
-		fmt.Println("fetchedCollation.String()")
-		fmt.Println(fetchedCollation.String())
 
 		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {

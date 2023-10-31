@@ -19,6 +19,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 	copy(testCollatorID[:], tempCollatID)
 	peerID := peer.ID("testPeerID")
 	testRelayParent := getDummyHash(5)
+
 	// testParaID := parachaintypes.ParaID(5)
 
 	testCandidateReceipt := parachaintypes.CandidateReceipt{
@@ -40,8 +41,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 		msg         any
 		peerData    map[peer.ID]PeerData
 		// perRelayParent map[common.Hash]PerRelayParent
-		net               Network
-		fetchedCandidates map[string]CollationEvent
+		net                   Network
+		fetchedCandidates     map[string]CollationEvent
+		deletesFetchCandidate bool
 		// activeLeaves   map[common.Hash]ProspectiveParachainsMode
 		errString string
 	}{
@@ -112,7 +114,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 					},
 				}
 			}(),
-			errString: ErrPeerIDNotFoundForCollator.Error(),
+			deletesFetchCandidate: true,
+			errString:             ErrPeerIDNotFoundForCollator.Error(),
 		},
 		{
 			description: "InvalidOverseerMsg message succeeds, reports a bad collator and removes fetchedCandidate",
@@ -161,7 +164,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 					},
 				},
 			},
-			errString: "",
+			deletesFetchCandidate: true,
+			errString:             "",
 		},
 	}
 	for _, c := range testCases {
@@ -176,11 +180,19 @@ func TestProcessOverseerMessage(t *testing.T) {
 				// activeLeaves:   c.activeLeaves,
 			}
 
+			lenFetchedCandidatesBefore := len(cpvs.fetchedCandidates)
+
 			err := cpvs.processMessage(c.msg)
 			if c.errString == "" {
 				require.NoError(t, err)
 			} else {
 				require.ErrorContains(t, err, c.errString)
+			}
+
+			if c.deletesFetchCandidate {
+				require.Equal(t, lenFetchedCandidatesBefore-1, len(cpvs.fetchedCandidates))
+			} else {
+				require.Equal(t, lenFetchedCandidatesBefore, len(cpvs.fetchedCandidates))
 			}
 		})
 	}
