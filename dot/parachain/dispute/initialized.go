@@ -10,7 +10,6 @@ import (
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/gammazero/deque"
 	"time"
@@ -362,11 +361,17 @@ func (i *Initialized) ProcessOnChainVotes(
 				continue
 			}
 
+			keypair, err := types.GetValidatorKeyPair(i.keystore, sessionInfo.Validators, backers.ValidatorIndex)
+			if err != nil {
+				logger.Errorf("get validator key pair: %s", err)
+				continue
+			}
+
 			signedDisputeStatement, err := types.NewCheckedSignedDisputeStatement(disputeStatement,
 				candidateHash,
 				votes.Session,
-				validatorPublic,
 				parachain.ValidatorSignature(validatorSignature),
+				keypair,
 			)
 			if err != nil {
 				logger.Errorf("scraped backing votes had invalid signature. "+
@@ -682,7 +687,7 @@ func (i *Initialized) HandleImportStatements(
 				return InvalidImport, fmt.Errorf("approval signature response: %w", response.Error)
 			}
 
-			result, err := intermediateResult.ImportApprovalVotes(response.Signature, env, now)
+			result, err := intermediateResult.ImportApprovalVotes(i.keystore, response.Signature, env, now)
 			if err != nil {
 				return InvalidImport, fmt.Errorf("import approval votes: %w", err)
 			}
@@ -811,8 +816,7 @@ func (i *Initialized) HandleImportStatements(
 				continue
 			}
 
-			validatorPublic := env.Session.Validators[vote.ValidatorIndex]
-			keypair, err := getValidatorKeyPair(validatorPublic, i.keystore)
+			keypair, err := types.GetValidatorKeyPair(i.keystore, env.Session.Validators, vote.ValidatorIndex)
 			if err != nil {
 				logger.Warnf("missing validator keypair for validator index %d: %s",
 					vote.ValidatorIndex,
@@ -820,6 +824,7 @@ func (i *Initialized) HandleImportStatements(
 				)
 				continue
 			}
+
 			statement, err := types.NewSignedDisputeStatement(keypair, true, candidateHash, session)
 			if err != nil {
 				logger.Warnf("failed to construct dispute statement for validator index %d: %s",
@@ -990,15 +995,7 @@ func (i *Initialized) IssueLocalStatement(
 			continue
 		}
 
-		if int(index) > len(env.Session.Validators) {
-			return fmt.Errorf("missing validator public key. session: %v, validatorIndex: %v",
-				session,
-				index,
-			)
-		}
-
-		validatorPublic := env.Session.Validators[index]
-		keypair, err := getValidatorKeyPair(validatorPublic, i.keystore)
+		keypair, err := types.GetValidatorKeyPair(i.keystore, env.Session.Validators, index)
 		if err != nil {
 			return fmt.Errorf("get validator key pair: %w", err)
 		}
@@ -1016,7 +1013,7 @@ func (i *Initialized) IssueLocalStatement(
 
 	// Get the message out
 	for _, statement := range statements {
-		keypair, err := getValidatorKeyPair(env.Session.Validators[statement.ValidatorIndex], i.keystore)
+		keypair, err := types.GetValidatorKeyPair(i.keystore, env.Session.Validators, statement.ValidatorIndex)
 		if err != nil {
 			logger.Warnf("missing validator keypair for validator index %d: %s",
 				statement.ValidatorIndex,
@@ -1128,17 +1125,6 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 	}
 
 	return last, nil
-}
-
-// getValidatorKeyPair returns the keypair for the given validator public key.
-func getValidatorKeyPair(validatorPublic parachainTypes.ValidatorID,
-	keystore keystore.Keystore,
-) (keystore.KeyPair, error) {
-	pubKey, err := sr25519.NewPublicKey(validatorPublic[:])
-	if err != nil {
-		return nil, fmt.Errorf("new public key: %w", err)
-	}
-	return keystore.GetKeypairFromAddress(pubKey.Address()), nil
 }
 
 // NewInitializedState creates a new initialized state.
