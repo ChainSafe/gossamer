@@ -107,6 +107,6 @@ func (Finalized) Index() uint {
 }
 
 type BlockNumberHash struct {
-	blockNumber parachaintypes.BlockNumber
-	blockHash   common.Hash
+	blockNumber parachaintypes.BlockNumber //nolint:unused,structcheck
+	blockHash   common.Hash                //nolint:unused,structcheck
 }
