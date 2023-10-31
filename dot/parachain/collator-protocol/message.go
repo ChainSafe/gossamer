@@ -388,7 +388,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 			candidateHash:        prospectiveCandidate.CandidateHash,
 		}
 
-		cpvs.BlockedAdvertisements[backed.String()] = blockedAdvertisement
+		cpvs.BlockedAdvertisements[backed.String()] = []BlockedAdvertisement{blockedAdvertisement}
 		return nil
 	}
 	/*--------------------------------------------END----------------------------------------------------------*/

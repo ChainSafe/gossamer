@@ -313,10 +313,13 @@ type CollatorProtocolValidatorSide struct {
 	// state tracked per relay parent
 	perRelayParent map[common.Hash]PerRelayParent // map[replay parent]PerRelayParent
 
-	// TODO: In rust this is a map, let's see if we can get away with a map
-	// blocked_advertisements: HashMap<(ParaId, Hash), Vec<BlockedAdvertisement>>,
-	// BlockedAdvertisements []BlockedAdvertisement
-	BlockedAdvertisements map[string]BlockedAdvertisement
+	// Advertisements that were accepted as valid by collator protocol but rejected by backing.
+	//
+	// It's only legal to fetch collations that are either built on top of the root
+	// of some fragment tree or have a parent node which represents backed candidate.
+	// Otherwise, a validator will keep such advertisement in the memory and re-trigger
+	// requests to backing on new backed candidates and activations.
+	BlockedAdvertisements map[string][]BlockedAdvertisement
 
 	// Leaves that do support asynchronous backing along with
 	// implicit ancestry. Leaves from the implicit view are present in
@@ -550,7 +553,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		_, ok := cpvs.BlockedAdvertisements[backed.String()]
 		if ok {
 			delete(cpvs.BlockedAdvertisements, backed.String())
-			requestUnblockedCollations()
+			cpvs.requestUnblockedCollations(backed)
 		}
 	case InvalidOverseerMsg:
 		invalidOverseerMsg := msg
@@ -593,6 +596,23 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	return nil
 }
 
-func requestUnblockedCollations() {
+// requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
+func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed Backed) {
 
+	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
+		for _, blockedAdvertisement := range blockedAdvertisements {
+			isSecondingAllowed := cpvs.canSecond(
+				backed.ParaID, blockedAdvertisement.candidateRelayParent, blockedAdvertisement.candidateHash, backed.ParaHead)
+
+			if isSecondingAllowed {
+				cpvs.enqueueCollation(
+					blockedAdvertisement.candidateRelayParent,
+					backed.ParaID,
+					blockedAdvertisement.peerID,
+					blockedAdvertisement.collatorID,
+				)
+			}
+		}
+
+	}
 }
