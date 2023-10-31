@@ -376,14 +376,19 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 			" relay parent: %s, para id: %d, candidate hash: %s",
 			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
-		blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
+		backed := Backed{
+			ParaID:   collatorParaID,
+			ParaHead: prospectiveCandidate.ParentHeadDataHash,
+		}
+
+		blockedAdvertisement := BlockedAdvertisement{
 			peerID:               sender,
 			collatorID:           peerData.state.CollatingPeerState.CollatorID,
 			candidateRelayParent: relayParent,
 			candidateHash:        prospectiveCandidate.CandidateHash,
-		})
+		}
 
-		cpvs.BlockedAdvertisements = blockedAdvertisements
+		cpvs.BlockedAdvertisements[backed.String()] = blockedAdvertisement
 		return nil
 	}
 	/*--------------------------------------------END----------------------------------------------------------*/
