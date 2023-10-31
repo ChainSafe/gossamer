@@ -25,6 +25,7 @@ var (
 	ErrAttestingDataNotFound           = errors.New("attesting data not found")
 )
 
+// CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
 type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
@@ -51,6 +52,7 @@ type CandidateBacking struct {
 	perCandidate map[parachaintypes.CandidateHash]perCandidateState
 }
 
+// perCandidateState represents the state information for a candidate in the subsystem.
 type perCandidateState struct {
 	persistedValidationData parachaintypes.PersistedValidationData
 	SecondedLocally         bool
@@ -58,6 +60,7 @@ type perCandidateState struct {
 	RelayParent             common.Hash
 }
 
+// PerRelayParentState represents the state information for a relay-parent in the subsystem.
 type perRelayParentState struct {
 	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	// The hash of the relay parent on top of which this job is doing it's work.
@@ -78,11 +81,8 @@ type perRelayParentState struct {
 	backed map[parachaintypes.CandidateHash]bool
 }
 
-// In case a backing validator does not provide a PoV, we need to retry with other backing
-// validators.
-//
-// This is the data needed to accomplish this. Basically all the data needed for spawning a
-// validation job and a list of backing validators, we can try.
+// AttestingData contains the data needed to retry validation with other backing validators
+// in case a validator does not provide a PoV.
 type AttestingData struct {
 	// The candidate to attest.
 	candidate parachaintypes.CandidateReceipt
@@ -94,21 +94,22 @@ type AttestingData struct {
 	backing []parachaintypes.ValidatorIndex
 }
 
+// TableContext represents the contextual information associated with a validator and groups
+// for a table under a relay-parent.
 type TableContext struct {
 	validator  *Validator
 	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
 }
 
-// Local validator information
-//
-// It can be created if the local node is a validator in the context of a particular
-// relay chain block.
+// Validator represents local validator information.
+// It can be created if the local node is a validator in the context of a particular relay chain block.
 type Validator struct {
 	index parachaintypes.ValidatorIndex
 }
 
-// A type returned by runtime with current session index and a parent hash.
+// SigningContext represents a type returned by the runtime, including the current session index
+// and the hash of the parent.
 type SigningContext struct {
 	/// Current session index.
 	SessionIndex parachaintypes.SessionIndex
@@ -163,6 +164,7 @@ type SignedFullStatementWithPVD struct {
 	PersistedValidationData *parachaintypes.PersistedValidationData
 }
 
+// New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
 func New(overseerChan chan<- any) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
@@ -245,9 +247,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return fmt.Errorf("importing statement: %w", err)
 	}
 
-	if err := rpState.postImportStatement(cb.SubSystemToOverseer, summary); err != nil {
-		return fmt.Errorf("processing post import statement actions: %w", err)
-	}
+	rpState.postImportStatement(cb.SubSystemToOverseer, summary)
 
 	if summary == nil {
 		logger.Debug("statement is nil")
@@ -255,7 +255,8 @@ func (cb *CandidateBacking) handleStatementMessage(
 	}
 
 	if summary.GroupID != rpState.Assignment {
-		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s", summary.GroupID, relayParent)
+		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s",
+			summary.GroupID, relayParent)
 		return nil
 	}
 
@@ -390,10 +391,11 @@ func (rpState *perRelayParentState) importStatement(
 	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
 }
 
-func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) error {
+func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
+	// If the summary is nil, issue new misbehaviors and return.
 	if summary == nil {
 		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
-		return nil
+		return
 	}
 
 	attested, err := rpState.Table.attestedCandidate(&summary.Candidate, &rpState.TableContext)
@@ -401,27 +403,30 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		logger.Error(err.Error())
 	}
 
+	// If the candidate is not attested, issue new misbehaviors and return.
 	if attested == nil {
 		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
-		return nil
+		return
 	}
 
 	candidateHash := parachaintypes.CandidateHash{
 		Value: common.MustBlake2bHash(scale.MustMarshal(attested.Candidate)),
 	}
 
+	// If the candidate is already backed, issue new misbehaviors and return.
 	if rpState.backed[candidateHash] {
 		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
-		return nil
+		return
 	}
 
+	// Mark the candidate as backed.
 	rpState.backed[candidateHash] = true
 
-	// candidate is backed now
+	// Convert the attested candidate to a backed candidate.
 	backedCandidate := attestedToBackedCandidate(*attested, &rpState.TableContext)
 	if backedCandidate == nil {
 		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
-		return nil
+		return
 	}
 
 	paraID := backedCandidate.Candidate.Descriptor.ParaID
@@ -450,7 +455,8 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		}
 
 	} else {
-		// TODO: figure out what this comment mean by 'avoid cycles'.
+		// TODO: figure out what this comment means by 'avoid cycles'.
+		//
 		// The provisioner waits on candidate-backing, which means
 		// that we need to send unbounded messages to avoid cycles.
 		//
@@ -467,7 +473,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	}
 
 	issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
-	return nil
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
@@ -476,7 +481,8 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 	misbehaviors := table.drainMisbehaviors()
 
 	for _, m := range misbehaviors {
-		// TODO: figure out what this comment mean by 'avoid cycles'.
+		// TODO: figure out what this comment means by 'avoid cycles'.
+		//
 		// The provisioner waits on candidate-backing, which means
 		// that we need to send unbounded messages to avoid cycles.
 		//
@@ -487,8 +493,8 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 				RelayParent: relayParent,
 				ProvisionableData: parachaintypes.ProvisionableData{
 					Value: parachaintypes.PDMisbehaviorReport{
-						ValidatorIndex: parachaintypes.ValidatorIndex(m.ValidatorIndex),
-						Misbehavior:    m.Misbehavior,
+						ValidatorIndex: m.ValidatorIndex,
+						Misbehaviour:   m.Misbehaviour,
 					},
 				},
 			},
@@ -674,12 +680,14 @@ func backgroundValidateAndMakeAvailable(
 }
 
 func getPovFromValidator() parachaintypes.PoV {
-	//	TODO: Implement this #3545
-	//	https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744
+	// TODO: Implement this #3545
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744 //nolint:lll
 	return parachaintypes.PoV{}
 }
 
-func executorParamsAtRelayParent(relayParent common.Hash, subSystemToOverseer chan<- any) (parachaintypes.ExecutorParams, error) {
+func executorParamsAtRelayParent(
+	relayParent common.Hash, subSystemToOverseer chan<- any,
+) (parachaintypes.ExecutorParams, error) {
 	// TODO: Implement this #3544
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
 	return parachaintypes.ExecutorParams{}, nil
@@ -706,6 +714,7 @@ type RelayParentAndCommand struct {
 	CandidateHash parachaintypes.CandidateHash
 }
 
+// ValidatedCandidateCommand represents commands for handling validated candidates.
 type ValidatedCandidateCommand byte
 
 const (

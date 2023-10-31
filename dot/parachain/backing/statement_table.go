@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package backing
 
 import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -9,7 +12,7 @@ type Table interface {
 	drainMisbehaviors() []parachaintypes.PDMisbehaviorReport
 }
 
-// A summary of import of a statement.
+// Summary represents summary of import of a statement.
 type Summary struct {
 	// The digest of the candidate referenced.
 	Candidate parachaintypes.CandidateHash
@@ -19,7 +22,7 @@ type Summary struct {
 	ValidityVotes uint64
 }
 
-// An attested-to candidate.
+// AttestedCandidate represents an attested-to candidate.
 type AttestedCandidate struct {
 	// The group ID that the candidate is in.
 	GroupID parachaintypes.ParaID
@@ -29,6 +32,7 @@ type AttestedCandidate struct {
 	ValidityVotes []validityVote
 }
 
+// validityVote represents a vote on the validity of a candidate by a validator.
 type validityVote struct {
 	ValidatorIndex      parachaintypes.ValidatorIndex
 	ValidityAttestation parachaintypes.ValidityAttestation

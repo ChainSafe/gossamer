@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachaintypes
 
 import (
@@ -53,7 +56,7 @@ func (e Explicit) String() string { //skipcq:SCC-U1000
 	return fmt.Sprintf("explicit(%s)", ValidatorSignature(e))
 }
 
-// newValidityAttestation creates a ValidityAttestation varying data type.
+// NewValidityAttestation creates a ValidityAttestation varying data type.
 func NewValidityAttestation() ValidityAttestation { //skipcq
 	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
 	if err != nil {

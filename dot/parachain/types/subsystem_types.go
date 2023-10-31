@@ -1,8 +1,19 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachaintypes
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
+type SubSystemName string
+
+const (
+	CandidateBacking  SubSystemName = "CandidateBacking"
+	CollationProtocol SubSystemName = "CollationProtocol"
+	AvailabilityStore SubSystemName = "AvailabilityStore"
 )
 
 // OverseerFuncRes is a result of an overseer function
@@ -32,15 +43,17 @@ type ProvisionableData struct {
 // The Candidate Backing subsystem believes that this candidate is valid, pending availability.
 type PDBackedCandidate CandidateReceipt
 
-// PDMisbehaviorReport represents self-contained proofs of validator misbehavior.
+// PDMisbehaviorReport represents self-contained proofs of validator misbehaviour.
 type PDMisbehaviorReport struct {
 	ValidatorIndex ValidatorIndex
-	Misbehavior    Misbehavior
+	Misbehaviour   Misbehaviour
 }
 
-type Misbehavior struct {
-	// TODO: implement this
-}
+// Misbehaviour is intended to represent different kinds of misbehaviour along with supporting proofs.
+//
+// TODO: implement this by referring
+// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/statement-table/src/lib.rs#L53-L60 //nolint:lll
+type Misbehaviour byte
 
 // StatementDistributionMessage is a message to the Statement Distribution subsystem.
 type StatementDistributionMessage struct {

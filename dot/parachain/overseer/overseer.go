@@ -82,7 +82,7 @@ func (o *Overseer) processMessages() {
 			var subsystem Subsystem
 
 			switch msg.(type) {
-			case backing.GetBackedCandidates, backing.CanSecond, backing.Second, backing.Statement:
+			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
 			case collatorprotocol.CollateOn, collatorprotocol.DistributeCollation, collatorprotocol.ReportCollator,
