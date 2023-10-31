@@ -597,22 +597,45 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 }
 
 // requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
-func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed Backed) {
+func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed Backed) error {
 
 	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
+
+		newBlockedAdvertisements := []BlockedAdvertisement{}
+
 		for _, blockedAdvertisement := range blockedAdvertisements {
 			isSecondingAllowed := cpvs.canSecond(
 				backed.ParaID, blockedAdvertisement.candidateRelayParent, blockedAdvertisement.candidateHash, backed.ParaHead)
 
-			if isSecondingAllowed {
-				cpvs.enqueueCollation(
-					blockedAdvertisement.candidateRelayParent,
-					backed.ParaID,
-					blockedAdvertisement.peerID,
-					blockedAdvertisement.collatorID,
-				)
+			if !isSecondingAllowed {
+				newBlockedAdvertisements = append(newBlockedAdvertisements, blockedAdvertisement)
+				continue
+			}
+
+			perRelayParent, ok := cpvs.perRelayParent[blockedAdvertisement.candidateRelayParent]
+			if !ok {
+				return ErrRelayParentUnknown
+			}
+
+			err := cpvs.enqueueCollation(
+				perRelayParent.collations,
+				blockedAdvertisement.candidateRelayParent,
+				backed.ParaID,
+				blockedAdvertisement.peerID,
+				blockedAdvertisement.collatorID,
+				nil, // nil for now until we have prospective parachain
+			)
+			if err != nil {
+				return fmt.Errorf("enqueueing collation: %w", err)
 			}
 		}
 
+		if len(newBlockedAdvertisements) == 0 {
+			return nil
+		}
+		cpvs.BlockedAdvertisements[backed.String()] = newBlockedAdvertisements
+
 	}
+
+	return nil
 }
