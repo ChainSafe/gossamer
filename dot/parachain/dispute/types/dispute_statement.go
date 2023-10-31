@@ -235,17 +235,17 @@ func NewSignedDisputeStatement(
 func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatement,
 	candidateHash common.Hash,
 	sessionIndex parachainTypes.SessionIndex,
-	validatorPublic parachainTypes.ValidatorID,
 	validatorSignature parachain.ValidatorSignature,
+	keypair keystore.KeyPair,
 ) (*SignedDisputeStatement, error) {
-	if err := VerifyDisputeStatement(disputeStatement, candidateHash, sessionIndex, validatorPublic, validatorSignature); err != nil {
+	if err := VerifyDisputeStatement(disputeStatement, candidateHash, sessionIndex, validatorSignature, keypair); err != nil {
 		return nil, fmt.Errorf("verify dispute statement: %w", err)
 	}
 
 	return &SignedDisputeStatement{
 		DisputeStatement:   disputeStatement,
 		CandidateHash:      candidateHash,
-		ValidatorPublic:    validatorPublic,
+		ValidatorPublic:    parachainTypes.ValidatorID(keypair.Public().Encode()),
 		ValidatorSignature: validatorSignature,
 		SessionIndex:       sessionIndex,
 	}, nil
@@ -255,16 +255,16 @@ func VerifyDisputeStatement(
 	disputeStatement inherents.DisputeStatement,
 	candidateHash common.Hash,
 	sessionIndex parachainTypes.SessionIndex,
-	validatorPublic parachainTypes.ValidatorID,
 	validatorSignature parachain.ValidatorSignature,
+	keypair keystore.KeyPair,
 ) error {
 	payload, err := getDisputeStatementSigningPayload(disputeStatement, candidateHash, sessionIndex)
 	if err != nil {
 		return fmt.Errorf("get dispute statement signing payload: %w", err)
 	}
 
-	if err := validatorSignature.Verify(payload, validatorPublic); err != nil {
-		return fmt.Errorf("verify validator signature: %w", err)
+	if ok, err := keypair.Public().Verify(payload, validatorSignature[:]); !ok || err != nil {
+		return fmt.Errorf("verify dispute statement: %w", err)
 	}
 
 	return nil

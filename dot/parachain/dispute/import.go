@@ -3,6 +3,7 @@ package dispute
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -26,7 +27,11 @@ type ImportResult interface {
 	// IsFreshlyConcluded returns true if the dispute state changed to concluded during the import
 	IsFreshlyConcluded() (bool, error)
 	// ImportApprovalVotes imports the given approval votes into the current import
-	ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, env *types.CandidateEnvironment, now uint64) (ImportResult, error)
+	ImportApprovalVotes(keystore keystore.Keystore,
+		approvalVotes []overseer.ApprovalSignature,
+		env *types.CandidateEnvironment,
+		now uint64,
+	) (ImportResult, error)
 	// IntoUpdatedVotes returns the updated votes after the import
 	IntoUpdatedVotes() types.CandidateVotes
 }
@@ -125,11 +130,45 @@ func (i ImportResultHandler) IsFreshlyConcluded() (bool, error) {
 	return isFreshlyConcludedFor || isFreshlyConcludedAgainst, nil
 }
 
-func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature, env *types.CandidateEnvironment, now uint64) (ImportResult, error) {
+func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
+	approvalVotes []overseer.ApprovalSignature,
+	env *types.CandidateEnvironment,
+	now uint64) (ImportResult, error) {
 	votes := i.newState.Votes
+	candidateHash, err := votes.CandidateReceipt.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("get candidate hash: %w", err)
+	}
 
 	for _, approvalVote := range approvalVotes {
-		// TODO: validate signature
+		keypair, err := types.GetValidatorKeyPair(keystore, env.Session.Validators, approvalVote.ValidatorIndex)
+		if err != nil {
+			return nil, fmt.Errorf("get validator key pair: %w", err)
+		}
+
+		validStatementKind := inherents.NewValidDisputeStatementKind()
+		if err := validStatementKind.Set(inherents.ApprovalChecking{}); err != nil {
+			return nil, fmt.Errorf("setting approval checking: %w", err)
+		}
+
+		disputeStatement := inherents.NewDisputeStatement()
+
+		if err := disputeStatement.Set(inherents.ValidDisputeStatementKind(validStatementKind)); err != nil {
+			return nil, fmt.Errorf("setting dispute statement: %w", err)
+		}
+
+		if err := types.VerifyDisputeStatement(disputeStatement,
+			candidateHash,
+			env.SessionIndex,
+			approvalVote.ValidatorSignature,
+			keypair); err != nil {
+			logger.Errorf("Signature check for imported approval votes failed! This is a serious bug. "+
+				"session: %v, candidateHash: %v, validatorIndex: %v",
+				env.SessionIndex,
+				candidateHash,
+				approvalVote.ValidatorIndex)
+			return nil, fmt.Errorf("verifying dispute statement: %w", err)
+		}
 
 		existingVote, ok := votes.Valid.Value.Map.Get(approvalVote.ValidatorIndex)
 		if !ok {

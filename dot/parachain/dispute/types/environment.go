@@ -39,16 +39,27 @@ func getControlledIndices(keystore keystore.Keystore,
 	validators []parachainTypes.ValidatorID,
 ) map[parachainTypes.ValidatorIndex]struct{} {
 	controlled := make(map[parachainTypes.ValidatorIndex]struct{})
-	for index, validatorPublic := range validators {
-		pubKey, err := sr25519.NewPublicKey(validatorPublic[:])
-		if err != nil {
-			continue
-		}
-
-		if kp := keystore.GetKeypairFromAddress(pubKey.Address()); kp != nil {
+	for index := range validators {
+		if kp, err := GetValidatorKeyPair(keystore, validators, parachainTypes.ValidatorIndex(index)); kp != nil && err == nil {
 			controlled[parachainTypes.ValidatorIndex(index)] = struct{}{}
 		}
 	}
 
 	return controlled
+}
+
+func GetValidatorKeyPair(ks keystore.Keystore,
+	validators []parachainTypes.ValidatorID,
+	index parachainTypes.ValidatorIndex,
+) (keystore.KeyPair, error) {
+	if int(index) >= len(validators) {
+		return nil, fmt.Errorf("invalid validator index: %d", index)
+	}
+
+	pubKey, err := sr25519.NewPublicKey(validators[index][:])
+	if err != nil {
+		return nil, fmt.Errorf("new public key: %w", err)
+	}
+
+	return ks.GetKeypairFromAddress(pubKey.Address()), nil
 }

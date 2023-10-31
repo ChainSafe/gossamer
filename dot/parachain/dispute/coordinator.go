@@ -8,7 +8,6 @@ import (
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/emirpasic/gods/sets/treeset"
@@ -245,34 +244,26 @@ func (d *disputeCoordinator) sendDisputeMessages(
 ) {
 	ownVotes, err := voteState.Own.Votes()
 	if err != nil {
-		logger.Errorf("failed to get own votes: %s", err)
+		logger.Errorf("get own votes: %s", err)
 		return
 	}
 
-	var publicKey parachainTypes.ValidatorID
 	for _, vote := range ownVotes {
-		if int(vote.ValidatorIndex) < len(env.Session.Validators) {
-			publicKey = env.Session.Validators[vote.ValidatorIndex]
-		} else {
-			logger.Errorf("failed to get validator public key for index %d", vote.ValidatorIndex)
-			continue
-		}
-		pubKey, err := sr25519.NewPublicKey(publicKey[:])
+		keypair, err := types.GetValidatorKeyPair(d.keystore, env.Session.Validators, vote.ValidatorIndex)
 		if err != nil {
-			logger.Errorf("failed to create public key: %s", err)
+			logger.Errorf("get validator key pair: %s", err)
 			continue
 		}
-		keypair := d.keystore.GetKeypairFromAddress(pubKey.Address())
 
 		candidateHash, err := voteState.Votes.CandidateReceipt.Hash()
 		if err != nil {
-			logger.Errorf("failed to get candidate hash: %s", err)
+			logger.Errorf("get candidate hash: %s", err)
 			continue
 		}
 
 		isValid, err := vote.DisputeStatement.IsValid()
 		if err != nil {
-			logger.Errorf("failed to check if dispute statement is valid: %s", err)
+			logger.Errorf("check if dispute statement is valid: %s", err)
 			continue
 		}
 
