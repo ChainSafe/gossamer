@@ -5,7 +5,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
-	"github.com/ChainSafe/gossamer/dot/parachain"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -192,7 +191,7 @@ type SignedDisputeStatement struct {
 	DisputeStatement   inherents.DisputeStatement
 	CandidateHash      common.Hash
 	ValidatorPublic    parachainTypes.ValidatorID
-	ValidatorSignature parachain.ValidatorSignature
+	ValidatorSignature parachainTypes.ValidatorSignature
 	SessionIndex       parachainTypes.SessionIndex
 }
 
@@ -227,7 +226,7 @@ func NewSignedDisputeStatement(
 		DisputeStatement:   disputeStatement,
 		CandidateHash:      candidateHash,
 		ValidatorPublic:    parachainTypes.ValidatorID(keypair.Public().Encode()),
-		ValidatorSignature: parachain.ValidatorSignature(signature),
+		ValidatorSignature: parachainTypes.ValidatorSignature(signature),
 		SessionIndex:       sessionIndex,
 	}, nil
 }
@@ -235,7 +234,7 @@ func NewSignedDisputeStatement(
 func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatement,
 	candidateHash common.Hash,
 	sessionIndex parachainTypes.SessionIndex,
-	validatorSignature parachain.ValidatorSignature,
+	validatorSignature parachainTypes.ValidatorSignature,
 	keypair keystore.KeyPair,
 ) (*SignedDisputeStatement, error) {
 	if err := VerifyDisputeStatement(disputeStatement, candidateHash, sessionIndex, validatorSignature, keypair); err != nil {
@@ -255,7 +254,7 @@ func VerifyDisputeStatement(
 	disputeStatement inherents.DisputeStatement,
 	candidateHash common.Hash,
 	sessionIndex parachainTypes.SessionIndex,
-	validatorSignature parachain.ValidatorSignature,
+	validatorSignature parachainTypes.ValidatorSignature,
 	keypair keystore.KeyPair,
 ) error {
 	payload, err := getDisputeStatementSigningPayload(disputeStatement, candidateHash, sessionIndex)

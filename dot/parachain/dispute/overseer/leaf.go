@@ -5,9 +5,17 @@ package overseer
 
 import "github.com/ChainSafe/gossamer/lib/common"
 
+type LeafStatus uint
+
+const (
+	LeafStatusFresh LeafStatus = iota
+	LeafStatusStale
+)
+
 type ActivatedLeaf struct {
 	Hash   common.Hash
 	Number uint32
+	Status LeafStatus
 }
 
 type ActiveLeavesUpdate struct {
