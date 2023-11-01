@@ -102,12 +102,15 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	ctx := context.Background()
-	rt := wazero.NewRuntime(ctx)
+	rtConfig := wazero.NewRuntimeConfig().
+		WithMemoryCapacityFromMax(true).
+		// https://github.com/paritytech/substrate/blob/033d4e86cc7eff0066cd376b9375f815761d653c/client/executor/wasmtime/src/runtime.rs#L354
+		WithMemoryLimitPages(0x10000)
+
+	rt := wazero.NewRuntimeWithConfig(ctx, rtConfig)
 
 	_, err = rt.NewHostModuleBuilder("env").
-		// values from newer kusama/polkadot runtimes
-		// https://github.com/paritytech/substrate/blob/033d4e86cc7eff0066cd376b9375f815761d653c/client/executor/wasmtime/src/runtime.rs#L371
-		ExportMemory("memory", 2070).
+		ExportMemory("memory", 23).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
@@ -411,13 +414,18 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
 	}
 
-	hb := api.DecodeU32(global.Get())
+	globalHeapBase := global.Get()
+	fmt.Println("__heap_base: ", globalHeapBase)
+	hb := api.DecodeU32(globalHeapBase)
+	fmt.Println("__heap_base after decode u32: ", hb)
 	// hb = runtime.DefaultHeapBase
 
 	mem := mod.Memory()
 	if mem == nil {
 		return nil, fmt.Errorf("wazero error: nil memory for module")
 	}
+
+	fmt.Println("mem size: ", mem.Size())
 
 	allocator := runtime.NewAllocator(mem, hb)
 
