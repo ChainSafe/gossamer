@@ -24,23 +24,26 @@ const (
 	pruneByTimePrefix   = "prune_by_time"
 )
 
+// AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	availabilityStore   AvailabilityStore
-	//pruningConfig PruningConfig
-	//clock         Clock
-	//metrics       Metrics
+	//TODO: pruningConfig PruningConfig
+	//TODO: clock         Clock
+	//TODO: metrics       Metrics
 }
 
+// AvailabilityStore is the struct that holds data for the availability store
 type AvailabilityStore struct {
 	availableTable database.Table
 	chunkTable     database.Table
 	metaTable      database.Table
-	//unfinalizedTable database.Table
-	//pruneByTimeTable database.Table
+	//TODO: unfinalizedTable database.Table
+	//TODO: pruneByTimeTable database.Table
 }
 
+// NewAvailabilityStore creates a new instance of AvailabilityStore
 func NewAvailabilityStore(db database.Database) (*AvailabilityStore, error) {
 	return &AvailabilityStore{
 		availableTable: database.NewTable(db, avaliableDataPrefix),
@@ -49,7 +52,8 @@ func NewAvailabilityStore(db database.Database) (*AvailabilityStore, error) {
 	}, nil
 }
 
-func (as *AvailabilityStore) LoadAvailableData(candidate common.Hash) (AvailableData, error) {
+// loadAvailableData loads available data from the availability store
+func (as *AvailabilityStore) loadAvailableData(candidate common.Hash) (AvailableData, error) {
 	resultBytes, err := as.availableTable.Get(candidate[:])
 	if err != nil {
 		return AvailableData{}, err
@@ -59,7 +63,8 @@ func (as *AvailabilityStore) LoadAvailableData(candidate common.Hash) (Available
 	return result, err
 }
 
-func (as *AvailabilityStore) LoadMetaData(candidate common.Hash) (CandidateMeta, error) {
+// loadMetaData loads metadata from the availability store
+func (as *AvailabilityStore) loadMetaData(candidate common.Hash) (CandidateMeta, error) {
 	resultBytes, err := as.metaTable.Get(candidate[:])
 	if err != nil {
 		return CandidateMeta{}, err
@@ -69,7 +74,8 @@ func (as *AvailabilityStore) LoadMetaData(candidate common.Hash) (CandidateMeta,
 	return result, err
 }
 
-func (as *AvailabilityStore) StoreMetaData(candidate common.Hash, meta CandidateMeta) error {
+// storeMetaData stores metadata in the availability store
+func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
 	dataBytes, err := json.Marshal(meta)
 	if err != nil {
 		return err
@@ -77,7 +83,8 @@ func (as *AvailabilityStore) StoreMetaData(candidate common.Hash, meta Candidate
 	return as.metaTable.Put(candidate[:], dataBytes)
 }
 
-func (as *AvailabilityStore) LoadChunk(candidate common.Hash, validatorIndex uint32) (ErasureChunk, error) {
+// loadChunk loads a chunk from the availability store
+func (as *AvailabilityStore) loadChunk(candidate common.Hash, validatorIndex uint32) (ErasureChunk, error) {
 	resultBytes, err := as.chunkTable.Get(append(candidate[:], uint32ToBytes(validatorIndex)...))
 	if err != nil {
 		return ErasureChunk{}, err
@@ -87,8 +94,9 @@ func (as *AvailabilityStore) LoadChunk(candidate common.Hash, validatorIndex uin
 	return result, err
 }
 
-func (as *AvailabilityStore) StoreChunk(candidate common.Hash, chunk ErasureChunk) error {
-	meta, err := as.LoadMetaData(candidate)
+// storeChunk stores a chunk in the availability store
+func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChunk) error {
+	meta, err := as.loadMetaData(candidate)
 	if err != nil {
 		if err.Error() == "pebble: not found" {
 			// TODO: were creating metadata here, but we should be doing it in the parachain block import?
@@ -114,7 +122,7 @@ func (as *AvailabilityStore) StoreChunk(candidate common.Hash, chunk ErasureChun
 		}
 
 		meta.ChunksStored[chunk.Index] = true
-		err = as.StoreMetaData(candidate, meta)
+		err = as.storeMetaData(candidate, meta)
 		if err != nil {
 			return err
 		}
@@ -123,7 +131,8 @@ func (as *AvailabilityStore) StoreChunk(candidate common.Hash, chunk ErasureChun
 	return nil
 }
 
-func (as *AvailabilityStore) StoreAvailableData(candidate common.Hash, data AvailableData) error {
+// storeAvailableData stores available data in the availability store
+func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data AvailableData) error {
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -137,12 +146,14 @@ func uint32ToBytes(value uint32) []byte {
 	return result
 }
 
+// Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
 	SubsystemToOverseer chan any) error {
 	av.processMessages()
 	return nil
 }
 
+// Name returns the name of the availability store subsystem
 func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.AvailabilityStore
 }
@@ -172,7 +183,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) {
-	result, err := av.availabilityStore.LoadAvailableData(msg.CandidateHash)
+	result, err := av.availabilityStore.loadAvailableData(msg.CandidateHash)
 	if err != nil {
 		logger.Errorf("failed to load available data: %w", err)
 	}
@@ -180,7 +191,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailabl
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataAvailability) {
-	_, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	_, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
 	if err != nil {
 		msg.Sender <- false
 	} else {
@@ -189,7 +200,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataA
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunk(msg QueryChunk) {
-	result, err := av.availabilityStore.LoadChunk(msg.CandidateHash, msg.ValidatorIndex)
+	result, err := av.availabilityStore.loadChunk(msg.CandidateHash, msg.ValidatorIndex)
 	if err != nil {
 		logger.Errorf("failed to load chunk: %w", err)
 	}
@@ -197,9 +208,9 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunk(msg QueryChunk) {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) {
-	meta, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
 	if err != nil {
-		logger.Errorf("failed to load meta data: %w", err)
+		logger.Errorf("load metadata: %w", err)
 	}
 	var validatorIndex uint32
 	for i, v := range meta.ChunksStored {
@@ -209,26 +220,26 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) {
 		}
 	}
 
-	chunk, err := av.availabilityStore.LoadChunk(msg.CandidateHash, validatorIndex)
+	chunk, err := av.availabilityStore.loadChunk(msg.CandidateHash, validatorIndex)
 	if err != nil {
-		logger.Errorf("failed to load chunk: %w", err)
+		logger.Errorf("load chunk: %w", err)
 	}
 	msg.Sender <- uint32(len(chunk.Chunk))
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) {
-	meta, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
 	if err != nil {
-		logger.Errorf("failed to load meta data: %w", err)
+		logger.Errorf("load metadata: %w", err)
 		msg.Sender <- []ErasureChunk{}
 		return
 	}
 	chunks := []ErasureChunk{}
 	for i, v := range meta.ChunksStored {
 		if v {
-			chunk, err := av.availabilityStore.LoadChunk(msg.CandidateHash, uint32(i))
+			chunk, err := av.availabilityStore.loadChunk(msg.CandidateHash, uint32(i))
 			if err != nil {
-				logger.Errorf("failed to load chunk: %w", err)
+				logger.Errorf("load chunk: %w", err)
 			}
 			chunks = append(chunks, chunk)
 		} else {
@@ -239,7 +250,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChunkAvailability) {
-	meta, err := av.availabilityStore.LoadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
 	if err != nil {
 		logger.Errorf("failed to load meta data: %w", err)
 	}
@@ -247,17 +258,18 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChun
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) {
-	err := av.availabilityStore.StoreChunk(msg.CandidateHash, msg.Chunk)
+	err := av.availabilityStore.storeChunk(msg.CandidateHash, msg.Chunk)
 	if err != nil {
 		msg.Sender <- err
+		return
 	}
 	msg.Sender <- nil
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) {
-	err := av.availabilityStore.StoreAvailableData(msg.CandidateHash, msg.AvailableData)
+	err := av.availabilityStore.storeAvailableData(msg.CandidateHash, msg.AvailableData)
 	if err != nil {
-		logger.Errorf("failed to load available data: %w", err)
+		logger.Errorf("load available data: %w", err)
 	}
 	msg.Sender <- err // TODO: determine how to replicate Rust's Result type
 }

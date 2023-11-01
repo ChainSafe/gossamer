@@ -34,12 +34,12 @@ func setupTestDB(t *testing.T) database.Database {
 	as, err := NewAvailabilityStore(inmemoryDB)
 	require.NoError(t, err)
 
-	err = as.StoreChunk(common.Hash{0x01}, testChunk1)
+	err = as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
-	err = as.StoreChunk(common.Hash{0x01}, testChunk2)
+	err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
 
-	err = as.StoreAvailableData(common.Hash{0x01}, testavailableData1)
+	err = as.storeAvailableData(common.Hash{0x01}, testavailableData1)
 	require.NoError(t, err)
 
 	return inmemoryDB
@@ -49,14 +49,14 @@ func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
 	as, err := NewAvailabilityStore(inmemoryDB)
 	require.NoError(t, err)
 
-	err = as.StoreAvailableData(common.Hash{0x01}, testavailableData1)
+	err = as.storeAvailableData(common.Hash{0x01}, testavailableData1)
 	require.NoError(t, err)
 
-	got, err := as.LoadAvailableData(common.Hash{0x01})
+	got, err := as.loadAvailableData(common.Hash{0x01})
 	require.NoError(t, err)
 	require.Equal(t, testavailableData1, got)
 
-	got, err = as.LoadAvailableData(common.Hash{0x02})
+	got, err = as.loadAvailableData(common.Hash{0x02})
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, AvailableData{}, got)
 }
@@ -66,12 +66,12 @@ func TestAvailabilityStore_StoreLoadChuckData(t *testing.T) {
 	as, err := NewAvailabilityStore(inmemoryDB)
 	require.NoError(t, err)
 
-	err = as.StoreChunk(common.Hash{0x01}, testChunk1)
+	err = as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
-	err = as.StoreChunk(common.Hash{0x01}, testChunk2)
+	err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
 
-	resultChunk, err := as.LoadChunk(common.Hash{0x01}, 0)
+	resultChunk, err := as.loadChunk(common.Hash{0x01}, 0)
 	require.NoError(t, err)
 	require.Equal(t, testChunk1, resultChunk)
 }
