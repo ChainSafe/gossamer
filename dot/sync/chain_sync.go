@@ -133,6 +133,7 @@ type chainSync struct {
 	telemetry          Telemetry
 	badBlocks          []string
 	requestMaker       network.RequestMaker
+	waitPeersDuration  time.Duration
 }
 
 type chainSyncConfig struct {
@@ -149,6 +150,7 @@ type chainSyncConfig struct {
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
 	badBlocks          []string
+	waitPeersDuration  time.Duration
 }
 
 func newChainSync(cfg chainSyncConfig) *chainSync {
@@ -173,20 +175,16 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		workerPool:         newSyncWorkerPool(cfg.net, cfg.requestMaker),
 		badBlocks:          cfg.badBlocks,
 		requestMaker:       cfg.requestMaker,
+		waitPeersDuration:  cfg.waitPeersDuration,
 	}
 }
 
 func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
 	resultCh := make(chan struct{})
+
 	go func() {
 		defer close(resultCh)
 		for {
-			select {
-			case <-resultCh:
-				return
-			default:
-			}
-
 			cs.workerPool.useConnectedPeers()
 			_, err := cs.getTarget()
 
@@ -195,8 +193,7 @@ func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
 				return
 			}
 
-			// TODO: https://github.com/ChainSafe/gossamer/issues/3402
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(cs.waitPeersDuration)
 		}
 	}()
 
@@ -211,12 +208,11 @@ func (cs *chainSync) start() {
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
 	// wait until we have a minimal workers in the sync worker pool
-	resultCh := cs.waitEnoughPeersAndTarget()
+	waitEnoughPeersC := cs.waitEnoughPeersAndTarget()
 
 	select {
-	case <-resultCh:
+	case <-waitEnoughPeersC:
 	case <-cs.stopCh:
-		return
 	}
 }
 
