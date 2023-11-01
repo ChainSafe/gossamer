@@ -539,11 +539,6 @@ func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
 	return OccupiedCoreAssumption(vdt)
 }
 
-// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
-type CandidateHash struct {
-	Value common.Hash `scale:"1"`
-}
-
 // PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
 // It contains the necessary data for the parachain specific state transition logic.
 type PoV struct {

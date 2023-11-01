@@ -2,7 +2,6 @@ package dispute
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/parachain"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/scraping"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
@@ -370,7 +369,7 @@ func (i *Initialized) ProcessOnChainVotes(
 			signedDisputeStatement, err := types.NewCheckedSignedDisputeStatement(disputeStatement,
 				candidateHash,
 				votes.Session,
-				parachain.ValidatorSignature(validatorSignature),
+				parachainTypes.ValidatorSignature(validatorSignature),
 				keypair,
 			)
 			if err != nil {

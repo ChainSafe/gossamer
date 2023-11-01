@@ -1,159 +1,150 @@
 package dispute
 
 import (
-	"fmt"
-	"testing"
-
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
-	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	disputetypes "github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
+	"testing"
 )
 
-func dummyCandidateCommitments() parachainTypes.CandidateCommitments {
-	return parachainTypes.CandidateCommitments{
-		UpwardMessages:            nil,
-		HorizontalMessages:        nil,
-		NewValidationCode:         nil,
-		HeadData:                  parachainTypes.HeadData{},
-		ProcessedDownwardMessages: 0,
-		HrmpWatermark:             0,
-	}
+type TestState struct {
+	validators        []keystore.KeyPair
+	validatorPublic   []parachaintypes.ValidatorID
+	validatorGroups   [][]parachaintypes.ValidatorIndex
+	masterKeystore    keystore.Keystore
+	subsystemKeystore keystore.Keystore
+	headers           map[common.Hash]types.Header
+	blockNumToHeader  map[uint32]common.Hash
+	lastBlock         common.Hash
+	knownSession      *parachaintypes.SessionIndex
+	db                database.Database
 }
 
-func dummyValidationCode() parachainTypes.ValidationCode {
-	return parachainTypes.ValidationCode{1, 2, 3}
-}
+func newTestState(t *testing.T) *TestState {
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
 
-func dummyCollator() parachainTypes.CollatorID {
-	return parachainTypes.CollatorID{}
-}
+	pair1, err := sr25519.NewKeypairFromMnenomic("//Polka", "")
+	require.NoError(t, err)
+	pair2, err := sr25519.NewKeypairFromMnenomic("//Dot", "")
+	require.NoError(t, err)
+	pair3, err := sr25519.NewKeypairFromMnenomic("//Kusama", "")
+	require.NoError(t, err)
 
-func dummyCollatorSignature() parachainTypes.CollatorSignature {
-	return parachainTypes.CollatorSignature{}
-}
-
-func dummyCandidateDescriptorBadSignature(relayParent common.Hash) parachainTypes.CandidateDescriptor {
-	zeros := common.Hash{}
-	validationCodeHash, err := dummyValidationCode().Hash()
-	if err != nil {
-		panic(err)
+	validators := []keystore.KeyPair{
+		kr.KeyAlice,
+		kr.KeyBob,
+		kr.KeyCharlie,
+		kr.KeyDave,
+		kr.KeyEve,
+		kr.KeyFerdie,
+		kr.KeyGeorge,
+		// Two more keys needed so disputes are not confirmed already with only 3 statements.
+		pair1,
+		pair2,
+		pair3,
 	}
 
-	return parachainTypes.CandidateDescriptor{
-		ParaID:                      0,
-		RelayParent:                 relayParent,
-		Collator:                    dummyCollator(),
-		PersistedValidationDataHash: zeros,
-		PovHash:                     zeros,
-		ErasureRoot:                 zeros,
-		ParaHead:                    zeros,
-		ValidationCodeHash:          validationCodeHash,
-		Signature:                   dummyCollatorSignature(),
-	}
-}
-
-func DummyCandidateReceipt(relayParent common.Hash) parachainTypes.CandidateReceipt {
-	descriptor := parachainTypes.CandidateDescriptor{
-		ParaID:                      0,
-		RelayParent:                 relayParent,
-		Collator:                    parachainTypes.CollatorID{},
-		PersistedValidationDataHash: common.Hash{},
-		PovHash:                     common.Hash{},
-		ErasureRoot:                 common.Hash{},
-		Signature:                   parachainTypes.CollatorSignature{},
-		ParaHead:                    common.Hash{},
-		ValidationCodeHash:          parachainTypes.ValidationCodeHash{},
+	var validatorPublic []parachaintypes.ValidatorID
+	for _, v := range validators {
+		validatorPublic = append(validatorPublic, parachaintypes.ValidatorID(v.Public().Encode()))
 	}
 
-	return parachainTypes.CandidateReceipt{
-		Descriptor:      descriptor,
-		CommitmentsHash: common.Hash{},
-	}
-}
-
-func dummyCandidateReceiptBadSignature(
-	relayParent common.Hash,
-	commitments *common.Hash,
-) (parachainTypes.CandidateReceipt, error) {
-	var (
-		err             error
-		commitmentsHash common.Hash
-	)
-	if commitments == nil {
-		commitmentsHash, err = dummyCandidateCommitments().Hash()
-		if err != nil {
-			return parachainTypes.CandidateReceipt{}, err
-		}
-	} else {
-		commitmentsHash = *commitments
+	validatorGroups := [][]parachaintypes.ValidatorIndex{
+		{0, 1},
+		{2, 3},
+		{4, 5, 6},
 	}
 
-	return parachainTypes.CandidateReceipt{
-		Descriptor:      dummyCandidateDescriptorBadSignature(relayParent),
-		CommitmentsHash: commitmentsHash,
-	}, nil
-}
-
-func activateLeaf(
-	participation Participation,
-	blockNumber parachainTypes.BlockNumber,
-) error {
-	encodedBlockNumber, err := scale.Marshal(blockNumber)
-	if err != nil {
-		return fmt.Errorf("failed to encode block number: %w", err)
-	}
-	parentHash, err := common.Blake2bHash(encodedBlockNumber)
-	if err != nil {
-		return fmt.Errorf("failed to hash block number: %w", err)
+	masterKeyStore := keystore.NewBasicKeystore("master", crypto.Sr25519Type)
+	for _, v := range validators {
+		err = masterKeyStore.Insert(v)
+		require.NoError(t, err)
 	}
 
-	blockHeader := types.Header{
-		ParentHash:     parentHash,
-		Number:         uint(blockNumber),
+	subsystemKeyStore := keystore.NewBasicKeystore("subsystem", crypto.Sr25519Type)
+	err = subsystemKeyStore.Insert(kr.KeyAlice)
+	require.NoError(t, err)
+
+	db, err := database.NewPebble("test", true)
+	require.NoError(t, err)
+
+	genesisHeader := types.Header{
+		ParentHash:     common.Hash{},
+		Number:         0,
 		StateRoot:      common.Hash{},
 		ExtrinsicsRoot: common.Hash{},
-		Digest:         scale.VaryingDataTypeSlice{},
+		Digest:         types.NewDigest(),
 	}
-	blockHash := blockHeader.Hash()
+	lastBlock := genesisHeader.Hash()
 
-	update := overseer.ActiveLeavesUpdate{
-		Activated: &overseer.ActivatedLeaf{
-			Hash:   blockHash,
-			Number: uint32(blockNumber),
-		},
-	}
+	headers := make(map[common.Hash]types.Header)
+	blockNumToHeader := make(map[uint32]common.Hash)
+	headers[lastBlock] = genesisHeader
+	blockNumToHeader[0] = lastBlock
 
-	participation.ProcessActiveLeavesUpdate(update)
-	return nil
-}
-
-func GetBlockNumberHash(blockNumber parachainTypes.BlockNumber) common.Hash {
-	encodedBlockNumber, err := scale.Marshal(blockNumber)
-	if err != nil {
-		panic("failed to encode block number:" + err.Error())
-	}
-
-	blockHash, err := common.Blake2bHash(encodedBlockNumber)
-	if err != nil {
-		panic("failed to hash block number:" + err.Error())
-	}
-
-	return blockHash
-}
-
-func DummyActivatedLeaf(blockNumber parachainTypes.BlockNumber) overseer.ActivatedLeaf {
-	return overseer.ActivatedLeaf{
-		Hash:   GetBlockNumberHash(blockNumber),
-		Number: uint32(blockNumber),
+	return &TestState{
+		validators:        validators,
+		validatorPublic:   validatorPublic,
+		validatorGroups:   validatorGroups,
+		masterKeystore:    masterKeyStore,
+		subsystemKeystore: subsystemKeyStore,
+		headers:           headers,
+		blockNumToHeader:  blockNumToHeader,
+		lastBlock:         lastBlock,
+		knownSession:      nil,
+		db:                db,
 	}
 }
 
-func NextLeaf(t *testing.T, chain *[]common.Hash) overseer.ActivatedLeaf {
-	t.Helper()
-	nextBlockNumber := len(*chain)
-	nextHash := GetBlockNumberHash(parachainTypes.BlockNumber(nextBlockNumber))
-	*chain = append(*(chain), nextHash)
-	return DummyActivatedLeaf(parachainTypes.BlockNumber(nextBlockNumber))
+func (ts *TestState) handleResumeSyncWithEvents(t *testing.T,
+	session *parachaintypes.SessionIndex,
+	initialEvents []parachaintypes.CandidateEvent,
+) []disputetypes.UncheckedDisputeMessage {
+	ctrl := gomock.NewController(t)
+	sender := NewMockSender(ctrl)
+
+	leaves := make([]common.Hash, len(ts.headers))
+	for leaf := range ts.headers {
+		leaves = append(leaves, leaf)
+	}
+
+	var messages []disputetypes.UncheckedDisputeMessage
+	for i, leaf := range leaves {
+		activatedLeaf := overseer.ActivatedLeaf{
+			Hash:   leaf,
+			Number: uint32(i),
+			Status: overseer.LeafStatusFresh,
+		}
+		err := sender.SendMessage(MuxedMessage{
+			Signal: &overseer.Signal{
+				ActiveLeaves: &overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
+			},
+		})
+		require.NoError(t, err)
+
+		var events []parachaintypes.CandidateEvent
+		if i == 1 {
+			events = initialEvents
+		}
+
+		newMessages := ts.handleSyncQueries(t, leaf, session, events)
+		messages = append(messages, newMessages...)
+	}
+
+	return messages
+}
+
+func TestDisputesCoordinator(t *testing.T) {
+	t.Run("too_many_unconfirmed_statements_are_considered_spam", func(t *testing.T) {
+
+	})
 }

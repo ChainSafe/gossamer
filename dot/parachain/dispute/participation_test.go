@@ -2,17 +2,137 @@ package dispute
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	disputeTypes "github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
+
+func dummyCandidateCommitments() parachainTypes.CandidateCommitments {
+	return parachainTypes.CandidateCommitments{
+		UpwardMessages:            nil,
+		HorizontalMessages:        nil,
+		NewValidationCode:         nil,
+		HeadData:                  parachainTypes.HeadData{},
+		ProcessedDownwardMessages: 0,
+		HrmpWatermark:             0,
+	}
+}
+
+func dummyValidationCode() parachainTypes.ValidationCode {
+	return parachainTypes.ValidationCode{1, 2, 3}
+}
+
+func dummyCollator() parachainTypes.CollatorID {
+	return parachainTypes.CollatorID{}
+}
+
+func dummyCollatorSignature() parachainTypes.CollatorSignature {
+	return parachainTypes.CollatorSignature{}
+}
+
+func dummyCandidateDescriptorBadSignature(relayParent common.Hash) parachainTypes.CandidateDescriptor {
+	zeros := common.Hash{}
+	validationCodeHash, err := dummyValidationCode().Hash()
+	if err != nil {
+		panic(err)
+	}
+
+	return parachainTypes.CandidateDescriptor{
+		ParaID:                      0,
+		RelayParent:                 relayParent,
+		Collator:                    dummyCollator(),
+		PersistedValidationDataHash: zeros,
+		PovHash:                     zeros,
+		ErasureRoot:                 zeros,
+		ParaHead:                    zeros,
+		ValidationCodeHash:          validationCodeHash,
+		Signature:                   dummyCollatorSignature(),
+	}
+}
+
+func DummyCandidateReceipt(relayParent common.Hash) parachainTypes.CandidateReceipt {
+	descriptor := parachainTypes.CandidateDescriptor{
+		ParaID:                      0,
+		RelayParent:                 relayParent,
+		Collator:                    parachainTypes.CollatorID{},
+		PersistedValidationDataHash: common.Hash{},
+		PovHash:                     common.Hash{},
+		ErasureRoot:                 common.Hash{},
+		Signature:                   parachainTypes.CollatorSignature{},
+		ParaHead:                    common.Hash{},
+		ValidationCodeHash:          parachainTypes.ValidationCodeHash{},
+	}
+
+	return parachainTypes.CandidateReceipt{
+		Descriptor:      descriptor,
+		CommitmentsHash: common.Hash{},
+	}
+}
+
+func dummyCandidateReceiptBadSignature(
+	relayParent common.Hash,
+	commitments *common.Hash,
+) (parachainTypes.CandidateReceipt, error) {
+	var (
+		err             error
+		commitmentsHash common.Hash
+	)
+	if commitments == nil {
+		commitmentsHash, err = dummyCandidateCommitments().Hash()
+		if err != nil {
+			return parachainTypes.CandidateReceipt{}, err
+		}
+	} else {
+		commitmentsHash = *commitments
+	}
+
+	return parachainTypes.CandidateReceipt{
+		Descriptor:      dummyCandidateDescriptorBadSignature(relayParent),
+		CommitmentsHash: commitmentsHash,
+	}, nil
+}
+
+func activateLeaf(
+	participation Participation,
+	blockNumber parachainTypes.BlockNumber,
+) error {
+	encodedBlockNumber, err := scale.Marshal(blockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to encode block number: %w", err)
+	}
+	parentHash, err := common.Blake2bHash(encodedBlockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to hash block number: %w", err)
+	}
+
+	blockHeader := types.Header{
+		ParentHash:     parentHash,
+		Number:         uint(blockNumber),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         scale.VaryingDataTypeSlice{},
+	}
+	blockHash := blockHeader.Hash()
+
+	update := overseer.ActiveLeavesUpdate{
+		Activated: &overseer.ActivatedLeaf{
+			Hash:   blockHash,
+			Number: uint32(blockNumber),
+		},
+	}
+
+	participation.ProcessActiveLeavesUpdate(update)
+	return nil
+}
 
 func participate(participation Participation, context overseer.Context) error {
 	candidateCommitments := dummyCandidateCommitments()
@@ -99,7 +219,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.UnAvailableOutcome:
+			case disputeTypes.UnAvailableOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")
@@ -176,7 +296,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				outcome, err := statement.Outcome.Value()
 				require.NoError(t, err)
 				switch outcome.(type) {
-				case types.UnAvailableOutcome:
+				case disputeTypes.UnAvailableOutcome:
 					return nil
 				default:
 					panic("invalid outcome")
@@ -252,7 +372,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				outcome, err := statement.Outcome.Value()
 				require.NoError(t, err)
 				switch outcome.(type) {
-				case types.UnAvailableOutcome:
+				case disputeTypes.UnAvailableOutcome:
 					return nil
 				default:
 					panic("unexpected outcome")
@@ -305,7 +425,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.UnAvailableOutcome:
+			case disputeTypes.UnAvailableOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")
@@ -358,7 +478,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.ErrorOutcome:
+			case disputeTypes.ErrorOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")
@@ -414,7 +534,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.InvalidOutcome:
+			case disputeTypes.InvalidOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")
@@ -478,7 +598,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.InvalidOutcome:
+			case disputeTypes.InvalidOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")
@@ -546,8 +666,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.InvalidOutcome:
-
+			case disputeTypes.InvalidOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")
@@ -616,7 +735,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			outcome, err := statement.Outcome.Value()
 			require.NoError(t, err)
 			switch outcome.(type) {
-			case types.ValidOutcome:
+			case disputeTypes.ValidOutcome:
 				return nil
 			default:
 				panic("unexpected outcome")

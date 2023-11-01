@@ -1,7 +1,6 @@
 package overseer
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -105,7 +104,7 @@ type AncestorsRequest struct {
 
 type ApprovalSignature struct {
 	ValidatorIndex     parachainTypes.ValidatorIndex
-	ValidatorSignature parachain.ValidatorSignature
+	ValidatorSignature parachainTypes.ValidatorSignature
 }
 
 type ApprovalSignatureResponse struct {
