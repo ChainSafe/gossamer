@@ -920,9 +920,10 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
+	_, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.ErrorIs(t, err, trie.ErrChildTrieDoesNotExist)
+	require.EqualError(t, err, "child trie does not exist at key "+
+		"0x3a6368696c645f73746f726167653a64656661756c743a6368696c644b6579")
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
@@ -1040,8 +1041,6 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-
 	testKeyValuePair := []struct {
 		key   []byte
 		value []byte
@@ -1050,30 +1049,73 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 		{[]byte("key"), []byte("value2")},
 	}
 
-	key := testKeyValuePair[0].key
+	testcases := map[string]struct {
+		setupInstance func(t *testing.T) *Instance
+		expected      *[]byte
+	}{
+		"next_key_exists": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
 
-	for _, kv := range testKeyValuePair {
-		err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
-		require.NoError(t, err)
+				for _, kv := range testKeyValuePair {
+					err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+					require.NoError(t, err)
+				}
+
+				return inst
+			},
+			expected: &testKeyValuePair[1].key,
+		},
+		"child_tree_not_exists": {
+			setupInstance: func(t *testing.T) *Instance {
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			},
+			expected: nil,
+		},
+		"with_only_one_key": {
+			setupInstance: func(t *testing.T) *Instance {
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+				err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+				require.NoError(t, err)
+
+				kv := testKeyValuePair[0]
+				err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+				require.NoError(t, err)
+
+				return inst
+			},
+			expected: nil,
+		},
 	}
 
-	encChildKey, err := scale.Marshal(testChildKey)
-	require.NoError(t, err)
+	for tname, tt := range testcases {
+		tt := tt
 
-	encKey, err := scale.Marshal(key)
-	require.NoError(t, err)
+		t.Run(tname, func(t *testing.T) {
+			key := testKeyValuePair[0].key
 
-	ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
-	require.NoError(t, err)
+			encChildKey, err := scale.Marshal(testChildKey)
+			require.NoError(t, err)
 
-	var read *[]byte
-	err = scale.Unmarshal(ret, &read)
-	require.NoError(t, err)
-	require.NotNil(t, read)
-	require.Equal(t, testKeyValuePair[1].key, *read)
+			encKey, err := scale.Marshal(key)
+			require.NoError(t, err)
+
+			inst := tt.setupInstance(t)
+			ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
+			require.NoError(t, err)
+
+			var read *[]byte
+			err = scale.Unmarshal(ret, &read)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expected, read)
+		})
+	}
+
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
