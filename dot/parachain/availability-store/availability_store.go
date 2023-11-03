@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -38,6 +39,7 @@ type AvailabilityStoreSubsystem struct {
 
 // AvailabilityStore is the struct that holds data for the availability store
 type AvailabilityStore struct {
+	mtx            *sync.Mutex
 	availableTable database.Table
 	chunkTable     database.Table
 	metaTable      database.Table
@@ -48,6 +50,7 @@ type AvailabilityStore struct {
 // NewAvailabilityStore creates a new instance of AvailabilityStore
 func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 	return &AvailabilityStore{
+		mtx:            &sync.Mutex{},
 		availableTable: database.NewTable(db, avaliableDataPrefix),
 		chunkTable:     database.NewTable(db, chunkPrefix),
 		metaTable:      database.NewTable(db, metaPrefix),
@@ -82,17 +85,43 @@ func (as *AvailabilityStore) loadMetaData(candidate common.Hash) (*CandidateMeta
 	return &result, nil
 }
 
-// storeMetaData stores metadata in the availability store
-func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
-	dataBytes, err := json.Marshal(meta)
+func (as *AvailabilityStore) tryTransaction(transactionFn func(availableBatch, chunkBatch,
+	metaBatch database.Batch) error) error {
+	as.mtx.Lock()
+	defer as.mtx.Unlock()
+
+	batchA := as.availableTable.NewBatch()
+	batchB := as.chunkTable.NewBatch()
+	batchC := as.metaTable.NewBatch()
+
+	err := transactionFn(batchA, batchB, batchC)
 	if err != nil {
 		return fmt.Errorf("marshalling meta for candidate: %w", err)
 	}
 	err = as.metaTable.Put(candidate[:], dataBytes)
 	if err != nil {
 		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+		batchA.Reset()
+		batchB.Reset()
+		batchC.Reset()
+	} else {
+		err := batchA.Flush()
+		if err != nil {
+			return err
+		}
+		err = batchB.Flush()
+		// TODO: determine how to revert batchA if batchB fails
+		if err != nil {
+			return err
+		}
+		err = batchC.Flush()
+		// TODO: determine how to revert batchA and batchB if batchC fails
+		if err != nil {
+			return err
+		}
 	}
 	return nil
+	return err
 }
 
 // loadChunk loads a chunk from the availability store
@@ -125,6 +154,18 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 		}
 	}
 
+	txFunc := func(availableBatch, chunkBatch, metaBatch database.Batch) error {
+		if meta.ChunksStored[chunk.Index] {
+			return nil // already stored
+		} else {
+			dataBytes, err := json.Marshal(chunk)
+			if err != nil {
+				return err
+			}
+			err = chunkBatch.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
+			if err != nil {
+				return err
+			}
 	if meta.ChunksStored[chunk.Index] {
 		logger.Debugf("Chunk %d already stored", chunk.Index)
 		return nil // already stored
@@ -138,6 +179,19 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 			return fmt.Errorf("storing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 		}
 
+			meta.ChunksStored[chunk.Index] = true
+			metaBytes, err := json.Marshal(meta)
+			if err != nil {
+				return err
+			}
+			err = metaBatch.Put(candidate[:], metaBytes)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
 		meta.ChunksStored[chunk.Index] = true
 		err = as.storeMetaData(candidate, *meta)
 		if err != nil {
@@ -146,6 +200,9 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 	}
 	logger.Debugf("stored chuck %d for %v", chunk.Index, candidate)
 	return nil
+}
+
+	return as.tryTransaction(txFunc)
 }
 
 // storeAvailableData stores available data in the availability store
