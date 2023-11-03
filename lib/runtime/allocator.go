@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 	"math/bits"
 )
 
@@ -66,7 +65,7 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 
 	fbha.bumper = 0
 	fbha.heap = mem
-	fbha.maxHeapSize = math.MaxUint32
+	fbha.maxHeapSize = mem.Size() - alignment
 	fbha.ptrOffset = ptrOffset
 	fbha.totalSize = 0
 
