@@ -75,7 +75,7 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 	_, ok := fbha.heap.Grow(numPages)
 	if !ok {
-		return fmt.Errorf("heap.Grow ignored")
+		fmt.Printf("heap.Grow ignored, numPages: %d, current: %d\n", numPages, fbha.heap.Size())
 	}
 
 	fbha.maxHeapSize = fbha.heap.Size() - alignment
