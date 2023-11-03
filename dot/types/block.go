@@ -59,6 +59,21 @@ func (b *Block) Encode() ([]byte, error) {
 	return append(enc, encodedBody...), nil
 }
 
+// Encode returns the SCALE encoding of a block
+func (b *Block) EncodeSeparated() ([]byte, []byte, error) {
+	enc, err := scale.Marshal(b.Header)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// get a SCALE encoded block body
+	encodedBody, err := scale.Marshal(b.Body)
+	if err != nil {
+		return nil, nil, err
+	}
+	return enc, encodedBody, nil
+}
+
 // MustEncode returns the SCALE encoded block and panics if it fails to encode
 func (b *Block) MustEncode() []byte {
 	enc, err := b.Encode()

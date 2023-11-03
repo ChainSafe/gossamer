@@ -330,3 +330,79 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 		Body:   *types.NewBody(types.BytesArrayToExtrinsics(extrinsics)),
 	}
 }
+
+func BlockWithExtrinsicsAndTs(t *testing.T, instance Instance, parentHeader *types.Header, timestamp uint64, exts []types.Extrinsic) *types.Block {
+	t.Helper()
+
+	babeConfig, err := instance.BabeConfiguration()
+	require.NoError(t, err)
+
+	slotDuration := babeConfig.SlotDuration
+	currentSlot := timestamp / slotDuration
+
+	babeDigest := types.NewBabeDigest()
+	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+
+	encodedBabeDigest, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+	preDigest := *types.NewBABEPreRuntimeDigest(encodedBabeDigest)
+
+	digest := types.NewDigest()
+	require.NoError(t, err)
+	err = digest.Add(preDigest)
+	require.NoError(t, err)
+
+	header := &types.Header{
+		ParentHash: parentHeader.Hash(),
+		Number:     parentHeader.Number + 1,
+		Digest:     digest,
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	// ==== Only encode timestamp and current slot as inherents
+	inherentData := types.NewInherentData()
+	err = inherentData.SetInherent(types.Timstap0, timestamp)
+	require.NoError(t, err)
+
+	err = inherentData.SetInherent(types.Babeslot, currentSlot)
+	require.NoError(t, err)
+
+	encodedInnherents, err := inherentData.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(encodedInnherents)
+	require.NoError(t, err)
+
+	var onlyTimestampCallHere [][]byte
+	err = scale.Unmarshal(inherentExts, &onlyTimestampCallHere)
+	require.NoError(t, err)
+
+	for _, in := range onlyTimestampCallHere {
+		encodedExtrinsic, err := scale.Marshal(in)
+		require.NoError(t, err)
+
+		wasmResult, err := instance.ApplyExtrinsic(encodedExtrinsic)
+		require.NoError(t, err, encodedExtrinsic)
+		require.Equal(t, wasmResult, []byte{0, 0})
+
+	}
+
+	// ==== Only apply the parachain candidate inclusion extrinsic
+	for _, encodedExtrinsic := range exts[1:] {
+		wasmResult, err := instance.ApplyExtrinsic(encodedExtrinsic)
+		require.NoError(t, err, encodedExtrinsic)
+		require.Equal(t, wasmResult, []byte{0, 0})
+	}
+
+	finalizedBlockHeader, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	return &types.Block{
+		Header: *finalizedBlockHeader,
+		Body:   *types.NewBody(types.BytesArrayToExtrinsics(onlyTimestampCallHere)),
+	}
+}

@@ -102,15 +102,17 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	ctx := context.Background()
-	rtConfig := wazero.NewRuntimeConfig().
-		WithMemoryCapacityFromMax(true).
-		// https://github.com/paritytech/substrate/blob/033d4e86cc7eff0066cd376b9375f815761d653c/client/executor/wasmtime/src/runtime.rs#L354
-		WithMemoryLimitPages(0x10000)
 
-	rt := wazero.NewRuntimeWithConfig(ctx, rtConfig)
+	// rtConfig := wazero.NewRuntimeConfig().
+	// 	WithMemoryCapacityFromMax(true).
+	// https://github.com/paritytech/substrate/blob/033d4e86cc7eff0066cd376b9375f815761d653c/client/executor/wasmtime/src/runtime.rs#L354
+	//WithMemoryLimitPages(0x10000)
+
+	rt := wazero.NewRuntime(ctx)
+	//rt := wazero.NewRuntimeWithConfig(ctx, rtConfig)
 
 	_, err = rt.NewHostModuleBuilder("env").
-		ExportMemory("memory", 23).
+		ExportMemory("memory", 20).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
@@ -427,7 +429,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 	fmt.Println("mem size: ", mem.Size())
 
-	allocator := runtime.NewAllocator(mem, hb)
+	allocator := runtime.NewAllocator(mem, 1291856)
 
 	return &Instance{
 		Runtime: rt,

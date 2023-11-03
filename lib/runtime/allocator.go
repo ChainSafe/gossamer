@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"math/bits"
 )
 
@@ -65,12 +66,26 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 
 	fbha.bumper = 0
 	fbha.heap = mem
-	fbha.maxHeapSize = mem.Size() - alignment
+	fbha.maxHeapSize = math.MaxUint32
 	fbha.ptrOffset = ptrOffset
 	fbha.totalSize = 0
 
 	return fbha
 }
+
+// func NewAllocator(mem Memory, heapBase uint32) *FreeingBumpHeapAllocator {
+// 	fbha := new(FreeingBumpHeapAllocator)
+
+// 	alignedHeapBase := (heapBase + alignment - 1) / alignment * alignment
+
+// 	fbha.bumper = alignedHeapBase
+// 	fbha.heap = mem
+// 	fbha.maxHeapSize = alignedHeapBase
+// 	fbha.ptrOffset = heapBase
+// 	fbha.totalSize = 0
+
+// 	return fbha
+// }
 
 func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 	_, ok := fbha.heap.Grow(numPages)
