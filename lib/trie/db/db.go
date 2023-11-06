@@ -25,8 +25,8 @@ type DBPutter interface {
 }
 
 type MemoryDB struct {
-	data map[common.Hash][]byte
-	l    sync.RWMutex
+	data  map[common.Hash][]byte
+	mutex sync.RWMutex
 }
 
 func NewEmptyMemoryDB() *MemoryDB {
@@ -72,8 +72,8 @@ func (mdb *MemoryDB) Get(key []byte) ([]byte, error) {
 	var hash common.Hash
 	copy(hash[:], key)
 
-	mdb.l.RLock()
-	defer mdb.l.RUnlock()
+	mdb.mutex.RLock()
+	defer mdb.mutex.RUnlock()
 
 	if value, found := mdb.data[hash]; found {
 		return value, nil
@@ -90,8 +90,8 @@ func (mdb *MemoryDB) Put(key []byte, value []byte) error {
 	var hash common.Hash
 	copy(hash[:], key)
 
-	mdb.l.Lock()
-	defer mdb.l.Unlock()
+	mdb.mutex.Lock()
+	defer mdb.mutex.Unlock()
 
 	mdb.data[hash] = value
 	return nil

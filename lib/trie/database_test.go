@@ -295,7 +295,6 @@ func Test_GetFromDB_EmptyHash(t *testing.T) {
 	value, err := GetFromDB(db, EmptyHash, []byte("test"))
 	assert.NoError(t, err)
 	assert.Nil(t, value)
-
 }
 
 func Test_Trie_PutChild_Store_Load(t *testing.T) {
