@@ -25,6 +25,7 @@ const (
 	metaPrefix          = "meta"
 	unfinalizedPrefix   = "unfinalized"
 	pruneByTimePrefix   = "prune_by_time"
+	tombstoneValue      = " "
 )
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
@@ -44,12 +45,18 @@ type AvailabilityStore struct {
 	chunkTable     database.Table
 	metaTable      database.Table
 	//TODO: unfinalizedTable database.Table
-	//TODO: pruneByTimeTable database.Table
+	pruneByTimeTable database.Table
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
 func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 	return &AvailabilityStore{
+		mtx:              &sync.Mutex{},
+		availableTable:   database.NewTable(db, avaliableDataPrefix),
+		chunkTable:       database.NewTable(db, chunkPrefix),
+		metaTable:        database.NewTable(db, metaPrefix),
+		pruneByTimeTable: database.NewTable(db, pruneByTimePrefix),
+	}, nil
 		mtx:            &sync.Mutex{},
 		availableTable: database.NewTable(db, avaliableDataPrefix),
 		chunkTable:     database.NewTable(db, chunkPrefix),
@@ -86,15 +93,16 @@ func (as *AvailabilityStore) loadMetaData(candidate common.Hash) (*CandidateMeta
 }
 
 func (as *AvailabilityStore) tryTransaction(transactionFn func(availableBatch, chunkBatch,
-	metaBatch database.Batch) error) error {
+	metaBatch, pruneTime database.Batch) error) error {
 	as.mtx.Lock()
 	defer as.mtx.Unlock()
 
 	batchA := as.availableTable.NewBatch()
 	batchB := as.chunkTable.NewBatch()
 	batchC := as.metaTable.NewBatch()
+	batchD := as.pruneByTimeTable.NewBatch()
 
-	err := transactionFn(batchA, batchB, batchC)
+	err := transactionFn(batchA, batchB, batchC, batchD)
 	if err != nil {
 		return fmt.Errorf("marshalling meta for candidate: %w", err)
 	}
@@ -104,6 +112,7 @@ func (as *AvailabilityStore) tryTransaction(transactionFn func(availableBatch, c
 		batchA.Reset()
 		batchB.Reset()
 		batchC.Reset()
+		batchD.Reset()
 	} else {
 		err := batchA.Flush()
 		if err != nil {
@@ -116,6 +125,11 @@ func (as *AvailabilityStore) tryTransaction(transactionFn func(availableBatch, c
 		}
 		err = batchC.Flush()
 		// TODO: determine how to revert batchA and batchB if batchC fails
+		if err != nil {
+			return err
+		}
+		// TODO: determine how to revert batchA, batchB, and batchC if batchD fails
+		err = batchD.Flush()
 		if err != nil {
 			return err
 		}
@@ -154,7 +168,7 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 		}
 	}
 
-	txFunc := func(availableBatch, chunkBatch, metaBatch database.Batch) error {
+	txFunc := func(availableBatch, chunkBatch, metaBatch, pruneTimeBatch database.Batch) error {
 		if meta.ChunksStored[chunk.Index] {
 			return nil // already stored
 		} else {
@@ -207,6 +221,8 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 
 // storeAvailableData stores available data in the availability store
 func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data AvailableData) error {
+	// TODO check if data is already stored
+
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("marshalling available data: %w", err)
@@ -216,6 +232,20 @@ func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data Avai
 		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
 	}
 	return nil
+	txFunc := func(availableBatch, chunkBatch, metaBatch, pruneTimeBatch database.Batch) error {
+		pruneKey := append([]byte(pruneByTimePrefix), []byte("time")...)
+		pruneKey = append(pruneKey, candidate[:]...)
+		err := pruneTimeBatch.Put(pruneKey, []byte(tombstoneValue))
+		if err != nil {
+			return err
+		}
+		err = availableBatch.Put(candidate[:], dataBytes)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return as.tryTransaction(txFunc)
 }
 
 func uint32ToBytes(value uint32) []byte {
