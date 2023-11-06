@@ -331,13 +331,14 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	}
 }
 
-func BlockWithExtrinsicsAndTs(t *testing.T, instance Instance, parentHeader *types.Header, timestamp uint64, exts []types.Extrinsic) *types.Block {
+func BlockWithExtrinsicsAndTs(t *testing.T, instance Instance, parentHeader *types.Header, exts []types.Extrinsic) *types.Block {
 	t.Helper()
 
 	babeConfig, err := instance.BabeConfiguration()
 	require.NoError(t, err)
 
 	slotDuration := babeConfig.SlotDuration
+	timestamp := uint64(time.Now().UnixMilli())
 	currentSlot := timestamp / slotDuration
 
 	babeDigest := types.NewBabeDigest()

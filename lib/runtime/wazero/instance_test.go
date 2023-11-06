@@ -494,7 +494,7 @@ func InstantiateRuntime9160(t *testing.T) *Instance {
 	return instance
 }
 
-func GetBlock9412260(t *testing.T) *types.Header {
+func GetBlockFromResponse(t *testing.T, blockNum uint) *types.Block {
 	allBlocks := struct {
 		Data []string `yaml:"data"`
 	}{
@@ -512,8 +512,11 @@ func GetBlock9412260(t *testing.T) *types.Header {
 		require.NoError(t, err)
 
 		for _, block := range blockResponseData.BlockData {
-			if block.Header.Number == 9412260 {
-				return block.Header
+			if block.Header.Number == blockNum {
+				return &types.Block{
+					Header: *block.Header,
+					Body:   *block.Body,
+				}
 			}
 		}
 	}
@@ -522,79 +525,50 @@ func GetBlock9412260(t *testing.T) *types.Header {
 	return nil
 }
 
-func CreateBlockUsingRuntime(t *testing.T, instanceMaker func(t *testing.T) *Instance) ([]byte, []byte) {
+func CreateBlockUsingRuntime(t *testing.T, parentHeader *types.Header, blockNumberToExtractParachainInherent uint, instance *Instance) ([]byte, []byte) {
 	t.Helper()
-
-	fmt.Printf("BEFORE INSTANTIATION\n")
-	PrintMemUsage()
-	instance := instanceMaker(t)
-
-	fmt.Printf("AFTER INSTANTIATION\n")
-	PrintMemUsage()
 
 	rtV, err := instance.Version()
 	require.NoError(t, err)
 
 	fmt.Println(rtV.SpecVersion)
 
-	entireBlockData := common.MustHexToBytes(blockResponse9412261)
-
-	blockResponseData := new(network.BlockResponseMessage)
-	err = blockResponseData.Decode(entireBlockData)
-	require.NoError(t, err)
-
-	block := blockResponseData.BlockData[0]
+	block := GetBlockFromResponse(t, blockNumberToExtractParachainInherent)
 
 	exts, err := block.Body.AsEncodedExtrinsics()
 	require.NoError(t, err)
 
-	parentBlock := GetBlock9412260(t)
-	newBlock9412261 := runtime.BlockWithExtrinsicsAndTs(t, instance, parentBlock, 1643939802003, exts)
-	newBlock9412261.Body = append(newBlock9412261.Body, (*block.Body)[1:]...)
+	for _, b := range block.Body {
+		enc, err := scale.Marshal(b)
+		require.NoError(t, err)
 
-	marshaledHeader, marshaledBody, err := newBlock9412261.EncodeSeparated()
+		fmt.Printf("%x\n", enc)
+	}
+
+	newblock := runtime.BlockWithExtrinsicsAndTs(t, instance, parentHeader, exts)
+	newblock.Body = append(newblock.Body, block.Body[1:]...)
+
+	marshaledHeader, marshaledBody, err := newblock.EncodeSeparated()
 	require.NoError(t, err)
 	return marshaledHeader, marshaledBody
 }
 
 func TestInstance_Failure_WestednBlock9412261(t *testing.T) {
-	marshaledHeaderBlock9412261, marshaledBodyBlock9412261 := CreateBlockUsingRuntime(t, InstantiateRuntime9160)
-
 	fmt.Printf("\n\n")
 
-	fmt.Printf("BEFORE INSTANTIATION\n")
-	PrintMemUsage()
 	instance := InstantiateRuntime9160(t)
+	blockNumberToStart := uint(9412261)
 
-	fmt.Printf("AFTER INSTANTIATION\n")
-	PrintMemUsage()
+	for i := 0; i < 1; i++ {
+		block := GetBlockFromResponse(t, blockNumberToStart)
 
-	rtV, err := instance.Version()
-	require.NoError(t, err)
+		fmt.Printf("Executing block #%d...\n", block.Header.Number)
+		_, err := instance.ExecuteBlock(block)
+		require.NoError(t, err)
+		fmt.Printf("executed block #%d...\n\n", block.Header.Number)
 
-	fmt.Println(rtV.SpecVersion)
-
-	header := types.NewEmptyHeader()
-	err = scale.Unmarshal(marshaledHeaderBlock9412261, header)
-	require.NoError(t, err)
-
-	body := types.Body{}
-	err = scale.Unmarshal(marshaledBodyBlock9412261, &body)
-	require.NoError(t, err)
-
-	block := &types.Block{
-		Header: *header,
-		Body:   body,
+		blockNumberToStart += 1
 	}
-
-	fmt.Printf("Executing block #%d...\n", block.Header.Number)
-	_, err = instance.ExecuteBlock(block)
-	require.NoError(t, err)
-
-	fmt.Printf("executed block #%d...\n\n", block.Header.Number)
-
-	fmt.Printf("AFTER EXECUTION\n")
-	PrintMemUsage()
 }
 
 func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {

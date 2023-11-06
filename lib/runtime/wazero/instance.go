@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -102,17 +103,10 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	ctx := context.Background()
-
-	// rtConfig := wazero.NewRuntimeConfig().
-	// 	WithMemoryCapacityFromMax(true).
-	// https://github.com/paritytech/substrate/blob/033d4e86cc7eff0066cd376b9375f815761d653c/client/executor/wasmtime/src/runtime.rs#L354
-	//WithMemoryLimitPages(0x10000)
-
 	rt := wazero.NewRuntime(ctx)
-	//rt := wazero.NewRuntimeWithConfig(ctx, rtConfig)
 
 	_, err = rt.NewHostModuleBuilder("env").
-		ExportMemory("memory", 20).
+		ExportMemory("memory", 23).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
@@ -429,7 +423,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 	fmt.Println("mem size: ", mem.Size())
 
-	allocator := runtime.NewAllocator(mem, 1291856)
+	//allocator := runtime.NewAllocator(mem, hb)
+	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
 
 	return &Instance{
 		Runtime: rt,
@@ -456,7 +451,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	defer i.Unlock()
 
 	dataLength := uint32(len(data))
-	inputPtr, err := i.Context.Allocator.Allocate(dataLength)
+	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
