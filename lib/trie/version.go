@@ -12,7 +12,9 @@ import (
 )
 
 const (
+	// NoMaxValueSize is the numeric representation used to indicate that there is no max value size.
 	NoMaxValueSize = -1
+	// V1MaxValueSize is the maximum size of a value to be hashed in state trie version 1.
 	V1MaxValueSize = 32
 )
 
@@ -29,13 +31,20 @@ const (
 	V1
 )
 
+// ErrParseVersion is returned when parsing a state trie version fails.
+var ErrParseVersion = errors.New("parsing version failed")
+
 // DefaultStateVersion sets the state version we should use as default
 // See https://github.com/paritytech/substrate/blob/5e76587825b9a9d52d8cb02ba38828adf606157b/primitives/storage/src/lib.rs#L435-L439
 const DefaultStateVersion = V1
 
+// Entry is a key-value pair used to build a trie
 type Entry struct{ Key, Value []byte }
+
+// Entries is a list of entry used to build a trie
 type Entries []Entry
 
+// String returns a string representation of trie version
 func (v Version) String() string {
 	switch v {
 	case V0:
@@ -47,10 +56,12 @@ func (v Version) String() string {
 	}
 }
 
+// ShouldHashValue returns true if the value should be hashed based on trie version
 func (v Version) ShouldHashValue(value []byte) bool {
 	return v == V1 && len(value) > V1MaxValueSize
 }
 
+// Root returns the root hash of the trie built using the given entries
 func (v Version) Root(entries Entries) (common.Hash, error) {
 	t := NewEmptyTrie()
 
@@ -63,8 +74,6 @@ func (v Version) Root(entries Entries) (common.Hash, error) {
 
 	return t.Hash()
 }
-
-var ErrParseVersion = errors.New("parsing version failed")
 
 // ParseVersion parses a state trie version string.
 func ParseVersion[T string | uint32](v T) (version Version, err error) {
