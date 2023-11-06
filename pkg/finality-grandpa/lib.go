@@ -54,12 +54,12 @@ type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
 
 // Message is a protocol message or vote.
 type Message[Hash, Number any] struct {
-	value any
+	Value any
 }
 
 // Target returns the target block of the vote.
 func (m Message[H, N]) Target() HashNumber[H, N] {
-	switch message := m.value.(type) {
+	switch message := m.Value.(type) {
 	case Prevote[H, N]:
 		return HashNumber[H, N]{
 			message.TargetHash,
@@ -80,18 +80,13 @@ func (m Message[H, N]) Target() HashNumber[H, N] {
 	}
 }
 
-// Value returns the message constrained by `Messages`
-func (m Message[H, N]) Value() any {
-	return m.value
-}
-
 // Messages is the interface constraint for `Message`
 type Messages[Hash, Number any] interface {
 	Prevote[Hash, Number] | Precommit[Hash, Number] | PrimaryPropose[Hash, Number]
 }
 
 func setMessage[Hash, Number any, T Messages[Hash, Number]](m *Message[Hash, Number], val T) {
-	m.value = val
+	m.Value = val
 }
 
 func newMessage[Hash, Number any, T Messages[Hash, Number]](val T) (m Message[Hash, Number]) {
