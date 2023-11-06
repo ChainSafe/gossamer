@@ -73,7 +73,6 @@ func TestDummyStore(t *testing.T) {
 	require.True(t, len(*store) == 2)
 
 	del := []api.Key{setStateKey}
-
 	err = store.Insert(nil, del)
 	require.NoError(t, err)
 	require.True(t, len(*store) == 1)
@@ -93,13 +92,13 @@ func TestLoadPersistentGenesis(t *testing.T) {
 	store := newDummyStore(t)
 	genesisHash := "a"
 	genesisNumber := uint(21)
-	genesisAuths := []Authority[uint]{{
+	genesisAuths := []Authority[dummyAuthID]{{
 		Key:    key,
 		Weight: 1,
 	}}
 
 	// Genesis Case
-	persistentData, err := loadPersistent[string, uint, uint, uint](
+	persistentData, err := loadPersistent[string, uint, dummyAuthID, uint](
 		store,
 		genesisHash,
 		genesisNumber,
@@ -107,14 +106,14 @@ func TestLoadPersistentGenesis(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, persistentData)
 
-	genesisSet, err := NewGenesisAuthoritySet[string, uint, uint](genesisAuths)
+	genesisSet, err := NewGenesisAuthoritySet[string, uint, dummyAuthID](genesisAuths)
 	require.NoError(t, err)
 
 	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{
 		Hash:   genesisHash,
 		Number: genesisNumber})
 	base := state.PrevoteGHOST
-	genesisState, err := NewLiveVoterSetState[string, uint, uint, uint](0, *genesisSet, *base)
+	genesisState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](0, *genesisSet, *base)
 	require.NoError(t, err)
 
 	require.Equal(t, persistentData.authoritySet.inner, *genesisSet)
@@ -137,20 +136,20 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	store := newDummyStore(t)
 	genesisHash := "a"
 	genesisNumber := uint(21)
-	genesisAuths := []Authority[uint]{{
+	genesisAuths := []Authority[dummyAuthID]{{
 		Key:    key,
 		Weight: 1,
 	}}
 
 	// Auth set and Set state both written
-	genesisSet, err := NewGenesisAuthoritySet[string, uint, uint](genesisAuths)
+	genesisSet, err := NewGenesisAuthoritySet[string, uint, dummyAuthID](genesisAuths)
 	require.NoError(t, err)
 
 	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{
 		Hash:   genesisHash,
 		Number: genesisNumber})
 	base := state.PrevoteGHOST
-	genesisState, err := NewLiveVoterSetState[string, uint, uint, uint](0, *genesisSet, *base)
+	genesisState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](0, *genesisSet, *base)
 	require.NoError(t, err)
 
 	insert := []api.KeyValue{
@@ -160,7 +159,7 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 
 	err = store.Insert(insert, nil)
 	require.NoError(t, err)
-	persistentData, err := loadPersistent[string, uint, uint, uint](
+	persistentData, err := loadPersistent[string, uint, dummyAuthID, uint](
 		store,
 		genesisHash,
 		genesisNumber,
@@ -183,14 +182,14 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 
 	err = store.Insert(insert, nil)
 	require.NoError(t, err)
-	persistentData, err = loadPersistent[string, uint, uint, uint](
+	persistentData, err = loadPersistent[string, uint, dummyAuthID, uint](
 		store,
 		genesisHash,
 		genesisNumber,
 		genesisAuthorities(genesisAuths, nil))
 	require.NoError(t, err)
 
-	newState, err := NewLiveVoterSetState[string, uint, uint, uint](genesisSet.SetID, *genesisSet, *base)
+	newState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](genesisSet.SetID, *genesisSet, *base)
 	require.NoError(t, err)
 
 	require.Equal(t, *genesisSet, persistentData.authoritySet.inner)
@@ -204,20 +203,20 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 func TestUpdateAuthoritySet(t *testing.T) {
 	// Test no new set case
 	store := newDummyStore(t)
-	authorities := AuthoritySet[string, uint, uint]{
+	authorities := AuthoritySet[string, uint, dummyAuthID]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
+		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
 	}
 
-	err := UpdateAuthoritySet[string, uint, uint, uint](authorities, nil, write(store))
+	err := UpdateAuthoritySet[string, uint, dummyAuthID, uint](authorities, nil, write(store))
 	require.NoError(t, err)
 
 	encData, err := store.Get(authoritySetKey)
 	require.NoError(t, err)
 	require.NotNil(t, encData)
 
-	newAuthorities := AuthoritySet[string, uint, uint]{
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
+	newAuthorities := AuthoritySet[string, uint, dummyAuthID]{
+		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
 	}
 	err = scale.Unmarshal(*encData, &newAuthorities)
 	require.NoError(t, err)
@@ -225,25 +224,25 @@ func TestUpdateAuthoritySet(t *testing.T) {
 
 	// New set case
 	store = newDummyStore(t)
-	authorities = AuthoritySet[string, uint, uint]{
+	authorities = AuthoritySet[string, uint, dummyAuthID]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
+		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
 	}
 
-	newAuthSet := &NewAuthoritySetStruct[string, uint, uint]{
+	newAuthSet := &NewAuthoritySetStruct[string, uint, dummyAuthID]{
 		CanonNumber: 4,
 		SetId:       2,
 	}
 
-	err = UpdateAuthoritySet[string, uint, uint, uint](authorities, newAuthSet, write(store))
+	err = UpdateAuthoritySet[string, uint, dummyAuthID, uint](authorities, newAuthSet, write(store))
 	require.NoError(t, err)
 
 	encData, err = store.Get(authoritySetKey)
 	require.NoError(t, err)
 	require.NotNil(t, encData)
 
-	newAuthorities = AuthoritySet[string, uint, uint]{
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
+	newAuthorities = AuthoritySet[string, uint, dummyAuthID]{
+		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
 	}
 	err = scale.Unmarshal(*encData, &newAuthorities)
 	require.NoError(t, err)
@@ -257,7 +256,11 @@ func TestUpdateAuthoritySet(t *testing.T) {
 		Number: newAuthSet.CanonNumber,
 	}
 
-	setState, err := NewLiveVoterSetState[string, uint, uint, uint](uint64(newAuthSet.SetId), authorities, genesisState)
+	setState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](
+		uint64(newAuthSet.SetId),
+		authorities,
+		genesisState,
+	)
 	require.NoError(t, err)
 
 	encodedVoterSet, err := scale.Marshal(setState)
@@ -267,11 +270,11 @@ func TestUpdateAuthoritySet(t *testing.T) {
 
 func TestWriteVoterSetState(t *testing.T) {
 	store := newDummyStore(t)
-	authorities := AuthoritySet[string, uint, uint]{
-		CurrentAuthorities:     []Authority[uint]{},
+	authorities := AuthoritySet[string, uint, dummyAuthID]{
+		CurrentAuthorities:     []Authority[dummyAuthID]{},
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
-		PendingForcedChanges:   []PendingChange[string, uint, uint]{},
+		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
+		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -280,7 +283,7 @@ func TestWriteVoterSetState(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := completedRound[string, uint, uint, uint]{
+	completedRound := completedRound[string, uint, dummyAuthID, uint]{
 		Number: 1,
 		State: finalityGrandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -292,14 +295,14 @@ func TestWriteVoterSetState(t *testing.T) {
 	}
 
 	completedRounds := NewCompletedRounds[string, uint](completedRound, 1, authorities)
-	currentRounds := make(map[uint64]hasVoted[string, uint, uint])
+	currentRounds := make(map[uint64]hasVoted[string, uint, dummyAuthID])
 
-	liveState := voterSetStateLive[string, uint, uint, uint]{
+	liveState := voterSetStateLive[string, uint, dummyAuthID, uint]{
 		CompletedRounds: completedRounds,
 		CurrentRounds:   currentRounds,
 	}
 
-	voterSetState := NewVoterSetState[string, uint, uint, uint]()
+	voterSetState := NewVoterSetState[string, uint, dummyAuthID, uint]()
 	err := voterSetState.Set(liveState)
 	require.NoError(t, err)
 	require.NotNil(t, voterSetState)
@@ -318,11 +321,11 @@ func TestWriteVoterSetState(t *testing.T) {
 
 func TestWriteConcludedRound(t *testing.T) {
 	store := newDummyStore(t)
-	authorities := AuthoritySet[string, uint, uint]{
-		CurrentAuthorities:     []Authority[uint]{},
+	authorities := AuthoritySet[string, uint, dummyAuthID]{
+		CurrentAuthorities:     []Authority[dummyAuthID]{},
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, uint](),
-		PendingForcedChanges:   []PendingChange[string, uint, uint]{},
+		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
+		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -331,7 +334,7 @@ func TestWriteConcludedRound(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := completedRound[string, uint, uint, uint]{
+	completedRound := completedRound[string, uint, dummyAuthID, uint]{
 		Number: 1,
 		State: finalityGrandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -343,14 +346,14 @@ func TestWriteConcludedRound(t *testing.T) {
 	}
 
 	completedRounds := NewCompletedRounds[string, uint](completedRound, 1, authorities)
-	currentRounds := make(map[uint64]hasVoted[string, uint, uint])
+	currentRounds := make(map[uint64]hasVoted[string, uint, dummyAuthID])
 
-	liveState := voterSetStateLive[string, uint, uint, uint]{
+	liveState := voterSetStateLive[string, uint, dummyAuthID, uint]{
 		CompletedRounds: completedRounds,
 		CurrentRounds:   currentRounds,
 	}
 
-	voterSetState := NewVoterSetState[string, uint, uint, uint]()
+	voterSetState := NewVoterSetState[string, uint, dummyAuthID, uint]()
 	err := voterSetState.Set(liveState)
 	require.NoError(t, err)
 	require.NotNil(t, voterSetState)
@@ -368,4 +371,39 @@ func TestWriteConcludedRound(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, val)
 	require.Equal(t, encRoundData, *val)
+}
+
+func TestWriteJustification(t *testing.T) {
+	store := newDummyStore(t)
+
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
+	precommit := makePrecommit(t, "a", 1, 1)
+	precommits = append(precommits, precommit)
+
+	expAncestries := make([]testHeader[string, uint], 0)
+	expAncestries = append(expAncestries, testHeader[string, uint]{
+		NumberField:     100,
+		ParentHashField: "a",
+	})
+
+	justification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Round: 2,
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
+			TargetHash:   "a",
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VotesAncestries: expAncestries,
+	}
+
+	_, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
+	require.ErrorIs(t, err, errValueNotFound)
+
+	err = updateBestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](justification, write(store))
+	require.NoError(t, err)
+
+	bestJust, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
+	require.NoError(t, err)
+	require.NotNil(t, bestJust)
+	require.Equal(t, justification, *bestJust)
 }
