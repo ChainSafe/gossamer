@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/client/api"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -16,7 +17,7 @@ var (
 	setStateKey       = []byte("grandpa_completed_round")
 	concludedRounds   = []byte("grandpa_concluded_rounds")
 	authoritySetKey   = []byte("grandpa_voters")
-	bestJustification = []byte("grandpa_best_justification") //nolint
+	bestJustification = []byte("grandpa_best_justification")
 
 	errValueNotFound = errors.New("value not found")
 )
@@ -195,15 +196,44 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 // We always keep around the justification for the best finalized block and overwrite it
 // as we finalize new blocks, this makes sure that we don't store useless justifications
 // but can always prove finality of the latest block.
-func UpdateBestJustification() {
-	// TODO impl when we have justification logic
-	panic("impl")
+func updateBestJustification[
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	ID AuthorityID,
+	H Header[Hash, N]](
+	justification Justification[Hash, N, S, ID, H],
+	write writeAux) error {
+	encodedJustificaiton, err := scale.Marshal(justification)
+	if err != nil {
+		return fmt.Errorf("marshalling: %w", err)
+	}
+
+	insert := []api.KeyValue{
+		{bestJustification, encodedJustificaiton}, //nolint
+	}
+	err = write(insert)
+	if err != nil {
+		return fmt.Errorf("inserting justification: %w", err)
+	}
+	return nil
 }
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
-func BestJustification() {
-	// TODO impl when we have justification logic
-	panic("impl")
+func BestJustification[
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	ID AuthorityID,
+	H Header[Hash, N]](
+	store api.AuxStore) (*Justification[Hash, N, S, ID, H], error) {
+	justification := Justification[Hash, N, S, ID, H]{}
+	err := loadDecoded(store, bestJustification, &justification)
+	if err != nil {
+		return nil, err
+	}
+
+	return &justification, nil
 }
 
 // WriteVoterSetState Write voter set state.
@@ -249,5 +279,4 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned, ID AuthorityID, S
 		return err
 	}
 	return nil
-
 }

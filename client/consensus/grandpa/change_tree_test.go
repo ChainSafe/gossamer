@@ -10,53 +10,53 @@ import (
 )
 
 func TestSwapRemove(t *testing.T) {
-	change1 := &PendingChange[string, uint, uint]{
+	change1 := &PendingChange[string, uint, dummyAuthID]{
 		CanonHash: "a",
 	}
 
-	change2 := &PendingChange[string, uint, uint]{
+	change2 := &PendingChange[string, uint, dummyAuthID]{
 		CanonHash: "b",
 	}
 
-	change3 := &PendingChange[string, uint, uint]{
+	change3 := &PendingChange[string, uint, dummyAuthID]{
 		CanonHash: "c",
 	}
 
-	pendingChangeNode1 := &PendingChangeNode[string, uint, uint]{
+	pendingChangeNode1 := &PendingChangeNode[string, uint, dummyAuthID]{
 		Change: change1,
 	}
 
-	pendingChangeNode2 := &PendingChangeNode[string, uint, uint]{
+	pendingChangeNode2 := &PendingChangeNode[string, uint, dummyAuthID]{
 		Change: change2,
 	}
 
-	pendingChangeNode3 := &PendingChangeNode[string, uint, uint]{
+	pendingChangeNode3 := &PendingChangeNode[string, uint, dummyAuthID]{
 		Change: change3,
 	}
 
-	changeNodes1 := []*PendingChangeNode[string, uint, uint]{
+	changeNodes1 := []*PendingChangeNode[string, uint, dummyAuthID]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 	}
 
-	changeNodes2 := []*PendingChangeNode[string, uint, uint]{
+	changeNodes2 := []*PendingChangeNode[string, uint, dummyAuthID]{
 		pendingChangeNode1,
 		pendingChangeNode2,
 		pendingChangeNode3,
 	}
 	type args struct {
-		ct    ChangeTree[string, uint, uint]
+		ct    ChangeTree[string, uint, dummyAuthID]
 		index uint
 	}
 	tests := []struct {
 		name string
 		args args
-		exp  PendingChangeNode[string, uint, uint]
+		exp  PendingChangeNode[string, uint, dummyAuthID]
 	}{
 		{
 			name: "2ElemSliceDeletingLastElement",
 			args: args{
-				ct: ChangeTree[string, uint, uint]{
+				ct: ChangeTree[string, uint, dummyAuthID]{
 					TreeRoots: changeNodes1,
 				},
 				index: 1,
@@ -66,7 +66,7 @@ func TestSwapRemove(t *testing.T) {
 		{
 			name: "3ElemSliceDeletingFirstElement",
 			args: args{
-				ct: ChangeTree[string, uint, uint]{
+				ct: ChangeTree[string, uint, dummyAuthID]{
 					TreeRoots: changeNodes2,
 				},
 				index: 0,

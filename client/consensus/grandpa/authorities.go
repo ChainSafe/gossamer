@@ -46,8 +46,8 @@ type hashNumber[H, N any] struct {
 	number N
 }
 
-// medianAuthoritySet represents the median and new set when a forced hashNumber has occurred
-type medianAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+// appliedChanges represents the median and new set when a forced change has occurred
+type appliedChanges[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
 	median N
 	set    AuthoritySet[H, N, ID]
 }
@@ -117,7 +117,7 @@ func (sas *SharedAuthoritySet[H, N, ID]) currentLimit(min N) (limit *N) { //noli
 func (sas *SharedAuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //nolint //skipcq: SCC-U1000
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
-	telemetry *Telemetry) (newSet *medianAuthoritySet[H, N, ID], err error) {
+	telemetry *Telemetry) (newSet *appliedChanges[H, N, ID], err error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, telemetry)
@@ -481,7 +481,7 @@ func (authSet *AuthoritySet[H, N, ID]) currentLimit(min N) (limit *N) {
 func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq:  RVV-B0001
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
-	_ Telemetry) (newSet *medianAuthoritySet[H, N, ID], err error) {
+	_ Telemetry) (newSet *appliedChanges[H, N, ID], err error) {
 
 	for _, change := range authSet.PendingForcedChanges {
 		effectiveNumber := change.EffectiveNumber()
@@ -516,14 +516,14 @@ func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq: 
 					}
 				}
 
-				// apply this hashNumber: make the set canonical
-				logger.Infof("👴 Applying authority set hashNumber forced at block #%d", change.CanonHeight)
+				// apply this change: make the set canonical
+				logger.Infof("👴 Applying authority set change forced at block #%d", change.CanonHeight)
 
 				// TODO telemetry
 
 				authSetChanges := authSet.AuthoritySetChanges
 				authSetChanges.append(authSet.SetID, medianLastFinalized)
-				newSet = &medianAuthoritySet[H, N, ID]{
+				newSet = &appliedChanges[H, N, ID]{
 					medianLastFinalized,
 					AuthoritySet[H, N, ID]{
 						CurrentAuthorities:     change.NextAuthorities,
