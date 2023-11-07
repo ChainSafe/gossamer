@@ -62,11 +62,6 @@ func (t *Trie) Equal(other *Trie) bool {
 		reflect.DeepEqual(t.childTries, other.childTries) && reflect.DeepEqual(t.deltas, other.deltas)
 }
 
-// SetDB is to set the db that this trie will use primary to store v1 value nodes
-func (t *Trie) SetDB(db db.Database) {
-	t.db = db
-}
-
 // Snapshot creates a copy of the trie.
 // Note it does not deep copy the trie, but will
 // copy on write as modifications are done on this new trie.

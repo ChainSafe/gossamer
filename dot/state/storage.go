@@ -48,8 +48,6 @@ func NewStorageState(db database.Database, blockState *BlockState,
 	tries *Tries) (*StorageState, error) {
 	storageTable := database.NewTable(db, storagePrefix)
 
-	tries.SetDB(storageTable)
-
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,

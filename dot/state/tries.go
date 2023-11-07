@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -49,13 +48,6 @@ func NewTries() (tries *Tries) {
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
-	}
-}
-
-// SetDB is to set the same db for every trie in the collection
-func (t *Tries) SetDB(db db.Database) {
-	for _, trie := range t.rootToTrie {
-		trie.SetDB(db)
 	}
 }
 
