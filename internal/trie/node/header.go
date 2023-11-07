@@ -10,7 +10,7 @@ import (
 )
 
 // encodeHeader writes the encoded header for the node.
-func encodeHeader(node *Node, writer io.Writer) (err error) {
+func encodeHeader(node *Node, maxInlineValueSize int, writer io.Writer) (err error) {
 	if node == nil {
 		_, err = writer.Write([]byte{emptyVariant.bits})
 		return err
@@ -21,17 +21,19 @@ func encodeHeader(node *Node, writer io.Writer) (err error) {
 		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))
 	}
 
+	isHashedValue := len(node.StorageValue) > maxInlineValueSize
+
 	// Merge variant byte and partial key length together
 	var nodeVariant variant
 	if node.Kind() == Leaf {
-		if node.IsHashedValue {
+		if isHashedValue {
 			nodeVariant = leafWithHashedValueVariant
 		} else {
 			nodeVariant = leafVariant
 		}
 	} else if node.StorageValue == nil {
 		nodeVariant = branchVariant
-	} else if node.IsHashedValue {
+	} else if isHashedValue {
 		nodeVariant = branchWithHashedValueVariant
 	} else {
 		nodeVariant = branchWithValueVariant

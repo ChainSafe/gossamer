@@ -10,7 +10,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,14 +18,14 @@ import (
 func Test_encodeHeader(t *testing.T) {
 	t.Parallel()
 
-	hashedValue, err := common.Blake2bHash([]byte("test"))
-	assert.NoError(t, err)
+	largeValue := []byte("newvaluewithmorethan32byteslength")
 
 	testCases := map[string]struct {
-		node       *Node
-		writes     []writeCall
-		errWrapped error
-		errMessage string
+		node               *Node
+		writes             []writeCall
+		maxInlineValueSize int
+		errWrapped         error
+		errMessage         string
 	}{
 		"branch_with_no_key": {
 			node: &Node{
@@ -47,10 +46,10 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"branch_with_hashed_value": {
 			node: &Node{
-				StorageValue:  hashedValue.ToBytes(),
-				IsHashedValue: true,
-				Children:      make([]*Node, ChildrenCapacity),
+				StorageValue: largeValue,
+				Children:     make([]*Node, ChildrenCapacity),
 			},
+			maxInlineValueSize: 32,
 			writes: []writeCall{
 				{written: []byte{branchWithHashedValueVariant.bits}},
 			},
@@ -126,9 +125,9 @@ func Test_encodeHeader(t *testing.T) {
 		},
 		"leaf_with_hashed_value": {
 			node: &Node{
-				StorageValue:  hashedValue.ToBytes(),
-				IsHashedValue: true,
+				StorageValue: largeValue,
 			},
+			maxInlineValueSize: 32,
 			writes: []writeCall{
 				{written: []byte{leafWithHashedValueVariant.bits}},
 			},
@@ -138,6 +137,7 @@ func Test_encodeHeader(t *testing.T) {
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits}},
 			},
+			maxInlineValueSize: 32,
 		},
 		"leaf_with_key_of_length_30": {
 			node: &Node{
@@ -240,7 +240,7 @@ func Test_encodeHeader(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeHeader(testCase.node, writer)
+			err := encodeHeader(testCase.node, testCase.maxInlineValueSize, writer)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -258,7 +258,7 @@ func Test_encodeHeader(t *testing.T) {
 		}
 
 		assert.PanicsWithValue(t, "partial key length is too big: 65536", func() {
-			_ = encodeHeader(node, io.Discard)
+			_ = encodeHeader(node, 0, io.Discard)
 		})
 	})
 }
@@ -293,7 +293,7 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 		PartialKey: make([]byte, keyLength),
 	}
 
-	err := encodeHeader(node, buffer)
+	err := encodeHeader(node, math.MaxInt, buffer)
 
 	require.NoError(t, err)
 	assert.Equal(t, expectedBytes, buffer.Bytes())

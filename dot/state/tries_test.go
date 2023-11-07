@@ -59,7 +59,7 @@ func Test_Tries_SetTrie(t *testing.T) {
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
-			tr.MustHash(): tr,
+			tr.MustHash(trie.NoMaxInlineValueSize): tr,
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,

@@ -139,13 +139,6 @@ func (t *Trie) registerDeletedNodeHash(node *Node,
 		// since the last trie snapshot.
 		nodeHash := common.NewHash(node.MerkleValue)
 		pendingDeltas.RecordDeleted(nodeHash)
-
-		// If this node contains a hashed value we have to remove the value node from the db too
-		if node.IsHashedValue {
-			// TODO: fix this! we could have an issue since we are using the same shared value node for N hashed nodes
-			// One way to fix it is having a reference counter for each value node
-			pendingDeltas.RecordDeleted(common.NewHash(node.StorageValue))
-		}
 	}
 
 	return nil
@@ -196,8 +189,8 @@ func (t *Trie) RootNode() *Node {
 
 // MustHash returns the hashed root of the trie.
 // It panics if it fails to hash the root node.
-func (t *Trie) MustHash() common.Hash {
-	h, err := t.Hash()
+func (t *Trie) MustHash(maxInlineValue int) common.Hash {
+	h, err := t.Hash(maxInlineValue)
 	if err != nil {
 		panic(err)
 	}
@@ -206,12 +199,12 @@ func (t *Trie) MustHash() common.Hash {
 }
 
 // Hash returns the hashed root of the trie.
-func (t *Trie) Hash() (rootHash common.Hash, err error) {
+func (t *Trie) Hash(maxInlineValue int) (rootHash common.Hash, err error) {
 	if t.root == nil {
 		return EmptyHash, nil
 	}
 
-	merkleValue, err := t.root.CalculateRootMerkleValue()
+	merkleValue, err := t.root.CalculateRootMerkleValue(maxInlineValue)
 	if err != nil {
 		return rootHash, err
 	}
@@ -1413,12 +1406,12 @@ func (t *Trie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
 	}
 
 	if parent == t.root {
-		_, err = parent.CalculateRootMerkleValue()
+		_, err = parent.CalculateRootMerkleValue(NoMaxInlineValueSize)
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of root node: %w", err)
 		}
 	} else {
-		_, err = parent.CalculateMerkleValue()
+		_, err = parent.CalculateMerkleValue(NoMaxInlineValueSize)
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of node: %w", err)
 		}

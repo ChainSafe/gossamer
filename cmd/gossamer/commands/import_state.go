@@ -7,14 +7,12 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	ImportStateCmd.Flags().String("state-file", "", "Path to JSON file consisting of key-value pairs")
-	ImportStateCmd.Flags().String("state-version", trie.DefaultStateVersion.String(), "State version v0 or v1")
 	ImportStateCmd.Flags().String("header-file", "", "Path to JSON file of block header corresponding to the given state")
 	ImportStateCmd.Flags().Uint64("first-slot", 0, "The first BABE slot of the network")
 }

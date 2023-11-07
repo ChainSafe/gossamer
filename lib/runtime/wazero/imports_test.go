@@ -567,7 +567,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	tt.Put([]byte("noot"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
-	expected := tt.MustHash()
+	expected := tt.MustHash(trie.NoMaxInlineValueSize)
 	require.Equal(t, expected[:], hash)
 }
 
@@ -579,9 +579,11 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	require.NoError(t, err)
 	encInput[0] = encInput[0] >> 1
 
-	stateVersion := uint32(trie.V1)
+	stateVersion := trie.V1
+
+	stateVersionInt := uint32(stateVersion)
 	stateVersionBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
+	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersionInt)
 
 	data := append(encInput, stateVersionBytes...)
 
@@ -596,7 +598,7 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	tt.Put([]byte("dimartiro"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
-	expected := tt.MustHash()
+	expected := tt.MustHash(stateVersion.MaxInlineValue())
 	require.Equal(t, expected[:], hash)
 }
 
@@ -647,10 +649,12 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	memdb, err := database.NewPebble(tmp, true)
 	require.NoError(t, err)
 
+	stateVersion := trie.V0 //Since this is Test_ext_trie_blake2_256_verify_proof_version_1
+
 	otherTrie := trie.NewEmptyTrie()
 	otherTrie.Put([]byte("simple"), []byte("cat"))
 
-	otherHash, err := otherTrie.Hash()
+	otherHash, err := stateVersion.Hash(otherTrie)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -663,7 +667,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	err = tr.WriteDirty(memdb)
 	require.NoError(t, err)
 
-	hash, err := tr.Hash()
+	hash, err := stateVersion.Hash(tr)
 	require.NoError(t, err)
 
 	keys := [][]byte{
@@ -739,10 +743,15 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 	memdb, err := database.NewPebble(tmp, true)
 	require.NoError(t, err)
 
+	stateVersion := trie.V1
+	stateVersionInt := uint32(trie.V1)
+	stateVersionBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersionInt)
+
 	otherTrie := trie.NewEmptyTrie()
 	otherTrie.Put([]byte("simple"), []byte("cat"))
 
-	otherHash, err := otherTrie.Hash()
+	otherHash, err := stateVersion.Hash(otherTrie)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -755,7 +764,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 	err = tr.WriteDirty(memdb)
 	require.NoError(t, err)
 
-	hash, err := tr.Hash()
+	hash, err := stateVersion.Hash(tr)
 	require.NoError(t, err)
 
 	keys := [][]byte{
@@ -814,10 +823,6 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 			valueEnc, err := scale.Marshal(testcase.value)
 			require.NoError(t, err)
 			args = append(args, valueEnc...)
-
-			stateVersion := uint32(trie.V1)
-			stateVersionBytes := make([]byte, 4)
-			binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
 			args = append(args, stateVersionBytes...)
 
@@ -1283,7 +1288,9 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 	child, err := inst.Context.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
 
-	rootHash, err := child.Hash()
+	stateVersion := trie.V0
+
+	rootHash, err := stateVersion.Hash(child)
 	require.NoError(t, err)
 
 	encChildKey, err := scale.Marshal(testChildKey)
@@ -1306,6 +1313,8 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
+	stateVersion := trie.V1
+
 	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
@@ -1315,7 +1324,7 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	child, err := inst.Context.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
 
-	rootHash, err := child.Hash()
+	rootHash, err := stateVersion.Hash(child)
 	require.NoError(t, err)
 
 	encChildKey, err := scale.Marshal(testChildKey)
@@ -1323,8 +1332,8 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	encKey, err := scale.Marshal(testKey)
 	require.NoError(t, err)
 
-	stateVersion := uint32(trie.V1)
-	encVersion, err := scale.Marshal(&stateVersion)
+	stateVersionInt := uint32(stateVersion)
+	encVersion, err := scale.Marshal(&stateVersionInt)
 	require.NoError(t, err)
 
 	data := append(encChildKey, encKey...)

@@ -61,7 +61,7 @@ func (t *Trie) loadNode(db db.DBGetter, n *Node) error {
 		if len(merkleValue) < 32 {
 			// node has already been loaded inline
 			// just set its encoding
-			_, err := child.CalculateMerkleValue()
+			_, err := child.CalculateMerkleValue(NoMaxInlineValueSize)
 			if err != nil {
 				return fmt.Errorf("merkle value: %w", err)
 			}
@@ -109,7 +109,7 @@ func (t *Trie) loadNode(db db.DBGetter, n *Node) error {
 			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
-		hash, err := childTrie.Hash()
+		hash, err := childTrie.Hash(NoMaxInlineValueSize)
 		if err != nil {
 			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
 		}
@@ -287,9 +287,9 @@ func (t *Trie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
 
 	var encoding, merkleValue []byte
 	if n == t.root {
-		encoding, merkleValue, err = n.EncodeAndHashRoot()
+		encoding, merkleValue, err = n.EncodeAndHashRoot(V0.MaxInlineValue()) //TODO: solve this with right version
 	} else {
-		encoding, merkleValue, err = n.EncodeAndHash()
+		encoding, merkleValue, err = n.EncodeAndHash(V0.MaxInlineValue()) //TODO: solve this with right version
 	}
 	if err != nil {
 		return fmt.Errorf(
@@ -364,9 +364,9 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, nodeHashes map[common.Hash]s
 
 	var merkleValue []byte
 	if n == t.root {
-		merkleValue, err = n.CalculateRootMerkleValue()
+		merkleValue, err = n.CalculateRootMerkleValue(NoMaxInlineValueSize)
 	} else {
-		merkleValue, err = n.CalculateMerkleValue()
+		merkleValue, err = n.CalculateMerkleValue(NoMaxInlineValueSize)
 	}
 	if err != nil {
 		return fmt.Errorf("calculating Merkle value: %w", err)

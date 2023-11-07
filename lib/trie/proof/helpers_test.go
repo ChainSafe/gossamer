@@ -5,6 +5,7 @@ package proof
 
 import (
 	"bytes"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -23,7 +24,7 @@ func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
 func encodeNode(t *testing.T, node node.Node) (encoded []byte) {
 	t.Helper()
 	buffer := bytes.NewBuffer(nil)
-	err := node.Encode(buffer)
+	err := node.Encode(buffer, math.MaxInt)
 	require.NoError(t, err)
 	return buffer.Bytes()
 }

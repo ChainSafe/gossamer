@@ -276,12 +276,6 @@ func Test_Trie_registerDeletedNodeHash(t *testing.T) {
 		StorageValue: []byte{2},
 	}
 
-	someSmallNodeWithHashedValue := &Node{
-		PartialKey:    []byte{1},
-		StorageValue:  common.MustBlake2bHash([]byte("hash")).ToBytes(),
-		IsHashedValue: true,
-	}
-
 	testCases := map[string]struct {
 		trie                  Trie
 		node                  *Node
@@ -326,27 +320,6 @@ func Test_Trie_registerDeletedNodeHash(t *testing.T) {
 			},
 			pendingDeltas:         newDeltas(),
 			expectedPendingDeltas: newDeltas("0x98fcd66ba312c29ef193052fd0c14c6e38b158bd5c0235064594cacc1ab5965d"),
-		},
-		"clean_v1_node_with_hashed_subvalue": {
-			node:          someSmallNodeWithHashedValue,
-			trie:          Trie{root: someSmallNodeWithHashedValue},
-			pendingDeltas: newDeltas(),
-			expectedPendingDeltas: newDeltas(
-				"0x4269e2a9cdf14dbb1f94ea10e5e65be796e940f7043bcb71276682712e6730d5",
-				"0x97edaa69596438136dcd128553e904bc03f526426f727d270b69841fb6cf50d3",
-			),
-			expectedTrie: Trie{
-				root: &Node{
-					PartialKey:    []byte{1},
-					StorageValue:  common.MustBlake2bHash([]byte("hash")).ToBytes(),
-					IsHashedValue: true,
-					MerkleValue: []byte{
-						0x42, 0x69, 0xe2, 0xa9, 0xcd, 0xf1, 0x4d, 0xbb,
-						0x1f, 0x94, 0xea, 0x10, 0xe5, 0xe6, 0x5b, 0xe7,
-						0x96, 0xe9, 0x40, 0xf7, 0x04, 0x3b, 0xcb, 0x71,
-						0x27, 0x66, 0x82, 0x71, 0x2e, 0x67, 0x30, 0xd5},
-				},
-			},
 		},
 	}
 
@@ -490,7 +463,7 @@ func Test_Trie_MustHash(t *testing.T) {
 
 		var trie Trie
 
-		hash := trie.MustHash()
+		hash := DefaultStateVersion.MustHash(trie)
 
 		expectedHash := common.Hash{
 			0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
@@ -587,7 +560,7 @@ func Test_Trie_Hash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			hash, err := testCase.trie.Hash()
+			hash, err := DefaultStateVersion.Hash(&testCase.trie)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

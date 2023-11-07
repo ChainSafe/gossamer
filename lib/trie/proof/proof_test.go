@@ -6,6 +6,7 @@ package proof
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -32,7 +33,7 @@ func Test_Generate_Verify(t *testing.T) {
 		trie.Put([]byte(key), []byte(value))
 	}
 
-	rootHash, err := trie.Hash()
+	rootHash, err := trie.Hash(math.MaxInt)
 	require.NoError(t, err)
 
 	db, err := database.NewPebble("", true)

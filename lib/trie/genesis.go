@@ -12,7 +12,7 @@ import (
 
 // GenesisBlock creates a genesis block from the trie.
 func (t *Trie) GenesisBlock() (genesisHeader types.Header, err error) {
-	rootHash, err := t.Hash()
+	rootHash, err := t.Hash(NoMaxInlineValueSize)
 	if err != nil {
 		return genesisHeader, fmt.Errorf("root hashing trie: %w", err)
 	}

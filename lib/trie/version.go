@@ -57,7 +57,8 @@ func (v Version) String() string {
 	}
 }
 
-func (v Version) maxInlineValue() int {
+// MaxInlineValueSize returns the maximum size of a value to be inlined in the trie node
+func (v Version) MaxInlineValue() int {
 	switch v {
 	case V0:
 		return NoMaxInlineValueSize
@@ -79,7 +80,17 @@ func (v Version) Root(entries Entries) (common.Hash, error) {
 		}
 	}
 
-	return t.Hash()
+	return t.Hash(v.MaxInlineValue())
+}
+
+// Root returns the root hash of the trie built using the given entries
+func (v Version) Hash(t *Trie) (common.Hash, error) {
+	return t.Hash(v.MaxInlineValue())
+}
+
+// Root returns the root hash of the trie built using the given entries
+func (v Version) MustHash(t Trie) common.Hash {
+	return t.MustHash(v.MaxInlineValue())
 }
 
 // ParseVersion parses a state trie version string.

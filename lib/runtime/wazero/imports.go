@@ -1243,7 +1243,7 @@ func ext_default_child_storage_root_version_1(
 		return 0
 	}
 
-	childRoot, err := child.Hash()
+	childRoot, err := trie.V0.Hash(child)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
@@ -1259,7 +1259,7 @@ func ext_default_child_storage_root_version_1(
 
 //export ext_default_child_storage_root_version_2
 func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module, childStorageKey uint64,
-	stateVersion uint32) (ptrSize uint64) { //skipcq: RVV-B0012
+	version uint32) (ptrSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1271,7 +1271,17 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	childRoot, err := child.Hash()
+	// TODO: fix this to get the right version
+	/*stateVersionBytes, _ := m.Memory().Read(version, 4)
+	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}*/
+
+	stateVersion := trie.V1
+
+	childRoot, err := stateVersion.Hash(child)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
@@ -2237,7 +2247,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	}
 	storage := rtCtx.Storage
 
-	root, err := storage.Root()
+	root, err := storage.Root(trie.V0.MaxInlineValue())
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
@@ -2261,13 +2271,13 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	storage := rtCtx.Storage
 
 	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	_, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	root, err := storage.Root()
+	root, err := storage.Root(stateVersion.MaxInlineValue())
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)

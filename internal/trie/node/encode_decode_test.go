@@ -5,6 +5,7 @@ package node
 
 import (
 	"bytes"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,7 +119,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 
 			buffer := bytes.NewBuffer(nil)
 
-			err := testCase.branchToEncode.Encode(buffer)
+			err := testCase.branchToEncode.Encode(buffer, math.MaxInt)
 			require.NoError(t, err)
 
 			nodeVariant, partialKeyLength, err := decodeHeader(buffer)

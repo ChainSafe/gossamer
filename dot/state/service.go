@@ -301,7 +301,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	root := t.MustHash()
+	root := t.MustHash(trie.NoMaxInlineValueSize)
 	if root != header.StateRoot {
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
