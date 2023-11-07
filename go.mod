@@ -14,13 +14,13 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/fatih/color v1.15.0
-	github.com/go-playground/validator/v10 v10.15.5
+	github.com/go-playground/validator/v10 v10.16.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.4.0
 	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/rpc v1.2.0
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/rpc v1.2.1
+	github.com/gorilla/websocket v1.5.1
 	github.com/gtank/merlin v0.1.1
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.9
@@ -33,7 +33,7 @@ require (
 	github.com/prometheus/client_golang v1.17.0
 	github.com/prometheus/client_model v0.5.0
 	github.com/qdm12/gotree v0.2.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tetratelabs/wazero v1.1.0
