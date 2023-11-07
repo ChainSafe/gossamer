@@ -57,7 +57,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	require.NoError(t, err)
 
 	genesisHeader := &types.Header{
-		StateRoot: genesisTrie.MustHash(trie.NoMaxInlineValueSize),
+		StateRoot: trie.DefaultStateVersion.MustHash(genesisTrie),
 		Number:    0,
 	}
 
@@ -271,7 +271,7 @@ func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
+	stateRoot := trie.DefaultStateVersion.MustHash(genesisTrie)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
