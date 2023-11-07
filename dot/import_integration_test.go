@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +53,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			if tt.want.IsEmpty() {
 				assert.Nil(t, got)
 			} else {
-				assert.Equal(t, tt.want, got.MustHash())
+				assert.Equal(t, tt.want, trie.DefaultStateVersion.MustHash(*got))
 			}
 		})
 	}
