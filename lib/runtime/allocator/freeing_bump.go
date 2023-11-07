@@ -488,7 +488,7 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem api.Memory, ptr uint32) (err e
 	if !ok {
 		return fmt.Errorf("underflow of the current allocated bytes count")
 	}
-	//f.stats.bytesAllocated =
+
 	f.stats.bytesAllocated = newBytesAllocated
 	f.stats.collect()
 	return nil
