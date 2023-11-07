@@ -25,3 +25,12 @@ func TestPagesFromSize(t *testing.T) {
 		require.Equal(t, tt.expectedPages, pages)
 	}
 }
+
+func TestShouldAllocatePropertly(t *testing.T) {
+	mem := NewMemoryInstanceWithPages(t, 1)
+	heap := NewFreeingBumpHeapAllocator(0)
+
+	ptr, err := heap.Allocate(mem, 1)
+	require.NoError(t, err)
+	require.Equal(t, uint32(HeaderSize), ptr)
+}

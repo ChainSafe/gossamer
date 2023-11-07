@@ -7,9 +7,9 @@ import (
 	"math/big"
 	"math/bits"
 
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/tetratelabs/wazero/api"
 )
 
 const (
@@ -214,7 +214,7 @@ var _ Header = (*Occupied)(nil)
 // readHeaderFromMemory reads a header from memory, returns an error if ther
 // headerPtr is out of bounds of the linear memory or if the read header is
 // corrupted (e.g the order is incorrect)
-func readHeaderFromMemory(mem api.Memory, headerPtr uint32) (Header, error) {
+func readHeaderFromMemory(mem runtime.Memory, headerPtr uint32) (Header, error) {
 	rawHeader, ok := mem.ReadUint64Le(headerPtr)
 	if !ok {
 		return nil, fmt.Errorf("%w: pointer: %d", ErrCannotReadHeader, headerPtr)
@@ -238,7 +238,7 @@ func readHeaderFromMemory(mem api.Memory, headerPtr uint32) (Header, error) {
 
 // writeHeaderInto write out this header to memory, returns an error if the
 // `header_ptr` is out of bounds of the linear memory.
-func writeHeaderInto(header Header, mem api.Memory, headerPtr uint32) error {
+func writeHeaderInto(header Header, mem runtime.Memory, headerPtr uint32) error {
 	var (
 		headerData   uint64
 		occupiedMask uint64
@@ -358,7 +358,7 @@ func NewFreeingBumpHeapAllocator(heapBase uint32) *FreeingBumpHeapAllocator {
 //
 // - `mem` - a slice representing the linear memory on which this allocator operates.
 // - size: size in bytes of the allocation request
-func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr uint32, err error) {
+func (f *FreeingBumpHeapAllocator) Allocate(mem runtime.Memory, size uint32) (ptr uint32, err error) {
 	if f.poisoned {
 		return 0, ErrAllocatorPoisoned
 	}
@@ -445,7 +445,7 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr ui
 //
 // - `mem` - a slice representing the linear memory on which this allocator operates.
 // - `ptr` - pointer to the allocated chunk
-func (f *FreeingBumpHeapAllocator) Deallocate(mem api.Memory, ptr uint32) (err error) {
+func (f *FreeingBumpHeapAllocator) Deallocate(mem runtime.Memory, ptr uint32) (err error) {
 	if f.poisoned {
 		return ErrAllocatorPoisoned
 	}
@@ -514,7 +514,7 @@ func (f *FreeingBumpHeapAllocator) Clear() {
 	}
 }
 
-func bump(bumper *uint32, size uint32, mem api.Memory) (uint32, error) {
+func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 	requiredSize := uint64(*bumper) + uint64(size)
 
 	if requiredSize > uint64(mem.Size()) {
