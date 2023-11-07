@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -26,16 +27,67 @@ const (
 	unfinalizedPrefix   = "unfinalized"
 	pruneByTimePrefix   = "prune_by_time"
 	tombstoneValue      = " "
+
+	// Unavailable blocks are kept for 1 hour.
+	KEEP_UNAVAILABLE_FOR = time.Hour
+
+	// Finalized data is kept for 25 hours.
+	KEEP_FINALIZED_FOR = time.Hour * 25
+
+	// The pruning interval.
+	PRUNING_INTERVAL = time.Minute * 5
 )
+
+type BETimestamp uint64
+
+func (b BETimestamp) ToBytes() []byte {
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(b))
+	return bytes
+}
+
+type SubsystemClock struct {
+}
+
+func (SubsystemClock) Now() BETimestamp {
+	return BETimestamp(time.Now().Unix())
+}
+
+// PruningConfig Struct holding pruning timing configuration.
+// The only purpose of this structure is to use different timing
+// configurations in production and in testing.
+type PruningConfig struct {
+	keepUnavailableFor time.Duration
+	keepFinalizedFor   time.Duration
+	pruningInterval    time.Duration
+}
+
+var DefaultPruningConfig = PruningConfig{
+	keepUnavailableFor: KEEP_UNAVAILABLE_FOR,
+	keepFinalizedFor:   KEEP_FINALIZED_FOR,
+	pruningInterval:    PRUNING_INTERVAL,
+}
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	availabilityStore   AvailabilityStore
-	//TODO: pruningConfig PruningConfig
-	//TODO: clock         Clock
+	pruningConfig       PruningConfig
+	clock               SubsystemClock
 	//TODO: metrics       Metrics
+}
+
+func NewAvailabilityStoreSubsystem(db database.Database) (*AvailabilityStoreSubsystem, error) {
+	av, err := NewAvailabilityStore(db)
+	if err != nil {
+		return nil, err
+	}
+	return &AvailabilityStoreSubsystem{
+		availabilityStore: *av,
+		pruningConfig:     DefaultPruningConfig,
+		clock:             SubsystemClock{},
+	}, nil
 }
 
 // AvailabilityStore is the struct that holds data for the availability store
@@ -219,8 +271,15 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 	return as.tryTransaction(txFunc)
 }
 
+func writePruningKey(pruneTimeBatch database.Batch, pruneAt BETimestamp, candidate common.Hash) error {
+	pruneKey := append([]byte(pruneByTimePrefix), pruneAt.ToBytes()...)
+	pruneKey = append(pruneKey, candidate[:]...)
+	return pruneTimeBatch.Put(pruneKey, []byte(tombstoneValue))
+}
+
 // storeAvailableData stores available data in the availability store
-func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data AvailableData) error {
+func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem, candidate common.Hash,
+	data AvailableData) error {
 	// TODO check if data is already stored
 
 	dataBytes, err := json.Marshal(data)
@@ -233,9 +292,8 @@ func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data Avai
 	}
 	return nil
 	txFunc := func(availableBatch, chunkBatch, metaBatch, pruneTimeBatch database.Batch) error {
-		pruneKey := append([]byte(pruneByTimePrefix), []byte("time")...)
-		pruneKey = append(pruneKey, candidate[:]...)
-		err := pruneTimeBatch.Put(pruneKey, []byte(tombstoneValue))
+		pruneAt := subsystem.clock.Now() + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
+		err := writePruningKey(pruneTimeBatch, pruneAt, candidate)
 		if err != nil {
 			return err
 		}
@@ -413,6 +471,8 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
 	err := av.availabilityStore.storeAvailableData(msg.CandidateHash, msg.AvailableData)
+func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) {
+	err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.AvailableData)
 	if err != nil {
 		msg.Sender <- err
 		return fmt.Errorf("store available data: %w", err)

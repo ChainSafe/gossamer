@@ -7,11 +7,11 @@ import "github.com/ChainSafe/gossamer/dot/state"
 
 func Register(overseerChan chan<- any, st *state.Service) (*AvailabilityStoreSubsystem, error) {
 	availabilityStore := NewAvailabilityStore(st.DB())
-
-	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		SubSystemToOverseer: overseerChan,
-		availabilityStore:   *availabilityStore,
+	availabilityStoreSubsystem, err := NewAvailabilityStoreSubsystem(st.DB())
+	if err != nil {
+		return nil, err
 	}
+	availabilityStoreSubsystem.SubSystemToOverseer = overseerChan
 
-	return &availabilityStoreSubsystem, nil
+	return availabilityStoreSubsystem, nil
 }
