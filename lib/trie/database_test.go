@@ -60,7 +60,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
 
-		trie.Put(key, value, V0)
+		trie.Put(key, value)
 
 		err := trie.WriteDirty(db)
 		require.NoError(t, err)
@@ -81,7 +81,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	newValue := make([]byte, len(existingValue))
 	copy(newValue, existingValue)
 	newValue = append(newValue, 99)
-	trie.Put(existingKey, newValue, V0)
+	trie.Put(existingKey, newValue)
 	err = trie.WriteDirty(db)
 	require.NoError(t, err)
 
@@ -318,7 +318,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 	}
 
 	for _, keyToChildTrie := range keysToChildTries {
-		err := trie.SetChild(keyToChildTrie, childTrie, V0)
+		err := trie.SetChild(keyToChildTrie, childTrie)
 		require.NoError(t, err)
 
 		err = trie.WriteDirty(db)

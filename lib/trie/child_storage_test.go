@@ -16,7 +16,7 @@ func TestPutAndGetChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie, V0)
+	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	childTrieRes, err := parentTrie.GetChild(childKey)
@@ -30,7 +30,7 @@ func TestPutAndDeleteChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie, V0)
+	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	err = parentTrie.DeleteChild(childKey)
@@ -46,10 +46,10 @@ func TestPutAndClearFromChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie, V0)
+	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
 
-	err = parentTrie.ClearFromChild(childKey, keyInChild, V0)
+	err = parentTrie.ClearFromChild(childKey, keyInChild)
 	assert.NoError(t, err)
 
 	childTrie, err = parentTrie.GetChild(childKey)
@@ -64,12 +64,12 @@ func TestPutAndGetFromChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie, V0)
+	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	testKey := []byte("child_key")
 	testValue := []byte("child_value")
-	err = parentTrie.PutIntoChild(childKey, testKey, testValue, V0)
+	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
 	assert.NoError(t, err)
 
 	valueRes, err := parentTrie.GetFromChild(childKey, testKey)
@@ -79,7 +79,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 	testKey = []byte("child_key_again")
 	testValue = []byte("child_value_again")
-	err = parentTrie.PutIntoChild(childKey, testKey, testValue, V0)
+	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
 	assert.NoError(t, err)
 
 	valueRes, err = parentTrie.GetFromChild(childKey, testKey)
@@ -98,7 +98,7 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 	contributedWith := make([]byte, 8)
 	binary.BigEndian.PutUint64(contributedWith, contributed)
 
-	err := trieThatHoldsAChildTrie.PutIntoChild(keyToChild, keyInChild, contributedWith, V0)
+	err := trieThatHoldsAChildTrie.PutIntoChild(keyToChild, keyInChild, contributedWith)
 	require.NoError(t, err)
 
 	// the parent trie hash SHOULT NOT BE EQUAL to the original
@@ -111,7 +111,7 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 	require.Equal(t, contributed, binary.BigEndian.Uint64(valueStored))
 
 	// clear child trie key value
-	err = trieThatHoldsAChildTrie.ClearFromChild(keyToChild, keyInChild, V0)
+	err = trieThatHoldsAChildTrie.ClearFromChild(keyToChild, keyInChild)
 	require.NoError(t, err)
 
 	// the parent trie hash SHOULD BE EQUAL to the original

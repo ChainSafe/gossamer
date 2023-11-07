@@ -27,7 +27,7 @@ var testCases = []string{
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc), trie.V0)
+			ts.Put([]byte(tc), []byte(tc))
 		}
 
 		for _, tc := range testCases {
@@ -45,10 +45,10 @@ func TestTrieState_SetGetChildStorage(t *testing.T) {
 
 	for _, tc := range testCases {
 		childTrie := trie.NewEmptyTrie()
-		err := ts.SetChild([]byte(tc), childTrie, trie.V0)
+		err := ts.SetChild([]byte(tc), childTrie)
 		require.NoError(t, err)
 
-		err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc), trie.V0)
+		err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
 		require.NoError(t, err)
 	}
 
@@ -63,15 +63,15 @@ func TestTrieState_SetAndClearFromChild(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
 			childTrie := trie.NewEmptyTrie()
-			err := ts.SetChild([]byte(tc), childTrie, trie.V0)
+			err := ts.SetChild([]byte(tc), childTrie)
 			require.NoError(t, err)
 
-			err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc), trie.V0)
+			err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
 			require.NoError(t, err)
 		}
 
 		for _, tc := range testCases {
-			err := ts.ClearChildStorage([]byte(tc), []byte(tc), trie.V0)
+			err := ts.ClearChildStorage([]byte(tc), []byte(tc))
 			require.NoError(t, err)
 
 			_, err = ts.GetChildStorage([]byte(tc), []byte(tc))
@@ -86,7 +86,7 @@ func TestTrieState_SetAndClearFromChild(t *testing.T) {
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc), trie.V0)
+			ts.Put([]byte(tc), []byte(tc))
 		}
 
 		ts.Delete([]byte(testCases[0]))
@@ -101,7 +101,7 @@ func TestTrieState_Delete(t *testing.T) {
 func TestTrieState_Root(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc), trie.V0)
+			ts.Put([]byte(tc), []byte(tc))
 		}
 
 		expected := ts.MustRoot()
@@ -122,7 +122,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		ts.Put([]byte(key), []byte{byte(i)}, trie.V0)
+		ts.Put([]byte(key), []byte{byte(i)})
 	}
 
 	ts.ClearPrefix([]byte("noo"))
@@ -148,12 +148,12 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)}, trie.V0)
+		child.Put([]byte(key), []byte{byte(i)})
 	}
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child, trie.V0)
+	err := ts.SetChild(keyToChild, child)
 	require.NoError(t, err)
 
 	err = ts.ClearPrefixInChild(keyToChild, []byte("noo"))
@@ -174,7 +174,7 @@ func TestTrieState_NextKey(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Put([]byte(tc), []byte(tc), trie.V0)
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
 	sort.Slice(testCases, func(i, j int) bool {
@@ -195,12 +195,12 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Put([]byte(tc), []byte(tc), trie.V0)
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Put([]byte(testCases[0]), testValue, trie.V0)
+	ts.Put([]byte(testCases[0]), testValue)
 	ts.CommitStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -211,12 +211,12 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 	ts := &TrieState{t: trie.NewEmptyTrie()}
 
 	for _, tc := range testCases {
-		ts.Put([]byte(tc), []byte(tc), trie.V0)
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
 	ts.BeginStorageTransaction()
 	testValue := []byte("noot")
-	ts.Put([]byte(testCases[0]), testValue, trie.V0)
+	ts.Put([]byte(testCases[0]), testValue)
 	ts.RollbackStorageTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
@@ -234,12 +234,12 @@ func TestTrieState_DeleteChildLimit(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)}, trie.V0)
+		child.Put([]byte(key), []byte{byte(i)})
 	}
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child, trie.V0)
+	err := ts.SetChild(keyToChild, child)
 	require.NoError(t, err)
 
 	testLimitBytes := make([]byte, 4)

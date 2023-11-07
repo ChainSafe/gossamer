@@ -70,10 +70,10 @@ func (s *TrieState) RollbackStorageTransaction() {
 }
 
 // Put puts a key-value pair in the trie
-func (s *TrieState) Put(key, value []byte, version trie.Version) (err error) {
+func (s *TrieState) Put(key, value []byte) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.Put(key, value, version)
+	return s.t.Put(key, value)
 }
 
 // Get gets a value from the trie
@@ -146,17 +146,17 @@ func (s *TrieState) TrieEntries() map[string][]byte {
 }
 
 // SetChild sets the child trie at the given key
-func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie, version trie.Version) error {
+func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.SetChild(keyToChild, child, version)
+	return s.t.SetChild(keyToChild, child)
 }
 
 // SetChildStorage sets a key-value pair in a child trie
-func (s *TrieState) SetChildStorage(keyToChild, key, value []byte, version trie.Version) error {
+func (s *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.PutIntoChild(keyToChild, key, value, version)
+	return s.t.PutIntoChild(keyToChild, key, value)
 }
 
 // GetChild returns the child trie at the given key
@@ -232,10 +232,10 @@ func (s *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 }
 
 // ClearChildStorage removes the child storage entry from the trie
-func (s *TrieState) ClearChildStorage(keyToChild, key []byte, version trie.Version) error {
+func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.ClearFromChild(keyToChild, key, version)
+	return s.t.ClearFromChild(keyToChild, key)
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix

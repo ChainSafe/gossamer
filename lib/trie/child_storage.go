@@ -18,7 +18,7 @@ var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 // SetChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key
 // associated to the child trie, and V is the root hash of the child trie.
-func (t *Trie) SetChild(keyToChild []byte, child *Trie, version Version) error {
+func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
 	childHash, err := child.Hash()
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie, version Version) error {
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
-	err = t.Put(key, childHash.ToBytes(), version)
+	err = t.Put(key, childHash.ToBytes())
 	if err != nil {
 		return fmt.Errorf("putting child trie root hash %s in trie: %w", childHash, err)
 	}
@@ -52,7 +52,7 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 }
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]
-func (t *Trie) PutIntoChild(keyToChild, key, value []byte, version Version) error {
+func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
 		if errors.Is(err, ErrChildTrieDoesNotExist) {
@@ -67,13 +67,13 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte, version Version) erro
 		return err
 	}
 
-	err = child.Put(key, value, version)
+	err = child.Put(key, value)
 	if err != nil {
 		return fmt.Errorf("putting into child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
 	delete(t.childTries, origChildHash)
-	return t.SetChild(keyToChild, child, version)
+	return t.SetChild(keyToChild, child)
 }
 
 // GetFromChild retrieves a key-value pair from the child trie located
@@ -106,7 +106,7 @@ func (t *Trie) DeleteChild(keyToChild []byte) (err error) {
 }
 
 // ClearFromChild removes the child storage entry
-func (t *Trie) ClearFromChild(keyToChild, key []byte, version Version) error {
+func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
 		return err
@@ -131,5 +131,5 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte, version Version) error {
 		return t.DeleteChild(keyToChild)
 	}
 
-	return t.SetChild(keyToChild, child, version)
+	return t.SetChild(keyToChild, child)
 }

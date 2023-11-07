@@ -23,7 +23,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		tt.Put(key, value, trie.V0)
+		tt.Put(key, value)
 	}
 
 	err := tt.WriteDirty(db)

@@ -736,7 +736,7 @@ func Test_Trie_Entries(t *testing.T) {
 		}
 
 		for k, v := range kv {
-			trie.Put([]byte(k), v, V0)
+			trie.Put([]byte(k), v)
 		}
 
 		entries := trie.Entries()
@@ -761,7 +761,7 @@ func Test_Trie_Entries(t *testing.T) {
 		}
 
 		for k, v := range kv {
-			trie.Put([]byte(k), v, V1)
+			trie.Put([]byte(k), v)
 		}
 
 		entries := trie.Entries()
@@ -1105,17 +1105,13 @@ func Test_nextKey(t *testing.T) {
 func Test_Trie_Put(t *testing.T) {
 	t.Parallel()
 
-	longValue := []byte("newvaluewithmorethan32byteslength")
-	longValueHash := common.MustBlake2bHash(longValue).ToBytes()
-
 	testCases := map[string]struct {
 		trie         Trie
-		stateVersion Version
 		key          []byte
 		value        []byte
 		expectedTrie Trie
 	}{
-		"trie_v0_with_key_and_value": {
+		"trie_with_key_and_value": {
 			trie: Trie{
 				generation: 1,
 				deltas:     newDeltas(),
@@ -1151,50 +1147,6 @@ func Test_Trie_Put(t *testing.T) {
 				},
 			},
 		},
-		"trie_v1_with_key_and_value": {
-			trie: Trie{
-				generation: 1,
-				deltas:     newDeltas(),
-				root: &Node{
-					PartialKey:   []byte{1, 2, 0, 5},
-					StorageValue: []byte{1},
-				},
-				db: db.NewEmptyMemoryDB(),
-			},
-			stateVersion: V1,
-			key:          []byte{0x12, 0x16},
-			value:        longValue,
-			expectedTrie: Trie{
-				generation: 1,
-				deltas:     newDeltas("0xa195089c3e8f8b5b36978700ad954aed99e08413cfc1e2b4c00a5d064abe66a9"),
-				root: &Node{
-					PartialKey:  []byte{1, 2},
-					Generation:  1,
-					Dirty:       true,
-					Descendants: 2,
-					Children: padRightChildren([]*Node{
-						{
-							PartialKey:   []byte{5},
-							StorageValue: []byte{1},
-							Generation:   1,
-							Dirty:        true,
-						},
-						{
-							PartialKey:    []byte{6},
-							StorageValue:  longValueHash,
-							IsHashedValue: true,
-							Generation:    1,
-							Dirty:         true,
-						},
-					}),
-				},
-				db: func() db.Database {
-					db := db.NewEmptyMemoryDB()
-					db.Put(longValueHash, longValue)
-					return db
-				}(),
-			},
-		},
 	}
 
 	for name, testCase := range testCases {
@@ -1203,7 +1155,7 @@ func Test_Trie_Put(t *testing.T) {
 			t.Parallel()
 
 			trie := testCase.trie
-			trie.Put(testCase.key, testCase.value, testCase.stateVersion)
+			trie.Put(testCase.key, testCase.value)
 
 			assert.Equal(t, testCase.expectedTrie, trie)
 		})
@@ -1218,7 +1170,6 @@ func Test_Trie_insert(t *testing.T) {
 		parent                *Node
 		key                   []byte
 		value                 []byte
-		isValueHashed         bool
 		pendingDeltas         DeltaRecorder
 		newNode               *Node
 		mutated               bool
@@ -1431,7 +1382,7 @@ func Test_Trie_insert(t *testing.T) {
 			expectedTrie := *trie.DeepCopy()
 
 			newNode, mutated, nodesCreated, err := trie.insert(
-				testCase.parent, testCase.key, testCase.value, testCase.isValueHashed,
+				testCase.parent, testCase.key, testCase.value,
 				testCase.pendingDeltas)
 
 			require.NoError(t, err)
@@ -1451,7 +1402,6 @@ func Test_Trie_insertInBranch(t *testing.T) {
 		parent                *Node
 		key                   []byte
 		value                 []byte
-		isValueHashed         bool
 		pendingDeltas         DeltaRecorder
 		newNode               *Node
 		mutated               bool
@@ -1731,7 +1681,7 @@ func Test_Trie_insertInBranch(t *testing.T) {
 			trie := new(Trie)
 
 			newNode, mutated, nodesCreated, err := trie.insertInBranch(
-				testCase.parent, testCase.key, testCase.value, testCase.isValueHashed,
+				testCase.parent, testCase.key, testCase.value,
 				testCase.pendingDeltas)
 
 			assert.ErrorIs(t, err, testCase.errSentinel)
@@ -1751,11 +1701,10 @@ func Test_LoadFromMap(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		data             map[string]string
-		stateTrieVersion Version
-		expectedTrie     Trie
-		errWrapped       error
-		errMessage       string
+		data         map[string]string
+		expectedTrie Trie
+		errWrapped   error
+		errMessage   string
 	}{
 		"nil_data": {
 			expectedTrie: Trie{
@@ -1844,7 +1793,7 @@ func Test_LoadFromMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			trie, err := LoadFromMap(testCase.data, testCase.stateTrieVersion)
+			trie, err := LoadFromMap(testCase.data)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

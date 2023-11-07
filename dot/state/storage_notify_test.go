@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -45,7 +44,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
 
-	ts.Put([]byte("mackcom"), []byte("wuz here"), trie.V0)
+	ts.Put([]byte("mackcom"), []byte("wuz here"))
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
@@ -82,7 +81,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
-	ts.Put(key1, value1, trie.V0)
+	ts.Put(key1, value1)
 
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -121,7 +120,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 		ss.RegisterStorageObserver(mockobs)
 	}
 
-	ts.Put(key1, value1, trie.V0)
+	ts.Put(key1, value1)
 	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 

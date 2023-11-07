@@ -390,7 +390,7 @@ func TestService_Import(t *testing.T) {
 		"bnm",
 	}
 	for _, tc := range testCases {
-		tr.Put([]byte(tc), []byte(tc), trie.V0)
+		tr.Put([]byte(tc), []byte(tc))
 	}
 
 	digest := types.NewDigest()
@@ -437,7 +437,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	rand := time.Now().UnixNano()
 	key := []byte("testKey" + fmt.Sprint(rand))
 	value := []byte("testValue" + fmt.Sprint(rand))
-	err = trieState.Put(key, value, trie.V0)
+	err = trieState.Put(key, value)
 	require.NoError(t, err)
 
 	trieStateRoot, err := trieState.Root()

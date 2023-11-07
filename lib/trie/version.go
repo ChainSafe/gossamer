@@ -6,16 +6,17 @@ package trie
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 const (
-	// NoMaxValueSize is the numeric representation used to indicate that there is no max value size.
-	NoMaxValueSize = -1
-	// V1MaxValueSize is the maximum size of a value to be hashed in state trie version 1.
-	V1MaxValueSize = 32
+	// NoMaxInlineValueSize is the numeric representation used to indicate that there is no max value size.
+	NoMaxInlineValueSize = math.MaxInt
+	// V1MaxInlineValueSize is the maximum size of a value to be hashed in state trie version 1.
+	V1MaxInlineValueSize = 32
 )
 
 // Version is the state trie version which dictates how a
@@ -56,9 +57,15 @@ func (v Version) String() string {
 	}
 }
 
-// ShouldHashValue returns true if the value should be hashed based on trie version
-func (v Version) ShouldHashValue(value []byte) bool {
-	return v == V1 && len(value) > V1MaxValueSize
+func (v Version) maxInlineValue() int {
+	switch v {
+	case V0:
+		return NoMaxInlineValueSize
+	case V1:
+		return V1MaxInlineValueSize
+	default:
+		panic(fmt.Sprintf("unknown version %d", v))
+	}
 }
 
 // Root returns the root hash of the trie built using the given entries
@@ -66,7 +73,7 @@ func (v Version) Root(entries Entries) (common.Hash, error) {
 	t := NewEmptyTrie()
 
 	for _, kv := range entries {
-		err := t.Put(kv.Key, kv.Value, v)
+		err := t.Put(kv.Key, kv.Value)
 		if err != nil {
 			return common.EmptyHash, err
 		}

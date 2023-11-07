@@ -63,16 +63,7 @@ func execImportState(cmd *cobra.Command) error {
 		return fmt.Errorf("header-file must be specified")
 	}
 
-	stateVersionFlag, err := cmd.Flags().GetString("state-version")
-	if err != nil {
-		return fmt.Errorf("failed to get state-version: %s", err)
-	}
-	stateVersion, err := trie.ParseVersion(stateVersionFlag)
-	if err != nil {
-		return fmt.Errorf("failed to parse state-version: %s", err)
-	}
-
 	basePath = utils.ExpandDir(basePath)
 
-	return dot.ImportState(basePath, stateFile, headerFile, firstSlot, stateVersion)
+	return dot.ImportState(basePath, stateFile, headerFile, firstSlot)
 }

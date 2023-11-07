@@ -109,9 +109,9 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgRuntime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
-	cfgRuntime.Context.Storage.Put(aliceBalanceKey, encodedAccountInfo, trie.V0)
+	cfgRuntime.Context.Storage.Put(aliceBalanceKey, encodedAccountInfo)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	cfgRuntime.Context.Storage.Put(common.UpgradedToDualRefKey, []byte{1}, trie.V0)
+	cfgRuntime.Context.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	cfgBlockState.StoreRuntime(cfgBlockState.BestBlockHash(), cfgRuntime)
 

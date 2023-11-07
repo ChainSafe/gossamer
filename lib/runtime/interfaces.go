@@ -11,17 +11,17 @@ import (
 
 // Storage runtime interface.
 type Storage interface {
-	Put(key []byte, value []byte, version trie.Version) (err error)
+	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
-	SetChild(keyToChild []byte, child *trie.Trie, version trie.Version) error
-	SetChildStorage(keyToChild, key, value []byte, version trie.Version) error
+	SetChild(keyToChild []byte, child *trie.Trie) error
+	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte) (err error)
 	DeleteChild(keyToChild []byte) (err error)
 	DeleteChildLimit(keyToChild []byte, limit *[]byte) (
 		deleted uint32, allDeleted bool, err error)
-	ClearChildStorage(keyToChild, key []byte, version trie.Version) error
+	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error)

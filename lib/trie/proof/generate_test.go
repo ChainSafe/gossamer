@@ -828,7 +828,6 @@ func Test_lenCommonPrefix(t *testing.T) {
 // so the code is kept to this inefficient-looking append,
 // which is in the end quite performant still.
 func Benchmark_walkRoot(b *testing.B) {
-	stateVersion := trie.V0
 	trie := trie.NewEmptyTrie()
 
 	// Build a deep trie.
@@ -839,7 +838,7 @@ func Benchmark_walkRoot(b *testing.B) {
 		const trieValueSize = 10
 		value := make([]byte, trieValueSize)
 
-		trie.Put(key, value, stateVersion)
+		trie.Put(key, value)
 	}
 
 	longestKeyLE := make([]byte, trieDepth)

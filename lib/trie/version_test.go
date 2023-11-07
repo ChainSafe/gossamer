@@ -117,47 +117,6 @@ func Test_ParseVersion(t *testing.T) {
 	}
 }
 
-func Test_ShouldHashValue(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		version    Version
-		value      []byte
-		shouldHash bool
-	}{
-		"v0_small_value": {
-			version:    V0,
-			value:      []byte("smallvalue"),
-			shouldHash: false,
-		},
-		"v0_large_value": {
-			version:    V0,
-			value:      []byte("newvaluewithmorethan32byteslength"),
-			shouldHash: false,
-		},
-		"v1_small_value": {
-			version:    V1,
-			value:      []byte("smallvalue"),
-			shouldHash: false,
-		},
-		"v1_large_value": {
-			version:    V1,
-			value:      []byte("newvaluewithmorethan32byteslength"),
-			shouldHash: true,
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			shouldHash := testCase.version.ShouldHashValue(testCase.value)
-			assert.Equal(t, testCase.shouldHash, shouldHash)
-		})
-	}
-}
-
 func Test_Version_Root(t *testing.T) {
 	t.Parallel()
 

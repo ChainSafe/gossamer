@@ -224,9 +224,9 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := scale.Marshal(accInfo)
 	require.NoError(t, err)
 
-	rt.Context.Storage.Put(aliceBalanceKey, encBal, trie.V0)
+	rt.Context.Storage.Put(aliceBalanceKey, encBal)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.Context.Storage.Put(common.UpgradedToDualRefKey, []byte{1}, trie.V0)
+	rt.Context.Storage.Put(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
 		Number:    0,
@@ -257,7 +257,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
-	tt.Put(key, value, trie.V0)
+	tt.Put(key, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 
@@ -285,7 +285,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
-	tt.Put(key, value, trie.V0)
+	tt.Put(key, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME_v0929, tt)
 
@@ -328,13 +328,13 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 			randomnessValue, err := common.HexToHash("0x01")
 			require.NoError(t, err)
 			key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-			tt.Put(key, randomnessValue[:], trie.V0)
+			tt.Put(key, randomnessValue[:])
 
 			authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 			require.NoError(t, err)
 
 			key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-			tt.Put(key, authorityValue, trie.V0)
+			tt.Put(key, authorityValue)
 
 			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
 
@@ -541,13 +541,13 @@ func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T)
 	randomnessValue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
 	key := common.MustHexToBytes(genesis.BABERandomnessKeyHex)
-	tt.Put(key, randomnessValue[:], trie.V0)
+	tt.Put(key, randomnessValue[:])
 
 	authorityValue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
 
 	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
-	tt.Put(key, authorityValue, trie.V0)
+	tt.Put(key, authorityValue)
 
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 
@@ -1094,7 +1094,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries, trie.V0)
+	tr, err := trie.LoadFromMap(entries)
 	require.NoError(t, err)
 	return &tr
 }

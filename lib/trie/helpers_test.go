@@ -93,7 +93,7 @@ func makeSeededTrie(t *testing.T, size int) (
 
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
-		trie.Put(key, value, V0)
+		trie.Put(key, value)
 	}
 
 	return trie, keyValues
