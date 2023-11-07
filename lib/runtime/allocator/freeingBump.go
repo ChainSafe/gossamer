@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"math/bits"
 
 	"github.com/tetratelabs/wazero/api"
@@ -44,6 +45,7 @@ var (
 	ErrInvalidPointerForDealocation = errors.New("invalid pointer for deallocation")
 	ErrEmptyHeader                  = errors.New("allocation points to an empty header")
 	ErrAllocatorPoisoned            = errors.New("allocator poisoned")
+	ErrMemoryShrinked               = errors.New("memory shrinked")
 )
 
 // The exponent for the power of two sized block adjusted to the minimum size.
@@ -104,14 +106,12 @@ const NilMarker = math.MaxUint32
 
 // A link between headers in the free list.
 type Link interface {
-	isLink()
 	intoRaw() uint32
 }
 
 // Nil, denotes that there is no next element.
 type Nil struct{}
 
-func (Nil) isLink() {}
 func (Nil) intoRaw() uint32 {
 	return NilMarker
 }
@@ -121,7 +121,6 @@ type Ptr struct {
 	headerPtr uint32
 }
 
-func (Ptr) isLink() {}
 func (p Ptr) intoRaw() uint32 {
 	return p.headerPtr
 }
@@ -160,7 +159,6 @@ func linkFromRaw(raw uint32) Link {
 // +--------------+-------------------+
 // ```
 type Header interface {
-	isHeader()
 	intoOccupied() (Order, bool)
 	intoFree() (Link, bool)
 }
@@ -170,7 +168,6 @@ type Free struct {
 	link Link
 }
 
-func (Free) isHeader() {}
 func (f Free) intoOccupied() (Order, bool) {
 	return Order(0), false
 }
@@ -184,7 +181,6 @@ type Occupied struct {
 	order Order
 }
 
-func (Occupied) isHeader() {}
 func (f Occupied) intoOccupied() (Order, bool) {
 	return f.order, true
 }
@@ -272,19 +268,52 @@ func (f *FreeLists) replace(order Order, new Link) (old Link) {
 	return prev
 }
 
+// AllocationStats gather stats during the lifetime of the allocator
+type AllocationStats struct {
+	// the current number of bytes allocated
+	// this represents how many bytes are allocated *right now*
+	bytesAllocated uint32
+
+	// the peak number of bytes ever allocated
+	// this is the maximum the `bytesAllocated` ever reached
+	bytesAllocatedPeak uint32
+
+	// the sum of every allocation ever made
+	// this increases every time a new allocation is made
+	bytesAllocatedSum *big.Int
+
+	// the amount of address space (in bytes) used by the allocator
+	// this is calculated as the difference between the allocator's
+	// bumper and the heap base.
+	//
+	// currently the bumper's only ever incremented, so this is
+	// simultaneously the current value as well as the peak value.
+	addressSpaceUsed uint32
+}
+
 type FreeingBumpHeapAllocator struct {
-	originalHeapBase uint32
-	bumper           uint32
-	freeLists        *FreeLists
-	poisoned         bool
+	originalHeapBase       uint32
+	bumper                 uint32
+	freeLists              *FreeLists
+	poisoned               bool
+	lastObservedMemorySize uint32
+	stats                  AllocationStats
 }
 
 func NewFreeingBumpHeapAllocator(heapBase uint32) *FreeingBumpHeapAllocator {
 	alignedHeapBase := (heapBase + Aligment - 1) / Aligment * Aligment
 	return &FreeingBumpHeapAllocator{
-		originalHeapBase: alignedHeapBase,
-		bumper:           alignedHeapBase,
-		freeLists:        NewFreeLists(),
+		originalHeapBase:       alignedHeapBase,
+		bumper:                 alignedHeapBase,
+		freeLists:              NewFreeLists(),
+		poisoned:               false,
+		lastObservedMemorySize: 0,
+		stats: AllocationStats{
+			bytesAllocated:     0,
+			bytesAllocatedPeak: 0,
+			bytesAllocatedSum:  big.NewInt(0),
+			addressSpaceUsed:   0,
+		},
 	}
 }
 
@@ -302,7 +331,6 @@ func NewFreeingBumpHeapAllocator(heapBase uint32) *FreeingBumpHeapAllocator {
 // - `mem` - a slice representing the linear memory on which this allocator operates.
 // - size: size in bytes of the allocation request
 func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr uint32, err error) {
-	// TODO: also observe_memory_size function
 	if f.poisoned {
 		return 0, ErrAllocatorPoisoned
 	}
@@ -312,6 +340,12 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr ui
 			f.poisoned = true
 		}
 	}()
+
+	if mem.Size() < f.lastObservedMemorySize {
+		return 0, ErrMemoryShrinked
+	}
+
+	f.lastObservedMemorySize = mem.Size()
 
 	order, err := orderFromSize(size)
 	if err != nil {
@@ -358,7 +392,18 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr ui
 		return 0, fmt.Errorf("writing header into: %w", err)
 	}
 
-	// TODO: allocation stats update, and bomb disarm
+	f.stats.bytesAllocated += order.size() + HeaderSize
+
+	// f.stats.bytesAllocatedSum += order.size() + HeaderSize
+	// but since bytesAllocatedSum is a big.NewInt we should
+	// use the method `.Add` to perform the operations
+	f.stats.bytesAllocatedSum = big.NewInt(0).
+		Add(f.stats.bytesAllocatedSum,
+			big.NewInt(0).
+				Add(big.NewInt(int64(order.size())), big.NewInt(HeaderSize)))
+	f.stats.bytesAllocatedPeak = max(f.stats.bytesAllocatedPeak, f.stats.bytesAllocated)
+	f.stats.addressSpaceUsed = f.bumper - f.originalHeapBase
+
 	return headerPtr + HeaderSize, nil
 }
 
@@ -372,7 +417,6 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr ui
 // - `mem` - a slice representing the linear memory on which this allocator operates.
 // - `ptr` - pointer to the allocated chunk
 func (f *FreeingBumpHeapAllocator) Deallocate(mem api.Memory, ptr uint32) (err error) {
-	// TODO: check for poison, also start poinson bomb
 	if f.poisoned {
 		return ErrAllocatorPoisoned
 	}
@@ -382,6 +426,12 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem api.Memory, ptr uint32) (err e
 			f.poisoned = true
 		}
 	}()
+
+	if mem.Size() < f.lastObservedMemorySize {
+		return ErrMemoryShrinked
+	}
+
+	f.lastObservedMemorySize = mem.Size()
 
 	headerPtr, ok := checkedSub(ptr, HeaderSize)
 	if !ok {
@@ -415,9 +465,17 @@ func (f *FreeingBumpHeapAllocator) Clear() {
 	}
 
 	*f = FreeingBumpHeapAllocator{
-		originalHeapBase: f.originalHeapBase,
-		bumper:           f.originalHeapBase,
-		freeLists:        NewFreeLists(),
+		originalHeapBase:       f.originalHeapBase,
+		bumper:                 f.originalHeapBase,
+		freeLists:              NewFreeLists(),
+		poisoned:               false,
+		lastObservedMemorySize: 0,
+		stats: AllocationStats{
+			bytesAllocated:     0,
+			bytesAllocatedPeak: 0,
+			bytesAllocatedSum:  big.NewInt(0),
+			addressSpaceUsed:   0,
+		},
 	}
 }
 
