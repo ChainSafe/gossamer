@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"math/bits"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/tetratelabs/wazero/api"
 )
 
@@ -32,6 +34,24 @@ const (
 
 	PageSize     = 65536
 	MaxWasmPages = 4 * 1024 * 1024 * 1024 / PageSize
+)
+
+var (
+	bytesAllocatedSumGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_allocator",
+		Name:      "bytes_allocated_sum",
+		Help:      "the sum of every allocation ever made this increases every time a new allocation is made",
+	})
+	bytesAllocatedPeakGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_allocator",
+		Name:      "bytes_allocated_peak",
+		Help:      "the peak number of bytes ever allocated this is the maximum the `bytes_allocated_sum` ever reached",
+	})
+	addressSpaceUsedGague = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_allocator",
+		Name:      "address_space_used",
+		Help:      "the amount of address space (in bytes) used by the allocator this is calculated as the difference between the allocator's bumper and the heap base.",
+	})
 )
 
 var (
@@ -291,6 +311,14 @@ type AllocationStats struct {
 	addressSpaceUsed uint32
 }
 
+// collect exports the allocations stats through prometheus metrics
+// under `gossamer_allocator` namespace
+func (a AllocationStats) collect() {
+	bytesAllocatedSumGauge.Set(float64(a.bytesAllocatedSum.Uint64()))
+	bytesAllocatedPeakGauge.Set(float64(a.bytesAllocatedPeak))
+	addressSpaceUsedGague.Set(float64(a.addressSpaceUsed))
+}
+
 type FreeingBumpHeapAllocator struct {
 	originalHeapBase       uint32
 	bumper                 uint32
@@ -403,6 +431,7 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (ptr ui
 				Add(big.NewInt(int64(order.size())), big.NewInt(HeaderSize)))
 	f.stats.bytesAllocatedPeak = max(f.stats.bytesAllocatedPeak, f.stats.bytesAllocated)
 	f.stats.addressSpaceUsed = f.bumper - f.originalHeapBase
+	f.stats.collect()
 
 	return headerPtr + HeaderSize, nil
 }
@@ -455,7 +484,13 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem api.Memory, ptr uint32) (err e
 		return fmt.Errorf("writing header into: %w", err)
 	}
 
-	//TODO: update/print stats and disarm bomb
+	newBytesAllocated, ok := checkedSub(f.stats.bytesAllocated, order.size()+HeaderSize)
+	if !ok {
+		return fmt.Errorf("underflow of the current allocated bytes count")
+	}
+	//f.stats.bytesAllocated =
+	f.stats.bytesAllocated = newBytesAllocated
+	f.stats.collect()
 	return nil
 }
 
