@@ -337,7 +337,7 @@ type CollatorProtocolValidatorSide struct {
 }
 
 // Identifier of a fetched collation
-type fetchedCollation struct {
+type fetchedCollationInfo struct {
 	// Candidate's relay parent
 	relayParent   common.Hash
 	paraID        parachaintypes.ParaID
@@ -346,7 +346,7 @@ type fetchedCollation struct {
 	collatorID parachaintypes.CollatorID
 }
 
-func (f fetchedCollation) String() string {
+func (f fetchedCollationInfo) String() string {
 	return fmt.Sprintf("relay parent: %s, para id: %d, candidate hash: %s, collator id: %+v",
 		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
 }
@@ -430,7 +430,7 @@ type Backed struct {
 }
 
 // InvalidOverseerMsg represents an invalid candidata.
-// We recommended a particular candidate to be seconded, but it was invalid; penalize the collator.
+// We recommended a particular candidate to be seconded, but it was invalid; penalise the collator.
 type InvalidOverseerMsg struct {
 	Parent           common.Hash
 	CandidateReceipt parachaintypes.CandidateReceipt
@@ -476,7 +476,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		if err != nil {
 			return fmt.Errorf("getting candidate hash from receipt: %w", err)
 		}
-		fetchedCollation := fetchedCollation{
+		fetchedCollation := fetchedCollationInfo{
 			relayParent:   receipt.Descriptor.RelayParent,
 			paraID:        parachaintypes.ParaID(receipt.Descriptor.ParaID),
 			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},
@@ -543,7 +543,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		if err != nil {
 			return fmt.Errorf("getting candidate hash from receipt: %w", err)
 		}
-		fetchedCollation := fetchedCollation{
+		fetchedCollation := fetchedCollationInfo{
 			relayParent:   msg.CandidateReceipt.Descriptor.RelayParent,
 			paraID:        parachaintypes.ParaID(msg.CandidateReceipt.Descriptor.ParaID),
 			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},

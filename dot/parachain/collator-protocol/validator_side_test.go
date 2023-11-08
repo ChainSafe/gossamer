@@ -108,7 +108,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
 				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
+				fetchedCollation := fetchedCollationInfo{
 					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
 					relayParent: testCandidateReceipt.Descriptor.RelayParent,
 					collatorID:  testCandidateReceipt.Descriptor.Collator,
@@ -146,7 +146,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
 				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
+				fetchedCollation := fetchedCollationInfo{
 					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
 					relayParent: testCandidateReceipt.Descriptor.RelayParent,
 					collatorID:  testCandidateReceipt.Descriptor.Collator,
@@ -197,7 +197,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
 				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
+				fetchedCollation := fetchedCollationInfo{
 					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
 					relayParent: testCandidateReceipt.Descriptor.RelayParent,
 					collatorID:  testCandidateReceipt.Descriptor.Collator,
@@ -248,7 +248,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
 				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
+				fetchedCollation := fetchedCollationInfo{
 					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
 					relayParent: testCandidateReceipt.Descriptor.RelayParent,
 					collatorID:  testCandidateReceipt.Descriptor.Collator,
