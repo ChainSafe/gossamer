@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package allocator
 
 // TODO: missing test should_read_and_write_u64_correctly
