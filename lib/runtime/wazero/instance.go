@@ -452,8 +452,6 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
-	defer i.Context.Allocator.Clear()
-
 	// Store the data into memory
 	mem := i.Module.Memory()
 	if mem == nil {

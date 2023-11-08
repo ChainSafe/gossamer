@@ -324,6 +324,8 @@ func (a AllocationStats) collect() {
 	addressSpaceUsedGague.Set(float64(a.addressSpaceUsed))
 }
 
+var _ runtime.Allocator = (*FreeingBumpHeapAllocator)(nil)
+
 type FreeingBumpHeapAllocator struct {
 	originalHeapBase       uint32
 	bumper                 uint32
@@ -497,26 +499,6 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem runtime.Memory, ptr uint32) (e
 	f.stats.bytesAllocated = newBytesAllocated
 	f.stats.collect()
 	return nil
-}
-
-func (f *FreeingBumpHeapAllocator) Clear() {
-	if f == nil {
-		panic("clear cannot perform over a nil allocator")
-	}
-
-	*f = FreeingBumpHeapAllocator{
-		originalHeapBase:       f.originalHeapBase,
-		bumper:                 f.originalHeapBase,
-		freeLists:              NewFreeLists(),
-		poisoned:               false,
-		lastObservedMemorySize: 0,
-		stats: AllocationStats{
-			bytesAllocated:     0,
-			bytesAllocatedPeak: 0,
-			bytesAllocatedSum:  big.NewInt(0),
-			addressSpaceUsed:   0,
-		},
-	}
 }
 
 func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
