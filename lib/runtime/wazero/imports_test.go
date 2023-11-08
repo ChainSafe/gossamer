@@ -855,8 +855,11 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 
 	data := bytes
 
+	inst.Module.ExportedMemory("memory")
+	inst.Module.Memory()
+
 	dataLength := uint32(len(data))
-	inputPtr, err := inst.Context.Allocator.Allocate(dataLength)
+	inputPtr, err := inst.Context.Allocator.Allocate(inst.Module.Memory(), dataLength)
 	if err != nil {
 		t.Errorf("allocating input memory: %v", err)
 	}

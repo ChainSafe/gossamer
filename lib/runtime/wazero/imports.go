@@ -13,6 +13,8 @@ import (
 	"reflect"
 	"time"
 
+	gruntime "runtime"
+
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -70,6 +72,8 @@ func write(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize 
 	size := uint32(len(data))
 	pointer, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
+		_, file, line, _ := gruntime.Caller(1)
+		panic(fmt.Sprintf("func %s:%s: %v", file, line, err))
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
@@ -819,6 +823,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 	// allocate memory for value and copy value to memory
 	ptr, err := rtCtx.Allocator.Allocate(m.Memory(), 32)
 	if err != nil {
+		panic(fmt.Sprintf("func ext_trie_blake2_256_root_version_2: %v", err))
 		logger.Errorf("failed allocating: %s", err)
 		return 0
 	}
@@ -870,6 +875,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 	// allocate memory for value and copy value to memory
 	ptr, err := rtCtx.Allocator.Allocate(m.Memory(), 32)
 	if err != nil {
+		panic(fmt.Sprintf("func ext_trie_blake2_256_ordered_root_version_2: %v", err))
 		logger.Errorf("failed allocating: %s", err)
 		return 0
 	}
@@ -2357,7 +2363,7 @@ func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, size uint
 	// Allocate memory
 	res, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("func ext_allocator_malloc_version_1: %v", err))
 	}
 
 	return res

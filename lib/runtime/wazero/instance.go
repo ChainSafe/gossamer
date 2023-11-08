@@ -414,7 +414,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	fmt.Println("__heap_base: ", globalHeapBase)
 	hb := api.DecodeU32(globalHeapBase)
 	fmt.Println("__heap_base after decode u32: ", hb)
-	// hb = runtime.DefaultHeapBase
 
 	mem := mod.Memory()
 	if mem == nil {
