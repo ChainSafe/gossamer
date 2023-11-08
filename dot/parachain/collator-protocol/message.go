@@ -251,7 +251,11 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 		// limit is not reached, it's allowed to second another collation
 		return cpvs.fetchCollation(pendingCollation)
 	case Seconded:
-		perRelayParent := cpvs.perRelayParent[relayParent]
+		perRelayParent, ok := cpvs.perRelayParent[relayParent]
+		if !ok {
+			logger.Error("candidate relay parent went out of view for valid advertisement")
+			return ErrRelayParentUnknown
+		}
 		if perRelayParent.prospectiveParachainMode.isEnabled {
 			return cpvs.fetchCollation(pendingCollation)
 		} else {
@@ -263,7 +267,6 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 }
 
 func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation) error {
-
 	var candidateHash *parachaintypes.CandidateHash
 	if pendingCollation.ProspectiveCandidate != nil {
 		candidateHash = &pendingCollation.ProspectiveCandidate.CandidateHash
@@ -296,7 +299,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	prospectiveCandidate *ProspectiveCandidate) error {
 	// TODO:
 	// - tracks advertisements received and the source (peer id) of the advertisement
-
 	// - accept one advertisement per collator per source per relay-parent
 
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
@@ -522,7 +524,6 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		}
 		// TODO:
 		// - tracks advertisements received and the source (peer id) of the advertisement
-
 		// - accept one advertisement per collator per source per relay-parent
 
 	case 2: // CollationSeconded
