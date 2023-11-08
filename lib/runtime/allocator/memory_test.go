@@ -10,6 +10,7 @@ type MemoryInstance struct {
 	maxWasmPages uint32
 }
 
+//nolint:unparam
 func (m *MemoryInstance) setMaxWasmPages(max uint32) {
 	m.maxWasmPages = max
 }
@@ -39,6 +40,7 @@ func (m *MemoryInstance) Grow(pages uint32) (uint32, bool) {
 	return prevPages, true
 }
 
+//nolint:govet
 func (m *MemoryInstance) ReadByte(offset uint32) (byte, bool) { return 0x00, false }
 func (m *MemoryInstance) ReadUint64Le(offset uint32) (uint64, bool) {
 	return binary.LittleEndian.Uint64(m.data[offset : offset+8]), true
@@ -52,6 +54,8 @@ func (m *MemoryInstance) WriteUint64Le(offset uint32, v uint64) bool {
 func (m *MemoryInstance) Read(offset, byteCount uint32) ([]byte, bool) {
 	return nil, false
 }
+
+//nolint:govet
 func (m *MemoryInstance) WriteByte(offset uint32, v byte) bool {
 	return false
 }

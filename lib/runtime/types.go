@@ -45,10 +45,16 @@ func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
 	return n.PersistentStorage.Get(k)
 }
 
+type Allocator interface {
+	Allocate(mem Memory, size uint32) (uint32, error)
+	Deallocate(mem Memory, ptr uint32) error
+	Clear()
+}
+
 // Context is the context for the wasm interpreter's imported functions
 type Context struct {
 	Storage         Storage
-	Allocator       *FreeingBumpHeapAllocator
+	Allocator       Allocator
 	Keystore        *keystore.GlobalKeystore
 	Validator       bool
 	NodeStorage     NodeStorage

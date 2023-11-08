@@ -304,7 +304,7 @@ func TestShouldGetMaxItemSizeFromIndex(t *testing.T) {
 	rawOrder := 22
 	order, err := orderFromRaw(uint32(rawOrder))
 	require.NoError(t, err)
-	require.Equal(t, order.size(), uint32(MaxPossibleAllocations))
+	require.Equal(t, order.size(), MaxPossibleAllocations)
 }
 
 func TestDeallocateNeedsToMaintainLinkedList(t *testing.T) {
@@ -399,7 +399,7 @@ func TestDoesNotAcceptShrinkingMemory(t *testing.T) {
 
 	ptr2, err := heap.Allocate(mem, PageSize/2)
 	require.Zero(t, ptr2)
-	require.ErrorIs(t, err, ErrMemoryShrinked)
+	require.ErrorIs(t, err, ErrMemoryShrunk)
 }
 
 func TestShouldGrowMemoryWhenRunningOutOfSpace(t *testing.T) {

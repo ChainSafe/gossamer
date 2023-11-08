@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -419,7 +420,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("wazero error: nil memory for module")
 	}
 
-	allocator := runtime.NewAllocator(mem, hb)
+	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
 
 	return &Instance{
 		Runtime: rt,
@@ -446,7 +447,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	defer i.Unlock()
 
 	dataLength := uint32(len(data))
-	inputPtr, err := i.Context.Allocator.Allocate(dataLength)
+	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}

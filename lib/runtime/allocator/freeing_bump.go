@@ -15,11 +15,11 @@ import (
 const (
 	Aligment = 8
 
-	// each pointer is prefixed with 8 bytes, wich indentifies the list
+	// each pointer is prefixed with 8 bytes, which indentifies the list
 	// index to which it belongs
 	HeaderSize = 8
 
-	// The minimum possible allocation size is choosen to be 8 bytes
+	// The minimum possible allocation size is chosen to be 8 bytes
 	// because in that case we would have easier time to provide the
 	// guaranteed alignment of 8
 	//
@@ -45,12 +45,14 @@ var (
 	bytesAllocatedPeakGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_allocator",
 		Name:      "bytes_allocated_peak",
-		Help:      "the peak number of bytes ever allocated this is the maximum the `bytes_allocated_sum` ever reached",
+		Help: "the peak number of bytes ever allocated this is the maximum " +
+			"the `bytes_allocated_sum` ever reached",
 	})
 	addressSpaceUsedGague = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_allocator",
 		Name:      "address_space_used",
-		Help:      "the amount of address space (in bytes) used by the allocator this is calculated as the difference between the allocator's bumper and the heap base.",
+		Help: "the amount of address space (in bytes) used by the allocator this is calculated as " +
+			"the difference between the allocator's bumper and the heap base.",
 	})
 )
 
@@ -65,7 +67,7 @@ var (
 	ErrInvalidPointerForDealocation = errors.New("invalid pointer for deallocation")
 	ErrEmptyHeader                  = errors.New("allocation points to an empty header")
 	ErrAllocatorPoisoned            = errors.New("allocator poisoned")
-	ErrMemoryShrinked               = errors.New("memory shrinked")
+	ErrMemoryShrunk                 = errors.New("memory shrunk")
 )
 
 // The exponent for the power of two sized block adjusted to the minimum size.
@@ -164,7 +166,7 @@ func linkFromRaw(raw uint32) Link {
 // ```ignore
 // 64             32                  0
 //
-//	+--------------+-------------------+
+// +--------------+-------------------+
 //
 // |            0 | next element link |
 // +--------------+-------------------+
@@ -173,7 +175,7 @@ func linkFromRaw(raw uint32) Link {
 // ```ignore
 // 64             32                  0
 //
-//	+--------------+-------------------+
+// +--------------+-------------------+
 //
 // |            1 |             order |
 // +--------------+-------------------+
@@ -211,7 +213,7 @@ func (f Occupied) intoFree() (Link, bool) {
 var _ Header = (*Free)(nil)
 var _ Header = (*Occupied)(nil)
 
-// readHeaderFromMemory reads a header from memory, returns an error if ther
+// readHeaderFromMemory reads a header from memory, returns an error if the
 // headerPtr is out of bounds of the linear memory or if the read header is
 // corrupted (e.g the order is incorrect)
 func readHeaderFromMemory(mem runtime.Memory, headerPtr uint32) (Header, error) {
@@ -370,7 +372,7 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem runtime.Memory, size uint32) (pt
 	}()
 
 	if mem.Size() < f.lastObservedMemorySize {
-		return 0, ErrMemoryShrinked
+		return 0, ErrMemoryShrunk
 	}
 
 	f.lastObservedMemorySize = mem.Size()
@@ -457,7 +459,7 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem runtime.Memory, ptr uint32) (e
 	}()
 
 	if mem.Size() < f.lastObservedMemorySize {
-		return ErrMemoryShrinked
+		return ErrMemoryShrunk
 	}
 
 	f.lastObservedMemorySize = mem.Size()
