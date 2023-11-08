@@ -28,9 +28,9 @@ const (
 	// NumOrders represents the number of orders supported, this number
 	// corresponds to the number of powers between the minimum an maximum
 	// possible allocation (2^3 ... 2^25 both ends inclusive)
-	NumOrders              = 23
-	MinPossibleAllocations = 8
-	MaxPossibleAllocations = (1 << 25)
+	NumOrders              uint32 = 23
+	MinPossibleAllocations uint32 = 8
+	MaxPossibleAllocations uint32 = (1 << 25)
 
 	PageSize     = 65536
 	MaxWasmPages = 4 * 1024 * 1024 * 1024 / PageSize
@@ -272,7 +272,7 @@ func NewFreeLists() *FreeLists {
 	// initialize all entries with Nil{}
 	// same as [Link::Nil; N_ORDERS]
 	free := [NumOrders]Link{}
-	for idx := 0; idx < NumOrders; idx++ {
+	for idx := 0; idx < int(NumOrders); idx++ {
 		free[idx] = Nil{}
 	}
 
