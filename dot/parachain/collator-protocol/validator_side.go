@@ -420,7 +420,7 @@ type NetworkBridgeUpdate struct {
 // SecondedOverseerMsg represents that the candidate we recommended to be seconded was validated successfully.
 type SecondedOverseerMsg struct {
 	Parent common.Hash
-	Stmt   parachaintypes.StatementVDT
+	Stmt   parachaintypes.UncheckedSignedFullStatement
 }
 
 type Backed struct {
@@ -457,7 +457,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
 	case SecondedOverseerMsg:
-		statementV, err := msg.Stmt.Value()
+		statementV, err := msg.Stmt.Payload.Value()
 		if err != nil {
 			return fmt.Errorf("getting value of statement: %w", err)
 		}
@@ -501,18 +501,13 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			Reason: peerset.BenefitNotifyGoodReason,
 		}, peerID)
 
-		// notify candidate seconded
+		// notify collation seconded
 		_, ok = cpvs.peerData[peerID]
 		if ok {
 			collatorProtocolMessage := NewCollatorProtocolMessage()
 			err = collatorProtocolMessage.Set(CollationSeconded{
 				RelayParent: msg.Parent,
-				Statement: parachaintypes.UncheckedSignedFullStatement{
-					Payload: msg.Stmt,
-					// TODO:
-					// ValidatorIndex: ,
-					// Signature: ,
-				},
+				Statement:   msg.Stmt,
 			})
 			if err != nil {
 				return fmt.Errorf("setting collation seconded: %w", err)
