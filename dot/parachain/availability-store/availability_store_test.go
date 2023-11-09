@@ -31,10 +31,9 @@ var (
 
 func setupTestDB(t *testing.T) database.Database {
 	inmemoryDB := state.NewInMemoryDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 
-	err = as.storeChunk(common.Hash{0x01}, testChunk1)
+	err := as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
 	err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
@@ -46,40 +45,39 @@ func setupTestDB(t *testing.T) database.Database {
 }
 func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 
-	err = as.storeAvailableData(common.Hash{0x01}, testavailableData1)
+	err := as.storeAvailableData(common.Hash{0x01}, testavailableData1)
 	require.NoError(t, err)
 
 	got, err := as.loadAvailableData(common.Hash{0x01})
 	require.NoError(t, err)
-	require.Equal(t, testavailableData1, got)
+	require.Equal(t, &testavailableData1, got)
 
 	got, err = as.loadAvailableData(common.Hash{0x02})
-	require.EqualError(t, err, "pebble: not found")
-	require.Equal(t, AvailableData{}, got)
+	require.EqualError(t, err, "getting candidate 0x0200000000000000000000000000000000000000000000000000000000000000"+
+		" from available table: pebble: not found")
+	var ExpectedAvailableData *AvailableData = nil
+	require.Equal(t, ExpectedAvailableData, got)
 }
 
 func TestAvailabilityStore_StoreLoadChuckData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 
-	err = as.storeChunk(common.Hash{0x01}, testChunk1)
+	err := as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
 	err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
 
 	resultChunk, err := as.loadChunk(common.Hash{0x01}, 0)
 	require.NoError(t, err)
-	require.Equal(t, testChunk1, resultChunk)
+	require.Equal(t, &testChunk1, resultChunk)
 }
 
 func TestAvailabilityStore_handleQueryAvailableData(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
@@ -96,8 +94,7 @@ func TestAvailabilityStore_handleQueryAvailableData(t *testing.T) {
 
 func TestAvailabilityStore_handleQueryDataAvailability(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
@@ -122,8 +119,7 @@ func TestAvailabilityStore_handleQueryDataAvailability(t *testing.T) {
 
 func TestAvailabilityStore_handleQueryChunk(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
@@ -141,8 +137,7 @@ func TestAvailabilityStore_handleQueryChunk(t *testing.T) {
 
 func TestAvailabilityStore_handleQueryAllChunks(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
@@ -159,8 +154,7 @@ func TestAvailabilityStore_handleQueryAllChunks(t *testing.T) {
 
 func TestAvailabilityStore_handleQueryChunkAvailability(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
@@ -187,8 +181,7 @@ func TestAvailabilityStore_handleQueryChunkAvailability(t *testing.T) {
 
 func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
@@ -206,8 +199,7 @@ func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
 
 func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
-	as, err := NewAvailabilityStore(inmemoryDB)
-	require.NoError(t, err)
+	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
