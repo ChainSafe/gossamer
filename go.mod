@@ -42,6 +42,7 @@ require (
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/term v0.12.0
 	google.golang.org/protobuf v1.31.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -192,10 +193,9 @@ require (
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
 go 1.21
 
-replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f
+replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20231109155114-ab50c0f61195

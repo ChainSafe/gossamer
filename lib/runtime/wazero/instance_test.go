@@ -563,8 +563,9 @@ func TestInstance_Failure_WestednBlock9412261(t *testing.T) {
 		block := GetBlockFromResponse(t, blockNumberToStart)
 
 		fmt.Printf("Executing block #%d...\n", block.Header.Number)
-		_, err := instance.ExecuteBlock(block)
+		r, err := instance.ExecuteBlock(block)
 		require.NoError(t, err)
+		fmt.Println(r)
 		fmt.Printf("executed block #%d...\n\n", block.Header.Number)
 
 		blockNumberToStart += 1

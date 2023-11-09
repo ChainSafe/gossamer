@@ -73,7 +73,7 @@ func write(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize 
 	pointer, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
 		_, file, line, _ := gruntime.Caller(1)
-		panic(fmt.Sprintf("func %s:%s: %v", file, line, err))
+		panic(fmt.Sprintf("func %s:%d: %v", file, line, err))
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
 
