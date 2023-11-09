@@ -23,9 +23,8 @@ type AvailabilityStoreSubsystem struct {
 }
 
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
-	SubsystemToOverseer chan any) error {
+	SubsystemToOverseer chan any) {
 	av.processMessages()
-	return nil
 }
 
 func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
