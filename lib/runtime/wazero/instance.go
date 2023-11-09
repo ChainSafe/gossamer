@@ -103,7 +103,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	ctx := context.Background()
-	rt := wazero.NewRuntime(ctx)
+	interpreterConfig := wazero.NewRuntimeConfigInterpreter()
+	rt := wazero.NewRuntimeWithConfig(ctx, interpreterConfig)
 
 	_, err = rt.NewHostModuleBuilder("env").
 		ExportMemory("memory", 23).
