@@ -299,7 +299,6 @@ func NewFreeingBumpHeapAllocator(heapBase uint32) *FreeingBumpHeapAllocator {
 //
 // - size: size in bytes of the allocation request
 func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (uint32, error) {
-	fmt.Printf(">> ALLOCATE, mem size: %d, mem pages: %d\n", mem.Size(), mem.Size()/PageSize)
 	// TODO: check for poisoning, implement poison bomb also observe_memory_size function
 	order, err := orderFromSize(size)
 	if err != nil {
