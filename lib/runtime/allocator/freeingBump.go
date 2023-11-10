@@ -299,6 +299,7 @@ func NewFreeingBumpHeapAllocator(heapBase uint32) *FreeingBumpHeapAllocator {
 //
 // - size: size in bytes of the allocation request
 func (f *FreeingBumpHeapAllocator) Allocate(mem api.Memory, size uint32) (uint32, error) {
+	fmt.Printf(">> ALLOCATE, mem size: %d, mem pages: %d\n", mem.Size(), mem.Size()/PageSize)
 	// TODO: check for poisoning, implement poison bomb also observe_memory_size function
 	order, err := orderFromSize(size)
 	if err != nil {
@@ -421,11 +422,14 @@ func bump(bumper *uint32, size uint32, mem api.Memory) (uint32, error) {
 		// ... but if even more pages are required then try to allocate that many
 		nextPages = max(nextPages, requiredPages)
 
-		_, ok = mem.Grow(nextPages - currentPages)
+		fmt.Printf("calling mem.Grow(%d)\n", nextPages-currentPages)
+		prev, ok := mem.Grow(nextPages - currentPages)
 		if !ok {
 			return 0, fmt.Errorf("%w: from %d pages to %d pages",
 				ErrCannotGrowLinearMemory, currentPages, nextPages)
 		}
+
+		fmt.Printf("prev pages: %d, current pages: %d\n", prev, mem.Size()/PageSize)
 
 		pagesIncrease := (mem.Size() / PageSize) == nextPages
 		if !pagesIncrease {

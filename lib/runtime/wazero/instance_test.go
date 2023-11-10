@@ -559,7 +559,7 @@ func TestInstance_Failure_WestednBlock9412261(t *testing.T) {
 	instance := InstantiateRuntime9160(t)
 	blockNumberToStart := uint(9412261)
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 20; i++ {
 		block := GetBlockFromResponse(t, blockNumberToStart)
 
 		fmt.Printf("Executing block #%d...\n", block.Header.Number)
@@ -569,6 +569,8 @@ func TestInstance_Failure_WestednBlock9412261(t *testing.T) {
 		fmt.Printf("executed block #%d...\n\n", block.Header.Number)
 
 		blockNumberToStart += 1
+
+		fmt.Printf("\n\n")
 	}
 }
 

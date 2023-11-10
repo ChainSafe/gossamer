@@ -1,5 +1,5 @@
 ARG DEBIAN_VERSION=bullseye-slim
-ARG GO_VERSION=1.20-buster
+ARG GO_VERSION=1.21
 
 FROM golang:${GO_VERSION} AS builder
 
@@ -26,22 +26,22 @@ RUN go mod download
 # Copy gossamer sources
 COPY . .
 
-# Build
-ARG GO_BUILD_FLAGS
-RUN go build \
-    -trimpath \
-    -o ./bin/gossamer \
-    ${GO_BUILD_FLAGS} \
-    ./cmd/gossamer
+# # Build
+# ARG GO_BUILD_FLAGS
+# RUN go build \
+#     -trimpath \
+#     -o ./bin/gossamer \
+#     ${GO_BUILD_FLAGS} \
+#     ./cmd/gossamer
 
-# Final stage based on Debian
-FROM debian:${DEBIAN_VERSION}
+# # Final stage based on Debian
+# FROM debian:${DEBIAN_VERSION}
 
-WORKDIR /gossamer
+# WORKDIR /gossamer
 
-EXPOSE 7001 8546 8540
+# EXPOSE 7001 8546 8540
 
-ENTRYPOINT [ "/gossamer/bin/gossamer" ]
+# ENTRYPOINT [ "/gossamer/bin/gossamer" ]
 
-COPY chain /gossamer/chain
-COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer
+# COPY chain /gossamer/chain
+# COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer

@@ -11,52 +11,36 @@
 #
 # To rebuild the Gossamer Docker image: `docker-compose build`
 
-version: '3'
+version: "3"
 
 services:
-    gossamer:
-        image: chainsafe/gossamer
-        build: .
-        volumes:
-            # Remove with: docker volume rm gossamer
-            - gossamer:/data/gossamer
-        command:
-            - --base-path=/data/gossamer
-            - --chain=kusama
-            - --log=info
-            - --prometheus-external
-            - --prometheus-port=9876
-            - --pprof.enabled
-        ports:
-            - 6060:6060/tcp # Pprof server
-            - 7001:7001/tcp # Network port
-            - 8545:8545/tcp # RPC HTTP port
-            - 8546:8546/tcp # RPC Websocket port
-        expose:
-            - 9876/tcp # Prometheus metrics for Prometheus server
+  gossamer:
+    image: chainsafe/gossamer
+    build:
+      dockerfile: Dockerfile.staging
 
-    prometheus:
-        image: prom/prometheus
-        volumes:
-            - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-            # The following line can be uncommented to persist metrics data.
-            # - gossamer-prometheus:/prometheus
-        ports:
-            - 9090:9090/tcp # HTTP Web interface at http://localhost:9090/
-        expose:
-            - 9090/tcp # Prometheus metrics for Grafana
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # The following line can be uncommented to persist metrics data.
+      # - gossamer-prometheus:/prometheus
+    ports:
+      - 9090:9090/tcp # HTTP Web interface at http://localhost:9090/
+    expose:
+      - 9090/tcp # Prometheus metrics for Grafana
 
-    grafana:
-        image: grafana/grafana-oss
-        ports:
-            - 3000:3000/tcp # HTTP Web interface at http://localhost:3000/
-        volumes:
-            - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
-            - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
-            # The following line can be uncommented to persist modifications.
-            # - gossamer-grafana:/var/lib/grafana
+  grafana:
+    image: grafana/grafana-oss
+    ports:
+      - 3000:3000/tcp # HTTP Web interface at http://localhost:3000/
+    volumes:
+      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      # The following line can be uncommented to persist modifications.
+      # - gossamer-grafana:/var/lib/grafana
 
 volumes:
-    gossamer:
-    gossamer-prometheus:
-    gossamer-grafana:
+  gossamer:
+  gossamer-prometheus:
+  gossamer-grafana:
