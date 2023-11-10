@@ -45,6 +45,10 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 	}
 }
 
+func (s *TestSubsystem) String() parachaintypes.SubSystemName {
+	return parachaintypes.SubSystemName(s.name)
+}
+
 func TestStart2SubsytemsActivate1(t *testing.T) {
 	overseer := NewOverseer()
 	require.NotNil(t, overseer)
