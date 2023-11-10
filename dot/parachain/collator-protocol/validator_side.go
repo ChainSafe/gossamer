@@ -311,7 +311,7 @@ type CollatorProtocolValidatorSide struct {
 	currentAssignments map[parachaintypes.ParaID]uint
 
 	// state tracked per relay parent
-	perRelayParent map[common.Hash]PerRelayParent // map[replay parent]PerRelayParent
+	perRelayParent map[common.Hash]PerRelayParent
 
 	// TODO: In rust this is a map, let's see if we can get away with a map
 	// blocked_advertisements: HashMap<(ParaId, Hash), Vec<BlockedAdvertisement>>,
