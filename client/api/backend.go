@@ -1,5 +1,11 @@
 package api
 
+import (
+	"github.com/ChainSafe/gossamer/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/primitives/storage"
+)
+
 // / Import operation wrapper.
 //
 //	pub struct ClientImportOperation<Block: BlockT, B: Backend<Block>> {
@@ -12,90 +18,104 @@ package api
 //	}
 type ClientImportOperation[Block, Backend any] struct {
 	// pub Op
+	Op BlockImportOperation
 }
 
-/// Block insertion operation.
-///
-/// Keeps hold if the inserted block state and data.
-// pub trait BlockImportOperation<Block: BlockT> {
-// 	/// Associated state backend type.
-// 	type State: StateBackend<HashFor<Block>>;
+// / State of a new block.
+type NewBlockState uint
 
-// 	/// Returns pending state.
-// 	///
-// 	/// Returns None for backends with locally-unavailable state data.
-// 	fn state(&self) -> sp_blockchain::Result<Option<&Self::State>>;
+const (
+	/// Normal block.
+	NewBlockStateNormal NewBlockState = iota
+	/// New best block.
+	NewBlockStateBest
+	/// Newly finalized block (implicitly best).
+	NewBlockStateFinal
+)
 
-// 	/// Append block data to the transaction.
-// 	fn set_block_data(
-// 		&mut self,
-// 		header: Block::Header,
-// 		body: Option<Vec<Block::Extrinsic>>,
-// 		indexed_body: Option<Vec<Vec<u8>>>,
-// 		justifications: Option<Justifications>,
-// 		state: NewBlockState,
-// 	) -> sp_blockchain::Result<()>;
+// / Block insertion operation.
+// /
+// / Keeps hold if the inserted block state and data.
+type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface {
+	/// Returns pending state.
+	///
+	/// Returns None for backends with locally-unavailable state data.
+	// 	fn state(&self) -> sp_blockchain::Result<Option<&Self::State>>;
+	State() *statemachine.Backend[H]
 
-// 	/// Inject storage data into the database.
-// 	fn update_db_storage(
-// 		&mut self,
-// 		update: TransactionForSB<Self::State, Block>,
-// 	) -> sp_blockchain::Result<()>;
+	/// Append block data to the transaction.
+	// 	fn set_block_data(
+	// 		&mut self,
+	// 		header: Block::Header,
+	// 		body: Option<Vec<Block::Extrinsic>>,
+	// 		indexed_body: Option<Vec<Vec<u8>>>,
+	// 		justifications: Option<Justifications>,
+	// 		state: NewBlockState,
+	// 	) -> sp_blockchain::Result<()>;
+	SetBlockData(header runtime.Header[N, H], body runtime.Extrinsic, indexedBody *[][]byte, justifications *runtime.Justifications, state NewBlockState) error
 
-// 	/// Set genesis state. If `commit` is `false` the state is saved in memory, but is not written
-// 	/// to the database.
-// 	fn set_genesis_state(
-// 		&mut self,
-// 		storage: Storage,
-// 		commit: bool,
-// 		state_version: StateVersion,
-// 	) -> sp_blockchain::Result<Block::Hash>;
+	/// Inject storage data into the database.
+	// 	fn update_db_storage(
+	// 		&mut self,
+	// 		update: TransactionForSB<Self::State, Block>,
+	// 	) -> sp_blockchain::Result<()>;
+	UpdateDBStorage(update statemachine.Transaction) error
 
-// 	/// Inject storage data into the database replacing any existing data.
-// 	fn reset_storage(
-// 		&mut self,
-// 		storage: Storage,
-// 		state_version: StateVersion,
-// 	) -> sp_blockchain::Result<Block::Hash>;
+	/// Set genesis state. If `commit` is `false` the state is saved in memory, but is not written
+	/// to the database.
+	// 	fn set_genesis_state(
+	// 		&mut self,
+	// 		storage: Storage,
+	// 		commit: bool,
+	// 		state_version: StateVersion,
+	// 	) -> sp_blockchain::Result<Block::Hash>;
+	SetGenesisState(storage storage.Storage, commit bool, stateVersion storage.StateVersion) (H, error)
 
-// 	/// Set storage changes.
-// 	fn update_storage(
-// 		&mut self,
-// 		update: StorageCollection,
-// 		child_update: ChildStorageCollection,
-// 	) -> sp_blockchain::Result<()>;
+	/// Inject storage data into the database replacing any existing data.
+	// 	fn reset_storage(
+	// 		&mut self,
+	// 		storage: Storage,
+	// 		state_version: StateVersion,
+	// 	) -> sp_blockchain::Result<Block::Hash>;
 
-// 	/// Write offchain storage changes to the database.
-// 	fn update_offchain_storage(
-// 		&mut self,
-// 		_offchain_update: OffchainChangesCollection,
-// 	) -> sp_blockchain::Result<()> {
-// 		Ok(())
-// 	}
+	/// Set storage changes.
+	// 	fn update_storage(
+	// 		&mut self,
+	// 		update: StorageCollection,
+	// 		child_update: ChildStorageCollection,
+	// 	) -> sp_blockchain::Result<()>;
 
-// 	/// Insert auxiliary keys.
-// 	///
-// 	/// Values are `None` if should be deleted.
-// 	fn insert_aux<I>(&mut self, ops: I) -> sp_blockchain::Result<()>
-// 	where
-// 		I: IntoIterator<Item = (Vec<u8>, Option<Vec<u8>>)>;
+	/// Write offchain storage changes to the database.
+	// 	fn update_offchain_storage(
+	// 		&mut self,
+	// 		_offchain_update: OffchainChangesCollection,
+	// 	) -> sp_blockchain::Result<()> {
+	// 		Ok(())
+	// 	}
 
-// 	/// Mark a block as finalized.
-// 	fn mark_finalized(
-// 		&mut self,
-// 		hash: Block::Hash,
-// 		justification: Option<Justification>,
-// 	) -> sp_blockchain::Result<()>;
+	/// Insert auxiliary keys.
+	///
+	/// Values are `None` if should be deleted.
+	// 	fn insert_aux<I>(&mut self, ops: I) -> sp_blockchain::Result<()>
+	// 	where
+	// 		I: IntoIterator<Item = (Vec<u8>, Option<Vec<u8>>)>;
 
-// 	/// Mark a block as new head. If both block import and set head are specified, set head
-// 	/// overrides block import's best block rule.
-// 	fn mark_head(&mut self, hash: Block::Hash) -> sp_blockchain::Result<()>;
+	/// Mark a block as finalized.
+	// 	fn mark_finalized(
+	// 		&mut self,
+	// 		hash: Block::Hash,
+	// 		justification: Option<Justification>,
+	// 	) -> sp_blockchain::Result<()>;
 
-//		/// Add a transaction index operation.
-//		fn update_transaction_index(&mut self, index: Vec<IndexOperation>)
-//			-> sp_blockchain::Result<()>;
-//	}
-type BlockImportOperation interface{}
+	/// Mark a block as new head. If both block import and set head are specified, set head
+	/// overrides block import's best block rule.
+	// 	fn mark_head(&mut self, hash: Block::Hash) -> sp_blockchain::Result<()>;
+
+	/// Add a transaction index operation.
+	//		fn update_transaction_index(&mut self, index: Vec<IndexOperation>)
+	//			-> sp_blockchain::Result<()>;
+	//	}
+}
 
 // / Interface for performing operations on the backend.
 //
@@ -107,7 +127,7 @@ type BlockImportOperation interface{}
 //			Err: From<sp_blockchain::Error>;
 //	}
 type LockImportRun[R any] interface {
-	LockImportAndRun() func() (R, error)
+	LockImportAndRun(func(ClientImportOperation) (R, error)) func() (R, error)
 }
 
 // / Client backend.
