@@ -791,8 +791,6 @@ github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+
 github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV9WzVtRmSR+PDvWpU/qWl4Wa5LApYYX4ZtKbio=
 github.com/vedhavyas/go-subkey v1.0.4-0.20220708014838-349cf3021f51 h1:AxcEnJDD4X2pDWsE/vEHcLnd1408m2rfO8aGuk2dBOI=
 github.com/vedhavyas/go-subkey v1.0.4-0.20220708014838-349cf3021f51/go.mod h1:aOIil/KS9hJlnr9ZSQKSoXdu/MbnkCxG4x9IOlLsMtI=
-github.com/vedhavyas/go-subkey v1.0.4 h1:QwjBZx4w7qXC2lmqol2jJfhaNXPI9BsgLZiMiCwqGDU=
-github.com/vedhavyas/go-subkey v1.0.4/go.mod h1:aOIil/KS9hJlnr9ZSQKSoXdu/MbnkCxG4x9IOlLsMtI=
 github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49uaYMPRU=
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
 github.com/warpfork/go-wish v0.0.0-20220906213052-39a1cc7a02d0 h1:GDDkbFiaK8jsSDJfjId/PEGEShv6ugrt4kYsC5UIDaQ=
