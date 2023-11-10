@@ -552,7 +552,7 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 // pagesFromSize convert the given `size` in bytes into the number of pages.
 // The returned number of pages is ensured to be big enough to hold memory
 // with the given `size`.
-// Returns false if the number of pages do not fit into `u32`
+// Returns false if the number of pages do not fit into `uint32`
 func pagesFromSize(size uint64) (uint32, bool) {
 	value := (size + uint64(PageSize) - 1) / uint64(PageSize)
 
