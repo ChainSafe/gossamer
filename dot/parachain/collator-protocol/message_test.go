@@ -401,3 +401,341 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		})
 	}
 }
+
+func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
+	t.Parallel()
+
+	peerID := peer.ID("testPeerID")
+	testRelayParent := getDummyHash(5)
+	testParaID := parachaintypes.ParaID(5)
+
+	testCases := []struct {
+		description        string
+		advertiseCollation AdvertiseCollation
+		peerData           map[peer.ID]PeerData
+		perRelayParent     map[common.Hash]PerRelayParent
+		net                Network
+		activeLeaves       map[common.Hash]ProspectiveParachainsMode
+		errString          string
+	}{
+		{
+			description: "fail with relay parent is unknown if we don't have the relay" +
+				" parent tracked and report the peer",
+			advertiseCollation: AdvertiseCollation(testRelayParent),
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+
+				return net
+			}(),
+			errString: ErrRelayParentUnknown.Error(),
+		},
+		{
+			description:        "fail with unknown peer if peer is not tracked in our list of active collators",
+			advertiseCollation: AdvertiseCollation(testRelayParent),
+			perRelayParent: map[common.Hash]PerRelayParent{
+				testRelayParent: {},
+			},
+			errString: ErrUnknownPeer.Error(),
+		},
+		{
+			description: "fail with undeclared para if peer has not declared its para id" +
+				" and report the peer",
+			advertiseCollation: AdvertiseCollation(testRelayParent),
+			perRelayParent: map[common.Hash]PerRelayParent{
+				testRelayParent: {},
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Connected,
+					},
+				},
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+				return net
+			}(),
+			errString: ErrUndeclaredPara.Error(),
+		},
+		{
+			description: "fail with invalid assignment if para id is not currently" +
+				" assigned to us for this relay parent and report the peer",
+			advertiseCollation: AdvertiseCollation(testRelayParent),
+			perRelayParent: map[common.Hash]PerRelayParent{
+				testRelayParent: {
+					assignment: &testParaID,
+				},
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							ParaID: parachaintypes.ParaID(6),
+						},
+					},
+				},
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.WrongParaValue,
+					Reason: peerset.WrongParaReason,
+				}, peerID)
+				return net
+			}(),
+			errString: ErrInvalidAssignment.Error(),
+		},
+		{
+			// NOTE: prospective parachain mode and prospective candidates were added in V2,
+			// In V1, prospective parachain mode is disabled by and prospective candidates is nil
+			// In V2, prospective parachain mode is enabled by and prospective candidates is not nil
+			description: "fail with protocol mismatch is prospective parachain mode in" +
+				" enable but with got a nil value for prospective candidate",
+			advertiseCollation: AdvertiseCollation(testRelayParent),
+			perRelayParent: map[common.Hash]PerRelayParent{
+				testRelayParent: {
+					assignment: &testParaID,
+					prospectiveParachainMode: ProspectiveParachainsMode{
+						isEnabled: true,
+					},
+				},
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							ParaID: testParaID,
+						},
+					},
+				},
+			},
+			errString: ErrProtocolMismatch.Error(),
+		},
+		{
+			description:        "fail if para reached a limit of seconded candidates for this relay parent",
+			advertiseCollation: AdvertiseCollation(testRelayParent),
+			perRelayParent: map[common.Hash]PerRelayParent{
+				testRelayParent: {
+					assignment: &testParaID,
+					collations: Collations{
+						// For Collator Protocol v1, we can only second one candidate
+						// at a time, so seconded limit would be 1
+						secondedCount: 1,
+					},
+				},
+			},
+			peerData: map[peer.ID]PeerData{
+				peerID: {
+					view: View{},
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							ParaID: testParaID,
+						},
+					},
+				},
+			},
+			net: func() Network {
+				ctrl := gomock.NewController(t)
+				net := NewMockNetwork(ctrl)
+				// reporting for error out of view
+				net.EXPECT().ReportPeer(peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				}, peerID)
+				return net
+			}(),
+			activeLeaves: map[common.Hash]ProspectiveParachainsMode{},
+			errString:    ErrSecondedLimitReached.Error(),
+		},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+			cpvs := CollatorProtocolValidatorSide{
+				net:            c.net,
+				perRelayParent: c.perRelayParent,
+				peerData:       c.peerData,
+				activeLeaves:   c.activeLeaves,
+			}
+			msg := NewCollationProtocol()
+			vdtChild := NewCollatorProtocolMessage()
+
+			err := vdtChild.Set(c.advertiseCollation)
+			require.NoError(t, err)
+
+			err = msg.Set(vdtChild)
+			require.NoError(t, err)
+
+			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
+			require.False(t, propagate)
+			if c.errString == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, c.errString)
+			}
+
+		})
+	}
+}
+
+func TestInsertAdvertisement(t *testing.T) {
+	t.Parallel()
+
+	relayParent := getDummyHash(5)
+
+	candidateHash := parachaintypes.CandidateHash{
+		Value: getDummyHash(9),
+	}
+
+	testCases := []struct {
+		description     string
+		peerData        PeerData
+		relayParentMode ProspectiveParachainsMode
+		candidateHash   *parachaintypes.CandidateHash
+		implicitView    ImplicitView
+		activeLeaves    map[common.Hash]ProspectiveParachainsMode
+		err             error
+	}{
+		{
+			description: "fail with undeclared collator",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Connected,
+				},
+			},
+			err: ErrUndeclaredCollator,
+		},
+		{
+			description: "fail with error out of view",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Collating,
+				},
+			},
+			relayParentMode: ProspectiveParachainsMode{},
+			candidateHash:   nil,
+			activeLeaves:    map[common.Hash]ProspectiveParachainsMode{},
+			err:             ErrOutOfView,
+		},
+		{
+			description: "fail with error duplicate advertisement",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Collating,
+					CollatingPeerState: CollatingPeerState{
+						ParaID: parachaintypes.ParaID(5),
+						advertisements: map[common.Hash][]parachaintypes.CandidateHash{
+							relayParent: {},
+						},
+					},
+				},
+			},
+			relayParentMode: ProspectiveParachainsMode{},
+			candidateHash:   nil,
+			activeLeaves: map[common.Hash]ProspectiveParachainsMode{
+				relayParent: {
+					isEnabled: false,
+				},
+			},
+			err: ErrDuplicateAdvertisement,
+		},
+		{
+			description: "success case",
+			peerData: PeerData{
+				view: View{},
+				state: PeerStateInfo{
+					PeerState: Collating,
+					CollatingPeerState: CollatingPeerState{
+						ParaID:         parachaintypes.ParaID(5),
+						advertisements: map[common.Hash][]parachaintypes.CandidateHash{},
+					},
+				},
+			},
+			relayParentMode: ProspectiveParachainsMode{},
+			candidateHash:   &candidateHash,
+			activeLeaves: map[common.Hash]ProspectiveParachainsMode{
+				relayParent: {
+					isEnabled: false,
+				},
+			},
+		},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := c.peerData.InsertAdvertisement(
+				relayParent, c.relayParentMode, c.candidateHash, c.implicitView, c.activeLeaves)
+			require.ErrorIs(t, err, c.err)
+		},
+		)
+	}
+
+}
+
+func TestFetchCollation(t *testing.T) {
+	t.Parallel()
+
+	cpvs := CollatorProtocolValidatorSide{}
+	testPeerID := peer.ID("testPeerID")
+	pendingCollation := PendingCollation{
+		PeerID: testPeerID,
+	}
+	testCases := []struct {
+		description string
+		peerData    map[peer.ID]PeerData
+		err         error
+	}{
+		{
+			description: "fail with unknown peer",
+			peerData:    map[peer.ID]PeerData{},
+			err:         ErrUnknownPeer,
+		},
+		{
+			description: "fail with collation not previously advertised",
+			peerData: map[peer.ID]PeerData{
+				testPeerID: {
+					state: PeerStateInfo{
+						PeerState: Collating,
+						CollatingPeerState: CollatingPeerState{
+							advertisements: make(map[common.Hash][]parachaintypes.CandidateHash),
+						},
+					},
+				},
+			},
+			err: ErrNotAdvertised,
+		},
+	}
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			cpvs.peerData = c.peerData
+			err := cpvs.fetchCollation(pendingCollation)
+			require.ErrorIs(t, err, c.err)
+		})
+	}
+}
