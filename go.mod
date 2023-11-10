@@ -37,10 +37,11 @@ require (
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tetratelabs/wazero v1.1.0
+	github.com/tidwall/btree v1.7.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
-	golang.org/x/crypto v0.14.0
+	golang.org/x/crypto v0.15.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	golang.org/x/term v0.13.0
+	golang.org/x/term v0.14.0
 	google.golang.org/protobuf v1.31.0
 )
 
@@ -62,7 +63,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
-	github.com/decred/base58 v1.0.4 // indirect
+	github.com/decred/base58 v1.0.5 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -190,8 +191,8 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -203,3 +204,5 @@ require (
 go 1.21
 
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20230710171859-39a4c235ec1f
+
+replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303
