@@ -101,11 +101,10 @@ func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
-
 	ctx := context.Background()
 	rt := wazero.NewRuntime(ctx)
 	_, err = rt.NewHostModuleBuilder("env").
-		ExportMemory("memory", 2070).
+		ExportMemory("memory", allocator.MaxWasmPages-1).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
