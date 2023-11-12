@@ -893,8 +893,8 @@ func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData
 		return fmt.Errorf("babe verifying block: %w", err)
 	}
 
-	// this is for westend
-	if blockData.Header.Number == 9412261 {
+	// this is for westend debug
+	if blockData.Header.Number == 9406726 {
 		latest, err := cs.blockState.BestBlockHeader()
 		if err != nil {
 			fmt.Printf("getting best block header: %s \n", err.Error())
