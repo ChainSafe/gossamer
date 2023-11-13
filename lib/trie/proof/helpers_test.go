@@ -24,7 +24,7 @@ func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
 func encodeNode(t *testing.T, node node.Node) (encoded []byte) {
 	t.Helper()
 	buffer := bytes.NewBuffer(nil)
-	err := node.Encode(buffer, trie.V0.MaxInlineValue())
+	err := node.Encode(buffer, trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 	return buffer.Bytes()
 }
