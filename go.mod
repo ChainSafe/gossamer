@@ -18,7 +18,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.4.0
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/gtank/merlin v0.1.1
