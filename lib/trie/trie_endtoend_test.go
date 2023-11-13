@@ -349,13 +349,13 @@ func TestDelete(t *testing.T) {
 	ssTrie := trie.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := V0.Hash(trie)
+	tHash, err := DefaultStateVersion.Hash(trie)
 	require.NoError(t, err)
 
-	dcTrieHash, err := V0.Hash(dcTrie)
+	dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err := V0.Hash(ssTrie)
+	ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	// Root hash for all the 3 tries should be equal.
@@ -376,13 +376,13 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Get the updated root hash of all tries.
-	tHash, err = V0.Hash(trie)
+	tHash, err = DefaultStateVersion.Hash(trie)
 	require.NoError(t, err)
 
-	dcTrieHash, err = V0.Hash(dcTrie)
+	dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err = V0.Hash(ssTrie)
+	ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
@@ -432,13 +432,13 @@ func TestClearPrefix(t *testing.T) {
 		ssTrie := trie.Snapshot()
 
 		// Get the Trie root hash for all the 3 tries.
-		tHash, err := V0.Hash(trie)
+		tHash, err := DefaultStateVersion.Hash(trie)
 		require.NoError(t, err)
 
-		dcTrieHash, err := V0.Hash(dcTrie)
+		dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
 		require.NoError(t, err)
 
-		ssTrieHash, err := V0.Hash(ssTrie)
+		ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
 		require.NoError(t, err)
 
 		// Root hash for all the 3 tries should be equal.
@@ -464,13 +464,13 @@ func TestClearPrefix(t *testing.T) {
 		}
 
 		// Get the updated root hash of all tries.
-		tHash, err = V0.Hash(trie)
+		tHash, err = DefaultStateVersion.Hash(trie)
 		require.NoError(t, err)
 
-		dcTrieHash, err = V0.Hash(dcTrie)
+		dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
 		require.NoError(t, err)
 
-		ssTrieHash, err = V0.Hash(ssTrie)
+		ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
 		require.NoError(t, err)
 
 		// Only the current trie should have a different root hash since it is updated.
@@ -489,13 +489,13 @@ func TestClearPrefix_Small(t *testing.T) {
 	ssTrie := trie.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := V0.Hash(trie)
+	tHash, err := DefaultStateVersion.Hash(trie)
 	require.NoError(t, err)
 
-	dcTrieHash, err := V0.Hash(dcTrie)
+	dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err := V0.Hash(ssTrie)
+	ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	// Root hash for all the 3 tries should be equal.
@@ -522,13 +522,13 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
-	tHash, err = V0.Hash(trie)
+	tHash, err = DefaultStateVersion.Hash(trie)
 	require.NoError(t, err)
 
-	dcTrieHash, err = V0.Hash(dcTrie)
+	dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err = V0.Hash(ssTrie)
+	ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	require.Equal(t, tHash, dcTrieHash)
@@ -600,8 +600,8 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 			trieClearPrefix.ClearPrefix(prefix)
 
-			trieClearPrefixHash := V0.MustHash(*trieClearPrefix)
-			trieDeleteHash := V0.MustHash(*trieDelete)
+			trieClearPrefixHash := DefaultStateVersion.MustHash(*trieClearPrefix)
+			trieDeleteHash := DefaultStateVersion.MustHash(*trieDelete)
 
 			require.Equal(t, trieClearPrefixHash, trieDeleteHash)
 		}
@@ -636,9 +636,9 @@ func TestSnapshot(t *testing.T) {
 	newTrie := parentTrie.Snapshot()
 	newTrie.Put(tests[0].key, tests[0].value)
 
-	expectedTrieHash := V0.MustHash(*expectedTrie)
-	newTrieHash := V0.MustHash(*newTrie)
-	parentTrieHash := V0.MustHash(*parentTrie)
+	expectedTrieHash := DefaultStateVersion.MustHash(*expectedTrie)
+	newTrieHash := DefaultStateVersion.MustHash(*newTrie)
+	parentTrieHash := DefaultStateVersion.MustHash(*parentTrie)
 
 	require.Equal(t, expectedTrieHash, newTrieHash)
 	require.NotEqual(t, parentTrieHash, newTrieHash)
@@ -693,7 +693,7 @@ func Benchmark_Trie_Hash(b *testing.B) {
 	}
 
 	b.StartTimer()
-	_, err := V0.Hash(trie)
+	_, err := DefaultStateVersion.Hash(trie)
 	b.StopTimer()
 
 	require.NoError(b, err)
@@ -776,8 +776,8 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	for i := 0; i < workers; i++ {
 		assert.Equal(
 			t,
-			V0.MustHash(*expectedTries[i]),
-			V0.MustHash(*snapshotedTries[i]),
+			DefaultStateVersion.MustHash(*expectedTries[i]),
+			DefaultStateVersion.MustHash(*snapshotedTries[i]),
 		)
 	}
 }
@@ -959,13 +959,13 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				ssTrie := trieClearPrefix.Snapshot()
 
 				// Get the Trie root hash for all the 3 tries.
-				tHash, err := V0.Hash(trieClearPrefix)
+				tHash, err := DefaultStateVersion.Hash(trieClearPrefix)
 				require.NoError(t, err)
 
-				dcTrieHash, err := V0.Hash(dcTrie)
+				dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
 				require.NoError(t, err)
 
-				ssTrieHash, err := V0.Hash(ssTrie)
+				ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
 				require.NoError(t, err)
 
 				// Root hash for all the 3 tries should be equal.
@@ -1001,13 +1001,13 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				}
 
 				// Get the updated root hash of all tries.
-				tHash, err = V0.Hash(trieClearPrefix)
+				tHash, err = DefaultStateVersion.Hash(trieClearPrefix)
 				require.NoError(t, err)
 
-				dcTrieHash, err = V0.Hash(dcTrie)
+				dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
 				require.NoError(t, err)
 
-				ssTrieHash, err = V0.Hash(ssTrie)
+				ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
 				require.NoError(t, err)
 
 				// If node got deleted then root hash must be updated else it has same root hash.
@@ -1042,7 +1042,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 			assert.Equal(t, value, retrievedValue)
 		}
 		buffer := bytes.NewBuffer(nil)
-		err := trie.root.Encode(buffer, V0.MaxInlineValue())
+		err := trie.root.Encode(buffer, DefaultStateVersion.MaxInlineValue())
 		require.NoError(t, err)
 		require.NotEmpty(t, buffer.Bytes())
 	}
