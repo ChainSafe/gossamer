@@ -708,8 +708,6 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 		t.Errorf("allocating input memory: %v", err)
 	}
 
-	defer inst.Context.Allocator.Clear()
-
 	// Store the data into memory
 	mem := inst.Module.Memory()
 	ok := mem.Write(inputPtr, data)

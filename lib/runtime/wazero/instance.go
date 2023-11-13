@@ -864,7 +864,6 @@ func (in *Instance) SetContextStorage(s runtime.Storage) {
 func (in *Instance) Stop() {
 	in.Lock()
 	defer in.Unlock()
-	in.Context.Allocator.Clear()
 	err := in.Runtime.Close(context.Background())
 	if err != nil {
 		log.Errorf("runtime failed to close: %v", err)
