@@ -40,6 +40,12 @@ func Test_newTrieFromPairs(t *testing.T) {
 			want:         common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
 			stateVersion: trie.V0,
 		},
+		{
+			name:         "working example",
+			filename:     setupStateFile(t),
+			want:         common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			stateVersion: trie.V1,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt

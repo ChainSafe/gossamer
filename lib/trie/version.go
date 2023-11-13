@@ -32,6 +32,8 @@ const (
 	V1
 )
 
+var NoVersion = Version(math.MaxUint8)
+
 // ErrParseVersion is returned when parsing a state trie version fails.
 var ErrParseVersion = errors.New("parsing version failed")
 

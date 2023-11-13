@@ -117,6 +117,21 @@ func (s *Service) Stop() error {
 	return nil
 }
 
+func (s *Service) GetCurrentStateTrieVersion() (trie.Version, error) {
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
+	if err != nil {
+		return trie.NoVersion, err
+	}
+
+	runtimeVersion, err := rt.Version()
+	if err != nil {
+		return trie.NoVersion, err
+	}
+
+	return trie.ParseVersion(runtimeVersion.StateVersion)
+}
+
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	ts, err := s.storageState.TrieState(nil)
@@ -124,7 +139,12 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	return ts.Root(trie.NoMaxInlineValueSize)
+	stateTrieVersion, err := s.GetCurrentStateTrieVersion()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return stateTrieVersion.Hash(ts.Trie())
 }
 
 // HandleBlockImport handles a block that was imported via the network
