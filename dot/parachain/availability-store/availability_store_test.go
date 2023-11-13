@@ -90,14 +90,14 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 		expectedResult AvailableData
 		err            error
 	}{
-		"available data found": {
+		"available_data_found": {
 			msg: QueryAvailableData{
 				CandidateHash: common.Hash{0x01},
 			},
 			expectedResult: testavailableData1,
 			err:            nil,
 		},
-		"available data not found": {
+		"available_data_not_found": {
 			msg: QueryAvailableData{
 				CandidateHash: common.Hash{0x07},
 			},
@@ -143,14 +143,14 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 		expectedResult bool
 		wantErr        bool
 	}{
-		"data available true": {
+		"data_available_true": {
 			msg: QueryDataAvailability{
 				CandidateHash: common.Hash{0x01},
 			},
 			expectedResult: true,
 			wantErr:        false,
 		},
-		"data available false": {
+		"data_available_false": {
 			msg: QueryDataAvailability{
 				CandidateHash: common.Hash{0x07},
 			},
@@ -191,14 +191,14 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 		expectedResult ErasureChunk
 		err            error
 	}{
-		"chunk found": {
+		"chunk_found": {
 			msg: QueryChunk{
 				CandidateHash: common.Hash{0x01},
 			},
 			expectedResult: testChunk1,
 			err:            nil,
 		},
-		"query chunk not found": {
+		"query_chunk_not_found": {
 			msg: QueryChunk{
 				CandidateHash: common.Hash{0x07},
 			},
@@ -244,14 +244,14 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 		expectedResult []ErasureChunk
 		err            error
 	}{
-		"chunks found": {
+		"chunks_found": {
 			msg: QueryAllChunks{
 				CandidateHash: common.Hash{0x01},
 			},
 			expectedResult: []ErasureChunk{testChunk1, testChunk2},
 			err:            nil,
 		},
-		"query chunks not found": {
+		"query_chunks_not_found": {
 			msg: QueryAllChunks{
 				CandidateHash: common.Hash{0x07},
 			},
@@ -297,21 +297,21 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 		expectedResult bool
 		err            error
 	}{
-		"query chuck availability true": {
+		"query_chuck_availability_true": {
 			msg: QueryChunkAvailability{
 				CandidateHash:  common.Hash{0x01},
 				ValidatorIndex: 0,
 			},
 			expectedResult: true,
 		},
-		"query chuck availability false": {
+		"query_chuck_availability_false": {
 			msg: QueryChunkAvailability{
 				CandidateHash:  common.Hash{0x01},
 				ValidatorIndex: 2,
 			},
 			expectedResult: false,
 		},
-		"query chuck availability candidate not found false": {
+		"query_chuck_availability_candidate_not_found_false": {
 			msg: QueryChunkAvailability{
 				CandidateHash:  common.Hash{0x07},
 				ValidatorIndex: 0,
