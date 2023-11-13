@@ -33,7 +33,8 @@ const (
 	// possible allocation (2^3 ... 2^25 both ends inclusive)
 	NumOrders              uint32 = 23
 	MinPossibleAllocations uint32 = 8
-	MaxPossibleAllocations uint32 = (1 << 25)
+	// (1 << 25)
+	MaxPossibleAllocations uint32 = 33554432
 
 	PageSize     = 65536
 	MaxWasmPages = 4 * 1024 * 1024 * 1024 / PageSize
