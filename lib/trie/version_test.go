@@ -147,7 +147,7 @@ func Test_Version_MaxInlineValue(t *testing.T) {
 
 			if testCase.panicMessage != "" {
 				assert.PanicsWithValue(t, testCase.panicMessage, func() {
-					_ = testCase.version.String()
+					_ = testCase.version.MaxInlineValue()
 				})
 				return
 			}
