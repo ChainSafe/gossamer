@@ -53,7 +53,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			if tt.want.IsEmpty() {
 				assert.Nil(t, got)
 			} else {
-				assert.Equal(t, tt.want, trie.DefaultStateVersion.MustHash(*got))
+				assert.Equal(t, tt.want, trie.V0.MustHash(*got))
 			}
 		})
 	}
