@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
@@ -604,6 +603,7 @@ func (cs *chainSync) handleWorkersResults(
 	// the total numbers of blocks is missing in the syncing chain
 	waitingBlocks := expectedSyncedBlocks
 
+	// TODO: useless label
 taskResultLoop:
 	for waitingBlocks > 0 {
 		// in a case where we don't handle workers results we should check the pool
@@ -782,7 +782,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 	err := cs.processBlockData(*bd)
 	if err != nil {
 		// depending on the error, we might want to save this block for later
-		logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
+		logger.Errorf("processing: %s", err)
 		return err
 	}
 
@@ -794,28 +794,19 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (cs *chainSync) processBlockData(blockData types.BlockData) error {
-	headerInState, err := cs.blockState.HasHeader(blockData.Hash)
-	if err != nil {
-		return fmt.Errorf("checking if block state has header: %w", err)
-	}
-
-	bodyInState, err := cs.blockState.HasBlockBody(blockData.Hash)
-	if err != nil {
-		return fmt.Errorf("checking if block state has body: %w", err)
-	}
-
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := cs.getSyncMode() == tip
-	if headerInState && bodyInState {
-		err = cs.processBlockDataWithStateHeaderAndBody(blockData, announceImportedBlock)
-		if err != nil {
-			return fmt.Errorf("processing block data with header and "+
-				"body in block state: %w", err)
-		}
-		return nil
+	var blockDataJustification []byte
+	if blockData.Justification != nil {
+		blockDataJustification = *blockData.Justification
 	}
 
 	if blockData.Header != nil {
+		round, setID, err := cs.verifyJustification(blockData.Header.Hash(), blockDataJustification)
+		if err != nil {
+			return err
+		}
+
 		if blockData.Body != nil {
 			err = cs.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
 			if err != nil {
@@ -823,16 +814,16 @@ func (cs *chainSync) processBlockData(blockData types.BlockData) error {
 			}
 		}
 
-		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			logger.Infof("handling justification for block %s (#%d)", blockData.Hash.Short(), blockData.Number())
-			err = cs.handleJustification(blockData.Header, *blockData.Justification)
-			if err != nil {
-				return fmt.Errorf("handling justification: %w", err)
-			}
+		err = cs.finalizeAndSetJustification(
+			blockData.Header,
+			round, setID,
+			blockDataJustification)
+		if err != nil {
+			return fmt.Errorf("while setting justification: %w", err)
 		}
 	}
 
-	err = cs.blockState.CompareAndSetBlockData(&blockData)
+	err := cs.blockState.CompareAndSetBlockData(&blockData)
 	if err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
@@ -840,48 +831,14 @@ func (cs *chainSync) processBlockData(blockData types.BlockData) error {
 	return nil
 }
 
-func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.BlockData,
-	announceImportedBlock bool) (err error) {
-	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
-	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-	// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
-	// code block can be removed (#1784)
-	block, err := cs.blockState.GetBlockByHash(blockData.Hash)
-	if err != nil {
-		return fmt.Errorf("getting block by hash: %w", err)
+func (cs *chainSync) verifyJustification(headerHash common.Hash, justification []byte) (
+	round uint64, setID uint64, err error) {
+	if len(justification) > 0 {
+		round, setID, err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
+		return round, setID, err
 	}
 
-	err = cs.blockState.AddBlockToBlockTree(block)
-	if errors.Is(err, blocktree.ErrBlockExists) {
-		logger.Debugf(
-			"block number %d with hash %s already exists in block tree, skipping it.",
-			block.Header.Number, blockData.Hash)
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("adding block to blocktree: %w", err)
-	}
-
-	if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-		err = cs.handleJustification(&block.Header, *blockData.Justification)
-		if err != nil {
-			return fmt.Errorf("handling justification: %w", err)
-		}
-	}
-
-	// TODO: this is probably unnecessary, since the state is already in the database
-	// however, this case shouldn't be hit often, since it's only hit if the node state
-	// is rewinded or if the node shuts down unexpectedly (#1784)
-	state, err := cs.storageState.TrieState(&block.Header.StateRoot)
-	if err != nil {
-		return fmt.Errorf("loading trie state: %w", err)
-	}
-
-	err = cs.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
-	if err != nil {
-		return fmt.Errorf("handling block import: %w", err)
-	}
-
-	return nil
+	return 0, 0, nil
 }
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
@@ -917,21 +874,27 @@ func (cs *chainSync) handleBody(body *types.Body) {
 	blockSizeGauge.Set(float64(acc))
 }
 
-func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
-	logger.Debugf("handling justification for block %d...", header.Number)
+func (cs *chainSync) finalizeAndSetJustification(header *types.Header,
+	round, setID uint64, justification []byte) (err error) {
+	if len(justification) > 0 {
+		err = cs.blockState.SetFinalisedHash(header.Hash(), round, setID)
+		if err != nil {
+			return fmt.Errorf("setting finalised hash: %w", err)
+		}
 
-	headerHash := header.Hash()
-	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
+		logger.Debugf(
+			"finalised block with hash #%d (%s), round %d and set id %d",
+			header.Number, header.Hash(), round, setID)
+
+		err = cs.blockState.SetJustification(header.Hash(), justification)
+		if err != nil {
+			return fmt.Errorf("setting justification for block number %d: %w",
+				header.Number, err)
+		}
+
+		logger.Infof("🔨 finalised block number #%d (%s)", header.Number, header.Hash())
 	}
 
-	err = cs.blockState.SetJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
-	}
-
-	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
 	return nil
 }
 

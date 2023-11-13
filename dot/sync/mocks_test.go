@@ -276,21 +276,6 @@ func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
-// HasBlockBody mocks base method.
-func (m *MockBlockState) HasBlockBody(arg0 common.Hash) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasBlockBody", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasBlockBody indicates an expected call of HasBlockBody.
-func (mr *MockBlockStateMockRecorder) HasBlockBody(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasBlockBody", reflect.TypeOf((*MockBlockState)(nil).HasBlockBody), arg0)
-}
-
 // HasHeader mocks base method.
 func (m *MockBlockState) HasHeader(arg0 common.Hash) (bool, error) {
 	m.ctrl.T.Helper()
@@ -349,6 +334,20 @@ func (m *MockBlockState) RangeInMemory(arg0, arg1 common.Hash) ([]common.Hash, e
 func (mr *MockBlockStateMockRecorder) RangeInMemory(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockState)(nil).RangeInMemory), arg0, arg1)
+}
+
+// SetFinalisedHash mocks base method.
+func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFinalisedHash", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetFinalisedHash indicates an expected call of SetFinalisedHash.
+func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2)
 }
 
 // SetJustification mocks base method.
@@ -535,11 +534,13 @@ func (m *MockFinalityGadget) EXPECT() *MockFinalityGadgetMockRecorder {
 }
 
 // VerifyBlockJustification mocks base method.
-func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 []byte) error {
+func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 []byte) (uint64, uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyBlockJustification", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(uint64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // VerifyBlockJustification indicates an expected call of VerifyBlockJustification.
