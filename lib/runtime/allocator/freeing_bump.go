@@ -73,7 +73,7 @@ var (
 	ErrMemoryShrunk                 = errors.New("memory shrunk")
 )
 
-// The exponent for the power of two sized block adjusted to the minimum size.
+// Order is the exponent for the power of two sized block adjusted to the minimum size.
 //
 // This way, if `MIN_POSSIBLE_ALLOCATION == 8`, we would get:
 //
@@ -126,22 +126,22 @@ func orderFromSize(size uint32) (Order, error) {
 	return Order(value), nil
 }
 
-// A special magic value for a pointer in a link that denotes the end of the linked list.
+// NilMarker is a special magic value for a pointer in a link that denotes the end of the linked list.
 const NilMarker = math.MaxUint32
 
-// A link between headers in the free list.
+// Link represents a link between headers in the free list.
 type Link interface {
 	intoRaw() uint32
 }
 
-// Nil, denotes that there is no next element.
+// Nil denotes that there is no next element.
 type Nil struct{}
 
 func (Nil) intoRaw() uint32 {
 	return NilMarker
 }
 
-// Link to the next element represented as a pointer to the a header.
+// Ptr element represents a pointer to the header.
 type Ptr struct {
 	headerPtr uint32
 }
@@ -160,7 +160,7 @@ func linkFromRaw(raw uint32) Link {
 	return Nil{}
 }
 
-// A header of an allocation.
+// Header of an allocation.
 //
 // The header is encoded in memory as follows.
 //
@@ -188,19 +188,19 @@ type Header interface {
 	intoFree() (Link, bool)
 }
 
-// A free header contains a link to the next element to form a free linked list.
+// Free contains a link to the next element to form a free linked list.
 type Free struct {
 	link Link
 }
 
-func (f Free) intoOccupied() (Order, bool) {
+func (Free) intoOccupied() (Order, bool) {
 	return Order(0), false
 }
 func (f Free) intoFree() (Link, bool) {
 	return f.link, true
 }
 
-// An occupied header has an attached order to know in which free list we should
+// Occupied represents an occupied header has an attached order to know in which free list we should
 // put the allocation upon deallocation
 type Occupied struct {
 	order Order
@@ -209,7 +209,7 @@ type Occupied struct {
 func (f Occupied) intoOccupied() (Order, bool) {
 	return f.order, true
 }
-func (f Occupied) intoFree() (Link, bool) {
+func (Occupied) intoFree() (Link, bool) {
 	return nil, false
 }
 
@@ -268,7 +268,7 @@ func writeHeaderInto(header Header, mem runtime.Memory, headerPtr uint32) error 
 	return nil
 }
 
-// This struct represents a collection of intrusive linked lists for each order.
+// FreeLists represents a collection of intrusive linked lists for each order.
 type FreeLists struct {
 	heads [NumOrders]Link
 }
@@ -287,9 +287,9 @@ func NewFreeLists() *FreeLists {
 }
 
 // replace replaces a given link for the specified order and returns the old one
-func (f *FreeLists) replace(order Order, new Link) (old Link) {
+func (f *FreeLists) replace(order Order, newLink Link) (old Link) {
 	prev := f.heads[order]
-	f.heads[order] = new
+	f.heads[order] = newLink
 	return prev
 }
 

@@ -44,7 +44,7 @@ func (m *MemoryInstance) Grow(pages uint32) (uint32, bool) {
 }
 
 //nolint:govet
-func (m *MemoryInstance) ReadByte(offset uint32) (byte, bool) { return 0x00, false }
+func (*MemoryInstance) ReadByte(_ uint32) (byte, bool) { return 0x00, false }
 func (m *MemoryInstance) ReadUint64Le(offset uint32) (uint64, bool) {
 	return binary.LittleEndian.Uint64(m.data[offset : offset+8]), true
 }
@@ -54,15 +54,15 @@ func (m *MemoryInstance) WriteUint64Le(offset uint32, v uint64) bool {
 	copy(m.data[offset:offset+8], encoded)
 	return true
 }
-func (m *MemoryInstance) Read(offset, byteCount uint32) ([]byte, bool) {
+func (*MemoryInstance) Read(_, _ uint32) ([]byte, bool) {
 	return nil, false
 }
 
 //nolint:govet
-func (m *MemoryInstance) WriteByte(offset uint32, v byte) bool {
+func (*MemoryInstance) WriteByte(_ uint32, _ byte) bool {
 	return false
 }
-func (m *MemoryInstance) Write(offset uint32, v []byte) bool {
+func (*MemoryInstance) Write(_ uint32, _ []byte) bool {
 	return false
 }
 

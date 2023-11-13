@@ -160,7 +160,7 @@ func TestShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 	err = heap.Deallocate(mem, ptr3)
 	require.NoError(t, err)
 
-	//then
+	// then
 	require.Equal(t, Ptr{headerPtr: ptr3 - HeaderSize}, heap.freeLists.heads[0])
 
 	// reallocate
