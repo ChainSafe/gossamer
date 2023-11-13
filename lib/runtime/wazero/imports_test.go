@@ -585,8 +585,7 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersionInt)
 
-	data := []byte{}
-	data = append(data, encInput...)
+	data := append([]byte{}, encInput...)
 	data = append(data, stateVersionBytes...)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_root_version_2", data)
@@ -633,8 +632,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-	data := []byte{}
-	data = append(data, encValues...)
+	data := append([]byte{}, encValues...)
 	data = append(data, stateVersionBytes...)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_ordered_root_version_2", data)
@@ -1341,8 +1339,7 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	encVersion, err := scale.Marshal(&stateVersionInt)
 	require.NoError(t, err)
 
-	data := []byte{}
-	data = append(data, encChildKey...)
+	data := append([]byte{}, encChildKey...)
 	data = append(data, encKey...)
 	data = append(data, encVersion...)
 
