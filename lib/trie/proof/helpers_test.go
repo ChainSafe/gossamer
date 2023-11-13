@@ -5,12 +5,12 @@ package proof
 
 import (
 	"bytes"
-	"math"
 	"math/rand"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
 func encodeNode(t *testing.T, node node.Node) (encoded []byte) {
 	t.Helper()
 	buffer := bytes.NewBuffer(nil)
-	err := node.Encode(buffer, math.MaxInt)
+	err := node.Encode(buffer, trie.V0.MaxInlineValue())
 	require.NoError(t, err)
 	return buffer.Bytes()
 }

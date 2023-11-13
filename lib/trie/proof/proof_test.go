@@ -6,7 +6,6 @@ package proof
 import (
 	"encoding/hex"
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -26,19 +25,19 @@ func Test_Generate_Verify(t *testing.T) {
 		"doguinho",
 	}
 
-	trie := trie.NewEmptyTrie()
+	tr := trie.NewEmptyTrie()
 
 	for i, key := range keys {
 		value := fmt.Sprintf("%x-%d", key, i)
-		trie.Put([]byte(key), []byte(value))
+		tr.Put([]byte(key), []byte(value))
 	}
 
-	rootHash, err := trie.Hash(math.MaxInt)
+	rootHash, err := trie.V0.Hash(tr)
 	require.NoError(t, err)
 
 	db, err := database.NewPebble("", true)
 	require.NoError(t, err)
-	err = trie.WriteDirty(db)
+	err = tr.WriteDirty(db)
 	require.NoError(t, err)
 
 	for i, key := range keys {

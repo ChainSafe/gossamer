@@ -6,7 +6,6 @@ package node
 import (
 	"bytes"
 	"io"
-	"math"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -24,7 +23,7 @@ func Benchmark_encodeChildrenOpportunisticParallel(b *testing.B) {
 
 	b.Run("", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = encodeChildrenOpportunisticParallel(children, math.MaxInt, io.Discard)
+			_ = encodeChildrenOpportunisticParallel(children, NoMaxInlineValueSize, io.Discard)
 		}
 	})
 }
@@ -140,7 +139,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeChildrenOpportunisticParallel(testCase.children, math.MaxInt, buffer)
+			err := encodeChildrenOpportunisticParallel(testCase.children, NoMaxInlineValueSize, buffer)
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)
@@ -165,7 +164,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 
 		// Note this may run in parallel or not depending on other tests
 		// running in parallel.
-		err := encodeChildrenOpportunisticParallel(children, math.MaxInt, buffer)
+		err := encodeChildrenOpportunisticParallel(children, NoMaxInlineValueSize, buffer)
 
 		require.NoError(t, err)
 		expectedBytes := []byte{
@@ -256,7 +255,7 @@ func Test_encodeChild(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeChild(testCase.child, math.MaxInt, buffer)
+			err := encodeChild(testCase.child, NoMaxInlineValueSize, buffer)
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)

@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const NoMaxInlineValueSize = math.MaxInt
+
 type writeCall struct {
 	written []byte
 	n       int // number of bytes
@@ -37,7 +39,7 @@ func Test_Node_Encode(t *testing.T) {
 	}{
 		"nil_node": {
 			node:               nil,
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{emptyVariant.bits},
@@ -48,7 +50,7 @@ func Test_Node_Encode(t *testing.T) {
 			node: &Node{
 				PartialKey: make([]byte, 1),
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 1},
@@ -63,7 +65,7 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
@@ -81,7 +83,7 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
@@ -102,7 +104,7 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
@@ -117,7 +119,7 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
 				{written: []byte{0x01, 0x23}},           // partial key
@@ -181,7 +183,7 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -203,7 +205,7 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -228,7 +230,7 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -256,7 +258,7 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -289,7 +291,7 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -319,7 +321,7 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: math.MaxInt,
+			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchVariant.bits | 3}, // partial key length 3
