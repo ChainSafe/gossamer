@@ -1,5 +1,23 @@
 package consensus
 
+// / Block data origin.
+type BlockOrigin uint
+
+const (
+	/// Genesis block built into the client.
+	BlockOriginGenesis BlockOrigin = iota
+	/// Block is part of the initial sync with the network.
+	BlockOriginNetworkInitialSync
+	/// Block was broadcasted on the network.
+	BlockOriginNetworkBroadcast
+	/// Block that was received from the network and validated in the consensus process.
+	BlockOriginConsensusBroadcast
+	/// Block that was collated by this node.
+	BlockOriginOwn
+	/// Block was imported from a file.
+	BlockOriginFile
+)
+
 /// The SelectChain trait defines the strategy upon which the head is chosen
 /// if multiple forks are present for an opaque definition of "best" in the
 /// specific chain build.

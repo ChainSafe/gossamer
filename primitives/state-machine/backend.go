@@ -1,6 +1,7 @@
 package statemachine
 
 import (
+	"github.com/ChainSafe/gossamer/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/primitives/state-machine/stats"
 	"github.com/ChainSafe/gossamer/primitives/storage"
 	"golang.org/x/exp/constraints"
@@ -405,4 +406,11 @@ type StorageCollection []struct {
 type ChildStorageCollection []struct {
 	StorageKey
 	StorageCollection
+}
+
+// / In memory array of storage values.
+// pub type OffchainChangesCollection = Vec<((Vec<u8>, Vec<u8>), OffchainOverlayedChange)>;
+type OffchainChangesCollection []struct {
+	Bleh [2][]byte
+	offchain.OffchainOverlayedChange
 }
