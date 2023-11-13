@@ -82,7 +82,7 @@ func (mdb *MemoryDB) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (mdb *MemoryDB) Put(key []byte, value []byte) error {
+func (mdb *MemoryDB) Put(key, value []byte) error {
 	if len(key) != common.HashLength {
 		return fmt.Errorf("expected %d bytes length key, given %d (%x)", common.HashLength, len(key), key)
 	}

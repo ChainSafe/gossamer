@@ -585,7 +585,9 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersionInt)
 
-	data := append(encInput, stateVersionBytes...)
+	data := []byte{}
+	data = append(data, encInput...)
+	data = append(data, stateVersionBytes...)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_root_version_2", data)
 	require.NoError(t, err)
@@ -631,7 +633,9 @@ func Test_ext_trie_blake2_256_ordered_root_version_2(t *testing.T) {
 	stateVersionBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(stateVersionBytes, stateVersion)
 
-	data := append(encValues, stateVersionBytes...)
+	data := []byte{}
+	data = append(data, encValues...)
+	data = append(data, stateVersionBytes...)
 
 	res, err := inst.Exec("rtm_ext_trie_blake2_256_ordered_root_version_2", data)
 	require.NoError(t, err)
@@ -649,7 +653,8 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	memdb, err := database.NewPebble(tmp, true)
 	require.NoError(t, err)
 
-	stateVersion := trie.V0 //Since this is Test_ext_trie_blake2_256_verify_proof_version_1
+	// Since this is Test_ext_trie_blake2_256_verify_proof_version_1, we use trie.V0
+	stateVersion := trie.V0
 
 	otherTrie := trie.NewEmptyTrie()
 	otherTrie.Put([]byte("simple"), []byte("cat"))
@@ -1336,7 +1341,9 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 	encVersion, err := scale.Marshal(&stateVersionInt)
 	require.NoError(t, err)
 
-	data := append(encChildKey, encKey...)
+	data := []byte{}
+	data = append(data, encChildKey...)
+	data = append(data, encKey...)
 	data = append(data, encVersion...)
 
 	ret, err := inst.Exec("rtm_ext_default_child_storage_root_version_2", data)
