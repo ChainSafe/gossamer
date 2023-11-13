@@ -78,6 +78,21 @@ func (mr *MockMemoryMockRecorder) ReadByte(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadByte", reflect.TypeOf((*MockMemory)(nil).ReadByte), arg0)
 }
 
+// ReadUint64Le mocks base method.
+func (m *MockMemory) ReadUint64Le(arg0 uint32) (uint64, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadUint64Le", arg0)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// ReadUint64Le indicates an expected call of ReadUint64Le.
+func (mr *MockMemoryMockRecorder) ReadUint64Le(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadUint64Le", reflect.TypeOf((*MockMemory)(nil).ReadUint64Le), arg0)
+}
+
 // Size mocks base method.
 func (m *MockMemory) Size() uint32 {
 	m.ctrl.T.Helper()
@@ -118,4 +133,18 @@ func (m *MockMemory) WriteByte(arg0 uint32, arg1 byte) bool {
 func (mr *MockMemoryMockRecorder) WriteByte(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteByte", reflect.TypeOf((*MockMemory)(nil).WriteByte), arg0, arg1)
+}
+
+// WriteUint64Le mocks base method.
+func (m *MockMemory) WriteUint64Le(arg0 uint32, arg1 uint64) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteUint64Le", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// WriteUint64Le indicates an expected call of WriteUint64Le.
+func (mr *MockMemoryMockRecorder) WriteUint64Le(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteUint64Le", reflect.TypeOf((*MockMemory)(nil).WriteUint64Le), arg0, arg1)
 }
