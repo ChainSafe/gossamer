@@ -117,6 +117,47 @@ func Test_ParseVersion(t *testing.T) {
 	}
 }
 
+func Test_Version_MaxInlineValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		version      Version
+		max          int
+		panicMessage string
+	}{
+		"v0": {
+			version: V0,
+			max:     NoMaxInlineValueSize,
+		},
+		"v1": {
+			version: V1,
+			max:     V1MaxInlineValueSize,
+		},
+		"invalid": {
+			version:      Version(99),
+			max:          0,
+			panicMessage: "unknown version 99",
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if testCase.panicMessage != "" {
+				assert.PanicsWithValue(t, testCase.panicMessage, func() {
+					_ = testCase.version.String()
+				})
+				return
+			}
+
+			maxInline := testCase.version.MaxInlineValue()
+			assert.Equal(t, testCase.max, maxInline)
+		})
+	}
+}
+
 func Test_Version_Root(t *testing.T) {
 	t.Parallel()
 
