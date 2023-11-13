@@ -1,24 +1,89 @@
 package api
 
 import (
+	"github.com/ChainSafe/gossamer/client/consensus"
+	"github.com/ChainSafe/gossamer/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/primitives/state-machine"
+	overlayedchanges "github.com/ChainSafe/gossamer/primitives/state-machine/overlayed-changes"
 	"github.com/ChainSafe/gossamer/primitives/storage"
 )
 
+// / Describes which block import notification stream should be notified.
+type ImportNotificationAction uint
+
+const (
+	/// Notify only when the node has synced to the tip or there is a re-org.
+	ImportNotificationActionRecentBlock ImportNotificationAction = iota
+	/// Notify for every single block no matter what the sync state is.
+	EveryBlock
+	/// Both block import notifications above should be fired.
+	Both
+	/// No block import notification should be fired.
+	None
+)
+
+// / Import operation summary.
+// /
+// / Contains information about the block that just got imported,
+// / including storage changes, reorged blocks, etc.
+type ImportSummary[N runtime.Number, H statemachine.HasherOut] struct {
+	/// Block hash of the imported block.
+	// pub hash: Block::Hash,
+	Hash H
+	/// Import origin.
+	// pub origin: BlockOrigin,
+	Origin consensus.BlockOrigin
+	/// Header of the imported block.
+	// pub header: Block::Header,
+	Header runtime.Header[N, H]
+	/// Is this block a new best block.
+	// pub is_new_best: bool,
+	IsNewBest bool
+	//		/// Optional storage changes.
+	//		pub storage_changes: Option<(StorageCollection, ChildStorageCollection)>,
+	StorageChanges *struct {
+		statemachine.StorageCollection
+		statemachine.ChildStorageCollection
+	}
+	/// Tree route from old best to new best.
+	///
+	/// If `None`, there was no re-org while importing.
+	// pub tree_route: Option<sp_blockchain::TreeRoute<Block>>,
+	TreeRoute blockchain.TreeRoute[H, N]
+	/// What notify action to take for this import.
+	// pub import_notification_action: ImportNotificationAction,
+	ImportNotificationAction ImportNotificationAction
+}
+
+// / Finalization operation summary.
+// /
+// / Contains information about the block that just got finalized,
+// / including tree heads that became stale at the moment of finalization.
+type FinalizeSummary[N runtime.Number, H statemachine.HasherOut] struct {
+	/// Last finalized block header.
+	// pub header: Block::Header,
+	Header runtime.Header[N, H]
+	/// Blocks that were finalized.
+	/// The last entry is the one that has been explicitly finalized.
+	// pub finalized: Vec<Block::Hash>,
+	Finalized []H
+	/// Heads that became stale during this finalization operation.
+	// pub stale_heads: Vec<Block::Hash>,
+	StaleHeads []H
+}
+
 // / Import operation wrapper.
-//
-//	pub struct ClientImportOperation<Block: BlockT, B: Backend<Block>> {
-//		/// DB Operation.
-//		pub op: B::BlockImportOperation,
-//		/// Summary of imported block.
-//		pub notify_imported: Option<ImportSummary<Block>>,
-//		/// Summary of finalized block.
-//		pub notify_finalized: Option<FinalizeSummary<Block>>,
-//	}
-type ClientImportOperation[Block, Backend any] struct {
-	// pub Op
-	Op BlockImportOperation
+type ClientImportOperation[N runtime.Number, H statemachine.HasherOut] struct {
+	/// DB Operation.
+	// pub op: B::BlockImportOperation,
+	Op BlockImportOperation[N, H]
+	/// Summary of imported block.
+	// pub notify_imported: Option<ImportSummary<Block>>,
+	NotifyImported *ImportSummary[N, H]
+	/// Summary of finalized block.
+	// pub notify_finalized: Option<FinalizeSummary<Block>>,
+	NotifiyFinalized *FinalizeSummary[N, H]
 }
 
 // / State of a new block.
@@ -77,6 +142,7 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 	// 		storage: Storage,
 	// 		state_version: StateVersion,
 	// 	) -> sp_blockchain::Result<Block::Hash>;
+	ResetStorage(storage storage.Storage, stateVersion storage.StateVersion) (H, error)
 
 	/// Set storage changes.
 	// 	fn update_storage(
@@ -84,6 +150,7 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 	// 		update: StorageCollection,
 	// 		child_update: ChildStorageCollection,
 	// 	) -> sp_blockchain::Result<()>;
+	UpdateStorage(update statemachine.StorageCollection, childUpdate statemachine.ChildStorageCollection) error
 
 	/// Write offchain storage changes to the database.
 	// 	fn update_offchain_storage(
@@ -92,6 +159,7 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 	// 	) -> sp_blockchain::Result<()> {
 	// 		Ok(())
 	// 	}
+	UpdateOffchainStorage(offchainUpdate statemachine.OffchainChangesCollection) error
 
 	/// Insert auxiliary keys.
 	///
@@ -99,6 +167,10 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 	// 	fn insert_aux<I>(&mut self, ops: I) -> sp_blockchain::Result<()>
 	// 	where
 	// 		I: IntoIterator<Item = (Vec<u8>, Option<Vec<u8>>)>;
+	InsertAux(ops []struct {
+		Key   []byte
+		Value *[]byte
+	}) error
 
 	/// Mark a block as finalized.
 	// 	fn mark_finalized(
@@ -106,15 +178,18 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 	// 		hash: Block::Hash,
 	// 		justification: Option<Justification>,
 	// 	) -> sp_blockchain::Result<()>;
+	MarkFinalized(hash H, justification *runtime.Justification) error
 
 	/// Mark a block as new head. If both block import and set head are specified, set head
 	/// overrides block import's best block rule.
 	// 	fn mark_head(&mut self, hash: Block::Hash) -> sp_blockchain::Result<()>;
+	MarkHead(hash H) error
 
 	/// Add a transaction index operation.
 	//		fn update_transaction_index(&mut self, index: Vec<IndexOperation>)
 	//			-> sp_blockchain::Result<()>;
 	//	}
+	UpdateTransactionIndex(index []overlayedchanges.IndexOperation) error
 }
 
 // / Interface for performing operations on the backend.
@@ -126,8 +201,8 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 //			F: FnOnce(&mut ClientImportOperation<Block, B>) -> Result<R, Err>,
 //			Err: From<sp_blockchain::Error>;
 //	}
-type LockImportRun[R any] interface {
-	LockImportAndRun(func(ClientImportOperation) (R, error)) func() (R, error)
+type LockImportRun[R any, N runtime.Number, H statemachine.HasherOut] interface {
+	LockImportAndRun(func(ClientImportOperation[N, H]) (R, error)) (R, error)
 }
 
 // / Client backend.
