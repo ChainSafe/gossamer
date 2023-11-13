@@ -230,6 +230,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {
 	result, err := av.availabilityStore.loadAvailableData(msg.CandidateHash)
 	if err != nil {
+		msg.Sender <- AvailableData{}
 		return fmt.Errorf("load available data: %w", err)
 	}
 	msg.Sender <- *result
@@ -253,6 +254,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataA
 func (av *AvailabilityStoreSubsystem) handleQueryChunk(msg QueryChunk) error {
 	result, err := av.availabilityStore.loadChunk(msg.CandidateHash, msg.ValidatorIndex)
 	if err != nil {
+		msg.Sender <- ErasureChunk{}
 		return fmt.Errorf("load chunk: %w", err)
 	}
 	msg.Sender <- *result
@@ -305,6 +307,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) e
 func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChunkAvailability) error {
 	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
 	if err != nil {
+		msg.Sender <- false
 		return fmt.Errorf("load metadata: %w", err)
 	}
 	msg.Sender <- meta.ChunksStored[msg.ValidatorIndex]

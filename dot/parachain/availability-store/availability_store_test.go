@@ -1,6 +1,7 @@
 package availabilitystore
 
 import (
+	"errors"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -75,108 +76,272 @@ func TestAvailabilityStore_StoreLoadChuckData(t *testing.T) {
 	require.Equal(t, &testChunk1, resultChunk)
 }
 
-func TestAvailabilityStore_handleQueryAvailableData(t *testing.T) {
+func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
+	t.Parallel()
 	inmemoryDB := setupTestDB(t)
-	as := NewAvailabilityStore(inmemoryDB)
-	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+	availabilityStore := NewAvailabilityStore(inmemoryDB)
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		availabilityStore: *availabilityStore,
 	}
 	msgSenderChan := make(chan AvailableData)
-	msg := QueryAvailableData{
-		CandidateHash: common.Hash{0x01},
-		Sender:        msgSenderChan,
-	}
 
-	go asSub.handleQueryAvailableData(msg)
-	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, testavailableData1, msgSenderChanResult)
+	tests := map[string]struct {
+		msg            QueryAvailableData
+		expectedResult AvailableData
+		err            error
+	}{
+		"available data found": {
+			msg: QueryAvailableData{
+				CandidateHash: common.Hash{0x01},
+			},
+			expectedResult: testavailableData1,
+			err:            nil,
+		},
+		"available data not found": {
+			msg: QueryAvailableData{
+				CandidateHash: common.Hash{0x07},
+			},
+			expectedResult: AvailableData{},
+			err: errors.New("load available data: getting candidate" +
+				" 0x0700000000000000000000000000000000000000000000000000000000000000 from available table: pebble" +
+				": not found"),
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.msg.Sender = msgSenderChan
+
+			go func() {
+				err := availabilityStoreSubsystem.handleQueryAvailableData(tt.msg)
+				if tt.err == nil {
+					require.NoError(t, err)
+				} else {
+					require.EqualError(t, err, tt.err.Error())
+				}
+			}()
+
+			msgSenderChanResult := <-msgSenderChan
+			require.Equal(t, tt.expectedResult, msgSenderChanResult)
+		})
+	}
 }
 
-func TestAvailabilityStore_handleQueryDataAvailability(t *testing.T) {
+func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
+	t.Parallel()
 	inmemoryDB := setupTestDB(t)
-	as := NewAvailabilityStore(inmemoryDB)
-	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+	availabilityStore := NewAvailabilityStore(inmemoryDB)
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		availabilityStore: *availabilityStore,
 	}
 	msgSenderChan := make(chan bool)
-	msg := QueryDataAvailability{
-		CandidateHash: common.Hash{0x01},
-		Sender:        msgSenderChan,
-	}
 
-	go asSub.handleQueryDataAvailability(msg)
-	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, true, msgSenderChanResult)
-
-	msg2 := QueryDataAvailability{
-		CandidateHash: common.Hash{0x02},
-		Sender:        msgSenderChan,
+	tests := map[string]struct {
+		msg            QueryDataAvailability
+		expectedResult bool
+		wantErr        bool
+	}{
+		"data available true": {
+			msg: QueryDataAvailability{
+				CandidateHash: common.Hash{0x01},
+			},
+			expectedResult: true,
+			wantErr:        false,
+		},
+		"data available false": {
+			msg: QueryDataAvailability{
+				CandidateHash: common.Hash{0x07},
+			},
+			expectedResult: false,
+			wantErr:        false,
+		},
 	}
-	go asSub.handleQueryDataAvailability(msg2)
-	msgSenderChanResult2 := <-msg2.Sender
-	require.Equal(t, false, msgSenderChanResult2)
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.msg.Sender = msgSenderChan
+
+			go func() {
+				if err := availabilityStoreSubsystem.handleQueryDataAvailability(tt.msg); (err != nil) != tt.wantErr {
+					t.Errorf("handleQueryDataAvailability() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			}()
+
+			msgSenderChanResult := <-msgSenderChan
+			require.Equal(t, tt.expectedResult, msgSenderChanResult)
+		})
+	}
 }
 
-func TestAvailabilityStore_handleQueryChunk(t *testing.T) {
+func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
+	t.Parallel()
 	inmemoryDB := setupTestDB(t)
-	as := NewAvailabilityStore(inmemoryDB)
-	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+	availabilityStore := NewAvailabilityStore(inmemoryDB)
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		availabilityStore: *availabilityStore,
 	}
 	msgSenderChan := make(chan ErasureChunk)
-	msg := QueryChunk{
-		CandidateHash:  common.Hash{0x01},
-		ValidatorIndex: 0,
-		Sender:         msgSenderChan,
-	}
 
-	go asSub.handleQueryChunk(msg)
-	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, testChunk1, msgSenderChanResult)
+	tests := map[string]struct {
+		msg            QueryChunk
+		expectedResult ErasureChunk
+		err            error
+	}{
+		"chunk found": {
+			msg: QueryChunk{
+				CandidateHash: common.Hash{0x01},
+			},
+			expectedResult: testChunk1,
+			err:            nil,
+		},
+		"query chunk not found": {
+			msg: QueryChunk{
+				CandidateHash: common.Hash{0x07},
+			},
+			expectedResult: ErasureChunk{},
+			err: errors.New("load chunk: getting candidate " +
+				"0x0700000000000000000000000000000000000000000000000000000000000000, " +
+				"index 0 from chunk table: pebble: not found"),
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.msg.Sender = msgSenderChan
+
+			go func() {
+				err := availabilityStoreSubsystem.handleQueryChunk(tt.msg)
+				if tt.err == nil {
+					require.NoError(t, err)
+				} else {
+					require.EqualError(t, err, tt.err.Error())
+				}
+			}()
+
+			msgSenderChanResult := <-msgSenderChan
+			require.Equal(t, tt.expectedResult, msgSenderChanResult)
+		})
+	}
 }
 
-func TestAvailabilityStore_handleQueryAllChunks(t *testing.T) {
+func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
+	t.Parallel()
 	inmemoryDB := setupTestDB(t)
-	as := NewAvailabilityStore(inmemoryDB)
-	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+	availabilityStore := NewAvailabilityStore(inmemoryDB)
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		availabilityStore: *availabilityStore,
 	}
 	msgSenderChan := make(chan []ErasureChunk)
-	msg := QueryAllChunks{
-		CandidateHash: common.Hash{0x01},
-		Sender:        msgSenderChan,
-	}
 
-	go asSub.handleQueryAllChunks(msg)
-	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, []ErasureChunk{testChunk1, testChunk2}, msgSenderChanResult)
+	tests := map[string]struct {
+		msg            QueryAllChunks
+		expectedResult []ErasureChunk
+		err            error
+	}{
+		"chunks found": {
+			msg: QueryAllChunks{
+				CandidateHash: common.Hash{0x01},
+			},
+			expectedResult: []ErasureChunk{testChunk1, testChunk2},
+			err:            nil,
+		},
+		"query chunks not found": {
+			msg: QueryAllChunks{
+				CandidateHash: common.Hash{0x07},
+			},
+			expectedResult: []ErasureChunk{},
+			err: errors.New(
+				"load metadata: getting candidate 0x0700000000000000000000000000000000000000000000000000000000000000" +
+					" from available table: pebble: not found"),
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.msg.Sender = msgSenderChan
+
+			go func() {
+				err := availabilityStoreSubsystem.handleQueryAllChunks(tt.msg)
+				if tt.err == nil {
+					require.NoError(t, err)
+				} else {
+					require.EqualError(t, err, tt.err.Error())
+				}
+			}()
+
+			msgSenderChanResult := <-msgSenderChan
+			require.Equal(t, tt.expectedResult, msgSenderChanResult)
+		})
+	}
 }
 
-func TestAvailabilityStore_handleQueryChunkAvailability(t *testing.T) {
+func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
+	t.Parallel()
 	inmemoryDB := setupTestDB(t)
-	as := NewAvailabilityStore(inmemoryDB)
-	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+	availabilityStore := NewAvailabilityStore(inmemoryDB)
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		availabilityStore: *availabilityStore,
 	}
 	msgSenderChan := make(chan bool)
-	msg := QueryChunkAvailability{
-		CandidateHash:  common.Hash{0x01},
-		ValidatorIndex: 0,
-		Sender:         msgSenderChan,
-	}
 
-	go asSub.handleQueryChunkAvailability(msg)
-	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, true, msgSenderChanResult)
-
-	msg2 := QueryChunkAvailability{
-		CandidateHash:  common.Hash{0x01},
-		ValidatorIndex: 2,
-		Sender:         msgSenderChan,
+	tests := map[string]struct {
+		msg            QueryChunkAvailability
+		expectedResult bool
+		err            error
+	}{
+		"query chuck availability true": {
+			msg: QueryChunkAvailability{
+				CandidateHash:  common.Hash{0x01},
+				ValidatorIndex: 0,
+			},
+			expectedResult: true,
+		},
+		"query chuck availability false": {
+			msg: QueryChunkAvailability{
+				CandidateHash:  common.Hash{0x01},
+				ValidatorIndex: 2,
+			},
+			expectedResult: false,
+		},
+		"query chuck availability candidate not found false": {
+			msg: QueryChunkAvailability{
+				CandidateHash:  common.Hash{0x07},
+				ValidatorIndex: 0,
+			},
+			expectedResult: false,
+			err: errors.New(
+				"load metadata: getting candidate 0x0700000000000000000000000000000000000000000000000000000000000000" +
+					" from available table: pebble: not found"),
+		},
 	}
-	go asSub.handleQueryChunkAvailability(msg2)
-	msgSenderChanResult2 := <-msg2.Sender
-	require.Equal(t, false, msgSenderChanResult2)
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			tt.msg.Sender = msgSenderChan
+
+			go func() {
+				err := availabilityStoreSubsystem.handleQueryChunkAvailability(tt.msg)
+				if tt.err == nil {
+					require.NoError(t, err)
+				} else {
+					require.EqualError(t, err, tt.err.Error())
+				}
+			}()
+
+			msgSenderChanResult := <-msgSenderChan
+			require.Equal(t, tt.expectedResult, msgSenderChanResult)
+		})
+	}
 }
 
 func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
