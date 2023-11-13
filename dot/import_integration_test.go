@@ -23,10 +23,11 @@ func Test_newTrieFromPairs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		filename string
-		want     common.Hash
-		err      error
+		name         string
+		filename     string
+		want         common.Hash
+		stateVersion trie.Version
+		err          error
 	}{
 		{
 			name: "no_arguments",
@@ -34,9 +35,10 @@ func Test_newTrieFromPairs(t *testing.T) {
 			want: common.Hash{},
 		},
 		{
-			name:     "working example",
-			filename: setupStateFile(t),
-			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			name:         "working example",
+			filename:     setupStateFile(t),
+			want:         common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			stateVersion: trie.V0,
 		},
 	}
 	for _, tt := range tests {
@@ -53,7 +55,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			if tt.want.IsEmpty() {
 				assert.Nil(t, got)
 			} else {
-				assert.Equal(t, tt.want, trie.V0.MustHash(*got))
+				assert.Equal(t, tt.want, tt.stateVersion.MustHash(*got))
 			}
 		})
 	}
