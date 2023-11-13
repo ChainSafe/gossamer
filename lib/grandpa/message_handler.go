@@ -404,7 +404,8 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 // VerifyBlockJustification verifies the finality justification for a block, returns scale encoded justification with
 // any extra bytes removed.
-func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) (round uint64, setID uint64, err error) {
+func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) (
+	round uint64, setID uint64, err error) {
 	fj := Justification{}
 	err = scale.Unmarshal(justification, &fj)
 	if err != nil {

@@ -772,8 +772,11 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+
+	gotRound, gotSetID, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
+	require.Equal(t, round, gotRound)
+	require.Equal(t, setID, gotSetID)
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
@@ -840,8 +843,10 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	gotRound, gotSetID, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
+	require.Equal(t, round, gotRound)
+	require.Equal(t, setID, gotSetID)
 
 	// use wrong hash, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
@@ -849,7 +854,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = testHeader2.Hash()
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	_, _, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrPrecommitBlockMismatch, err)
 }
 
@@ -899,7 +904,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	_, _, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrPrecommitBlockMismatch, err)
 
 	// use wrong round, shouldn't verify
@@ -907,7 +912,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just = newJustification(round+2, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	_, _, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrInvalidSignature, err)
 
 	// add authority not in set, shouldn't verify
@@ -915,7 +920,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	_, _, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
 
 	// not enough signatures, shouldn't verify
@@ -923,7 +928,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	_, _, err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
 
 	// mismatch justification header and block header
@@ -932,7 +937,7 @@ func TestMessageHandler_VerifyBlockJustification_invalid(t *testing.T) {
 	data, err = scale.Marshal(*just)
 	require.NoError(t, err)
 	otherHeader := types.NewEmptyHeader()
-	err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
+	_, _, err = gs.VerifyBlockJustification(otherHeader.Hash(), data)
 	require.ErrorIs(t, err, ErrJustificationMismatch)
 
 	expectedErr := fmt.Sprintf("%s: justification %s and block hash %s", ErrJustificationMismatch,
@@ -1001,7 +1006,7 @@ func TestMessageHandler_VerifyBlockJustification_ErrFinalisedBlockMismatch(t *te
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(testHash, data)
+	_, _, err = gs.VerifyBlockJustification(testHash, data)
 	require.ErrorIs(t, err, errFinalisedBlocksMismatch)
 }
 
@@ -1517,8 +1522,6 @@ func TestService_VerifyBlockJustification(t *testing.T) { //nolint
 					mockBlockState.EXPECT().IsDescendantOf(testHash, testHash).
 						Return(true, nil).Times(3)
 					mockBlockState.EXPECT().GetHeader(testHash).Return(testHeader, nil).Times(3)
-					mockBlockState.EXPECT().SetFinalisedHash(testHash, uint64(1),
-						uint64(0)).Return(nil)
 					return mockBlockState
 				},
 				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
@@ -1547,8 +1550,6 @@ func TestService_VerifyBlockJustification(t *testing.T) { //nolint
 					mockBlockState.EXPECT().IsDescendantOf(testHash, testHash).
 						Return(true, nil).Times(3)
 					mockBlockState.EXPECT().GetHeader(testHash).Return(testHeader, nil).Times(3)
-					mockBlockState.EXPECT().SetFinalisedHash(testHash, uint64(1),
-						uint64(0)).Return(nil)
 					return mockBlockState
 				},
 				grandpaStateBuilder: func(ctrl *gomock.Controller) GrandpaState {
@@ -1578,7 +1579,7 @@ func TestService_VerifyBlockJustification(t *testing.T) { //nolint
 				blockState:   tt.fields.blockStateBuilder(ctrl),
 				grandpaState: tt.fields.grandpaStateBuilder(ctrl),
 			}
-			err := s.VerifyBlockJustification(tt.args.hash, tt.args.justification)
+			_, _, err := s.VerifyBlockJustification(tt.args.hash, tt.args.justification)
 			if tt.wantErr != nil {
 				assert.ErrorContains(t, err, tt.wantErr.Error())
 			} else {
