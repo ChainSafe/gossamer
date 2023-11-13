@@ -406,7 +406,7 @@ func TestService_Import(t *testing.T) {
 
 	firstSlot := uint64(100)
 
-	err = serv.Import(header, tr, firstSlot)
+	err = serv.Import(header, tr, trie.V0, firstSlot)
 	require.NoError(t, err)
 
 	err = serv.Start()

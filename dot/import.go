@@ -20,7 +20,7 @@ import (
 )
 
 // ImportState imports the state in the given files to the database with the given path.
-func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
+func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.Version, firstSlot uint64) error {
 	tr, err := newTrieFromPairs(stateFP)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 		LogLevel: log.Info,
 	}
 	srv := state.NewService(config)
-	return srv.Import(header, tr, firstSlot)
+	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
 func newTrieFromPairs(filename string) (*trie.Trie, error) {

@@ -256,7 +256,7 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
+func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion trie.Version, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
@@ -301,7 +301,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	root := t.MustHash(trie.NoMaxInlineValueSize)
+	root := stateTrieVersion.MustHash(*t)
 	if root != header.StateRoot {
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
