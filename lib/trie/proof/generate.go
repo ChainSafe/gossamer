@@ -24,7 +24,6 @@ var (
 // for proof generation.
 type Database interface {
 	db.DBGetter
-	db.DBPutter
 }
 
 // Generate generates and deduplicates the encoded proof nodes

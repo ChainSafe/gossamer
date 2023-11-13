@@ -47,17 +47,3 @@ func (mr *MockDatabaseMockRecorder) Get(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockDatabase)(nil).Get), arg0)
 }
-
-// Put mocks base method.
-func (m *MockDatabase) Put(arg0, arg1 []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Put", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Put indicates an expected call of Put.
-func (mr *MockDatabaseMockRecorder) Put(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockDatabase)(nil).Put), arg0, arg1)
-}
