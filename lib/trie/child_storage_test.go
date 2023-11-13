@@ -90,7 +90,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 func TestChildTrieHashAfterClear(t *testing.T) {
 	trieThatHoldsAChildTrie := NewEmptyTrie()
-	originalEmptyHash := DefaultStateVersion.MustHash(*trieThatHoldsAChildTrie)
+	originalEmptyHash := V0.MustHash(*trieThatHoldsAChildTrie)
 
 	keyToChild := []byte("crowdloan")
 	keyInChild := []byte("account-alice")
@@ -103,7 +103,7 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 
 	// the parent trie hash SHOULT NOT BE EQUAL to the original
 	// empty hash since it contains a value
-	require.NotEqual(t, originalEmptyHash, DefaultStateVersion.MustHash(*trieThatHoldsAChildTrie))
+	require.NotEqual(t, originalEmptyHash, V0.MustHash(*trieThatHoldsAChildTrie))
 
 	// ensure the value is inside the child trie
 	valueStored, err := trieThatHoldsAChildTrie.GetFromChild(keyToChild, keyInChild)
@@ -116,6 +116,6 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 
 	// the parent trie hash SHOULD BE EQUAL to the original
 	// empty hash since now it does not have any other value in it
-	require.Equal(t, originalEmptyHash, DefaultStateVersion.MustHash(*trieThatHoldsAChildTrie))
+	require.Equal(t, originalEmptyHash, V0.MustHash(*trieThatHoldsAChildTrie))
 
 }

@@ -286,10 +286,12 @@ func (t *Trie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
 	}
 
 	var encoding, merkleValue []byte
+	// TODO: I'm sure we don't need to store the encoded now, we can try storing the (key,value) only but it needs
+	// some refactor and testing. In the meantime we can store the encoded node using the v0 encoding
 	if n == t.root {
-		encoding, merkleValue, err = n.EncodeAndHashRoot(V0.MaxInlineValue()) //TODO: solve this with right version
+		encoding, merkleValue, err = n.EncodeAndHashRoot(V0.MaxInlineValue())
 	} else {
-		encoding, merkleValue, err = n.EncodeAndHash(V0.MaxInlineValue()) //TODO: solve this with right version
+		encoding, merkleValue, err = n.EncodeAndHash(V0.MaxInlineValue())
 	}
 	if err != nil {
 		return fmt.Errorf(

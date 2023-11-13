@@ -28,7 +28,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := trie.DefaultStateVersion.MustHash(genesisTrie)
+	stateRoot := trie.V0.MustHash(genesisTrie)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

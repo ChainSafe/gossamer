@@ -463,7 +463,7 @@ func Test_Trie_MustHash(t *testing.T) {
 
 		var trie Trie
 
-		hash := DefaultStateVersion.MustHash(trie)
+		hash := V0.MustHash(trie)
 
 		expectedHash := common.Hash{
 			0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
@@ -560,7 +560,7 @@ func Test_Trie_Hash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			hash, err := DefaultStateVersion.Hash(&testCase.trie)
+			hash, err := V0.Hash(&testCase.trie)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
