@@ -63,7 +63,7 @@ func execImportState(cmd *cobra.Command) error {
 	}
 	stateTrieVersion, err := trie.ParseVersion(stateVersion)
 	if err != nil {
-		return fmt.Errorf("Invalid state version")
+		return fmt.Errorf("invalid state version")
 	}
 
 	headerFile, err := cmd.Flags().GetString("header-file")
