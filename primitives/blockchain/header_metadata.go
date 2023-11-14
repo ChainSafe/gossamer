@@ -40,3 +40,41 @@ type TreeRoute[H, N any] struct {
 	route []HashNumber[H, N]
 	pivot uint
 }
+
+// / Handles header metadata: hash, number, parent hash, etc.
+// pub trait HeaderMetadata<Block: BlockT> {
+type HeaderMetaData[H, N any] interface {
+	// fn header_metadata(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// ) -> Result<CachedHeaderMetadata<Block>, Self::Error>;
+	HeaderMetadata()
+	// fn insert_header_metadata(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	header_metadata: CachedHeaderMetadata<Block>,
+	// );
+	InsertHeaderMetadata(hash H, headerMetadata CachedHeaderMetadata[H, N])
+	// fn remove_header_metadata(&self, hash: Block::Hash);
+	RemoveHeaderMetadata(hash H)
+}
+
+// / Cached header metadata. Used to efficiently traverse the tree.
+// pub struct CachedHeaderMetadata<Block: BlockT> {
+type CachedHeaderMetadata[H, N any] struct {
+	/// Hash of the header.
+	// pub hash: Block::Hash,
+	Hash H
+	/// Block number.
+	// pub number: NumberFor<Block>,
+	Number N
+	/// Hash of parent header.
+	// pub parent: Block::Hash,
+	Parent H
+	/// Block state root.
+	// pub state_root: Block::Hash,
+	StateRoot H
+	/// Hash of an ancestor header. Used to jump through the tree.
+	// ancestor: Block::Hash,
+	Ancestor H
+}

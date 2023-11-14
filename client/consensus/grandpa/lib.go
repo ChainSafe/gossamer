@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/client/api"
 	"github.com/ChainSafe/gossamer/client/consensus"
 	"github.com/ChainSafe/gossamer/client/consensus/grandpa/communication"
 	"github.com/ChainSafe/gossamer/client/network"
@@ -16,7 +17,9 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/primitives/state-machine"
 	"golang.org/x/exp/constraints"
 )
 
@@ -146,7 +149,13 @@ type SharedVoterState[AuthorityID comparable] struct {
 //	Block: BlockT,
 //
 // {}
-type ClientForGrandpa interface{}
+type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interface {
+	api.LockImportRun[R, N, H]
+	api.Finalizer[N, H]
+	api.AuxStore
+	blockchain.HeaderMetaData[H, N]
+	blockchain.HeaderBackend[H, N]
+}
 
 type Backend interface{}
 
