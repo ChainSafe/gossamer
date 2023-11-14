@@ -195,162 +195,89 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 // / Interface for performing operations on the backend.
 //
 //	pub trait LockImportRun<Block: BlockT, B: Backend<Block>> {
-//		/// Lock the import lock, and run operations inside.
-//		fn lock_import_and_run<R, Err, F>(&self, f: F) -> Result<R, Err>
-//		where
-//			F: FnOnce(&mut ClientImportOperation<Block, B>) -> Result<R, Err>,
-//			Err: From<sp_blockchain::Error>;
-//	}
 type LockImportRun[R any, N runtime.Number, H statemachine.HasherOut] interface {
+	/// Lock the import lock, and run operations inside.
+	// fn lock_import_and_run<R, Err, F>(&self, f: F) -> Result<R, Err>
+	// where
+	// 	F: FnOnce(&mut ClientImportOperation<Block, B>) -> Result<R, Err>,
+	// 	Err: From<sp_blockchain::Error>;
 	LockImportAndRun(func(ClientImportOperation[N, H]) (R, error)) (R, error)
 }
 
-// / Client backend.
-// /
-// / Manages the data layer.
-// /
-// / # State Pruning
-// /
-// / While an object from `state_at` is alive, the state
-// / should not be pruned. The backend should internally reference-count
-// / its state objects.
-// /
-// / The same applies for live `BlockImportOperation`s: while an import operation building on a
-// / parent `P` is alive, the state for `P` should not be pruned.
-// /
-// / # Block Pruning
-// /
-// / Users can pin blocks in memory by calling `pin_block`. When
-// / a block would be pruned, its value is kept in an in-memory cache
-// / until it is unpinned via `unpin_block`.
-// /
-// / While a block is pinned, its state is also preserved.
-// /
-// / The backend should internally reference count the number of pin / unpin calls.
-type Backend interface {
-	// 	/// Associated block insertion operation type.
-	// 	type BlockImportOperation: BlockImportOperation<Block, State = Self::State>;
+// / Finalize Facilities
+// pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
+type Finalizer[N runtime.Number, H statemachine.HasherOut] interface {
+	/// Mark all blocks up to given as finalized in operation.
+	///
+	/// If `justification` is provided it is stored with the given finalized
+	/// block (any other finalized blocks are left unjustified).
+	///
+	/// If the block being finalized is on a different fork from the current
+	/// best block the finalized block is set as best, this might be slightly
+	/// inaccurate (i.e. outdated). Usages that require determining an accurate
+	/// best block should use `SelectChain` instead of the client.
+	// fn apply_finality(
+	// 	&self,
+	// 	operation: &mut ClientImportOperation<Block, B>,
+	// 	block: Block::Hash,
+	// 	justification: Option<Justification>,
+	// 	notify: bool,
+	// ) -> sp_blockchain::Result<()>;
+	ApplyFinality(
+		operation ClientImportOperation[N, H],
+		block H,
+		justifcation *runtime.Justification,
+		notify bool) error
+
+	/// Finalize a block.
+	///
+	/// This will implicitly finalize all blocks up to it and
+	/// fire finality notifications.
+	///
+	/// If the block being finalized is on a different fork from the current
+	/// best block, the finalized block is set as best. This might be slightly
+	/// inaccurate (i.e. outdated). Usages that require determining an accurate
+	/// best block should use `SelectChain` instead of the client.
+	///
+	/// Pass a flag to indicate whether finality notifications should be propagated.
+	/// This is usually tied to some synchronization state, where we don't send notifications
+	/// while performing major synchronization work.
+	// fn finalize_block(
+	// 	&self,
+	// 	block: Block::Hash,
+	// 	justification: Option<Justification>,
+	// 	notify: bool,
+	// ) -> sp_blockchain::Result<()>;
+	FinalizeBlock(block H, justification *runtime.Justification, notify bool) error
 }
 
-// pub trait Backend<Block: BlockT>: AuxStore + Send + Sync {
-// 	/// Associated block insertion operation type.
-// 	type BlockImportOperation: BlockImportOperation<Block, State = Self::State>;
-// 	/// Associated blockchain backend type.
-// 	type Blockchain: BlockchainBackend<Block>;
-// 	/// Associated state backend type.
-// 	type State: StateBackend<HashFor<Block>>
-// 		+ Send
-// 		+ AsTrieBackend<
-// 			HashFor<Block>,
-// 			TrieBackendStorage = <Self::State as StateBackend<HashFor<Block>>>::TrieBackendStorage,
-// 		>;
-// 	/// Offchain workers local storage.
-// 	type OffchainStorage: OffchainStorage;
+// / Provides access to an auxiliary database.
+// /
+// / This is a simple global database not aware of forks. Can be used for storing auxiliary
+// / information like total block weight/difficulty for fork resolution purposes as a common use
+// / case.
+// pub trait AuxStore {
+type AuxStore interface {
+	/// Insert auxiliary data into key-value store.
+	///
+	/// Deletions occur after insertions.
+	// fn insert_aux<
+	// 	'a,
+	// 	'b: 'a,
+	// 	'c: 'a,
+	// 	I: IntoIterator<Item = &'a (&'c [u8], &'c [u8])>,
+	// 	D: IntoIterator<Item = &'a &'b [u8]>,
+	// >(
+	// 	&self,
+	// 	insert: I,
+	// 	delete: D,
+	// ) -> sp_blockchain::Result<()>;
+	InsertAux(insert []struct {
+		Key   []byte
+		Value []byte
+	}, delete [][]byte) error
 
-// 	/// Begin a new block insertion transaction with given parent block id.
-// 	///
-// 	/// When constructing the genesis, this is called with all-zero hash.
-// 	fn begin_operation(&self) -> sp_blockchain::Result<Self::BlockImportOperation>;
-
-// 	/// Note an operation to contain state transition.
-// 	fn begin_state_operation(
-// 		&self,
-// 		operation: &mut Self::BlockImportOperation,
-// 		block: Block::Hash,
-// 	) -> sp_blockchain::Result<()>;
-
-// 	/// Commit block insertion.
-// 	fn commit_operation(
-// 		&self,
-// 		transaction: Self::BlockImportOperation,
-// 	) -> sp_blockchain::Result<()>;
-
-// 	/// Finalize block with given `hash`.
-// 	///
-// 	/// This should only be called if the parent of the given block has been finalized.
-// 	fn finalize_block(
-// 		&self,
-// 		hash: Block::Hash,
-// 		justification: Option<Justification>,
-// 	) -> sp_blockchain::Result<()>;
-
-// 	/// Append justification to the block with the given `hash`.
-// 	///
-// 	/// This should only be called for blocks that are already finalized.
-// 	fn append_justification(
-// 		&self,
-// 		hash: Block::Hash,
-// 		justification: Justification,
-// 	) -> sp_blockchain::Result<()>;
-
-// 	/// Returns reference to blockchain backend.
-// 	fn blockchain(&self) -> &Self::Blockchain;
-
-// 	/// Returns current usage statistics.
-// 	fn usage_info(&self) -> Option<UsageInfo>;
-
-// 	/// Returns a handle to offchain storage.
-// 	fn offchain_storage(&self) -> Option<Self::OffchainStorage>;
-
-// 	/// Pin the block to keep body, justification and state available after pruning.
-// 	/// Number of pins are reference counted. Users need to make sure to perform
-// 	/// one call to [`Self::unpin_block`] per call to [`Self::pin_block`].
-// 	fn pin_block(&self, hash: Block::Hash) -> sp_blockchain::Result<()>;
-
-// 	/// Unpin the block to allow pruning.
-// 	fn unpin_block(&self, hash: Block::Hash);
-
-// 	/// Returns true if state for given block is available.
-// 	fn have_state_at(&self, hash: Block::Hash, _number: NumberFor<Block>) -> bool {
-// 		self.state_at(hash).is_ok()
-// 	}
-
-// 	/// Returns state backend with post-state of given block.
-// 	fn state_at(&self, hash: Block::Hash) -> sp_blockchain::Result<Self::State>;
-
-// 	/// Attempts to revert the chain by `n` blocks. If `revert_finalized` is set it will attempt to
-// 	/// revert past any finalized block, this is unsafe and can potentially leave the node in an
-// 	/// inconsistent state. All blocks higher than the best block are also reverted and not counting
-// 	/// towards `n`.
-// 	///
-// 	/// Returns the number of blocks that were successfully reverted and the list of finalized
-// 	/// blocks that has been reverted.
-// 	fn revert(
-// 		&self,
-// 		n: NumberFor<Block>,
-// 		revert_finalized: bool,
-// 	) -> sp_blockchain::Result<(NumberFor<Block>, HashSet<Block::Hash>)>;
-
-// 	/// Discard non-best, unfinalized leaf block.
-// 	fn remove_leaf_block(&self, hash: Block::Hash) -> sp_blockchain::Result<()>;
-
-// 	/// Insert auxiliary data into key-value store.
-// 	fn insert_aux<
-// 		'a,
-// 		'b: 'a,
-// 		'c: 'a,
-// 		I: IntoIterator<Item = &'a (&'c [u8], &'c [u8])>,
-// 		D: IntoIterator<Item = &'a &'b [u8]>,
-// 	>(
-// 		&self,
-// 		insert: I,
-// 		delete: D,
-// 	) -> sp_blockchain::Result<()> {
-// 		AuxStore::insert_aux(self, insert, delete)
-// 	}
-// 	/// Query auxiliary data from key-value store.
-// 	fn get_aux(&self, key: &[u8]) -> sp_blockchain::Result<Option<Vec<u8>>> {
-// 		AuxStore::get_aux(self, key)
-// 	}
-
-// 	/// Gain access to the import lock around this backend.
-// 	///
-// 	/// _Note_ Backend isn't expected to acquire the lock by itself ever. Rather
-// 	/// the using components should acquire and hold the lock whenever they do
-// 	/// something that the import of a block would interfere with, e.g. importing
-// 	/// a new block or calculating the best head.
-// 	fn get_import_lock(&self) -> &RwLock<()>;
-
-// 	/// Tells whether the backend requires full-sync mode.
-// 	fn requires_full_sync(&self) -> bool;
-// }
+	/// Query auxiliary data from key-value store.
+	// fn get_aux(&self, key: &[u8]) -> sp_blockchain::Result<Option<Vec<u8>>>;
+	GetAux(key []byte) (*[]byte, error)
+}
