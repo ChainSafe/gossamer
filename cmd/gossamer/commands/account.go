@@ -24,7 +24,7 @@ var AccountCmd = &cobra.Command{
 	Use:   "account",
 	Short: "Create and manage node keystore accounts",
 	Long: `The account command is used to manage the gossamer keystore.
-Examples:
+ Examples:
 
 To generate a new ed25519 account:
 	gossamer account generate --keystore-path=path/to/location --scheme=ed25519
