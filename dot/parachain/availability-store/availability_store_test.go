@@ -83,10 +83,10 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
 	}
-	msgSenderChan := make(chan AvailableData)
 
 	tests := map[string]struct {
 		msg            QueryAvailableData
+		msgSenderChan  chan AvailableData
 		expectedResult AvailableData
 		err            error
 	}{
@@ -94,6 +94,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 			msg: QueryAvailableData{
 				CandidateHash: common.Hash{0x01},
 			},
+			msgSenderChan:  make(chan AvailableData),
 			expectedResult: testavailableData1,
 			err:            nil,
 		},
@@ -101,6 +102,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 			msg: QueryAvailableData{
 				CandidateHash: common.Hash{0x07},
 			},
+			msgSenderChan:  make(chan AvailableData),
 			expectedResult: AvailableData{},
 			err: errors.New("load available data: getting candidate" +
 				" 0x0700000000000000000000000000000000000000000000000000000000000000 from available table: pebble" +
@@ -112,7 +114,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tt.msg.Sender = msgSenderChan
+			tt.msg.Sender = tt.msgSenderChan
 
 			go func() {
 				err := availabilityStoreSubsystem.handleQueryAvailableData(tt.msg)
@@ -123,7 +125,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 				}
 			}()
 
-			msgSenderChanResult := <-msgSenderChan
+			msgSenderChanResult := <-tt.msgSenderChan
 			require.Equal(t, tt.expectedResult, msgSenderChanResult)
 		})
 	}
@@ -136,10 +138,10 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
 	}
-	msgSenderChan := make(chan bool)
 
 	tests := map[string]struct {
 		msg            QueryDataAvailability
+		msgSenderChan  chan bool
 		expectedResult bool
 		wantErr        bool
 	}{
@@ -147,6 +149,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 			msg: QueryDataAvailability{
 				CandidateHash: common.Hash{0x01},
 			},
+			msgSenderChan:  make(chan bool),
 			expectedResult: true,
 			wantErr:        false,
 		},
@@ -154,6 +157,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 			msg: QueryDataAvailability{
 				CandidateHash: common.Hash{0x07},
 			},
+			msgSenderChan:  make(chan bool),
 			expectedResult: false,
 			wantErr:        false,
 		},
@@ -163,7 +167,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tt.msg.Sender = msgSenderChan
+			tt.msg.Sender = tt.msgSenderChan
 
 			go func() {
 				if err := availabilityStoreSubsystem.handleQueryDataAvailability(tt.msg); (err != nil) != tt.wantErr {
@@ -171,7 +175,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 				}
 			}()
 
-			msgSenderChanResult := <-msgSenderChan
+			msgSenderChanResult := <-tt.msgSenderChan
 			require.Equal(t, tt.expectedResult, msgSenderChanResult)
 		})
 	}
@@ -184,10 +188,10 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
 	}
-	msgSenderChan := make(chan ErasureChunk)
 
 	tests := map[string]struct {
 		msg            QueryChunk
+		msgSenderChan  chan ErasureChunk
 		expectedResult ErasureChunk
 		err            error
 	}{
@@ -195,6 +199,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 			msg: QueryChunk{
 				CandidateHash: common.Hash{0x01},
 			},
+			msgSenderChan:  make(chan ErasureChunk),
 			expectedResult: testChunk1,
 			err:            nil,
 		},
@@ -202,6 +207,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 			msg: QueryChunk{
 				CandidateHash: common.Hash{0x07},
 			},
+			msgSenderChan:  make(chan ErasureChunk),
 			expectedResult: ErasureChunk{},
 			err: errors.New("load chunk: getting candidate " +
 				"0x0700000000000000000000000000000000000000000000000000000000000000, " +
@@ -213,7 +219,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tt.msg.Sender = msgSenderChan
+			tt.msg.Sender = tt.msgSenderChan
 
 			go func() {
 				err := availabilityStoreSubsystem.handleQueryChunk(tt.msg)
@@ -224,7 +230,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 				}
 			}()
 
-			msgSenderChanResult := <-msgSenderChan
+			msgSenderChanResult := <-tt.msgSenderChan
 			require.Equal(t, tt.expectedResult, msgSenderChanResult)
 		})
 	}
@@ -237,10 +243,10 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
 	}
-	msgSenderChan := make(chan []ErasureChunk)
 
 	tests := map[string]struct {
 		msg            QueryAllChunks
+		msgSenderChan  chan []ErasureChunk
 		expectedResult []ErasureChunk
 		err            error
 	}{
@@ -248,6 +254,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 			msg: QueryAllChunks{
 				CandidateHash: common.Hash{0x01},
 			},
+			msgSenderChan:  make(chan []ErasureChunk),
 			expectedResult: []ErasureChunk{testChunk1, testChunk2},
 			err:            nil,
 		},
@@ -255,6 +262,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 			msg: QueryAllChunks{
 				CandidateHash: common.Hash{0x07},
 			},
+			msgSenderChan:  make(chan []ErasureChunk),
 			expectedResult: []ErasureChunk{},
 			err: errors.New(
 				"load metadata: getting candidate 0x0700000000000000000000000000000000000000000000000000000000000000" +
@@ -266,7 +274,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tt.msg.Sender = msgSenderChan
+			tt.msg.Sender = tt.msgSenderChan
 
 			go func() {
 				err := availabilityStoreSubsystem.handleQueryAllChunks(tt.msg)
@@ -277,7 +285,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 				}
 			}()
 
-			msgSenderChanResult := <-msgSenderChan
+			msgSenderChanResult := <-tt.msgSenderChan
 			require.Equal(t, tt.expectedResult, msgSenderChanResult)
 		})
 	}
@@ -290,10 +298,10 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
 	}
-	msgSenderChan := make(chan bool)
 
 	tests := map[string]struct {
 		msg            QueryChunkAvailability
+		msgSenderChan  chan bool
 		expectedResult bool
 		err            error
 	}{
@@ -302,6 +310,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 				CandidateHash:  common.Hash{0x01},
 				ValidatorIndex: 0,
 			},
+			msgSenderChan:  make(chan bool),
 			expectedResult: true,
 		},
 		"query_chuck_availability_false": {
@@ -309,6 +318,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 				CandidateHash:  common.Hash{0x01},
 				ValidatorIndex: 2,
 			},
+			msgSenderChan:  make(chan bool),
 			expectedResult: false,
 		},
 		"query_chuck_availability_candidate_not_found_false": {
@@ -316,6 +326,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 				CandidateHash:  common.Hash{0x07},
 				ValidatorIndex: 0,
 			},
+			msgSenderChan:  make(chan bool),
 			expectedResult: false,
 			err: errors.New(
 				"load metadata: getting candidate 0x0700000000000000000000000000000000000000000000000000000000000000" +
@@ -327,7 +338,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tt.msg.Sender = msgSenderChan
+			tt.msg.Sender = tt.msgSenderChan
 
 			go func() {
 				err := availabilityStoreSubsystem.handleQueryChunkAvailability(tt.msg)
@@ -338,7 +349,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 				}
 			}()
 
-			msgSenderChanResult := <-msgSenderChan
+			msgSenderChanResult := <-tt.msgSenderChan
 			require.Equal(t, tt.expectedResult, msgSenderChanResult)
 		})
 	}
