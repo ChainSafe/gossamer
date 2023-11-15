@@ -50,6 +50,15 @@ type CandidateBacking struct {
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]perCandidateState
+	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
+	perLeaf map[common.Hash]ActiveLeafState
+		// The utility for managing the implicit and explicit views in a consistent way.
+	// We only feed leaves which have prospective parachains enabled to this view.
+	implicitView ImplicitView
+}
+
+type ActiveLeafState struct {
+	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -138,6 +147,7 @@ type CanSecondMessage struct {
 	CandidateRelayParent common.Hash
 	CandidateHash        parachaintypes.CandidateHash
 	ParentHeadDataHash   common.Hash
+	resCh                chan bool
 }
 
 // SecondMessage is a message received from overseer. Candidate Backing subsystem should second the given
@@ -204,7 +214,7 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	case GetBackedCandidatesMessage:
 		cb.handleGetBackedCandidatesMessage()
 	case CanSecondMessage:
-		cb.handleCanSecondMessage()
+		cb.handleCanSecondMessage(msg)
 	case SecondMessage:
 		cb.handleSecondMessage()
 	case StatementMessage:
@@ -221,10 +231,6 @@ func (cb *CandidateBacking) handleActiveLeavesUpdate() {
 
 func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
 	// TODO: Implement this #3504
-}
-
-func (cb *CandidateBacking) handleCanSecondMessage() {
-	// TODO: Implement this #3505
 }
 
 func (cb *CandidateBacking) handleSecondMessage() {

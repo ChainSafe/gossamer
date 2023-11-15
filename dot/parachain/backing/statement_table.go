@@ -1,6 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+// TODO: figure out if we need to make a separate package for this
 package backing
 
 import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
