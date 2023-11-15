@@ -155,6 +155,7 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 	api.AuxStore
 	blockchain.HeaderMetaData[H, N]
 	blockchain.HeaderBackend[H, N]
+	api.BlockchainEvents[H, N]
 }
 
 type Backend interface{}
