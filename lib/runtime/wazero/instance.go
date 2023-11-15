@@ -107,7 +107,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 	_, err = rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", 23).
+		ExportMemory("memory", allocator.MaxWasmPages-1).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
