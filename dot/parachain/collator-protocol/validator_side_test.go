@@ -110,15 +110,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				CandidateReceipt: testCandidateReceipt,
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollationInfo{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -148,15 +140,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				return net
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollationInfo{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -199,15 +183,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				}(),
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollationInfo{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -250,15 +226,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				return net
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollationInfo{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,

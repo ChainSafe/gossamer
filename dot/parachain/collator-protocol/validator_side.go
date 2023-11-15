@@ -472,16 +472,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 
 		candidateReceipt := parachaintypes.CommittedCandidateReceipt(receipt)
 
-		candidateHashV, err := candidateReceipt.ToPlain().Hash()
-		if err != nil {
-			return fmt.Errorf("getting candidate hash from receipt: %w", err)
-		}
-		fetchedCollation := fetchedCollationInfo{
-			relayParent:   receipt.Descriptor.RelayParent,
-			paraID:        parachaintypes.ParaID(receipt.Descriptor.ParaID),
-			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},
-			collatorID:    receipt.Descriptor.Collator,
-		}
+		fetchedCollation := newFetchedCollationInfo(candidateReceipt.ToPlain())
 		// remove the candidate from the list of fetched candidates
 		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {
@@ -539,16 +530,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	case InvalidOverseerMsg:
 		invalidOverseerMsg := msg
 
-		candidateHashV, err := msg.CandidateReceipt.Hash()
-		if err != nil {
-			return fmt.Errorf("getting candidate hash from receipt: %w", err)
-		}
-		fetchedCollation := fetchedCollationInfo{
-			relayParent:   msg.CandidateReceipt.Descriptor.RelayParent,
-			paraID:        parachaintypes.ParaID(msg.CandidateReceipt.Descriptor.ParaID),
-			candidateHash: parachaintypes.CandidateHash{Value: candidateHashV},
-			collatorID:    msg.CandidateReceipt.Descriptor.Collator,
-		}
+		fetchedCollation := newFetchedCollationInfo(msg.CandidateReceipt)
 
 		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {
@@ -575,4 +557,16 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	}
 
 	return nil
+}
+
+func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) fetchedCollationInfo {
+	candidateHash, _ := candidateReceipt.Hash()
+	return fetchedCollationInfo{
+		paraID:      parachaintypes.ParaID(candidateReceipt.Descriptor.ParaID),
+		relayParent: candidateReceipt.Descriptor.RelayParent,
+		collatorID:  candidateReceipt.Descriptor.Collator,
+		candidateHash: parachaintypes.CandidateHash{
+			Value: candidateHash,
+		},
+	}
 }
