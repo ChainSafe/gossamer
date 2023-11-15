@@ -72,19 +72,17 @@ var DefaultPruningConfig = PruningConfig{
 type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
-	availabilityStore   AvailabilityStore
+	availabilityStore   *AvailabilityStore
 	pruningConfig       PruningConfig
 	clock               SubsystemClock
 	//TODO: metrics       Metrics
 }
 
 func NewAvailabilityStoreSubsystem(db database.Database) (*AvailabilityStoreSubsystem, error) {
-	av, err := NewAvailabilityStore(db)
-	if err != nil {
-		return nil, err
-	}
+	av := NewAvailabilityStore(db)
+
 	return &AvailabilityStoreSubsystem{
-		availabilityStore: *av,
+		availabilityStore: av,
 		pruningConfig:     DefaultPruningConfig,
 		clock:             SubsystemClock{},
 	}, nil
@@ -108,11 +106,6 @@ func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 		chunkTable:       database.NewTable(db, chunkPrefix),
 		metaTable:        database.NewTable(db, metaPrefix),
 		pruneByTimeTable: database.NewTable(db, pruneByTimePrefix),
-	}, nil
-		mtx:            &sync.Mutex{},
-		availableTable: database.NewTable(db, avaliableDataPrefix),
-		chunkTable:     database.NewTable(db, chunkPrefix),
-		metaTable:      database.NewTable(db, metaPrefix),
 	}
 }
 
@@ -156,11 +149,6 @@ func (as *AvailabilityStore) tryTransaction(transactionFn func(availableBatch, c
 
 	err := transactionFn(batchA, batchB, batchC, batchD)
 	if err != nil {
-		return fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = as.metaTable.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		batchA.Reset()
 		batchB.Reset()
 		batchC.Reset()
@@ -187,7 +175,19 @@ func (as *AvailabilityStore) tryTransaction(transactionFn func(availableBatch, c
 		}
 	}
 	return nil
-	return err
+}
+
+// storeMetaData stores metadata in the availability stor
+func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
+	metaBytes, err := json.Marshal(meta)
+	if err != nil {
+		return fmt.Errorf("marshalling meta for candidate: %w", err)
+	}
+	err = as.metaTable.Put(candidate[:], metaBytes)
+	if err != nil {
+		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+	}
+	return nil
 }
 
 // loadChunk loads a chunk from the availability store
@@ -222,53 +222,32 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 
 	txFunc := func(availableBatch, chunkBatch, metaBatch, pruneTimeBatch database.Batch) error {
 		if meta.ChunksStored[chunk.Index] {
+			logger.Debugf("Chunk %d already stored", chunk.Index)
 			return nil // already stored
 		} else {
 			dataBytes, err := json.Marshal(chunk)
 			if err != nil {
-				return err
+				return fmt.Errorf("marshalling chunk: %w", err)
 			}
 			err = chunkBatch.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
 			if err != nil {
-				return err
+				return fmt.Errorf("storing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 			}
-	if meta.ChunksStored[chunk.Index] {
-		logger.Debugf("Chunk %d already stored", chunk.Index)
-		return nil // already stored
-	} else {
-		dataBytes, err := json.Marshal(chunk)
-		if err != nil {
-			return fmt.Errorf("marshalling chunk: %w", err)
-		}
-		err = as.chunkTable.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
-		if err != nil {
-			return fmt.Errorf("storing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
-		}
 
 			meta.ChunksStored[chunk.Index] = true
-			metaBytes, err := json.Marshal(meta)
+			err = as.storeMetaData(candidate, *meta)
 			if err != nil {
-				return err
-			}
-			err = metaBatch.Put(candidate[:], metaBytes)
-			if err != nil {
-				return err
+				return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 			}
 		}
-
 		return nil
 	}
-		meta.ChunksStored[chunk.Index] = true
-		err = as.storeMetaData(candidate, *meta)
-		if err != nil {
-			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
-		}
+	err = as.tryTransaction(txFunc)
+	if err != nil {
+		return fmt.Errorf("transaction: %w", err)
 	}
 	logger.Debugf("stored chuck %d for %v", chunk.Index, candidate)
 	return nil
-}
-
-	return as.tryTransaction(txFunc)
 }
 
 func writePruningKey(pruneTimeBatch database.Batch, pruneAt BETimestamp, candidate common.Hash) error {
@@ -286,11 +265,6 @@ func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	if err != nil {
 		return fmt.Errorf("marshalling available data: %w", err)
 	}
-	err = as.availableTable.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
-	}
-	return nil
 	txFunc := func(availableBatch, chunkBatch, metaBatch, pruneTimeBatch database.Batch) error {
 		pruneAt := subsystem.clock.Now() + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
 		err := writePruningKey(pruneTimeBatch, pruneAt, candidate)
@@ -470,8 +444,6 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
-	err := av.availabilityStore.storeAvailableData(msg.CandidateHash, msg.AvailableData)
-func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) {
 	err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.AvailableData)
 	if err != nil {
 		msg.Sender <- err

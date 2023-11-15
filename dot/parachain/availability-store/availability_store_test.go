@@ -33,13 +33,15 @@ var (
 func setupTestDB(t *testing.T) database.Database {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-
+	subsystem := &AvailabilityStoreSubsystem{
+		availabilityStore: as,
+	}
 	err := as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
 	err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
 
-	err = as.storeAvailableData(common.Hash{0x01}, testavailableData1)
+	err = as.storeAvailableData(subsystem, common.Hash{0x01}, testavailableData1)
 	require.NoError(t, err)
 
 	return inmemoryDB
@@ -47,8 +49,10 @@ func setupTestDB(t *testing.T) database.Database {
 func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-
-	err := as.storeAvailableData(common.Hash{0x01}, testavailableData1)
+	subsystem := &AvailabilityStoreSubsystem{
+		availabilityStore: as,
+	}
+	err := as.storeAvailableData(subsystem, common.Hash{0x01}, testavailableData1)
 	require.NoError(t, err)
 
 	got, err := as.loadAvailableData(common.Hash{0x01})
@@ -81,7 +85,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		availabilityStore: *availabilityStore,
+		availabilityStore: availabilityStore,
 	}
 
 	tests := map[string]struct {
@@ -136,7 +140,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		availabilityStore: *availabilityStore,
+		availabilityStore: availabilityStore,
 	}
 
 	tests := map[string]struct {
@@ -186,7 +190,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		availabilityStore: *availabilityStore,
+		availabilityStore: availabilityStore,
 	}
 
 	tests := map[string]struct {
@@ -241,7 +245,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		availabilityStore: *availabilityStore,
+		availabilityStore: availabilityStore,
 	}
 
 	tests := map[string]struct {
@@ -296,7 +300,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		availabilityStore: *availabilityStore,
+		availabilityStore: availabilityStore,
 	}
 
 	tests := map[string]struct {
@@ -359,7 +363,7 @@ func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+		availabilityStore: as,
 	}
 	msgSenderChan := make(chan any)
 	msg := StoreChunk{
@@ -377,7 +381,7 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	inmemoryDB := setupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
-		availabilityStore: *as,
+		availabilityStore: as,
 	}
 	msgSenderChan := make(chan any)
 	msg := StoreAvailableData{
