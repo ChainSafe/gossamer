@@ -703,12 +703,10 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 	data := bytes
 
 	dataLength := uint32(len(data))
-	inputPtr, err := inst.Context.Allocator.Allocate(dataLength)
+	inputPtr, err := inst.Context.Allocator.Allocate(inst.Module.Memory(), dataLength)
 	if err != nil {
 		t.Errorf("allocating input memory: %v", err)
 	}
-
-	defer inst.Context.Allocator.Clear()
 
 	// Store the data into memory
 	mem := inst.Module.Memory()
