@@ -110,7 +110,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 				CandidateReceipt: testCandidateReceipt,
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
-				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
+
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -140,7 +142,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 				return net
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
-				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
+
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -183,7 +187,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 				}(),
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
-				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -226,7 +231,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 				return net
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
-				fetchedCollation := newFetchedCollationInfo(testCandidateReceipt)
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,

@@ -472,7 +472,11 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 
 		candidateReceipt := parachaintypes.CommittedCandidateReceipt(receipt)
 
-		fetchedCollation := newFetchedCollationInfo(candidateReceipt.ToPlain())
+		fetchedCollation, err := newFetchedCollationInfo(candidateReceipt.ToPlain())
+		if err != nil {
+			return fmt.Errorf("getting fetched collation info: %w", err)
+		}
+
 		// remove the candidate from the list of fetched candidates
 		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {
@@ -530,7 +534,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	case InvalidOverseerMsg:
 		invalidOverseerMsg := msg
 
-		fetchedCollation := newFetchedCollationInfo(msg.CandidateReceipt)
+		fetchedCollation, err := newFetchedCollationInfo(msg.CandidateReceipt)
+		if err != nil {
+			return fmt.Errorf("getting fetched collation info: %w", err)
+		}
 
 		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {
@@ -559,14 +566,17 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	return nil
 }
 
-func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) fetchedCollationInfo {
-	candidateHash, _ := candidateReceipt.Hash()
-	return fetchedCollationInfo{
+func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) (*fetchedCollationInfo, error) {
+	candidateHash, err := candidateReceipt.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("getting candidate hash: %w", err)
+	}
+	return &fetchedCollationInfo{
 		paraID:      parachaintypes.ParaID(candidateReceipt.Descriptor.ParaID),
 		relayParent: candidateReceipt.Descriptor.RelayParent,
 		collatorID:  candidateReceipt.Descriptor.Collator,
 		candidateHash: parachaintypes.CandidateHash{
 			Value: candidateHash,
 		},
-	}
+	}, nil
 }
