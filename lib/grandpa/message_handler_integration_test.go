@@ -773,10 +773,10 @@ func TestMessageHandler_VerifyBlockJustification_WithEquivocatoryVotes(t *testin
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
 
-	gotRound, gotSetID, err := gs.VerifyBlockJustification(testHash, data)
+	actualRound, actualSetID, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
-	require.Equal(t, round, gotRound)
-	require.Equal(t, setID, gotSetID)
+	require.Equal(t, round, actualRound)
+	require.Equal(t, setID, actualSetID)
 }
 
 func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
@@ -843,10 +843,10 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just := newJustification(round, testHash, number, precommits)
 	data, err := scale.Marshal(*just)
 	require.NoError(t, err)
-	gotRound, gotSetID, err := gs.VerifyBlockJustification(testHash, data)
+	actualRound, actualSetID, err := gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
-	require.Equal(t, round, gotRound)
-	require.Equal(t, setID, gotSetID)
+	require.Equal(t, round, actualRound)
+	require.Equal(t, setID, actualSetID)
 
 	// use wrong hash, shouldn't verify
 	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)

@@ -72,7 +72,6 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg Config) (*Instance, error) {
-	fmt.Println(fp)
 	// Reads the WebAssembly module as bytes.
 	// Retrieve WASM binary
 	bytes, err := os.ReadFile(filepath.Clean(fp))

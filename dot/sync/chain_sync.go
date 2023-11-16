@@ -603,7 +603,6 @@ func (cs *chainSync) handleWorkersResults(
 	// the total numbers of blocks is missing in the syncing chain
 	waitingBlocks := expectedSyncedBlocks
 
-	// TODO: useless label
 taskResultLoop:
 	for waitingBlocks > 0 {
 		// in a case where we don't handle workers results we should check the pool
@@ -782,7 +781,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 	err := cs.processBlockData(*bd)
 	if err != nil {
 		// depending on the error, we might want to save this block for later
-		logger.Errorf("processing: %s", err)
+		logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
 		return err
 	}
 

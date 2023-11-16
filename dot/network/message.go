@@ -371,8 +371,6 @@ func NewBlockRequest(startingBlock variadic.Uint32OrHash, amount uint32,
 	}
 }
 
-// 1 -- 7000
-// [1-129, 129-255, ]
 func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byte) []*BlockRequestMessage {
 	if startNumber > targetNumber {
 		return []*BlockRequestMessage{}
