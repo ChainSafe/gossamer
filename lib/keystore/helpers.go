@@ -148,6 +148,22 @@ func LoadKeystore(key string, keyStore TyperInserter, keyRing KeyRing) (err erro
 		return keyStore.Insert(keyRing.Heather())
 	case "ian":
 		return keyStore.Insert(keyRing.Ian())
+	case "default":
+		if keyStore.Type() == "ed25519" {
+			kp, err := ed25519.GenerateKeypair()
+			if err != nil {
+				return err
+			}
+
+			return keyStore.Insert(kp)
+		} else {
+			kp, err := sr25519.GenerateKeypair()
+			if err != nil {
+				return err
+			}
+
+			return keyStore.Insert(kp)
+		}
 	default:
 		return fmt.Errorf("invalid test key provided")
 	}

@@ -153,6 +153,7 @@ func loadBuiltInTestKeys(accountKey string, ks keystore.GlobalKeystore) (err err
 		return fmt.Errorf("error loading babe keystore: %w", err)
 	}
 
+	logger.Info(fmt.Sprintf("%s", ks.Gran.Type()))
 	err = keystore.LoadKeystore(accountKey, ks.Gran, ed25519keyRing)
 	if err != nil {
 		return fmt.Errorf("error loading grandpa keystore: %w", err)
@@ -322,14 +323,14 @@ func parseBasePath() error {
 func parseAccount() {
 	// if key is not set, check if alice, bob, or charlie are set
 	// return error if none are set
-	if key == "" {
-		if alice {
-			key = "alice"
-		} else if bob {
-			key = "bob"
-		} else if charlie {
-			key = "charlie"
-		}
+	if alice {
+		key = "alice"
+	} else if bob {
+		key = "bob"
+	} else if charlie {
+		key = "charlie"
+	} else if key == "" {
+		key = "default"
 	}
 
 	// if key is available, set it in the config
