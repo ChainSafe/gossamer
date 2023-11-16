@@ -253,6 +253,7 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 func writePruningKey(pruneTimeBatch database.Batch, pruneAt BETimestamp, candidate common.Hash) error {
 	pruneKey := append([]byte(pruneByTimePrefix), pruneAt.ToBytes()...)
 	pruneKey = append(pruneKey, candidate[:]...)
+	fmt.Printf("writting prune key %v\n", pruneKey)
 	return pruneTimeBatch.Put(pruneKey, []byte(tombstoneValue))
 }
 
@@ -280,6 +281,30 @@ func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	return as.tryTransaction(txFunc)
 }
 
+func (as *AvailabilityStore) pruningRange(pruneTime BETimestamp) (start, end []byte) {
+	start = []byte(pruneByTimePrefix)
+	end = append([]byte(pruneByTimePrefix), pruneTime.ToBytes()...)
+	return start, end
+}
+
+func (as *AvailabilityStore) pruneAll(pruneTime BETimestamp) error {
+	logger.Infof("prune all %v\n", pruneTime.ToBytes())
+	logger.Infof("prune all %v\n", pruneTime)
+	rangeStart, rangeEnd := as.pruningRange(pruneTime)
+	logger.Infof("prune range %s %v\n", rangeStart, rangeEnd)
+	itr := as.pruneByTimeTable.NewIterator()
+	for itr.First(); itr.Valid(); itr.Next() {
+		fmt.Printf("prune key %v\n", itr.Key())
+		fmt.Printf("\tvalue %v\n", itr.Value())
+	}
+	if itr.SeekGE(rangeEnd); itr.Valid() {
+		fmt.Printf("seeked to %v\n", itr.Key())
+	} else {
+		fmt.Printf("seeked to end %v\n", itr.Key())
+	}
+	return nil
+}
+
 func uint32ToBytes(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.LittleEndian.PutUint32(result, value)
@@ -296,6 +321,18 @@ func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsyst
 // Name returns the name of the availability store subsystem
 func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.AvailabilityStore
+}
+
+// startPruneAll storts the prune all process on a separate thread, so that in the case when
+// the pruning process takes a long time, the subsystem can still process messages
+func (av *AvailabilityStoreSubsystem) startPruneAll() {
+	go func() {
+		err := av.availabilityStore.pruneAll(av.clock.Now())
+		if err != nil {
+			logger.Errorf("prune all: %w", err)
+		}
+	}()
+
 }
 
 func (av *AvailabilityStoreSubsystem) processMessages() {

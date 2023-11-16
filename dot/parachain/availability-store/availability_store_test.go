@@ -2,7 +2,9 @@ package availabilitystore
 
 import (
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -43,7 +45,10 @@ func setupTestDB(t *testing.T) database.Database {
 
 	err = as.storeAvailableData(subsystem, common.Hash{0x01}, testavailableData1)
 	require.NoError(t, err)
-
+	// tODO(ed): delay to make timestamp different, find better way to test this
+	time.Sleep(time.Second * 5)
+	err = as.storeAvailableData(subsystem, common.Hash{0x02}, testavailableData1)
+	require.NoError(t, err)
 	return inmemoryDB
 }
 func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
@@ -395,4 +400,33 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	go asSub.handleStoreAvailableData(msg)
 	msgSenderChanResult := <-msg.Sender
 	require.Equal(t, nil, msgSenderChanResult)
+}
+
+func TestAvailabilityStore_pruneAll(t *testing.T) {
+	t.Parallel()
+	inmemoryDB := setupTestDB(t)
+	availabilityStore := NewAvailabilityStore(inmemoryDB)
+
+	tests := map[string]struct {
+		pruneTime BETimestamp
+		err       error
+	}{
+		"happy path": {
+			pruneTime: BETimestamp(time.Now().Unix() - 1),
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			time.Sleep(time.Second * 5)
+			err := availabilityStore.pruneAll(tt.pruneTime)
+			fmt.Printf("err: %v", err)
+			if tt.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tt.err.Error())
+			}
+		})
+	}
 }
