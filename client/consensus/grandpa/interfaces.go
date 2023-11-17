@@ -7,6 +7,10 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+type DummyMockInterface[H constraints.Ordered] interface {
+	Get(input H) H
+}
+
 // Telemetry TODO issue #3474
 type Telemetry interface{}
 
