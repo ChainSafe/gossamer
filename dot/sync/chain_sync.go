@@ -179,25 +179,25 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	}
 }
 
-func (cs *chainSync) waitEnoughPeersAndTarget() <-chan struct{} {
-	resultCh := make(chan struct{})
+func (cs *chainSync) waitEnoughPeersAndTarget() {
+	waitPeersTimer := time.NewTimer(cs.waitPeersDuration)
 
-	go func() {
-		defer close(resultCh)
-		for {
-			cs.workerPool.useConnectedPeers()
-			_, err := cs.getTarget()
+	for {
+		cs.workerPool.useConnectedPeers()
+		_, err := cs.getTarget()
 
-			totalAvailable := cs.workerPool.totalWorkers()
-			if totalAvailable >= uint(cs.minPeers) && err == nil {
-				return
-			}
-
-			time.Sleep(cs.waitPeersDuration)
+		totalAvailable := cs.workerPool.totalWorkers()
+		if totalAvailable >= uint(cs.minPeers) && err == nil {
+			return
 		}
-	}()
 
-	return resultCh
+		select {
+		case <-waitPeersTimer.C:
+			waitPeersTimer.Reset(cs.waitPeersDuration)
+		case <-cs.stopCh:
+			return
+		}
+	}
 }
 
 func (cs *chainSync) start() {
@@ -208,12 +208,7 @@ func (cs *chainSync) start() {
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
 	// wait until we have a minimal workers in the sync worker pool
-	waitEnoughPeersC := cs.waitEnoughPeersAndTarget()
-
-	select {
-	case <-waitEnoughPeersC:
-	case <-cs.stopCh:
-	}
+	cs.waitEnoughPeersAndTarget()
 }
 
 func (cs *chainSync) stop() error {
