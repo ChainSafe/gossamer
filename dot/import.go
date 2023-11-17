@@ -20,7 +20,7 @@ import (
 )
 
 // ImportState imports the state in the given files to the database with the given path.
-func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.Version, firstSlot uint64) error {
+func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
 	tr, err := newTrieFromPairs(stateFP)
 	if err != nil {
 		return err

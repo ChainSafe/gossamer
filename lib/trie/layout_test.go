@@ -14,7 +14,7 @@ func Test_Version_String(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		version       Version
+		version       TrieLayout
 		versionString string
 		panicMessage  string
 	}{
@@ -23,7 +23,7 @@ func Test_Version_String(t *testing.T) {
 			versionString: "v0",
 		},
 		"invalid": {
-			version:      Version(99),
+			version:      TrieLayout(99),
 			panicMessage: "unknown version 99",
 		},
 	}
@@ -51,7 +51,7 @@ func Test_ParseVersion(t *testing.T) {
 
 	testCases := map[string]struct {
 		v          any
-		version    Version
+		version    TrieLayout
 		errWrapped error
 		errMessage string
 	}{
@@ -96,7 +96,7 @@ func Test_ParseVersion(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			var version Version
+			var version TrieLayout
 
 			var err error
 			switch typed := testCase.v.(type) {
@@ -121,7 +121,7 @@ func Test_Version_MaxInlineValue(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		version      Version
+		version      TrieLayout
 		max          int
 		panicMessage string
 	}{
@@ -134,7 +134,7 @@ func Test_Version_MaxInlineValue(t *testing.T) {
 			max:     V1MaxInlineValueSize,
 		},
 		"invalid": {
-			version:      Version(99),
+			version:      TrieLayout(99),
 			max:          0,
 			panicMessage: "unknown version 99",
 		},
@@ -162,7 +162,7 @@ func Test_Version_Root(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		version  Version
+		version  TrieLayout
 		input    Entries
 		expected common.Hash
 	}{

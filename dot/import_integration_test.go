@@ -26,7 +26,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		name         string
 		filename     string
 		want         common.Hash
-		stateVersion trie.Version
+		stateVersion trie.TrieLayout
 		err          error
 	}{
 		{
@@ -136,7 +136,7 @@ func TestImportState(t *testing.T) {
 		basepath     string
 		stateFP      string
 		headerFP     string
-		stateVersion trie.Version
+		stateVersion trie.TrieLayout
 		firstSlot    uint64
 	}
 	tests := []struct {

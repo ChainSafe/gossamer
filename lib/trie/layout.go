@@ -19,20 +19,20 @@ const (
 	V1MaxInlineValueSize = 32
 )
 
-// Version is the state trie version which dictates how a
+// TrieLayout is the state trie version which dictates how a
 // Merkle root should be constructed. It is defined in
 // https://spec.polkadot.network/#defn-state-version
-type Version uint8
+type TrieLayout uint8
 
 const (
 	// V0 is the state trie version 0 where the values of the keys are
 	// inserted into the trie directly.
 	// TODO set to iota once CI passes
-	V0 Version = iota
+	V0 TrieLayout = iota
 	V1
 )
 
-var NoVersion = Version(math.MaxUint8)
+var NoVersion = TrieLayout(math.MaxUint8)
 
 // ErrParseVersion is returned when parsing a state trie version fails.
 var ErrParseVersion = errors.New("parsing version failed")
@@ -48,7 +48,7 @@ type Entry struct{ Key, Value []byte }
 type Entries []Entry
 
 // String returns a string representation of trie version
-func (v Version) String() string {
+func (v TrieLayout) String() string {
 	switch v {
 	case V0:
 		return "v0"
@@ -60,7 +60,7 @@ func (v Version) String() string {
 }
 
 // MaxInlineValue returns the maximum size of a value to be inlined in the trie node
-func (v Version) MaxInlineValue() int {
+func (v TrieLayout) MaxInlineValue() int {
 	switch v {
 	case V0:
 		return NoMaxInlineValueSize
@@ -72,7 +72,7 @@ func (v Version) MaxInlineValue() int {
 }
 
 // Root returns the root hash of the trie built using the given entries
-func (v Version) Root(entries Entries) (common.Hash, error) {
+func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
 	t := NewEmptyTrie()
 
 	for _, kv := range entries {
@@ -86,17 +86,17 @@ func (v Version) Root(entries Entries) (common.Hash, error) {
 }
 
 // Hash returns the root hash of the trie built using the given entries
-func (v Version) Hash(t *Trie) (common.Hash, error) {
+func (v TrieLayout) Hash(t *Trie) (common.Hash, error) {
 	return t.Hash(v.MaxInlineValue())
 }
 
 // MustHash returns the root hash of the trie built using the given entries or panics if it fails
-func (v Version) MustHash(t Trie) common.Hash {
+func (v TrieLayout) MustHash(t Trie) common.Hash {
 	return t.MustHash(v.MaxInlineValue())
 }
 
 // ParseVersion parses a state trie version string.
-func ParseVersion[T string | uint32](v T) (version Version, err error) {
+func ParseVersion[T string | uint32](v T) (version TrieLayout, err error) {
 	var s string
 	switch value := any(v).(type) {
 	case string:
