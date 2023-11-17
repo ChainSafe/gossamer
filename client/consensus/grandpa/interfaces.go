@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
 	"golang.org/x/exp/constraints"
 )
 
@@ -42,7 +41,7 @@ type AuxStore interface {
 	Get(key Key) (*[]byte, error)
 }
 
-// Client backend.
+// Backend Client backend.
 //
 // Manages the data layer.
 //
@@ -64,49 +63,57 @@ type AuxStore interface {
 // While a block is pinned, its state is also preserved.
 //
 // The backend should internally reference count the number of pin / unpin calls.
-type Backend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N], B BlockchainBackend[Hash, N, H]] interface {
+type Backend[
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	H Header[Hash, N],
+	B BlockchainBackend[Hash, N, H]] interface {
 	AuxStore
 	Blockchain() B
 }
 
 /*
-	Following is from primatives/blockchain
+	Following is from primitives/blockchain
 */
 
-// Blockchain database header backend. Does not perform any validation.
-// primatives/blockchains/src/backend
+// HeaderBackend Blockchain database header backend. Does not perform any validation.
+// primitives/blockchains/src/backend
 type HeaderBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
 	// Header Get block header. Returns None if block is not found.
 	Header(hash Hash) (*H, error)
-	// Get blockchain info.
+	// Info Get blockchain info.
 	Info() Info[N]
-	// This takes an enum blockID, but for now just using block Number N
+	// ExpectBlockHashFromID This takes an enum blockID, but for now just using block Number N
 	ExpectBlockHashFromID(id N) (Hash, error)
+	// ExpectHeader return Header
 	ExpectHeader(hash Hash) (H, error)
 }
 
+// Info HeaderBackend blockchain info
 type Info[N constraints.Unsigned] struct {
 	FinalizedNumber N
 }
 
-// Blockchain database backend. Does not perform any validation.
+// BlockchainBackend Blockchain database backend. Does not perform any validation.
 // pub trait Backend<Block: BlockT>:HeaderBackend<Block> + HeaderMetadata<Block, Error = Error
-// primatives/blockchains/src/backend
+// primitives/blockchains/src/backend
 type BlockchainBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
 	HeaderBackend[Hash, N, H]
 	Justifications(hash Hash) Justifications
 }
 
 /*
-	Following is from primatives/runtime
+	Following is from primitives/runtime
 */
 
+// Header interface for header
 type Header[Hash constraints.Ordered, N constraints.Unsigned] interface {
 	ParentHash() Hash
 	Hash() Hash
 	Number() N
 }
 
+// ConsensusEngineID ID for consensus engine
 type ConsensusEngineID [4]byte
 
 // Justification An abstraction over justification for a block's validity under a consensus algorithm.
@@ -125,6 +132,7 @@ type Justification struct {
 	EncodedJustification []byte
 }
 
+// Justifications slice of justifications
 type Justifications []Justification
 
 // IntoJustification Return a copy of the encoded justification for the given consensus
@@ -136,74 +144,4 @@ func (j Justifications) IntoJustification(engineID ConsensusEngineID) *[]byte {
 		}
 	}
 	return nil
-}
-
-/*
-	Following is from test-utils/client
-*/
-
-// TODO Need interface as well I believe, should define here or in interfaces file?
-// Investigate if we need interface here or just struct
-
-type ClientBuilder[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N], B BlockchainBackend[Hash, N, H], BE Backend[Hash, N, H, B]] interface {
-	Backend() BE // TODO I think this should be BE, verify
-}
-
-// TestClientBuilder A builder for creating a test client instance
-type TestClientBuilder[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N], B BlockchainBackend[Hash, N, H], BE Backend[Hash, N, H, B]] struct {
-	backend BE // TODO what type is backend
-}
-
-// Backend Give access to the underlying backend of these clients
-func (tcb TestClientBuilder[Hash, N, H, B, BE]) Backend() BE {
-	return tcb.backend
-}
-
-/*
-	Following is from test-utils/runtime/client
-*/
-
-// TODO embed interface
-
-// TestClientBuilderExt is an extension of client.TestClientBuilder
-type TestClientBuilderExt[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N], B BlockchainBackend[Hash, N, H], BE Backend[Hash, N, H, B]] interface {
-	Build() Client[Hash]
-}
-
-// DummyClientBuilderExt is a dummy struct that contains a clientBuilder and fulfills the TestClientBuilderExt interface
-type DummyClientBuilderExt[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N], B BlockchainBackend[Hash, N, H], BE Backend[Hash, N, H, B]] struct {
-	ClientBuilder ClientBuilder[Hash, N, H, B, BE]
-}
-
-// Build the test client.
-func (cle DummyClientBuilderExt[Hash, N, H, B, BE]) Build() Client[Hash] {
-	panic("unimplemented")
-}
-
-// NewTestClientBuilderExt constructs a new DummyClientBuilderExt
-func NewTestClientBuilderExt[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N], B BlockchainBackend[Hash, N, H], BE Backend[Hash, N, H, B]]() DummyClientBuilderExt[Hash, N, H, B, BE] {
-	return DummyClientBuilderExt[Hash, N, H, B, BE]{
-		ClientBuilder: TestClientBuilder[Hash, N, H, B, BE]{},
-	}
-}
-
-/*
-	Following is from test-utils
-*/
-
-// TODO need to figure out the funcs/where in substrate it is
-type Client[Hash constraints.Ordered] interface {
-	// Think this is in client/service/src/client/client.rs
-	// Returns a BlockBuilder
-	NewBlock() types.Block
-	// Need to build origin enum, also find where client is in substrate impl
-	Import(origin BlockOrigin, block types.Block)
-	// This seems to be at client/db/src/lib.rs
-	FinalizeBlock(hash Hash, justification *Justification)
-}
-
-type TestClient[Hash constraints.Ordered] struct{}
-
-func NewTestClient[Hash constraints.Ordered]() TestClient[Hash] {
-	return TestClient[Hash]{}
 }

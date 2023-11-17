@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"errors"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -109,7 +110,8 @@ func (provider FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B]) proveFin
 		return nil, nil
 	}
 
-	authoritySetChanges := *provider.sharedAuthoritySet
+	// TODO address lock copy
+	authoritySetChanges := *provider.sharedAuthoritySet //nolint
 	return proveFinality[BE, Hash, N, S, ID, H, B](
 		provider.backend,
 		authoritySetChanges.inner.AuthoritySetChanges,

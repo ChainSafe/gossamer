@@ -6,7 +6,8 @@ package grandpa
 import (
 	"errors"
 	"fmt"
-	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+
+	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -52,8 +53,8 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	genesisHash H,
 	genesisNumber N,
 	genesisAuths getGenesisAuthorities[ID]) (*persistentData[H, N, ID, Sig], error) {
-	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
-	makeGenesisRound := grandpa.NewRoundState[H, N]
+	genesis := finalityGrandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
+	makeGenesisRound := finalityGrandpa.NewRoundState[H, N]
 
 	authSet := &AuthoritySet[H, N, ID]{}
 	err := loadDecoded(store, authoritySetKey, authSet)
@@ -103,7 +104,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 		return nil, err
 	}
 
-	state := grandpa.NewRoundState(grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber})
+	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber})
 	base := state.PrevoteGHOST
 	if base == nil {
 		panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
@@ -115,8 +116,8 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	}
 
 	insert := []KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)}, //nolint
-		{setStateKey, scale.MustMarshal(genesisState)},    //nolint
+		{authoritySetKey, scale.MustMarshal(*genesisSet)},
+		{setStateKey, scale.MustMarshal(genesisState)},
 	}
 
 	err = store.Insert(insert, nil)
@@ -143,7 +144,6 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 	set AuthoritySet[H, N, ID],
 	newSet *NewAuthoritySetStruct[H, N, ID],
 	write writeAux) error {
-	// TODO make sure that Insert has affect of both insert and update depending on use case
 	encodedAuthSet, err := scale.Marshal(set)
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 		// we also overwrite the "last completed round" entry with a blank slate
 		// because from the perspective of the finality gadget, the chain has
 		// reset.
-		genesisState := grandpa.HashNumber[H, N]{
+		genesisState := finalityGrandpa.HashNumber[H, N]{
 			Hash:   newSet.CanonHash,
 			Number: newSet.CanonNumber,
 		}
@@ -168,8 +168,8 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 		}
 
 		insert := []KeyValue{
-			{authoritySetKey, encodedAuthSet}, //nolint
-			{setStateKey, encodedVoterSet},    //nolint
+			{authoritySetKey, encodedAuthSet},
+			{setStateKey, encodedVoterSet},
 		}
 		err = write(insert)
 		if err != nil {
@@ -178,7 +178,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 
 	} else {
 		insert := []KeyValue{
-			{authoritySetKey, encodedAuthSet}, //nolint
+			{authoritySetKey, encodedAuthSet},
 		}
 
 		err = write(insert)
@@ -208,7 +208,7 @@ func updateBestJustification[
 	}
 
 	insert := []KeyValue{
-		{bestJustification, encodedJustificaiton}, //nolint
+		{bestJustification, encodedJustificaiton},
 	}
 	err = write(insert)
 	if err != nil {
@@ -243,7 +243,7 @@ func WriteVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 		return err
 	}
 	insert := []KeyValue{
-		{setStateKey, encodedVoterSet}, //nolint
+		{setStateKey, encodedVoterSet},
 	}
 	err = write(insert)
 	if err != nil {
@@ -270,7 +270,7 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned, ID AuthorityID, S
 	}
 
 	insert := []KeyValue{
-		{key, encRoundData}, //nolint
+		{key, encRoundData},
 	}
 	err = write(insert)
 	if err != nil {
