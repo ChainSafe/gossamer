@@ -69,13 +69,12 @@ func (mdb *MemoryDB) Get(key []byte) ([]byte, error) {
 	if len(key) != common.HashLength {
 		return nil, fmt.Errorf("expected %d bytes length key, given %d (%x)", common.HashLength, len(key), key)
 	}
-	var hash common.Hash
-	copy(hash[:], key)
+	hashedKey := common.Hash(key)
 
 	mdb.mutex.RLock()
 	defer mdb.mutex.RUnlock()
 
-	if value, found := mdb.data[hash]; found {
+	if value, found := mdb.data[hashedKey]; found {
 		return value, nil
 	}
 
