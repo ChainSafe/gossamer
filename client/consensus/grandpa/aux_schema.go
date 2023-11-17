@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -53,8 +53,8 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	genesisHash H,
 	genesisNumber N,
 	genesisAuths getGenesisAuthorities[ID]) (*persistentData[H, N, ID, Sig], error) {
-	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
-	makeGenesisRound := grandpa.NewRoundState[H, N]
+	genesis := finalityGrandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
+	makeGenesisRound := finalityGrandpa.NewRoundState[H, N]
 
 	authSet := &AuthoritySet[H, N, ID]{}
 	err := loadDecoded(store, authoritySetKey, authSet)
@@ -102,7 +102,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 		return nil, err
 	}
 
-	state := grandpa.NewRoundState(grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber})
+	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber})
 	base := state.PrevoteGHOST
 	if base == nil {
 		panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
@@ -149,7 +149,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 		// we also overwrite the "last completed round" entry with a blank slate
 		// because from the perspective of the finality gadget, the chain has
 		// reset.
-		genesisState := grandpa.HashNumber[H, N]{
+		genesisState := finalityGrandpa.HashNumber[H, N]{
 			Hash:   newSet.CanonHash,
 			Number: newSet.CanonNumber,
 		}
