@@ -6,7 +6,6 @@ package grandpa
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/client/api"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -17,15 +16,15 @@ func genesisAuthorities[ID AuthorityID](auths []Authority[ID], err error) getGen
 	return func() ([]Authority[ID], error) { return auths, err }
 }
 
-func write(store api.AuxStore) writeAux {
-	return func(insertions []api.KeyValue) error {
+func write(store AuxStore) writeAux {
+	return func(insertions []KeyValue) error {
 		return store.Insert(insertions, nil)
 	}
 }
 
-type dummyStore []api.KeyValue
+type dummyStore []KeyValue
 
-func (client *dummyStore) Insert(insert []api.KeyValue, deleted []api.Key) error {
+func (client *dummyStore) Insert(insert []KeyValue, deleted []Key) error {
 	for _, val := range insert {
 		*client = append(*client, val)
 	}
@@ -48,7 +47,7 @@ func (client *dummyStore) Insert(insert []api.KeyValue, deleted []api.Key) error
 
 }
 
-func (client *dummyStore) Get(key api.Key) (*[]byte, error) {
+func (client *dummyStore) Get(key Key) (*[]byte, error) {
 	for _, value := range *client {
 		if slices.Equal(value.Key, key) {
 			return &value.Value, nil
@@ -64,7 +63,7 @@ func newDummyStore(t *testing.T) *dummyStore {
 
 func TestDummyStore(t *testing.T) {
 	store := newDummyStore(t)
-	insert := []api.KeyValue{
+	insert := []KeyValue{
 		{authoritySetKey, scale.MustMarshal([]byte{1})}, //nolint
 		{setStateKey, scale.MustMarshal([]byte{2})},     //nolint
 	}
@@ -72,7 +71,7 @@ func TestDummyStore(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, len(*store) == 2)
 
-	del := []api.Key{setStateKey}
+	del := []Key{setStateKey}
 	err = store.Insert(nil, del)
 	require.NoError(t, err)
 	require.True(t, len(*store) == 1)
@@ -152,7 +151,7 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	genesisState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](0, *genesisSet, *base)
 	require.NoError(t, err)
 
-	insert := []api.KeyValue{
+	insert := []KeyValue{
 		{authoritySetKey, scale.MustMarshal(*genesisSet)}, //nolint
 		{setStateKey, scale.MustMarshal(genesisState)},    //nolint
 	}
@@ -176,7 +175,7 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 
 	// Auth set written but not set state
 	store = newDummyStore(t)
-	insert = []api.KeyValue{
+	insert = []KeyValue{
 		{authoritySetKey, scale.MustMarshal(*genesisSet)}, //nolint
 	}
 
@@ -386,7 +385,7 @@ func TestWriteJustification(t *testing.T) {
 		ParentHashField: "a",
 	})
 
-	justification := Justification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+	justification := GrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
 		Round: 2,
 		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",

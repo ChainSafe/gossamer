@@ -27,7 +27,7 @@ var (
 //
 // This is meant to be stored in the db and passed around the network to other
 // nodes, and are used by syncing nodes to prove authority set handoffs.
-type Justification[
+type GrandpaJustification[
 	Hash constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
@@ -48,7 +48,7 @@ func NewJustificationFromCommit[
 	H Header[Hash, N]](
 	client HeaderBackend[Hash, N, H],
 	round uint64,
-	commit finalityGrandpa.Commit[Hash, N, S, ID]) (Justification[Hash, N, S, ID, H], error) {
+	commit finalityGrandpa.Commit[Hash, N, S, ID]) (GrandpaJustification[Hash, N, S, ID, H], error) {
 	votesAncestriesHashes := make(map[Hash]struct{})
 	voteAncestries := make([]H, 0)
 
@@ -71,7 +71,7 @@ func NewJustificationFromCommit[
 		}
 	}
 	if minPrecommit == nil {
-		return Justification[Hash, N, S, ID, H]{},
+		return GrandpaJustification[Hash, N, S, ID, H]{},
 			fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 	}
 
@@ -86,7 +86,7 @@ func NewJustificationFromCommit[
 
 			header, err := client.Header(currentHash)
 			if err != nil || header == nil {
-				return Justification[Hash, N, S, ID, H]{},
+				return GrandpaJustification[Hash, N, S, ID, H]{},
 					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 
@@ -96,7 +96,7 @@ func NewJustificationFromCommit[
 			// as base and only traverse backwards from the other blocks
 			// in the commit. but better be safe to avoid an unbound loop.
 			if currentHeader.Number() <= baseNumber {
-				return Justification[Hash, N, S, ID, H]{},
+				return GrandpaJustification[Hash, N, S, ID, H]{},
 					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 			parentHash := currentHeader.ParentHash()
@@ -111,7 +111,7 @@ func NewJustificationFromCommit[
 		}
 	}
 
-	return Justification[Hash, N, S, ID, H]{
+	return GrandpaJustification[Hash, N, S, ID, H]{
 		Round:           round,
 		Commit:          commit,
 		VotesAncestries: voteAncestries,
@@ -128,13 +128,13 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	encoded []byte,
 	finalizedTarget hashNumber[Hash, N],
 	setID uint64,
-	voters finalityGrandpa.VoterSet[ID]) (Justification[Hash, N, S, ID, H], error) {
-	justification := Justification[Hash, N, S, ID, H]{
+	voters finalityGrandpa.VoterSet[ID]) (GrandpaJustification[Hash, N, S, ID, H], error) {
+	justification := GrandpaJustification[Hash, N, S, ID, H]{
 		VotesAncestries: make([]H, 0),
 	}
 	err := scale.Unmarshal(encoded, &justification)
 	if err != nil {
-		return Justification[Hash, N, S, ID, H]{}, fmt.Errorf("error decoding justification for header: %s", err)
+		return GrandpaJustification[Hash, N, S, ID, H]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}
 
 	decodedTarget := hashNumber[Hash, N]{
@@ -143,14 +143,14 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	}
 
 	if decodedTarget != finalizedTarget {
-		return Justification[Hash, N, S, ID, H]{}, fmt.Errorf("invalid commit target in grandpa justification")
+		return GrandpaJustification[Hash, N, S, ID, H]{}, fmt.Errorf("invalid commit target in grandpa justification")
 	}
 
 	return justification, justification.verifyWithVoterSet(setID, voters)
 }
 
 // Verify Validate the commit and the votes' ancestry proofs.
-func (j *Justification[Hash, N, S, ID, H]) Verify(setID uint64, authorities AuthorityList[ID]) error {
+func (j *GrandpaJustification[Hash, N, S, ID, H]) Verify(setID uint64, authorities AuthorityList[ID]) error {
 	var weights []finalityGrandpa.IDWeight[ID]
 	for _, authority := range authorities {
 		weight := finalityGrandpa.IDWeight[ID]{
@@ -169,7 +169,7 @@ func (j *Justification[Hash, N, S, ID, H]) Verify(setID uint64, authorities Auth
 }
 
 // Validate the commit and the votes' ancestry proofs.
-func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
+func (j *GrandpaJustification[Hash, N, S, ID, H]) verifyWithVoterSet(
 	setID uint64,
 	voters finalityGrandpa.VoterSet[ID]) error {
 	ancestryChain := newAncestryChain[Hash, N](j.VotesAncestries)
@@ -253,7 +253,7 @@ func (j *Justification[Hash, N, S, ID, H]) verifyWithVoterSet(
 }
 
 // Target The target block NumberField and HashField that this justifications proves finality for
-func (j *Justification[Hash, N, S, ID, H]) Target() hashNumber[Hash, N] {
+func (j *GrandpaJustification[Hash, N, S, ID, H]) Target() hashNumber[Hash, N] {
 	return hashNumber[Hash, N]{
 		number: j.Commit.TargetNumber,
 		hash:   j.Commit.TargetHash,
