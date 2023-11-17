@@ -5,11 +5,12 @@ package grandpa
 
 import (
 	"fmt"
+	"testing"
+
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/constraints"
-	"testing"
 )
 
 // Check GRANDPA proof-of-finality for the given block.
