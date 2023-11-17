@@ -117,7 +117,7 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-func (s *Service) GetCurrentStateTrieVersion() (trie.Version, error) {
+func (s *Service) getCurrentStateTrieVersion() (trie.TrieLayout, error) {
 	bestBlockHash := s.blockState.BestBlockHash()
 	rt, err := s.blockState.GetRuntime(bestBlockHash)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	stateTrieVersion, err := s.GetCurrentStateTrieVersion()
+	stateTrieVersion, err := s.getCurrentStateTrieVersion()
 	if err != nil {
 		return common.Hash{}, err
 	}
