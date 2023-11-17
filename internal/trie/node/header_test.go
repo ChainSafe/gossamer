@@ -293,7 +293,7 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 		PartialKey: make([]byte, keyLength),
 	}
 
-	err := encodeHeader(node, math.MaxInt, buffer)
+	err := encodeHeader(node, NoMaxInlineValueSize, buffer)
 
 	require.NoError(t, err)
 	assert.Equal(t, expectedBytes, buffer.Bytes())
