@@ -6,8 +6,6 @@ package grandpa
 import (
 	"errors"
 	"fmt"
-
-	"github.com/ChainSafe/gossamer/client/api"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -22,7 +20,7 @@ var (
 	errValueNotFound = errors.New("value not found")
 )
 
-type writeAux func(insertions []api.KeyValue) error
+type writeAux func(insertions []KeyValue) error
 
 type getGenesisAuthorities[ID AuthorityID] func() ([]Authority[ID], error)
 
@@ -31,7 +29,7 @@ type persistentData[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	setState     SharedVoterSetState[H, N, ID, Sig]
 }
 
-func loadDecoded(store api.AuxStore, key []byte, destination any) error {
+func loadDecoded(store AuxStore, key []byte, destination any) error {
 	encodedValue, err := store.Get(key)
 	if err != nil {
 		return err
@@ -50,7 +48,7 @@ func loadDecoded(store api.AuxStore, key []byte, destination any) error {
 }
 
 func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	store api.AuxStore,
+	store AuxStore,
 	genesisHash H,
 	genesisNumber N,
 	genesisAuths getGenesisAuthorities[ID]) (*persistentData[H, N, ID, Sig], error) {
@@ -116,7 +114,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 		return nil, err
 	}
 
-	insert := []api.KeyValue{
+	insert := []KeyValue{
 		{authoritySetKey, scale.MustMarshal(*genesisSet)}, //nolint
 		{setStateKey, scale.MustMarshal(genesisState)},    //nolint
 	}
@@ -169,7 +167,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 			return err
 		}
 
-		insert := []api.KeyValue{
+		insert := []KeyValue{
 			{authoritySetKey, encodedAuthSet}, //nolint
 			{setStateKey, encodedVoterSet},    //nolint
 		}
@@ -179,7 +177,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 		}
 
 	} else {
-		insert := []api.KeyValue{
+		insert := []KeyValue{
 			{authoritySetKey, encodedAuthSet}, //nolint
 		}
 
@@ -202,14 +200,14 @@ func updateBestJustification[
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N]](
-	justification Justification[Hash, N, S, ID, H],
+	justification GrandpaJustification[Hash, N, S, ID, H],
 	write writeAux) error {
 	encodedJustificaiton, err := scale.Marshal(justification)
 	if err != nil {
 		return fmt.Errorf("marshalling: %w", err)
 	}
 
-	insert := []api.KeyValue{
+	insert := []KeyValue{
 		{bestJustification, encodedJustificaiton}, //nolint
 	}
 	err = write(insert)
@@ -226,8 +224,8 @@ func BestJustification[
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N]](
-	store api.AuxStore) (*Justification[Hash, N, S, ID, H], error) {
-	justification := Justification[Hash, N, S, ID, H]{}
+	store AuxStore) (*GrandpaJustification[Hash, N, S, ID, H], error) {
+	justification := GrandpaJustification[Hash, N, S, ID, H]{}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {
 		return nil, err
@@ -244,7 +242,7 @@ func WriteVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 	if err != nil {
 		return err
 	}
-	insert := []api.KeyValue{
+	insert := []KeyValue{
 		{setStateKey, encodedVoterSet}, //nolint
 	}
 	err = write(insert)
@@ -271,7 +269,7 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned, ID AuthorityID, S
 		return err
 	}
 
-	insert := []api.KeyValue{
+	insert := []KeyValue{
 		{key, encRoundData}, //nolint
 	}
 	err = write(insert)
