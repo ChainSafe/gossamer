@@ -23,8 +23,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 	peerID := peer.ID("testPeerID")
 	testRelayParent := getDummyHash(5)
 
-	// testParaID := parachaintypes.ParaID(5)
-
 	commitments := parachaintypes.CandidateCommitments{
 		UpwardMessages:    []parachaintypes.UpwardMessage{{1, 2, 3}},
 		NewValidationCode: &parachaintypes.ValidationCode{1, 2, 3},
