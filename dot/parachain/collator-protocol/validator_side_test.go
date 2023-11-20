@@ -51,7 +51,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 		description string
 		msg         any
 		peerData    map[peer.ID]PeerData
-		// perRelayParent map[common.Hash]PerRelayParent
 		net                   Network
 		fetchedCandidates     map[string]CollationEvent
 		deletesFetchCandidate bool
