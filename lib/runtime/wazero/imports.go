@@ -791,8 +791,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
-	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -838,8 +837,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 
 	data := read(m, dataSpan)
 
-	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -921,8 +919,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 		panic("nil runtime context")
 	}
 
-	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	_, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	_, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -2272,8 +2269,7 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	}
 	storage := rtCtx.Storage
 
-	stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
