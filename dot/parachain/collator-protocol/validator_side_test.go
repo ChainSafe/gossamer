@@ -48,13 +48,13 @@ func TestProcessOverseerMessage(t *testing.T) {
 	}
 
 	testCases := []struct {
-		description string
-		msg         any
-		peerData    map[peer.ID]PeerData
+		description           string
+		msg                   any
+		peerData              map[peer.ID]PeerData
 		net                   Network
 		fetchedCandidates     map[string]CollationEvent
 		deletesFetchCandidate bool
-		errString string
+		errString             string
 	}{
 		{
 			description: "CollateOn message fails with message not expected",
