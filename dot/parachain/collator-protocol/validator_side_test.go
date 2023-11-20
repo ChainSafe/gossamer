@@ -55,7 +55,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 		net                   Network
 		fetchedCandidates     map[string]CollationEvent
 		deletesFetchCandidate bool
-		// activeLeaves   map[common.Hash]ProspectiveParachainsMode
 		errString string
 	}{
 		{
