@@ -2,7 +2,6 @@ package availabilitystore
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -421,7 +420,6 @@ func TestAvailabilityStore_pruneAll(t *testing.T) {
 			t.Parallel()
 			time.Sleep(time.Second * 5)
 			err := availabilityStore.pruneAll(tt.pruneTime)
-			fmt.Printf("err: %v", err)
 			if tt.err == nil {
 				require.NoError(t, err)
 			} else {

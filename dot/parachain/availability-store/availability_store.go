@@ -4,6 +4,7 @@
 package availabilitystore
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/json"
@@ -251,9 +252,7 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 }
 
 func writePruningKey(pruneTimeBatch database.Batch, pruneAt BETimestamp, candidate common.Hash) error {
-	pruneKey := append([]byte(pruneByTimePrefix), pruneAt.ToBytes()...)
-	pruneKey = append(pruneKey, candidate[:]...)
-	fmt.Printf("writting prune key %v\n", pruneKey)
+	pruneKey := append(pruneAt.ToBytes(), candidate[:]...)
 	return pruneTimeBatch.Put(pruneKey, []byte(tombstoneValue))
 }
 
@@ -288,19 +287,16 @@ func (as *AvailabilityStore) pruningRange(pruneTime BETimestamp) (start, end []b
 }
 
 func (as *AvailabilityStore) pruneAll(pruneTime BETimestamp) error {
-	logger.Infof("prune all %v\n", pruneTime.ToBytes())
-	logger.Infof("prune all %v\n", pruneTime)
 	rangeStart, rangeEnd := as.pruningRange(pruneTime)
-	logger.Infof("prune range %s %v\n", rangeStart, rangeEnd)
+	logger.Debugf("prune range %v %v\n", rangeStart, rangeEnd)
 	itr := as.pruneByTimeTable.NewIterator()
 	for itr.First(); itr.Valid(); itr.Next() {
-		fmt.Printf("prune key %v\n", itr.Key())
-		fmt.Printf("\tvalue %v\n", itr.Value())
-	}
-	if itr.SeekGE(rangeEnd); itr.Valid() {
-		fmt.Printf("seeked to %v\n", itr.Key())
-	} else {
-		fmt.Printf("seeked to end %v\n", itr.Key())
+		if bytes.Compare(itr.Key(), rangeEnd) < 1 {
+			err := as.pruneByTimeTable.Del(itr.Key())
+			if err != nil {
+				return fmt.Errorf("delete key %v: %w", itr.Key(), err)
+			}
+		}
 	}
 	return nil
 }
