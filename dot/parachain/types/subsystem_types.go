@@ -86,6 +86,40 @@ type ProspectiveParachainsMessage struct {
 	Value any
 }
 
+// Get the hypothetical frontier membership of candidates with the given properties
+// under the specified active leaves' fragment trees.
+//
+// For any candidate which is already known, this returns the depths the candidate
+// occupies.
+type PPMGetHypotheticalFrontier struct {
+	HypotheticalFrontierRequest HypotheticalFrontierRequest
+	Ch                          chan HypotheticalFrontierResponse
+}
+
+type HypotheticalFrontierResponse []struct {
+	HypotheticalCandidate  HypotheticalCandidate
+	FragmentTreeMembership []FragmentTreeMembership
+}
+
+// Request specifying which candidates are either already included
+// or might be included in the hypothetical frontier of fragment trees
+// under a given active leaf
+type HypotheticalFrontierRequest struct {
+	// Candidates, in arbitrary order, which should be checked for possible membership in fragment trees
+	Candidates []HypotheticalCandidate
+	// Either a specific fragment tree to check, otherwise all.
+	FragmentTreeRelayParent *common.Hash
+	// Only return membership if all candidates in the path from the root are backed.
+	BackedInPathOnly bool
+}
+
+// Indicates the relay-parents whose fragment tree a candidate
+// is present in and the depths of that tree the candidate is present in.
+type FragmentTreeMembership struct {
+	RelayParent common.Hash
+	Depths      []uint
+}
+
 // PPMCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
 // a previously introduced candidate has been successfully backed.
@@ -212,3 +246,45 @@ type AvailableData struct {
 	// The persisted validation data needed for approval checks
 	ValidationData PersistedValidationData `scale:"2"`
 }
+
+var _ HypotheticalCandidate = (*HCIncomplete)(nil)
+var _ HypotheticalCandidate = (*HCComplete)(nil)
+
+// HypotheticalCandidate represents a candidate to be evaluated for membership
+// in the prospective parachains subsystem.
+//
+// Hypothetical candidates can be categorized into two types: complete and incomplete.
+//
+//   - Complete candidates have already had their potentially heavy candidate receipt
+//     fetched, making them suitable for stricter evaluation.
+//
+//   - Incomplete candidates are simply claims about properties that a fetched candidate
+//     would have and are evaluated less strictly.
+type HypotheticalCandidate interface {
+	isHypotheticalCandidate()
+}
+
+// HCIncomplete represents an incomplete hypothetical candidate.
+// this
+type HCIncomplete struct {
+	// CandidateHash is the claimed hash of the candidate.
+	CandidateHash CandidateHash
+	// ParaID is the claimed para-ID of the candidate.
+	CandidateParaID ParaID
+	// ParentHeadDataHash is the claimed head-data hash of the candidate.
+	ParentHeadDataHash common.Hash
+	// RelayParent is the claimed relay parent of the candidate.
+	RelayParent common.Hash
+}
+
+func (HCIncomplete) isHypotheticalCandidate() {}
+
+// HCComplete represents a complete candidate, including its hash, committed candidate receipt,
+// and persisted validation data.
+type HCComplete struct {
+	CandidateHash             CandidateHash
+	CommittedCandidateReceipt CommittedCandidateReceipt
+	PersistedValidationData   PersistedValidationData
+}
+
+func (HCComplete) isHypotheticalCandidate() {}
