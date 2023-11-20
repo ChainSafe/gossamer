@@ -42,7 +42,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 			PovHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"), //nolint:lll
 			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), //nolint:lll
 			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"), //nolint:lll
-			// ValidationCodeHash:          parachaintypes.ValidationCodeHash(validationCodeHashV),
 		},
 
 		CommitmentsHash: commitments.Hash(),
