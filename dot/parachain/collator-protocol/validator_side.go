@@ -333,7 +333,7 @@ type CollatorProtocolValidatorSide struct {
 	/// to asynchronous backing is done.
 	activeLeaves map[common.Hash]ProspectiveParachainsMode
 
-        // Collations that we have successfully requested from peers and waiting
+	// Collations that we have successfully requested from peers and waiting
 	// on validation.
 	fetchedCandidates map[string]CollationEvent
 }
