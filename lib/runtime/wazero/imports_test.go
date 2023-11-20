@@ -1331,15 +1331,12 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
-	encKey, err := scale.Marshal(testKey)
-	require.NoError(t, err)
 
 	stateVersionInt := uint32(stateVersion)
 	encVersion, err := scale.Marshal(stateVersionInt)
 	require.NoError(t, err)
 
 	data := append([]byte{}, encChildKey...)
-	data = append(data, encKey...)
 	data = append(data, encVersion...)
 
 	ret, err := inst.Exec("rtm_ext_default_child_storage_root_version_2", data)

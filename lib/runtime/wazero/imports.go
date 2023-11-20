@@ -1264,21 +1264,18 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
-	child, err := storage.GetChild(read(m, childStorageKey))
+	key := read(m, childStorageKey)
+	child, err := storage.GetChild(key)
 	if err != nil {
 		logger.Errorf("failed to retrieve child: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	// TODO: fix this to get the right version
-	/*stateVersionBytes, _ := m.Memory().Read(version, 4)
-	stateVersion, err := trie.ParseVersion(binary.LittleEndian.Uint32(stateVersionBytes))
+	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
-	}*/
-
-	stateVersion := trie.V1
+	}
 
 	childRoot, err := stateVersion.Hash(child)
 	if err != nil {
