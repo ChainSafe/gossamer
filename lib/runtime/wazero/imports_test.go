@@ -2197,6 +2197,7 @@ func Test_ext_storage_root_version_2(t *testing.T) {
 
 	stateVersion := uint32(trie.V1)
 	encVersion, err := scale.Marshal(stateVersion)
+	require.NoError(t, err)
 
 	ret, err := inst.Exec("rtm_ext_storage_root_version_2", encVersion)
 	require.NoError(t, err)
