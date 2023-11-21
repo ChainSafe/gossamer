@@ -35,7 +35,7 @@ jobs:
             github.com/ChainSafe/gossamer/lib/babe,
             github.com/ChainSafe/gossamer/lib/grandpa,
           ]
-    runs-on: buildjet-32vcpu-ubuntu-2204
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.12.0

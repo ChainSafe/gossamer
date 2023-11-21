@@ -21,6 +21,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/exp/slices"
 
+	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
@@ -881,6 +882,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		NodeStorage: parentRuntimeInstance.NodeStorage(),
 		Network:     parentRuntimeInstance.NetworkService(),
 		CodeHash:    currCodeHash,
+		MinPages:    allocator.MaxWasmPages - 1,
 	}
 
 	if parentRuntimeInstance.Validator() {

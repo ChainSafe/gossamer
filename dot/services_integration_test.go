@@ -469,14 +469,15 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	stateSrvc.Epoch = epochState
 
-	var rtCfg wazero_runtime.Config
-
-	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
-
-	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
+	codeHash, err := stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	rtCfg.NodeStorage = runtime.NodeStorage{}
+	rtCfg := wazero_runtime.Config{
+		Storage:     rtstorage.NewTrieState(&genTrie),
+		CodeHash:    codeHash,
+		NodeStorage: runtime.NodeStorage{},
+		MinPages:    23,
+	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)

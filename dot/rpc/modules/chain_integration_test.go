@@ -370,6 +370,7 @@ func newTestStateService(t *testing.T) *state.Service {
 		require.NoError(t, err)
 	}
 
+	rtCfg.MinPages = 23
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 

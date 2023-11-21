@@ -126,6 +126,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		}
 
 		rtCfg.NodeStorage = nodeStorage
+		rtCfg.MinPages = 23
 
 		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
@@ -219,6 +220,8 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	rtCfg.NodeStorage = nodeStorage
 	rtCfg.Transaction = dbSrv.Transaction
+	rtCfg.MinPages = 23
+
 	runtime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
@@ -283,7 +286,8 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	})
 
 	rtCfg := wazero_runtime.Config{
-		Storage: rtstorage.NewTrieState(&genesisTrie),
+		Storage:  rtstorage.NewTrieState(&genesisTrie),
+		MinPages: 23,
 	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)

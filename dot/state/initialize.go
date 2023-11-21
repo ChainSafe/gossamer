@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -155,8 +156,9 @@ func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runt
 
 	// create genesis runtime
 	rtCfg := wazero_runtime.Config{
-		LogLvl:  s.logLvl,
-		Storage: genTrie,
+		LogLvl:   s.logLvl,
+		Storage:  genTrie,
+		MinPages: allocator.MaxWasmPages - 1,
 	}
 
 	r, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)

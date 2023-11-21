@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -285,6 +286,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		Keystore:    rt.Keystore(),
 		NodeStorage: rt.NodeStorage(),
 		Network:     rt.NetworkService(),
+		MinPages:    allocator.MaxWasmPages - 1,
 	}
 
 	if rt.Validator() {

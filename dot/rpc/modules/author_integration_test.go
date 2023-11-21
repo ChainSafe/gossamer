@@ -55,6 +55,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 		NodeStorage: runtime.NodeStorage{
 			BaseDB: runtime.NewInMemoryDB(t),
 		},
+		MinPages: 23,
 	}
 
 	runtimeInstance, err := wazero_runtime.NewRuntimeFromGenesis(cfg)
@@ -81,6 +82,7 @@ func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (in
 			PersistentStorage: runtime.NewInMemoryDB(t),
 			BaseDB:            runtime.NewInMemoryDB(t),
 		},
+		MinPages: 23,
 	}
 
 	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.Trie(), cfg)

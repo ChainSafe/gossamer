@@ -351,6 +351,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 		BaseDB: stateSrvc.Base,
 	}
 	rtCfg.NodeStorage = nodeStorage
+	rtCfg.MinPages = 23
 
 	cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
