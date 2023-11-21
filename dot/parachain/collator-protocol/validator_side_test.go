@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package collatorprotocol
 
 import (
@@ -20,8 +23,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 	peerID := peer.ID("testPeerID")
 	testRelayParent := getDummyHash(5)
 
-	// testParaID := parachaintypes.ParaID(5)
-
 	commitments := parachaintypes.CandidateCommitments{
 		UpwardMessages:    []parachaintypes.UpwardMessage{{1, 2, 3}},
 		NewValidationCode: &parachaintypes.ValidationCode{1, 2, 3},
@@ -41,22 +42,19 @@ func TestProcessOverseerMessage(t *testing.T) {
 			PovHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"), //nolint:lll
 			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), //nolint:lll
 			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"), //nolint:lll
-			// ValidationCodeHash:          parachaintypes.ValidationCodeHash(validationCodeHashV),
 		},
 
 		CommitmentsHash: commitments.Hash(),
 	}
 
 	testCases := []struct {
-		description string
-		msg         any
-		peerData    map[peer.ID]PeerData
-		// perRelayParent map[common.Hash]PerRelayParent
+		description           string
+		msg                   any
+		peerData              map[peer.ID]PeerData
 		net                   Network
 		fetchedCandidates     map[string]CollationEvent
 		deletesFetchCandidate bool
-		// activeLeaves   map[common.Hash]ProspectiveParachainsMode
-		errString string
+		errString             string
 	}{
 		{
 			description: "CollateOn message fails with message not expected",
@@ -107,15 +105,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 				CandidateReceipt: testCandidateReceipt,
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
+
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -145,15 +137,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 				return net
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
+
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -182,7 +168,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description: "SecondedOverseerMsg message fails with peer not found for collator and removes fetchedCandidate",
 			msg: SecondedOverseerMsg{
 				Parent: testRelayParent,
-				Stmt: func() parachaintypes.StatementVDT {
+				Stmt: func() parachaintypes.UncheckedSignedFullStatement {
 					vdt := parachaintypes.NewStatementVDT()
 					vdt.Set(parachaintypes.Seconded(
 						parachaintypes.CommittedCandidateReceipt{
@@ -190,19 +176,14 @@ func TestProcessOverseerMessage(t *testing.T) {
 							Commitments: commitments,
 						},
 					))
-					return vdt
+					return parachaintypes.UncheckedSignedFullStatement{
+						Payload: vdt,
+					}
 				}(),
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,
@@ -219,7 +200,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description: "SecondedOverseerMsg message succceds, reports a good collator and removes fetchedCandidate",
 			msg: SecondedOverseerMsg{
 				Parent: testRelayParent,
-				Stmt: func() parachaintypes.StatementVDT {
+				Stmt: func() parachaintypes.UncheckedSignedFullStatement {
 					vdt := parachaintypes.NewStatementVDT()
 					vdt.Set(parachaintypes.Seconded(
 						parachaintypes.CommittedCandidateReceipt{
@@ -227,7 +208,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 							Commitments: commitments,
 						},
 					))
-					return vdt
+					return parachaintypes.UncheckedSignedFullStatement{
+						Payload: vdt,
+					}
 				}(),
 			},
 			net: func() Network {
@@ -243,15 +226,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 				return net
 			}(),
 			fetchedCandidates: func() map[string]CollationEvent {
-				candidateHash, _ := testCandidateReceipt.Hash()
-				fetchedCollation := fetchedCollation{
-					paraID:      parachaintypes.ParaID(testCandidateReceipt.Descriptor.ParaID),
-					relayParent: testCandidateReceipt.Descriptor.RelayParent,
-					collatorID:  testCandidateReceipt.Descriptor.Collator,
-					candidateHash: parachaintypes.CandidateHash{
-						Value: candidateHash,
-					},
-				}
+				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
+				require.NoError(t, err)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
 						CollatorId: testCandidateReceipt.Descriptor.Collator,

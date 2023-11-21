@@ -337,7 +337,7 @@ type CandidateReceipt struct {
 func (cr CandidateReceipt) Hash() (common.Hash, error) {
 	bytes, err := scale.Marshal(cr)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to marshal CommittedCandidateReceipt: %w", err)
+		return common.Hash{}, fmt.Errorf("marshalling CommittedCandidateReceipt: %w", err)
 	}
 
 	return common.Blake2bHash(bytes)

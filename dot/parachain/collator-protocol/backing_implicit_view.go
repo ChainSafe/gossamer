@@ -1,3 +1,6 @@
+// Copyright 2023 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package collatorprotocol
 
 import (
@@ -5,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// TODO: https://github.com/ChainSafe/gossamer/issues/3537
 // https://github.com/paritytech/polkadot-sdk/blob/d2fc1d7c91971e6e630a9db8cb627f8fdc91e8a4/polkadot/node/subsystem-util/src/backing_implicit_view.rs#L102
 type ImplicitView struct {
 }
