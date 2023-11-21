@@ -51,31 +51,26 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 func (cb *CandidateBacking) secondingSanityCheck(
 	hypotheticalCandidate parachaintypes.HypotheticalCandidate,
 	backedInPathOnly bool,
-) (bool, map[common.Hash][]uint) {
-	// TODO: Implement this
-	var (
-		candidateParaID      parachaintypes.ParaID
-		candidateRelayParent common.Hash
-		candidateHash        parachaintypes.CandidateHash
-	)
-	membership := make(map[common.Hash][]uint)
-
+) (isSecondingAllowed bool, membership map[common.Hash][]uint) {
 	type response struct {
 		depths          []uint
 		head            common.Hash
 		activeLeafState ActiveLeafState
 	}
-	var responses []response
+
+	var (
+		responses            []response
+		candidateParaID      parachaintypes.ParaID
+		candidateRelayParent common.Hash
+	)
 
 	switch v := hypotheticalCandidate.(type) {
 	case parachaintypes.HCIncomplete:
 		candidateParaID = v.CandidateParaID
 		candidateRelayParent = v.RelayParent
-		candidateHash = v.CandidateHash
 	case parachaintypes.HCComplete:
 		candidateParaID = parachaintypes.ParaID(v.CommittedCandidateReceipt.Descriptor.ParaID)
 		candidateRelayParent = v.CommittedCandidateReceipt.Descriptor.RelayParent
-		candidateHash = v.CandidateHash
 	}
 
 	for head, leafState := range cb.perLeaf {
@@ -108,12 +103,33 @@ func (cb *CandidateBacking) secondingSanityCheck(
 				}
 				responses = append(responses, response{depths, head, leafState})
 			}
-		} else {
-			if head == candidateRelayParent {
-				leafState.
+		} else if head == candidateRelayParent {
+			if bTreeMap, ok := leafState.SecondedAtDepth[candidateParaID]; ok {
+				if _, ok := bTreeMap.Get(0); ok {
+					logger.Debug("Refusing to second candidate because leaf is already occupied.")
+					return false, nil
+				}
 			}
+			responses = append(responses, response{[]uint{0}, head, leafState})
 		}
 	}
 
-	return false, nil
+	if len(responses) == 0 {
+		return false, nil
+	}
+
+	for _, res := range responses {
+		for _, depth := range res.depths {
+			if bTreeMap, ok := res.activeLeafState.SecondedAtDepth[candidateParaID]; ok {
+				if _, ok := bTreeMap.Get(depth); ok {
+					logger.Debugf("Refusing to second candidate at depth %d - already occupied.", depth)
+					return false, nil
+				}
+			}
+		}
+		membership[res.head] = res.depths
+	}
+
+	// At this point we've checked the depths of the candidate against all active leaves.
+	return true, membership
 }

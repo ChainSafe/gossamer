@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/tidwall/btree"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
@@ -52,13 +53,14 @@ type CandidateBacking struct {
 	perCandidate map[parachaintypes.CandidateHash]perCandidateState
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
 	perLeaf map[common.Hash]ActiveLeafState
-		// The utility for managing the implicit and explicit views in a consistent way.
+	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	implicitView ImplicitView
 }
 
 type ActiveLeafState struct {
 	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
+	SecondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
