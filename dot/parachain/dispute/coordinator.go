@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const DisputeWindow = 6
+const Window = 6
 
 var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
 
@@ -67,13 +67,13 @@ type initializeResult struct {
 }
 
 func (d *disputeCoordinator) waitForFirstLeaf(context overseer.Context) (*overseer.ActivatedLeaf, error) {
-	// TODO: handle other signals
+	// TODO: handle other messages
 	for {
 		select {
-		case overseerSignal := <-context.Receiver:
-			switch {
-			case overseerSignal.ActiveLeaves != nil:
-				return overseerSignal.ActiveLeaves.Activated, nil
+		case overseerMessage := <-context.Receiver:
+			switch message := overseerMessage.(type) {
+			case overseer.Signal[overseer.ActiveLeavesUpdate]:
+				return message.Data.Activated, nil
 			}
 		}
 	}
@@ -130,7 +130,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 	}
 
 	gapsInCache := false
-	for idx := highestSession - (DisputeWindow - 1); idx <= highestSession; idx++ {
+	for idx := highestSession - (Window - 1); idx <= highestSession; idx++ {
 		_, err = d.runtime.ParachainHostSessionInfo(initialHead.Hash, idx)
 		if err != nil {
 			logger.Debugf("no session info for session %d", idx)

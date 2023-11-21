@@ -11,11 +11,10 @@ type Sender interface {
 
 type Context struct {
 	Sender   Sender
-	Receiver chan Signal
+	Receiver chan any
 }
 
-type Signal struct {
-	ActiveLeaves   *ActiveLeavesUpdate
-	BlockFinalised *Block
-	Conclude       bool
+type Signal[data any] struct {
+	Data     data
+	Conclude bool
 }

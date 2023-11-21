@@ -53,13 +53,6 @@ type ParticipationStatement struct {
 	Outcome          types.ParticipationOutcomeVDT
 }
 
-// MuxedMessage messages to be handled in this subsystem.
-type MuxedMessage struct {
-	Participation *ParticipationStatement
-	Signal        *overseer.Signal
-	Communication *types.DisputeCoordinatorMessage
-}
-
 // Participation keeps track of the disputes we need to participate in.
 type Participation interface {
 	// Queue a dispute for the node to participate in
@@ -328,14 +321,14 @@ func getBlockNumber(sender overseer.Sender, receipt parachainTypes.CandidateRece
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	tx := make(chan *uint32, 1)
+	tx := make(chan any, 1)
 	relayParent, err := receipt.Hash()
 	if err != nil {
 		return 0, fmt.Errorf("get hash: %w", err)
 	}
 
-	if err := sender.SendMessage(overseer.ChainAPIMessage{
-		RelayParent:     relayParent,
+	if err := sender.SendMessage(overseer.ChainAPIMessage[overseer.BlockNumberRequest]{
+		Message:         overseer.BlockNumberRequest{Hash: relayParent},
 		ResponseChannel: tx,
 	}); err != nil {
 		return 0, fmt.Errorf("send message: %w", err)
@@ -343,12 +336,16 @@ func getBlockNumber(sender overseer.Sender, receipt parachainTypes.CandidateRece
 
 	select {
 	case result := <-tx:
-		if result == nil {
-			return 0, fmt.Errorf("failed to get block number")
+		blockNumber, ok := result.(*uint32)
+		if !ok {
+			return 0, fmt.Errorf("unexpected response type: %T", result)
 		}
-		return *result, nil
+		if blockNumber == nil {
+			return 0, fmt.Errorf("empty result")
+		}
+		return *blockNumber, nil
 	case <-ctx.Done():
-		return 0, ctx.Err() // Return the context error if timeout exceeded
+		return 0, ctx.Err()
 	}
 }
 

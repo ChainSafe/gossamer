@@ -196,14 +196,12 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(11))
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
+		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg any) error {
 			switch message := msg.(type) {
-			case overseer.ChainAPIMessage:
-				//message := msg.(overseer.ChainAPIMessage)
+			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 				response := uint32(1)
 				message.ResponseChannel <- &response
 			case overseer.AvailabilityRecoveryMessage:
-				//message := msg.(overseer.AvailabilityRecoveryMessage)
 				response := overseer.RecoveryErrorUnavailable
 				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 					Error: &response,
@@ -277,7 +275,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			// feed is called 4 times for the requests while sending the results
 			mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 				switch message := msg.(type) {
-				case overseer.ChainAPIMessage:
+				case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 					response := uint32(1)
 					message.ResponseChannel <- &response
 				case overseer.AvailabilityRecoveryMessage:
@@ -353,7 +351,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			// If we receive `Number` request this implicitly proves that the participation is queued
 			mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 				switch message := msg.(type) {
-				case overseer.ChainAPIMessage:
+				case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 					response := uint32(1)
 					message.ResponseChannel <- &response
 				case overseer.AvailabilityRecoveryMessage:
@@ -406,7 +404,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 			switch message := msg.(type) {
-			case overseer.ChainAPIMessage:
+			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 				response := uint32(1)
 				message.ResponseChannel <- &response
 			case overseer.AvailabilityRecoveryMessage:
@@ -454,7 +452,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 			switch message := msg.(type) {
-			case overseer.ChainAPIMessage:
+			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 				response := uint32(1)
 				message.ResponseChannel <- &response
 			case overseer.AvailabilityRecoveryMessage:
@@ -566,7 +564,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 			switch message := msg.(type) {
-			case overseer.ChainAPIMessage:
+			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 				response := uint32(1)
 				message.ResponseChannel <- &response
 			case overseer.ValidateFromChainState:
@@ -632,7 +630,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 			switch message := msg.(type) {
-			case overseer.ChainAPIMessage:
+			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 				response := uint32(1)
 				message.ResponseChannel <- &response
 			case overseer.AvailabilityRecoveryMessage:
@@ -700,7 +698,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
 			switch message := msg.(type) {
-			case overseer.ChainAPIMessage:
+			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 				response := uint32(1)
 				message.ResponseChannel <- &response
 			case overseer.AvailabilityRecoveryMessage:

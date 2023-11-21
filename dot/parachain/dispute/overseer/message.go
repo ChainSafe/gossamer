@@ -5,9 +5,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type ChainAPIMessage struct {
-	RelayParent     common.Hash
-	ResponseChannel chan *uint32
+type ChainAPIMessage[message any] struct {
+	Message         message
+	ResponseChannel chan any
 }
 
 type PersistedValidationData struct {
@@ -82,13 +82,17 @@ type ValidationResult struct {
 	InvalidResult *InvalidValidationResult
 }
 
-type FinalizedBlockNumberResponse struct {
+type BlockNumberResponse struct {
 	Number uint32
 	Err    error
 }
 
+type BlockNumberRequest struct {
+	Hash common.Hash
+}
+
 type FinalizedBlockNumberRequest struct {
-	ResponseChannel chan FinalizedBlockNumberResponse
+	Number uint32
 }
 
 type AncestorsResponse struct {
@@ -97,9 +101,8 @@ type AncestorsResponse struct {
 }
 
 type AncestorsRequest struct {
-	Hash            common.Hash
-	K               uint32
-	ResponseChannel chan AncestorsResponse
+	Hash common.Hash
+	K    uint32
 }
 
 type ApprovalSignature struct {

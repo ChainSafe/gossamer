@@ -289,19 +289,8 @@ type DetermineUndisputedChainMessage struct {
 	Tx                overseer.Sender
 }
 
-// DisputeCoordinatorMessage messages received by the dispute coordinator subsystem
-type DisputeCoordinatorMessage struct {
-	ImportStatements         *ImportStatementsMessage
-	RecentDisputes           *RecentDisputesMessage
-	ActiveDisputes           *ActiveDisputesMessage
-	QueryCandidateVotes      *QueryCandidateVotesMessage
-	IssueLocalStatement      *IssueLocalStatementMessage
-	DetermineUndisputedChain *DetermineUndisputedChainMessage
-}
-
-// OverseerSignal signals received by the overseer subsystem
-type OverseerSignal struct {
-	ActiveLeaves   *overseer.ActiveLeavesUpdate
-	BlockFinalised *overseer.Block
-	Concluded      bool
+// Message messages to be handled in this subsystem.
+type Message[data any] struct {
+	Data            data
+	ResponseChannel chan<- any
 }
