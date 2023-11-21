@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,10 +23,11 @@ func Test_newTrieFromPairs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		filename string
-		want     common.Hash
-		err      error
+		name         string
+		filename     string
+		want         common.Hash
+		stateVersion trie.TrieLayout
+		err          error
 	}{
 		{
 			name: "no_arguments",
@@ -33,9 +35,16 @@ func Test_newTrieFromPairs(t *testing.T) {
 			want: common.Hash{},
 		},
 		{
-			name:     "working example",
-			filename: setupStateFile(t),
-			want:     common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			name:         "working example",
+			filename:     setupStateFile(t),
+			want:         common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+			stateVersion: trie.V0,
+		},
+		{
+			name:         "working example",
+			filename:     setupStateFile(t),
+			want:         common.MustHexToHash("0xcc25fe024a58297658e576e2e4c33691fe3a9fe5a7cdd2e55534164a0fcc0782"),
+			stateVersion: trie.V1,
 		},
 	}
 	for _, tt := range tests {
@@ -52,7 +61,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			if tt.want.IsEmpty() {
 				assert.Nil(t, got)
 			} else {
-				assert.Equal(t, tt.want, got.MustHash())
+				assert.Equal(t, tt.want, tt.stateVersion.MustHash(*got))
 			}
 		})
 	}
@@ -93,7 +102,7 @@ func TestImportState_Integration(t *testing.T) {
 	headerFP := setupHeaderFile(t)
 
 	const firstSlot = uint64(262493679)
-	err = ImportState(config.BasePath, stateFP, headerFP, firstSlot)
+	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
@@ -124,10 +133,11 @@ func TestImportState(t *testing.T) {
 	headerFP := setupHeaderFile(t)
 
 	type args struct {
-		basepath  string
-		stateFP   string
-		headerFP  string
-		firstSlot uint64
+		basepath     string
+		stateFP      string
+		headerFP     string
+		stateVersion trie.TrieLayout
+		firstSlot    uint64
 	}
 	tests := []struct {
 		name string
@@ -141,10 +151,11 @@ func TestImportState(t *testing.T) {
 		{
 			name: "working_example",
 			args: args{
-				basepath:  config.BasePath,
-				stateFP:   stateFP,
-				headerFP:  headerFP,
-				firstSlot: 262493679,
+				basepath:     config.BasePath,
+				stateFP:      stateFP,
+				headerFP:     headerFP,
+				stateVersion: trie.V0,
+				firstSlot:    262493679,
 			},
 		},
 	}
@@ -153,7 +164,7 @@ func TestImportState(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.firstSlot)
+			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.stateVersion, tt.args.firstSlot)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

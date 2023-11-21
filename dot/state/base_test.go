@@ -29,15 +29,15 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	err := tt.WriteDirty(db)
 	require.NoError(t, err)
 
-	encroot, err := tt.Hash()
+	encroot, err := tt.Hash(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 
-	expected := tt.MustHash()
+	expected := tt.MustHash(trie.NoMaxInlineValueSize)
 
 	tt = trie.NewEmptyTrie()
 	err = tt.Load(db, encroot)
 	require.NoError(t, err)
-	require.Equal(t, expected, tt.MustHash())
+	require.Equal(t, expected, tt.MustHash(trie.NoMaxInlineValueSize))
 }
 
 func TestStoreAndLoadGenesisData(t *testing.T) {
