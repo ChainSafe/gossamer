@@ -261,16 +261,20 @@ func NewChainScraper(
 
 // getFinalisedBlockNumber sends a message to the overseer to get the finalised block number.
 func getFinalisedBlockNumber(sender overseer.Sender) (uint32, error) {
-	tx := make(chan overseer.FinalizedBlockNumberResponse, 1)
-	message := overseer.FinalizedBlockNumberRequest{
+	tx := make(chan any, 1)
+	err := sender.SendMessage(overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]{
 		ResponseChannel: tx,
-	}
-	err := sender.SendMessage(message)
+	})
 	if err != nil {
 		return 0, fmt.Errorf("sending message to get finalised block number: %w", err)
 	}
 
-	response := <-tx
+	data := <-tx
+	response, ok := data.(overseer.BlockNumberResponse)
+	if !ok {
+		return 0, fmt.Errorf("getting finalised block number: got unexpected response type %T", data)
+	}
+
 	if response.Err != nil {
 		return 0, fmt.Errorf("getting finalised block number: %w", response.Err)
 	}
@@ -284,18 +288,24 @@ func getBlockAncestors(
 	head common.Hash,
 	numAncestors uint32,
 ) ([]common.Hash, error) {
-	tx := make(chan overseer.AncestorsResponse, 1)
+	tx := make(chan any, 1)
 	message := overseer.AncestorsRequest{
-		Hash:            head,
-		K:               numAncestors,
-		ResponseChannel: tx,
+		Hash: head,
+		K:    numAncestors,
 	}
-	err := sender.SendMessage(message)
+	err := sender.SendMessage(overseer.ChainAPIMessage[overseer.AncestorsRequest]{
+		Message:         message,
+		ResponseChannel: tx,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("sending message to get block ancestors: %w", err)
 	}
 
-	response := <-tx
+	data := <-tx
+	response, ok := data.(overseer.AncestorsResponse)
+	if !ok {
+		return nil, fmt.Errorf("getting block ancestors: got unexpected response type %T", data)
+	}
 	if response.Error != nil {
 		return nil, fmt.Errorf("getting block ancestors: %w", response.Error)
 	}

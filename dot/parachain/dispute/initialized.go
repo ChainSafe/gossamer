@@ -31,7 +31,7 @@ type Initialized struct {
 	SpamSlots             SpamSlots
 	Participation         Participation
 	Scraper               *scraping.ChainScraper
-	ParticipationReceiver chan MuxedMessage
+	ParticipationReceiver chan any
 	ChainImportBacklog    *deque.Deque[parachainTypes.ScrapedOnChainVotes]
 	// TODO: metrics
 }
@@ -97,61 +97,26 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 		overlayDB := newOverlayBackend(backend)
 		confirmWrite := func() error { return nil }
 		select {
-		case message := <-i.ParticipationReceiver:
-			if message.Participation != nil {
-				if err := i.Participation.Clear(message.Participation.CandidateHash); err != nil {
-					return fmt.Errorf("clear participation: %w", err)
+		case msg := <-i.ParticipationReceiver:
+			switch message := msg.(type) {
+			case overseer.Signal[overseer.ActiveLeavesUpdate]:
+				logger.Tracef("OverseerSignal::ActiveLeavesUpdate")
+				if err := i.ProcessActiveLeavesUpdate(context,
+					overlayDB,
+					message.Data,
+					uint64(time.Now().Unix())); err != nil {
+					return fmt.Errorf("process active leaves update: %w", err)
 				}
 
-				valid, err := message.Participation.Outcome.Validity()
-				if err != nil {
-					logger.Warnf("dispute participation failed. Session: %v, "+
-						"candidateHash: %v, Error: %v",
-						message.Participation.Session,
-						message.Participation.CandidateHash,
-						err)
-				} else {
-					logger.Tracef(
-						"issuing local statement based on participation outcome. Session: %v, "+
-							"candidateHash: %v, Valid: %v",
-						message.Participation.Session,
-						message.Participation.CandidateHash,
-						valid,
-					)
-					if err := i.IssueLocalStatement(context,
-						overlayDB,
-						message.Participation.CandidateHash,
-						message.Participation.CandidateReceipt,
-						message.Participation.Session,
-						valid,
-						uint64(time.Now().Unix())); err != nil {
-						return fmt.Errorf("issue local statement: %w", err)
-					}
-				}
-			} else if message.Signal != nil {
-				switch {
-				case message.Signal.Conclude == true:
-					return nil
-				case message.Signal.ActiveLeaves != nil:
-					logger.Tracef("OverseerSignal::ActiveLeavesUpdate")
-					if err := i.ProcessActiveLeavesUpdate(context,
-						overlayDB,
-						*message.Signal.ActiveLeaves,
-						uint64(time.Now().Unix())); err != nil {
-						return fmt.Errorf("process active leaves update: %w", err)
-					}
-				case message.Signal.BlockFinalised != nil:
-					logger.Tracef("OverseerSignal::BlockFinalised")
-					i.Scraper.ProcessFinalisedBlock(message.Signal.BlockFinalised.Number)
+			case overseer.Signal[overseer.Block]:
+				logger.Tracef("OverseerSignal::BlockFinalised")
+				i.Scraper.ProcessFinalisedBlock(message.Data.Number)
 
-				default:
-					logger.Errorf("OverseerSignal::Unknown")
-				}
-			} else if message.Communication != nil {
+			default:
 				var err error
 				confirmWrite, err = i.HandleIncoming(context,
 					overlayDB,
-					*message.Communication,
+					message,
 					uint64(time.Now().Unix()),
 				)
 				if err != nil {
@@ -197,7 +162,7 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 			// Otherwise - cache only the new sessions
 			var lowerBound parachainTypes.SessionIndex
 			if i.GapsInCache {
-				lowerBound = sessionIDx - (DisputeWindow - 1)
+				lowerBound = sessionIDx - (Window - 1)
 				if sessionIDx < lowerBound {
 					lowerBound = sessionIDx
 				}
@@ -219,7 +184,7 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 
 			i.HighestSessionSeen = sessionIDx
 
-			earliestSession := saturatingSub(uint32(sessionIDx), DisputeWindow-1)
+			earliestSession := saturatingSub(uint32(sessionIDx), Window-1)
 			if err := backend.NoteEarliestSession(parachainTypes.SessionIndex(earliestSession)); err != nil {
 				logger.Tracef("error noting earliest session: %w", err)
 			}
@@ -454,20 +419,50 @@ func (i *Initialized) ProcessOnChainVotes(
 func (i *Initialized) HandleIncoming(
 	context overseer.Context,
 	backend OverlayBackend,
-	message types.DisputeCoordinatorMessage,
+	msg any,
 	now uint64,
 ) (func() error, error) {
-	switch {
-	case message.ImportStatements != nil:
+	switch message := msg.(type) {
+	case types.Message[ParticipationStatement]:
+		if err := i.Participation.Clear(message.Data.CandidateHash); err != nil {
+			return nil, fmt.Errorf("clear participation: %w", err)
+		}
+
+		valid, err := message.Data.Outcome.Validity()
+		if err != nil {
+			logger.Warnf("dispute participation failed. Session: %v, "+
+				"candidateHash: %v, Error: %v",
+				message.Data.Session,
+				message.Data.CandidateHash,
+				err)
+		} else {
+			logger.Tracef(
+				"issuing local statement based on participation outcome. Session: %v, "+
+					"candidateHash: %v, Valid: %v",
+				message.Data.Session,
+				message.Data.CandidateHash,
+				valid,
+			)
+			if err := i.IssueLocalStatement(context,
+				backend,
+				message.Data.CandidateHash,
+				message.Data.CandidateReceipt,
+				message.Data.Session,
+				valid,
+				uint64(time.Now().Unix())); err != nil {
+				return nil, fmt.Errorf("issue local statement: %w", err)
+			}
+		}
+	case types.Message[types.ImportStatementsMessage]:
 		logger.Tracef("HandleIncoming::ImportStatements")
 		candidateReceipt := MaybeCandidateReceipt{
-			CandidateReceipt: &message.ImportStatements.CandidateReceipt,
+			CandidateReceipt: &message.Data.CandidateReceipt,
 		}
 		outcome, err := i.HandleImportStatements(context,
 			backend,
 			candidateReceipt,
-			message.ImportStatements.Session,
-			message.ImportStatements.Statements,
+			message.Data.Session,
+			message.Data.Statements,
 			now,
 		)
 		if err != nil {
@@ -475,8 +470,8 @@ func (i *Initialized) HandleIncoming(
 		}
 
 		report := func() error {
-			if message.ImportStatements.PendingConfirmation != nil {
-				if err := message.ImportStatements.PendingConfirmation.SendMessage(outcome); err != nil {
+			if message.Data.PendingConfirmation != nil {
+				if err := message.Data.PendingConfirmation.SendMessage(outcome); err != nil {
 					return fmt.Errorf("confirm import statements: %w", err)
 				}
 			}
@@ -489,31 +484,30 @@ func (i *Initialized) HandleIncoming(
 		}
 
 		return report, nil
-	case message.RecentDisputes != nil:
+	case types.Message[types.RecentDisputesMessage]:
 		logger.Tracef("HandleIncoming::RecentDisputes")
 		recentDisputes, err := backend.GetRecentDisputes()
 		if err != nil {
 			return nil, fmt.Errorf("get recent disputes: %w", err)
 		}
 
-		if err := message.RecentDisputes.Sender.SendMessage(recentDisputes); err != nil {
+		if err := message.Data.Sender.SendMessage(recentDisputes); err != nil {
 			return nil, fmt.Errorf("send recent disputes: %w", err)
 		}
-	case message.ActiveDisputes != nil:
+	case types.Message[types.ActiveDisputesMessage]:
 		logger.Tracef("HandleIncoming::ActiveDisputes")
 		activeDisputes, err := backend.GetActiveDisputes(now)
 		if err != nil {
 			return nil, fmt.Errorf("get active disputes: %w", err)
 		}
 
-		if err := message.ActiveDisputes.Sender.SendMessage(activeDisputes); err != nil {
+		if err := message.Data.Sender.SendMessage(activeDisputes); err != nil {
 			return nil, fmt.Errorf("send active disputes: %w", err)
 		}
-	case message.QueryCandidateVotes != nil:
+	case types.Message[types.QueryCandidateVotesMessage]:
 		logger.Tracef("HandleIncoming::QueryCandidateVotes")
-
 		var queryOutput []types.QueryCandidateVotesResponse
-		for _, query := range message.QueryCandidateVotes.Queries {
+		for _, query := range message.Data.Queries {
 			candidateVotes, err := backend.GetCandidateVotes(query.Session, query.CandidateHash)
 			if err != nil {
 				logger.Debugf("no candidate votes found for query. session: %v, candidateHash: %v",
@@ -530,32 +524,32 @@ func (i *Initialized) HandleIncoming(
 			})
 		}
 
-		if err := message.QueryCandidateVotes.Sender.SendMessage(queryOutput); err != nil {
+		if err := message.Data.Sender.SendMessage(queryOutput); err != nil {
 			return nil, fmt.Errorf("send candidate votes: %w", err)
 		}
-	case message.IssueLocalStatement != nil:
+	case types.Message[types.IssueLocalStatementMessage]:
 		logger.Tracef("HandleIncoming::IssueLocalStatement")
 		if err := i.IssueLocalStatement(context,
 			backend,
-			message.IssueLocalStatement.CandidateHash,
-			message.IssueLocalStatement.CandidateReceipt,
-			message.IssueLocalStatement.Session,
-			message.IssueLocalStatement.Valid,
+			message.Data.CandidateHash,
+			message.Data.CandidateReceipt,
+			message.Data.Session,
+			message.Data.Valid,
 			now,
 		); err != nil {
 			return nil, fmt.Errorf("issue local statement: %w", err)
 		}
-	case message.DetermineUndisputedChain != nil:
+	case types.Message[types.DetermineUndisputedChainMessage]:
 		logger.Tracef("HandleIncoming::DetermineUndisputedChain")
 		undisputedChain, err := i.determineUndisputedChain(backend,
-			message.DetermineUndisputedChain.Base,
-			message.DetermineUndisputedChain.BlockDescriptions,
+			message.Data.Base,
+			message.Data.BlockDescriptions,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("determine undisputed chain: %w", err)
 		}
 
-		if err := message.DetermineUndisputedChain.Tx.SendMessage(undisputedChain); err != nil {
+		if err := message.Data.Tx.SendMessage(undisputedChain); err != nil {
 			return nil, fmt.Errorf("send undisputed chain: %w", err)
 		}
 	default:
@@ -1071,7 +1065,7 @@ func (i *Initialized) IssueLocalStatement(
 }
 
 func (i *Initialized) sessionIsAncient(session parachainTypes.SessionIndex) bool {
-	diff := session - (DisputeWindow - 1)
+	diff := session - (Window - 1)
 	return session < diff || session < i.HighestSessionSeen
 }
 
@@ -1140,7 +1134,7 @@ func NewInitializedState(sender overseer.Sender,
 		Scraper:               scraper,
 		HighestSessionSeen:    highestSessionSeen,
 		GapsInCache:           gapsInCache,
-		ParticipationReceiver: make(chan MuxedMessage),
+		ParticipationReceiver: make(chan any),
 		ChainImportBacklog:    deque.New[parachainTypes.ScrapedOnChainVotes](),
 		Participation:         NewParticipation(sender, runtime),
 	}

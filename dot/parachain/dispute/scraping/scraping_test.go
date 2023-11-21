@@ -113,9 +113,9 @@ func configureMockOverseer(
 		finalisedBlockRequestCalls = 0
 		ancestorRequestCalls       = 0
 	)
-	sender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-		switch message := msg.(type) {
-		case overseer.FinalizedBlockNumberRequest:
+	sender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg any) error {
+		switch request := msg.(type) {
+		case overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]:
 			require.Less(t, finalisedBlockRequestCalls, messages.finalisedBlockRequests)
 			result := finalisedBlock
 			if finalisedBlockRequestCalls == 0 {
@@ -123,17 +123,17 @@ func configureMockOverseer(
 			}
 			finalisedBlockRequestCalls++
 
-			response := overseer.FinalizedBlockNumberResponse{
+			response := overseer.BlockNumberResponse{
 				Number: result,
 				Err:    nil,
 			}
-			message.ResponseChannel <- response
-		case overseer.AncestorsRequest:
+			request.ResponseChannel <- response
+		case overseer.ChainAPIMessage[overseer.AncestorsRequest]:
 			require.Less(t, ancestorRequestCalls, messages.ancestorRequests)
 			ancestorRequestCalls++
 			maybeBlockPosition := -1
 			for idx, h := range *chain {
-				if h == message.Hash {
+				if h == request.Message.Hash {
 					maybeBlockPosition = idx
 					break
 				}
@@ -142,7 +142,7 @@ func configureMockOverseer(
 			var ancestors []common.Hash
 			if maybeBlockPosition != -1 {
 				ancestors = make([]common.Hash, 0)
-				for i := maybeBlockPosition - 1; i >= 0 && i >= maybeBlockPosition-int(message.K); i-- {
+				for i := maybeBlockPosition - 1; i >= 0 && i >= maybeBlockPosition-int(request.Message.K); i-- {
 					ancestors = append(ancestors, (*chain)[i])
 				}
 			}
@@ -151,9 +151,9 @@ func configureMockOverseer(
 				Ancestors: ancestors,
 				Error:     nil,
 			}
-			message.ResponseChannel <- response
+			request.ResponseChannel <- response
 		default:
-			return fmt.Errorf("unknown message type")
+			return fmt.Errorf("unknown request type")
 		}
 		return nil
 	}).Times(messages.finalisedBlockRequests + messages.ancestorRequests)

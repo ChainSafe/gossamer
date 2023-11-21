@@ -15,6 +15,10 @@ import (
 	"testing"
 )
 
+type VirtualOverseer struct {
+	sender *MockSender
+}
+
 type TestState struct {
 	validators        []keystore.KeyPair
 	validatorPublic   []parachaintypes.ValidatorID
@@ -26,6 +30,8 @@ type TestState struct {
 	lastBlock         common.Hash
 	knownSession      *parachaintypes.SessionIndex
 	db                database.Database
+	sender            *MockSender
+	runtime           *MockRuntimeInstance
 }
 
 func newTestState(t *testing.T) *TestState {
@@ -91,6 +97,9 @@ func newTestState(t *testing.T) *TestState {
 	headers[lastBlock] = genesisHeader
 	blockNumToHeader[0] = lastBlock
 
+	ctrl := gomock.NewController(t)
+	sender := NewMockSender(ctrl)
+
 	return &TestState{
 		validators:        validators,
 		validatorPublic:   validatorPublic,
@@ -102,16 +111,143 @@ func newTestState(t *testing.T) *TestState {
 		lastBlock:         lastBlock,
 		knownSession:      nil,
 		db:                db,
+		sender:            sender,
 	}
 }
 
-func (ts *TestState) handleResumeSyncWithEvents(t *testing.T,
+func (ts *TestState) sessionInfo() *parachaintypes.SessionInfo {
+	var (
+		discoveryKeys  []parachaintypes.AuthorityDiscoveryID
+		assignmentKeys []parachaintypes.AssignmentID
+
+		validatorIndices []parachaintypes.ValidatorIndex
+	)
+
+	for i, v := range ts.validatorPublic {
+		discoveryKeys = append(discoveryKeys, parachaintypes.AuthorityDiscoveryID(v))
+		assignmentKeys = append(assignmentKeys, parachaintypes.AssignmentID(v))
+
+		validatorIndices = append(validatorIndices, parachaintypes.ValidatorIndex(i))
+	}
+
+	return &parachaintypes.SessionInfo{
+		ActiveValidatorIndices:  validatorIndices,
+		RandomSeed:              [32]byte{0},
+		DisputePeriod:           6,
+		Validators:              ts.validatorPublic,
+		DiscoveryKeys:           discoveryKeys,
+		AssignmentKeys:          assignmentKeys,
+		ValidatorGroups:         ts.validatorGroups,
+		NCores:                  uint32(len(ts.validatorGroups)),
+		ZerothDelayTrancheWidth: 0,
+		RelayVRFModuloSamples:   1,
+		NDelayTranches:          100,
+		NoShowSlots:             1,
+		NeededApprovals:         10,
+	}
+}
+
+func (ts *TestState) activateLeafAtSession(t *testing.T,
+	session parachaintypes.SessionIndex,
+	blockNumber uint,
+	candidateEvents []parachaintypes.CandidateEvent,
+) {
+	require.True(t, blockNumber > 0)
+
+	blockHeader := types.Header{
+		ParentHash:     ts.lastBlock,
+		Number:         blockNumber,
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         types.NewDigest(),
+	}
+	blockHash := blockHeader.Hash()
+
+	ts.headers[blockHash] = blockHeader
+	ts.blockNumToHeader[uint32(blockHeader.Number)] = blockHash
+	ts.lastBlock = blockHash
+
+	t.Log("activating block")
+
+	activatedLeaf := overseer.ActivatedLeaf{
+		Hash:   blockHash,
+		Number: uint32(blockNumber),
+		Status: overseer.LeafStatusFresh,
+	}
+	err := ts.sender.SendMessage(overseer.Signal[overseer.ActiveLeavesUpdate]{
+		Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
+	})
+	require.NoError(t, err)
+
+	ts.mockSyncQueries(t, blockHash, session, candidateEvents)
+}
+
+func (ts *TestState) mockSyncQueries(t *testing.T,
+	blockHash common.Hash,
+	session parachaintypes.SessionIndex,
+	candidateEvents []parachaintypes.CandidateEvent,
+) []disputetypes.UncheckedDisputeMessage {
+	var (
+		gotSessionInformation bool
+		//	gotScrapingInformation bool
+	)
+
+	var sentDisputes []disputetypes.UncheckedDisputeMessage
+
+	ts.runtime.EXPECT().ParachainHostSessionIndexForChild(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (parachaintypes.SessionIndex, error) {
+		require.False(t, gotSessionInformation, "session info already retrieved")
+
+		gotSessionInformation = true
+		require.Equal(t, blockHash, arg0)
+
+		if ts.knownSession == nil {
+			ts.knownSession = &session
+		}
+
+		return session, nil
+	})
+
+	ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(arg0 parachaintypes.SessionIndex, arg1 common.Hash) (*parachaintypes.SessionInfo, error) {
+			require.True(t, arg0 < session)
+			require.Equal(t, blockHash, arg1)
+
+			return ts.sessionInfo(), nil
+		})
+
+	ts.runtime.EXPECT().ParachainHostCandidateEvents(gomock.Any()).DoAndReturn(func(arg0 common.Hash) ([]parachaintypes.CandidateEvent, error) {
+		return candidateEvents, nil
+	})
+
+	ts.runtime.EXPECT().ParachainHostOnChainVotes(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (*parachaintypes.ScrapedOnChainVotes, error) {
+		return &parachaintypes.ScrapedOnChainVotes{
+			Session: session,
+		}, nil
+	})
+
+	//ts.sender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg any) error {
+	//	switch message := msg.(type) {
+	//	case overseer.Signal[overseer.Block]:
+	//		require.False(t, gotScrapingInformation, "scraping info already retrieved")
+	//		gotScrapingInformation = true
+	//		msg.ResponseChannel <- 0
+	//
+	//	case msg.Communication.BlockNumber != nil:
+	//		msg.ResponseChannel <- uint32(ts.headers[blockHash].Number)
+	//
+	//	case msg.DistributionMessage != nil:
+	//		sentDisputes = append(sentDisputes, *msg.DistributionMessage)
+	//
+	//	}
+	//})
+
+	return sentDisputes
+}
+
+func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
 	session *parachaintypes.SessionIndex,
 	initialEvents []parachaintypes.CandidateEvent,
 ) []disputetypes.UncheckedDisputeMessage {
-	ctrl := gomock.NewController(t)
-	sender := NewMockSender(ctrl)
-
 	leaves := make([]common.Hash, len(ts.headers))
 	for leaf := range ts.headers {
 		leaves = append(leaves, leaf)
@@ -124,10 +260,8 @@ func (ts *TestState) handleResumeSyncWithEvents(t *testing.T,
 			Number: uint32(i),
 			Status: overseer.LeafStatusFresh,
 		}
-		err := sender.SendMessage(MuxedMessage{
-			Signal: &overseer.Signal{
-				ActiveLeaves: &overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
-			},
+		err := ts.sender.SendMessage(overseer.Signal[overseer.ActiveLeavesUpdate]{
+			Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
 		})
 		require.NoError(t, err)
 
@@ -136,7 +270,7 @@ func (ts *TestState) handleResumeSyncWithEvents(t *testing.T,
 			events = initialEvents
 		}
 
-		newMessages := ts.handleSyncQueries(t, leaf, session, events)
+		newMessages := ts.mockSyncQueries(t, leaf, *session, events)
 		messages = append(messages, newMessages...)
 	}
 
