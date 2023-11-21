@@ -4,6 +4,7 @@
 package wazero_runtime
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -32,7 +33,8 @@ var (
 		log.AddContext("module", "wazero"),
 	)
 
-	noneEncoded []byte = []byte{0x00}
+	noneEncoded    []byte = []byte{0x00}
+	allZeroesBytes        = [32]byte{}
 )
 
 const (
@@ -63,9 +65,9 @@ func read(m api.Module, pointerSize uint64) (data []byte) {
 
 // copies a Go byte slice to wasm memory and returns the corresponding
 // 64 bit pointer size.
-func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointerSize uint64, err error) {
+func write(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize uint64, err error) {
 	size := uint32(len(data))
-	pointer, err := allocator.Allocate(size)
+	pointer, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
@@ -77,7 +79,7 @@ func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byt
 	return newPointerSize(pointer, size), nil
 }
 
-func mustWrite(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointerSize uint64) {
+func mustWrite(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize uint64) {
 	pointerSize, err := write(m, allocator, data)
 	if err != nil {
 		panic(err)
@@ -89,17 +91,19 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
+	line := fmt.Sprintf("target=%s message=%s", target, msg)
+
 	switch int(level) {
 	case 0:
-		logger.Critical("target=" + target + " message=" + msg)
+		logger.Critical(line)
 	case 1:
-		logger.Warn("target=" + target + " message=" + msg)
+		logger.Warn(line)
 	case 2:
-		logger.Info("target=" + target + " message=" + msg)
+		logger.Info(line)
 	case 3:
-		logger.Debug("target=" + target + " message=" + msg)
+		logger.Debug(line)
 	case 4:
-		logger.Trace("target=" + target + " message=" + msg)
+		logger.Trace(line)
 	default:
 		logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
 	}
@@ -710,6 +714,18 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("nil runtime context")
 	}
 
+	pubKeyBytes, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	// prevents Polkadot zero-address crash using
+	// ext_crypto_sr25519_verify_version_1
+	// https://pacna.org/dot-zero-addr/
+	if bytes.Equal(pubKeyBytes, allZeroesBytes[:]) {
+		return ext_crypto_sr25519_verify_version_1(ctx, m, sig, msg, key)
+	}
+
 	sigVerifier := rtCtx.SigVerifier
 
 	message := read(m, msg)
@@ -718,10 +734,6 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("read overflow")
 	}
 
-	pubKeyBytes, ok := m.Memory().Read(key, 32)
-	if !ok {
-		panic("read overflow")
-	}
 	pub, err := sr25519.NewPublicKey(pubKeyBytes)
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
@@ -799,7 +811,7 @@ func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataS
 	}
 
 	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
+	ptr, err := rtCtx.Allocator.Allocate(m.Memory(), 32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
 		return 0
@@ -851,7 +863,7 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 	}
 
 	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
+	ptr, err := rtCtx.Allocator.Allocate(m.Memory(), 32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
 		return 0
@@ -2238,21 +2250,21 @@ func ext_storage_commit_transaction_version_1(ctx context.Context, _ api.Module)
 	rtCtx.Storage.CommitStorageTransaction()
 }
 
-func ext_allocator_free_version_1(ctx context.Context, _ api.Module, addr uint32) {
+func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Deallocate memory
-	err := allocator.Deallocate(addr)
+	err := allocator.Deallocate(m.Memory(), addr)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ext_allocator_malloc_version_1(ctx context.Context, _ api.Module, size uint32) uint32 {
+func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, size uint32) uint32 {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Allocate memory
-	res, err := allocator.Allocate(size)
+	res, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
 		panic(err)
 	}

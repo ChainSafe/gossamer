@@ -51,11 +51,8 @@ func (i InvalidTransaction) Error() string { //skipcq: GO-W1029
 
 // NewInvalidTransaction is constructor for InvalidTransaction
 func NewInvalidTransaction() InvalidTransaction {
-	vdt, err := scale.NewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{})
-	if err != nil {
-		panic(err)
-	}
+	vdt := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, InvalidCustom(0), BadMandatory{}, MandatoryDispatch{}, BadSigner{})
 	return InvalidTransaction(vdt)
 }
 
@@ -187,4 +184,17 @@ func (m MandatoryDispatch) String() string { return m.Error() }
 // Error returns the error message associated with the MandatoryDispatch
 func (MandatoryDispatch) Error() string {
 	return "invalid mandatory dispatch"
+}
+
+// BadSigner A transaction with a mandatory dispatch
+type BadSigner struct{}
+
+// Index returns VDT index
+func (BadSigner) Index() uint { return 10 }
+
+func (b BadSigner) String() string { return b.Error() }
+
+// Error returns the error message associated with the MandatoryDispatch
+func (BadSigner) Error() string {
+	return "invalid signing address"
 }

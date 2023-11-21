@@ -703,12 +703,10 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 	data := bytes
 
 	dataLength := uint32(len(data))
-	inputPtr, err := inst.Context.Allocator.Allocate(dataLength)
+	inputPtr, err := inst.Context.Allocator.Allocate(inst.Module.Memory(), dataLength)
 	if err != nil {
 		t.Errorf("allocating input memory: %v", err)
 	}
-
-	defer inst.Context.Allocator.Clear()
 
 	// Store the data into memory
 	mem := inst.Module.Memory()
@@ -920,9 +918,10 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	val, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
+	_, err = inst.Context.Storage.GetChildStorage(testChildKey, testKey)
+	require.ErrorIs(t, err, trie.ErrChildTrieDoesNotExist)
+	require.EqualError(t, err, "child trie does not exist at key "+
+		"0x3a6368696c645f73746f726167653a64656661756c743a6368696c644b6579")
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
