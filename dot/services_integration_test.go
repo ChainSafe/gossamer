@@ -13,7 +13,6 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
-	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -135,7 +134,6 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 	type args struct {
 		ks  *keystore.GlobalKeystore
 		net *network.Service
-		dh  *digest.Handler
 	}
 	tests := []struct {
 		name      string

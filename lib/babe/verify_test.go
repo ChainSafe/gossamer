@@ -281,7 +281,8 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := tt.verifier.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot, tt.args.vrfOutput, tt.args.vrfProof)
+			res, err := tt.verifier.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot,
+				tt.args.vrfOutput, tt.args.vrfProof)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
