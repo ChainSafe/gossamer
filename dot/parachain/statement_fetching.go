@@ -16,7 +16,7 @@ type StatementFetchingRequest struct {
 	// Data needed to locate and identify the needed statement.
 	RelayParent common.Hash `scale:"1"`
 
-	// Hash of candidate that was used create the `CommitedCandidateRecept`.
+	// Hash of candidate that was used create the `CommitedCandidateReceipt`.
 	CandidateHash parachaintypes.CandidateHash `scale:"2"`
 }
 
