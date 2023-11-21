@@ -60,7 +60,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 		return runtime, nil
 	}
 
-	basePath := filepath.Join(os.TempDir(), "/gossamer/runtimes/")
+	basePath := filepath.Join(os.TempDir(), "gossamer", "runtimes")
 	const perm = os.FileMode(0777)
 	err = os.MkdirAll(basePath, perm)
 	if err != nil {
@@ -96,7 +96,7 @@ func GetRuntime(ctx context.Context, runtime string) (
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("cannot make HTTP request: %w", err)
 	}
