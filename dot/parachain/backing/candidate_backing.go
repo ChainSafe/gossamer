@@ -180,10 +180,12 @@ type SignedFullStatementWithPVD struct {
 func New(overseerChan chan<- any) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
+		perRelayParent:      map[common.Hash]perRelayParentState{},
+		perCandidate:        map[parachaintypes.CandidateHash]perCandidateState{},
 	}
 }
 
-func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) error {
+func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) {
 	chRelayParentAndCommand := make(chan RelayParentAndCommand)
 	for {
 		select {
@@ -198,6 +200,7 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 		case <-ctx.Done():
 			close(cb.SubSystemToOverseer)
 			close(chRelayParentAndCommand)
+			return
 		}
 	}
 }
@@ -222,7 +225,7 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	default:
-		return errors.New("unknown message type")
+		return fmt.Errorf("unknown message type: %T", msg)
 	}
 	return nil
 }
@@ -702,7 +705,7 @@ func executorParamsAtRelayParent(
 }
 
 func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd RelayParentAndCommand) error {
-	// TODO: Implement this
+	// TODO: Implement this #3571
 	return nil
 }
 

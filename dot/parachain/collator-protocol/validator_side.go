@@ -36,7 +36,7 @@ var (
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
@@ -44,7 +44,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 		// TODO: polkadot-rust changes reputation in batches, so we do the same?
 		case msg, ok := <-cpvs.OverseerToSubSystem:
 			if !ok {
-				return nil
+				return
 			}
 
 			err := cpvs.processMessage(msg)

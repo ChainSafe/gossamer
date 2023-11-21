@@ -51,9 +51,8 @@ type PDMisbehaviorReport struct {
 
 // Misbehaviour is intended to represent different kinds of misbehaviour along with supporting proofs.
 //
-// TODO: implement this by referring
-// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/statement-table/src/lib.rs#L53-L60 //nolint:lll
-type Misbehaviour byte
+// TODO: implement this #3601
+type Misbehaviour interface{}
 
 // StatementDistributionMessage is a message to the Statement Distribution subsystem.
 type StatementDistributionMessage struct {
@@ -192,8 +191,8 @@ type CVMValidateFromExhaustive struct {
 // as abstract as possible. There are no mandatory parameters defined at the moment, and if any
 // are introduced in the future, they must be clearly documented as mandatory.
 //
-//	// TODO: Implement this #3544
-//	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/primitives/src/v6/executor_params.rs#L97-L98
+// TODO: Implement this #3544
+// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/primitives/src/v6/executor_params.rs#L97-L98
 type ExecutorParams scale.VaryingDataTypeSlice
 
 // PvfPrepTimeoutKind is an enumeration representing the type discriminator for PVF execution timeouts.

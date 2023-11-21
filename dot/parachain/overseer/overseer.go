@@ -59,10 +59,7 @@ func (o *Overseer) Start() error {
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
 		go func(sub Subsystem, overseerToSubSystem chan any) {
-			err := sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
-			if err != nil {
-				logger.Errorf("running subsystem %v failed: %v", sub, err)
-			}
+			sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
 		}(subsystem, overseerToSubSystem)

@@ -26,6 +26,6 @@ type ActiveLeavesUpdate struct {
 // Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
-	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
+	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any)
 	Name() parachaintypes.SubSystemName
 }
