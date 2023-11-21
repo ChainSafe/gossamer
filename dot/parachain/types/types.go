@@ -250,6 +250,10 @@ type CandidateCommitments struct {
 	HrmpWatermark uint32 `scale:"6"`
 }
 
+func (cc CandidateCommitments) Hash() common.Hash {
+	return common.MustBlake2bHash(scale.MustMarshal(cc))
+}
+
 // SessionIndex is a session index.
 type SessionIndex uint32
 
@@ -259,6 +263,13 @@ type CommittedCandidateReceipt struct {
 	Descriptor CandidateDescriptor `scale:"1"`
 	// The commitments made by the parachain.
 	Commitments CandidateCommitments `scale:"2"`
+}
+
+func (ccr CommittedCandidateReceipt) ToPlain() CandidateReceipt {
+	return CandidateReceipt{
+		Descriptor:      ccr.Descriptor,
+		CommitmentsHash: ccr.Commitments.Hash(),
+	}
 }
 
 // AssignmentID The public key of a keypair used by a validator for determining assignments
@@ -330,6 +341,15 @@ type CandidateReceipt struct {
 	Descriptor CandidateDescriptor `scale:"1"`
 	// The candidate event.
 	CommitmentsHash common.Hash `scale:"2"`
+}
+
+func (cr CandidateReceipt) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(cr)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling CommittedCandidateReceipt: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
 }
 
 // HeadData Parachain head data included in the chain.
