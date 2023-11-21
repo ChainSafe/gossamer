@@ -59,8 +59,7 @@ type nodeBuilderIface interface {
 		net *network.Service) error
 	createBlockVerifier(st *state.Service) *babe.VerificationManager
 	createDigestHandler(st *state.Service) (*digest.Handler, error)
-	createCoreService(config *cfg.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
-		dh *digest.Handler) (*core.Service, error)
+	createCoreService(config *cfg.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
 	newSyncService(config *cfg.Config, st *state.Service, finalityGadget BlockJustificationVerifier,
@@ -367,7 +366,7 @@ func newNode(config *cfg.Config,
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
 
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}

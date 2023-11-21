@@ -128,7 +128,7 @@ func TestNewNode(t *testing.T) {
 	m.EXPECT().createDigestHandler(gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&digest.Handler{}, nil)
 	m.EXPECT().createCoreService(initConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
-		gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).
+		gomock.AssignableToTypeOf(&network.Service{})).
 		Return(&core.Service{}, nil)
 	m.EXPECT().createGRANDPAService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
