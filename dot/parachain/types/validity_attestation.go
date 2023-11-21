@@ -57,11 +57,7 @@ func (e Explicit) String() string { //skipcq:SCC-U1000
 }
 
 // NewValidityAttestation creates a ValidityAttestation varying data type.
-func NewValidityAttestation() ValidityAttestation { //skipcq
-	vdt, err := scale.NewVaryingDataType(Implicit{}, Explicit{})
-	if err != nil {
-		panic(err)
-	}
-
+func NewValidityAttestation() ValidityAttestation {
+	vdt := scale.MustNewVaryingDataType(Implicit{}, Explicit{})
 	return ValidityAttestation(vdt)
 }

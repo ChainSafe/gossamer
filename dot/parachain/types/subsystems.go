@@ -51,9 +51,8 @@ type PDMisbehaviorReport struct {
 
 // Misbehaviour is intended to represent different kinds of misbehaviour along with supporting proofs.
 //
-// TODO: implement this by referring
-// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/statement-table/src/lib.rs#L53-L60 //nolint:lll
-type Misbehaviour byte
+// TODO: implement this #3601
+type Misbehaviour interface{}
 
 // StatementDistributionMessage is a message to the Statement Distribution subsystem.
 type StatementDistributionMessage struct {
