@@ -253,7 +253,7 @@ var _ HypotheticalCandidate = (*HCComplete)(nil)
 // HypotheticalCandidate represents a candidate to be evaluated for membership
 // in the prospective parachains subsystem.
 //
-// Hypothetical candidates can be categorized into two types: complete and incomplete.
+// Hypothetical candidates can be categorised into two types: complete and incomplete.
 //
 //   - Complete candidates have already had their potentially heavy candidate receipt
 //     fetched, making them suitable for stricter evaluation.

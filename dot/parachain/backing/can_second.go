@@ -34,7 +34,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 
 	if isSecondingAllowed {
 		for _, v := range membership {
-			// candidate should be recognized by at least some fragment tree.
+			// candidate should be recognised by at least some fragment tree.
 			if v != nil {
 				msg.resCh <- true
 				return
@@ -48,10 +48,14 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 // secondingSanityCheck checks whether a candidate can be seconded based on its
 // hypothetical frontiers in the fragment tree and what we've already seconded in
 // all active leaves.
+//
+// if the candidate can be seconded, returns true and a map of the heads of active leaves to the depths,
+// where the candidate is a member of the fragment tree.
+// Returns false if the candidate cannot be seconded.
 func (cb *CandidateBacking) secondingSanityCheck(
 	hypotheticalCandidate parachaintypes.HypotheticalCandidate,
 	backedInPathOnly bool,
-) (isSecondingAllowed bool, membership map[common.Hash][]uint) {
+) (bool, map[common.Hash][]uint) {
 	type response struct {
 		depths          []uint
 		head            common.Hash
@@ -62,6 +66,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 		responses            []response
 		candidateParaID      parachaintypes.ParaID
 		candidateRelayParent common.Hash
+		membership           = make(map[common.Hash][]uint)
 	)
 
 	switch v := hypotheticalCandidate.(type) {
