@@ -21,6 +21,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -117,6 +118,21 @@ func (s *Service) Stop() error {
 	return nil
 }
 
+func (s *Service) getCurrentStateTrieVersion() (trie.TrieLayout, error) {
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
+	if err != nil {
+		return trie.NoVersion, err
+	}
+
+	runtimeVersion, err := rt.Version()
+	if err != nil {
+		return trie.NoVersion, err
+	}
+
+	return trie.ParseVersion(runtimeVersion.StateVersion)
+}
+
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	ts, err := s.storageState.TrieState(nil)
@@ -124,7 +140,12 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	return ts.Root()
+	stateTrieVersion, err := s.getCurrentStateTrieVersion()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return stateTrieVersion.Hash(ts.Trie())
 }
 
 // HandleBlockImport handles a block that was imported via the network
@@ -227,7 +248,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot())
+		block.Header.Hash(), state.MustRoot(trie.NoMaxInlineValueSize))
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {

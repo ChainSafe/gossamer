@@ -379,7 +379,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }
@@ -398,7 +398,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }

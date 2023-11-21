@@ -3,4 +3,4 @@
 
 package trie
 
-//go:generate mockgen -destination=db_getter_mocks_test.go -package=$GOPACKAGE . DBGetter
+//go:generate mockgen -destination=db_getter_mocks_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/trie/db DBGetter

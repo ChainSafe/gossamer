@@ -35,7 +35,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
-	root, err := ts.Root()
+	root, err := ts.Root(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -46,7 +46,8 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	ts2 := runtime.NewTrieState(trie)
 	newSnapshot := ts2.Snapshot()
-	require.Equal(t, ts.Trie(), newSnapshot)
+
+	require.True(t, ts.Trie().Equal(newSnapshot))
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -58,7 +59,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	value := []byte("testvalue")
 	ts.Put(key, value)
 
-	root, err := ts.Root()
+	root, err := ts.Root(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -90,7 +91,7 @@ func TestStorage_TrieState(t *testing.T) {
 	require.NoError(t, err)
 	ts.Put([]byte("noot"), []byte("washere"))
 
-	root, err := ts.Root()
+	root, err := ts.Root(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -101,7 +102,7 @@ func TestStorage_TrieState(t *testing.T) {
 	storage.blockState.tries.delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
-	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
+	require.Equal(t, ts.Trie().MustHash(trie.NoMaxInlineValueSize), ts3.Trie().MustHash(trie.NoMaxInlineValueSize))
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
@@ -117,13 +118,14 @@ func TestStorage_LoadFromDB(t *testing.T) {
 		{[]byte("key1"), []byte("value1")},
 		{[]byte("key2"), []byte("value2")},
 		{[]byte("xyzKey1"), []byte("xyzValue1")},
+		{[]byte("long"), []byte("newvaluewithmorethan32byteslength")},
 	}
 
 	for _, kv := range trieKV {
 		ts.Put(kv.key, kv.value)
 	}
 
-	root, err := ts.Root()
+	root, err := ts.Root(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 
 	// Write trie to disk.
@@ -147,7 +149,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
-	require.Equal(t, 4, len(entries))
+	require.Equal(t, 5, len(entries))
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
@@ -178,15 +180,15 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		genHeader.Hash(),
 		"0",
 	))
-	dbGetter := NewMockDBGetter(ctrl)
-	dbGetter.EXPECT().Get(gomock.Any()).Times(0)
+	trieDB := NewMockDatabase(ctrl)
+	trieDB.EXPECT().Get(gomock.Any()).Times(0)
 
 	trieRoot := &node.Node{
 		PartialKey:   []byte{1, 2},
 		StorageValue: []byte{3, 4},
 		Dirty:        true,
 	}
-	testChildTrie := trie.NewTrie(trieRoot, dbGetter)
+	testChildTrie := trie.NewTrie(trieRoot, trieDB)
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
@@ -203,13 +205,13 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 
 	trieState := runtime.NewTrieState(&genTrie)
 
-	header := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
+	header := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(trie.NoMaxInlineValueSize),
 		common.Hash{}, 1, types.NewDigest())
 
 	err = storage.StoreTrie(trieState, header)
 	require.NoError(t, err)
 
-	rootHash, err := genTrie.Hash()
+	rootHash, err := genTrie.Hash(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
