@@ -25,10 +25,13 @@ var (
 	_ ProspectiveParachainsMessage = (*PPMCandidateBacked)(nil)
 	_ ProspectiveParachainsMessage = (*PPMIntroduceCandidate)(nil)
 	_ ProspectiveParachainsMessage = (*PPMCandidateSeconded)(nil)
+	_ ProspectiveParachainsMessage = (*PPMGetHypotheticalFrontier)(nil)
 	_ RuntimeApiMessage            = (*RAMRequest)(nil)
 	_ RuntimeApiRequest            = (*RARValidationCodeByHash)(nil)
 	_ CandidateValidationMessage   = (*CVMValidateFromExhaustive)(nil)
 	_ AvailabilityStoreMessage     = (*ASMStoreAvailableData)(nil)
+	_ HypotheticalCandidate        = (*HCIncomplete)(nil)
+	_ HypotheticalCandidate        = (*HCComplete)(nil)
 )
 
 // OverseerFuncRes is a result of an overseer function
@@ -119,6 +122,8 @@ type PPMGetHypotheticalFrontier struct {
 	HypotheticalFrontierRequest HypotheticalFrontierRequest
 	Ch                          chan HypotheticalFrontierResponse
 }
+
+func (PPMGetHypotheticalFrontier) IsProspectiveParachainsMessage() {}
 
 type HypotheticalFrontierResponse []struct {
 	HypotheticalCandidate  HypotheticalCandidate
@@ -292,9 +297,6 @@ type AvailableData struct {
 	// The persisted validation data needed for approval checks
 	ValidationData PersistedValidationData `scale:"2"`
 }
-
-var _ HypotheticalCandidate = (*HCIncomplete)(nil)
-var _ HypotheticalCandidate = (*HCComplete)(nil)
 
 // HypotheticalCandidate represents a candidate to be evaluated for membership
 // in the prospective parachains subsystem.

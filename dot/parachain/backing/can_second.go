@@ -87,15 +87,13 @@ func (cb *CandidateBacking) secondingSanityCheck(
 			}
 
 			responseCh := make(chan parachaintypes.HypotheticalFrontierResponse)
-			cb.SubSystemToOverseer <- parachaintypes.ProspectiveParachainsMessage{
-				Value: parachaintypes.PPMGetHypotheticalFrontier{
-					HypotheticalFrontierRequest: parachaintypes.HypotheticalFrontierRequest{
-						Candidates:              []parachaintypes.HypotheticalCandidate{hypotheticalCandidate},
-						FragmentTreeRelayParent: &head,
-						BackedInPathOnly:        backedInPathOnly,
-					},
-					Ch: responseCh,
+			cb.SubSystemToOverseer <- parachaintypes.PPMGetHypotheticalFrontier{
+				HypotheticalFrontierRequest: parachaintypes.HypotheticalFrontierRequest{
+					Candidates:              []parachaintypes.HypotheticalCandidate{hypotheticalCandidate},
+					FragmentTreeRelayParent: &head,
+					BackedInPathOnly:        backedInPathOnly,
 				},
+				Ch: responseCh,
 			}
 
 			res, ok := <-responseCh
