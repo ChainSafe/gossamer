@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/qdm12/gotree"
 )
@@ -16,8 +17,8 @@ type Node struct {
 	// PartialKey is the partial key bytes in nibbles (0 to f in hexadecimal)
 	PartialKey   []byte
 	StorageValue []byte
-	// HashedValue is true when the StorageValue is a blake2b hash
-	HashedValue bool
+	// IsHashedValue is true when the StorageValue is a blake2b hash
+	IsHashedValue bool
 	// Generation is incremented on every trie Snapshot() call.
 	// Each node also contain a certain Generation number,
 	// which is updated to match the trie Generation once they are
@@ -57,6 +58,7 @@ func (n *Node) StringNode() (stringNode *gotree.Node) {
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
 	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
+	stringNode.Appendf("IsHashed: " + strconv.FormatBool(n.IsHashedValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
