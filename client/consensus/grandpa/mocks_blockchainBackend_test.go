@@ -220,19 +220,29 @@ func (_c *BlockchainBackendMock_Info_Call[Hash, N, H]) RunAndReturn(run func() I
 }
 
 // Justifications provides a mock function with given fields: hash
-func (_m *BlockchainBackendMock[Hash, N, H]) Justifications(hash Hash) Justifications {
+func (_m *BlockchainBackendMock[Hash, N, H]) Justifications(hash Hash) (*Justifications, error) {
 	ret := _m.Called(hash)
 
-	var r0 Justifications
-	if rf, ok := ret.Get(0).(func(Hash) Justifications); ok {
+	var r0 *Justifications
+	var r1 error
+	if rf, ok := ret.Get(0).(func(Hash) (*Justifications, error)); ok {
+		return rf(hash)
+	}
+	if rf, ok := ret.Get(0).(func(Hash) *Justifications); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(Justifications)
+			r0 = ret.Get(0).(*Justifications)
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(Hash) error); ok {
+		r1 = rf(hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // BlockchainBackendMock_Justifications_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Justifications'
@@ -253,12 +263,12 @@ func (_c *BlockchainBackendMock_Justifications_Call[Hash, N, H]) Run(run func(ha
 	return _c
 }
 
-func (_c *BlockchainBackendMock_Justifications_Call[Hash, N, H]) Return(_a0 Justifications) *BlockchainBackendMock_Justifications_Call[Hash, N, H] {
-	_c.Call.Return(_a0)
+func (_c *BlockchainBackendMock_Justifications_Call[Hash, N, H]) Return(_a0 *Justifications, _a1 error) *BlockchainBackendMock_Justifications_Call[Hash, N, H] {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackendMock_Justifications_Call[Hash, N, H]) RunAndReturn(run func(Hash) Justifications) *BlockchainBackendMock_Justifications_Call[Hash, N, H] {
+func (_c *BlockchainBackendMock_Justifications_Call[Hash, N, H]) RunAndReturn(run func(Hash) (*Justifications, error)) *BlockchainBackendMock_Justifications_Call[Hash, N, H] {
 	_c.Call.Return(run)
 	return _c
 }

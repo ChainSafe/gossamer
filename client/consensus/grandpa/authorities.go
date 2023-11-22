@@ -725,27 +725,28 @@ func (asc *authoritySetChangeID) Value() (val scale.VaryingDataTypeValue, err er
 }
 
 func newAuthoritySetChangeID[N constraints.Unsigned]() authoritySetChangeID {
-	vdt := scale.MustNewVaryingDataType(latest{}, set[N]{}, unknown{})
+	vdt := scale.MustNewVaryingDataType(authoritySetChangeIDLatest{}, authoritySetChangeIDSet[N]{},
+		authoritySetChangeIDUnknown{})
 	return authoritySetChangeID(vdt)
 }
 
-type latest struct{}
+type authoritySetChangeIDLatest struct{}
 
-func (latest) Index() uint {
+func (authoritySetChangeIDLatest) Index() uint {
 	return 0
 }
 
-type set[N constraints.Unsigned] struct {
+type authoritySetChangeIDSet[N constraints.Unsigned] struct {
 	inner setIDNumber[N]
 }
 
-func (set[N]) Index() uint {
+func (authoritySetChangeIDSet[N]) Index() uint {
 	return 1
 }
 
-type unknown struct{}
+type authoritySetChangeIDUnknown struct{}
 
-func (unknown) Index() uint {
+func (authoritySetChangeIDUnknown) Index() uint {
 	return 2
 }
 
@@ -758,7 +759,7 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID auth
 	authSet := *asc
 	last := authSet[len(authSet)-1]
 	if last.BlockNumber < blockNumber {
-		err = authSetChangeID.Set(latest{})
+		err = authSetChangeID.Set(authoritySetChangeIDLatest{})
 		if err != nil {
 			return authSetChangeID, err
 		}
@@ -786,13 +787,13 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID auth
 
 		// if this is the first index but not the first set id then we are missing data.
 		if idx == 0 && authChange.SetID != 0 {
-			err = authSetChangeID.Set(unknown{})
+			err = authSetChangeID.Set(authoritySetChangeIDUnknown{})
 			if err != nil {
 				return authSetChangeID, err
 			}
 			return authSetChangeID, nil
 		}
-		err = authSetChangeID.Set(set[N]{
+		err = authSetChangeID.Set(authoritySetChangeIDSet[N]{
 			authChange,
 		})
 		if err != nil {
@@ -801,7 +802,7 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID auth
 		return authSetChangeID, nil
 	}
 
-	err = authSetChangeID.Set(unknown{})
+	err = authSetChangeID.Set(authoritySetChangeIDUnknown{})
 	if err != nil {
 		return authSetChangeID, err
 	}

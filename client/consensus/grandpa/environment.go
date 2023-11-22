@@ -70,7 +70,7 @@ func (cr *completedRounds[H, N, ID, Sig]) iter() []completedRound[H, N, ID, Sig]
 	return reversed
 }
 
-// last Returns the last (latest) completed round
+// last Returns the last (authoritySetChangeIDLatest) completed round
 func (cr *completedRounds[H, N, ID, Sig]) last() completedRound[H, N, ID, Sig] {
 	if len(cr.Rounds) == 0 {
 		panic("inner is never empty; always contains at least genesis; qed")

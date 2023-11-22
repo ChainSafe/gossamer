@@ -95,7 +95,7 @@ type Info[N constraints.Unsigned] struct {
 // primitives/blockchains/src/backend
 type BlockchainBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
 	HeaderBackend[Hash, N, H]
-	Justifications(hash Hash) Justifications
+	Justifications(hash Hash) (*Justifications, error)
 }
 
 /*

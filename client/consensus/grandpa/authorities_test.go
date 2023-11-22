@@ -1208,7 +1208,7 @@ func assertExpectedSet(t *testing.T, authSetID authoritySetChangeID, expected se
 	authSetVal, err := authSetID.Value()
 	require.NoError(t, err)
 	switch val := authSetVal.(type) {
-	case set[uint]:
+	case authoritySetChangeIDSet[uint]:
 		require.Equal(t, expected, val.inner)
 	default:
 		err = fmt.Errorf("invalid authSetID type")
@@ -1222,7 +1222,7 @@ func assertUnknown(t *testing.T, authSetID authoritySetChangeID) {
 	require.NoError(t, err)
 	isUnknown := false
 	switch authSetVal.(type) {
-	case unknown:
+	case authoritySetChangeIDUnknown:
 		isUnknown = true
 	}
 	require.True(t, isUnknown)
@@ -1234,7 +1234,7 @@ func assertLatest(t *testing.T, authSetID authoritySetChangeID) {
 	require.NoError(t, err)
 	isLatest := false
 	switch authSetVal.(type) {
-	case latest:
+	case authoritySetChangeIDLatest:
 		isLatest = true
 	}
 	require.True(t, isLatest)

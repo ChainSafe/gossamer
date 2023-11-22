@@ -22,7 +22,8 @@ func checkFinalityProof[
 	N constraints.Unsigned,
 	S comparable,
 	H Header[Hash, N],
-	ID AuthorityID](
+	ID AuthorityID,
+](
 	t *testing.T,
 	currentSetID uint64,
 	currentAuthorities AuthorityList[ID],
@@ -112,7 +113,8 @@ func TestFinalityProof_FailsIfNoMoreLastFinalizedBlocks(t *testing.T) {
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend,
 		authoritySetChanges,
 		5,
@@ -128,7 +130,7 @@ func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
 	mockBlockchain := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(4)).Return(dummyHash, nil).Once()
-	mockBlockchain.EXPECT().Justifications(dummyHash).Return(Justifications{}).Once()
+	mockBlockchain.EXPECT().Justifications(dummyHash).Return(nil, nil).Once()
 
 	mockBackend := NewBackendMock[string, uint, testHeader[string, uint],
 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
@@ -147,7 +149,8 @@ func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend,
 		authoritySetChanges,
 		3,
@@ -276,7 +279,8 @@ func TestFinalityProof_UsingAuthoritySetChangesFailsWithUndefinedStart(t *testin
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend,
 		authoritySetChanges,
 		6,
@@ -321,7 +325,7 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(7)).Return("hash7", nil).Once()
 	mockBlockchain.EXPECT().ExpectHeader("hash7").Return(header7, nil).Once()
 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(8)).Return("hash8", nil).Times(3)
-	mockBlockchain.EXPECT().Justifications("hash8").Return(justifications).Times(1)
+	mockBlockchain.EXPECT().Justifications("hash8").Return(&justifications, nil).Times(1)
 	mockBlockchain.EXPECT().ExpectHeader("hash8").Return(header8, nil).Once()
 
 	mockBackend := NewBackendMock[string, uint, testHeader[string, uint],
@@ -342,7 +346,8 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend,
 		authoritySetChanges,
 		6,
@@ -361,7 +366,7 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 	mockBlockchain2 := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
 	mockBlockchain2.EXPECT().Info().Return(dummyInfo).Once()
 	mockBlockchain2.EXPECT().ExpectBlockHashFromID(uint(8)).Return("hash8", nil).Times(2)
-	mockBlockchain2.EXPECT().Justifications("hash8").Return(justifications).Times(1)
+	mockBlockchain2.EXPECT().Justifications("hash8").Return(&justifications, nil).Times(1)
 
 	mockBackend2 := NewBackendMock[string, uint, testHeader[string, uint],
 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
@@ -375,7 +380,8 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend2,
 		authoritySetChanges,
 		6,
@@ -402,7 +408,7 @@ func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(1)
 	mockBackend.EXPECT().Get(Key("grandpa_best_justification")).Return(nil, nil).Times(1)
 
-	// No recent authority set change, so we are in the latest set, and we will try to pickup
+	// No recent authority set change, so we are in the authoritySetChangeIDLatest set, and we will try to pickup
 	// the best stored justification, for which there is none in this case.
 	authoritySetChanges := AuthoritySetChanges[uint]{}
 	authoritySetChanges.append(0, 5)
@@ -419,7 +425,8 @@ func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend,
 		authoritySetChanges,
 		6,
@@ -466,7 +473,7 @@ func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(6)
 	mockBackend.EXPECT().Get(Key("grandpa_best_justification")).Return(&encJust, nil).Times(1)
 
-	// No recent authority set change, so we are in the latest set, and will pickup the best
+	// No recent authority set change, so we are in the authoritySetChangeIDLatest set, and will pickup the best
 	// stored justification (via mock get call)
 	authoritySetChanges := AuthoritySetChanges[uint]{}
 	authoritySetChanges.append(0, 5)
@@ -479,7 +486,8 @@ func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {
 		string,
 		dummyAuthID,
 		testHeader[string, uint],
-		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](
+		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
+	](
 		mockBackend,
 		authoritySetChanges,
 		6,
