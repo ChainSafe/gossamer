@@ -6,11 +6,13 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 // EmptyHash is the empty trie hash.
@@ -21,7 +23,7 @@ type Trie struct {
 	generation uint64
 	root       *Node
 	childTries map[common.Hash]*Trie
-	db         DBGetter
+	db         db.Database
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -32,11 +34,11 @@ type Trie struct {
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	return NewTrie(nil, nil)
+	return NewTrie(nil, db.NewEmptyMemoryDB())
 }
 
 // NewTrie creates a trie with an existing root node
-func NewTrie(root *Node, db DBGetter) *Trie {
+func NewTrie(root *Node, db db.Database) *Trie {
 	return &Trie{
 		root:       root,
 		childTries: make(map[common.Hash]*Trie),
@@ -44,6 +46,20 @@ func NewTrie(root *Node, db DBGetter) *Trie {
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
 	}
+}
+
+// Equal is to compare one trie with other, this method will ignore the shared db instance
+func (t *Trie) Equal(other *Trie) bool {
+	if t == nil && other == nil {
+		return true
+	}
+
+	if t == nil || other == nil {
+		return false
+	}
+
+	return t.generation == other.generation && reflect.DeepEqual(t.root, other.root) &&
+		reflect.DeepEqual(t.childTries, other.childTries) && reflect.DeepEqual(t.deltas, other.deltas)
 }
 
 // Snapshot creates a copy of the trie.
@@ -66,6 +82,7 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 	return &Trie{
 		generation: t.generation + 1,
 		root:       t.root,
+		db:         t.db,
 		childTries: childTries,
 		deltas:     tracking.New(),
 	}
@@ -139,6 +156,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 
 	trieCopy = &Trie{
 		generation: t.generation,
+		db:         t.db,
 	}
 
 	if t.deltas != nil {
@@ -171,8 +189,8 @@ func (t *Trie) RootNode() *Node {
 
 // MustHash returns the hashed root of the trie.
 // It panics if it fails to hash the root node.
-func (t *Trie) MustHash() common.Hash {
-	h, err := t.Hash()
+func (t *Trie) MustHash(maxInlineValue int) common.Hash {
+	h, err := t.Hash(maxInlineValue)
 	if err != nil {
 		panic(err)
 	}
@@ -181,12 +199,12 @@ func (t *Trie) MustHash() common.Hash {
 }
 
 // Hash returns the hashed root of the trie.
-func (t *Trie) Hash() (rootHash common.Hash, err error) {
+func (t *Trie) Hash(maxInlineValue int) (rootHash common.Hash, err error) {
 	if t.root == nil {
 		return EmptyHash, nil
 	}
 
-	merkleValue, err := t.root.CalculateRootMerkleValue()
+	merkleValue, err := t.root.CalculateRootMerkleValue(maxInlineValue)
 	if err != nil {
 		return rootHash, err
 	}
@@ -194,71 +212,39 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	return rootHash, nil
 }
 
-// EntriesList returns all the key-value pairs in the trie as a slice of key value
-// where the keys are encoded in Little Endian.  The slice starts with root node.
-func (t *Trie) EntriesList() [][2][]byte {
-	list := make([][2][]byte, 0)
-	entriesList(t.root, nil, &list)
-	return list
-}
-
-func entriesList(parent *Node, prefix []byte, list *[][2][]byte) {
-	if parent == nil {
-		return
-	}
-
-	if parent.Kind() == node.Leaf {
-		parentKey := parent.PartialKey
-		fullKeyNibbles := concatenateSlices(prefix, parentKey)
-		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
-		*list = append(*list, [2][]byte{keyLE, parent.StorageValue})
-		return
-	}
-
-	branch := parent
-	if branch.StorageValue != nil {
-		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
-		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
-		*list = append(*list, [2][]byte{keyLE, parent.StorageValue})
-	}
-
-	for i, child := range branch.Children {
-		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
-		entriesList(child, childPrefix, list)
-	}
-}
-
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 // where the keys are encoded in Little Endian.
 func (t *Trie) Entries() (keyValueMap map[string][]byte) {
 	keyValueMap = make(map[string][]byte)
-	entries(t.root, nil, keyValueMap)
+	t.buildEntriesMap(t.root, nil, keyValueMap)
 	return keyValueMap
 }
 
-func entries(parent *Node, prefix []byte, kv map[string][]byte) {
-	if parent == nil {
+func (t *Trie) buildEntriesMap(currentNode *Node, prefix []byte, kv map[string][]byte) {
+	if currentNode == nil {
 		return
 	}
 
-	if parent.Kind() == node.Leaf {
-		parentKey := parent.PartialKey
-		fullKeyNibbles := concatenateSlices(prefix, parentKey)
-		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = parent.StorageValue
+	// Leaf
+	if currentNode.Kind() == node.Leaf {
+		key := currentNode.PartialKey
+		fullKeyNibbles := concatenateSlices(prefix, key)
+		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
+		kv[string(keyLE)] = t.Get(keyLE)
 		return
 	}
 
-	branch := parent
+	// Branch
+	branch := currentNode
 	if branch.StorageValue != nil {
 		fullKeyNibbles := concatenateSlices(prefix, branch.PartialKey)
-		keyLE := string(codec.NibblesToKeyLE(fullKeyNibbles))
-		kv[keyLE] = branch.StorageValue
+		keyLE := codec.NibblesToKeyLE(fullKeyNibbles)
+		kv[string(keyLE)] = t.Get(keyLE)
 	}
 
 	for i, child := range branch.Children {
 		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
-		entries(child, childPrefix, kv)
+		t.buildEntriesMap(child, childPrefix, kv)
 	}
 }
 
@@ -372,6 +358,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 		// is no value.
 		value = []byte{}
 	}
+
 	root, _, _, err := t.insert(t.root, nibblesKey, value, pendingDeltas)
 	if err != nil {
 		return err
@@ -382,8 +369,7 @@ func (t *Trie) insertKeyLE(keyLE, value []byte,
 
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
-func (t *Trie) insert(parent *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (newParent *Node,
+func (t *Trie) insert(parent *Node, key, value []byte, pendingDeltas DeltaRecorder) (newParent *Node,
 	mutated bool, nodesCreated uint32, err error) {
 	if parent == nil {
 		mutated = true
@@ -477,6 +463,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
 		newBranchParent.StorageValue = parentLeaf.StorageValue
+		newBranchParent.IsHashedValue = parentLeaf.IsHashedValue
 	} else {
 		// make the leaf a child of the new branch
 		copySettings := node.DefaultCopySettings
@@ -644,29 +631,6 @@ func LoadFromMap(data map[string]string) (trie Trie, err error) {
 	return trie, nil
 }
 
-// LoadFromEntries loads the given slice of key values into a new empty trie.
-// The keys are in hexadecimal little Endian encoding and the values
-// are hexadecimal encoded.
-func LoadFromEntries(entries [][2][]byte) (trie *Trie, err error) {
-	trie = NewEmptyTrie()
-
-	pendingDeltas := tracking.New()
-	defer func() {
-		trie.handleTrackedDeltas(err == nil, pendingDeltas)
-	}()
-
-	for _, keyValue := range entries {
-		keyLE := keyValue[0]
-		value := keyValue[1]
-		err := trie.insertKeyLE(keyLE, value, pendingDeltas)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return trie, nil
-}
-
 // GetKeysWithPrefix returns all keys in little Endian
 // format from nodes in the trie that have the given little
 // Endian formatted prefix in their key.
@@ -777,7 +741,7 @@ func (t *Trie) Get(keyLE []byte) (value []byte) {
 	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
+func retrieve(db db.DBGetter, parent *Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
@@ -788,9 +752,9 @@ func retrieve(db DBGetter, parent *Node, key []byte) (value []byte) {
 	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db db.DBGetter, leaf *Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
-		if leaf.HashedValue {
+		if leaf.IsHashedValue {
 			// We get the node
 			value, err := db.Get(leaf.StorageValue)
 			if err != nil {
@@ -803,7 +767,7 @@ func retrieveFromLeaf(db DBGetter, leaf *Node, key []byte) (value []byte) {
 	return nil
 }
 
-func retrieveFromBranch(db DBGetter, branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db db.DBGetter, branch *Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}
@@ -1399,10 +1363,11 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
 			return &Node{
-				PartialKey:   newLeafKey,
-				StorageValue: child.StorageValue,
-				Dirty:        true,
-				Generation:   branch.Generation,
+				PartialKey:    newLeafKey,
+				StorageValue:  child.StorageValue,
+				IsHashedValue: child.IsHashedValue,
+				Dirty:         true,
+				Generation:    branch.Generation,
 			}, branchChildMerged, nil
 		}
 
@@ -1441,12 +1406,12 @@ func (t *Trie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
 	}
 
 	if parent == t.root {
-		_, err = parent.CalculateRootMerkleValue()
+		_, err = parent.CalculateRootMerkleValue(NoMaxInlineValueSize)
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of root node: %w", err)
 		}
 	} else {
-		_, err = parent.CalculateMerkleValue()
+		_, err = parent.CalculateMerkleValue(NoMaxInlineValueSize)
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of node: %w", err)
 		}

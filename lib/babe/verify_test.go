@@ -231,8 +231,6 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 	}
 
 	mockSlotState := NewMockSlotState(nil)
-	v := newVerifier(mockBlockState, mockSlotState, 1, vi, time.Second)
-	v1 := newVerifier(mockBlockState, mockSlotState, 1, vi1, time.Second)
 
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
@@ -252,7 +250,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 	}{
 		{
 			name:     "Over threshold",
-			verifier: *v,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, vi, time.Second),
 			args: args{
 				slot:      1,
 				vrfOutput: [32]byte{},
@@ -262,7 +260,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 		},
 		{
 			name:     "VRF not verified",
-			verifier: *v1,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, vi1, time.Second),
 			args: args{
 				slot:      1,
 				vrfOutput: [32]byte{},
@@ -271,7 +269,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 		},
 		{
 			name:     "VRF verified",
-			verifier: *v1,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, vi1, time.Second),
 			args: args{
 				slot:      1,
 				vrfOutput: output,
@@ -281,9 +279,10 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			res, err := b.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot, tt.args.vrfOutput, tt.args.vrfProof)
+			res, err := tt.verifier.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot,
+				tt.args.vrfOutput, tt.args.vrfProof)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -363,9 +362,6 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 		secondarySlots: true,
 	}
 
-	vVRFSec := newVerifier(mockBlockState, mockSlotState, 1, viVRFSec, testSlotDuration)
-	vVRFSec2 := newVerifier(mockBlockState, mockSlotState, 1, viVRFSec2, testSlotDuration)
-
 	//BabeSecondaryPlainPreDigest case
 	secDigest := types.BabeSecondaryPlainPreDigest{AuthorityIndex: 0, SlotNumber: uint64(1)}
 	prd, err := secDigest.ToPreRuntimeDigest()
@@ -382,9 +378,6 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
-
-	vSec := newVerifier(mockBlockState, mockSlotState, 1, viSec, testSlotDuration)
-	vSec2 := newVerifier(mockBlockState, mockSlotState, 1, viSec2, testSlotDuration)
 
 	type args struct {
 		digest *types.PreRuntimeDigest
@@ -433,33 +426,33 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 		},
 		{
 			name:     "BabeSecondaryPlainPreDigest SecondarySlot false",
-			verifier: *vSec,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viSec, testSlotDuration),
 			args:     args{prd},
 			expErr:   ErrBadSlotClaim,
 		},
 		{
 			name:     "BabeSecondaryPlainPreDigest invalid claim",
-			verifier: *vSec2,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viSec2, testSlotDuration),
 			args:     args{prd},
 			expErr:   errors.New("invalid secondary slot claim"),
 		},
 		{
 			name:     "BabeSecondaryVRFPreDigest SecondarySlot false",
-			verifier: *vVRFSec,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viVRFSec, testSlotDuration),
 			args:     args{babePRD},
 			expErr:   ErrBadSlotClaim,
 		},
 		{
 			name:     "BabeSecondaryVRFPreDigest invalid claim",
-			verifier: *vVRFSec2,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viVRFSec2, testSlotDuration),
 			args:     args{babePRD},
 			expErr:   errors.New("invalid secondary slot claim"),
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			res, err := b.verifyPreRuntimeDigest(tt.args.digest)
+			res, err := tt.verifier.verifyPreRuntimeDigest(tt.args.digest)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -668,9 +661,9 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			err := b.verifyAuthorshipRight(tt.header)
+			err := tt.verifier.verifyAuthorshipRight(tt.header)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
