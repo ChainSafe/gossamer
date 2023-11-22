@@ -388,7 +388,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
 	require.NoError(t, err)
 
-	expectedRoot, err := expected.Hash()
+	expectedRoot, err := trie.V0.Hash(&expected) // Since we are using a runtime with state trie V0
 	require.NoError(t, err)
 
 	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})

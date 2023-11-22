@@ -13,23 +13,18 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/pools"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
 
 var (
 	ErrKeyNotFound = errors.New("key not found")
 )
 
-// Database defines a key value Get method used
-// for proof generation.
-type Database interface {
-	Get(key []byte) (value []byte, err error)
-}
-
 // Generate generates and deduplicates the encoded proof nodes
 // for the trie corresponding to the root hash given, and for
 // the slice of (Little Endian) full keys given. The database given
 // is used to load the trie using the root hash given.
-func Generate(rootHash []byte, fullKeys [][]byte, database Database) (
+func Generate(rootHash []byte, fullKeys [][]byte, database db.DBGetter) (
 	encodedProofNodes [][]byte, err error) {
 	trie := trie.NewEmptyTrie()
 	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
@@ -86,7 +81,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 	// Note we do not use sync.Pool buffers since we would have
 	// to copy it so it persists in encodedProofNodes.
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = root.Encode(encodingBuffer)
+	err = root.Encode(encodingBuffer, trie.NoMaxInlineValueSize)
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
@@ -131,7 +126,7 @@ func walk(parent *node.Node, fullKey []byte) (
 	// Note we do not use sync.Pool buffers since we would have
 	// to copy it so it persists in encodedProofNodes.
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = parent.Encode(encodingBuffer)
+	err = parent.Encode(encodingBuffer, trie.NoMaxInlineValueSize)
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
