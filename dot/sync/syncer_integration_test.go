@@ -99,7 +99,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
 			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.MustRoot())
+				block.Header.Hash(), ts.MustRoot(trie.NoMaxInlineValueSize))
 			return nil
 		}).AnyTimes()
 	cfg.BlockImportHandler = blockImportHandler
@@ -138,7 +138,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
+	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

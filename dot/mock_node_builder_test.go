@@ -76,18 +76,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createBlockVerifier(st interface{}) 
 }
 
 // createCoreService mocks base method.
-func (m *MocknodeBuilderIface) createCoreService(config *config.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
+func (m *MocknodeBuilderIface) createCoreService(config *config.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service) (*core.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createCoreService", config, ks, st, net, dh)
+	ret := m.ctrl.Call(m, "createCoreService", config, ks, st, net)
 	ret0, _ := ret[0].(*core.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createCoreService indicates an expected call of createCoreService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createCoreService(config, ks, st, net, dh interface{}) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createCoreService(config, ks, st, net interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createCoreService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createCoreService), config, ks, st, net, dh)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createCoreService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createCoreService), config, ks, st, net)
 }
 
 // createDigestHandler mocks base method.

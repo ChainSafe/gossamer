@@ -40,6 +40,49 @@ func TestTrieState_SetGet(t *testing.T) {
 	testFunc(ts)
 }
 
+func TestTrieState_SetGetChildStorage(t *testing.T) {
+	ts := &TrieState{t: trie.NewEmptyTrie()}
+
+	for _, tc := range testCases {
+		childTrie := trie.NewEmptyTrie()
+		err := ts.SetChild([]byte(tc), childTrie)
+		require.NoError(t, err)
+
+		err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
+		require.NoError(t, err)
+	}
+
+	for _, tc := range testCases {
+		res, err := ts.GetChildStorage([]byte(tc), []byte(tc))
+		require.NoError(t, err)
+		require.Equal(t, []byte(tc), res)
+	}
+}
+
+func TestTrieState_SetAndClearFromChild(t *testing.T) {
+	testFunc := func(ts *TrieState) {
+		for _, tc := range testCases {
+			childTrie := trie.NewEmptyTrie()
+			err := ts.SetChild([]byte(tc), childTrie)
+			require.NoError(t, err)
+
+			err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
+			require.NoError(t, err)
+		}
+
+		for _, tc := range testCases {
+			err := ts.ClearChildStorage([]byte(tc), []byte(tc))
+			require.NoError(t, err)
+
+			_, err = ts.GetChildStorage([]byte(tc), []byte(tc))
+			require.ErrorContains(t, err, "child trie does not exist at key")
+		}
+	}
+
+	ts := &TrieState{t: trie.NewEmptyTrie()}
+	testFunc(ts)
+}
+
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
@@ -61,8 +104,8 @@ func TestTrieState_Root(t *testing.T) {
 			ts.Put([]byte(tc), []byte(tc))
 		}
 
-		expected := ts.MustRoot()
-		require.Equal(t, expected, ts.MustRoot())
+		expected := ts.MustRoot(trie.NoMaxInlineValueSize)
+		require.Equal(t, expected, ts.MustRoot(trie.NoMaxInlineValueSize))
 	}
 
 	ts := &TrieState{t: trie.NewEmptyTrie()}

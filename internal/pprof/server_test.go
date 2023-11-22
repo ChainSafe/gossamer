@@ -71,7 +71,7 @@ func Test_Server(t *testing.T) {
 	for _, pathToCheck := range pathsToCheck {
 		url := "http://" + serverAddress + "/" + pathToCheck
 
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 		require.NoError(t, err)
 
 		go func(client *http.Client, request *http.Request, results chan<- httpResult) {
