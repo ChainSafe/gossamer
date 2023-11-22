@@ -189,11 +189,11 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 	return nil
 }
 
-// UpdateBestJustification Update the justification for the latest finalized block on-disk.
+// UpdateBestJustification Update the justification for the authoritySetChangeIDLatest finalized block on-disk.
 //
 // We always keep around the justification for the best finalized block and overwrite it
 // as we finalize new blocks, this makes sure that we don't store useless justifications
-// but can always prove finality of the latest block.
+// but can always prove finality of the authoritySetChangeIDLatest block.
 func updateBestJustification[
 	Hash constraints.Ordered,
 	N constraints.Unsigned,
@@ -217,7 +217,7 @@ func updateBestJustification[
 	return nil
 }
 
-// BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
+// BestJustification  Fetch the justification for the authoritySetChangeIDLatest block finalized by GRANDPA, if any.
 func BestJustification[
 	Hash constraints.Ordered,
 	N constraints.Unsigned,

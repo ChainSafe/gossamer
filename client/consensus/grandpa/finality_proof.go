@@ -14,7 +14,7 @@ var (
 	// The requested block has not yet been finalized
 	errBlockNotYetFinalized = errors.New("block not yet finalized")
 	// The requested block is not covered by authority set changes. Likely this means the block is
-	// in the latest authority set, and the subscription API is more appropriate
+	// in the authoritySetChangeIDLatest authority set, and the subscription API is more appropriate
 	errBlockNotInAuthoritySetChanges = errors.New("block not covered by authority set changes")
 )
 
@@ -49,7 +49,8 @@ type FinalityProofProvider[
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H]] struct {
+	B BlockchainBackend[Hash, N, H],
+] struct {
 	backend            BE
 	sharedAuthoritySet *SharedAuthoritySet[Hash, N, AuthID]
 }
@@ -59,9 +60,6 @@ type FinalityProofProvider[
 // - backend for accessing blockchain data;
 // - authority_provider for calling and proving runtime methods.
 // - shared_authority_set for accessing authority set data
-//
-// TODO They have two constructors, one where return value is wrapped in an arc
-// I dont think we need this, but can add if reviewers think we do
 func NewFinalityProofProvider[
 	BE Backend[Hash, N, H, B],
 	Hash constraints.Ordered,
@@ -70,7 +68,8 @@ func NewFinalityProofProvider[
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H]](
+	B BlockchainBackend[Hash, N, H],
+](
 	backend BE,
 	sharedAuthSet *SharedAuthoritySet[Hash, N, AuthID]) *FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B] {
 	return &FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B]{
@@ -127,12 +126,12 @@ type FinalityProof[Hash constraints.Ordered, N constraints.Unsigned, H Header[Ha
 	Block Hash
 	// Justification of the block F
 	Justification []byte
-	// The set of headers in the range (B; F] that we believe are unknown to the caller. Ordered.
+	// The set of headers in the range (B; F] that we believe are authoritySetChangeIDUnknown to the caller. Ordered.
 	UnknownHeaders []H
 }
 
 // Prove finality for the given block number by returning a justification for the last block of
-// the authority set of which the given block is part of, or a justification for the latest
+// the authority set of which the given block is part of, or a justification for the authoritySetChangeIDLatest
 // finalized block if the given block is part of the current authority set.
 //
 // If `collect_unknown_headers` is true, the finality proof will include all headers from the
@@ -144,7 +143,8 @@ func proveFinality[
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H]](
+	B BlockchainBackend[Hash, N, H],
+](
 	backend BE,
 	authSetChanges AuthoritySetChanges[N],
 	block N,
@@ -168,10 +168,10 @@ func proveFinality[
 	}
 
 	var encJustification []byte
-	justBlock := N(0) //nolint
+	var justBlock N
 
 	switch val := authSetChangeIDVal.(type) {
-	case latest:
+	case authoritySetChangeIDLatest:
 		justification, err := BestJustification[Hash, N, S, ID, H](backend)
 		if err != nil {
 			return nil, err
@@ -184,15 +184,23 @@ func proveFinality[
 			}
 			justBlock = justification.Target().number
 		} else {
-			logger.Trace("No justification found for the latest finalized block. Returning empty proof")
+			logger.Trace("No justification found for the authoritySetChangeIDLatest finalized block. Returning empty proof")
 			return nil, nil
 		}
-	case set[N]:
+	case authoritySetChangeIDSet[N]:
 		lastBlockForSetID, err := backend.Blockchain().ExpectBlockHashFromID(val.inner.BlockNumber)
 		if err != nil {
 			return nil, err
 		}
-		justification := backend.Blockchain().Justifications(lastBlockForSetID).IntoJustification(GrandpaEngineID)
+
+		// If error or no justifications found, return empty proof
+		justifications, err := backend.Blockchain().Justifications(lastBlockForSetID)
+		if err != nil || justifications == nil {
+			logger.Tracef("getting justifications when making finality proof for %v. Returning empty proof",
+				block)
+			return nil, nil //nolint
+		}
+		justification := justifications.IntoJustification(GrandpaEngineID)
 		if justification != nil {
 			encJustification = *justification
 			justBlock = val.inner.BlockNumber
@@ -201,13 +209,13 @@ func proveFinality[
 				block)
 			return nil, nil
 		}
-	case unknown:
+	case authoritySetChangeIDUnknown:
 		logger.Tracef("authoritySetChanges does not cover the requested block %v due to missing data."+
 			" You need to resync to populate AuthoritySetChanges properly", block)
 
 		return nil, errBlockNotInAuthoritySetChanges
 	default:
-		panic("unknown type for authSetChangeID")
+		panic("authoritySetChangeIDUnknown type for authSetChangeID")
 	}
 
 	var headers []H
