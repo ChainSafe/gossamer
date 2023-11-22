@@ -13,7 +13,6 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
-	digest "github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -135,7 +134,6 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 	type args struct {
 		ks  *keystore.GlobalKeystore
 		net *network.Service
-		dh  *digest.Handler
 	}
 	tests := []struct {
 		name      string
@@ -163,7 +161,7 @@ func Test_nodeBuilder_createCoreService(t *testing.T) {
 			stateSrvc := newStateService(t, ctrl)
 
 			builder := nodeBuilder{}
-			got, err := builder.createCoreService(config, tt.args.ks, stateSrvc, tt.args.net, tt.args.dh)
+			got, err := builder.createCoreService(config, tt.args.ks, stateSrvc, tt.args.net)
 
 			assert.ErrorIs(t, err, tt.err)
 
@@ -508,10 +506,8 @@ func TestCreateCoreService(t *testing.T) {
 	networkSrvc := &network.Service{}
 
 	builder := nodeBuilder{}
-	dh, err := builder.createDigestHandler(stateSrvc)
-	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc)
 	require.NoError(t, err)
 	require.NotNil(t, coreSrvc)
 }
@@ -554,16 +550,13 @@ func TestCreateSyncService(t *testing.T) {
 
 	ver := builder.createBlockVerifier(stateSrvc)
 
-	dh, err := builder.createDigestHandler(stateSrvc)
-	require.NoError(t, err)
-
 	networkService, err := network.NewService(&network.Config{
 		BlockState: stateSrvc.Block,
 		BasePath:   config.BasePath,
 	})
 	require.NoError(t, err)
 
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkService, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkService)
 	require.NoError(t, err)
 
 	_, err = builder.newSyncService(config, stateSrvc, &grandpa.Service{}, ver, coreSrvc, networkService, nil)
@@ -615,10 +608,7 @@ func TestCreateRPCService(t *testing.T) {
 	err = builder.loadRuntime(config, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc)
 	require.NoError(t, err)
 
 	systemInfo := &types.SystemInfo{
@@ -665,10 +655,7 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	err = builder.loadRuntime(config, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{})
 	require.NoError(t, err)
 
 	bs, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, nil)
@@ -774,10 +761,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	err = builder.loadRuntime(config, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := builder.createDigestHandler(stateSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, networkSrvc)
 	require.NoError(t, err)
 
 	systemInfo := &types.SystemInfo{
