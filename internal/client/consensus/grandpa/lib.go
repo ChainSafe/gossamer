@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/telemetry"
 	"github.com/ChainSafe/gossamer/internal/keystore"
 	"github.com/ChainSafe/gossamer/internal/log"
+	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
@@ -156,6 +157,8 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 	blockchain.HeaderMetaData[H, N]
 	blockchain.HeaderBackend[H, N]
 	api.BlockchainEvents[H, N]
+	papi.ProvideRuntimeAPI
+	api.ExecutorProvider
 }
 
 // type Backend interface{}
