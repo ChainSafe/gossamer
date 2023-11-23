@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	testdata "github.com/ChainSafe/gossamer/dot/rpc/modules/test_data"
@@ -31,6 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStateModuleGetPairs(t *testing.T) {
@@ -306,6 +308,93 @@ func TestCall(t *testing.T) {
 	err := sm.Call(nil, req, &res)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, res)
+}
+
+func TestStateTrie(t *testing.T) {
+	expecificBlockHash := common.Hash([32]byte{6, 6, 6, 6, 6, 6})
+
+	testcases := map[string]struct {
+		request        StateTrieAtRequest
+		newStateModule func(t *testing.T) *StateModule
+		expected       StateTrieResponse
+	}{
+		"blockhash_parameter_nil": {
+			request: StateTrieAtRequest{At: nil},
+			expected: []trie.Entry{
+				{Key: []byte("entry-1"), Value: []byte{0, 1, 2, 3}},
+				{Key: []byte("entry-2"), Value: []byte{3, 4, 5, 6}},
+			},
+			newStateModule: func(t *testing.T) *StateModule {
+				ctrl := gomock.NewController(t)
+
+				bestBlockHash := common.Hash([32]byte{1, 0, 1, 0, 1})
+				blockAPIMock := NewMockBlockAPI(ctrl)
+				blockAPIMock.EXPECT().BestBlockHash().Return(bestBlockHash)
+
+				fakeStateRoot := common.Hash([32]byte{5, 5, 5, 5, 5})
+				fakeBlockHeader := types.NewHeader(common.EmptyHash, fakeStateRoot,
+					common.EmptyHash, 1, scale.VaryingDataTypeSlice{})
+
+				blockAPIMock.EXPECT().GetHeader(bestBlockHash).Return(fakeBlockHeader, nil)
+
+				fakeEntries := map[string][]byte{
+					"entry-1": {0, 1, 2, 3},
+					"entry-2": {3, 4, 5, 6},
+				}
+				storageAPIMock := NewMockStorageAPI(ctrl)
+				storageAPIMock.EXPECT().Entries(&fakeStateRoot).
+					Return(fakeEntries, nil)
+
+				sm := NewStateModule(nil, storageAPIMock, nil, blockAPIMock)
+				return sm
+			},
+		},
+		"blockhash_parameter_not_nil": {
+			request: StateTrieAtRequest{At: &expecificBlockHash},
+			expected: []trie.Entry{
+				{Key: []byte("entry-1"), Value: []byte{0, 1, 2, 3}},
+				{Key: []byte("entry-2"), Value: []byte{3, 4, 5, 6}},
+			},
+			newStateModule: func(t *testing.T) *StateModule {
+				ctrl := gomock.NewController(t)
+				blockAPIMock := NewMockBlockAPI(ctrl)
+
+				bestBlockHash := common.Hash([32]byte{1, 0, 1, 0, 1})
+				blockAPIMock.EXPECT().BestBlockHash().Return(bestBlockHash)
+
+				fakeStateRoot := common.Hash([32]byte{5, 5, 5, 5, 5})
+				fakeBlockHeader := types.NewHeader(common.EmptyHash, fakeStateRoot,
+					common.EmptyHash, 1, scale.VaryingDataTypeSlice{})
+
+				blockAPIMock.EXPECT().GetHeader(expecificBlockHash).
+					Return(fakeBlockHeader, nil)
+
+				fakeEntries := map[string][]byte{
+					"entry-1": {0, 1, 2, 3},
+					"entry-2": {3, 4, 5, 6},
+				}
+				storageAPIMock := NewMockStorageAPI(ctrl)
+				storageAPIMock.EXPECT().Entries(&fakeStateRoot).
+					Return(fakeEntries, nil)
+
+				sm := NewStateModule(nil, storageAPIMock, nil, blockAPIMock)
+				return sm
+			},
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			sm := tt.newStateModule(t)
+
+			var res StateTrieResponse
+			err := sm.Trie(nil, &tt.request, &res)
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, res)
+		})
+	}
 }
 
 func TestStateModuleGetMetadata(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -82,6 +83,10 @@ type StateStorageQueryAtRequest struct {
 	At   common.Hash `json:"at"`
 }
 
+type StateTrieAtRequest struct {
+	At *common.Hash `json:"at"`
+}
+
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
@@ -111,6 +116,8 @@ type StateStorageResponse string
 
 // StatePairResponse is a key values
 type StatePairResponse []interface{}
+
+type StateTrieResponse []trie.Entry
 
 // StateStorageKeysResponse field for storage keys
 type StateStorageKeysResponse []string
@@ -242,6 +249,34 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 		(*res)[i] = []string{common.BytesToHex(key), common.BytesToHex(val)}
 	}
 
+	return nil
+}
+
+func (sm *StateModule) Trie(_ *http.Request, req *StateTrieAtRequest, res *StateTrieResponse) error {
+	blockHash := sm.blockAPI.BestBlockHash()
+	if req.At != nil {
+		blockHash = *req.At
+	}
+
+	blockHeader, err := sm.blockAPI.GetHeader(blockHash)
+	if err != nil {
+		return fmt.Errorf("getting header: %w", err)
+	}
+
+	entries, err := sm.storageAPI.Entries(&blockHeader.StateRoot)
+	if err != nil {
+		return fmt.Errorf("getting entries: %w", err)
+	}
+
+	entriesArr := make([]trie.Entry, 0, len(entries))
+	for key, value := range entries {
+		entriesArr = append(entriesArr, trie.Entry{
+			Key:   []byte(key),
+			Value: value,
+		})
+	}
+
+	*res = entriesArr
 	return nil
 }
 
