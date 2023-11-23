@@ -104,7 +104,7 @@ func configureMockExpectations(
 
 func configureMockOverseer(
 	t *testing.T,
-	sender *MockSender,
+	overseerChannel chan any,
 	chain *[]common.Hash,
 	messages expectedMessages,
 	finalisedBlock uint32,
@@ -113,50 +113,53 @@ func configureMockOverseer(
 		finalisedBlockRequestCalls = 0
 		ancestorRequestCalls       = 0
 	)
-	sender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg any) error {
-		switch request := msg.(type) {
-		case overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]:
-			require.Less(t, finalisedBlockRequestCalls, messages.finalisedBlockRequests)
-			result := finalisedBlock
-			if finalisedBlockRequestCalls == 0 {
-				result = 0
-			}
-			finalisedBlockRequestCalls++
 
-			response := overseer.BlockNumberResponse{
-				Number: result,
-				Err:    nil,
-			}
-			request.ResponseChannel <- response
-		case overseer.ChainAPIMessage[overseer.AncestorsRequest]:
-			require.Less(t, ancestorRequestCalls, messages.ancestorRequests)
-			ancestorRequestCalls++
-			maybeBlockPosition := -1
-			for idx, h := range *chain {
-				if h == request.Message.Hash {
-					maybeBlockPosition = idx
-					break
+	for {
+		select {
+		case msg := <-overseerChannel:
+			switch request := msg.(type) {
+			case overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]:
+				require.LessOrEqual(t, finalisedBlockRequestCalls, messages.finalisedBlockRequests)
+				result := finalisedBlock
+				if finalisedBlockRequestCalls == 0 {
+					result = 0
 				}
-			}
+				finalisedBlockRequestCalls++
 
-			var ancestors []common.Hash
-			if maybeBlockPosition != -1 {
-				ancestors = make([]common.Hash, 0)
-				for i := maybeBlockPosition - 1; i >= 0 && i >= maybeBlockPosition-int(request.Message.K); i-- {
-					ancestors = append(ancestors, (*chain)[i])
+				response := overseer.BlockNumberResponse{
+					Number: result,
+					Err:    nil,
 				}
-			}
+				request.ResponseChannel <- response
+			case overseer.ChainAPIMessage[overseer.AncestorsRequest]:
+				require.LessOrEqual(t, ancestorRequestCalls, messages.ancestorRequests)
+				ancestorRequestCalls++
+				maybeBlockPosition := -1
+				for idx, h := range *chain {
+					if h == request.Message.Hash {
+						maybeBlockPosition = idx
+						break
+					}
+				}
 
-			response := overseer.AncestorsResponse{
-				Ancestors: ancestors,
-				Error:     nil,
+				var ancestors []common.Hash
+				if maybeBlockPosition != -1 {
+					ancestors = make([]common.Hash, 0)
+					for i := maybeBlockPosition - 1; i >= 0 && i >= maybeBlockPosition-int(request.Message.K); i-- {
+						ancestors = append(ancestors, (*chain)[i])
+					}
+				}
+
+				response := overseer.AncestorsResponse{
+					Ancestors: ancestors,
+					Error:     nil,
+				}
+				request.ResponseChannel <- response
+			default:
+				t.Errorf("unexpected message type: %T", request)
 			}
-			request.ResponseChannel <- response
-		default:
-			return fmt.Errorf("unknown request type")
 		}
-		return nil
-	}).Times(messages.finalisedBlockRequests + messages.ancestorRequests)
+	}
 }
 
 func mockBackedCandidateEvent(blockHash common.Hash) (*scale.VaryingDataTypeSlice, error) {
@@ -323,7 +326,7 @@ func configureMockRuntime(
 
 func newTestState(
 	t *testing.T,
-	sender *MockSender,
+	overseerChannel chan any,
 	runtime *MockRuntimeInstance,
 	messages expectedMessages,
 	calls expectedRuntimeCalls,
@@ -331,10 +334,10 @@ func newTestState(
 	eventGenerator func(blockHash common.Hash, chain *[]common.Hash) (*scale.VaryingDataTypeSlice, error),
 ) (*ChainScraper, *[]common.Hash) {
 	chain := []common.Hash{getBlockNumberHash(0), getBlockNumberHash(1)}
-	configureMockOverseer(t, sender, &chain, messages, finalisedBlock)
+	go configureMockOverseer(t, overseerChannel, &chain, messages, finalisedBlock)
 	configureMockRuntime(runtime, &chain, calls, eventGenerator)
 
-	scraper, _, err := NewChainScraper(sender, runtime, dummyActivatedLeaf(1))
+	scraper, _, err := NewChainScraper(overseerChannel, runtime, dummyActivatedLeaf(1))
 	require.NoError(t, err)
 	return scraper, &chain
 }
@@ -346,7 +349,7 @@ func TestChainScraper(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		candidate1, err := dummyCandidateReceipt(getBlockNumberHash(1)).Hash()
 		require.NoError(t, err)
@@ -358,7 +361,7 @@ func TestChainScraper(t *testing.T) {
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
 
 		scraper, chain := newTestState(t,
-			mockSender,
+			mockOverseer,
 			mockRuntime,
 			messages,
 			calls,
@@ -374,7 +377,7 @@ func TestChainScraper(t *testing.T) {
 		nextLeaf := getNextLeaf(t, chain)
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
 
-		_, err = scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err = scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 		require.True(t, scraper.IsCandidateIncluded(candidate2))
 		require.True(t, scraper.IsCandidateBacked(candidate2))
@@ -387,19 +390,19 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(0)
 		expectedAncestryLength := int(BlocksToSkip - finalisedBlock)
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
-		scraper, chain := newTestState(t, mockSender, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
+		scraper, chain := newTestState(t, mockOverseer, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
 
 		var nextLeaf *overseer.ActivatedLeaf
 		for i := 0; i < BlocksToSkip; i++ {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 
 		nextBlockNumber := len(*chain)
@@ -417,25 +420,25 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(0)
 		messages, calls := configureMockExpectations(BlocksToSkip)
-		scraper, chain := newTestState(t, mockSender, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
+		scraper, chain := newTestState(t, mockOverseer, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
 
 		var nextLeaf *overseer.ActivatedLeaf
 		for i := 0; i < BlocksToSkip[0]; i++ {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 
 		for i := 0; i < BlocksToSkip[1]; i++ {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate = overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err = scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err = scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 	})
 
@@ -446,12 +449,12 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(17)
 		expectedAncestryLength := int(BlocksToSkip - (finalisedBlock - DisputeCandidateLifetimeAfterFinalization))
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
-		scraper, chain := newTestState(t, mockSender, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
+		scraper, chain := newTestState(t, mockOverseer, mockRuntime, messages, calls, finalisedBlock, mockCandidateEvents)
 
 		var nextLeaf *overseer.ActivatedLeaf
 		// 1 because `TestState` starts at leaf 1.
@@ -459,7 +462,7 @@ func TestChainScraper(t *testing.T) {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 	})
 
@@ -472,13 +475,13 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
 		scraper, chain := newTestState(t,
-			mockSender,
+			mockOverseer,
 			mockRuntime,
 			messages,
 			calls,
@@ -499,7 +502,7 @@ func TestChainScraper(t *testing.T) {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 
 		finalisedBlockNumber := TargetBlockNumber + DisputeCandidateLifetimeAfterFinalization
@@ -522,13 +525,13 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
 		scraper, chain := newTestState(t,
-			mockSender,
+			mockOverseer,
 			mockRuntime,
 			messages,
 			calls,
@@ -550,7 +553,7 @@ func TestChainScraper(t *testing.T) {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 
 		finalisedBlock++
@@ -579,12 +582,12 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
-		scraper, chain := newTestState(t, mockSender,
+		scraper, chain := newTestState(t, mockOverseer,
 			mockRuntime,
 			messages,
 			calls,
@@ -610,7 +613,7 @@ func TestChainScraper(t *testing.T) {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 
 		// Finalize blocks to enforce pruning of scraped events.
@@ -642,12 +645,12 @@ func TestChainScraper(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 
 		finalisedBlock := uint32(1)
 		expectedAncestryLength := BlocksToSkip - int(finalisedBlock)
 		messages, calls := configureMockExpectations([]int{expectedAncestryLength})
-		scraper, chain := newTestState(t, mockSender,
+		scraper, chain := newTestState(t, mockOverseer,
 			mockRuntime,
 			messages,
 			calls,
@@ -673,7 +676,7 @@ func TestChainScraper(t *testing.T) {
 			nextLeaf = getNextLeaf(t, chain)
 		}
 		nextUpdate := overseer.ActiveLeavesUpdate{Activated: nextLeaf}
-		_, err := scraper.ProcessActiveLeavesUpdate(mockSender, nextUpdate)
+		_, err := scraper.ProcessActiveLeavesUpdate(mockOverseer, nextUpdate)
 		require.NoError(t, err)
 
 		candidateHash, err := dummyCandidateReceipt(getBlockNumberHash(testTarget1)).Hash()

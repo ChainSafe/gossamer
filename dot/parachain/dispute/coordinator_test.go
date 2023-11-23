@@ -15,10 +15,6 @@ import (
 	"testing"
 )
 
-type VirtualOverseer struct {
-	sender *MockSender
-}
-
 type TestState struct {
 	validators        []keystore.KeyPair
 	validatorPublic   []parachaintypes.ValidatorID
@@ -30,7 +26,7 @@ type TestState struct {
 	lastBlock         common.Hash
 	knownSession      *parachaintypes.SessionIndex
 	db                database.Database
-	sender            *MockSender
+	overseer          chan any
 	runtime           *MockRuntimeInstance
 }
 
@@ -97,9 +93,6 @@ func newTestState(t *testing.T) *TestState {
 	headers[lastBlock] = genesisHeader
 	blockNumToHeader[0] = lastBlock
 
-	ctrl := gomock.NewController(t)
-	sender := NewMockSender(ctrl)
-
 	return &TestState{
 		validators:        validators,
 		validatorPublic:   validatorPublic,
@@ -111,7 +104,7 @@ func newTestState(t *testing.T) *TestState {
 		lastBlock:         lastBlock,
 		knownSession:      nil,
 		db:                db,
-		sender:            sender,
+		overseer:          make(chan any, 1),
 	}
 }
 
@@ -174,7 +167,7 @@ func (ts *TestState) activateLeafAtSession(t *testing.T,
 		Number: uint32(blockNumber),
 		Status: overseer.LeafStatusFresh,
 	}
-	err := ts.sender.SendMessage(overseer.Signal[overseer.ActiveLeavesUpdate]{
+	err := sendMessage(ts.overseer, overseer.Signal[overseer.ActiveLeavesUpdate]{
 		Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
 	})
 	require.NoError(t, err)
@@ -260,7 +253,7 @@ func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
 			Number: uint32(i),
 			Status: overseer.LeafStatusFresh,
 		}
-		err := ts.sender.SendMessage(overseer.Signal[overseer.ActiveLeavesUpdate]{
+		err := sendMessage(ts.overseer, overseer.Signal[overseer.ActiveLeavesUpdate]{
 			Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
 		})
 		require.NoError(t, err)

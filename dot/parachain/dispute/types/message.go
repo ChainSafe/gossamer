@@ -232,21 +232,16 @@ func NewDisputeMessage(
 
 // ImportStatementsMessage import statements by validators about a candidate
 type ImportStatementsMessage struct {
-	CandidateReceipt    parachainTypes.CandidateReceipt
-	Session             parachainTypes.SessionIndex
-	Statements          []Statement
-	PendingConfirmation overseer.Sender
+	CandidateReceipt parachainTypes.CandidateReceipt
+	Session          parachainTypes.SessionIndex
+	Statements       []Statement
 }
 
 // RecentDisputesMessage message to request recent disputes
-type RecentDisputesMessage struct {
-	Sender overseer.Sender
-}
+type RecentDisputesMessage struct{}
 
 // ActiveDisputesMessage message to request active disputes
-type ActiveDisputesMessage struct {
-	Sender overseer.Sender
-}
+type ActiveDisputesMessage struct{}
 
 // CandidateVotesMessage message to request candidate votes
 type CandidateVotesMessage struct {
@@ -256,7 +251,6 @@ type CandidateVotesMessage struct {
 
 // QueryCandidateVotesMessage message to request candidate votes
 type QueryCandidateVotesMessage struct {
-	Sender  overseer.Sender
 	Queries []CandidateVotesMessage
 }
 
@@ -286,7 +280,6 @@ type BlockDescription struct {
 type DetermineUndisputedChainMessage struct {
 	Base              overseer.Block
 	BlockDescriptions []BlockDescription
-	Tx                overseer.Sender
 }
 
 // Message messages to be handled in this subsystem.

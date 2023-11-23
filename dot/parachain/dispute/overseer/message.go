@@ -49,7 +49,7 @@ type AvailabilityRecoveryMessage struct {
 	CandidateReceipt parachainTypes.CandidateReceipt
 	SessionIndex     parachainTypes.SessionIndex
 	GroupIndex       *uint32
-	ResponseChannel  chan AvailabilityRecoveryResponse
+	ResponseChannel  chan any
 }
 
 type PvfExecTimeoutKind uint32
@@ -63,7 +63,7 @@ type ValidateFromChainState struct {
 	CandidateReceipt   parachainTypes.CandidateReceipt
 	PoV                []byte
 	PvfExecTimeoutKind PvfExecTimeoutKind
-	ResponseChannel    chan ValidationResult
+	ResponseChannel    chan any
 }
 
 type ValidValidationResult struct {
@@ -105,25 +105,6 @@ type AncestorsRequest struct {
 	K    uint32
 }
 
-type ApprovalSignature struct {
-	ValidatorIndex     parachainTypes.ValidatorIndex
-	ValidatorSignature parachainTypes.ValidatorSignature
-}
-
-type ApprovalSignatureResponse struct {
-	Signature []ApprovalSignature
-	Error     error
-}
-
-type GetApprovalSignatureForCandidate struct {
-	CandidateHash common.Hash
-	ResponseChan  chan *ApprovalSignatureResponse
-}
-
-type ApprovalVotingMessage struct {
-	GetApprovalSignature *GetApprovalSignatureForCandidate
-}
-
 // Block represents a block
 type Block struct {
 	Number uint32
@@ -144,4 +125,23 @@ type RevertBlocksRequest struct {
 
 type ChainSelectionMessage struct {
 	RevertBlocks *RevertBlocksRequest
+}
+
+type ApprovalVotingMessage[message any] struct {
+	Message      message
+	ResponseChan chan any
+}
+
+type ApprovalSignature struct {
+	ValidatorIndex     parachainTypes.ValidatorIndex
+	ValidatorSignature parachainTypes.ValidatorSignature
+}
+
+type ApprovalSignatureResponse struct {
+	Signature []ApprovalSignature
+	Error     error
+}
+
+type ApprovalSignatureForCandidate struct {
+	CandidateHash common.Hash
 }

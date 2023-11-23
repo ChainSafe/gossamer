@@ -18,21 +18,18 @@ const Window = 6
 
 var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
 
-// CoordinatorSubsystem is the dispute coordinator subsystem interface.
-type CoordinatorSubsystem interface {
-	// Run runs the dispute coordinator subsystem.
-	Run(context overseer.Context) error
-}
-
-// disputeCoordinator implements the CoordinatorSubsystem interface.
-type disputeCoordinator struct {
+// Coordinator implements the CoordinatorSubsystem interface.
+type Coordinator struct {
 	keystore keystore.Keystore
 	store    *overlayBackend
 	runtime  parachain.RuntimeInstance
+
+	sender   chan<- any
+	receiver <-chan any
 }
 
-func (d *disputeCoordinator) Run(context overseer.Context) error {
-	initResult, err := d.initialize(context)
+func (d *Coordinator) Run() error {
+	initResult, err := d.initialize()
 	if err != nil {
 		return fmt.Errorf("initialize dispute coordinator: %w", err)
 	}
@@ -43,7 +40,7 @@ func (d *disputeCoordinator) Run(context overseer.Context) error {
 		Leaf:          initResult.activatedLeaf,
 	}
 
-	if err := initResult.initialized.Run(context, d.store.inner, &initData); err != nil {
+	if err := initResult.initialized.Run(d.sender, d.store.inner, &initData); err != nil {
 		return fmt.Errorf("run initialized state: %w", err)
 	}
 
@@ -66,11 +63,11 @@ type initializeResult struct {
 	initialized   *Initialized
 }
 
-func (d *disputeCoordinator) waitForFirstLeaf(context overseer.Context) (*overseer.ActivatedLeaf, error) {
+func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
 	// TODO: handle other messages
 	for {
 		select {
-		case overseerMessage := <-context.Receiver:
+		case overseerMessage := <-d.receiver:
 			switch message := overseerMessage.(type) {
 			case overseer.Signal[overseer.ActiveLeavesUpdate]:
 				return message.Data.Activated, nil
@@ -79,16 +76,16 @@ func (d *disputeCoordinator) waitForFirstLeaf(context overseer.Context) (*overse
 	}
 }
 
-func (d *disputeCoordinator) initialize(context overseer.Context) (
+func (d *Coordinator) initialize() (
 	*initializeResult,
 	error,
 ) {
-	firstLeaf, err := d.waitForFirstLeaf(context)
+	firstLeaf, err := d.waitForFirstLeaf()
 	if err != nil {
 		return nil, fmt.Errorf("wait for first leaf: %w", err)
 	}
 
-	startupData, err := d.handleStartup(context, firstLeaf)
+	startupData, err := d.handleStartup(firstLeaf)
 	if err != nil {
 		return nil, fmt.Errorf("handle startup: %w", err)
 	}
@@ -103,7 +100,7 @@ func (d *disputeCoordinator) initialize(context overseer.Context) (
 		participation: startupData.participation,
 		votes:         startupData.votes,
 		activatedLeaf: firstLeaf,
-		initialized: NewInitializedState(context.Sender,
+		initialized: NewInitializedState(d.sender,
 			d.runtime,
 			startupData.spamSlots,
 			&startupData.orderingProvider,
@@ -113,7 +110,7 @@ func (d *disputeCoordinator) initialize(context overseer.Context) (
 	}, nil
 }
 
-func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead *overseer.ActivatedLeaf) (
+func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	*startupResult,
 	error,
 ) {
@@ -151,7 +148,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 	var participationRequests []ParticipationRequestWithPriority
 	spamDisputes := make(map[unconfirmedKey]*treeset.Set)
 	leafHash := initialHead.Hash
-	scraper, scrapedVotes, err := scraping.NewChainScraper(context.Sender, d.runtime, initialHead)
+	scraper, scrapedVotes, err := scraping.NewChainScraper(d.sender, d.runtime, initialHead)
 	if err != nil {
 		return nil, fmt.Errorf("new chain scraper: %w", err)
 	}
@@ -202,26 +199,24 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 				spamDisputes[disputeKey] = treeset.NewWithIntComparator()
 			}
 			spamDisputes[disputeKey].Add(voteState.Votes.VotedIndices())
-		} else {
-			if voteState.Own.VoteMissing() {
-				logger.Tracef("found valid dispute, with no vote from us on startup - participating. %s")
-				priority := ParticipationPriorityHigh
-				if !isIncluded {
-					priority = ParticipationPriorityBestEffort
-				}
-
-				participationRequests = append(participationRequests, ParticipationRequestWithPriority{
-					request: ParticipationRequest{
-						candidateHash:    dispute.Comparator.CandidateHash,
-						candidateReceipt: voteState.Votes.CandidateReceipt,
-						session:          dispute.Comparator.SessionIndex,
-					},
-					priority: priority,
-				})
-			} else {
-				logger.Tracef("found valid dispute, with vote from us on startup - distributing. %s")
-				d.sendDisputeMessages(context, *env, voteState)
+		} else if voteState.Own.VoteMissing() {
+			logger.Tracef("found valid dispute, with no vote from us on startup - participating. %s")
+			priority := ParticipationPriorityHigh
+			if !isIncluded {
+				priority = ParticipationPriorityBestEffort
 			}
+
+			participationRequests = append(participationRequests, ParticipationRequestWithPriority{
+				request: ParticipationRequest{
+					candidateHash:    dispute.Comparator.CandidateHash,
+					candidateReceipt: voteState.Votes.CandidateReceipt,
+					session:          dispute.Comparator.SessionIndex,
+				},
+				priority: priority,
+			})
+		} else {
+			logger.Tracef("found valid dispute, with vote from us on startup - distributing. %s")
+			d.sendDisputeMessages(*env, voteState)
 		}
 
 		return true
@@ -237,8 +232,7 @@ func (d *disputeCoordinator) handleStartup(context overseer.Context, initialHead
 	}, nil
 }
 
-func (d *disputeCoordinator) sendDisputeMessages(
-	context overseer.Context,
+func (d *Coordinator) sendDisputeMessages(
 	env types.CandidateEnvironment,
 	voteState types.CandidateVoteState,
 ) {
@@ -279,13 +273,13 @@ func (d *disputeCoordinator) sendDisputeMessages(
 			continue
 		}
 
-		if err := context.Sender.SendMessage(disputeMessage); err != nil {
+		if err := sendMessage(d.sender, disputeMessage); err != nil {
 			logger.Errorf("send dispute message: %s", err)
 		}
 	}
 }
 
-func NewDisputeCoordinator(path string) (CoordinatorSubsystem, error) {
+func NewDisputeCoordinator(path string) (*Coordinator, error) {
 	db, err := badger.Open(badger.DefaultOptions(path))
 	if err != nil {
 		return nil, fmt.Errorf("open badger db: %w", err)
@@ -294,7 +288,7 @@ func NewDisputeCoordinator(path string) (CoordinatorSubsystem, error) {
 	dbBackend := NewDBBackend(db)
 	backend := newOverlayBackend(dbBackend)
 
-	return &disputeCoordinator{
+	return &Coordinator{
 		store: backend,
 	}, nil
 }

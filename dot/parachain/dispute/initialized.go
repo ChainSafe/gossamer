@@ -55,9 +55,9 @@ func (m MaybeCandidateReceipt) Hash() (common.Hash, error) {
 	return m.CandidateHash, nil
 }
 
-func (i *Initialized) Run(context overseer.Context, backend DBBackend, initialData *InitialData) error {
+func (i *Initialized) Run(overseerChannel chan<- any, backend DBBackend, initialData *InitialData) error {
 	for {
-		if err := i.runUntilError(context, backend, initialData); err == nil {
+		if err := i.runUntilError(overseerChannel, backend, initialData); err == nil {
 			logger.Info("received `Conclude` signal, exiting")
 			return nil
 		} else {
@@ -66,16 +66,16 @@ func (i *Initialized) Run(context overseer.Context, backend DBBackend, initialDa
 	}
 }
 
-func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend, initialData *InitialData) error {
+func (i *Initialized) runUntilError(overseerChannel chan<- any, backend DBBackend, initialData *InitialData) error {
 	if initialData != nil {
 		for _, p := range initialData.Participation {
-			if err := i.Participation.Queue(context, p.request, p.priority); err != nil {
+			if err := i.Participation.Queue(overseerChannel, p.request, p.priority); err != nil {
 				return fmt.Errorf("queue participation request: %w", err)
 			}
 		}
 
 		overlayDB := newOverlayBackend(backend)
-		if err := i.ProcessChainImportBacklog(context,
+		if err := i.ProcessChainImportBacklog(overseerChannel,
 			overlayDB,
 			initialData.Votes,
 			uint64(time.Now().Unix()),
@@ -101,20 +101,20 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 			switch message := msg.(type) {
 			case overseer.Signal[overseer.ActiveLeavesUpdate]:
 				logger.Tracef("OverseerSignal::ActiveLeavesUpdate")
-				if err := i.ProcessActiveLeavesUpdate(context,
+				if err := i.ProcessActiveLeavesUpdate(overseerChannel,
 					overlayDB,
 					message.Data,
 					uint64(time.Now().Unix())); err != nil {
 					return fmt.Errorf("process active leaves update: %w", err)
 				}
 
-			case overseer.Signal[overseer.Block]:
+			case overseer.Signal[overseer.BlockFinalized]:
 				logger.Tracef("OverseerSignal::BlockFinalised")
 				i.Scraper.ProcessFinalisedBlock(message.Data.Number)
 
 			default:
 				var err error
-				confirmWrite, err = i.HandleIncoming(context,
+				confirmWrite, err = i.HandleIncoming(overseerChannel,
 					overlayDB,
 					message,
 					uint64(time.Now().Unix()),
@@ -139,18 +139,18 @@ func (i *Initialized) runUntilError(context overseer.Context, backend DBBackend,
 }
 
 func (i *Initialized) ProcessActiveLeavesUpdate(
-	context overseer.Context,
+	overseerChannel chan<- any,
 	backend OverlayBackend,
 	update overseer.ActiveLeavesUpdate,
 	now uint64,
 ) error {
 	logger.Tracef("Processing ActiveLeavesUpdate")
-	scrappedUpdates, err := i.Scraper.ProcessActiveLeavesUpdate(context.Sender, update)
+	scrappedUpdates, err := i.Scraper.ProcessActiveLeavesUpdate(overseerChannel, update)
 	if err != nil {
 		return fmt.Errorf("scraper: process active leaves update: %w", err)
 	}
 
-	i.Participation.BumpPriority(context, scrappedUpdates.IncludedReceipts)
+	i.Participation.BumpPriority(overseerChannel, scrappedUpdates.IncludedReceipts)
 	i.Participation.ProcessActiveLeavesUpdate(update)
 
 	if update.Activated != nil {
@@ -194,7 +194,7 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 
 		logger.Tracef("will process %v onchain votes", len(scrappedUpdates.OnChainVotes))
 
-		if err := i.ProcessChainImportBacklog(context,
+		if err := i.ProcessChainImportBacklog(overseerChannel,
 			backend,
 			scrappedUpdates.OnChainVotes,
 			now,
@@ -209,7 +209,7 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 }
 
 func (i *Initialized) ProcessChainImportBacklog(
-	context overseer.Context,
+	overseerChannel chan<- any,
 	backend OverlayBackend,
 	newVotes []parachainTypes.ScrapedOnChainVotes,
 	now uint64,
@@ -227,7 +227,7 @@ func (i *Initialized) ProcessChainImportBacklog(
 
 	for k := 0; k < importRange; k++ {
 		votes := chainImportBacklog.PopFront()
-		if err := i.ProcessOnChainVotes(context, backend, votes, now, blockHash); err != nil {
+		if err := i.ProcessOnChainVotes(overseerChannel, backend, votes, now, blockHash); err != nil {
 			logger.Errorf("skipping scraping block due to error: %w", err)
 		}
 	}
@@ -237,7 +237,7 @@ func (i *Initialized) ProcessChainImportBacklog(
 }
 
 func (i *Initialized) ProcessOnChainVotes(
-	context overseer.Context,
+	overseerChannel chan<- any,
 	backend OverlayBackend,
 	votes parachainTypes.ScrapedOnChainVotes,
 	now uint64,
@@ -358,7 +358,7 @@ func (i *Initialized) ProcessOnChainVotes(
 			candidateReceipt := MaybeCandidateReceipt{
 				CandidateReceipt: &backingValidators.CandidateReceipt,
 			}
-			if outcome, err := i.HandleImportStatements(context,
+			if outcome, err := i.HandleImportStatements(overseerChannel,
 				backend,
 				candidateReceipt,
 				votes.Session,
@@ -391,7 +391,7 @@ func (i *Initialized) ProcessOnChainVotes(
 			candidateReceipt := MaybeCandidateReceipt{
 				CandidateHash: candidateHash,
 			}
-			if outcome, err := i.HandleImportStatements(context,
+			if outcome, err := i.HandleImportStatements(overseerChannel,
 				backend,
 				candidateReceipt,
 				votes.Session,
@@ -417,7 +417,7 @@ func (i *Initialized) ProcessOnChainVotes(
 }
 
 func (i *Initialized) HandleIncoming(
-	context overseer.Context,
+	overseerChannel chan<- any,
 	backend OverlayBackend,
 	msg any,
 	now uint64,
@@ -443,7 +443,7 @@ func (i *Initialized) HandleIncoming(
 				message.Data.CandidateHash,
 				valid,
 			)
-			if err := i.IssueLocalStatement(context,
+			if err := i.IssueLocalStatement(overseerChannel,
 				backend,
 				message.Data.CandidateHash,
 				message.Data.CandidateReceipt,
@@ -458,7 +458,7 @@ func (i *Initialized) HandleIncoming(
 		candidateReceipt := MaybeCandidateReceipt{
 			CandidateReceipt: &message.Data.CandidateReceipt,
 		}
-		outcome, err := i.HandleImportStatements(context,
+		outcome, err := i.HandleImportStatements(overseerChannel,
 			backend,
 			candidateReceipt,
 			message.Data.Session,
@@ -470,8 +470,8 @@ func (i *Initialized) HandleIncoming(
 		}
 
 		report := func() error {
-			if message.Data.PendingConfirmation != nil {
-				if err := message.Data.PendingConfirmation.SendMessage(outcome); err != nil {
+			if message.ResponseChannel != nil {
+				if err := sendMessage(message.ResponseChannel, outcome); err != nil {
 					return fmt.Errorf("confirm import statements: %w", err)
 				}
 			}
@@ -491,7 +491,7 @@ func (i *Initialized) HandleIncoming(
 			return nil, fmt.Errorf("get recent disputes: %w", err)
 		}
 
-		if err := message.Data.Sender.SendMessage(recentDisputes); err != nil {
+		if err := sendMessage(message.ResponseChannel, recentDisputes); err != nil {
 			return nil, fmt.Errorf("send recent disputes: %w", err)
 		}
 	case types.Message[types.ActiveDisputesMessage]:
@@ -501,7 +501,7 @@ func (i *Initialized) HandleIncoming(
 			return nil, fmt.Errorf("get active disputes: %w", err)
 		}
 
-		if err := message.Data.Sender.SendMessage(activeDisputes); err != nil {
+		if err := sendMessage(message.ResponseChannel, activeDisputes); err != nil {
 			return nil, fmt.Errorf("send active disputes: %w", err)
 		}
 	case types.Message[types.QueryCandidateVotesMessage]:
@@ -524,12 +524,12 @@ func (i *Initialized) HandleIncoming(
 			})
 		}
 
-		if err := message.Data.Sender.SendMessage(queryOutput); err != nil {
+		if err := sendMessage(message.ResponseChannel, queryOutput); err != nil {
 			return nil, fmt.Errorf("send candidate votes: %w", err)
 		}
 	case types.Message[types.IssueLocalStatementMessage]:
 		logger.Tracef("HandleIncoming::IssueLocalStatement")
-		if err := i.IssueLocalStatement(context,
+		if err := i.IssueLocalStatement(overseerChannel,
 			backend,
 			message.Data.CandidateHash,
 			message.Data.CandidateReceipt,
@@ -549,7 +549,7 @@ func (i *Initialized) HandleIncoming(
 			return nil, fmt.Errorf("determine undisputed chain: %w", err)
 		}
 
-		if err := message.Data.Tx.SendMessage(undisputedChain); err != nil {
+		if err := sendMessage(message.ResponseChannel, undisputedChain); err != nil {
 			return nil, fmt.Errorf("send undisputed chain: %w", err)
 		}
 	default:
@@ -560,7 +560,7 @@ func (i *Initialized) HandleIncoming(
 }
 
 func (i *Initialized) HandleImportStatements(
-	context overseer.Context,
+	overseerChannel chan<- any,
 	backend OverlayBackend,
 	maybeCandidateReceipt MaybeCandidateReceipt,
 	session parachainTypes.SessionIndex,
@@ -651,31 +651,28 @@ func (i *Initialized) HandleImportStatements(
 			session,
 		)
 
-		// Use of unbounded channels justified because:
-		// 1. Only triggered twice per dispute.
-		// 2. Raising a dispute is costly (requires validation + recovery) by honest nodes,
-		// dishonest nodes are limited by spam slots.
-		// 3. Concluding a dispute is even more costly.
-		// Therefore, it is reasonable to expect a simple vote request to succeed way faster
-		// than disputes are raised.
-		// 4. We are waiting (and blocking the whole subsystem) on a response right after -
-		// therefore even with all else failing we will never have more than
-		// one message in flight at any given time.
-		responseChan := make(chan *overseer.ApprovalSignatureResponse, 1)
-		message := overseer.ApprovalVotingMessage{
-			GetApprovalSignature: &overseer.GetApprovalSignatureForCandidate{
+		responseChan := make(chan any, 1)
+		message := overseer.ApprovalVotingMessage[overseer.ApprovalSignatureForCandidate]{
+			Message: overseer.ApprovalSignatureForCandidate{
 				CandidateHash: candidateHash,
-				ResponseChan:  responseChan,
 			},
+			ResponseChan: responseChan,
 		}
-		if err := context.Sender.SendUnboundedMessage(message); err != nil {
+
+		// TODO: we need to send this to a prioritised channel
+		res, err := call(overseerChannel, message, message.ResponseChan)
+		if err != nil {
 			logger.Warnf("failed to fetch approval signatures for candidate %s: %s",
 				candidateHash,
 				err,
 			)
 			importResult = intermediateResult
 		} else {
-			response := <-responseChan
+			response, ok := res.(*overseer.ApprovalSignatureResponse)
+			if !ok {
+				return InvalidImport, fmt.Errorf("invalid approval signature response")
+			}
+
 			if response.Error != nil {
 				return InvalidImport, fmt.Errorf("approval signature response: %w", response.Error)
 			}
@@ -685,7 +682,6 @@ func (i *Initialized) HandleImportStatements(
 				return InvalidImport, fmt.Errorf("import approval votes: %w", err)
 			}
 
-			var ok bool
 			importResult, ok = result.(*ImportResultHandler)
 			if !ok {
 				return InvalidImport, fmt.Errorf("invalid import result")
@@ -778,7 +774,7 @@ func (i *Initialized) HandleImportStatements(
 			candidateReceipt: newState.Votes.CandidateReceipt,
 			session:          session,
 		}
-		if err := i.Participation.Queue(context, participationRequest, priority); err != nil {
+		if err := i.Participation.Queue(overseerChannel, participationRequest, priority); err != nil {
 			logger.Errorf("failed to queue participation request: %s", err)
 		}
 	} else {
@@ -843,7 +839,7 @@ func (i *Initialized) HandleImportStatements(
 				return InvalidImport, fmt.Errorf("new dispute message: %w", err)
 			}
 
-			if err := context.Sender.SendMessage(disputeMessage); err != nil {
+			if err := sendMessage(overseerChannel, disputeMessage); err != nil {
 				return InvalidImport, fmt.Errorf("send dispute message: %w", err)
 			}
 		}
@@ -925,7 +921,7 @@ func (i *Initialized) HandleImportStatements(
 			message := overseer.ChainSelectionMessage{
 				RevertBlocks: &overseer.RevertBlocksRequest{Blocks: blocks},
 			}
-			if err := context.Sender.SendMessage(message); err != nil {
+			if err := sendMessage(overseerChannel, message); err != nil {
 				return InvalidImport, fmt.Errorf("send revert blocks request: %w", err)
 			}
 		} else {
@@ -950,7 +946,7 @@ func (i *Initialized) HandleImportStatements(
 }
 
 func (i *Initialized) IssueLocalStatement(
-	context overseer.Context,
+	overseerChannel chan<- any,
 	backend OverlayBackend,
 	candidateHash common.Hash,
 	candidateReceipt parachainTypes.CandidateReceipt,
@@ -1029,7 +1025,7 @@ func (i *Initialized) IssueLocalStatement(
 			continue
 		}
 
-		if err := context.Sender.SendMessage(disputeMessage); err != nil {
+		if err := sendMessage(overseerChannel, disputeMessage); err != nil {
 			logger.Warnf("failed to send dispute message for validator index %d: %s",
 				statement.ValidatorIndex,
 				err,
@@ -1040,7 +1036,7 @@ func (i *Initialized) IssueLocalStatement(
 
 	// Do import
 	if len(statements) > 0 {
-		if outcome, err := i.HandleImportStatements(context,
+		if outcome, err := i.HandleImportStatements(overseerChannel,
 			backend,
 			MaybeCandidateReceipt{
 				CandidateReceipt: &candidateReceipt,
@@ -1121,7 +1117,7 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 }
 
 // NewInitializedState creates a new initialized state.
-func NewInitializedState(sender overseer.Sender,
+func NewInitializedState(overseerChannel chan<- any,
 	runtime parachainRuntime.RuntimeInstance,
 	spamSlots SpamSlots,
 	scraper *scraping.ChainScraper,
@@ -1136,7 +1132,7 @@ func NewInitializedState(sender overseer.Sender,
 		GapsInCache:           gapsInCache,
 		ParticipationReceiver: make(chan any),
 		ChainImportBacklog:    deque.New[parachainTypes.ScrapedOnChainVotes](),
-		Participation:         NewParticipation(sender, runtime),
+		Participation:         NewParticipation(overseerChannel, runtime),
 	}
 }
 
