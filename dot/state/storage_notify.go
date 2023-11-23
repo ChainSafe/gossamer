@@ -18,7 +18,7 @@ type KeyValue struct {
 }
 
 func (kv KeyValue) String() string {
-	return fmt.Sprintf("{Key: 0x%x, BTree: 0x%x}", kv.Key, kv.Value)
+	return fmt.Sprintf("{Key: 0x%x, Value: 0x%x}", kv.Key, kv.Value)
 }
 
 // SubscriptionResult holds results of storage changes

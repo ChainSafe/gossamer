@@ -29,11 +29,14 @@ func newComparator(blockNumber, order uint32) CandidateComparator {
 	}
 }
 
-func dummyParticipationRequest() *ParticipationRequest {
-	return &ParticipationRequest{
-		candidateHash:    [32]byte{},
-		candidateReceipt: parachain.CandidateReceipt{},
-		session:          1,
+func dummyParticipationData(priority ParticipationPriority) ParticipationData {
+	return ParticipationData{
+		ParticipationRequest{
+			candidateHash:    [32]byte{},
+			candidateReceipt: parachain.CandidateReceipt{},
+			session:          1,
+		},
+		priority,
 	}
 }
 
@@ -41,12 +44,11 @@ type test struct {
 	name string
 	// operation one of "queue", "dequeue", "prioritise", "pop_priority", "pop_best_effort",
 	// "len_priority", "len_best_effort"
-	operation  string
-	comparator CandidateComparator
-	request    *ParticipationRequest
-	priority   ParticipationPriority
-	expected   any
-	mustError  bool
+	operation     string
+	comparator    CandidateComparator
+	participation ParticipationData
+	expected      any
+	mustError     bool
 }
 
 func runTests(t *testing.T, tests []test, queue Queue) {
@@ -55,7 +57,7 @@ func runTests(t *testing.T, tests []test, queue Queue) {
 		t.Run(tt.name, func(t *testing.T) {
 			switch tt.operation {
 			case "queue":
-				err := queue.Queue(tt.comparator, tt.request, tt.priority)
+				err := queue.Queue(tt.comparator, tt.participation)
 				if tt.mustError {
 					require.Error(t, err)
 					require.Equal(t, err, tt.expected)
@@ -94,41 +96,38 @@ func runTests(t *testing.T, tests []test, queue Queue) {
 // - queueing 1 request with the best effort priority
 // - dequeue must return the request with the lowest relay parent block number from the priority queue
 func TestQueue_CompareRelayParentBlock(t *testing.T) {
+	expectedParticipation := dummyParticipationData(ParticipationPriorityHigh)
 	tests := []test{
 		{
-			name:       "block 1",
-			operation:  "queue",
-			comparator: newComparator(1, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1",
+			operation:     "queue",
+			comparator:    newComparator(1, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 2",
-			operation:  "queue",
-			comparator: newComparator(2, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 2",
+			operation:     "queue",
+			comparator:    newComparator(2, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 3",
-			operation:  "queue",
-			comparator: newComparator(3, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 3",
+			operation:     "queue",
+			comparator:    newComparator(3, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1 - best effort",
-			operation:  "queue",
-			comparator: newComparator(1, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 1 - best effort",
+			operation:     "queue",
+			comparator:    newComparator(1, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
 			name:      "dequeue",
 			operation: "dequeue",
 			expected: &ParticipationItem{
 				comparator: newComparator(1, 1),
-				request:    dummyParticipationRequest(),
+				request:    &expectedParticipation.request,
 			},
 		},
 	}
@@ -141,27 +140,26 @@ func TestQueue_CompareRelayParentBlock(t *testing.T) {
 // - queueing 1 request with the best effort priority
 // - dequeue must return the request with the lowest candidate hash from the priority queue
 func TestQueue_CompareCandidateHash(t *testing.T) {
+	expectedParticipation := dummyParticipationData(ParticipationPriorityHigh)
 	tests := []test{
 		{
-			name:       "block 1",
-			operation:  "queue",
-			comparator: newComparator(1, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1",
+			operation:     "queue",
+			comparator:    newComparator(1, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1 - 2",
-			operation:  "queue",
-			comparator: newComparator(1, 2),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1 - 2",
+			operation:     "queue",
+			comparator:    newComparator(1, 2),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
 			name:      "dequeue",
 			operation: "dequeue",
 			expected: &ParticipationItem{
 				comparator: newComparator(1, 1),
-				request:    dummyParticipationRequest(),
+				request:    &expectedParticipation.request,
 			},
 		},
 	}
@@ -176,48 +174,43 @@ func TestQueue_CompareCandidateHash(t *testing.T) {
 // - popping the priority queue
 // - prioritising a request in the best effort queue
 func TestQueue_EndToEnd(t *testing.T) {
+	expectedParticipation := dummyParticipationData(ParticipationPriorityHigh)
 	tests := []test{
 		{
-			name:       "block 1, order 1",
-			operation:  "queue",
-			comparator: newComparator(1, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1, order 1",
+			operation:     "queue",
+			comparator:    newComparator(1, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 2, order 1",
-			operation:  "queue",
-			comparator: newComparator(2, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 2, order 1",
+			operation:     "queue",
+			comparator:    newComparator(2, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 3, order 1",
-			operation:  "queue",
-			comparator: newComparator(3, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 3, order 1",
+			operation:     "queue",
+			comparator:    newComparator(3, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1, order 2 - best effort",
-			operation:  "queue",
-			comparator: newComparator(1, 2),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 1, order 2 - best effort",
+			operation:     "queue",
+			comparator:    newComparator(1, 2),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
-			name:       "block 2, order 2 - best effort",
-			operation:  "queue",
-			comparator: newComparator(2, 2),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 2, order 2 - best effort",
+			operation:     "queue",
+			comparator:    newComparator(2, 2),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
-			name:       "block 3, order 2 - best effort",
-			operation:  "queue",
-			comparator: newComparator(3, 2),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 3, order 2 - best effort",
+			operation:     "queue",
+			comparator:    newComparator(3, 2),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
 			name:      "priority length",
@@ -234,7 +227,7 @@ func TestQueue_EndToEnd(t *testing.T) {
 			operation: "pop_priority",
 			expected: &ParticipationItem{
 				comparator: newComparator(1, 1),
-				request:    dummyParticipationRequest(),
+				request:    &expectedParticipation.request,
 			},
 		},
 		{
@@ -242,7 +235,7 @@ func TestQueue_EndToEnd(t *testing.T) {
 			operation: "pop_best_effort",
 			expected: &ParticipationItem{
 				comparator: newComparator(1, 2),
-				request:    dummyParticipationRequest(),
+				request:    &expectedParticipation.request,
 			},
 		},
 		{
@@ -270,7 +263,7 @@ func TestQueue_EndToEnd(t *testing.T) {
 			operation: "dequeue",
 			expected: &ParticipationItem{
 				comparator: newComparator(2, 1),
-				request:    dummyParticipationRequest(),
+				request:    &expectedParticipation.request,
 			},
 		},
 		{
@@ -278,7 +271,7 @@ func TestQueue_EndToEnd(t *testing.T) {
 			operation: "dequeue",
 			expected: &ParticipationItem{
 				comparator: newComparator(2, 2),
-				request:    dummyParticipationRequest(),
+				request:    &expectedParticipation.request,
 			},
 		},
 	}
@@ -292,41 +285,36 @@ func TestQueue_EndToEnd(t *testing.T) {
 func TestQueue_OverflowPriority(t *testing.T) {
 	tests := []test{
 		{
-			name:       "block 1",
-			operation:  "queue",
-			comparator: newComparator(1, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1",
+			operation:     "queue",
+			comparator:    newComparator(1, 1),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1 - 2",
-			operation:  "queue",
-			comparator: newComparator(1, 2),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1 - 2",
+			operation:     "queue",
+			comparator:    newComparator(1, 2),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1 - 3",
-			operation:  "queue",
-			comparator: newComparator(1, 3),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1 - 3",
+			operation:     "queue",
+			comparator:    newComparator(1, 3),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1 - 4",
-			operation:  "queue",
-			comparator: newComparator(1, 4),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
+			name:          "block 1 - 4",
+			operation:     "queue",
+			comparator:    newComparator(1, 4),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
 		},
 		{
-			name:       "block 1 - 5",
-			operation:  "queue",
-			comparator: newComparator(1, 5),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityHigh,
-			mustError:  true,
-			expected:   errorPriorityQueueFull,
+			name:          "block 1 - 5",
+			operation:     "queue",
+			comparator:    newComparator(1, 5),
+			participation: dummyParticipationData(ParticipationPriorityHigh),
+			mustError:     true,
+			expected:      errorPriorityQueueFull,
 		},
 	}
 
@@ -339,41 +327,36 @@ func TestQueue_OverflowPriority(t *testing.T) {
 func TestQueue_OverflowBestEffort(t *testing.T) {
 	tests := []test{
 		{
-			name:       "block 1",
-			operation:  "queue",
-			comparator: newComparator(1, 1),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 1",
+			operation:     "queue",
+			comparator:    newComparator(1, 1),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
-			name:       "block 1 - 2",
-			operation:  "queue",
-			comparator: newComparator(1, 2),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 1 - 2",
+			operation:     "queue",
+			comparator:    newComparator(1, 2),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
-			name:       "block 1 - 3",
-			operation:  "queue",
-			comparator: newComparator(1, 3),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 1 - 3",
+			operation:     "queue",
+			comparator:    newComparator(1, 3),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
-			name:       "block 1 - 4",
-			operation:  "queue",
-			comparator: newComparator(1, 4),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
+			name:          "block 1 - 4",
+			operation:     "queue",
+			comparator:    newComparator(1, 4),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
 		},
 		{
-			name:       "block 1 - 5",
-			operation:  "queue",
-			comparator: newComparator(1, 5),
-			request:    dummyParticipationRequest(),
-			priority:   ParticipationPriorityBestEffort,
-			mustError:  true,
-			expected:   errorBestEffortQueueFull,
+			name:          "block 1 - 5",
+			operation:     "queue",
+			comparator:    newComparator(1, 5),
+			participation: dummyParticipationData(ParticipationPriorityBestEffort),
+			mustError:     true,
+			expected:      errorBestEffortQueueFull,
 		},
 	}
 
@@ -394,7 +377,7 @@ func TestQueueConcurrency_Dequeue(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			err := q.Queue(newComparator(block, 1), dummyParticipationRequest(), ParticipationPriorityHigh)
+			err := q.Queue(newComparator(block, 1), dummyParticipationData(ParticipationPriorityHigh))
 			require.NoError(t, err)
 		}()
 	}
@@ -428,7 +411,7 @@ func TestQueueConcurrency_Prioritise(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			err := q.Queue(newComparator(block, 1), dummyParticipationRequest(), ParticipationPriorityBestEffort)
+			err := q.Queue(newComparator(block, 1), dummyParticipationData(ParticipationPriorityBestEffort))
 			require.NoError(t, err)
 		}()
 	}
@@ -465,7 +448,7 @@ func TestQueueConcurrency_PopBestEffort(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			err := q.Queue(newComparator(block, 1), dummyParticipationRequest(), ParticipationPriorityBestEffort)
+			err := q.Queue(newComparator(block, 1), dummyParticipationData(ParticipationPriorityBestEffort))
 			require.NoError(t, err)
 		}()
 	}
@@ -500,7 +483,7 @@ func TestQueueConcurrency_PopPriority(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			err := q.Queue(newComparator(block, 1), dummyParticipationRequest(), ParticipationPriorityHigh)
+			err := q.Queue(newComparator(block, 1), dummyParticipationData(ParticipationPriorityHigh))
 			require.NoError(t, err)
 		}()
 	}
@@ -525,7 +508,7 @@ func BenchmarkQueue_Queue(b *testing.B) {
 	q := newTestQueue(priorityQueueSize)
 
 	for i := 0; i < priorityQueueSize; i++ {
-		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationRequest(), ParticipationPriorityHigh)
+		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationData(ParticipationPriorityHigh))
 		require.NoError(b, err)
 	}
 }
@@ -534,7 +517,7 @@ func BenchmarkQueue_Dequeue(b *testing.B) {
 	q := NewQueue()
 
 	for i := 0; i < bestEffortQueueSize; i++ {
-		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationRequest(), ParticipationPriorityBestEffort)
+		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationData(ParticipationPriorityBestEffort))
 		require.NoError(b, err)
 	}
 	b.ResetTimer()
@@ -549,7 +532,7 @@ func BenchmarkQueue_PopPriority(b *testing.B) {
 	q := NewQueue()
 
 	for i := 0; i < priorityQueueSize; i++ {
-		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationRequest(), ParticipationPriorityHigh)
+		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationData(ParticipationPriorityHigh))
 		require.NoError(b, err)
 	}
 	b.ResetTimer()
@@ -564,7 +547,7 @@ func BenchmarkQueue_PopBestEffort(b *testing.B) {
 	q := NewQueue()
 
 	for i := 0; i < bestEffortQueueSize; i++ {
-		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationRequest(), ParticipationPriorityBestEffort)
+		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationData(ParticipationPriorityBestEffort))
 		require.NoError(b, err)
 	}
 	b.ResetTimer()
@@ -579,7 +562,7 @@ func BenchmarkQueue_PrioritiseIfPresent(b *testing.B) {
 	q := NewQueue()
 
 	for i := 0; i < bestEffortQueueSize; i++ {
-		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationRequest(), ParticipationPriorityBestEffort)
+		err := q.Queue(newComparator(uint32(i), 1), dummyParticipationData(ParticipationPriorityBestEffort))
 		require.NoError(b, err)
 	}
 	b.ResetTimer()

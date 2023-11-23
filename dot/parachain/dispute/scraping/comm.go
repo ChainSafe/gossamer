@@ -12,7 +12,7 @@ const timeout = 10 * time.Second
 
 // getFinalisedBlockNumber sends a message to the overseer to get the finalised block number.
 func getFinalisedBlockNumber(overseerChannel chan<- any) (uint32, error) {
-	message := overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]{
+	message := overseer.ChainAPIMessage[overseer.FinalizedBlockNumber]{
 		ResponseChannel: make(chan any, 1),
 	}
 	res, err := call(overseerChannel, message, message.ResponseChannel)
@@ -39,8 +39,8 @@ func getBlockAncestors(
 	numAncestors uint32,
 ) ([]common.Hash, error) {
 	respChan := make(chan any, 1)
-	message := overseer.ChainAPIMessage[overseer.AncestorsRequest]{
-		Message: overseer.AncestorsRequest{
+	message := overseer.ChainAPIMessage[overseer.Ancestors]{
+		Message: overseer.Ancestors{
 			Hash: head,
 			K:    numAncestors,
 		},

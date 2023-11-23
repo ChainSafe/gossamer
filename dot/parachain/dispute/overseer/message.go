@@ -45,11 +45,15 @@ type AvailabilityRecoveryResponse struct {
 	Error         *RecoveryError
 }
 
-type AvailabilityRecoveryMessage struct {
+type AvailabilityRecoveryMessage[message any] struct {
+	Message         message
+	ResponseChannel chan any
+}
+
+type RecoverAvailableData struct {
 	CandidateReceipt parachainTypes.CandidateReceipt
 	SessionIndex     parachainTypes.SessionIndex
 	GroupIndex       *uint32
-	ResponseChannel  chan any
 }
 
 type PvfExecTimeoutKind uint32
@@ -59,11 +63,15 @@ const (
 	PvfExecTimeoutKindApproval
 )
 
+type CandidateValidationMessage[message any] struct {
+	Data            message
+	ResponseChannel chan any
+}
+
 type ValidateFromChainState struct {
 	CandidateReceipt   parachainTypes.CandidateReceipt
 	PoV                []byte
 	PvfExecTimeoutKind PvfExecTimeoutKind
-	ResponseChannel    chan any
 }
 
 type ValidValidationResult struct {
@@ -87,11 +95,11 @@ type BlockNumberResponse struct {
 	Err    error
 }
 
-type BlockNumberRequest struct {
+type BlockNumber struct {
 	Hash common.Hash
 }
 
-type FinalizedBlockNumberRequest struct {
+type FinalizedBlockNumber struct {
 	Number uint32
 }
 
@@ -100,7 +108,7 @@ type AncestorsResponse struct {
 	Error     error
 }
 
-type AncestorsRequest struct {
+type Ancestors struct {
 	Hash common.Hash
 	K    uint32
 }
@@ -119,12 +127,12 @@ func NewBlock(blockNumber uint32, hash common.Hash) Block {
 	}
 }
 
-type RevertBlocksRequest struct {
-	Blocks []Block
+type ChainSelectionMessage[message any] struct {
+	Message message
 }
 
-type ChainSelectionMessage struct {
-	RevertBlocks *RevertBlocksRequest
+type RevertBlocks struct {
+	Blocks []Block
 }
 
 type ApprovalVotingMessage[message any] struct {

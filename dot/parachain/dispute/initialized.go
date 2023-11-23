@@ -37,7 +37,7 @@ type Initialized struct {
 }
 
 type InitialData struct {
-	Participation []ParticipationRequestWithPriority
+	Participation []ParticipationData
 	Votes         []parachainTypes.ScrapedOnChainVotes
 	Leaf          *overseer.ActivatedLeaf
 }
@@ -69,7 +69,7 @@ func (i *Initialized) Run(overseerChannel chan<- any, backend DBBackend, initial
 func (i *Initialized) runUntilError(overseerChannel chan<- any, backend DBBackend, initialData *InitialData) error {
 	if initialData != nil {
 		for _, p := range initialData.Participation {
-			if err := i.Participation.Queue(overseerChannel, p.request, p.priority); err != nil {
+			if err := i.Participation.Queue(overseerChannel, p); err != nil {
 				return fmt.Errorf("queue participation request: %w", err)
 			}
 		}
@@ -160,30 +160,25 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 		} else {
 			// If error has occurred during last session caching - fetch the whole window
 			// Otherwise - cache only the new sessions
-			var lowerBound parachainTypes.SessionIndex
-			if i.GapsInCache {
-				lowerBound = sessionIDx - (Window - 1)
-				if sessionIDx < lowerBound {
-					lowerBound = sessionIDx
-				}
-			} else {
-				lowerBound = i.HighestSessionSeen + 1
+			lowerBound := saturatingSub(uint32(sessionIDx), Window-1)
+			if !i.GapsInCache {
+				lowerBound = uint32(i.HighestSessionSeen + 1)
 			}
 
 			// There is a new session. Perform a dummy fetch to cache it.
-			for session := lowerBound; session <= sessionIDx; session++ {
-				if _, err := i.runtime.ParachainHostSessionInfo(update.Activated.Hash, session); err != nil {
+			for session := lowerBound; session <= uint32(sessionIDx); session++ {
+				if _, err := i.runtime.ParachainHostSessionInfo(update.Activated.Hash, parachainTypes.SessionIndex(session)); err != nil {
 					logger.Debugf("error caching SessionInfo on ActiveLeaves update. "+
 						"Session: %v, Hash: %v, Error: %v",
 						session,
 						update.Activated.Hash,
-						err)
+						err,
+					)
 					i.GapsInCache = true
 				}
 			}
 
 			i.HighestSessionSeen = sessionIDx
-
 			earliestSession := saturatingSub(uint32(sessionIDx), Window-1)
 			if err := backend.NoteEarliestSession(parachainTypes.SessionIndex(earliestSession)); err != nil {
 				logger.Tracef("error noting earliest session: %w", err)
@@ -224,7 +219,6 @@ func (i *Initialized) ProcessChainImportBacklog(
 	}
 
 	importRange := minInt(ChainImportMaxBatchSize, chainImportBacklog.Len())
-
 	for k := 0; k < importRange; k++ {
 		votes := chainImportBacklog.PopFront()
 		if err := i.ProcessOnChainVotes(overseerChannel, backend, votes, now, blockHash); err != nil {
@@ -380,6 +374,25 @@ func (i *Initialized) ProcessOnChainVotes(
 				dispute.Session,
 			)
 
+			disputeSessionInfo, err := i.runtime.ParachainHostSessionInfo(blockHash, parachainTypes.SessionIndex(dispute.Session))
+			if err != nil || disputeSessionInfo == nil {
+				logger.Warnf("no session info for disputeSession %d", dispute.Session)
+				continue
+			}
+
+			var filteredStatements []types.Statement
+			for _, statement := range statements {
+				if int(statement.ValidatorIndex) >= len(disputeSessionInfo.Validators) {
+					logger.Warnf("invalid validator index %d for dispute session %d",
+						statement.ValidatorIndex,
+						dispute.Session)
+					continue
+				}
+
+				statement.SignedDisputeStatement.ValidatorPublic = disputeSessionInfo.Validators[statement.ValidatorIndex]
+				filteredStatements = append(filteredStatements, statement)
+			}
+
 			if len(statements) == 0 {
 				logger.Errorf("skipping empty from chain dispute import. session: %v, candidateHash: %v",
 					votes.Session,
@@ -395,7 +408,7 @@ func (i *Initialized) ProcessOnChainVotes(
 				backend,
 				candidateReceipt,
 				votes.Session,
-				statements,
+				filteredStatements,
 				now,
 			); err != nil || outcome == InvalidImport {
 				logger.Errorf("attempted import of on-chain dispute votes failed. "+
@@ -434,7 +447,8 @@ func (i *Initialized) HandleIncoming(
 				"candidateHash: %v, Error: %v",
 				message.Data.Session,
 				message.Data.CandidateHash,
-				err)
+				err,
+			)
 		} else {
 			logger.Tracef(
 				"issuing local statement based on participation outcome. Session: %v, "+
@@ -769,12 +783,15 @@ func (i *Initialized) HandleImportStatements(
 			priority,
 		)
 		// TODO: metrics
-		participationRequest := ParticipationRequest{
-			candidateHash:    candidateHash,
-			candidateReceipt: newState.Votes.CandidateReceipt,
-			session:          session,
+		participationData := ParticipationData{
+			ParticipationRequest{
+				candidateHash:    candidateHash,
+				candidateReceipt: newState.Votes.CandidateReceipt,
+				session:          session,
+			},
+			priority,
 		}
-		if err := i.Participation.Queue(overseerChannel, participationRequest, priority); err != nil {
+		if err := i.Participation.Queue(overseerChannel, participationData); err != nil {
 			logger.Errorf("failed to queue participation request: %s", err)
 		}
 	} else {
@@ -918,8 +935,8 @@ func (i *Initialized) HandleImportStatements(
 		}
 
 		if len(blocks) > 0 {
-			message := overseer.ChainSelectionMessage{
-				RevertBlocks: &overseer.RevertBlocksRequest{Blocks: blocks},
+			message := overseer.ChainSelectionMessage[overseer.RevertBlocks]{
+				Message: overseer.RevertBlocks{Blocks: blocks},
 			}
 			if err := sendMessage(overseerChannel, message); err != nil {
 				return InvalidImport, fmt.Errorf("send revert blocks request: %w", err)
@@ -1061,8 +1078,7 @@ func (i *Initialized) IssueLocalStatement(
 }
 
 func (i *Initialized) sessionIsAncient(session parachainTypes.SessionIndex) bool {
-	diff := session - (Window - 1)
-	return session < diff || session < i.HighestSessionSeen
+	return uint32(session) < saturatingSub(uint32(i.HighestSessionSeen), Window-1)
 }
 
 func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
@@ -1138,11 +1154,10 @@ func NewInitializedState(overseerChannel chan<- any,
 
 // saturatingSub returns the result of a - b, saturating at 0.
 func saturatingSub(a, b uint32) uint32 {
-	result := int(a) - int(b)
-	if result < 0 {
-		return 0
+	if a > b {
+		return a - b
 	}
-	return uint32(result)
+	return 0
 }
 
 // minInt returns the smallest of a or b.

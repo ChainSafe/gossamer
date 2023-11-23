@@ -118,7 +118,7 @@ func configureMockOverseer(
 		select {
 		case msg := <-overseerChannel:
 			switch request := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]:
+			case overseer.ChainAPIMessage[overseer.FinalizedBlockNumber]:
 				require.LessOrEqual(t, finalisedBlockRequestCalls, messages.finalisedBlockRequests)
 				result := finalisedBlock
 				if finalisedBlockRequestCalls == 0 {
@@ -131,7 +131,7 @@ func configureMockOverseer(
 					Err:    nil,
 				}
 				request.ResponseChannel <- response
-			case overseer.ChainAPIMessage[overseer.AncestorsRequest]:
+			case overseer.ChainAPIMessage[overseer.Ancestors]:
 				require.LessOrEqual(t, ancestorRequestCalls, messages.ancestorRequests)
 				ancestorRequestCalls++
 				maybeBlockPosition := -1

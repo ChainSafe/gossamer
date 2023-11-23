@@ -78,7 +78,7 @@ func (p ParticipationPriority) IsPriority() bool {
 // Queue the dispute participation queue
 type Queue interface {
 	// Queue adds a new participation request to the queue
-	Queue(comparator CandidateComparator, request *ParticipationRequest, priority ParticipationPriority) error
+	Queue(comparator CandidateComparator, participationData ParticipationData) error
 
 	// Dequeue gets the next best request for dispute participation if any.
 	Dequeue() *ParticipationItem
@@ -130,25 +130,24 @@ const (
 
 func (q *QueueHandler) Queue(
 	comparator CandidateComparator,
-	request *ParticipationRequest,
-	priority ParticipationPriority,
+	data ParticipationData,
 ) error {
-	if priority.IsPriority() {
+	if data.priority.IsPriority() {
 		if q.Len(ParticipationPriorityHigh) >= q.priorityMaxSize {
 			return errorPriorityQueueFull
 		}
 
 		// remove the item from the best effort queue if it exists
 		q.bestEffort.Lock()
-		q.bestEffort.BTree.Delete(newParticipationItem(comparator, request))
+		q.bestEffort.BTree.Delete(newParticipationItem(comparator, &data.request))
 		q.bestEffort.Unlock()
 
 		q.priority.Lock()
-		q.priority.BTree.Set(newParticipationItem(comparator, request))
+		q.priority.BTree.Set(newParticipationItem(comparator, &data.request))
 		q.priority.Unlock()
 	} else {
 		// if the item is already in priority queue, do nothing
-		if item := q.priority.BTree.Get(newParticipationItem(comparator, request)); item != nil {
+		if item := q.priority.BTree.Get(newParticipationItem(comparator, &data.request)); item != nil {
 			return nil
 		}
 
@@ -157,7 +156,7 @@ func (q *QueueHandler) Queue(
 		}
 
 		q.bestEffort.Lock()
-		q.bestEffort.BTree.Set(newParticipationItem(comparator, request))
+		q.bestEffort.BTree.Set(newParticipationItem(comparator, &data.request))
 		q.bestEffort.Unlock()
 	}
 

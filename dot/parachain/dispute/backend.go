@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// Backend is the backend for the dispute coordinator module.
+// Backend is the backend for the disputes coordinator module.
 type Backend interface {
 	// GetEarliestSession returns the earliest session index, if any.
 	GetEarliestSession() (*parachainTypes.SessionIndex, error)
@@ -28,7 +28,7 @@ type Backend interface {
 	SetCandidateVotes(session parachainTypes.SessionIndex, candidateHash common.Hash, votes *types.CandidateVotes) error
 }
 
-// OverlayBackend is the overlay backend for the dispute coordinator module.
+// OverlayBackend is the overlay backend for the disputes coordinator module.
 type OverlayBackend interface {
 	Backend
 
@@ -42,7 +42,7 @@ type OverlayBackend interface {
 	NoteEarliestSession(session parachainTypes.SessionIndex) error
 }
 
-// DBBackend is the backend for the dispute coordinator module that uses a database.
+// DBBackend is the backend for the disputes coordinator module that uses a database.
 type DBBackend interface {
 	Backend
 

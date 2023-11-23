@@ -36,8 +36,8 @@ type ParticipationRequest struct {
 	//TODO: requestTimer for metrics
 }
 
-// ParticipationRequestWithPriority a dispute participation request with priority
-type ParticipationRequestWithPriority struct {
+// ParticipationData a dispute participation request with priority
+type ParticipationData struct {
 	request  ParticipationRequest
 	priority ParticipationPriority
 }
@@ -53,7 +53,7 @@ type ParticipationStatement struct {
 // Participation keeps track of the disputes we need to participate in.
 type Participation interface {
 	// Queue a dispute for the node to participate in
-	Queue(overseerChannel chan<- any, request ParticipationRequest, priority ParticipationPriority) error
+	Queue(overseerChannel chan<- any, data ParticipationData) error
 
 	// Clear clears a participation request. This is called when we have the dispute result.
 	Clear(candidateHash common.Hash) error
@@ -78,8 +78,7 @@ type ParticipationHandler struct {
 	queue       Queue
 	recentBlock *block
 
-	runtime parachain.RuntimeInstance
-
+	runtime  parachain.RuntimeInstance
 	overseer chan<- any
 
 	//TODO: metrics
@@ -88,31 +87,30 @@ type ParticipationHandler struct {
 const MaxParallelParticipation = 3
 
 func (p *ParticipationHandler) Queue(overseerChannel chan<- any,
-	request ParticipationRequest,
-	priority ParticipationPriority,
+	data ParticipationData,
 ) error {
-	if _, ok := p.runningParticipation.Load(request.candidateHash); ok {
+	if _, ok := p.runningParticipation.Load(data.request.candidateHash); ok {
 		return nil
 	}
 
 	// if we already have a recent block, participate right away
 	if p.recentBlock != nil && p.numberOfWorkers() < MaxParallelParticipation {
-		p.forkParticipation(&request, p.recentBlock.Hash)
+		p.forkParticipation(data.request, p.recentBlock.Hash)
 		return nil
 	}
 
-	blockNumber, err := getBlockNumber(overseerChannel, request.candidateReceipt)
+	blockNumber, err := getBlockNumber(overseerChannel, data.request.candidateReceipt)
 	if err != nil {
 		return fmt.Errorf("get block number: %w", err)
 	}
 
-	candidateHash, err := request.candidateReceipt.Hash()
+	candidateHash, err := data.request.candidateReceipt.Hash()
 	if err != nil {
 		return fmt.Errorf("hash candidate receipt: %w", err)
 	}
 
 	comparator := NewCandidateComparator(&blockNumber, candidateHash)
-	if err := p.queue.Queue(comparator, &request, priority); err != nil {
+	if err := p.queue.Queue(comparator, data); err != nil {
 		return fmt.Errorf("queue ParticipationHandler request: %w", err)
 	}
 
@@ -132,8 +130,6 @@ func (p *ParticipationHandler) Clear(candidateHash common.Hash) error {
 }
 
 func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate) {
-	// TODO: to check if this is needed here
-	// if it is being called in only one place, we could just add a check there itself
 	if update.Activated == nil {
 		return
 	}
@@ -145,7 +141,6 @@ func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveL
 		}
 		return
 	}
-
 	p.recentBlock = &block{
 		Number: update.Activated.Number,
 		Hash:   update.Activated.Hash,
@@ -198,11 +193,11 @@ func (p *ParticipationHandler) dequeueUntilCapacity(recentHead common.Hash) {
 			break
 		}
 
-		p.forkParticipation(request.request, recentHead)
+		p.forkParticipation(*request.request, recentHead)
 	}
 }
 
-func (p *ParticipationHandler) forkParticipation(request *ParticipationRequest, recentHead common.Hash) {
+func (p *ParticipationHandler) forkParticipation(request ParticipationRequest, recentHead common.Hash) {
 	_, ok := p.runningParticipation.LoadOrStore(request.candidateHash, nil)
 	if ok {
 		return
@@ -210,7 +205,7 @@ func (p *ParticipationHandler) forkParticipation(request *ParticipationRequest, 
 
 	p.workers.Add(1)
 	go func() {
-		if err := p.participate(recentHead, *request); err != nil {
+		if err := p.participate(recentHead, request); err != nil {
 			logger.Debugf(
 				"failed to participate in dispute. CandidateHash: %s, Error: %s",
 				request.candidateHash.String(),
@@ -223,33 +218,40 @@ func (p *ParticipationHandler) forkParticipation(request *ParticipationRequest, 
 func (p *ParticipationHandler) participate(blockHash common.Hash, request ParticipationRequest) error {
 	// get available data from the overseer
 	respCh := make(chan any, 1)
-	message := overseer.AvailabilityRecoveryMessage{
-		CandidateReceipt: request.candidateReceipt,
-		SessionIndex:     request.session,
-		GroupIndex:       nil,
-		ResponseChannel:  respCh,
+	message := overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]{
+		Message: overseer.RecoverAvailableData{
+			CandidateReceipt: request.candidateReceipt,
+			SessionIndex:     request.session,
+			GroupIndex:       nil,
+		},
+		ResponseChannel: respCh,
 	}
 	res, err := call(p.overseer, message, message.ResponseChannel)
 	if err != nil {
 		return fmt.Errorf("send availability recovery message: %w", err)
 	}
 
-	availableData, ok := res.(overseer.AvailabilityRecoveryResponse)
+	data, ok := res.(overseer.AvailabilityRecoveryResponse)
 	if !ok {
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
-	if availableData.Error != nil {
-		switch *availableData.Error {
+	if data.Error != nil {
+		switch *data.Error {
 		case overseer.RecoveryErrorInvalid:
 			sendResult(p.overseer, request, types.ParticipationOutcomeInvalid)
-			return fmt.Errorf("invalid available data: %s", availableData.Error.String())
+			return fmt.Errorf("invalid available data: %s", data.Error.String())
 		case overseer.RecoveryErrorUnavailable:
 			sendResult(p.overseer, request, types.ParticipationOutcomeUnAvailable)
-			return fmt.Errorf("unavailable data: %s", availableData.Error.String())
+			return fmt.Errorf("unavailable data: %s", data.Error.String())
 		default:
-			return fmt.Errorf("unexpected recovery error: %d", availableData.Error)
+			return fmt.Errorf("unexpected recovery error: %d", data.Error)
 		}
+	}
+
+	if data.AvailableData == nil {
+		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		return fmt.Errorf("available data is nil")
 	}
 
 	validationCode, err := p.runtime.ParachainHostValidationCodeByHash(
@@ -271,11 +273,13 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 
 	// validate the request and send the result
 	respChan := make(chan any, 1)
-	validateMessage := overseer.ValidateFromChainState{
-		CandidateReceipt:   request.candidateReceipt,
-		PoV:                availableData.AvailableData.POV,
-		PvfExecTimeoutKind: overseer.PvfExecTimeoutKindApproval,
-		ResponseChannel:    respChan,
+	validateMessage := overseer.CandidateValidationMessage[overseer.ValidateFromChainState]{
+		Data: overseer.ValidateFromChainState{
+			CandidateReceipt:   request.candidateReceipt,
+			PoV:                data.AvailableData.POV,
+			PvfExecTimeoutKind: overseer.PvfExecTimeoutKindApproval,
+		},
+		ResponseChannel: respChan,
 	}
 	res, err = call(p.overseer, validateMessage, validateMessage.ResponseChannel)
 	if err != nil {
