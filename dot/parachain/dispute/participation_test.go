@@ -1,6 +1,7 @@
 package dispute
 
 import (
+	"context"
 	"fmt"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
@@ -134,18 +135,18 @@ func activateLeaf(
 	return nil
 }
 
-func participate(participation Participation, context overseer.Context) error {
+func participate(participation Participation, overseerChannel chan any) error {
 	candidateCommitments := dummyCandidateCommitments()
 	commitmentsHash, err := candidateCommitments.Hash()
 	if err != nil {
 		panic(err)
 	}
-	return participateWithCommitmentsHash(participation, context, commitmentsHash)
+	return participateWithCommitmentsHash(participation, overseerChannel, commitmentsHash)
 }
 
 func participateWithCommitmentsHash(
 	participation Participation,
-	context overseer.Context,
+	overseerChannel chan any,
 	commitmentsHash common.Hash,
 ) error {
 	candidateReceipt, err := dummyCandidateReceiptBadSignature(common.Hash{}, &common.Hash{})
@@ -166,16 +167,16 @@ func participateWithCommitmentsHash(
 		session:          session,
 	}
 
-	return participation.Queue(context, participationRequest, ParticipationPriorityBestEffort)
+	return participation.Queue(overseerChannel, participationRequest, ParticipationPriorityBestEffort)
 }
 
 func TestNewParticipation(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	mockRuntime := NewMockRuntimeInstance(ctrl)
-	mockSender := NewMockSender(ctrl)
+	mockOverseer := make(chan any)
 
-	participation := NewParticipation(mockSender, mockRuntime)
+	participation := NewParticipation(mockOverseer, mockRuntime)
 	require.NotNil(t, participation, "should not be nil")
 }
 
@@ -186,49 +187,50 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		ctx := overseer.Context{
-			Sender: mockSender,
-		}
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(11))
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg any) error {
-			switch message := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-				response := uint32(1)
-				message.ResponseChannel <- &response
-			case overseer.AvailabilityRecoveryMessage:
-				response := overseer.RecoveryErrorUnavailable
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					Error: &response,
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						response := overseer.RecoveryErrorUnavailable
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							Error: &response,
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.UnAvailableOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						t.Errorf("unexpected message type: %T", msg)
+						return
+					}
 				}
-			default:
-				return fmt.Errorf("unknown message type")
 			}
 
-			return nil
-		}).Times(1)
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.UnAvailableOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
+		}()
 
-		err = participate(participationHandler, ctx)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
 		for i := 0; i < MaxParallelParticipation; i++ {
-			err = participate(participationHandler, ctx)
+			err = participate(participationHandler, mockOverseer)
 			require.NoError(t, err)
 		}
 
@@ -241,24 +243,21 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		var wg sync.WaitGroup
 		participationTest := func() {
 			defer wg.Done()
-			participationHandler := NewParticipation(mockSender, mockRuntime)
-			ctx := overseer.Context{
-				Sender: mockSender,
-			}
+			participationHandler := NewParticipation(mockOverseer, mockRuntime)
 			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 			require.NoError(t, err)
 
-			err = participate(participationHandler, ctx)
+			err = participate(participationHandler, mockOverseer)
 			require.NoError(t, err)
 
 			for i := 0; i < MaxParallelParticipation; i++ {
-				err = participateWithCommitmentsHash(participationHandler, ctx, common.Hash{byte(i)})
+				err = participateWithCommitmentsHash(participationHandler, mockOverseer, common.Hash{byte(i)})
 				require.NoError(t, err)
 			}
 
@@ -270,43 +269,42 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		requestHandler := func() {
 			defer wg.Done()
-			// sendMessage is called 4 times for the first 3+1 requests
-			// sendMessage is called once for getBlockNumber request
-			// feed is called 4 times for the requests while sending the results
-			mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-				switch message := msg.(type) {
-				case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-					response := uint32(1)
-					message.ResponseChannel <- &response
-				case overseer.AvailabilityRecoveryMessage:
-					response := overseer.RecoveryErrorUnavailable
-					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-						Error: &response,
+			counter := 0
+			for {
+				select {
+				case msg := <-mockOverseer:
+					if counter == 9 {
+						panic("too many requests")
 					}
-				default:
-					return fmt.Errorf("unknown message type")
+					counter++
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						response := overseer.RecoveryErrorUnavailable
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							Error: &response,
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.UnAvailableOutcome:
+							return
+						default:
+							panic("invalid outcome")
+						}
+					default:
+						panic("unknown message type")
+					}
 				}
-
-				return nil
-			}).Times(5)
-			mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-				statement := msg.(ParticipationStatement)
-				outcome, err := statement.Outcome.Value()
-				require.NoError(t, err)
-				switch outcome.(type) {
-				case disputeTypes.UnAvailableOutcome:
-					return nil
-				default:
-					panic("invalid outcome")
-				}
-			}).Times(4)
-
-			time.Sleep(2 * time.Second)
+			}
 		}
 
 		wg.Add(2)
-		go participationTest()
 		go requestHandler()
+		go participationTest()
 		wg.Wait()
 	})
 
@@ -315,22 +313,17 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		var wg sync.WaitGroup
-
 		waitTx := make(chan bool, 100)
+		var wg sync.WaitGroup
 		participationTest := func() {
 			defer wg.Done()
-
-			participationHandler := NewParticipation(mockSender, mockRuntime)
-			context := overseer.Context{
-				Sender: mockSender,
-			}
+			participationHandler := NewParticipation(mockOverseer, mockRuntime)
 
 			go func() {
-				err := participate(participationHandler, context)
+				err := participate(participationHandler, mockOverseer)
 				require.NoError(t, err)
 			}()
 
@@ -340,50 +333,68 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 			require.NoError(t, err)
-
-			time.Sleep(2 * time.Second)
 		}
 
 		// Responds to messages from the test and verifies its behaviour
 		requestHandler := func() {
 			defer wg.Done()
-
-			// If we receive `Number` request this implicitly proves that the participation is queued
-			mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
+			select {
+			case msg := <-mockOverseer:
 				switch message := msg.(type) {
 				case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
 					response := uint32(1)
-					message.ResponseChannel <- &response
+					message.ResponseChannel <- response
+					break
+				default:
+					panic("unknown message type")
+				}
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			select {
+			case _ = <-mockOverseer:
+				panic("should not receive any messages")
+			case <-ctx.Done():
+				break
+			}
+
+			// No activity so the participation is queued => unblock the test
+			waitTx <- true
+
+			counter := 0
+			select {
+			case msg := <-mockOverseer:
+				counter++
+				switch message := msg.(type) {
 				case overseer.AvailabilityRecoveryMessage:
 					response := overseer.RecoveryErrorUnavailable
 					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 						Error: &response,
 					}
+				case ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.UnAvailableOutcome:
+						return
+					default:
+						panic("unexpected outcome")
+					}
 				default:
-					return fmt.Errorf("unknown message type")
+					panic("unknown message type")
 				}
+			}
 
-				return nil
-			}).Times(2)
-			mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-				statement := msg.(ParticipationStatement)
-				outcome, err := statement.Outcome.Value()
-				require.NoError(t, err)
-				switch outcome.(type) {
-				case disputeTypes.UnAvailableOutcome:
-					return nil
-				default:
-					panic("unexpected outcome")
-				}
-			})
-
-			time.Sleep(5 * time.Second)
-			waitTx <- true
+			if counter == 3 {
+				return
+			}
 		}
 
 		wg.Add(2)
-		go participationTest()
 		go requestHandler()
+		go participationTest()
 		wg.Wait()
 	})
 
@@ -392,45 +403,43 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		ctx := overseer.Context{
-			Sender: mockSender,
-		}
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			switch message := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-				response := uint32(1)
-				message.ResponseChannel <- &response
-			case overseer.AvailabilityRecoveryMessage:
-				response := overseer.RecoveryErrorUnavailable
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					Error: &response,
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						response := overseer.RecoveryErrorUnavailable
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							Error: &response,
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.UnAvailableOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						panic("unknown message type")
+					}
 				}
-			default:
-				return fmt.Errorf("unknown message type")
 			}
+		}()
 
-			return nil
-		}).Times(1)
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.UnAvailableOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
-
-		err = participate(participationHandler, ctx)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
 		// sleep for a while to ensure we don't have any further results nor recovery requests
@@ -442,53 +451,50 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
 
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		context := overseer.Context{
-			Sender: mockSender,
-		}
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						availableData := overseer.AvailableData{
+							POV:            []byte{},
+							ValidationData: overseer.PersistedValidationData{},
+						}
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			switch message := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-				response := uint32(1)
-				message.ResponseChannel <- &response
-			case overseer.AvailabilityRecoveryMessage:
-				availableData := overseer.AvailableData{
-					POV:            []byte{},
-					ValidationData: overseer.PersistedValidationData{},
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							AvailableData: &availableData,
+							Error:         nil,
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.ErrorOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						panic("unknown message type")
+					}
 				}
-
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					AvailableData: &availableData,
-					Error:         nil,
-				}
-			default:
-				return fmt.Errorf("unknown message type")
 			}
-
-			return nil
-		})
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.ErrorOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
+		}()
 		mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).
 			Return(nil, nil).Times(1)
 
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
-		err = participate(participationHandler, context)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
 		// sleep for a while to ensure we don't have any further results nor recovery requests
@@ -500,44 +506,45 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		context := overseer.Context{
-			Sender: mockSender,
-		}
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
 
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
-		err = participate(participationHandler, context)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			switch message := msg.(type) {
-			case overseer.AvailabilityRecoveryMessage:
-				response := overseer.RecoveryErrorInvalid
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					Error: &response,
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						response := overseer.RecoveryErrorInvalid
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							Error: &response,
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.InvalidOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						panic("unknown message type")
+					}
 				}
-			default:
-				return fmt.Errorf("unknown message type")
 			}
-
-			return nil
-		})
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.InvalidOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
+		}()
 
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
@@ -548,60 +555,58 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		context := overseer.Context{
-			Sender: mockSender,
-		}
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
 
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
-		err = participate(participationHandler, context)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			switch message := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-				response := uint32(1)
-				message.ResponseChannel <- &response
-			case overseer.ValidateFromChainState:
-				if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-					message.ResponseChannel <- overseer.ValidationResult{
-						IsValid: false,
-						Error:   nil,
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.ValidateFromChainState:
+						if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+							message.ResponseChannel <- overseer.ValidationResult{
+								IsValid: false,
+								Error:   nil,
+							}
+						}
+					case overseer.AvailabilityRecoveryMessage:
+						availableData := overseer.AvailableData{
+							POV:            []byte{},
+							ValidationData: overseer.PersistedValidationData{},
+						}
+
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							AvailableData: &availableData,
+							Error:         nil,
+						}
+
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.InvalidOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						panic("unknown message type")
 					}
 				}
-			case overseer.AvailabilityRecoveryMessage:
-				availableData := overseer.AvailableData{
-					POV:            []byte{},
-					ValidationData: overseer.PersistedValidationData{},
-				}
-
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					AvailableData: &availableData,
-					Error:         nil,
-				}
-
-			default:
-				return fmt.Errorf("unknown message type")
 			}
+		}()
 
-			return nil
-		}).Times(2)
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.InvalidOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
 		mockValidationCode := dummyValidationCode()
 		mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).
 			Return(&mockValidationCode, nil).Times(1)
@@ -618,63 +623,64 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		ctx := overseer.Context{
-			Sender: mockSender,
-		}
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			switch message := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-				response := uint32(1)
-				message.ResponseChannel <- &response
-			case overseer.AvailabilityRecoveryMessage:
-				availableData := overseer.AvailableData{
-					POV:            []byte{},
-					ValidationData: overseer.PersistedValidationData{},
-				}
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						availableData := overseer.AvailableData{
+							POV:            []byte{},
+							ValidationData: overseer.PersistedValidationData{},
+						}
 
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					AvailableData: &availableData,
-					Error:         nil,
-				}
-			case overseer.ValidateFromChainState:
-				if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-					message.ResponseChannel <- overseer.ValidationResult{
-						IsValid: false,
-						Error:   nil,
-						InvalidResult: &overseer.InvalidValidationResult{
-							Reason: "commitments hash mismatch",
-						},
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							AvailableData: &availableData,
+							Error:         nil,
+						}
+					case overseer.ValidateFromChainState:
+						if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+							message.ResponseChannel <- overseer.ValidationResult{
+								IsValid: false,
+								Error:   nil,
+								InvalidResult: &overseer.InvalidValidationResult{
+									Reason: "commitments hash mismatch",
+								},
+							}
+						} else {
+							panic("unexpected message")
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.InvalidOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						panic("unknown message type")
 					}
 				}
-			default:
-				return fmt.Errorf("unknown message type")
 			}
+		}()
 
-			return nil
-		}).Times(2)
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.InvalidOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
 		mockValidationCode := dummyValidationCode()
 		mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).
 			Return(&mockValidationCode, nil).Times(1)
 
-		err = participate(participationHandler, ctx)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
 		// sleep for a while to ensure we don't have any further results nor recovery requests
@@ -686,64 +692,65 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		mockSender := NewMockSender(ctrl)
+		mockOverseer := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockSender, mockRuntime)
-		ctx := overseer.Context{
-			Sender: mockSender,
-		}
+		participationHandler := NewParticipation(mockOverseer, mockRuntime)
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
-		mockSender.EXPECT().SendMessage(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			switch message := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
-				response := uint32(1)
-				message.ResponseChannel <- &response
-			case overseer.AvailabilityRecoveryMessage:
-				availableData := overseer.AvailableData{
-					POV:            []byte{},
-					ValidationData: overseer.PersistedValidationData{},
-				}
+		go func() {
+			for {
+				select {
+				case msg := <-mockOverseer:
+					switch message := msg.(type) {
+					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+						response := uint32(1)
+						message.ResponseChannel <- response
+					case overseer.AvailabilityRecoveryMessage:
+						availableData := overseer.AvailableData{
+							POV:            []byte{},
+							ValidationData: overseer.PersistedValidationData{},
+						}
 
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					AvailableData: &availableData,
-					Error:         nil,
-				}
-			case overseer.ValidateFromChainState:
-				if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-					message.ResponseChannel <- overseer.ValidationResult{
-						IsValid: true,
-						Error:   nil,
-						ValidResult: &overseer.ValidValidationResult{
-							CandidateCommitments:    parachainTypes.CandidateCommitments{},
-							PersistedValidationData: parachainTypes.PersistedValidationData{},
-						},
+						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+							AvailableData: &availableData,
+							Error:         nil,
+						}
+					case overseer.ValidateFromChainState:
+						if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+							message.ResponseChannel <- overseer.ValidationResult{
+								IsValid: true,
+								Error:   nil,
+								ValidResult: &overseer.ValidValidationResult{
+									CandidateCommitments:    parachainTypes.CandidateCommitments{},
+									PersistedValidationData: parachainTypes.PersistedValidationData{},
+								},
+							}
+						} else {
+							panic("unexpected message")
+						}
+					case ParticipationStatement:
+						outcome, err := message.Outcome.Value()
+						require.NoError(t, err)
+						switch outcome.(type) {
+						case disputeTypes.ValidOutcome:
+							continue
+						default:
+							panic("unexpected outcome")
+						}
+					default:
+						panic("unknown message type")
 					}
 				}
-			default:
-				return fmt.Errorf("unknown message type")
 			}
+		}()
 
-			return nil
-		}).Times(2)
-		mockSender.EXPECT().Feed(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-			statement := msg.(ParticipationStatement)
-			outcome, err := statement.Outcome.Value()
-			require.NoError(t, err)
-			switch outcome.(type) {
-			case disputeTypes.ValidOutcome:
-				return nil
-			default:
-				panic("unexpected outcome")
-			}
-		})
 		mockValidationCode := dummyValidationCode()
 		mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).
 			Return(&mockValidationCode, nil).Times(1)
 
-		err = participate(participationHandler, ctx)
+		err = participate(participationHandler, mockOverseer)
 		require.NoError(t, err)
 
 		// sleep for a while to ensure we don't have any further results nor recovery requests

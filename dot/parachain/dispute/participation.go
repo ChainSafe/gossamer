@@ -1,13 +1,10 @@
 package dispute
 
 import (
-	"context"
 	"fmt"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	"sync"
 	"sync/atomic"
-	"time"
-
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
@@ -56,7 +53,7 @@ type ParticipationStatement struct {
 // Participation keeps track of the disputes we need to participate in.
 type Participation interface {
 	// Queue a dispute for the node to participate in
-	Queue(context overseer.Context, request ParticipationRequest, priority ParticipationPriority) error
+	Queue(overseerChannel chan<- any, request ParticipationRequest, priority ParticipationPriority) error
 
 	// Clear clears a participation request. This is called when we have the dispute result.
 	Clear(candidateHash common.Hash) error
@@ -65,7 +62,7 @@ type Participation interface {
 	ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate)
 
 	// BumpPriority bumps the priority for the given receipts
-	BumpPriority(ctx overseer.Context, receipts []parachainTypes.CandidateReceipt)
+	BumpPriority(overseerChannel chan<- any, receipts []parachainTypes.CandidateReceipt)
 }
 
 type block struct {
@@ -79,17 +76,18 @@ type ParticipationHandler struct {
 	workers              atomic.Int32
 
 	queue       Queue
-	sender      overseer.Sender // TODO: revisit this once we have the overseer
 	recentBlock *block
 
 	runtime parachain.RuntimeInstance
+
+	overseer chan<- any
 
 	//TODO: metrics
 }
 
 const MaxParallelParticipation = 3
 
-func (p *ParticipationHandler) Queue(ctx overseer.Context,
+func (p *ParticipationHandler) Queue(overseerChannel chan<- any,
 	request ParticipationRequest,
 	priority ParticipationPriority,
 ) error {
@@ -103,7 +101,7 @@ func (p *ParticipationHandler) Queue(ctx overseer.Context,
 		return nil
 	}
 
-	blockNumber, err := getBlockNumber(ctx.Sender, request.candidateReceipt)
+	blockNumber, err := getBlockNumber(overseerChannel, request.candidateReceipt)
 	if err != nil {
 		return fmt.Errorf("get block number: %w", err)
 	}
@@ -155,9 +153,9 @@ func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveL
 	p.dequeueUntilCapacity(update.Activated.Hash)
 }
 
-func (p *ParticipationHandler) BumpPriority(ctx overseer.Context, receipts []parachainTypes.CandidateReceipt) {
+func (p *ParticipationHandler) BumpPriority(overseerChannel chan<- any, receipts []parachainTypes.CandidateReceipt) {
 	for _, receipt := range receipts {
-		blockNumber, err := getBlockNumber(ctx.Sender, receipt)
+		blockNumber, err := getBlockNumber(overseerChannel, receipt)
 		if err != nil {
 			logger.Errorf(
 				"failed to get block number. CommitmentsHash: %s, Error: %s",
@@ -223,35 +221,34 @@ func (p *ParticipationHandler) forkParticipation(request *ParticipationRequest, 
 }
 
 func (p *ParticipationHandler) participate(blockHash common.Hash, request ParticipationRequest) error {
-	// get available data from the sender
-	availableDataTx := make(chan overseer.AvailabilityRecoveryResponse, 1)
-	if err := p.sender.SendMessage(overseer.AvailabilityRecoveryMessage{
+	// get available data from the overseer
+	respCh := make(chan any, 1)
+	message := overseer.AvailabilityRecoveryMessage{
 		CandidateReceipt: request.candidateReceipt,
 		SessionIndex:     request.session,
 		GroupIndex:       nil,
-		ResponseChannel:  availableDataTx,
-	}); err != nil {
+		ResponseChannel:  respCh,
+	}
+	res, err := call(p.overseer, message, message.ResponseChannel)
+	if err != nil {
 		return fmt.Errorf("send availability recovery message: %w", err)
 	}
 
-	recoverDataCtx, recoverDataCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer recoverDataCancel()
-	var availableData overseer.AvailabilityRecoveryResponse
-	select {
-	case <-recoverDataCtx.Done():
-		return recoverDataCtx.Err() // Return the context error if timeout exceeded
-	case availableData = <-availableDataTx:
-		if availableData.Error != nil {
-			switch *availableData.Error {
-			case overseer.RecoveryErrorInvalid:
-				sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
-				return fmt.Errorf("invalid available data: %s", availableData.Error.String())
-			case overseer.RecoveryErrorUnavailable:
-				sendResult(p.sender, request, types.ParticipationOutcomeUnAvailable)
-				return fmt.Errorf("unavailable data: %s", availableData.Error.String())
-			default:
-				return fmt.Errorf("unexpected recovery error: %d", availableData.Error)
-			}
+	availableData, ok := res.(overseer.AvailabilityRecoveryResponse)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+
+	if availableData.Error != nil {
+		switch *availableData.Error {
+		case overseer.RecoveryErrorInvalid:
+			sendResult(p.overseer, request, types.ParticipationOutcomeInvalid)
+			return fmt.Errorf("invalid available data: %s", availableData.Error.String())
+		case overseer.RecoveryErrorUnavailable:
+			sendResult(p.overseer, request, types.ParticipationOutcomeUnAvailable)
+			return fmt.Errorf("unavailable data: %s", availableData.Error.String())
+		default:
+			return fmt.Errorf("unexpected recovery error: %d", availableData.Error)
 		}
 	}
 
@@ -259,7 +256,7 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		blockHash,
 		request.candidateReceipt.Descriptor.ValidationCodeHash)
 	if err != nil || validationCode == nil {
-		sendResult(p.sender, request, types.ParticipationOutcomeError)
+		sendResult(p.overseer, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("failed to get validation code: %w", err)
 	}
 
@@ -268,109 +265,49 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 			"validation code is empty. CandidateHash: %s",
 			request.candidateHash.String(),
 		)
-		sendResult(p.sender, request, types.ParticipationOutcomeError)
+		sendResult(p.overseer, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("validation code is empty")
 	}
 
-	validateCtx, validateCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer validateCancel()
-
 	// validate the request and send the result
-	tx := make(chan overseer.ValidationResult, 1)
-	if err := p.sender.SendMessage(overseer.ValidateFromChainState{
+	respChan := make(chan any, 1)
+	validateMessage := overseer.ValidateFromChainState{
 		CandidateReceipt:   request.candidateReceipt,
 		PoV:                availableData.AvailableData.POV,
 		PvfExecTimeoutKind: overseer.PvfExecTimeoutKindApproval,
-		ResponseChannel:    tx,
-	}); err != nil {
-		sendResult(p.sender, request, types.ParticipationOutcomeError)
+		ResponseChannel:    respChan,
+	}
+	res, err = call(p.overseer, validateMessage, validateMessage.ResponseChannel)
+	if err != nil {
+		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+	}
+	result, ok := res.(overseer.ValidationResult)
+	if !ok {
+		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
-	select {
-	case <-validateCtx.Done():
-		return validateCtx.Err()
-	case result := <-tx:
-		if result.Error != nil {
-			// validation failed
-			sendResult(p.sender, request, types.ParticipationOutcomeError)
-			return fmt.Errorf("validation failed: %s", result.Error)
-		}
-
-		if !result.IsValid {
-			sendResult(p.sender, request, types.ParticipationOutcomeInvalid)
-			return fmt.Errorf("validation failed: %s", result.Error)
-		}
-
-		sendResult(p.sender, request, types.ParticipationOutcomeValid)
-		return nil
+	if result.Error != nil {
+		// validation failed
+		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		return fmt.Errorf("validation failed: %s", result.Error)
 	}
+	if !result.IsValid {
+		sendResult(p.overseer, request, types.ParticipationOutcomeInvalid)
+		return fmt.Errorf("validation failed: %s", result.Error)
+	}
+
+	sendResult(p.overseer, request, types.ParticipationOutcomeValid)
+	return nil
 }
 
 var _ Participation = (*ParticipationHandler)(nil)
 
-func NewParticipation(sender overseer.Sender, runtime parachain.RuntimeInstance) *ParticipationHandler {
+func NewParticipation(overseer chan<- any, runtime parachain.RuntimeInstance) *ParticipationHandler {
 	return &ParticipationHandler{
 		runningParticipation: sync.Map{},
 		queue:                NewQueue(),
-		sender:               sender,
+		overseer:             overseer,
 		runtime:              runtime,
-	}
-}
-
-func getBlockNumber(sender overseer.Sender, receipt parachainTypes.CandidateReceipt) (uint32, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	tx := make(chan any, 1)
-	relayParent, err := receipt.Hash()
-	if err != nil {
-		return 0, fmt.Errorf("get hash: %w", err)
-	}
-
-	if err := sender.SendMessage(overseer.ChainAPIMessage[overseer.BlockNumberRequest]{
-		Message:         overseer.BlockNumberRequest{Hash: relayParent},
-		ResponseChannel: tx,
-	}); err != nil {
-		return 0, fmt.Errorf("send message: %w", err)
-	}
-
-	select {
-	case result := <-tx:
-		blockNumber, ok := result.(*uint32)
-		if !ok {
-			return 0, fmt.Errorf("unexpected response type: %T", result)
-		}
-		if blockNumber == nil {
-			return 0, fmt.Errorf("empty result")
-		}
-		return *blockNumber, nil
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	}
-}
-
-func sendResult(sender overseer.Sender, request ParticipationRequest, outcome types.ParticipationOutcomeType) {
-	participationOutcome, err := types.NewCustomParticipationOutcomeVDT(outcome)
-	if err != nil {
-		logger.Errorf(
-			"failed to create participation outcome: %s, error: %s",
-			outcome,
-			err,
-		)
-		return
-	}
-
-	statement := ParticipationStatement{
-		Session:          request.session,
-		CandidateHash:    request.candidateHash,
-		CandidateReceipt: request.candidateReceipt,
-		Outcome:          participationOutcome,
-	}
-	if err := sender.Feed(statement); err != nil {
-		logger.Errorf(
-			"failed to send participation result: %s, error: %s",
-			statement,
-			err,
-		)
 	}
 }

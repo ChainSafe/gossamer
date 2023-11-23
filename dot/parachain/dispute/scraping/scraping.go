@@ -2,7 +2,6 @@ package scraping
 
 import (
 	"fmt"
-
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -57,14 +56,14 @@ func (cs *ChainScraper) GetBlocksIncludingCandidate(candidateHash common.Hash) [
 
 // ProcessActiveLeavesUpdate Process active leaves update
 func (cs *ChainScraper) ProcessActiveLeavesUpdate(
-	sender overseer.Sender,
+	overseerChannel chan<- any,
 	update overseer.ActiveLeavesUpdate,
 ) (*parachainTypes.ScrapedUpdates, error) {
 	if update.Activated == nil {
 		return &parachainTypes.ScrapedUpdates{}, nil
 	}
 
-	ancestors, err := cs.GetRelevantBlockAncestors(sender, update.Activated.Hash, update.Activated.Number)
+	ancestors, err := cs.GetRelevantBlockAncestors(overseerChannel, update.Activated.Hash, update.Activated.Number)
 	if err != nil {
 		return nil, fmt.Errorf("getting relevant block ancestors: %w", err)
 	}
@@ -169,11 +168,11 @@ func (cs *ChainScraper) ProcessCandidateEvents(
 
 // GetRelevantBlockAncestors Get relevant block ancestors
 func (cs *ChainScraper) GetRelevantBlockAncestors(
-	sender overseer.Sender,
+	overseerChannel chan<- any,
 	head common.Hash,
 	headNumber uint32,
 ) ([]common.Hash, error) {
-	targetAncestor, err := getFinalisedBlockNumber(sender)
+	targetAncestor, err := getFinalisedBlockNumber(overseerChannel)
 	if err != nil {
 		return nil, fmt.Errorf("getting finalised block number: %w", err)
 	}
@@ -186,7 +185,7 @@ func (cs *ChainScraper) GetRelevantBlockAncestors(
 	}
 
 	for {
-		hashes, err := getBlockAncestors(sender, head, AncestryChunkSize)
+		hashes, err := getBlockAncestors(overseerChannel, head, AncestryChunkSize)
 		if err != nil {
 			return nil, fmt.Errorf("getting block ancestors: %w", err)
 		}
@@ -236,7 +235,7 @@ func (cs *ChainScraper) IsPotentialSpam(voteState types.CandidateVoteState, cand
 
 // NewChainScraper New chain scraper
 func NewChainScraper(
-	sender overseer.Sender,
+	overseerChannel chan<- any,
 	runtime parachain.RuntimeInstance,
 	initialHead *overseer.ActivatedLeaf,
 ) (*ChainScraper, *parachainTypes.ScrapedUpdates, error) {
@@ -251,66 +250,12 @@ func NewChainScraper(
 	update := overseer.ActiveLeavesUpdate{
 		Activated: initialHead,
 	}
-	updates, err := chainScraper.ProcessActiveLeavesUpdate(sender, update)
+	updates, err := chainScraper.ProcessActiveLeavesUpdate(overseerChannel, update)
 	if err != nil {
 		return nil, nil, fmt.Errorf("processing active leaves update: %w", err)
 	}
 
 	return chainScraper, updates, nil
-}
-
-// getFinalisedBlockNumber sends a message to the overseer to get the finalised block number.
-func getFinalisedBlockNumber(sender overseer.Sender) (uint32, error) {
-	tx := make(chan any, 1)
-	err := sender.SendMessage(overseer.ChainAPIMessage[overseer.FinalizedBlockNumberRequest]{
-		ResponseChannel: tx,
-	})
-	if err != nil {
-		return 0, fmt.Errorf("sending message to get finalised block number: %w", err)
-	}
-
-	data := <-tx
-	response, ok := data.(overseer.BlockNumberResponse)
-	if !ok {
-		return 0, fmt.Errorf("getting finalised block number: got unexpected response type %T", data)
-	}
-
-	if response.Err != nil {
-		return 0, fmt.Errorf("getting finalised block number: %w", response.Err)
-	}
-
-	return response.Number, nil
-}
-
-// getBlockAncestors sends a message to the overseer to get the ancestors of a block.
-func getBlockAncestors(
-	sender overseer.Sender,
-	head common.Hash,
-	numAncestors uint32,
-) ([]common.Hash, error) {
-	tx := make(chan any, 1)
-	message := overseer.AncestorsRequest{
-		Hash: head,
-		K:    numAncestors,
-	}
-	err := sender.SendMessage(overseer.ChainAPIMessage[overseer.AncestorsRequest]{
-		Message:         message,
-		ResponseChannel: tx,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("sending message to get block ancestors: %w", err)
-	}
-
-	data := <-tx
-	response, ok := data.(overseer.AncestorsResponse)
-	if !ok {
-		return nil, fmt.Errorf("getting block ancestors: got unexpected response type %T", data)
-	}
-	if response.Error != nil {
-		return nil, fmt.Errorf("getting block ancestors: %w", response.Error)
-	}
-
-	return response.Ancestors, nil
 }
 
 // saturatingSub returns the result of a - b, saturating at 0.
