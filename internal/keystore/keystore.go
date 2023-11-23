@@ -1,10 +1,10 @@
 package keystore
 
 import (
-	"github.com/ChainSafe/gossamer/primitives/core/crypto"
-	"github.com/ChainSafe/gossamer/primitives/core/ecdsa"
-	"github.com/ChainSafe/gossamer/primitives/core/ed25519"
-	"github.com/ChainSafe/gossamer/primitives/core/sr25519"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/ecdsa"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/sr25519"
 )
 
 // / Something that generates, stores and provides access to secret keys.

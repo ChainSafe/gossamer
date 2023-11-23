@@ -3,10 +3,10 @@ package gossip
 import (
 	"time"
 
-	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/client/network/event"
-	"github.com/ChainSafe/gossamer/client/network/sync"
-	"github.com/ChainSafe/gossamer/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/client/network"
+	"github.com/ChainSafe/gossamer/internal/client/network/event"
+	"github.com/ChainSafe/gossamer/internal/client/network/sync"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
 // / Wraps around an implementation of the [`Network`] trait and provides gossiping capabilities on

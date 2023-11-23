@@ -1,12 +1,12 @@
 package api
 
 import (
-	"github.com/ChainSafe/gossamer/client/consensus"
-	"github.com/ChainSafe/gossamer/primitives/blockchain"
-	"github.com/ChainSafe/gossamer/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/primitives/state-machine"
-	overlayedchanges "github.com/ChainSafe/gossamer/primitives/state-machine/overlayed-changes"
-	"github.com/ChainSafe/gossamer/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
 // / Describes which block import notification stream should be notified.

@@ -7,19 +7,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/client/api"
-	"github.com/ChainSafe/gossamer/client/consensus"
-	"github.com/ChainSafe/gossamer/client/consensus/grandpa/communication"
-	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/client/network/role"
-	"github.com/ChainSafe/gossamer/client/telemetry"
+	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/communication"
+	"github.com/ChainSafe/gossamer/internal/client/network"
+	"github.com/ChainSafe/gossamer/internal/client/network/role"
+	"github.com/ChainSafe/gossamer/internal/client/telemetry"
+	"github.com/ChainSafe/gossamer/internal/keystore"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/keystore"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ChainSafe/gossamer/primitives/blockchain"
-	"github.com/ChainSafe/gossamer/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/primitives/state-machine"
 	"golang.org/x/exp/constraints"
 )
 
@@ -158,7 +158,7 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 	api.BlockchainEvents[H, N]
 }
 
-type Backend interface{}
+// type Backend interface{}
 
 type environment struct{}
 

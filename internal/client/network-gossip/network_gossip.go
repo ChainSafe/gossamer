@@ -1,9 +1,9 @@
 package gossip
 
 import (
-	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/client/network/service"
-	"github.com/ChainSafe/gossamer/client/network/sync"
+	"github.com/ChainSafe/gossamer/internal/client/network"
+	"github.com/ChainSafe/gossamer/internal/client/network/service"
+	"github.com/ChainSafe/gossamer/internal/client/network/sync"
 	libp2p "github.com/libp2p/go-libp2p/core"
 )
 

@@ -1,10 +1,10 @@
 package service
 
 import (
-	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/client/network/config"
-	"github.com/ChainSafe/gossamer/client/network/event"
-	"github.com/ChainSafe/gossamer/client/peerset"
+	"github.com/ChainSafe/gossamer/internal/client/network"
+	"github.com/ChainSafe/gossamer/internal/client/network/config"
+	"github.com/ChainSafe/gossamer/internal/client/network/event"
+	"github.com/ChainSafe/gossamer/internal/client/peerset"
 	libp2p "github.com/libp2p/go-libp2p/core"
 )
 

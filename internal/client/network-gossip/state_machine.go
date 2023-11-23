@@ -3,8 +3,8 @@ package gossip
 import (
 	"time"
 
-	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/client/network"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	libp2p "github.com/libp2p/go-libp2p/core"
 )
 

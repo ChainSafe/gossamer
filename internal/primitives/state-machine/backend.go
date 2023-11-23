@@ -1,9 +1,9 @@
 package statemachine
 
 import (
-	"github.com/ChainSafe/gossamer/primitives/core/offchain"
-	"github.com/ChainSafe/gossamer/primitives/state-machine/stats"
-	"github.com/ChainSafe/gossamer/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/stats"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"golang.org/x/exp/constraints"
 )
 

@@ -1,7 +1,7 @@
 package communication
 
 import (
-	"github.com/ChainSafe/gossamer/client/peerset"
+	"github.com/ChainSafe/gossamer/internal/client/peerset"
 	libp2p "github.com/libp2p/go-libp2p/core"
 )
 
