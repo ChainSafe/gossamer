@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
-	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -54,7 +54,7 @@ type NewAuthoritySetStruct[H comparable, N constraints.Unsigned, ID AuthorityID]
 type messageData[H comparable, N constraints.Unsigned] struct {
 	Round   uint64
 	SetID   uint64
-	Message finalityGrandpa.Message[H, N]
+	Message grandpa.Message[H, N]
 }
 
 // Check a message signature by encoding the message as a localised payload and
@@ -62,7 +62,7 @@ type messageData[H comparable, N constraints.Unsigned] struct {
 // The encoding necessary to verify the signature will be done using the given
 // buffer, the original content of the buffer will be cleared.
 func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID](
-	message finalityGrandpa.Message[H, N],
+	message grandpa.Message[H, N],
 	id ID,
 	signature any,
 	round uint64,
@@ -95,7 +95,7 @@ func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID]
 }
 
 type SharedVoterState[AuthorityID comparable] struct {
-	inner finalityGrandpa.VoterState[AuthorityID]
+	inner grandpa.VoterState[AuthorityID]
 	sync.Mutex
 }
 
@@ -188,7 +188,7 @@ type Config struct {
 
 // / Future that powers the voter.
 type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
-	voter            *finalityGrandpa.Voter[Hash, Number, Signature, ID]
+	voter            *grandpa.Voter[Hash, Number, Signature, ID]
 	sharedVoterState SharedVoterState[ID]
 	env              environment
 	voterCommandsRx  any

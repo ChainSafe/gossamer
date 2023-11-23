@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/constraints"
@@ -54,14 +54,14 @@ func createCommit(
 	targetNum uint,
 	round uint64,
 	ID dummyAuthID,
-) finalityGrandpa.Commit[string, uint, string, dummyAuthID] {
+) grandpa.Commit[string, uint, string, dummyAuthID] {
 	t.Helper()
-	precommit := finalityGrandpa.Precommit[string, uint]{
+	precommit := grandpa.Precommit[string, uint]{
 		TargetHash:   targetHash,
 		TargetNumber: targetNum,
 	}
 
-	message := finalityGrandpa.Message[string, uint]{
+	message := grandpa.Message[string, uint]{
 		Value: precommit,
 	}
 
@@ -74,16 +74,16 @@ func createCommit(
 	encMsg, err := scale.Marshal(msg)
 	require.NoError(t, err)
 
-	signedPrecommit := finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]{
+	signedPrecommit := grandpa.SignedPrecommit[string, uint, string, dummyAuthID]{
 		Precommit: precommit,
 		ID:        ID,
 		Signature: string(encMsg),
 	}
 
-	commit := finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
+	commit := grandpa.Commit[string, uint, string, dummyAuthID]{
 		TargetHash:   targetHash,
 		TargetNumber: targetNum,
-		Precommits:   []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]{signedPrecommit},
+		Precommits:   []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]{signedPrecommit},
 	}
 
 	return commit
@@ -199,7 +199,7 @@ func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
 	}
 
 	// Create a commit without precommits
-	commit := finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
+	commit := grandpa.Commit[string, uint, string, dummyAuthID]{
 		TargetHash:   "hash7",
 		TargetNumber: uint(7),
 	}
