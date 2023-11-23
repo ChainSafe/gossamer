@@ -9,7 +9,7 @@ import (
 	"io"
 	"reflect"
 
-	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -35,7 +35,7 @@ type GrandpaJustification[
 	ID AuthorityID,
 ] struct {
 	Round           uint64
-	Commit          finalityGrandpa.Commit[Hash, N, S, ID]
+	Commit          grandpa.Commit[Hash, N, S, ID]
 	VotesAncestries []Header[Hash, N]
 }
 
@@ -65,7 +65,7 @@ func decodeJustification[Hash constraints.Ordered,
 func (dgj *decodeGrandpaJustification[Hash, N, S, ID, H]) UnmarshalSCALE(reader io.Reader) (err error) {
 	type roundCommitHeader struct {
 		Round   uint64
-		Commit  finalityGrandpa.Commit[Hash, N, S, ID]
+		Commit  grandpa.Commit[Hash, N, S, ID]
 		Headers []H
 	}
 	rch := roundCommitHeader{}
@@ -100,7 +100,7 @@ func NewJustificationFromCommit[
 ](
 	client HeaderBackend[Hash, N, Header[Hash, N]],
 	round uint64,
-	commit finalityGrandpa.Commit[Hash, N, S, ID]) (GrandpaJustification[Hash, N, S, ID], error) {
+	commit grandpa.Commit[Hash, N, S, ID]) (GrandpaJustification[Hash, N, S, ID], error) {
 	votesAncestriesHashes := make(map[Hash]struct{})
 	voteAncestries := make([]Header[Hash, N], 0)
 
@@ -181,7 +181,7 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	encoded []byte,
 	finalizedTarget hashNumber[Hash, N],
 	setID uint64,
-	voters finalityGrandpa.VoterSet[ID]) (GrandpaJustification[Hash, N, S, ID], error) {
+	voters grandpa.VoterSet[ID]) (GrandpaJustification[Hash, N, S, ID], error) {
 	justification, err := decodeJustification[Hash, N, S, ID, H](encoded)
 	if err != nil {
 		return GrandpaJustification[Hash, N, S, ID]{}, fmt.Errorf("error decoding justification for header: %s", err)
@@ -201,16 +201,16 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 
 // Verify Validate the commit and the votes' ancestry proofs.
 func (j *GrandpaJustification[Hash, N, S, ID]) Verify(setID uint64, authorities AuthorityList[ID]) error {
-	var weights []finalityGrandpa.IDWeight[ID]
+	var weights []grandpa.IDWeight[ID]
 	for _, authority := range authorities {
-		weight := finalityGrandpa.IDWeight[ID]{
+		weight := grandpa.IDWeight[ID]{
 			ID:     authority.Key,
-			Weight: finalityGrandpa.VoterWeight(authority.Weight),
+			Weight: grandpa.VoterWeight(authority.Weight),
 		}
 		weights = append(weights, weight)
 	}
 
-	voters := finalityGrandpa.NewVoterSet[ID](weights)
+	voters := grandpa.NewVoterSet[ID](weights)
 	if voters != nil {
 		err := j.verifyWithVoterSet(setID, *voters)
 		return err
@@ -221,9 +221,9 @@ func (j *GrandpaJustification[Hash, N, S, ID]) Verify(setID uint64, authorities 
 // Validate the commit and the votes' ancestry proofs.
 func (j *GrandpaJustification[Hash, N, S, ID]) verifyWithVoterSet(
 	setID uint64,
-	voters finalityGrandpa.VoterSet[ID]) error {
+	voters grandpa.VoterSet[ID]) error {
 	ancestryChain := newAncestryChain[Hash, N](j.VotesAncestries)
-	commitValidationResult, err := finalityGrandpa.ValidateCommit[Hash, N, S, ID](j.Commit, voters, ancestryChain)
+	commitValidationResult, err := grandpa.ValidateCommit[Hash, N, S, ID](j.Commit, voters, ancestryChain)
 	if err != nil {
 		return fmt.Errorf("%w: invalid commit in grandpa justification", errBadJustification)
 	}
@@ -236,7 +236,7 @@ func (j *GrandpaJustification[Hash, N, S, ID]) verifyWithVoterSet(
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
 	precommits := j.Commit.Precommits
-	var minPrecommit *finalityGrandpa.SignedPrecommit[Hash, N, S, ID]
+	var minPrecommit *grandpa.SignedPrecommit[Hash, N, S, ID]
 	if len(precommits) == 0 {
 		panic("can only fail if precommits is empty; commit has been validated above; " +
 			"valid commits must include precommits")
@@ -253,7 +253,7 @@ func (j *GrandpaJustification[Hash, N, S, ID]) verifyWithVoterSet(
 	baseHash := minPrecommit.Precommit.TargetHash
 	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
-		mgs := finalityGrandpa.Message[Hash, N]{Value: signed.Precommit}
+		mgs := grandpa.Message[Hash, N]{Value: signed.Precommit}
 		isValidSignature, err := checkMessageSignature[Hash, N, ID](mgs, signed.ID, signed.Signature, j.Round, setID)
 		if err != nil {
 			return err

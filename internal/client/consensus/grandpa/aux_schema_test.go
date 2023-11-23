@@ -6,7 +6,7 @@ package grandpa
 import (
 	"testing"
 
-	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
@@ -108,7 +108,7 @@ func TestLoadPersistentGenesis(t *testing.T) {
 	genesisSet, err := NewGenesisAuthoritySet[string, uint, dummyAuthID](genesisAuths)
 	require.NoError(t, err)
 
-	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{
+	state := grandpa.NewRoundState(grandpa.HashNumber[string, uint]{
 		Hash:   genesisHash,
 		Number: genesisNumber})
 	base := state.PrevoteGHOST
@@ -144,7 +144,7 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	genesisSet, err := NewGenesisAuthoritySet[string, uint, dummyAuthID](genesisAuths)
 	require.NoError(t, err)
 
-	state := finalityGrandpa.NewRoundState(finalityGrandpa.HashNumber[string, uint]{
+	state := grandpa.NewRoundState(grandpa.HashNumber[string, uint]{
 		Hash:   genesisHash,
 		Number: genesisNumber})
 	base := state.PrevoteGHOST
@@ -251,7 +251,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, encState)
 
-	genesisState := finalityGrandpa.HashNumber[string, uint]{
+	genesisState := grandpa.HashNumber[string, uint]{
 		Number: newAuthSet.CanonNumber,
 	}
 
@@ -277,14 +277,14 @@ func TestWriteVoterSetState(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	dummyHashNumber := finalityGrandpa.HashNumber[string, uint]{
+	dummyHashNumber := grandpa.HashNumber[string, uint]{
 		Hash:   "a",
 		Number: 1,
 	}
 
 	completedRound := completedRound[string, uint, dummyAuthID, uint]{
 		Number: 1,
-		State: finalityGrandpa.RoundState[string, uint]{
+		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
 			Finalized:    &dummyHashNumber,
 			Estimate:     &dummyHashNumber,
@@ -328,14 +328,14 @@ func TestWriteConcludedRound(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	dummyHashNumber := finalityGrandpa.HashNumber[string, uint]{
+	dummyHashNumber := grandpa.HashNumber[string, uint]{
 		Hash:   "a",
 		Number: 1,
 	}
 
 	completedRound := completedRound[string, uint, dummyAuthID, uint]{
 		Number: 1,
-		State: finalityGrandpa.RoundState[string, uint]{
+		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
 			Finalized:    &dummyHashNumber,
 			Estimate:     &dummyHashNumber,
@@ -375,7 +375,7 @@ func TestWriteConcludedRound(t *testing.T) {
 func TestWriteJustification(t *testing.T) {
 	store := newDummyStore(t)
 
-	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
+	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
 	precommit := makePrecommit(t, "a", 1, 1)
 	precommits = append(precommits, precommit)
 
@@ -387,7 +387,7 @@ func TestWriteJustification(t *testing.T) {
 
 	justification := GrandpaJustification[string, uint, string, dummyAuthID]{
 		Round: 2,
-		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
+		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,

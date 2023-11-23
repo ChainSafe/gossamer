@@ -6,7 +6,7 @@ package grandpa
 import (
 	"testing"
 
-	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func Test_checkMessageSignature(t *testing.T) {
 	pubKeyValid := dummyAuthID(1)
 	pubKeyInvalid := dummyInvalidAuthID(1)
 
-	message := finalityGrandpa.Message[string, uint]{
+	message := grandpa.Message[string, uint]{
 		Value: 4,
 	}
 
