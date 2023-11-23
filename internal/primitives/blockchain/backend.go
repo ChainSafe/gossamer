@@ -1,8 +1,8 @@
 package blockchain
 
 import (
-	"github.com/ChainSafe/gossamer/primitives/runtime"
-	"github.com/ChainSafe/gossamer/primitives/runtime/generic"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
 
 // / Blockchain database header backend. Does not perform any validation.

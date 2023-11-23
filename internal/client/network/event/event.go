@@ -1,8 +1,8 @@
 package event
 
 import (
-	"github.com/ChainSafe/gossamer/client/network"
-	"github.com/ChainSafe/gossamer/client/network/role"
+	"github.com/ChainSafe/gossamer/internal/client/network"
+	"github.com/ChainSafe/gossamer/internal/client/network/role"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	libp2p "github.com/libp2p/go-libp2p/core"
 )

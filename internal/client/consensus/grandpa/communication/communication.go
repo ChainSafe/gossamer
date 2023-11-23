@@ -1,11 +1,11 @@
 package communication
 
 import (
-	gossip "github.com/ChainSafe/gossamer/client/network-gossip"
-	"github.com/ChainSafe/gossamer/client/network/service"
-	"github.com/ChainSafe/gossamer/client/network/sync"
-	"github.com/ChainSafe/gossamer/client/telemetry"
-	"github.com/ChainSafe/gossamer/primitives/runtime"
+	gossip "github.com/ChainSafe/gossamer/internal/client/network-gossip"
+	"github.com/ChainSafe/gossamer/internal/client/network/service"
+	"github.com/ChainSafe/gossamer/internal/client/network/sync"
+	"github.com/ChainSafe/gossamer/internal/client/telemetry"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
 // / A handle to the network.

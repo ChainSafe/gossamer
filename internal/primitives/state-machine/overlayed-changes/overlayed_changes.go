@@ -1,7 +1,7 @@
 package overlayedchanges
 
 import (
-	"github.com/ChainSafe/gossamer/primitives/core/offchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 )
 
 // / In memory array of storage values.

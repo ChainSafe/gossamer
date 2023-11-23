@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/ChainSafe/gossamer/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 )
 
 // / Type that implements `futures::Stream` of block import events.
