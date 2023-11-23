@@ -194,7 +194,7 @@ func NewSpamSlotsFromState(unconfirmedDisputes map[unconfirmedKey]*treeset.Set, 
 			key := newSlotsKey(k.session, parachainTypes.ValidatorIndex(validator))
 			slots[key]++
 			if slots[key] > maxSpamVotes {
-				// TODO: improve this after we have a logger for dispute coordinator
+				// TODO: improve this after we have a logger for disputes coordinator
 				logger.Errorf("Spam count for validator %d in session %d is greater than max spam votes %d",
 					validator, k.session, maxSpamVotes)
 			}

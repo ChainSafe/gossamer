@@ -18,8 +18,8 @@ func getBlockNumber(overseerChannel chan<- any, receipt parachainTypes.Candidate
 		return 0, fmt.Errorf("get hash: %w", err)
 	}
 
-	message := overseer.ChainAPIMessage[overseer.BlockNumberRequest]{
-		Message:         overseer.BlockNumberRequest{Hash: relayParent},
+	message := overseer.ChainAPIMessage[overseer.BlockNumber]{
+		Message:         overseer.BlockNumber{Hash: relayParent},
 		ResponseChannel: respCh,
 	}
 	result, err := call(overseerChannel, message, message.ResponseChannel)
@@ -48,15 +48,12 @@ func sendMessage(channel chan<- any, message any) error {
 }
 
 func call(channel chan<- any, message any, responseChan chan any) (any, error) {
-	// Send with timeout
+	if err := sendMessage(channel, message); err != nil {
+		return nil, fmt.Errorf("send message: %w", err)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-
-	select {
-	case channel <- message:
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
 
 	select {
 	case response := <-responseChan:

@@ -24,31 +24,12 @@ type Coordinator struct {
 	store    *overlayBackend
 	runtime  parachain.RuntimeInstance
 
-	sender   chan<- any
+	overseer chan<- any
 	receiver <-chan any
 }
 
-func (d *Coordinator) Run() error {
-	initResult, err := d.initialize()
-	if err != nil {
-		return fmt.Errorf("initialize dispute coordinator: %w", err)
-	}
-
-	initData := InitialData{
-		Participation: initResult.participation,
-		Votes:         initResult.votes,
-		Leaf:          initResult.activatedLeaf,
-	}
-
-	if err := initResult.initialized.Run(d.sender, d.store.inner, &initData); err != nil {
-		return fmt.Errorf("run initialized state: %w", err)
-	}
-
-	return nil
-}
-
 type startupResult struct {
-	participation    []ParticipationRequestWithPriority
+	participation    []ParticipationData
 	votes            []parachainTypes.ScrapedOnChainVotes
 	spamSlots        SpamSlots
 	orderingProvider scraping.ChainScraper
@@ -57,20 +38,69 @@ type startupResult struct {
 }
 
 type initializeResult struct {
-	participation []ParticipationRequestWithPriority
+	participation []ParticipationData
 	votes         []parachainTypes.ScrapedOnChainVotes
 	activatedLeaf *overseer.ActivatedLeaf
 	initialized   *Initialized
 }
 
+func (d *Coordinator) sendDisputeMessages(
+	env types.CandidateEnvironment,
+	voteState types.CandidateVoteState,
+) {
+	ownVotes, err := voteState.Own.Votes()
+	if err != nil {
+		logger.Errorf("get own votes: %s", err)
+		return
+	}
+
+	for _, vote := range ownVotes {
+		keypair, err := types.GetValidatorKeyPair(d.keystore, env.Session.Validators, vote.ValidatorIndex)
+		if err != nil {
+			logger.Errorf("get validator key pair: %s", err)
+			continue
+		}
+
+		candidateHash, err := voteState.Votes.CandidateReceipt.Hash()
+		if err != nil {
+			logger.Errorf("get candidate hash: %s", err)
+			continue
+		}
+
+		isValid, err := vote.DisputeStatement.IsValid()
+		if err != nil {
+			logger.Errorf("check if dispute statement is valid: %s", err)
+			continue
+		}
+
+		signedDisputeStatement, err := types.NewSignedDisputeStatement(keypair, isValid, candidateHash, env.SessionIndex)
+		if err != nil {
+			logger.Errorf("create signed dispute statement: %s", err)
+			continue
+		}
+
+		disputeMessage, err := types.NewDisputeMessage(keypair, voteState.Votes, &signedDisputeStatement, vote.ValidatorIndex, env.Session)
+		if err != nil {
+			logger.Errorf("create dispute message: %s", err)
+			continue
+		}
+
+		if err := sendMessage(d.overseer, disputeMessage); err != nil {
+			logger.Errorf("send dispute message: %s", err)
+		}
+	}
+}
+
 func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
-	// TODO: handle other messages
 	for {
 		select {
 		case overseerMessage := <-d.receiver:
 			switch message := overseerMessage.(type) {
 			case overseer.Signal[overseer.ActiveLeavesUpdate]:
 				return message.Data.Activated, nil
+			default:
+				logger.Warnf("Received message before first active leaves update. "+
+					"This is not expected - message will be dropped. %T", message)
 			}
 		}
 	}
@@ -100,7 +130,7 @@ func (d *Coordinator) initialize() (
 		participation: startupData.participation,
 		votes:         startupData.votes,
 		activatedLeaf: firstLeaf,
-		initialized: NewInitializedState(d.sender,
+		initialized: NewInitializedState(d.overseer,
 			d.runtime,
 			startupData.spamSlots,
 			&startupData.orderingProvider,
@@ -127,9 +157,9 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	}
 
 	gapsInCache := false
-	for idx := highestSession - (Window - 1); idx <= highestSession; idx++ {
-		_, err = d.runtime.ParachainHostSessionInfo(initialHead.Hash, idx)
-		if err != nil {
+	for idx := saturatingSub(uint32(highestSession), Window-1); idx <= uint32(highestSession); idx++ {
+		sessionInfo, err := d.runtime.ParachainHostSessionInfo(initialHead.Hash, parachainTypes.SessionIndex(idx))
+		if err != nil || sessionInfo == nil {
 			logger.Debugf("no session info for session %d", idx)
 			gapsInCache = true
 			continue
@@ -137,7 +167,8 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	}
 
 	// prune obsolete disputes
-	if err := d.store.NoteEarliestSession(highestSession); err != nil {
+	earliestSession := parachainTypes.SessionIndex(saturatingSub(uint32(highestSession), Window-1))
+	if err := d.store.NoteEarliestSession(earliestSession); err != nil {
 		return nil, fmt.Errorf("note earliest session: %w", err)
 	}
 
@@ -145,10 +176,10 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	// get candidate votes
 	// check if it is a potential spam
 	// participate if needed, if not distribute the own vote
-	var participationRequests []ParticipationRequestWithPriority
+	var participationRequests []ParticipationData
 	spamDisputes := make(map[unconfirmedKey]*treeset.Set)
 	leafHash := initialHead.Hash
-	scraper, scrapedVotes, err := scraping.NewChainScraper(d.sender, d.runtime, initialHead)
+	scraper, scrapedVotes, err := scraping.NewChainScraper(d.overseer, d.runtime, initialHead)
 	if err != nil {
 		return nil, fmt.Errorf("new chain scraper: %w", err)
 	}
@@ -206,7 +237,7 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 				priority = ParticipationPriorityBestEffort
 			}
 
-			participationRequests = append(participationRequests, ParticipationRequestWithPriority{
+			participationRequests = append(participationRequests, ParticipationData{
 				request: ParticipationRequest{
 					candidateHash:    dispute.Comparator.CandidateHash,
 					candidateReceipt: voteState.Votes.CandidateReceipt,
@@ -232,51 +263,23 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	}, nil
 }
 
-func (d *Coordinator) sendDisputeMessages(
-	env types.CandidateEnvironment,
-	voteState types.CandidateVoteState,
-) {
-	ownVotes, err := voteState.Own.Votes()
+func (d *Coordinator) Run() error {
+	initResult, err := d.initialize()
 	if err != nil {
-		logger.Errorf("get own votes: %s", err)
-		return
+		return fmt.Errorf("initialize dispute coordinator: %w", err)
 	}
 
-	for _, vote := range ownVotes {
-		keypair, err := types.GetValidatorKeyPair(d.keystore, env.Session.Validators, vote.ValidatorIndex)
-		if err != nil {
-			logger.Errorf("get validator key pair: %s", err)
-			continue
-		}
-
-		candidateHash, err := voteState.Votes.CandidateReceipt.Hash()
-		if err != nil {
-			logger.Errorf("get candidate hash: %s", err)
-			continue
-		}
-
-		isValid, err := vote.DisputeStatement.IsValid()
-		if err != nil {
-			logger.Errorf("check if dispute statement is valid: %s", err)
-			continue
-		}
-
-		signedDisputeStatement, err := types.NewSignedDisputeStatement(keypair, isValid, candidateHash, env.SessionIndex)
-		if err != nil {
-			logger.Errorf("create signed dispute statement: %s", err)
-			continue
-		}
-
-		disputeMessage, err := types.NewDisputeMessage(keypair, voteState.Votes, &signedDisputeStatement, vote.ValidatorIndex, env.Session)
-		if err != nil {
-			logger.Errorf("create dispute message: %s", err)
-			continue
-		}
-
-		if err := sendMessage(d.sender, disputeMessage); err != nil {
-			logger.Errorf("send dispute message: %s", err)
-		}
+	initData := InitialData{
+		Participation: initResult.participation,
+		Votes:         initResult.votes,
+		Leaf:          initResult.activatedLeaf,
 	}
+
+	if err := initResult.initialized.Run(d.overseer, d.store.inner, &initData); err != nil {
+		return fmt.Errorf("run initialized state: %w", err)
+	}
+
+	return nil
 }
 
 func NewDisputeCoordinator(path string) (*Coordinator, error) {

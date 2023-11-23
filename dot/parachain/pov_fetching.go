@@ -6,7 +6,6 @@ package parachain
 import (
 	"fmt"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

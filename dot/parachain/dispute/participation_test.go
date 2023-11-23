@@ -161,13 +161,16 @@ func participateWithCommitmentsHash(
 		return fmt.Errorf("failed to hash candidate receipt: %w", err)
 	}
 
-	participationRequest := ParticipationRequest{
-		candidateHash:    candidateHash,
-		candidateReceipt: candidateReceipt,
-		session:          session,
+	participationData := ParticipationData{
+		ParticipationRequest{
+			candidateHash:    candidateHash,
+			candidateReceipt: candidateReceipt,
+			session:          session,
+		},
+		ParticipationPriorityBestEffort,
 	}
 
-	return participation.Queue(overseerChannel, participationRequest, ParticipationPriorityBestEffort)
+	return participation.Queue(overseerChannel, participationData)
 }
 
 func TestNewParticipation(t *testing.T) {
@@ -200,10 +203,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						response := overseer.RecoveryErrorUnavailable
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
@@ -278,10 +281,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 					}
 					counter++
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						response := overseer.RecoveryErrorUnavailable
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
@@ -341,7 +344,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			select {
 			case msg := <-mockOverseer:
 				switch message := msg.(type) {
-				case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
 					response := uint32(1)
 					message.ResponseChannel <- response
 					break
@@ -368,7 +371,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			case msg := <-mockOverseer:
 				counter++
 				switch message := msg.(type) {
-				case overseer.AvailabilityRecoveryMessage:
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 					response := overseer.RecoveryErrorUnavailable
 					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 						Error: &response,
@@ -415,10 +418,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						response := overseer.RecoveryErrorUnavailable
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
@@ -460,10 +463,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						availableData := overseer.AvailableData{
 							POV:            []byte{},
 							ValidationData: overseer.PersistedValidationData{},
@@ -522,10 +525,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						response := overseer.RecoveryErrorInvalid
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
@@ -570,17 +573,17 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.ValidateFromChainState:
-						if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+					case overseer.CandidateValidationMessage[overseer.ValidateFromChainState]:
+						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
 							message.ResponseChannel <- overseer.ValidationResult{
 								IsValid: false,
 								Error:   nil,
 							}
 						}
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						availableData := overseer.AvailableData{
 							POV:            []byte{},
 							ValidationData: overseer.PersistedValidationData{},
@@ -635,10 +638,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						availableData := overseer.AvailableData{
 							POV:            []byte{},
 							ValidationData: overseer.PersistedValidationData{},
@@ -648,8 +651,8 @@ func TestParticipationHandler_Queue(t *testing.T) {
 							AvailableData: &availableData,
 							Error:         nil,
 						}
-					case overseer.ValidateFromChainState:
-						if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+					case overseer.CandidateValidationMessage[overseer.ValidateFromChainState]:
+						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
 							message.ResponseChannel <- overseer.ValidationResult{
 								IsValid: false,
 								Error:   nil,
@@ -704,10 +707,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 				select {
 				case msg := <-mockOverseer:
 					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumberRequest]:
+					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage:
+					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
 						availableData := overseer.AvailableData{
 							POV:            []byte{},
 							ValidationData: overseer.PersistedValidationData{},
@@ -717,8 +720,8 @@ func TestParticipationHandler_Queue(t *testing.T) {
 							AvailableData: &availableData,
 							Error:         nil,
 						}
-					case overseer.ValidateFromChainState:
-						if message.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+					case overseer.CandidateValidationMessage[overseer.ValidateFromChainState]:
+						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
 							message.ResponseChannel <- overseer.ValidationResult{
 								IsValid: true,
 								Error:   nil,

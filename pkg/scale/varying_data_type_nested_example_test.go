@@ -27,7 +27,7 @@ func (pvdt *ParentVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	return
 }
 
-// BTree will return value from underying VaryingDataType
+// Value will return value from underying VaryingDataType
 func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue, err error) {
 	vdt := scale.VaryingDataType(*pvdt)
 	return vdt.Value()
@@ -73,7 +73,7 @@ func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq
 	return
 }
 
-// BTree will return value from underying VaryingDataType
+// Value will return value from underying VaryingDataType
 func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*cvdt)
 	return vdt.Value()
@@ -181,20 +181,20 @@ func Example() {
 		panic(err)
 	}
 
-	// validate ParentVDT.BTree()
+	// validate ParentVDT.Value()
 	parentVal, err := parent.Value()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("parent.BTree(): %+v\n", parentVal)
+	fmt.Printf("parent.Value(): %+v\n", parentVal)
 	// should cast to ChildVDT, since that was set earlier
 	valChildVDT := parentVal.(ChildVDT)
-	// validate ChildVDT.BTree() as ChildInt16(888)
+	// validate ChildVDT.Value() as ChildInt16(888)
 	childVdtValue, err := valChildVDT.Value()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("child.BTree(): %+v\n", childVdtValue)
+	fmt.Printf("child.Value(): %+v\n", childVdtValue)
 
 	// marshal into scale encoded bytes
 	bytes, err := scale.Marshal(parent)
@@ -213,8 +213,8 @@ func Example() {
 	fmt.Println(reflect.DeepEqual(parent, dstParent))
 
 	// Output:
-	// parent.BTree(): ChildVDT(ChildInt16(888))
-	// child.BTree(): ChildInt16(888)
+	// parent.Value(): ChildVDT(ChildInt16(888))
+	// child.Value(): ChildInt16(888)
 	// bytes: 01 01 78 03
 	// true
 }

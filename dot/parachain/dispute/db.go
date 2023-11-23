@@ -17,7 +17,6 @@ const (
 	watermarkKey         = "watermark"
 )
 
-// Question: do we wanna scale encode the key as well?
 func newEarliestSessionKey() []byte {
 	return []byte(earliestSessionKey)
 }
@@ -241,12 +240,12 @@ func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession para
 		return fmt.Errorf("get watermark: %w", err)
 	}
 
-	cleanUntil := earliestSession - watermark
+	cleanUntil := saturatingSub(uint32(earliestSession), uint32(watermark))
 	if cleanUntil > MaxCleanBatchSize {
 		cleanUntil = MaxCleanBatchSize
 	}
 
-	for i := watermark; i < cleanUntil; i++ {
+	for i := watermark; i < parachainTypes.SessionIndex(cleanUntil); i++ {
 		prefix := newCandidateVotesSessionPrefix(i)
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 
@@ -263,7 +262,7 @@ func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession para
 	}
 
 	// new watermark
-	if err := b.setWatermarkTxn(txn, cleanUntil); err != nil {
+	if err := b.setWatermarkTxn(txn, parachainTypes.SessionIndex(cleanUntil)); err != nil {
 		return fmt.Errorf("set watermark: %w", err)
 	}
 
