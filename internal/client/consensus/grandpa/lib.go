@@ -159,6 +159,7 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 	api.BlockchainEvents[H, N]
 	papi.ProvideRuntimeAPI
 	api.ExecutorProvider
+	consensus.BlockImport[H, N]
 }
 
 // type Backend interface{}
