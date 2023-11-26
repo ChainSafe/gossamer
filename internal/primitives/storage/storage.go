@@ -2,6 +2,9 @@ package storage
 
 import "github.com/tidwall/btree"
 
+// / Storage key.
+type StorageKey []byte
+
 // / Storage key with read/write tracking information.
 type TrackedStorageKey struct {
 	Key         []byte
@@ -9,6 +12,9 @@ type TrackedStorageKey struct {
 	Writes      uint32
 	Whitelisted bool
 }
+
+// / Storage data associated to a [`StorageKey`].
+type StorageData []byte
 
 // / Child trie storage data.
 type StorageChild struct {
@@ -30,15 +36,14 @@ type Storage struct {
 	ChildrenDefault map[string]StorageChild
 }
 
-type ChildInfos interface {
-	ParentKeyID
-}
-
 // / Information related to a child state.
 type ChildInfo any
+type ChildInfos interface {
+	ChildInfoParentKeyID
+}
 
 // / This is the one used by default.
-type ParentKeyID ChildTrieParentKeyID
+type ChildInfoParentKeyID ChildTrieParentKeyID
 
 // / A child trie of default type.
 // /

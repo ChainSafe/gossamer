@@ -160,6 +160,7 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 	papi.ProvideRuntimeAPI
 	api.ExecutorProvider
 	consensus.BlockImport[H, N]
+	api.StorageProvider[H, N]
 }
 
 // type Backend interface{}
