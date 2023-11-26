@@ -281,3 +281,106 @@ type AuxStore interface {
 	// fn get_aux(&self, key: &[u8]) -> sp_blockchain::Result<Option<Vec<u8>>>;
 	GetAux(key []byte) (*[]byte, error)
 }
+
+// / An `Iterator` that iterates keys in a given block under a prefix.
+// pub struct KeysIter<State, Block>
+// where
+//
+//	State: StateBackend<HashFor<Block>>,
+//	Block: BlockT,
+//
+//	{
+//		inner: <State as StateBackend<HashFor<Block>>>::RawIter,
+//		state: State,
+//	}
+type KeysIter[N runtime.Number, H statemachine.HasherOut] struct {
+	inner statemachine.StorageIterator[H]
+	state statemachine.Backend[H]
+}
+
+// / An `Iterator` that iterates keys and values in a given block under a prefix.
+// pub struct PairsIter<State, Block>
+// where
+//
+//	State: StateBackend<HashFor<Block>>,
+//	Block: BlockT,
+//
+//	{
+//		inner: <State as StateBackend<HashFor<Block>>>::RawIter,
+//		state: State,
+//	}
+type PairsIter[N runtime.Number, H statemachine.HasherOut] struct {
+	inner statemachine.StorageIterator[H]
+	state statemachine.Backend[H]
+}
+
+// / Provides access to storage primitives
+// pub trait StorageProvider<Block: BlockT, B: Backend<Block>> {
+type StorageProvider[H runtime.Hash, N runtime.Number] interface {
+	/// Given a block's `Hash` and a key, return the value under the key in that block.
+	// fn storage(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<StorageData>>;
+	Storage(hash H, key storage.StorageKey) (*storage.StorageData, error)
+
+	/// Given a block's `Hash` and a key, return the value under the hash in that block.
+	// fn storage_hash(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<Block::Hash>>;
+	StorageHash(hash H, key storage.StorageKey) (*H, error)
+
+	/// Given a block's `Hash` and a key prefix, returns a `KeysIter` iterates matching storage
+	/// keys in that block.
+	// fn storage_keys(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	prefix: Option<&StorageKey>,
+	// 	start_key: Option<&StorageKey>,
+	// ) -> sp_blockchain::Result<KeysIter<B::State, Block>>;
+	StorageKeys(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[N, H], error)
+
+	/// Given a block's `Hash` and a key prefix, returns an iterator over the storage keys and
+	/// values in that block.
+	// fn storage_pairs(
+	// 	&self,
+	// 	hash: <Block as BlockT>::Hash,
+	// 	prefix: Option<&StorageKey>,
+	// 	start_key: Option<&StorageKey>,
+	// ) -> sp_blockchain::Result<PairsIter<B::State, Block>>;
+	StoragePairs(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (PairsIter[N, H], error)
+
+	/// Given a block's `Hash`, a key and a child storage key, return the value under the key in
+	/// that block.
+	// fn child_storage(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	child_info: &ChildInfo,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<StorageData>>;
+	ChildStorage(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (*storage.StorageData, error)
+
+	// /// Given a block's `Hash` and a key `prefix` and a child storage key,
+	// /// returns a `KeysIter` that iterates matching storage keys in that block.
+	// fn child_storage_keys(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	child_info: ChildInfo,
+	// 	prefix: Option<&StorageKey>,
+	// 	start_key: Option<&StorageKey>,
+	// ) -> sp_blockchain::Result<KeysIter<B::State, Block>>;
+	ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[N, H], error)
+
+	// /// Given a block's `Hash`, a key and a child storage key, return the hash under the key in that
+	// /// block.
+	// fn child_storage_hash(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	child_info: &ChildInfo,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<Block::Hash>>;
+	ChildStorageHash(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (*H, error)
+}
