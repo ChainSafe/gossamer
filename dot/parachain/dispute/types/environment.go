@@ -52,14 +52,28 @@ func GetValidatorKeyPair(ks keystore.Keystore,
 	validators []parachainTypes.ValidatorID,
 	index parachainTypes.ValidatorIndex,
 ) (keystore.KeyPair, error) {
-	if int(index) >= len(validators) {
-		return nil, fmt.Errorf("invalid validator index: %d", index)
+	validatorID, err := GetValidatorID(validators, index)
+	if err != nil {
+		return nil, fmt.Errorf("get validator ID: %w", err)
 	}
 
-	pubKey, err := sr25519.NewPublicKey(validators[index][:])
+	pubKey, err := sr25519.NewPublicKey(validatorID[:])
 	if err != nil {
 		return nil, fmt.Errorf("new public key: %w", err)
 	}
 
-	return ks.GetKeypairFromAddress(pubKey.Address()), nil
+	keypair := ks.GetKeypairFromAddress(pubKey.Address())
+	if keypair == nil {
+		return nil, fmt.Errorf("could not find keypair for validator index %d", index)
+	}
+
+	return keypair, nil
+}
+
+func GetValidatorID(validators []parachainTypes.ValidatorID, index parachainTypes.ValidatorIndex) (parachainTypes.ValidatorID, error) {
+	if int(index) >= len(validators) {
+		return parachainTypes.ValidatorID{}, fmt.Errorf("invalid validator index: %d", index)
+	}
+
+	return validators[index], nil
 }

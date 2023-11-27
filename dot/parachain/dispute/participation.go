@@ -2,11 +2,11 @@ package dispute
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	"sync"
 	"sync/atomic"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -80,6 +80,7 @@ type ParticipationHandler struct {
 
 	runtime  parachain.RuntimeInstance
 	overseer chan<- any
+	receiver chan<- any
 
 	//TODO: metrics
 }
@@ -239,10 +240,10 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 	if data.Error != nil {
 		switch *data.Error {
 		case overseer.RecoveryErrorInvalid:
-			sendResult(p.overseer, request, types.ParticipationOutcomeInvalid)
+			sendResult(p.receiver, request, types.ParticipationOutcomeInvalid)
 			return fmt.Errorf("invalid available data: %s", data.Error.String())
 		case overseer.RecoveryErrorUnavailable:
-			sendResult(p.overseer, request, types.ParticipationOutcomeUnAvailable)
+			sendResult(p.receiver, request, types.ParticipationOutcomeUnAvailable)
 			return fmt.Errorf("unavailable data: %s", data.Error.String())
 		default:
 			return fmt.Errorf("unexpected recovery error: %d", data.Error)
@@ -250,7 +251,7 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 	}
 
 	if data.AvailableData == nil {
-		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		sendResult(p.receiver, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("available data is nil")
 	}
 
@@ -258,60 +259,56 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 		blockHash,
 		request.candidateReceipt.Descriptor.ValidationCodeHash)
 	if err != nil || validationCode == nil {
-		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		sendResult(p.receiver, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("failed to get validation code: %w", err)
 	}
 
-	if len(*validationCode) == 0 {
-		logger.Errorf(
-			"validation code is empty. CandidateHash: %s",
-			request.candidateHash.String(),
-		)
-		sendResult(p.overseer, request, types.ParticipationOutcomeError)
-		return fmt.Errorf("validation code is empty")
-	}
-
 	// validate the request and send the result
-	respChan := make(chan any, 1)
-	validateMessage := overseer.CandidateValidationMessage[overseer.ValidateFromChainState]{
-		Data: overseer.ValidateFromChainState{
-			CandidateReceipt:   request.candidateReceipt,
-			PoV:                data.AvailableData.POV,
-			PvfExecTimeoutKind: overseer.PvfExecTimeoutKindApproval,
+	validateMessage := overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]{
+		Data: overseer.ValidateFromExhaustive{
+			PersistedValidationData: data.AvailableData.ValidationData,
+			ValidationCode:          validationCode,
+			CandidateReceipt:        request.candidateReceipt,
+			PoV:                     data.AvailableData.POV,
+			PvfExecTimeoutKind:      overseer.PvfExecTimeoutKindApproval,
 		},
-		ResponseChannel: respChan,
+		ResponseChannel: make(chan any, 1),
 	}
 	res, err = call(p.overseer, validateMessage, validateMessage.ResponseChannel)
 	if err != nil {
-		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		sendResult(p.receiver, request, types.ParticipationOutcomeError)
 	}
 	result, ok := res.(overseer.ValidationResult)
 	if !ok {
-		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		sendResult(p.receiver, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
 	if result.Error != nil {
 		// validation failed
-		sendResult(p.overseer, request, types.ParticipationOutcomeError)
+		sendResult(p.receiver, request, types.ParticipationOutcomeError)
 		return fmt.Errorf("validation failed: %s", result.Error)
 	}
 	if !result.IsValid {
-		sendResult(p.overseer, request, types.ParticipationOutcomeInvalid)
+		sendResult(p.receiver, request, types.ParticipationOutcomeInvalid)
 		return fmt.Errorf("validation failed: %s", result.Error)
 	}
 
-	sendResult(p.overseer, request, types.ParticipationOutcomeValid)
+	sendResult(p.receiver, request, types.ParticipationOutcomeValid)
 	return nil
 }
 
 var _ Participation = (*ParticipationHandler)(nil)
 
-func NewParticipation(overseer chan<- any, runtime parachain.RuntimeInstance) *ParticipationHandler {
+func NewParticipation(overseer chan<- any,
+	receiver chan<- any,
+	runtime parachain.RuntimeInstance,
+) *ParticipationHandler {
 	return &ParticipationHandler{
 		runningParticipation: sync.Map{},
 		queue:                NewQueue(),
 		overseer:             overseer,
+		receiver:             receiver,
 		runtime:              runtime,
 	}
 }

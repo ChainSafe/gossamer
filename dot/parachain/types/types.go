@@ -20,9 +20,13 @@ import (
 // ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorId` when appropriate
 type ValidatorIndex uint32
 
-// CompareValidatorIndices compares two validator indices.
+// CompareValidatorIndices compares two validator indices for btree
 func CompareValidatorIndices(a, b any) bool {
 	return a.(ValidatorIndex) < b.(ValidatorIndex)
+}
+
+func ValidatorIndexComparator(a, b interface{}) int {
+	return int(a.(ValidatorIndex) - b.(ValidatorIndex))
 }
 
 // ValidatorID The public key of a validator.
@@ -418,11 +422,11 @@ func (CandidateTimedOut) Index() uint {
 	return 2
 }
 
-// CandidateEvent A candidate event.
-type CandidateEvent scale.VaryingDataType
+// CandidateEventVDT A candidate event.
+type CandidateEventVDT scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (va *CandidateEvent) Set(val scale.VaryingDataTypeValue) (err error) {
+func (va *CandidateEventVDT) Set(val scale.VaryingDataTypeValue) (err error) {
 	// cast to VaryingDataType to use VaryingDataType.Set method
 	vdt := scale.VaryingDataType(*va)
 	err = vdt.Set(val)
@@ -430,24 +434,24 @@ func (va *CandidateEvent) Set(val scale.VaryingDataTypeValue) (err error) {
 		return fmt.Errorf("setting value to varying data type: %w", err)
 	}
 	// store original ParentVDT with VaryingDataType that has been set
-	*va = CandidateEvent(vdt)
+	*va = CandidateEventVDT(vdt)
 	return nil
 }
 
 // Value returns the value from the underlying VaryingDataType
-func (va *CandidateEvent) Value() (scale.VaryingDataTypeValue, error) {
+func (va *CandidateEventVDT) Value() (scale.VaryingDataTypeValue, error) {
 	vdt := scale.VaryingDataType(*va)
 	return vdt.Value()
 }
 
-// NewCandidateEventVDT returns a new CandidateEvent VaryingDataType
-func NewCandidateEventVDT() (scale.VaryingDataType, error) {
+// NewCandidateEventVDT returns a new CandidateEventVDT VaryingDataType
+func NewCandidateEventVDT() (CandidateEventVDT, error) {
 	vdt, err := scale.NewVaryingDataType(CandidateBacked{}, CandidateIncluded{}, CandidateTimedOut{})
 	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
+		return CandidateEventVDT{}, fmt.Errorf("create varying data type: %w", err)
 	}
 
-	return vdt, nil
+	return CandidateEventVDT(vdt), nil
 }
 
 // NewCandidateEvents returns a new CandidateEvents
@@ -457,7 +461,7 @@ func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
 		return scale.VaryingDataTypeSlice{}, fmt.Errorf("create varying data type: %w", err)
 	}
 
-	return scale.NewVaryingDataTypeSlice(vdt), nil
+	return scale.NewVaryingDataTypeSlice(scale.VaryingDataType(vdt)), nil
 }
 
 // PersistedValidationData should be relatively lightweight primarily because it is constructed

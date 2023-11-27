@@ -178,8 +178,9 @@ func TestNewParticipation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRuntime := NewMockRuntimeInstance(ctrl)
 	mockOverseer := make(chan any)
+	mockReceiver := make(chan any)
 
-	participation := NewParticipation(mockOverseer, mockRuntime)
+	participation := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 	require.NotNil(t, participation, "should not be nil")
 }
 
@@ -191,9 +192,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(11))
 		require.NoError(t, err)
@@ -247,12 +249,13 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		var wg sync.WaitGroup
 		participationTest := func() {
 			defer wg.Done()
-			participationHandler := NewParticipation(mockOverseer, mockRuntime)
+			participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 			require.NoError(t, err)
 
@@ -317,13 +320,14 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
 		waitTx := make(chan bool, 100)
 		var wg sync.WaitGroup
 		participationTest := func() {
 			defer wg.Done()
-			participationHandler := NewParticipation(mockOverseer, mockRuntime)
+			participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 
 			go func() {
 				err := participate(participationHandler, mockOverseer)
@@ -407,9 +411,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
@@ -455,8 +460,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 
 		go func() {
 			for {
@@ -510,9 +516,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
@@ -559,8 +566,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
@@ -576,7 +584,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
 						message.ResponseChannel <- response
-					case overseer.CandidateValidationMessage[overseer.ValidateFromChainState]:
+					case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
 						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
 							message.ResponseChannel <- overseer.ValidationResult{
 								IsValid: false,
@@ -627,9 +635,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
@@ -651,7 +660,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 							AvailableData: &availableData,
 							Error:         nil,
 						}
-					case overseer.CandidateValidationMessage[overseer.ValidateFromChainState]:
+					case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
 						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
 							message.ResponseChannel <- overseer.ValidationResult{
 								IsValid: false,
@@ -696,9 +705,10 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockOverseer := make(chan any)
+		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockRuntime)
+		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
 		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
 		require.NoError(t, err)
 
@@ -720,7 +730,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 							AvailableData: &availableData,
 							Error:         nil,
 						}
-					case overseer.CandidateValidationMessage[overseer.ValidateFromChainState]:
+					case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
 						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
 							message.ResponseChannel <- overseer.ValidationResult{
 								IsValid: true,

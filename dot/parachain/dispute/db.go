@@ -106,11 +106,14 @@ func (b *BadgerBackend) GetRecentDisputes() (scale.BTree, error) {
 func (b *BadgerBackend) GetCandidateVotes(session parachainTypes.SessionIndex,
 	candidateHash common.Hash,
 ) (*types.CandidateVotes, error) {
-	candidateVotes := types.NewCandidateVotes()
+	var candidateVotes *types.CandidateVotes
 	if err := b.db.View(func(txn *badger.Txn) error {
 		key := newCandidateVotesKey(session, candidateHash)
 		item, err := txn.Get(key)
 		if err != nil {
+			if err.Error() == badger.ErrKeyNotFound.Error() {
+				return nil
+			}
 			return err
 		}
 
@@ -279,8 +282,10 @@ func (b *BadgerBackend) Write(earliestSession *parachainTypes.SessionIndex,
 		}
 
 		// cleanup old candidate votes
-		if err := b.setVotesCleanupTxn(txn, *earliestSession); err != nil {
-			return fmt.Errorf("cleanup votes: %w", err)
+		if earliestSession != nil {
+			if err := b.setVotesCleanupTxn(txn, *earliestSession); err != nil {
+				return fmt.Errorf("cleanup votes: %w", err)
+			}
 		}
 
 		if err := b.setRecentDisputesTxn(txn, recentDisputes); err != nil {

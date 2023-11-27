@@ -335,7 +335,7 @@ func TestInboundHrmpMessage(t *testing.T) {
 	require.Equal(t, result, common.BytesToHex(encoded))
 }
 
-// TestCandidateEvent tests the scale encoding of a CandidateEvent
+// TestCandidateEvent tests the scale encoding of a CandidateEventVDT
 func TestCandidateEvent(t *testing.T) {
 	t.Parallel()
 

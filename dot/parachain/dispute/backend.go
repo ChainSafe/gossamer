@@ -170,17 +170,11 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 	recentDisputes.Ascend(nil, func(i interface{}) bool {
 		dispute, ok := i.(*types.Dispute)
 		if !ok {
-			logger.Errorf("cast to dispute. Expected *types.Dispute, got %T", i)
 			return true
 		}
 
-		concludedAt, err := dispute.DisputeStatus.ConcludedAt()
-		if err != nil {
-			logger.Errorf("failed to get concluded at: %s", err)
-			return true
-		}
-
-		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > now {
+		concludedAt, _ := dispute.DisputeStatus.ConcludedAt()
+		if !(concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) > now) {
 			activeDisputes.Set(dispute)
 		}
 

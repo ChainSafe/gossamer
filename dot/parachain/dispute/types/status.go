@@ -233,6 +233,21 @@ func (ds *DisputeStatusVDT) IsPossiblyInvalid() (bool, error) {
 	}
 }
 
+// IsActive returns true if the dispute is active.
+func (ds *DisputeStatusVDT) IsActive() (bool, error) {
+	vdt := scale.VaryingDataType(*ds)
+	val, err := vdt.Value()
+	if err != nil {
+		return false, fmt.Errorf("getting value from DisputeStatusVDT vdt: %w", err)
+	}
+
+	if _, ok := val.(ActiveStatus); ok {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // NewDisputeStatusVDT returns a new DisputeStatusVDT.
 func NewDisputeStatusVDT() (DisputeStatusVDT, error) {
 	vdt, err := scale.NewVaryingDataType(ActiveStatus{},

@@ -61,7 +61,7 @@ func Test_CandidateVotesCodec(t *testing.T) {
 	require.NoError(t, err)
 
 	decoded := NewCandidateVotes()
-	err = scale.Unmarshal(encoded, decoded)
+	err = scale.Unmarshal(encoded, &decoded)
 	require.NoError(t, err)
 
 	// then

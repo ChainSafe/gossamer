@@ -74,6 +74,14 @@ type ValidateFromChainState struct {
 	PvfExecTimeoutKind PvfExecTimeoutKind
 }
 
+type ValidateFromExhaustive struct {
+	PersistedValidationData PersistedValidationData
+	ValidationCode          *parachainTypes.ValidationCode
+	CandidateReceipt        parachainTypes.CandidateReceipt
+	PoV                     []byte
+	PvfExecTimeoutKind      PvfExecTimeoutKind
+}
+
 type ValidValidationResult struct {
 	CandidateCommitments    parachainTypes.CandidateCommitments
 	PersistedValidationData parachainTypes.PersistedValidationData

@@ -20,19 +20,20 @@ var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
 
 // Coordinator implements the CoordinatorSubsystem interface.
 type Coordinator struct {
-	keystore keystore.Keystore
-	store    *overlayBackend
-	runtime  parachain.RuntimeInstance
+	keystore     keystore.Keystore
+	store        *overlayBackend
+	runtime      parachain.RuntimeInstance
+	maxSpamVotes uint32
 
 	overseer chan<- any
-	receiver <-chan any
+	receiver chan any
 }
 
 type startupResult struct {
 	participation    []ParticipationData
 	votes            []parachainTypes.ScrapedOnChainVotes
 	spamSlots        SpamSlots
-	orderingProvider scraping.ChainScraper
+	orderingProvider *scraping.ChainScraper
 	highestSession   parachainTypes.SessionIndex
 	gapsInCache      bool
 }
@@ -131,11 +132,13 @@ func (d *Coordinator) initialize() (
 		votes:         startupData.votes,
 		activatedLeaf: firstLeaf,
 		initialized: NewInitializedState(d.overseer,
+			d.receiver,
 			d.runtime,
 			startupData.spamSlots,
-			&startupData.orderingProvider,
+			startupData.orderingProvider,
 			startupData.highestSession,
 			startupData.gapsInCache,
+			d.keystore,
 		),
 	}, nil
 }
@@ -256,8 +259,8 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	return &startupResult{
 		participation:    participationRequests,
 		votes:            scrapedVotes.OnChainVotes,
-		spamSlots:        NewSpamSlotsFromState(spamDisputes, MaxSpamVotes),
-		orderingProvider: scraping.ChainScraper{},
+		spamSlots:        NewSpamSlotsFromState(spamDisputes, d.maxSpamVotes),
+		orderingProvider: scraper,
 		highestSession:   0,
 		gapsInCache:      gapsInCache,
 	}, nil
@@ -274,24 +277,18 @@ func (d *Coordinator) Run() error {
 		Votes:         initResult.votes,
 		Leaf:          initResult.activatedLeaf,
 	}
-
-	if err := initResult.initialized.Run(d.overseer, d.store.inner, &initData); err != nil {
-		return fmt.Errorf("run initialized state: %w", err)
-	}
-
+	initResult.initialized.Run(d.overseer, d.store.inner, &initData)
 	return nil
 }
 
-func NewDisputeCoordinator(path string) (*Coordinator, error) {
-	db, err := badger.Open(badger.DefaultOptions(path))
-	if err != nil {
-		return nil, fmt.Errorf("open badger db: %w", err)
-	}
-
+func NewDisputesCoordinator(db *badger.DB, overseer chan<- any, receiver chan any) (*Coordinator, error) {
 	dbBackend := NewDBBackend(db)
 	backend := newOverlayBackend(dbBackend)
 
 	return &Coordinator{
-		store: backend,
+		store:        backend,
+		overseer:     overseer,
+		receiver:     receiver,
+		maxSpamVotes: MaxSpamVotes,
 	}, nil
 }
