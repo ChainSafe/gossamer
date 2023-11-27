@@ -275,5 +275,6 @@ func (bs *BlockState) setFirstSlotOnFinalisation() error {
 		return err
 	}
 
+	fmt.Printf("==> set first slot on finalization: %d\n", slot)
 	return bs.baseState.storeFirstSlot(slot)
 }

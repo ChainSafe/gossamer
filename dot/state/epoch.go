@@ -141,6 +141,8 @@ func NewEpochState(db database.Database, blockState *BlockState) (*EpochState, e
 		return nil, err
 	}
 
+	fmt.Printf("epoch length: %d\n", epochLength)
+
 	skipToEpoch, err := baseState.loadSkipToEpoch()
 	if err != nil {
 		return nil, err
@@ -244,7 +246,13 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 		return err
 	}
 
-	return s.db.Put(epochDataKey(epoch), enc)
+	err = s.db.Put(epochDataKey(epoch), enc)
+	if err != nil {
+		return err
+	}
+
+	logger.Debugf("⏩ next epoch data persisted in database: epoch %d", epoch)
+	return nil
 }
 
 // GetEpochData returns the epoch data for a given epoch persisted in database
@@ -318,7 +326,13 @@ func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
 		return err
 	}
 
-	return s.db.Put(configDataKey(epoch), enc)
+	err = s.db.Put(configDataKey(epoch), enc)
+	if err != nil {
+		return err
+	}
+
+	logger.Debugf("⏩ next config data persisted in database: epoch %d", epoch)
+	return nil
 }
 
 func (s *EpochState) setLatestConfigData(epoch uint64) error {
@@ -549,6 +563,7 @@ func (s *EpochState) storeBABENextEpochData(epoch uint64, hash common.Hash, next
 		s.nextEpochData[epoch] = make(map[common.Hash]types.NextEpochData)
 	}
 	s.nextEpochData[epoch][hash] = nextEpochData
+	logger.Debugf("⏩ next epoch data stored in memory: epoch %d, hash: %s", epoch, hash.String())
 }
 
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
@@ -561,6 +576,7 @@ func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nex
 		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigDataV1)
 	}
 	s.nextConfigData[epoch][hash] = nextConfigData
+	logger.Debugf("⏩ next config data stored in memory: epoch %d, hash: %s", epoch, hash.String())
 }
 
 // FinalizeBABENextEpochData stores the right types.NextEpochData by
