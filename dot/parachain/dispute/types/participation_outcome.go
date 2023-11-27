@@ -66,11 +66,7 @@ func (po *ParticipationOutcomeVDT) Validity() (bool, error) {
 	}
 
 	_, ok := val.(ValidOutcome)
-	if !ok {
-		return true, nil
-	}
-
-	return false, nil
+	return ok, nil
 }
 
 // NewParticipationOutcomeVDT returns a new ParticipationOutcomeVDT.

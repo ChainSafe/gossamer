@@ -141,9 +141,9 @@ func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
 	}
 
 	for _, approvalVote := range approvalVotes {
-		keypair, err := types.GetValidatorKeyPair(keystore, env.Session.Validators, approvalVote.ValidatorIndex)
+		validatorID, err := types.GetValidatorID(env.Session.Validators, approvalVote.ValidatorIndex)
 		if err != nil {
-			return nil, fmt.Errorf("get validator key pair: %w", err)
+			return nil, fmt.Errorf("get validator id: %w", err)
 		}
 
 		validStatementKind := inherents.NewValidDisputeStatementKind()
@@ -153,7 +153,7 @@ func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
 
 		disputeStatement := inherents.NewDisputeStatement()
 
-		if err := disputeStatement.Set(inherents.ValidDisputeStatementKind(validStatementKind)); err != nil {
+		if err := disputeStatement.Set(validStatementKind); err != nil {
 			return nil, fmt.Errorf("setting dispute statement: %w", err)
 		}
 
@@ -161,7 +161,8 @@ func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
 			candidateHash,
 			env.SessionIndex,
 			approvalVote.ValidatorSignature,
-			keypair); err != nil {
+			validatorID,
+		); err != nil {
 			logger.Errorf("Signature check for imported approval votes failed! This is a serious bug. "+
 				"session: %v, candidateHash: %v, validatorIndex: %v",
 				env.SessionIndex,
@@ -170,9 +171,14 @@ func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
 			return nil, fmt.Errorf("verifying dispute statement: %w", err)
 		}
 
-		existingVote, ok := votes.Valid.Value.Map.Get(approvalVote.ValidatorIndex)
+		_, ok := votes.Valid.Value.Map.Get(approvalVote.ValidatorIndex)
 		if !ok {
-			votes.Valid.Value.Map.Set(approvalVote.ValidatorIndex, existingVote)
+			vote := types.Vote{
+				ValidatorIndex:     approvalVote.ValidatorIndex,
+				DisputeStatement:   disputeStatement,
+				ValidatorSignature: approvalVote.ValidatorSignature,
+			}
+			votes.Valid.Value.Map.Set(approvalVote.ValidatorIndex, vote)
 			i.importedValidVotes++
 			i.importedApprovalVotes++
 		}
@@ -268,6 +274,8 @@ func NewImportResultFromStatements(
 				importedInvalidVotes++
 				newInvalidVoters = append(newInvalidVoters, statement.ValidatorIndex)
 			}
+		default:
+			return nil, fmt.Errorf("unknown dispute statement kind: %T", disputeStatement)
 		}
 	}
 

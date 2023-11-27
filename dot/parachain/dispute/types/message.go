@@ -13,10 +13,10 @@ import (
 
 // UncheckedDisputeMessage is a dispute message where signatures of statements have not yet been checked.
 type UncheckedDisputeMessage struct {
-	candidateReceipt parachainTypes.CandidateReceipt
-	sessionIndex     parachainTypes.SessionIndex
-	invalidVote      Vote
-	validVote        Vote
+	CandidateReceipt parachainTypes.CandidateReceipt
+	SessionIndex     parachainTypes.SessionIndex
+	InvalidVote      Vote
+	ValidVote        Vote
 }
 
 // Index returns the index of the UncheckedDisputeMessage enum
@@ -46,6 +46,15 @@ func (dm *DisputeMessageVDT) Value() (val scale.VaryingDataTypeValue, err error)
 		return nil, fmt.Errorf("getting value from varying data type: %w", err)
 	}
 	return val, nil
+}
+
+// NewDisputeMessageVDT creates a new DisputeMessageVDT
+func NewDisputeMessageVDT() (DisputeMessageVDT, error) {
+	vdt, err := scale.NewVaryingDataType(UncheckedDisputeMessage{})
+	if err != nil {
+		return DisputeMessageVDT{}, fmt.Errorf("failed to create varying data type: %w", err)
+	}
+	return DisputeMessageVDT(vdt), nil
 }
 
 // NewDisputeMessageFromSignedStatements build a `SignedDisputeMessage` and check what can be checked.
@@ -143,21 +152,21 @@ func NewDisputeMessageFromSignedStatements(
 		ValidatorSignature: invalidStatement.ValidatorSignature,
 	}
 
-	vdt, err := scale.NewVaryingDataType(UncheckedDisputeMessage{})
+	disputeMessage, err := NewDisputeMessageVDT()
 	if err != nil {
 		return DisputeMessageVDT{}, fmt.Errorf("failed to create varying data type: %w", err)
 	}
-	disputeMessage := UncheckedDisputeMessage{
-		candidateReceipt: candidateReceipt,
-		sessionIndex:     sessionIndex,
-		invalidVote:      invalidVote,
-		validVote:        validVote,
+	message := UncheckedDisputeMessage{
+		CandidateReceipt: candidateReceipt,
+		SessionIndex:     sessionIndex,
+		InvalidVote:      invalidVote,
+		ValidVote:        validVote,
 	}
-	if err := vdt.Set(disputeMessage); err != nil {
+	if err := disputeMessage.Set(message); err != nil {
 		return DisputeMessageVDT{}, fmt.Errorf("set dispute message: %w", err)
 	}
 
-	return DisputeMessageVDT(vdt), nil
+	return disputeMessage, nil
 }
 
 // NewDisputeMessage creates a new dispute message.
@@ -230,8 +239,8 @@ func NewDisputeMessage(
 	)
 }
 
-// ImportStatementsMessage import statements by validators about a candidate
-type ImportStatementsMessage struct {
+// ImportStatements import statements by validators about a candidate
+type ImportStatements struct {
 	CandidateReceipt parachainTypes.CandidateReceipt
 	Session          parachainTypes.SessionIndex
 	Statements       []Statement
@@ -240,8 +249,8 @@ type ImportStatementsMessage struct {
 // RecentDisputesMessage message to request recent disputes
 type RecentDisputesMessage struct{}
 
-// ActiveDisputesMessage message to request active disputes
-type ActiveDisputesMessage struct{}
+// ActiveDisputes message to request active disputes
+type ActiveDisputes struct{}
 
 // CandidateVotesMessage message to request candidate votes
 type CandidateVotesMessage struct {
@@ -249,8 +258,8 @@ type CandidateVotesMessage struct {
 	CandidateHash common.Hash
 }
 
-// QueryCandidateVotesMessage message to request candidate votes
-type QueryCandidateVotesMessage struct {
+// QueryCandidateVotes message to request candidate votes
+type QueryCandidateVotes struct {
 	Queries []CandidateVotesMessage
 }
 
@@ -258,7 +267,7 @@ type QueryCandidateVotesMessage struct {
 type QueryCandidateVotesResponse struct {
 	Session       parachainTypes.SessionIndex
 	CandidateHash common.Hash
-	Votes         CandidateVotes
+	Votes         *CandidateVotes
 }
 
 // IssueLocalStatementMessage message to issue a local statement
@@ -282,8 +291,14 @@ type DetermineUndisputedChainMessage struct {
 	BlockDescriptions []BlockDescription
 }
 
+// DetermineUndisputedChainResponse response to a DetermineUndisputedChainMessage
+type DetermineUndisputedChainResponse struct {
+	Block overseer.Block
+	Err   error
+}
+
 // Message messages to be handled in this subsystem.
 type Message[data any] struct {
 	Data            data
-	ResponseChannel chan<- any
+	ResponseChannel chan any
 }

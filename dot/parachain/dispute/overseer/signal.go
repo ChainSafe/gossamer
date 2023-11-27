@@ -4,8 +4,9 @@ import "github.com/ChainSafe/gossamer/lib/common"
 
 // Signal represents a signal sent from overseer
 type Signal[data any] struct {
-	Data     data
-	Conclude bool
+	Data            data
+	Conclude        bool
+	ResponseChannel chan<- any
 }
 
 // LeafStatus represents the status of an activated leaf

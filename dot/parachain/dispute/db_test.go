@@ -202,8 +202,8 @@ func TestDBBackend_setVotesCleanupTxn(t *testing.T) {
 	require.NoError(t, err)
 
 	// then
-	_, err = backend.GetCandidateVotes(1, common.Hash{1})
-	require.Error(t, err)
+	vote, _ := backend.GetCandidateVotes(1, common.Hash{1})
+	require.Nil(t, vote)
 
 	_, err = backend.GetCandidateVotes(3, common.Hash{3})
 	require.NoError(t, err)

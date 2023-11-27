@@ -119,7 +119,7 @@ func DummyValidDisputeStatement(t *testing.T) inherents.DisputeStatement {
 	err := disputeStatementKind.Set(inherents.ExplicitValidDisputeStatementKind{})
 	require.NoError(t, err)
 
-	err = validDisputeStatement.Set(inherents.ValidDisputeStatementKind(disputeStatementKind))
+	err = validDisputeStatement.Set(disputeStatementKind)
 	require.NoError(t, err)
 	return validDisputeStatement
 }

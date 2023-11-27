@@ -248,7 +248,7 @@ func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 // IntoOldState Extracts `CandidateVotes` for handling import of new statements.
 func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState) {
 	return c.Votes, CandidateVoteState{
-		Votes:         CandidateVotes{},
+		Votes:         c.Votes,
 		Own:           c.Own,
 		DisputeStatus: c.DisputeStatus,
 	}
@@ -257,8 +257,8 @@ func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState)
 // NewCandidateVoteState creates a new CandidateVoteState
 func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now uint64) (CandidateVoteState, error) {
 	var (
-		status DisputeStatusVDT
-		err    error
+		disputeStatus *DisputeStatusVDT
+		err           error
 	)
 
 	ownVoteState, err := NewOwnVoteStateVDTWithVotes(votes, env)
@@ -267,18 +267,20 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 	}
 
 	numberOfValidators := len(env.Session.Validators)
-
 	byzantineThreshold := getByzantineThreshold(numberOfValidators)
 	superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
-
 	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Value.Len() == 0)
 	if isDisputed {
-		status, err = NewDisputeStatusVDT()
+		status, err := NewDisputeStatusVDT()
 		if err != nil {
 			return CandidateVoteState{}, fmt.Errorf("failed to create dispute status: %w", err)
 		}
 
-		isConfirmed := votes.Valid.Value.Len() > byzantineThreshold
+		if err := status.Set(ActiveStatus{}); err != nil {
+			return CandidateVoteState{}, fmt.Errorf("failed to set dispute status: %w", err)
+		}
+
+		isConfirmed := votes.VotedIndices().Size() > byzantineThreshold
 		if isConfirmed {
 			if err := status.Confirm(); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to confirm dispute status: %w", err)
@@ -298,12 +300,13 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status against: %w", err)
 			}
 		}
+		disputeStatus = &status
 	}
 
 	return CandidateVoteState{
 		Votes:         votes,
 		Own:           ownVoteState,
-		DisputeStatus: &status,
+		DisputeStatus: disputeStatus,
 	}, nil
 }
 
@@ -352,16 +355,37 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 	}
 
 	switch disputeStatement.(type) {
-	case inherents.BackingValid, inherents.BackingSeconded:
-		return false, nil
-	case inherents.ExplicitValidDisputeStatementKind,
-		inherents.ExplicitInvalidDisputeStatementKind,
-		inherents.ApprovalChecking:
-		vcv.Value.Set(vote.ValidatorIndex, vote)
-		return true, nil
-	default:
-		return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
+	case inherents.ValidDisputeStatementKind:
+		validStatement := disputeStatement.(inherents.ValidDisputeStatementKind)
+		validValue, err := validStatement.Value()
+		if err != nil {
+			return false, fmt.Errorf("get valid dispute statement value: %w", err)
+		}
+		switch validValue.(type) {
+		case inherents.BackingValid, inherents.BackingSeconded:
+			return false, nil
+		case inherents.ExplicitValidDisputeStatementKind, inherents.ApprovalChecking:
+			vcv.Value.Set(vote.ValidatorIndex, vote)
+			return true, nil
+		default:
+			return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
+		}
+	case inherents.InvalidDisputeStatementKind:
+		invalidStatement := disputeStatement.(inherents.InvalidDisputeStatementKind)
+		invalidValue, err := invalidStatement.Value()
+		if err != nil {
+			return false, fmt.Errorf("get invalid dispute statement value: %w", err)
+		}
+		switch invalidValue.(type) {
+		case inherents.ExplicitInvalidDisputeStatementKind:
+			vcv.Value.Set(vote.ValidatorIndex, vote)
+			return true, nil
+		default:
+			return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
+		}
 	}
+
+	return false, nil
 }
 
 func NewInvalidCandidateVotes(degree int) scale.BTreeMap[parachainTypes.ValidatorIndex, Vote] {
@@ -377,7 +401,7 @@ type CandidateVotes struct {
 
 // VotedIndices returns the set of all validators who have votes in the set, ascending.
 func (cv *CandidateVotes) VotedIndices() *treeset.Set {
-	votedIndices := treeset.NewWithIntComparator()
+	votedIndices := treeset.NewWith(parachainTypes.ValidatorIndexComparator)
 	cv.Valid.Value.Ascend(0, func(index parachainTypes.ValidatorIndex, vote Vote) bool {
 		votedIndices.Add(vote.ValidatorIndex)
 		return true
@@ -425,8 +449,8 @@ func (cv *CandidateVotes) Encode() ([]byte, error) {
 }
 
 // NewCandidateVotes creates a new CandidateVotes.
-func NewCandidateVotes() *CandidateVotes {
-	return &CandidateVotes{
+func NewCandidateVotes() CandidateVotes {
+	return CandidateVotes{
 		Valid:   NewValidCandidateVotes(32),
 		Invalid: scale.NewBTreeMap[parachainTypes.ValidatorIndex, Vote](32),
 	}
@@ -436,6 +460,8 @@ func NewCandidateVotes() *CandidateVotes {
 func NewCandidateVotesFromReceipt(receipt parachainTypes.CandidateReceipt) CandidateVotes {
 	return CandidateVotes{
 		CandidateReceipt: receipt,
+		Valid:            NewValidCandidateVotes(32),
+		Invalid:          scale.NewBTreeMap[parachainTypes.ValidatorIndex, Vote](32),
 	}
 }
 

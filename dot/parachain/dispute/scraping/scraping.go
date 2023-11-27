@@ -69,7 +69,7 @@ func (cs *ChainScraper) ProcessActiveLeavesUpdate(
 	}
 
 	earliestBlockNumber := update.Activated.Number - uint32(len(ancestors))
-	blockNumbers := make([]uint32, 0, update.Activated.Number-earliestBlockNumber+1)
+	blockNumbers := make([]uint32, 0, update.Activated.Number-earliestBlockNumber)
 	for i := update.Activated.Number; i >= earliestBlockNumber; i-- {
 		blockNumbers = append(blockNumbers, i)
 	}
@@ -119,7 +119,7 @@ func (cs *ChainScraper) ProcessCandidateEvents(
 	blockHash common.Hash,
 ) ([]parachainTypes.CandidateReceipt, error) {
 	var (
-		candidateEvents  []parachainTypes.CandidateEvent
+		candidateEvents  []parachainTypes.CandidateEventVDT
 		includedReceipts []parachainTypes.CandidateReceipt
 	)
 
@@ -133,7 +133,7 @@ func (cs *ChainScraper) ProcessCandidateEvents(
 	}
 
 	for _, event := range events.Types {
-		candidateEvents = append(candidateEvents, parachainTypes.CandidateEvent(event))
+		candidateEvents = append(candidateEvents, parachainTypes.CandidateEventVDT(event))
 	}
 
 	for _, candidateEvent := range candidateEvents {

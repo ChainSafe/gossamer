@@ -253,24 +253,24 @@ func (ExplicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
 }
 
 // NewValidDisputeStatementKind create a new DisputeStatementKind varying data type.
-func NewValidDisputeStatementKind() scale.VaryingDataType {
+func NewValidDisputeStatementKind() ValidDisputeStatementKind {
 	vdsKind, err := scale.NewVaryingDataType(
 		ExplicitValidDisputeStatementKind{}, BackingSeconded{}, BackingValid{}, ApprovalChecking{})
 	if err != nil {
 		panic(err)
 	}
 
-	return vdsKind
+	return ValidDisputeStatementKind(vdsKind)
 }
 
 // NewInvalidDisputeStatementKind create a new DisputeStatementKind varying data type.
-func NewInvalidDisputeStatementKind() scale.VaryingDataType {
+func NewInvalidDisputeStatementKind() InvalidDisputeStatementKind {
 	idsKind, err := scale.NewVaryingDataType(ExplicitInvalidDisputeStatementKind{})
 	if err != nil {
 		panic(err)
 	}
 
-	return idsKind
+	return InvalidDisputeStatementKind(idsKind)
 }
 
 // NewDisputeStatement create a new DisputeStatement varying data type.
