@@ -21,6 +21,7 @@ import (
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/constraints"
 )
 
@@ -216,7 +217,7 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	votingRule VotingRule[Hash, Number],
 	persistendData persistentData[Hash, Number, ID, Signature],
 	voterCommandsRx <-chan voterCommand,
-	prometheusRegistry any,
+	prometheusRegistry prometheus.Registry,
 	sharedVoterState SharedVoterState[ID],
 	JustificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
 	telemetry *telemetry.TelemetryHandle,
