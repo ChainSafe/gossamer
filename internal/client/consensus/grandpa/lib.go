@@ -44,8 +44,8 @@ type Authority[ID AuthorityID] struct {
 
 type AuthorityList[ID AuthorityID] []Authority[ID]
 
-// NewAuthoritySetStruct A new authority set along with the canonical block it changed at.
-type NewAuthoritySetStruct[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+// newAuthoritySet A new authority set along with the canonical block it changed at.
+type newAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
 	CanonNumber N
 	CanonHash   H
 	SetId       N
@@ -163,7 +163,13 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 	api.StorageProvider[H, N]
 }
 
-// type Backend interface{}
+// / Commands issued to the voter.
+type voterCommand any
+type voterCommands[H comparable, N constraints.Unsigned, ID AuthorityID] interface {
+	voterCommandPause | voterCommandChangeAuthorities[H, N, ID]
+}
+type voterCommandPause string
+type voterCommandChangeAuthorities[H comparable, N constraints.Unsigned, ID AuthorityID] newAuthoritySet[H, N, ID]
 
 type environment struct{}
 
@@ -209,7 +215,7 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	selectChain consensus.SelectChain[Hash, Number],
 	votingRule VotingRule[Hash, Number],
 	persistendData persistentData[Hash, Number, ID, Signature],
-	voterCommandsRX any,
+	voterCommandsRx <-chan voterCommand,
 	prometheusRegistry any,
 	sharedVoterState SharedVoterState[ID],
 	JustificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],

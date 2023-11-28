@@ -228,7 +228,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
 	}
 
-	newAuthSet := &NewAuthoritySetStruct[string, uint, dummyAuthID]{
+	newAuthSet := &newAuthoritySet[string, uint, dummyAuthID]{
 		CanonNumber: 4,
 		SetId:       2,
 	}
