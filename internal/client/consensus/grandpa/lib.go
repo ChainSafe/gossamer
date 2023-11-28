@@ -202,17 +202,17 @@ type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature 
 	metrics          any
 }
 
-func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID constraints.Ordered](
-	client ClientForGrandpa,
+func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID AuthorityID, R any](
+	client ClientForGrandpa[R, Number, Hash],
 	config Config,
 	network communication.NetworkBridge[Hash, Number],
-	selectChain consensus.SelectChain,
-	votingRule VotingRule,
-	persistendData persistentData,
+	selectChain consensus.SelectChain[Hash, Number],
+	votingRule VotingRule[Hash, Number],
+	persistendData persistentData[Hash, Number, ID, Signature],
 	voterCommandsRX any,
 	prometheusRegistry any,
-	sharedVoterState SharedVoterState,
-	JustificationSender GrandpaJustificationSender,
+	sharedVoterState SharedVoterState[ID],
+	JustificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
 	telemetry *telemetry.TelemetryHandle,
 ) *voterWork[Hash, Number, Signature, ID] {
 	// grandpa.NewVoter[]()
