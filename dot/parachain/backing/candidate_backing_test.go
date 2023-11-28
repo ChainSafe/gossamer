@@ -196,6 +196,43 @@ func TestImportStatement(t *testing.T) {
 			summary: new(Summary),
 			err:     "",
 		},
+		{
+			description: "statement is 'seconded' and candidate is unknown with prospective parachain mode enabled",
+			rpState: func() perRelayParentState {
+				ctrl := gomock.NewController(t)
+				mockTable := NewMockTable(ctrl)
+
+				mockTable.EXPECT().importStatement(
+					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(SignedFullStatementWithPVD{}),
+				).Return(new(Summary), nil)
+
+				return perRelayParentState{
+					Table: mockTable,
+					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+						IsEnabled:          true,
+						MaxCandidateDepth:  4,
+						AllowedAncestryLen: 2,
+					},
+				}
+			}(),
+			perCandidate: map[parachaintypes.CandidateHash]perCandidateState{},
+			signedStatementWithPVD: SignedFullStatementWithPVD{
+				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
+					Payload: statementVDTSeconded,
+				},
+				PersistedValidationData: &parachaintypes.PersistedValidationData{
+					ParentHead: parachaintypes.HeadData{
+						Data: []byte{1, 2, 3},
+					},
+					RelayParentNumber:      5,
+					RelayParentStorageRoot: getDummyHash(5),
+					MaxPovSize:             3,
+				},
+			},
+			summary: new(Summary),
+			err:     "",
+		},
 	}
 
 	for _, c := range testCases {
@@ -203,7 +240,19 @@ func TestImportStatement(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 
-			subSystemToOverseer := make(chan<- any)
+			subSystemToOverseer := make(chan any)
+			if c.rpState.ProspectiveParachainsMode.IsEnabled {
+				go func(t *testing.T) {
+					for data := range subSystemToOverseer {
+						switch data.(type) {
+						case parachaintypes.PPMIntroduceCandidate:
+							ppmIntroduceCandidate := data.(parachaintypes.PPMIntroduceCandidate)
+							ppmIntroduceCandidate.Ch <- nil
+						default:
+						}
+					}
+				}(t)
+			}
 
 			summary, err := c.rpState.importStatement(subSystemToOverseer, c.signedStatementWithPVD, c.perCandidate)
 			if c.summary == nil {
