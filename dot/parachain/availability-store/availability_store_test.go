@@ -76,7 +76,7 @@ func TestAvailabilityStore_StoreLoadChuckData(t *testing.T) {
 
 	err := as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
-	err = as.storeChunk(common.Hash{0x01}, testChunk2)
+	err = as.storeChunk(common.Hash{0x02}, testChunk2)
 	require.NoError(t, err)
 
 	resultChunk, err := as.loadChunk(common.Hash{0x01}, 0)
