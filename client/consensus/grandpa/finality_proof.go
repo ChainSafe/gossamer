@@ -162,15 +162,15 @@ func proveFinality[
 		return nil, err
 	}
 
-	authSetChangeIDVal, err := authSetChangeID.Value()
-	if err != nil {
-		return nil, err
-	}
+	//authSetChangeIDVal, err := authSetChangeID.Value()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	var encJustification []byte
 	var justBlock N
 
-	switch val := authSetChangeIDVal.(type) {
+	switch val := authSetChangeID.(type) {
 	case authoritySetChangeIDLatest:
 		justification, err := BestJustification[Hash, N, S, ID, H](backend)
 		if err != nil {
