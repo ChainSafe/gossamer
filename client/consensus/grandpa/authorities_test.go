@@ -1205,23 +1205,19 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 
 func assertExpectedSet(t *testing.T, authSetID authoritySetChangeID, expected setIDNumber[uint]) {
 	t.Helper()
-	authSetVal, err := authSetID.Value()
-	require.NoError(t, err)
-	switch val := authSetVal.(type) {
+	switch val := authSetID.(type) {
 	case authoritySetChangeIDSet[uint]:
 		require.Equal(t, expected, val.inner)
 	default:
-		err = fmt.Errorf("invalid authSetID type")
+		err := fmt.Errorf("invalid authSetID type")
+		require.NoError(t, err)
 	}
-	require.NoError(t, err)
 }
 
 func assertUnknown(t *testing.T, authSetID authoritySetChangeID) {
 	t.Helper()
-	authSetVal, err := authSetID.Value()
-	require.NoError(t, err)
 	isUnknown := false
-	switch authSetVal.(type) {
+	switch authSetID.(type) {
 	case authoritySetChangeIDUnknown:
 		isUnknown = true
 	}
@@ -1230,10 +1226,8 @@ func assertUnknown(t *testing.T, authSetID authoritySetChangeID) {
 
 func assertLatest(t *testing.T, authSetID authoritySetChangeID) {
 	t.Helper()
-	authSetVal, err := authSetID.Value()
-	require.NoError(t, err)
 	isLatest := false
-	switch authSetVal.(type) {
+	switch authSetID.(type) {
 	case authoritySetChangeIDLatest:
 		isLatest = true
 	}
