@@ -138,7 +138,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 // changes and handoffs applied.
 func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
 	set AuthoritySet[H, N, ID],
-	newSet *NewAuthoritySetStruct[H, N, ID],
+	newSet *newAuthoritySet[H, N, ID],
 	write writeAux) error {
 	encodedAuthSet, err := scale.Marshal(set)
 	if err != nil {
