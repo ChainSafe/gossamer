@@ -13,7 +13,7 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	trie "github.com/ChainSafe/gossamer/lib/trie"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockStorageAPI is a mock of StorageAPI interface.

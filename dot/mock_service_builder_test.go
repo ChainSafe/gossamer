@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	babe "github.com/ChainSafe/gossamer/lib/babe"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockServiceBuilder is a mock of ServiceBuilder interface.

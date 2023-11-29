@@ -20,7 +20,7 @@ import (
 	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MocknodeBuilderIface is a mock of nodeBuilderIface interface.

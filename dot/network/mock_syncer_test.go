@@ -7,7 +7,7 @@ package network
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 

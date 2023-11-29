@@ -7,7 +7,7 @@ package node
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockBuffer is a mock of Buffer interface.

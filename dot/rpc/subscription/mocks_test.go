@@ -9,7 +9,7 @@ import (
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTransactionStateAPI is a mock of TransactionStateAPI interface.

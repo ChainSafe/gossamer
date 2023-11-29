@@ -6,7 +6,7 @@ package httpserver
 import (
 	"regexp"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 var _ gomock.Matcher = (*regexMatcher)(nil)

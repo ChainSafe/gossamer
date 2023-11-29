@@ -7,7 +7,7 @@ package grandpa
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockephemeralService is a mock of ephemeralService interface.

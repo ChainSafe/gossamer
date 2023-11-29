@@ -8,9 +8,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // Opportunistic parallel:	13781602 ns/op	14419488 B/op	  323575 allocs/op

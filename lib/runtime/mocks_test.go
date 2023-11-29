@@ -7,7 +7,7 @@ package runtime
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockMemory is a mock of Memory interface.

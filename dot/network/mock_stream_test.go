@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	network "github.com/libp2p/go-libp2p/core/network"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
 )

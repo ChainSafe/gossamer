@@ -9,7 +9,7 @@ import (
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockBlockImportHandler is a mock of BlockImportHandler interface.

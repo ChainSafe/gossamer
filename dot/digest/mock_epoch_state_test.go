@@ -9,7 +9,7 @@ import (
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 	scale "github.com/ChainSafe/gossamer/pkg/scale"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockEpochState is a mock of EpochState interface.

@@ -7,7 +7,7 @@ package modules
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockSyncAPI is a mock of SyncAPI interface.

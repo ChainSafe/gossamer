@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	services "github.com/ChainSafe/gossamer/lib/services"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockServiceRegisterer is a mock of ServiceRegisterer interface.

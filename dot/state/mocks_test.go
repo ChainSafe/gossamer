@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	database "github.com/ChainSafe/gossamer/internal/database"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTelemetry is a mock of Telemetry interface.
