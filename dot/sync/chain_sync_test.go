@@ -1288,8 +1288,6 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 	t.Helper()
 
 	for idx, blockData := range blocksReceived {
-		mockBlockState.EXPECT().HasHeader(blockData.Header.Hash()).Return(false, nil)
-		mockBlockState.EXPECT().HasBlockBody(blockData.Header.Hash()).Return(false, nil)
 		if origin != networkInitialSync {
 			mockBabeVerifier.EXPECT().VerifyBlock(blockData.Header).Return(nil)
 		}
@@ -1677,4 +1675,94 @@ func TestChainSync_getHighestBlock(t *testing.T) {
 			require.Equal(t, tt.expectedHighestBlock, highestBlock)
 		})
 	}
+}
+
+func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, 0, types.NewDigest())
+
+	mockNetwork := NewMockNetwork(ctrl)
+	mockRequestMaker := NewMockRequestMaker(ctrl)
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockStorageState := NewMockStorageState(ctrl)
+	mockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockTelemetry := NewMockTelemetry(ctrl)
+	mockFinalityGadget := NewMockFinalityGadget(ctrl)
+
+	// this test expects two workers responding each request with 128 blocks which means
+	// we should import 256 blocks in total
+	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 129)
+	const announceBlock = false
+
+	invalidJustificationBlock := blockResponse.BlockData[90]
+	invalidJustification := &[]byte{0x01, 0x01, 0x01, 0x02}
+	invalidJustificationBlock.Justification = invalidJustification
+
+	// here we split the whole set in two parts each one will be the "response" for each peer
+	worker1Response := &network.BlockResponseMessage{
+		BlockData: blockResponse.BlockData[:128],
+	}
+
+	// the first peer will respond the from the block 1 to 128 so the ensureBlockImportFlow
+	// will setup the expectations starting from the genesis header until block 128
+	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData[:90], mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
+
+	errVerifyBlockJustification := errors.New("VerifyBlockJustification mock error")
+	mockFinalityGadget.EXPECT().
+		VerifyBlockJustification(
+			invalidJustificationBlock.Header.Hash(),
+			*invalidJustification).
+		Return(uint64(0), uint64(0), errVerifyBlockJustification)
+
+	// we use gomock.Any since I cannot guarantee which peer picks which request
+	// but the first call to DoBlockRequest will return the first set and the second
+	// call will return the second set
+	mockRequestMaker.EXPECT().
+		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		DoAndReturn(func(peerID, _, response any) any {
+			responsePtr := response.(*network.BlockResponseMessage)
+			*responsePtr = *worker1Response
+
+			fmt.Println("mocked request maker")
+			return nil
+		})
+
+	// setup a chain sync which holds in its peer view map
+	// 3 peers, each one announce block 129 as its best block number.
+	// We start this test with genesis block being our best block, so
+	// we're far behind by 128 blocks, we should execute a bootstrap
+	// sync request those blocks
+	const blocksAhead = 128
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
+		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
+		mockStorageState, mockImportHandler, mockTelemetry)
+
+	cs.finalityGadget = mockFinalityGadget
+
+	target, err := cs.getTarget()
+	require.NoError(t, err)
+	require.Equal(t, uint(blocksAhead), target)
+
+	// include a new worker in the worker pool set, this worker
+	// should be an available peer that will receive a block request
+	// the worker pool executes the workers management
+	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
+	//cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
+
+	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	require.ErrorIs(t, err, errVerifyBlockJustification)
+
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
+
+	// peer should be not in the worker pool
+	// peer should be in the ignore list
+	require.Len(t, cs.workerPool.workers, 1)
 }
