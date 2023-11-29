@@ -402,54 +402,55 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 	return nil
 }
 
-// VerifyBlockJustification verifies the finality justification for a block, returns scale encoded justification with
-// any extra bytes removed.
-func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
+// VerifyBlockJustification verifies the finality justification for a block,
+// if the justification is valid the return the round and set id otherwise error
+func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) (
+	round uint64, setID uint64, err error) {
 	fj := Justification{}
-	err := scale.Unmarshal(justification, &fj)
+	err = scale.Unmarshal(justification, &fj)
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
 
 	if hash != fj.Commit.Hash {
-		return fmt.Errorf("%w: justification %s and block hash %s",
+		return 0, 0, fmt.Errorf("%w: justification %s and block hash %s",
 			ErrJustificationMismatch, fj.Commit.Hash.Short(), hash.Short())
 	}
 
-	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
+	setID, err = s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
 	if err != nil {
-		return fmt.Errorf("cannot get set ID from block number: %w", err)
+		return 0, 0, fmt.Errorf("cannot get set ID from block number: %w", err)
 	}
 
 	has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
 	if err != nil {
-		return fmt.Errorf("checking if round and set id has finalised block: %w", err)
+		return 0, 0, fmt.Errorf("checking if round and set id has finalised block: %w", err)
 	}
 
 	if has {
 		storedFinalisedHash, err := s.blockState.GetFinalisedHash(fj.Round, setID)
 		if err != nil {
-			return fmt.Errorf("getting finalised hash: %w", err)
+			return 0, 0, fmt.Errorf("getting finalised hash: %w", err)
 		}
 		if storedFinalisedHash != hash {
-			return fmt.Errorf("%w, setID=%d and round=%d", errFinalisedBlocksMismatch, setID, fj.Round)
+			return 0, 0, fmt.Errorf("%w, setID=%d and round=%d", errFinalisedBlocksMismatch, setID, fj.Round)
 		}
 
-		return nil
+		return fj.Round, setID, nil
 	}
 
 	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
 	if err != nil {
-		return fmt.Errorf("checking if descendant of highest block: %w", err)
+		return 0, 0, fmt.Errorf("checking if descendant of highest block: %w", err)
 	}
 
 	if !isDescendant {
-		return errVoteBlockMismatch
+		return 0, 0, errVoteBlockMismatch
 	}
 
 	auths, err := s.grandpaState.GetAuthorities(setID)
 	if err != nil {
-		return fmt.Errorf("cannot get authorities for set ID: %w", err)
+		return 0, 0, fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
 	// threshold is two-thirds the number of authorities,
@@ -457,7 +458,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	threshold := (2 * len(auths) / 3)
 
 	if len(fj.Commit.Precommits) < threshold {
-		return ErrMinVotesNotMet
+		return 0, 0, ErrMinVotesNotMet
 	}
 
 	authPubKeys := make([]AuthData, len(fj.Commit.Precommits))
@@ -477,20 +478,20 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		// check if vote was for descendant of committed block
 		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 
 		if !isDescendant {
-			return ErrPrecommitBlockMismatch
+			return 0, 0, ErrPrecommitBlockMismatch
 		}
 
 		publicKey, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 
 		if !isInAuthSet(publicKey, auths) {
-			return ErrAuthorityNotInSet
+			return 0, 0, ErrAuthorityNotInSet
 		}
 
 		// verify signature for each precommit
@@ -501,16 +502,16 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 			SetID: setID,
 		})
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 
 		ok, err := publicKey.Verify(msg, just.Signature[:])
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 
 		if !ok {
-			return ErrInvalidSignature
+			return 0, 0, ErrInvalidSignature
 		}
 
 		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
@@ -521,30 +522,21 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	}
 
 	if count+len(equivocatoryVoters) < threshold {
-		return ErrMinVotesNotMet
+		return 0, 0, ErrMinVotesNotMet
 	}
 
 	err = verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number))
 	if err != nil {
-		return fmt.Errorf("verifying block hash against block number: %w", err)
+		return 0, 0, fmt.Errorf("verifying block hash against block number: %w", err)
 	}
 
 	for _, preCommit := range fj.Commit.Precommits {
 		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
 		if err != nil {
-			return fmt.Errorf("verifying block hash against block number: %w", err)
+			return 0, 0, fmt.Errorf("verifying block hash against block number: %w", err)
 		}
 	}
-
-	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
-	if err != nil {
-		return fmt.Errorf("setting finalised hash: %w", err)
-	}
-
-	logger.Debugf(
-		"set finalised block with hash %s, round %d and set id %d",
-		hash, fj.Round, setID)
-	return nil
+	return fj.Round, setID, nil
 }
 
 func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number uint) error {
