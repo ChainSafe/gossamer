@@ -122,7 +122,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "persisted validation data is nil",
 		},
 		{
-			description: "statement is 'seconded' and candidate is known",
+			description: "statement is seconded and candidate is known",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -165,7 +165,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "",
 		},
 		{
-			description: "statement is 'seconded' and candidate is unknown",
+			description: "statement is seconded and candidate is unknown",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -197,7 +197,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "",
 		},
 		{
-			description: "statement is 'seconded' and candidate is unknown with prospective parachain mode enabled",
+			description: "statement is seconded and candidate is unknown with prospective parachain mode enabled",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -266,6 +266,41 @@ func TestImportStatement(t *testing.T) {
 			} else {
 				require.ErrorContains(t, err, c.err)
 			}
+		})
+	}
+}
+
+func TestPostImportStatement(t *testing.T) {
+	testCases := []struct {
+		description string
+		rpState     perRelayParentState
+		summary     *Summary
+	}{
+		{
+			description: "summary is nil",
+			rpState: func() perRelayParentState {
+				ctrl := gomock.NewController(t)
+				mockTable := NewMockTable(ctrl)
+
+				// TODO: fill the values in returned struct.
+				mockTable.EXPECT().drainMisbehaviors().Return([]parachaintypes.PDMisbehaviorReport{})
+
+				return perRelayParentState{
+					Table: mockTable,
+				}
+			}(),
+			summary: nil,
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			subSystemToOverseer := make(chan any)
+
+			c.rpState.postImportStatement(subSystemToOverseer, c.summary)
 		})
 	}
 }
