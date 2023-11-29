@@ -256,6 +256,11 @@ func writePruningKey(pruneTimeBatch database.Batch, pruneAt BETimestamp, candida
 	return pruneTimeBatch.Put(pruneKey, []byte(tombstoneValue))
 }
 
+func decodePruningKey(key []byte) (BETimestamp, common.Hash) {
+	prefixLen := len(pruneByTimePrefix)
+	return BETimestamp(binary.LittleEndian.Uint64(key[prefixLen : prefixLen+8])), common.Hash(key[prefixLen+8:])
+}
+
 // storeAvailableData stores available data in the availability store
 func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem, candidate common.Hash,
 	data AvailableData) error {
@@ -287,14 +292,48 @@ func (as *AvailabilityStore) pruningRange(pruneTime BETimestamp) (start, end []b
 }
 
 func (as *AvailabilityStore) pruneAll(pruneTime BETimestamp) error {
-	rangeStart, rangeEnd := as.pruningRange(pruneTime)
-	logger.Debugf("prune range %v %v\n", rangeStart, rangeEnd)
+	_, rangeEnd := as.pruningRange(pruneTime)
 	itr := as.pruneByTimeTable.NewIterator()
 	for itr.First(); itr.Valid(); itr.Next() {
 		if bytes.Compare(itr.Key(), rangeEnd) < 1 {
-			err := as.pruneByTimeTable.Del(itr.Key())
+			pTime, cHash := decodePruningKey(itr.Key())
+			logger.Debugf("pruning %v, %v", pTime, cHash)
+			txFunc := func(availableBatch, chunkBatch, metaBatch, pruneTimeBatch database.Batch) error {
+				err := metaBatch.Del(cHash[:])
+				if err != nil {
+					return fmt.Errorf("delete meta %v: %w", cHash, err)
+				}
+				// clean up attached data of the candidate
+				meta, err := as.loadMetaData(cHash)
+				if err != nil {
+					return fmt.Errorf("load meta %v: %w", cHash, err)
+				}
+
+				if meta.DataAvailable {
+					err = availableBatch.Del(cHash[:])
+					if err != nil {
+						return fmt.Errorf("delete available data %v: %w", cHash, err)
+					}
+				}
+				for i, v := range meta.ChunksStored {
+					if v {
+						err = chunkBatch.Del(append(cHash[:], uint32ToBytes(uint32(i))...))
+						if err != nil {
+							return fmt.Errorf("delete chunk %v, %d: %w", cHash, i, err)
+						}
+					}
+				}
+
+				err = pruneTimeBatch.Del(itr.Key())
+				if err != nil {
+					return fmt.Errorf("delete key %v: %w", itr.Key(), err)
+				}
+				return nil
+			}
+
+			err := as.tryTransaction(txFunc)
 			if err != nil {
-				return fmt.Errorf("delete key %v: %w", itr.Key(), err)
+				return fmt.Errorf("pruning %v: %w", itr.Key(), err)
 			}
 		}
 	}
