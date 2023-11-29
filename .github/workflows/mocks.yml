@@ -26,7 +26,7 @@ jobs:
           stable: true
           check-latest: true
 
-      - run: go install go.uber.org/mock/mockgen@v1.6
+      - run: go install go.uber.org/mock/gomock@0.3.0
 
       - name: Check devnet module
         run: |
