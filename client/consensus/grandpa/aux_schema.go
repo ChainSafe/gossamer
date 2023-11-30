@@ -199,8 +199,8 @@ func updateBestJustification[
 	N constraints.Unsigned,
 	S comparable,
 	ID AuthorityID,
-	H Header[Hash, N]](
-	justification GrandpaJustification[Hash, N, S, ID, H],
+](
+	justification GrandpaJustification[Hash, N, S, ID],
 	write writeAux) error {
 	encodedJustificaiton, err := scale.Marshal(justification)
 	if err != nil {
@@ -224,8 +224,10 @@ func BestJustification[
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N]](
-	store AuxStore) (*GrandpaJustification[Hash, N, S, ID, H], error) {
-	justification := GrandpaJustification[Hash, N, S, ID, H]{}
+	store AuxStore) (*GrandpaJustification[Hash, N, S, ID], error) {
+	justification := GrandpaJustification[Hash, N, S, ID]{
+		VotesAncestries: // How do I know what to do here?
+	}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {
 		return nil, err

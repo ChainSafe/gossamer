@@ -26,22 +26,22 @@ func (s testHeader[Hash, N]) Number() N {
 }
 
 // //// Fulfils HeaderBackend interface //////
-type testHeaderBackend[Hash constraints.Ordered, N constraints.Unsigned, H testHeader[Hash, N]] struct {
-	header *testHeader[Hash, N]
+type testHeaderBackend[Hash constraints.Ordered, N constraints.Unsigned] struct {
+	header *Header[Hash, N]
 }
 
-func (backend testHeaderBackend[Hash, N, H]) Header(hash Hash) (*testHeader[Hash, N], error) {
+func (backend testHeaderBackend[Hash, N]) Header(hash Hash) (*Header[Hash, N], error) {
 	return backend.header, nil
 }
 
-func (backend testHeaderBackend[Hash, N, H]) Info() Info[N] {
+func (backend testHeaderBackend[Hash, N]) Info() Info[N] {
 	panic("unimplemented")
 }
 
-func (backend testHeaderBackend[Hash, N, H]) ExpectBlockHashFromID(id N) (Hash, error) {
+func (backend testHeaderBackend[Hash, N]) ExpectBlockHashFromID(id N) (Hash, error) {
 	panic("unimplemented")
 }
 
-func (backend testHeaderBackend[Hash, N, H]) ExpectHeader(hash Hash) (H, error) {
+func (backend testHeaderBackend[Hash, N]) ExpectHeader(hash Hash) (Header[Hash, N], error) {
 	panic("unimplemented")
 }

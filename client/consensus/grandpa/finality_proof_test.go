@@ -35,7 +35,7 @@ func checkFinalityProof[
 		return FinalityProof[Hash, N, H]{}, fmt.Errorf("failed to decode finality proof %s", err)
 	}
 
-	justification := GrandpaJustification[Hash, N, S, ID, H]{}
+	justification := GrandpaJustification[Hash, N, S, ID]{}
 	err = scale.Unmarshal(proof.Justification, &justification)
 	if err != nil {
 		return FinalityProof[Hash, N, H]{}, fmt.Errorf("error decoding justification for header %s", err)
@@ -179,7 +179,7 @@ func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
 		uint,
 		string,
 		dummyAuthID,
-		testHeader[string, uint]]{}
+	]{}
 	encJustification, err := scale.Marshal(grandpaJustification)
 	require.NoError(t, err)
 	_, err = checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
@@ -205,7 +205,7 @@ func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
 		TargetNumber: uint(7),
 	}
 
-	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
 		Round:  8,
 		Commit: commit,
 	}
@@ -236,7 +236,7 @@ func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	}
 
 	commit := createCommit(t, targetHash, targetNum, 1, ID)
-	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
 		Round:  8,
 		Commit: commit,
 	}
@@ -307,7 +307,7 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 
 	round := uint64(8)
 	commit := createCommit(t, "hash8", uint(8), round, ID)
-	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
 		Round:  round,
 		Commit: commit,
 	}
@@ -453,7 +453,7 @@ func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {
 
 	round := uint64(8)
 	commit := createCommit(t, "hash8", uint(8), round, ID)
-	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
 		Round:  round,
 		Commit: commit,
 	}
