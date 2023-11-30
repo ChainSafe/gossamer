@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -36,6 +35,13 @@ type chainSyncState byte
 const (
 	bootstrap chainSyncState = iota
 	tip
+)
+
+type blockOrigin byte
+
+const (
+	networkInitialSync blockOrigin = iota
+	networkBroadcast
 )
 
 func (s chainSyncState) String() string {
@@ -127,6 +133,7 @@ type chainSync struct {
 	telemetry          Telemetry
 	badBlocks          []string
 	requestMaker       network.RequestMaker
+	waitPeersDuration  time.Duration
 }
 
 type chainSyncConfig struct {
@@ -143,6 +150,7 @@ type chainSyncConfig struct {
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
 	badBlocks          []string
+	waitPeersDuration  time.Duration
 }
 
 func newChainSync(cfg chainSyncConfig) *chainSync {
@@ -167,6 +175,28 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		workerPool:         newSyncWorkerPool(cfg.net, cfg.requestMaker),
 		badBlocks:          cfg.badBlocks,
 		requestMaker:       cfg.requestMaker,
+		waitPeersDuration:  cfg.waitPeersDuration,
+	}
+}
+
+func (cs *chainSync) waitEnoughPeersAndTarget() {
+	waitPeersTimer := time.NewTimer(cs.waitPeersDuration)
+
+	for {
+		cs.workerPool.useConnectedPeers()
+		_, err := cs.getTarget()
+
+		totalAvailable := cs.workerPool.totalWorkers()
+		if totalAvailable >= uint(cs.minPeers) && err == nil {
+			return
+		}
+
+		select {
+		case <-waitPeersTimer.C:
+			waitPeersTimer.Reset(cs.waitPeersDuration)
+		case <-cs.stopCh:
+			return
+		}
 	}
 }
 
@@ -174,19 +204,11 @@ func (cs *chainSync) start() {
 	// since the default status from sync mode is syncMode(tip)
 	isSyncedGauge.Set(1)
 
-	// wait until we have a minimal workers in the sync worker pool
-	for {
-		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) {
-			break
-		}
-
-		// TODO: https://github.com/ChainSafe/gossamer/issues/3402
-		time.Sleep(time.Second)
-	}
-
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
+
+	// wait until we have a minimal workers in the sync worker pool
+	cs.waitEnoughPeersAndTarget()
 }
 
 func (cs *chainSync) stop() error {
@@ -266,7 +288,7 @@ func (cs *chainSync) bootstrapSync() {
 
 		if isFarFromTarget {
 			cs.workerPool.useConnectedPeers()
-			err = cs.requestMaxBlocksFrom(bestBlockHeader)
+			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
 			if err != nil {
 				logger.Errorf("requesting max blocks from best block header: %s", err)
 			}
@@ -425,7 +447,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
-	err := cs.handleWorkersResults(resultsQueue, startAtBlock, totalBlocks)
+	err := cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, totalBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -463,7 +485,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
 
-	err = cs.handleWorkersResults(resultsQueue, startAtBlock, gapLength)
+	err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, gapLength)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -491,7 +513,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		}
 
 		if parentExists {
-			err := cs.handleReadyBlock(pendingBlock.toBlockData())
+			err := cs.handleReadyBlock(pendingBlock.toBlockData(), networkBroadcast)
 			if err != nil {
 				return fmt.Errorf("handling ready block: %w", err)
 			}
@@ -516,7 +538,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		// TODO: we should handle the requests concurrently
 		// a way of achieve that is by constructing a new `handleWorkersResults` for
 		// handling only tip sync requests
-		err = cs.handleWorkersResults(resultsQueue, startAtBlock, *descendingGapRequest.Max)
+		err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, *descendingGapRequest.Max)
 		if err != nil {
 			return fmt.Errorf("while handling workers results: %w", err)
 		}
@@ -525,7 +547,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 	return nil
 }
 
-func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
+func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin blockOrigin) error { //nolint:unparam
 	startRequestAt := bestBlockHeader.Number + 1
 
 	// targetBlockNumber is the virtual target we will request, however
@@ -552,7 +574,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header) error {
 	}
 
 	resultsQueue := cs.workerPool.submitRequests(requests)
-	err = cs.handleWorkersResults(resultsQueue, startRequestAt, expectedAmountOfBlocks)
+	err = cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -590,7 +612,7 @@ func (cs *chainSync) getTarget() (uint, error) {
 // in the queue and wait for it to completes
 // TODO: handle only justification requests
 func (cs *chainSync) handleWorkersResults(
-	workersResults chan *syncTaskResult, startAtBlock uint, expectedSyncedBlocks uint32) error {
+	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
 
 	startTime := time.Now()
 	defer func() {
@@ -740,7 +762,7 @@ taskResultLoop:
 	// response was validated! place into ready block queue
 	for _, bd := range syncingChain {
 		// block is ready to be processed!
-		if err := cs.handleReadyBlock(bd); err != nil {
+		if err := cs.handleReadyBlock(bd, origin); err != nil {
 			return fmt.Errorf("while handling ready block: %w", err)
 		}
 	}
@@ -748,7 +770,7 @@ taskResultLoop:
 	return nil
 }
 
-func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
+func (cs *chainSync) handleReadyBlock(bd *types.BlockData, origin blockOrigin) error {
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
@@ -780,7 +802,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 		bd.Header = block.header
 	}
 
-	err := cs.processBlockData(*bd)
+	err := cs.processBlockData(*bd, origin)
 	if err != nil {
 		// depending on the error, we might want to save this block for later
 		logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
@@ -794,46 +816,37 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) error {
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (cs *chainSync) processBlockData(blockData types.BlockData) error {
-	headerInState, err := cs.blockState.HasHeader(blockData.Hash)
-	if err != nil {
-		return fmt.Errorf("checking if block state has header: %w", err)
-	}
-
-	bodyInState, err := cs.blockState.HasBlockBody(blockData.Hash)
-	if err != nil {
-		return fmt.Errorf("checking if block state has body: %w", err)
-	}
-
+func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOrigin) error {
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := cs.getSyncMode() == tip
-	if headerInState && bodyInState {
-		err = cs.processBlockDataWithStateHeaderAndBody(blockData, announceImportedBlock)
-		if err != nil {
-			return fmt.Errorf("processing block data with header and "+
-				"body in block state: %w", err)
-		}
-		return nil
+	var blockDataJustification []byte
+	if blockData.Justification != nil {
+		blockDataJustification = *blockData.Justification
 	}
 
 	if blockData.Header != nil {
+		round, setID, err := cs.verifyJustification(blockData.Header.Hash(), blockDataJustification)
+		if err != nil {
+			return err
+		}
+
 		if blockData.Body != nil {
-			err = cs.processBlockDataWithHeaderAndBody(blockData, announceImportedBlock)
+			err = cs.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
 			if err != nil {
 				return fmt.Errorf("processing block data with header and body: %w", err)
 			}
 		}
 
-		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			logger.Infof("handling justification for block %s (#%d)", blockData.Hash.Short(), blockData.Number())
-			err = cs.handleJustification(blockData.Header, *blockData.Justification)
-			if err != nil {
-				return fmt.Errorf("handling justification: %w", err)
-			}
+		err = cs.finalizeAndSetJustification(
+			blockData.Header,
+			round, setID,
+			blockDataJustification)
+		if err != nil {
+			return fmt.Errorf("while setting justification: %w", err)
 		}
 	}
 
-	err = cs.blockState.CompareAndSetBlockData(&blockData)
+	err := cs.blockState.CompareAndSetBlockData(&blockData)
 	if err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
@@ -841,55 +854,24 @@ func (cs *chainSync) processBlockData(blockData types.BlockData) error {
 	return nil
 }
 
-func (cs *chainSync) processBlockDataWithStateHeaderAndBody(blockData types.BlockData,
-	announceImportedBlock bool) (err error) {
-	// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
-	// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-	// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
-	// code block can be removed (#1784)
-	block, err := cs.blockState.GetBlockByHash(blockData.Hash)
-	if err != nil {
-		return fmt.Errorf("getting block by hash: %w", err)
+func (cs *chainSync) verifyJustification(headerHash common.Hash, justification []byte) (
+	round uint64, setID uint64, err error) {
+	if len(justification) > 0 {
+		round, setID, err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
+		return round, setID, err
 	}
 
-	err = cs.blockState.AddBlockToBlockTree(block)
-	if errors.Is(err, blocktree.ErrBlockExists) {
-		logger.Debugf(
-			"block number %d with hash %s already exists in block tree, skipping it.",
-			block.Header.Number, blockData.Hash)
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("adding block to blocktree: %w", err)
-	}
-
-	if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-		err = cs.handleJustification(&block.Header, *blockData.Justification)
-		if err != nil {
-			return fmt.Errorf("handling justification: %w", err)
-		}
-	}
-
-	// TODO: this is probably unnecessary, since the state is already in the database
-	// however, this case shouldn't be hit often, since it's only hit if the node state
-	// is rewinded or if the node shuts down unexpectedly (#1784)
-	state, err := cs.storageState.TrieState(&block.Header.StateRoot)
-	if err != nil {
-		return fmt.Errorf("loading trie state: %w", err)
-	}
-
-	err = cs.blockImportHandler.HandleBlockImport(block, state, announceImportedBlock)
-	if err != nil {
-		return fmt.Errorf("handling block import: %w", err)
-	}
-
-	return nil
+	return 0, 0, nil
 }
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
-	announceImportedBlock bool) (err error) {
-	err = cs.babeVerifier.VerifyBlock(blockData.Header)
-	if err != nil {
-		return fmt.Errorf("babe verifying block: %w", err)
+	origin blockOrigin, announceImportedBlock bool) (err error) {
+
+	if origin != networkInitialSync {
+		err = cs.babeVerifier.VerifyBlock(blockData.Header)
+		if err != nil {
+			return fmt.Errorf("babe verifying block: %w", err)
+		}
 	}
 
 	cs.handleBody(blockData.Body)
@@ -918,21 +900,27 @@ func (cs *chainSync) handleBody(body *types.Body) {
 	blockSizeGauge.Set(float64(acc))
 }
 
-func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
-	logger.Debugf("handling justification for block %d...", header.Number)
+func (cs *chainSync) finalizeAndSetJustification(header *types.Header,
+	round, setID uint64, justification []byte) (err error) {
+	if len(justification) > 0 {
+		err = cs.blockState.SetFinalisedHash(header.Hash(), round, setID)
+		if err != nil {
+			return fmt.Errorf("setting finalised hash: %w", err)
+		}
 
-	headerHash := header.Hash()
-	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
+		logger.Debugf(
+			"finalised block with hash #%d (%s), round %d and set id %d",
+			header.Number, header.Hash(), round, setID)
+
+		err = cs.blockState.SetJustification(header.Hash(), justification)
+		if err != nil {
+			return fmt.Errorf("setting justification for block number %d: %w",
+				header.Number, err)
+		}
+
+		logger.Infof("🔨 finalised block number #%d (%s)", header.Number, header.Hash())
 	}
 
-	err = cs.blockState.SetJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
-	}
-
-	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
 	return nil
 }
 
