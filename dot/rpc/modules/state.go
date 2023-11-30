@@ -117,7 +117,7 @@ type StateStorageResponse string
 // StatePairResponse is a key values
 type StatePairResponse []interface{}
 
-type StateTrieResponse []trie.Entry
+type StateTrieResponse []string
 
 // StateStorageKeysResponse field for storage keys
 type StateStorageKeysResponse []string
@@ -268,12 +268,19 @@ func (sm *StateModule) Trie(_ *http.Request, req *StateTrieAtRequest, res *State
 		return fmt.Errorf("getting entries: %w", err)
 	}
 
-	entriesArr := make([]trie.Entry, 0, len(entries))
+	entriesArr := make([]string, 0, len(entries))
 	for key, value := range entries {
-		entriesArr = append(entriesArr, trie.Entry{
+		entry := trie.Entry{
 			Key:   []byte(key),
 			Value: value,
-		})
+		}
+
+		encodedEntry, err := scale.Marshal(entry)
+		if err != nil {
+			return fmt.Errorf("scale encoding entry: %w", err)
+		}
+
+		entriesArr = append(entriesArr, common.BytesToHex(encodedEntry))
 	}
 
 	*res = entriesArr
