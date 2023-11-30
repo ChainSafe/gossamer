@@ -312,6 +312,15 @@ func TestCall(t *testing.T) {
 
 func TestStateTrie(t *testing.T) {
 	expecificBlockHash := common.Hash([32]byte{6, 6, 6, 6, 6, 6})
+	var expectedEncodedSlice []string
+	entries := []trie.Entry{
+		{Key: []byte("entry-1"), Value: []byte{0, 1, 2, 3}},
+		{Key: []byte("entry-2"), Value: []byte{3, 4, 5, 6}},
+	}
+
+	for _, entry := range entries {
+		expectedEncodedSlice = append(expectedEncodedSlice, common.BytesToHex(scale.MustMarshal(entry)))
+	}
 
 	testcases := map[string]struct {
 		request        StateTrieAtRequest
@@ -319,11 +328,8 @@ func TestStateTrie(t *testing.T) {
 		expected       StateTrieResponse
 	}{
 		"blockhash_parameter_nil": {
-			request: StateTrieAtRequest{At: nil},
-			expected: []trie.Entry{
-				{Key: []byte("entry-1"), Value: []byte{0, 1, 2, 3}},
-				{Key: []byte("entry-2"), Value: []byte{3, 4, 5, 6}},
-			},
+			request:  StateTrieAtRequest{At: nil},
+			expected: expectedEncodedSlice,
 			newStateModule: func(t *testing.T) *StateModule {
 				ctrl := gomock.NewController(t)
 
@@ -350,11 +356,8 @@ func TestStateTrie(t *testing.T) {
 			},
 		},
 		"blockhash_parameter_not_nil": {
-			request: StateTrieAtRequest{At: &expecificBlockHash},
-			expected: []trie.Entry{
-				{Key: []byte("entry-1"), Value: []byte{0, 1, 2, 3}},
-				{Key: []byte("entry-2"), Value: []byte{3, 4, 5, 6}},
-			},
+			request:  StateTrieAtRequest{At: &expecificBlockHash},
+			expected: expectedEncodedSlice,
 			newStateModule: func(t *testing.T) *StateModule {
 				ctrl := gomock.NewController(t)
 				blockAPIMock := NewMockBlockAPI(ctrl)
