@@ -226,7 +226,7 @@ func BestJustification[
 	H Header[Hash, N]](
 	store AuxStore) (*GrandpaJustification[Hash, N, S, ID], error) {
 	justification := GrandpaJustification[Hash, N, S, ID]{
-		VotesAncestries: // How do I know what to do here?
+		VotesAncestries: []H,
 	}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {

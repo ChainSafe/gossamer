@@ -723,15 +723,14 @@ type authoritySetChangeIDUnknown struct{}
 func (authoritySetChangeIDUnknown) isAuthoritySetChangeID() {}
 
 // Three states that can be returned: Latest, Set (tuple), Unknown
-func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID authoritySetChangeID, err error) {
+func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authoritySetChangeID, error) {
 	if asc == nil {
-		return authSetChangeID, fmt.Errorf("getSetID: authSetChanges is nil")
+		return nil, fmt.Errorf("getSetID: authSetChanges is nil")
 	}
 	authSet := *asc
 	last := authSet[len(authSet)-1]
 	if last.BlockNumber < blockNumber {
-		authSetChangeID = authoritySetChangeIDLatest{}
-		return authSetChangeID, nil
+		return authoritySetChangeIDLatest{}, nil
 	}
 
 	idx, _ := slices.BinarySearchFunc(
@@ -755,18 +754,15 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID auth
 
 		// if this is the first index but not the first set id then we are missing data.
 		if idx == 0 && authChange.SetID != 0 {
-			authSetChangeID = authoritySetChangeIDUnknown{}
-			return authSetChangeID, nil
+			return authoritySetChangeIDUnknown{}, nil
 		}
 
-		authSetChangeID = authoritySetChangeIDSet[N]{
+		return authoritySetChangeIDSet[N]{
 			authChange,
-		}
-		return authSetChangeID, nil
+		}, nil
 	}
 
-	authSetChangeID = authoritySetChangeIDUnknown{}
-	return authSetChangeID, nil
+	return authoritySetChangeIDUnknown{}, nil
 }
 
 func (asc *AuthoritySetChanges[N]) insert(blockNumber N) {
