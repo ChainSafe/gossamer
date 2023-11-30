@@ -252,6 +252,8 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	return nil
 }
 
+// Trie RPC method returns a list of scale encoded trie.Entry{Key byte, Value byte} representing
+// all the entries in a trie for a block hash, if no block hash is given then it uses the best block hash
 func (sm *StateModule) Trie(_ *http.Request, req *StateTrieAtRequest, res *StateTrieResponse) error {
 	blockHash := sm.blockAPI.BestBlockHash()
 	if req.At != nil {
