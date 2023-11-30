@@ -18,6 +18,7 @@ package modules
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"testing"
 
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -395,6 +396,9 @@ func TestStateTrie(t *testing.T) {
 			var res StateTrieResponse
 			err := sm.Trie(nil, &tt.request, &res)
 			require.NoError(t, err)
+
+			slices.Sort(tt.expected)
+			slices.Sort(res)
 			require.Equal(t, tt.expected, res)
 		})
 	}
