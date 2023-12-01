@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -217,23 +218,59 @@ func updateBestJustification[
 	return nil
 }
 
+type decodeGrandpaJustification[
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	ID AuthorityID,
+	H Header[Hash, N],
+] GrandpaJustification[Hash, N, S, ID]
+
+func (dgj *decodeGrandpaJustification[Hash, N, S, ID, H]) UnmarshalSCALE(reader io.Reader) (err error) {
+	type roundCommit struct {
+		Round  uint64
+		Commit finalityGrandpa.Commit[Hash, N, S, ID]
+	}
+	rc := roundCommit{}
+	decoder := scale.NewDecoder(reader)
+	err = decoder.Decode(&rc)
+	if err != nil {
+		return
+	}
+
+	dgj.Round = rc.Round
+	dgj.Commit = rc.Commit
+
+	headers := []H{}
+	err = decoder.Decode(&headers)
+	dgj.VotesAncestries = make([]Header[Hash, N], len(headers))
+	for i, header := range headers {
+		dgj.VotesAncestries[i] = header
+	}
+	return
+}
+
+func (dgj decodeGrandpaJustification[Hash, N, S, ID, H]) GrandpaJustification() *GrandpaJustification[Hash, N, S, ID] {
+	return &GrandpaJustification[Hash, N, S, ID]{
+		dgj.Round, dgj.Commit, dgj.VotesAncestries,
+	}
+}
+
 // BestJustification  Fetch the justification for the authoritySetChangeIDLatest block finalized by GRANDPA, if any.
 func BestJustification[
 	Hash constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
 	ID AuthorityID,
-	H Header[Hash, N]](
-	store AuxStore) (*GrandpaJustification[Hash, N, S, ID], error) {
-	justification := GrandpaJustification[Hash, N, S, ID]{
-		VotesAncestries: []H,
-	}
+	H Header[Hash, N],
+](store AuxStore) (*GrandpaJustification[Hash, N, S, ID], error) {
+	justification := decodeGrandpaJustification[Hash, N, S, ID, H]{}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {
 		return nil, err
 	}
 
-	return &justification, nil
+	return justification.GrandpaJustification(), nil
 }
 
 // WriteVoterSetState Write voter set state.
