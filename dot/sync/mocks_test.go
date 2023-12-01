@@ -39,20 +39,6 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
 }
 
-// AddBlockToBlockTree mocks base method.
-func (m *MockBlockState) AddBlockToBlockTree(arg0 *types.Block) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddBlockToBlockTree", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddBlockToBlockTree indicates an expected call of AddBlockToBlockTree.
-func (mr *MockBlockStateMockRecorder) AddBlockToBlockTree(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBlockToBlockTree", reflect.TypeOf((*MockBlockState)(nil).AddBlockToBlockTree), arg0)
-}
-
 // BestBlockHeader mocks base method.
 func (m *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	m.ctrl.T.Helper()
@@ -274,21 +260,6 @@ func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) 
 func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
-}
-
-// HasBlockBody mocks base method.
-func (m *MockBlockState) HasBlockBody(arg0 common.Hash) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasBlockBody", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasBlockBody indicates an expected call of HasBlockBody.
-func (mr *MockBlockStateMockRecorder) HasBlockBody(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasBlockBody", reflect.TypeOf((*MockBlockState)(nil).HasBlockBody), arg0)
 }
 
 // HasHeader mocks base method.
