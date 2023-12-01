@@ -47,6 +47,11 @@ func Marshal(v interface{}) (b []byte, err error) {
 	return
 }
 
+// Marshaler is the interface for custom SCALE marshalling for a given type
+type Marshaler interface {
+	MarshalSCALE() ([]byte, error)
+}
+
 // MustMarshal runs Marshal and panics on error.
 func MustMarshal(v interface{}) (b []byte) {
 	b, err := Marshal(v)
@@ -62,6 +67,21 @@ type encodeState struct {
 }
 
 func (es *encodeState) marshal(in interface{}) (err error) {
+	marshalerType := reflect.TypeOf((*Marshaler)(nil)).Elem()
+	inv := reflect.ValueOf(in)
+	if inv.Type().Implements(marshalerType) {
+		methodVal := inv.MethodByName("MarshalSCALE")
+		values := methodVal.Call(nil)
+		if !values[1].IsNil() {
+			errIn := values[1].Interface()
+			err := errIn.(error)
+			return err
+		}
+		bytes := values[0].Interface().([]byte)
+		_, err = es.Write(bytes)
+		return
+	}
+
 	switch in := in.(type) {
 	case int:
 		err = es.encodeUint(uint(in))
