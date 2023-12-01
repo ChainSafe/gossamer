@@ -60,7 +60,7 @@ type BabeVerifier interface {
 
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
-	VerifyBlockJustification(common.Hash, []byte) (round uint64, setID uint64, err error)
+	VerifyBlockJustification(*types.Header, []byte) (round uint64, setID uint64, err error)
 }
 
 // BlockImportHandler is the interface for the handler of newly imported blocks

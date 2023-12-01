@@ -6,7 +6,7 @@ package dot
 import (
 	"encoding/json"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/services"
 )
 
@@ -27,7 +27,7 @@ type ServiceRegisterer interface {
 
 // BlockJustificationVerifier has a verification method for block justifications.
 type BlockJustificationVerifier interface {
-	VerifyBlockJustification(common.Hash, []byte) (round uint64, setID uint64, err error)
+	VerifyBlockJustification(*types.Header, []byte) (round uint64, setID uint64, err error)
 }
 
 // Telemetry is the telemetry client to send telemetry messages.

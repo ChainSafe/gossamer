@@ -404,7 +404,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 // VerifyBlockJustification verifies the finality justification for a block,
 // if the justification is valid the return the round and set id otherwise error
-func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) (
+func (s *Service) VerifyBlockJustification(header *types.Header, justification []byte) (
 	round uint64, setID uint64, err error) {
 	fj := Justification{}
 	err = scale.Unmarshal(justification, &fj)
@@ -412,9 +412,19 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return 0, 0, err
 	}
 
-	if hash != fj.Commit.Hash {
+	headerHash := header.Hash()
+	if headerHash != fj.Commit.Hash || header.Number != uint(fj.Commit.Number) {
 		return 0, 0, fmt.Errorf("%w: justification %s and block hash %s",
-			ErrJustificationMismatch, fj.Commit.Hash.Short(), hash.Short())
+			ErrJustificationMismatch, fj.Commit.Hash.Short(), headerHash.Short())
+	}
+
+	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, header.Hash())
+	if err != nil {
+		return 0, 0, fmt.Errorf("checking if descendant of highest block: %w", err)
+	}
+
+	if !isDescendant {
+		return 0, 0, errVoteBlockMismatch
 	}
 
 	setID, err = s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
@@ -432,20 +442,11 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		if err != nil {
 			return 0, 0, fmt.Errorf("getting finalised hash: %w", err)
 		}
-		if storedFinalisedHash != hash {
+		if storedFinalisedHash != headerHash {
 			return 0, 0, fmt.Errorf("%w, setID=%d and round=%d", errFinalisedBlocksMismatch, setID, fj.Round)
 		}
 
 		return fj.Round, setID, nil
-	}
-
-	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
-	if err != nil {
-		return 0, 0, fmt.Errorf("checking if descendant of highest block: %w", err)
-	}
-
-	if !isDescendant {
-		return 0, 0, errVoteBlockMismatch
 	}
 
 	auths, err := s.grandpaState.GetAuthorities(setID)
@@ -476,9 +477,9 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	for _, just := range fj.Commit.Precommits {
 		// check if vote was for descendant of committed block
-		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
+		isDescendant, err := s.blockState.IsDescendantOf(headerHash, just.Vote.Hash)
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, fmt.Errorf("while checking precommit ancestry: %w", err)
 		}
 
 		if !isDescendant {
@@ -523,11 +524,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 
 	if count+len(equivocatoryVoters) < threshold {
 		return 0, 0, ErrMinVotesNotMet
-	}
-
-	err = verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number))
-	if err != nil {
-		return 0, 0, fmt.Errorf("verifying block hash against block number: %w", err)
 	}
 
 	for _, preCommit := range fj.Commit.Precommits {

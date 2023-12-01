@@ -825,7 +825,7 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 	}
 
 	if blockData.Header != nil {
-		round, setID, err := cs.verifyJustification(blockData.Header.Hash(), blockDataJustification)
+		round, setID, err := cs.verifyJustification(blockData.Header, blockDataJustification)
 		if err != nil {
 			return err
 		}
@@ -854,11 +854,10 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 	return nil
 }
 
-func (cs *chainSync) verifyJustification(headerHash common.Hash, justification []byte) (
+func (cs *chainSync) verifyJustification(header *types.Header, justification []byte) (
 	round uint64, setID uint64, err error) {
 	if len(justification) > 0 {
-		round, setID, err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
-		return round, setID, err
+		return cs.finalityGadget.VerifyBlockJustification(header, justification)
 	}
 
 	return 0, 0, nil

@@ -118,8 +118,9 @@ type Commit struct {
 
 // Justification represents a finality justification for a block
 type Justification struct {
-	Round  uint64
-	Commit Commit
+	Round          uint64
+	Commit         Commit
+	VoteAncestries []types.Header
 }
 
 func newJustification(round uint64, hash common.Hash, number uint32, j []SignedVote) *Justification {

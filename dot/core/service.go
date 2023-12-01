@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -104,6 +105,24 @@ func NewService(cfg *Config) (*Service, error) {
 // Start starts the core service
 func (s *Service) Start() error {
 	go s.handleBlocksAsync()
+
+	go func() {
+		time.Sleep(30 * time.Second)
+
+		blockHeader, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			panic(err)
+		}
+
+		block := types.NewEmptyBlock()
+		block.Header = *blockHeader
+		blockAnnounce, err := createBlockAnnounce(&block, true)
+		if err != nil {
+			panic(err)
+		}
+
+		s.net.GossipMessage(blockAnnounce)
+	}()
 	return nil
 }
 
