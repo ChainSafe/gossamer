@@ -551,21 +551,21 @@ func (ms *myStruct) UnmarshalSCALE(reader io.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	ms.First = uint32(binary.LittleEndian.Uint32(buf))
+	ms.First = binary.LittleEndian.Uint32(buf)
 
 	buf = make([]byte, 4)
 	_, err = reader.Read(buf)
 	if err != nil {
 		return
 	}
-	ms.Middle = uint32(binary.LittleEndian.Uint32(buf))
+	ms.Middle = binary.LittleEndian.Uint32(buf)
 
 	buf = make([]byte, 4)
 	_, err = reader.Read(buf)
 	if err != nil {
 		return
 	}
-	ms.Last = uint32(binary.LittleEndian.Uint32(buf))
+	ms.Last = binary.LittleEndian.Uint32(buf)
 	return nil
 }
 
