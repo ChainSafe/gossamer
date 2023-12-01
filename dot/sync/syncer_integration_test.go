@@ -111,10 +111,9 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.LogLvl = log.Trace
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
 	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(
-		func(hash common.Hash, justification []byte) (uint64, uint64, error) {
-			return 1, 1, nil
-		}).AnyTimes()
+		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(hash common.Hash, justification []byte) error {
+		return nil
+	}).AnyTimes()
 
 	cfg.FinalityGadget = mockFinalityGadget
 	cfg.Network = NewMockNetwork(ctrl)

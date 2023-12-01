@@ -388,7 +388,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 	numRequests := diff / MaxBlocksInResponse
 	// we should check if the diff is in the maxResponseSize bounds
 	// otherwise we should increase the numRequests by one, take this
-	// example, we want to sync from 1 to 259, the diff is 259
+	// example, we want to sync from 0 to 259, the diff is 259
 	// then the num of requests is 2 (uint(259)/uint(128)) however two requests will
 	// retrieve only 256 blocks (each request can retrieve a max of 128 blocks), so we should
 	// create one more request to retrieve those missing blocks, 3 in this example.

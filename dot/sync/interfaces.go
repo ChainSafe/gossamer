@@ -20,6 +20,7 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (number uint, err error)
 	CompareAndSetBlockData(bd *types.BlockData) error
+	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
 	GetHeader(common.Hash) (*types.Header, error)
 	HasHeader(hash common.Hash) (bool, error)
@@ -29,7 +30,6 @@ type BlockState interface {
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
-	AddBlockToBlockTree(block *types.Block) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
@@ -39,7 +39,6 @@ type BlockState interface {
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
-	SetFinalisedHash(common.Hash, uint64, uint64) error
 }
 
 // StorageState is the interface for the storage state
@@ -60,7 +59,7 @@ type BabeVerifier interface {
 
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
-	VerifyBlockJustification(common.Hash, []byte) (round uint64, setID uint64, err error)
+	VerifyBlockJustification(common.Hash, []byte) error
 }
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
