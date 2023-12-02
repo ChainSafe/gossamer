@@ -18,7 +18,7 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/stretchr/testify/require"

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestStorageState_RegisterStorageObserver(t *testing.T) {
