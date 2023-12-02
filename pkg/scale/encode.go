@@ -67,17 +67,13 @@ type encodeState struct {
 }
 
 func (es *encodeState) marshal(in interface{}) (err error) {
-	marshalerType := reflect.TypeOf((*Marshaler)(nil)).Elem()
-	inv := reflect.ValueOf(in)
-	if inv.Type().Implements(marshalerType) {
-		methodVal := inv.MethodByName("MarshalSCALE")
-		values := methodVal.Call(nil)
-		if !values[1].IsNil() {
-			errIn := values[1].Interface()
-			err := errIn.(error)
-			return err
+	marshaler, ok := in.(Marshaler)
+	if ok {
+		var bytes []byte
+		bytes, err = marshaler.MarshalSCALE()
+		if err != nil {
+			return
 		}
-		bytes := values[0].Interface().([]byte)
 		_, err = es.Write(bytes)
 		return
 	}
