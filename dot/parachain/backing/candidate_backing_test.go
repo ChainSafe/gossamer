@@ -1,16 +1,21 @@
 package backing
 
 import (
+	"errors"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
-func getDummyHash(num byte) common.Hash {
+var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
+
+func getDummyHash(t *testing.T, num byte) common.Hash {
+	t.Helper()
 	hash := common.Hash{}
 	for i := 0; i < 32; i++ {
 		hash[i] = num
@@ -18,20 +23,18 @@ func getDummyHash(num byte) common.Hash {
 	return hash
 }
 
-func getDummySeconded(t *testing.T) parachaintypes.Seconded {
-	hash5 := getDummyHash(5)
+func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCandidateReceipt {
+	t.Helper()
+	hash5 := getDummyHash(t, 5)
 
 	var collatorID parachaintypes.CollatorID
-	tempCollatID, err := common.HexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
-	require.NoError(t, err)
+	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
 	copy(collatorID[:], tempCollatID)
 
 	var collatorSignature parachaintypes.CollatorSignature
-	tempSignature, err := common.HexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
-	require.NoError(t, err)
 	copy(collatorSignature[:], tempSignature)
 
-	seconded := parachaintypes.Seconded{
+	ccr := parachaintypes.CommittedCandidateReceipt{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      uint32(1),
 			RelayParent:                 hash5,
@@ -54,11 +57,23 @@ func getDummySeconded(t *testing.T) parachaintypes.Seconded {
 		},
 	}
 
-	return seconded
+	return ccr
+}
+
+func mockOverseer(t *testing.T, ch chan any) {
+	t.Helper()
+	for data := range ch {
+		switch data.(type) {
+		case parachaintypes.PPMIntroduceCandidate:
+			ppmIntroduceCandidate := data.(parachaintypes.PPMIntroduceCandidate)
+			ppmIntroduceCandidate.Ch <- nil
+		default:
+		}
+	}
 }
 
 func TestImportStatement(t *testing.T) {
-	seconded := getDummySeconded(t)
+	seconded := parachaintypes.Seconded(getDummyCommittedCandidateReceipt(t))
 
 	statementVDTSeconded := parachaintypes.NewStatementVDT()
 	err := statementVDTSeconded.Set(seconded)
@@ -145,7 +160,7 @@ func TestImportStatement(t *testing.T) {
 					},
 					SecondedLocally: false,
 					ParaID:          1,
-					RelayParent:     getDummyHash(5),
+					RelayParent:     getDummyHash(t, 5),
 				},
 			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{
@@ -157,7 +172,7 @@ func TestImportStatement(t *testing.T) {
 						Data: []byte{1, 2, 3},
 					},
 					RelayParentNumber:      5,
-					RelayParentStorageRoot: getDummyHash(5),
+					RelayParentStorageRoot: getDummyHash(t, 5),
 					MaxPovSize:             3,
 				},
 			},
@@ -189,7 +204,7 @@ func TestImportStatement(t *testing.T) {
 						Data: []byte{1, 2, 3},
 					},
 					RelayParentNumber:      5,
-					RelayParentStorageRoot: getDummyHash(5),
+					RelayParentStorageRoot: getDummyHash(t, 5),
 					MaxPovSize:             3,
 				},
 			},
@@ -226,7 +241,7 @@ func TestImportStatement(t *testing.T) {
 						Data: []byte{1, 2, 3},
 					},
 					RelayParentNumber:      5,
-					RelayParentStorageRoot: getDummyHash(5),
+					RelayParentStorageRoot: getDummyHash(t, 5),
 					MaxPovSize:             3,
 				},
 			},
@@ -242,16 +257,7 @@ func TestImportStatement(t *testing.T) {
 
 			subSystemToOverseer := make(chan any)
 			if c.rpState.ProspectiveParachainsMode.IsEnabled {
-				go func(t *testing.T) {
-					for data := range subSystemToOverseer {
-						switch data.(type) {
-						case parachaintypes.PPMIntroduceCandidate:
-							ppmIntroduceCandidate := data.(parachaintypes.PPMIntroduceCandidate)
-							ppmIntroduceCandidate.Ch <- nil
-						default:
-						}
-					}
-				}(t)
+				go mockOverseer(t, subSystemToOverseer)
 			}
 
 			summary, err := c.rpState.importStatement(subSystemToOverseer, c.signedStatementWithPVD, c.perCandidate)
@@ -270,6 +276,107 @@ func TestImportStatement(t *testing.T) {
 	}
 }
 
+func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [sr25519.PublicKeyLength]byte) {
+	t.Helper()
+	copy(outputArray[:], common.MustHexToBytes(inputHex))
+	return outputArray
+}
+
+func dummySummary(t *testing.T) *Summary {
+	t.Helper()
+
+	return &Summary{
+		Candidate: parachaintypes.CandidateHash{
+			Value: getDummyHash(t, 5),
+		},
+		GroupID:       3,
+		ValidityVotes: 5,
+	}
+}
+
+func dummyValidityAttestation(t *testing.T, value string) parachaintypes.ValidityAttestation {
+	t.Helper()
+
+	var validatorSignature parachaintypes.ValidatorSignature
+	copy(validatorSignature[:], tempSignature)
+
+	vdt := parachaintypes.NewValidityAttestation()
+	switch value {
+	case "implicit":
+		err := vdt.Set(parachaintypes.Implicit(validatorSignature))
+		require.NoError(t, err)
+	case "explicit":
+		err := vdt.Set(parachaintypes.Explicit(validatorSignature))
+		require.NoError(t, err)
+	default:
+		require.Fail(t, "invalid value")
+	}
+	return vdt
+}
+
+func dummyTableContext(t *testing.T) TableContext {
+	t.Helper()
+
+	return TableContext{
+		validator: &Validator{
+			index: 1,
+		},
+		groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
+			1: {1, 2, 3},
+			2: {4, 5, 6},
+			3: {7, 8, 9},
+		},
+		validators: []parachaintypes.ValidatorID{
+			mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
+			mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
+			mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
+			mustHexTo32BArray(t, "0x74c337d57035cd6b7718e92a0d8ea6ef710da8ab1215a057c40c4ef792155a68"),
+		},
+	}
+}
+
+func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
+	t.Helper()
+
+	attestedToReturn := AttestedCandidate{
+		GroupID:   3,
+		Candidate: getDummyCommittedCandidateReceipt(t),
+		ValidityVotes: []validityVote{
+			{
+				ValidatorIndex:      7,
+				ValidityAttestation: dummyValidityAttestation(t, "implicit"),
+			},
+			{
+				ValidatorIndex:      8,
+				ValidityAttestation: dummyValidityAttestation(t, "explicit"),
+			},
+			{
+				ValidatorIndex:      9,
+				ValidityAttestation: dummyValidityAttestation(t, "implicit"),
+			},
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	mockTable := NewMockTable(ctrl)
+
+	mockTable.EXPECT().drainMisbehaviors().
+		Return([]parachaintypes.PDMisbehaviorReport{})
+	mockTable.EXPECT().attestedCandidate(
+		gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+		gomock.AssignableToTypeOf(new(TableContext)),
+	).Return(&attestedToReturn, nil)
+
+	return perRelayParentState{
+		ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+			IsEnabled: false,
+		},
+		Table:        mockTable,
+		TableContext: dummyTableContext(t),
+		backed:       map[parachaintypes.CandidateHash]bool{},
+	}
+}
+
 func TestPostImportStatement(t *testing.T) {
 	testCases := []struct {
 		description string
@@ -282,14 +389,109 @@ func TestPostImportStatement(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
-				// TODO: fill the values in returned struct.
-				mockTable.EXPECT().drainMisbehaviors().Return([]parachaintypes.PDMisbehaviorReport{})
+				mockTable.EXPECT().drainMisbehaviors().Return([]parachaintypes.PDMisbehaviorReport{
+					{
+						ValidatorIndex: 1,
+						Misbehaviour:   parachaintypes.MultipleCandidates{},
+					},
+				})
 
 				return perRelayParentState{
 					Table: mockTable,
 				}
 			}(),
 			summary: nil,
+		},
+		{
+			description: "failed to get attested candidate from table",
+			rpState: func() perRelayParentState {
+				ctrl := gomock.NewController(t)
+				mockTable := NewMockTable(ctrl)
+
+				mockTable.EXPECT().drainMisbehaviors().
+					Return([]parachaintypes.PDMisbehaviorReport{})
+				mockTable.EXPECT().attestedCandidate(
+					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(new(TableContext)),
+				).Return(nil, errors.New("getting attested candidate from table"))
+
+				return perRelayParentState{
+					Table: mockTable,
+				}
+			}(),
+			summary: dummySummary(t),
+		},
+		{
+			description: "candidate is already backed",
+			rpState: func() perRelayParentState {
+				ctrl := gomock.NewController(t)
+				mockTable := NewMockTable(ctrl)
+
+				candidate := getDummyCommittedCandidateReceipt(t)
+				candidateHash := parachaintypes.CandidateHash{
+					Value: common.MustBlake2bHash(scale.MustMarshal(candidate)),
+				}
+
+				mockTable.EXPECT().drainMisbehaviors().
+					Return([]parachaintypes.PDMisbehaviorReport{})
+				mockTable.EXPECT().attestedCandidate(
+					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(new(TableContext)),
+				).Return(&AttestedCandidate{
+					GroupID:   4,
+					Candidate: candidate,
+				}, nil)
+
+				return perRelayParentState{
+					Table: mockTable,
+					backed: map[parachaintypes.CandidateHash]bool{
+						candidateHash: true,
+					},
+				}
+			}(),
+			summary: dummySummary(t),
+		},
+		{
+			description: "Validity vote from unknown validator",
+			rpState: func() perRelayParentState {
+				ctrl := gomock.NewController(t)
+				mockTable := NewMockTable(ctrl)
+
+				mockTable.EXPECT().drainMisbehaviors().
+					Return([]parachaintypes.PDMisbehaviorReport{})
+				mockTable.EXPECT().attestedCandidate(
+					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(new(TableContext)),
+				).Return(&AttestedCandidate{
+					GroupID:   3,
+					Candidate: getDummyCommittedCandidateReceipt(t),
+				}, nil)
+
+				return perRelayParentState{
+					Table:        mockTable,
+					backed:       map[parachaintypes.CandidateHash]bool{},
+					TableContext: dummyTableContext(t),
+				}
+			}(),
+			summary: dummySummary(t),
+		},
+		{
+			description: "prospective parachain mode is disabled",
+			rpState:     rpStateWhenPpmDisabled(t),
+			summary:     dummySummary(t),
+		},
+		{
+			description: "prospective parachain mode is enabled",
+			rpState: func() perRelayParentState {
+				state := rpStateWhenPpmDisabled(t)
+				state.ProspectiveParachainsMode = parachaintypes.ProspectiveParachainsMode{
+					IsEnabled:          true,
+					MaxCandidateDepth:  4,
+					AllowedAncestryLen: 2,
+				}
+				return state
+			}(),
+			summary: dummySummary(t),
 		},
 	}
 
@@ -299,6 +501,7 @@ func TestPostImportStatement(t *testing.T) {
 			t.Parallel()
 
 			subSystemToOverseer := make(chan any)
+			go mockOverseer(t, subSystemToOverseer)
 
 			c.rpState.postImportStatement(subSystemToOverseer, c.summary)
 		})
