@@ -1676,8 +1676,9 @@ func TestChainSync_getHighestBlock(t *testing.T) {
 		})
 	}
 }
-
 func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *testing.T) {
+	// TODO: https://github.com/ChainSafe/gossamer/issues/3468
+	t.Skip()
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)

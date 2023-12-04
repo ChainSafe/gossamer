@@ -43,20 +43,6 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
 }
 
-// AddBlockToBlockTree mocks base method.
-func (m *MockBlockState) AddBlockToBlockTree(arg0 *types.Block) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddBlockToBlockTree", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddBlockToBlockTree indicates an expected call of AddBlockToBlockTree.
-func (mr *MockBlockStateMockRecorder) AddBlockToBlockTree(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBlockToBlockTree", reflect.TypeOf((*MockBlockState)(nil).AddBlockToBlockTree), arg0)
-}
-
 // BestBlockHeader mocks base method.
 func (m *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	m.ctrl.T.Helper()
@@ -340,20 +326,6 @@ func (mr *MockBlockStateMockRecorder) RangeInMemory(arg0, arg1 any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockState)(nil).RangeInMemory), arg0, arg1)
 }
 
-// SetFinalisedHash mocks base method.
-func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetFinalisedHash", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetFinalisedHash indicates an expected call of SetFinalisedHash.
-func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2)
-}
-
 // SetJustification mocks base method.
 func (m *MockBlockState) SetJustification(arg0 common.Hash, arg1 []byte) error {
 	m.ctrl.T.Helper()
@@ -538,13 +510,11 @@ func (m *MockFinalityGadget) EXPECT() *MockFinalityGadgetMockRecorder {
 }
 
 // VerifyBlockJustification mocks base method.
-func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 []byte) (uint64, uint64, error) {
+func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 []byte) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyBlockJustification", arg0, arg1)
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(uint64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // VerifyBlockJustification indicates an expected call of VerifyBlockJustification.
