@@ -14,12 +14,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/stretchr/testify/require"
 )
 
 func newTriesEmpty() *Tries {
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.Trie),
+		rootToTrie:    lrucache.NewLRUCache[common.Hash, *trie.Trie](MaxInMemoryTries),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,

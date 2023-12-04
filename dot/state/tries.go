@@ -4,10 +4,9 @@
 package state
 
 import (
-	"sync"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -30,11 +29,12 @@ var (
 	})
 )
 
+const MaxInMemoryTries = 100
+
 // Tries is a thread safe map of root hash
 // to trie.
 type Tries struct {
-	rootToTrie    map[common.Hash]*trie.Trie
-	mapMutex      sync.RWMutex
+	rootToTrie    *lrucache.LRUCache[common.Hash, *trie.Trie]
 	triesGauge    prometheus.Gauge
 	setCounter    prometheus.Counter
 	deleteCounter prometheus.Counter
@@ -43,8 +43,10 @@ type Tries struct {
 // NewTries creates a new thread safe map of root hash
 // to trie.
 func NewTries() (tries *Tries) {
+	cache := lrucache.NewLRUCache[common.Hash, *trie.Trie](MaxInMemoryTries)
+
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.Trie),
+		rootToTrie:    cache,
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -66,41 +68,27 @@ func (t *Tries) SetTrie(trie *trie.Trie) {
 // softSet sets the given trie at the given root hash
 // in the memory map only if it is not already set.
 func (t *Tries) softSet(root common.Hash, trie *trie.Trie) {
-	t.mapMutex.Lock()
-	defer t.mapMutex.Unlock()
-
-	_, has := t.rootToTrie[root]
-	if has {
-		return
+	if t.rootToTrie.SoftPut(root, trie) {
+		t.triesGauge.Inc()
+		t.setCounter.Inc()
 	}
-
-	t.triesGauge.Inc()
-	t.setCounter.Inc()
-	t.rootToTrie[root] = trie
 }
 
 func (t *Tries) delete(root common.Hash) {
-	t.mapMutex.Lock()
-	defer t.mapMutex.Unlock()
-	delete(t.rootToTrie, root)
-	// Note we use .Set instead of .Dec in case nothing
-	// was deleted since nothing existed at the hash given.
-	t.triesGauge.Set(float64(len(t.rootToTrie)))
-	t.deleteCounter.Inc()
+	if t.rootToTrie.Delete(root) {
+		t.triesGauge.Dec()
+		t.deleteCounter.Inc()
+	}
 }
 
 // get retrieves the trie corresponding to the root hash given
 // from the in-memory thread safe map.
 func (t *Tries) get(root common.Hash) (tr *trie.Trie) {
-	t.mapMutex.RLock()
-	defer t.mapMutex.RUnlock()
-	return t.rootToTrie[root]
+	return t.rootToTrie.Get(root)
 }
 
 // len returns the current numbers of tries
 // stored in the in-memory map.
 func (t *Tries) len() int {
-	t.mapMutex.RLock()
-	defer t.mapMutex.RUnlock()
-	return len(t.rootToTrie)
+	return t.rootToTrie.Len()
 }
