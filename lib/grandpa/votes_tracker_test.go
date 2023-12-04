@@ -5,21 +5,15 @@ package grandpa
 
 import (
 	"container/list"
-	"fmt"
 	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestA(t *testing.T) {
-	fmt.Println(scale.MustMarshal([]byte{}))
-}
 
 // buildVoteMessage creates a test vote message using the
 // given block hash and authority ID only.
