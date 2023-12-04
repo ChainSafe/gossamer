@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"testing"
 
 	finalityGrandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -395,14 +396,59 @@ func TestWriteJustification(t *testing.T) {
 		VotesAncestries: expAncestries,
 	}
 
-	_, err := BestJustification[string, uint, string, dummyAuthID](store)
+	fmt.Println("first call")
+	_, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
 	require.ErrorIs(t, err, errValueNotFound)
 
 	err = updateBestJustification[string, uint, string, dummyAuthID](justification, write(store))
 	require.NoError(t, err)
 
-	bestJust, err := BestJustification[string, uint, string, dummyAuthID](store)
+	fmt.Println("second call")
+	bestJust, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
 	require.NoError(t, err)
 	require.NotNil(t, bestJust)
 	require.Equal(t, justification, *bestJust)
+}
+
+func TestWriteJustificationDecode(t *testing.T) {
+	var precommits []finalityGrandpa.SignedPrecommit[string, uint, string, dummyAuthID]
+	precommit := makePrecommit(t, "a", 1, 1)
+	precommits = append(precommits, precommit)
+
+	expAncestries := make([]Header[string, uint], 0)
+	expAncestries = append(expAncestries, testHeader[string, uint]{
+		NumberField:     100,
+		ParentHashField: "a",
+	})
+
+	justification := GrandpaJustification[string, uint, string, dummyAuthID]{
+		Round: 2,
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
+			TargetHash:   "a",
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VotesAncestries: expAncestries,
+	}
+
+	encJustification, err := scale.Marshal(justification)
+	require.NoError(t, err)
+
+	decJust := decodeGrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{
+		Round: 2,
+		Commit: finalityGrandpa.Commit[string, uint, string, dummyAuthID]{
+			TargetHash:   "a",
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VotesAncestries: expAncestries,
+	}
+
+	encDecJustification, err := scale.Marshal(decJust)
+	require.NoError(t, err)
+	require.Equal(t, encJustification, encDecJustification)
+
+	just := decodeGrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{}
+	err = scale.Unmarshal(encDecJustification, &just)
+	require.NoError(t, err)
 }

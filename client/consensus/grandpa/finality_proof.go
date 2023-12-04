@@ -172,7 +172,7 @@ func proveFinality[
 
 	switch val := authSetChangeID.(type) {
 	case authoritySetChangeIDLatest:
-		justification, err := BestJustification[Hash, N, S, ID](backend)
+		justification, err := BestJustification[Hash, N, S, ID, H](backend)
 		if err != nil {
 			return nil, err
 		}

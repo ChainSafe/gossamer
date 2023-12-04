@@ -36,6 +36,8 @@ func loadDecoded(store AuxStore, key []byte, destination any) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("enc value")
+	fmt.Println(encodedValue)
 
 	if encodedValue != nil {
 		err = scale.Unmarshal(*encodedValue, destination)
@@ -227,6 +229,7 @@ type decodeGrandpaJustification[
 ] GrandpaJustification[Hash, N, S, ID]
 
 func (dgj *decodeGrandpaJustification[Hash, N, S, ID, H]) UnmarshalSCALE(reader io.Reader) (err error) {
+	fmt.Println("in UnmarshalSCALE")
 	type roundCommit struct {
 		Round  uint64
 		Commit finalityGrandpa.Commit[Hash, N, S, ID]
