@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	common "github.com/ChainSafe/gossamer/lib/common"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockCodeSubstitutedState is a mock of CodeSubstitutedState interface.

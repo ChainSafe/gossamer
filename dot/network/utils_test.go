@@ -7,9 +7,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 const portsAmount = 200
