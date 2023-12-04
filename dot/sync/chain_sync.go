@@ -816,33 +816,25 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData, origin blockOrigin) e
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
+// TODO: https://github.com/ChainSafe/gossamer/issues/3468
 func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOrigin) error {
 	// while in bootstrap mode we don't need to broadcast block announcements
 	announceImportedBlock := cs.getSyncMode() == tip
-	var blockDataJustification []byte
-	if blockData.Justification != nil {
-		blockDataJustification = *blockData.Justification
-	}
 
 	if blockData.Header != nil {
-		round, setID, err := cs.verifyJustification(blockData.Header.Hash(), blockDataJustification)
-		if err != nil {
-			return err
-		}
-
 		if blockData.Body != nil {
-			err = cs.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
+			err := cs.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
 			if err != nil {
 				return fmt.Errorf("processing block data with header and body: %w", err)
 			}
 		}
 
-		err = cs.finalizeAndSetJustification(
-			blockData.Header,
-			round, setID,
-			blockDataJustification)
-		if err != nil {
-			return fmt.Errorf("while setting justification: %w", err)
+		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+			logger.Infof("handling justification for block %s (#%d)", blockData.Hash.Short(), blockData.Number())
+			err := cs.handleJustification(blockData.Header, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("handling justification: %w", err)
+			}
 		}
 	}
 
@@ -852,16 +844,6 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 	}
 
 	return nil
-}
-
-func (cs *chainSync) verifyJustification(headerHash common.Hash, justification []byte) (
-	round uint64, setID uint64, err error) {
-	if len(justification) > 0 {
-		round, setID, err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
-		return round, setID, err
-	}
-
-	return 0, 0, nil
 }
 
 func (cs *chainSync) processBlockDataWithHeaderAndBody(blockData types.BlockData,
@@ -900,27 +882,21 @@ func (cs *chainSync) handleBody(body *types.Body) {
 	blockSizeGauge.Set(float64(acc))
 }
 
-func (cs *chainSync) finalizeAndSetJustification(header *types.Header,
-	round, setID uint64, justification []byte) (err error) {
-	if len(justification) > 0 {
-		err = cs.blockState.SetFinalisedHash(header.Hash(), round, setID)
-		if err != nil {
-			return fmt.Errorf("setting finalised hash: %w", err)
-		}
+func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
+	logger.Debugf("handling justification for block %d...", header.Number)
 
-		logger.Debugf(
-			"finalised block with hash #%d (%s), round %d and set id %d",
-			header.Number, header.Hash(), round, setID)
-
-		err = cs.blockState.SetJustification(header.Hash(), justification)
-		if err != nil {
-			return fmt.Errorf("setting justification for block number %d: %w",
-				header.Number, err)
-		}
-
-		logger.Infof("🔨 finalised block number #%d (%s)", header.Number, header.Hash())
+	headerHash := header.Hash()
+	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
+	if err != nil {
+		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
 
+	err = cs.blockState.SetJustification(headerHash, justification)
+	if err != nil {
+		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
+	}
+
+	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
 	return nil
 }
 
