@@ -35,7 +35,7 @@ type AuthorityID interface {
 	Verify(msg []byte, sig []byte) (bool, error)
 }
 
-type AuthoritySignature any
+type AuthoritySignature comparable
 
 // Authority represents a grandpa authority
 type Authority[ID AuthorityID] struct {
@@ -172,8 +172,6 @@ type voterCommands[H comparable, N constraints.Unsigned, ID AuthorityID] interfa
 type voterCommandPause string
 type voterCommandChangeAuthorities[H comparable, N constraints.Unsigned, ID AuthorityID] newAuthoritySet[H, N, ID]
 
-type environment struct{}
-
 type Config struct {
 	/// The expected duration for a message to be gossiped across the network.
 	GossipDuration time.Duration
@@ -199,14 +197,14 @@ type Config struct {
 }
 
 // / Future that powers the voter.
-type voterWork[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered] struct {
+type voterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID AuthorityID, R any] struct {
 	voter            *grandpa.Voter[Hash, Number, Signature, ID]
 	sharedVoterState SharedVoterState[ID]
-	env              environment
-	voterCommandsRx  any
-	network          any
-	telemetry        any
-	metrics          any
+	env              environment[R, Number, Hash, ID, Signature]
+	voterCommandsRx  <-chan voterCommand
+	network          communication.NetworkBridge[Hash, Number]
+	telemetry        *telemetry.TelemetryHandle
+	metrics          *metrics
 }
 
 func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID AuthorityID, R any](
@@ -221,7 +219,7 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	sharedVoterState SharedVoterState[ID],
 	JustificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
 	telemetry *telemetry.TelemetryHandle,
-) *voterWork[Hash, Number, Signature, ID] {
+) *voterWork[Hash, Number, Signature, ID, R] {
 	// grandpa.NewVoter[]()
 	return nil
 }

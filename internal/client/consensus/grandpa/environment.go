@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/communication"
+	"github.com/ChainSafe/gossamer/internal/client/telemetry"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -592,3 +597,27 @@ type precommit[H comparable, N constraints.Unsigned] struct {
 
 // Index returns VDT index
 func (precommit[H, N]) Index() uint { return 2 }
+
+// / Prometheus metrics for GRANDPA.
+// pub(crate) struct Metrics {
+type metrics struct {
+	// 	finality_grandpa_round: Gauge<U64>,
+	// 	finality_grandpa_prevotes: Counter<U64>,
+	// 	finality_grandpa_precommits: Counter<U64>,
+}
+
+// / The environment we run GRANDPA in.
+type environment[R any, N runtime.Number, H statemachine.HasherOut, ID AuthorityID, S AuthoritySignature] struct {
+	Client              ClientForGrandpa[R, N, H]
+	SelectChain         consensus.SelectChain[H, N]
+	Voters              grandpa.VoterSet[ID]
+	Config              Config
+	AuthoritySet        SharedAuthoritySet[H, N, ID]
+	Network             communication.NetworkBridge[H, N]
+	SetID               communication.SetID
+	VoterSetState       SharedVoterSetState[H, N, ID, S]
+	VotingRule          VotingRule[H, N]
+	Metrics             *metrics
+	JustificationSender GrandpaJustificationSender[H, N, S, ID]
+	Telemetry           *telemetry.TelemetryHandle
+}
