@@ -2039,6 +2039,17 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, 1, recentDisputes.Len())
 	})
 
+	// restart tests
+	t.Run("resume_dispute_without_local_statement", func(t *testing.T) {
+		// TODO: need to implement the restart functionality
+	})
+	t.Run("resume_dispute_with_local_statement", func(t *testing.T) {
+		// TODO: need to implement the restart functionality
+	})
+	t.Run("resume_dispute_without_local_statement_or_local_key", func(t *testing.T) {
+		// TODO: need to implement the restart functionality
+	})
+
 	// Session info tests
 	t.Run("session_info_caching_on_startup_works", func(t *testing.T) {
 		// SessionInfo cache should be populated
@@ -2131,4 +2142,84 @@ func TestDisputesCoordinator(t *testing.T) {
 			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
 		})
 	})
+
+	// LocalStatement
+	t.Run("issue_valid_local_statement_does_cause_distribution_but_not_duplicate_participation", func(t *testing.T) {
+		issueLocalStatementTest(t, true)
+	})
+	t.Run("issue_invalid_local_statement_does_cause_distribution_but_not_duplicate_participation", func(t *testing.T) {
+		issueLocalStatementTest(t, false)
+	})
+}
+
+func issueLocalStatementTest(t *testing.T, valid bool) {
+	t.Parallel()
+	ts := newTestState(t)
+	session := parachaintypes.SessionIndex(1)
+	ts.run(t, &session)
+
+	candidateReceipt := getValidCandidateReceipt(t)
+	candidateHash, err := candidateReceipt.Hash()
+	require.NoError(t, err)
+
+	ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		getCandidateBackedEvent(t, candidateReceipt),
+	})
+
+	otherVote := ts.issueExplicitStatementWithIndex(t, 1, candidateHash, session, !valid)
+	message := disputetypes.Message[disputetypes.ImportStatements]{
+		Data: disputetypes.ImportStatements{
+			CandidateReceipt: candidateReceipt,
+			Session:          session,
+			Statements: []disputetypes.Statement{
+				{
+					SignedDisputeStatement: otherVote,
+					ValidatorIndex:         1,
+				},
+			},
+		},
+		ResponseChannel: make(chan any),
+	}
+	res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+	require.NoError(t, err)
+	importResult, ok := res.(ImportStatementResult)
+	require.True(t, ok)
+	require.Equal(t, ValidImport, importResult)
+
+	// initiate dispute
+	localStatement := disputetypes.Message[disputetypes.IssueLocalStatementMessage]{
+		Data: disputetypes.IssueLocalStatementMessage{
+			Session:          session,
+			CandidateHash:    candidateHash,
+			CandidateReceipt: candidateReceipt,
+			Valid:            valid,
+		},
+		ResponseChannel: nil,
+	}
+	err = sendMessage(ts.subsystemReceiver, localStatement)
+	require.NoError(t, err)
+
+	// expect it in the distribution
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case msg := <-ts.mockOverseer:
+		disputeMessageVDT, ok := msg.(disputetypes.DisputeMessageVDT)
+		require.True(t, ok)
+		value, err := disputeMessageVDT.Value()
+		require.NoError(t, err)
+		disputeMessage, ok := value.(disputetypes.UncheckedDisputeMessage)
+		require.True(t, ok)
+		require.Equal(t, session, disputeMessage.SessionIndex)
+		require.Equal(t, candidateReceipt, disputeMessage.CandidateReceipt)
+		break
+	case <-ctx.Done():
+		err := fmt.Errorf("timeout waiting for dispute message")
+		require.NoError(t, err)
+	}
+
+	handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+
+	// ensure that there are no participations
+	time.Sleep(2 * time.Second)
 }
