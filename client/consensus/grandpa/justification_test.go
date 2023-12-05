@@ -51,10 +51,10 @@ func TestJustificationEncoding(t *testing.T) {
 	encodedJustification, err := scale.Marshal(justification)
 	require.NoError(t, err)
 
-	newJustificaiton := GrandpaJustification[string, uint, string, dummyAuthID]{}
+	newJustificaiton := decodeGrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{}
 	err = scale.Unmarshal(encodedJustification, &newJustificaiton)
 	require.NoError(t, err)
-	require.Equal(t, justification, newJustificaiton)
+	require.Equal(t, justification, *newJustificaiton.GrandpaJustification())
 }
 
 func TestJustification_fromCommit(t *testing.T) {
@@ -133,7 +133,7 @@ func TestJustification_fromCommit(t *testing.T) {
 func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	// Invalid Encoding
 	invalidEncoding := []byte{21}
-	_, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID](
+	_, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		invalidEncoding,
 		hashNumber[string, uint]{},
 		2,
@@ -150,7 +150,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	encWrongTarget, err := scale.Marshal(justification)
 	require.NoError(t, err)
-	_, err = decodeAndVerifyFinalizes[string, uint, string, dummyAuthID](
+	_, err = decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		encWrongTarget,
 		hashNumber[string, uint]{},
 		2,
@@ -201,7 +201,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	}
 	voters := finalityGrandpa.NewVoterSet(IDWeights)
 
-	newJustification, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID](
+	newJustification, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
 		encValid,
 		target,
 		2,

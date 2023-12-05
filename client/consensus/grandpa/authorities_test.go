@@ -3,7 +3,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -1209,8 +1208,7 @@ func assertExpectedSet(t *testing.T, authSetID authoritySetChangeID, expected se
 	case authoritySetChangeIDSet[uint]:
 		require.Equal(t, expected, val.inner)
 	default:
-		err := fmt.Errorf("invalid authSetID type")
-		require.NoError(t, err)
+		t.FailNow()
 	}
 }
 
