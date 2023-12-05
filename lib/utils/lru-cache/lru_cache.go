@@ -83,7 +83,7 @@ func (c *LRUCache[K, V]) Put(key K, value V) {
 	c.insertEntry(key, value)
 }
 
-// Put adds a key-value pair to the cache.
+// SoftPut adds a key-value pair to the cache if it does not already exist.
 func (c *LRUCache[K, V]) SoftPut(key K, value V) bool {
 	c.Lock()
 	defer c.Unlock()
@@ -94,6 +94,30 @@ func (c *LRUCache[K, V]) SoftPut(key K, value V) bool {
 
 	c.insertEntry(key, value)
 	return true
+}
+
+// Delete removes the given key from the cache.
+func (c *LRUCache[K, V]) Delete(key K) bool {
+	c.Lock()
+	defer c.Unlock()
+
+	val, exists := c.cache[key]
+	if !exists {
+		return false
+	}
+
+	c.lruList.Remove(val)
+
+	delete(c.cache, key)
+	return true
+}
+
+// Len returns the number of items in the cache.
+func (c *LRUCache[K, V]) Len() int {
+	c.Lock()
+	defer c.Unlock()
+
+	return len(c.cache)
 }
 
 func (c *LRUCache[K, V]) insertEntry(key K, value V) {
@@ -118,28 +142,4 @@ func (c *LRUCache[K, V]) insertEntry(key K, value V) {
 	newEntry := &Entry[K, V]{key: key, value: value}
 	newElem := c.lruList.PushFront(newEntry)
 	c.cache[key] = newElem
-}
-
-// Put adds a key-value pair to the cache.
-func (c *LRUCache[K, V]) Delete(key K) bool {
-	c.Lock()
-	defer c.Unlock()
-
-	val, exists := c.cache[key]
-	if !exists {
-		return false
-	}
-
-	c.lruList.Remove(val)
-
-	delete(c.cache, key)
-	return true
-}
-
-// Put adds a key-value pair to the cache.
-func (c *LRUCache[K, V]) Len() int {
-	c.Lock()
-	defer c.Unlock()
-
-	return len(c.cache)
 }
