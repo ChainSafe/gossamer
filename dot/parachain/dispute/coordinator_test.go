@@ -1847,4 +1847,288 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, uint32(12), chainResponse.Block.Number)
 		require.Equal(t, common.Hash(blockHashB), chainResponse.Block.Hash)
 	})
+
+	t.Run("concluded_supermajority_for_non_active_after_time", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+
+		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+			getCandidateBackedEvent(t, candidateReceipt),
+		})
+
+		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			2,
+			1,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		message := disputetypes.Message[disputetypes.ImportStatements]{
+			Data: disputetypes.ImportStatements{
+				CandidateReceipt: candidateReceipt,
+				Session:          session,
+				Statements: []disputetypes.Statement{
+					{
+						SignedDisputeStatement: validVote,
+						ValidatorIndex:         2,
+					},
+					{
+						SignedDisputeStatement: invalidVote,
+						ValidatorIndex:         1,
+					},
+				},
+			},
+			ResponseChannel: nil,
+		}
+		err = sendMessage(ts.subsystemReceiver, message)
+		require.NoError(t, err)
+		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
+
+		var statements []disputetypes.Statement
+		for i := 0; i < superMajorityThreshold-2; i++ {
+			validatorIndex := parachaintypes.ValidatorIndex(i + 3)
+			vote := ts.issueExplicitStatementWithIndex(t, validatorIndex, candidateHash, session, true)
+			statements = append(statements, disputetypes.Statement{
+				SignedDisputeStatement: vote,
+				ValidatorIndex:         validatorIndex,
+			})
+		}
+		message = disputetypes.Message[disputetypes.ImportStatements]{
+			Data: disputetypes.ImportStatements{
+				CandidateReceipt: candidateReceipt,
+				Session:          session,
+				Statements:       statements,
+			},
+			ResponseChannel: nil,
+		}
+		err = sendMessage(ts.subsystemReceiver, message)
+		require.NoError(t, err)
+		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+
+		t.Logf("waiting for the dispute to conclude")
+		time.Sleep(ActiveDuration + 1)
+
+		activeDisputeMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
+			Data:            disputetypes.ActiveDisputes{},
+			ResponseChannel: make(chan any),
+		}
+		res, err := call(ts.subsystemReceiver, activeDisputeMessage, activeDisputeMessage.ResponseChannel)
+		require.NoError(t, err)
+		disputeBtree, ok := res.(scale.BTree)
+		require.True(t, ok)
+		require.Equal(t, 0, disputeBtree.Len())
+
+		recentDisputesMessage := disputetypes.Message[disputetypes.RecentDisputesMessage]{
+			Data:            disputetypes.RecentDisputesMessage{},
+			ResponseChannel: make(chan any),
+		}
+		res, err = call(ts.subsystemReceiver, recentDisputesMessage, recentDisputesMessage.ResponseChannel)
+		require.NoError(t, err)
+		recentDisputes, ok := res.(scale.BTree)
+		require.True(t, ok)
+		require.Equal(t, 1, recentDisputes.Len())
+	})
+
+	t.Run("concluded_supermajority_against_non_active_after_time", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+
+		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+			getCandidateBackedEvent(t, candidateReceipt),
+		})
+
+		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			2,
+			1,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+
+		done := make(chan bool)
+		go func() {
+			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			// Use a different expected commitments hash to ensure the candidate validation returns
+			// invalid.
+			dummyHash := common.Hash{0x01}
+			handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, dummyHash)
+			done <- true
+		}()
+		message := disputetypes.Message[disputetypes.ImportStatements]{
+			Data: disputetypes.ImportStatements{
+				CandidateReceipt: candidateReceipt,
+				Session:          session,
+				Statements: []disputetypes.Statement{
+					{
+						SignedDisputeStatement: validVote,
+						ValidatorIndex:         2,
+					},
+					{
+						SignedDisputeStatement: invalidVote,
+						ValidatorIndex:         1,
+					},
+				},
+			},
+			ResponseChannel: make(chan any),
+		}
+		res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+		require.NoError(t, err)
+		importResult, ok := res.(ImportStatementResult)
+		require.True(t, ok)
+		require.Equal(t, ValidImport, importResult)
+		<-done
+
+		var statements []disputetypes.Statement
+		// minus 2, because of local vote and one previously imported invalid vote.
+		for i := 0; i < superMajorityThreshold-2; i++ {
+			validatorIndex := parachaintypes.ValidatorIndex(i + 3)
+			vote := ts.issueExplicitStatementWithIndex(t, validatorIndex, candidateHash, session, false)
+			statements = append(statements, disputetypes.Statement{
+				SignedDisputeStatement: vote,
+				ValidatorIndex:         validatorIndex,
+			})
+		}
+		message = disputetypes.Message[disputetypes.ImportStatements]{
+			Data: disputetypes.ImportStatements{
+				CandidateReceipt: candidateReceipt,
+				Session:          session,
+				Statements:       statements,
+			},
+			ResponseChannel: nil,
+		}
+		err = sendMessage(ts.subsystemReceiver, message)
+		require.NoError(t, err)
+		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+
+		t.Logf("waiting for the dispute to conclude")
+		time.Sleep(ActiveDuration + 1)
+
+		activeDisputeMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
+			Data:            disputetypes.ActiveDisputes{},
+			ResponseChannel: make(chan any),
+		}
+		res, err = call(ts.subsystemReceiver, activeDisputeMessage, activeDisputeMessage.ResponseChannel)
+		require.NoError(t, err)
+		disputeBtree, ok := res.(scale.BTree)
+		require.True(t, ok)
+		require.Equal(t, 0, disputeBtree.Len())
+
+		recentDisputesMessage := disputetypes.Message[disputetypes.RecentDisputesMessage]{
+			Data:            disputetypes.RecentDisputesMessage{},
+			ResponseChannel: make(chan any),
+		}
+		res, err = call(ts.subsystemReceiver, recentDisputesMessage, recentDisputesMessage.ResponseChannel)
+		require.NoError(t, err)
+		recentDisputes, ok := res.(scale.BTree)
+		require.True(t, ok)
+		require.Equal(t, 1, recentDisputes.Len())
+	})
+
+	// Session info tests
+	t.Run("session_info_caching_on_startup_works", func(t *testing.T) {
+		// SessionInfo cache should be populated
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+	})
+	t.Run("session_info_caching_doesnt_underflow", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(Window + 1)
+		ts.run(t, &session)
+	})
+	t.Run("session_info_is_requested_only_once", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
+				require.Equal(t, parachaintypes.SessionIndex(2), arg1)
+				return ts.sessionInfo(), nil
+			}).Times(1)
+
+		ts.activateLeafAtSession(t, session, 3, []parachaintypes.CandidateEventVDT{
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		})
+		ts.activateLeafAtSession(t, session+1, 4, []parachaintypes.CandidateEventVDT{
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		})
+	})
+	t.Run("session_info_big_jump_works", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		ts.activateLeafAtSession(t, session, 3, []parachaintypes.CandidateEventVDT{
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		})
+
+		sessionAfterJump := session + parachaintypes.SessionIndex(Window) + 10
+
+		firstExpectedSession := saturatingSub(uint32(sessionAfterJump), uint32(Window-1))
+		go func() {
+			times := uint32(sessionAfterJump) - firstExpectedSession + 1
+			expectedSession := parachaintypes.SessionIndex(firstExpectedSession)
+			ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
+					require.Equal(t, expectedSession, arg1)
+					// set the expected session for the next call
+					if expectedSession < sessionAfterJump {
+						expectedSession++
+					}
+					return ts.sessionInfo(), nil
+				}).Times(int(times))
+		}()
+		ts.activateLeafAtSession(t, sessionAfterJump, 4, []parachaintypes.CandidateEventVDT{
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		})
+	})
+	t.Run("session_info_small_jump_works", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		ts.activateLeafAtSession(t, session, 3, []parachaintypes.CandidateEventVDT{
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		})
+
+		sessionAfterJump := session + Window - 1
+		firstExpectedSession := session + 1
+		go func() {
+			times := sessionAfterJump - firstExpectedSession + 1
+			expectedSession := firstExpectedSession
+			ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
+					require.Equal(t, expectedSession, arg1)
+					// set the expected session for the next call
+					if expectedSession < sessionAfterJump {
+						expectedSession++
+					}
+					return ts.sessionInfo(), nil
+				}).Times(int(times))
+		}()
+		ts.activateLeafAtSession(t, sessionAfterJump, 4, []parachaintypes.CandidateEventVDT{
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		})
+	})
 }
