@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,7 @@ func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	err := tr.SetChild([]byte(":child_storage_key"), childTr)
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root()
+	stateRoot, err := tr.Root(trie.NoMaxInlineValueSize)
 	require.NoError(t, err)
 
 	return tr.Trie(), stateRoot

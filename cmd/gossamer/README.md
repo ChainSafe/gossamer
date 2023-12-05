@@ -36,7 +36,7 @@ gossamer version
 ### Initialize the node
 
 ```bash
-gossamer init --chain westend --key alice --basepath /tmp/gossamer
+gossamer init --chain westend --key alice --base-path /tmp/gossamer
 ```
 
 This initialises the node with the default configuration for the `westend` chain with the `alice` keypair at the base-path `/tmp/gossamer`.
@@ -45,7 +45,7 @@ This initialises the node with the default configuration for the `westend` chain
 Supported flags:
 --chain: The chain spec to initialise the node with. Supported chains are `polkadot`, `kusama`, `westend`, `westend-dev` and `westend_local`. It also accepts the chain-spec json path.
 --key: The keypair to use for the node.
---basepath: The working directory for the node.
+--base-path: The working directory for the node.
 ```
 
 The init command will create the following files in the base-path:
@@ -63,7 +63,7 @@ The node configuration can be modified in the `config.toml` file.
 ### Start the node
 
 ```bash
-gossamer --basepath /tmp/gossamer --key alice
+gossamer --base-path /tmp/gossamer --key alice
 ```
 
 **Note: The `init` command is optional. If the node is not initialised, it will be initialised with the default configuration.**
@@ -71,7 +71,7 @@ gossamer --basepath /tmp/gossamer --key alice
 Here are the list of basic flags for the `gossamer` command:
 
 ```
---basepath: The working directory for the node.
+--base-path: The working directory for the node.
 --chain: The chain spec to initialise the node with. Supported chains are `polkadot`, `kusama`, `westend`, `westend-dev` and `westend_local`. It also accepts the chain-spec json path.
 --key: The keypair to use for the node.
 --name: The name of the node.

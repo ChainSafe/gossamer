@@ -64,6 +64,7 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetry:          cfg.Telemetry,
 		badBlocks:          cfg.BadBlocks,
 		requestMaker:       cfg.RequestMaker,
+		waitPeersDuration:  100 * time.Millisecond,
 	}
 	chainSync := newChainSync(csCfg)
 

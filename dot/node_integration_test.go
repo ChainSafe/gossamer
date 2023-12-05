@@ -36,9 +36,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func TestNewNode(t *testing.T) {
@@ -128,7 +128,7 @@ func TestNewNode(t *testing.T) {
 	m.EXPECT().createDigestHandler(gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&digest.Handler{}, nil)
 	m.EXPECT().createCoreService(initConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
-		gomock.AssignableToTypeOf(&network.Service{}), &digest.Handler{}).
+		gomock.AssignableToTypeOf(&network.Service{})).
 		Return(&core.Service{}, nil)
 	m.EXPECT().createGRANDPAService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		ks.Gran, gomock.AssignableToTypeOf(&network.Service{}),
@@ -388,7 +388,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
 	require.NoError(t, err)
 
-	expectedRoot, err := expected.Hash()
+	expectedRoot, err := trie.V0.Hash(&expected) // Since we are using a runtime with state trie V0
 	require.NoError(t, err)
 
 	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})
