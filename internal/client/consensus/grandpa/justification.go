@@ -205,7 +205,7 @@ func (j *GrandpaJustification[Hash, N, S, ID]) Verify(setID uint64, authorities 
 	for _, authority := range authorities {
 		weight := grandpa.IDWeight[ID]{
 			ID:     authority.Key,
-			Weight: grandpa.VoterWeight(authority.Weight),
+			Weight: authority.Weight,
 		}
 		weights = append(weights, weight)
 	}

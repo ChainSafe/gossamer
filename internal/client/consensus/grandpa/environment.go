@@ -614,10 +614,10 @@ type environment[R any, N runtime.Number, H statemachine.HasherOut, ID Authority
 	Config              Config
 	AuthoritySet        SharedAuthoritySet[H, N, ID]
 	Network             communication.NetworkBridge[H, N]
-	SetID               communication.SetID
+	SetID               SetID
 	VoterSetState       SharedVoterSetState[H, N, ID, S]
 	VotingRule          VotingRule[H, N]
 	Metrics             *metrics
-	JustificationSender GrandpaJustificationSender[H, N, S, ID]
+	JustificationSender *GrandpaJustificationSender[H, N, S, ID]
 	Telemetry           *telemetry.TelemetryHandle
 }
