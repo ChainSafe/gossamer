@@ -530,26 +530,23 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
 	}
 
-	if rpState.issuedStatements[candidateHash] {
+	if rpState.issuedStatements[candidateHash] || rpState.AwaitingValidation[candidateHash] {
 		return
 	}
 
-	if !rpState.AwaitingValidation[candidateHash] {
-		rpState.AwaitingValidation[candidateHash] = true
+	rpState.AwaitingValidation[candidateHash] = true
+	pov := getPovFromValidator()
 
-		pov := getPovFromValidator()
-
-		go backgroundValidateAndMakeAvailable(
-			subSystemToOverseer,
-			chRelayParentAndCommand,
-			attesting.candidate,
-			rpState.RelayParent,
-			pvd,
-			pov,
-			uint32(len(rpState.TableContext.validators)),
-			Attest,
-		)
-	}
+	go backgroundValidateAndMakeAvailable(
+		subSystemToOverseer,
+		chRelayParentAndCommand,
+		attesting.candidate,
+		rpState.RelayParent,
+		pvd,
+		pov,
+		uint32(len(rpState.TableContext.validators)),
+		Attest,
+	)
 }
 
 func backgroundValidateAndMakeAvailable(
