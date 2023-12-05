@@ -61,16 +61,15 @@ type EpochState interface {
 	GetSlotDuration() (time.Duration, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
-	SetEpochData(epoch uint64, info *types.EpochData) error
 
-	GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error)
+	GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 
 	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetFirstSlot(slot uint64) error
-	GetLatestEpochData() (*types.EpochData, error)
+	GetLatestEpochDataRaw() (*types.EpochDataRaw, error)
 	SkipVerify(*types.Header) (bool, error)
 }
 
