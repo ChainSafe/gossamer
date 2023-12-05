@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sync"
 
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 )
@@ -49,6 +50,31 @@ type hashNumber[H, N any] struct {
 type appliedChanges[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
 	median N
 	set    AuthoritySet[H, N, ID]
+}
+
+// / Get the current authorities and their weights (for the current set ID).
+func (sas *SharedAuthoritySet[H, N, ID]) CurrentAuthorities() grandpa.VoterSet[ID] {
+	//	pub fn current_authorities(&self) -> VoterSet<AuthorityId> {
+	//		VoterSet::new(self.inner().current_authorities.iter().cloned()).expect(
+	//			"current_authorities is non-empty and weights are non-zero; \
+	//			 constructor and all mutating operations on `AuthoritySet` ensure this; \
+	//			 qed.",
+	//		)
+	//	}
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	idWeights := make([]grandpa.IDWeight[ID], len(sas.inner.CurrentAuthorities))
+	for i, auth := range sas.inner.CurrentAuthorities {
+		idWeights[i] = grandpa.IDWeight[ID]{
+			ID:     auth.Key,
+			Weight: auth.Weight,
+		}
+	}
+	voterSet := grandpa.NewVoterSet[ID](idWeights)
+	if voterSet == nil {
+		panic(fmt.Errorf("current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed."))
+	}
+	return *voterSet
 }
 
 // Current Get the current set id and a reference to the current authority set.

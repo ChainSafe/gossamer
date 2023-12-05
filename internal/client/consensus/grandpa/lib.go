@@ -45,6 +45,10 @@ type Authority[ID AuthorityID] struct {
 
 type AuthorityList[ID AuthorityID] []Authority[ID]
 
+// / The monotonic identifier of a GRANDPA set of authorities.
+// pub type SetId = u64;
+type SetID uint64
+
 // newAuthoritySet A new authority set along with the canonical block it changed at.
 type newAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
 	CanonNumber N
@@ -213,13 +217,30 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	network communication.NetworkBridge[Hash, Number],
 	selectChain consensus.SelectChain[Hash, Number],
 	votingRule VotingRule[Hash, Number],
-	persistendData persistentData[Hash, Number, ID, Signature],
+	persistentData persistentData[Hash, Number, ID, Signature],
 	voterCommandsRx <-chan voterCommand,
 	prometheusRegistry prometheus.Registry,
 	sharedVoterState SharedVoterState[ID],
-	JustificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
+	justificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
 	telemetry *telemetry.TelemetryHandle,
 ) *voterWork[Hash, Number, Signature, ID, R] {
-	// grandpa.NewVoter[]()
+	// TODO: register to prometheus registry
+
+	voters := persistentData.authoritySet.CurrentAuthorities()
+	env := environment[R, Number, Hash, ID, Signature]{
+		Client:              client,
+		SelectChain:         selectChain,
+		VotingRule:          votingRule,
+		Voters:              voters,
+		Config:              config,
+		Network:             network,
+		SetID:               SetID(persistentData.authoritySet.inner.SetID),
+		AuthoritySet:        persistentData.authoritySet,
+		VoterSetState:       persistentData.setState,
+		Metrics:             nil, // TOOD: use metrics
+		JustificationSender: &justificationSender,
+		Telemetry:           telemetry,
+	}
+
 	return nil
 }

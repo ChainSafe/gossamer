@@ -29,7 +29,7 @@ type VoterSet[ID constraints.Ordered] struct {
 // IDWeight is tuple for ID and Weight
 type IDWeight[ID constraints.Ordered] struct {
 	ID     ID
-	Weight VoterWeight
+	Weight uint64
 }
 
 // NewVoterSet creates a voter set from a weight distribution produced by the given iterator.
@@ -45,8 +45,9 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 	var totalWeight VoterWeight
 	var voters = btree.NewMap[ID, VoterInfo](2)
 	for _, iw := range weights {
+
 		if iw.Weight != 0 {
-			err := totalWeight.checkedAdd(iw.Weight)
+			err := totalWeight.checkedAdd(VoterWeight(iw.Weight))
 			if err != nil {
 				return nil
 			}
@@ -54,10 +55,10 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 			if !has {
 				voters.Set(iw.ID, VoterInfo{
 					position: 0, // The total order is determined afterwards.
-					weight:   iw.Weight,
+					weight:   VoterWeight(iw.Weight),
 				})
 			} else {
-				vi.weight = iw.Weight
+				vi.weight = VoterWeight(iw.Weight)
 				voters.Set(iw.ID, vi)
 			}
 		}

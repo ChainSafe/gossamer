@@ -30,7 +30,7 @@ func (VoterSet[ID]) Generate(rand *rand.Rand, _ int) reflect.Value {
 			}
 			weights[i] = IDWeight[ID]{
 				id,
-				VoterWeight(u64v.Interface().(uint64)),
+				u64v.Interface().(uint64),
 			}
 		}
 		set := NewVoterSet(weights)
