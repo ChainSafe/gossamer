@@ -247,8 +247,8 @@ func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 
 // IntoOldState Extracts `CandidateVotes` for handling import of new statements.
 func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState) {
-	return c.Votes, CandidateVoteState{
-		Votes:         c.Votes,
+	return c.Votes.Copy(), CandidateVoteState{
+		Votes:         NewCandidateVotes(),
 		Own:           c.Own,
 		DisputeStatus: c.DisputeStatus,
 	}
@@ -287,7 +287,7 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 			}
 		}
 
-		isConcludedFor := votes.Valid.Value.Len() > superMajorityThreshold
+		isConcludedFor := votes.Valid.Value.Len() >= superMajorityThreshold
 		if isConcludedFor {
 			if err := status.ConcludeFor(now); err != nil {
 				return CandidateVoteState{}, fmt.Errorf("failed to conclude dispute status for: %w", err)
@@ -397,6 +397,14 @@ type CandidateVotes struct {
 	CandidateReceipt parachainTypes.CandidateReceipt                     `scale:"1"`
 	Valid            ValidCandidateVotes                                 `scale:"2"`
 	Invalid          scale.BTreeMap[parachainTypes.ValidatorIndex, Vote] `scale:"3"`
+}
+
+func (cv *CandidateVotes) Copy() CandidateVotes {
+	return CandidateVotes{
+		CandidateReceipt: cv.CandidateReceipt,
+		Valid:            ValidCandidateVotes{cv.Valid.Value.Copy()},
+		Invalid:          cv.Invalid.Copy(),
+	}
 }
 
 // VotedIndices returns the set of all validators who have votes in the set, ascending.

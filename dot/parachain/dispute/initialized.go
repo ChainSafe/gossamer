@@ -164,7 +164,7 @@ func (i *Initialized) ProcessActiveLeavesUpdate(
 			// If error has occurred during last session caching - fetch the whole window
 			// Otherwise - cache only the new sessions
 			lowerBound := saturatingSub(uint32(sessionIDx), Window-1)
-			if !i.GapsInCache {
+			if !i.GapsInCache && uint32(i.HighestSessionSeen) > lowerBound {
 				lowerBound = uint32(i.HighestSessionSeen + 1)
 			}
 
