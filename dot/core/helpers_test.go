@@ -105,6 +105,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	nodeStorage.BaseDB = stateSrvc.Base
 
 	rtCfg.NodeStorage = nodeStorage
+
 	cfgRuntime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 
@@ -230,6 +231,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		}
 
 		rtCfg.NodeStorage = nodeStorage
+
 		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}

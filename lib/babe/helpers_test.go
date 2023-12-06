@@ -126,6 +126,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		}
 
 		rtCfg.NodeStorage = nodeStorage
+
 		cfg.Runtime, err = wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 		require.NoError(t, err)
 	}
@@ -218,7 +219,6 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	rtCfg.NodeStorage = nodeStorage
 	rtCfg.Transaction = dbSrv.Transaction
-
 	runtime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)

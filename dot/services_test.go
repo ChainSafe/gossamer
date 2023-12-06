@@ -155,14 +155,15 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState
-	codeHash, err := stateSrvc.Storage.LoadCodeHash(nil)
+
+	var rtCfg wazero_runtime.Config
+
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
+
+	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	rtCfg := wazero_runtime.Config{
-		Storage:     rtstorage.NewTrieState(&genTrie),
-		CodeHash:    codeHash,
-		NodeStorage: runtime.NodeStorage{},
-	}
+	rtCfg.NodeStorage = runtime.NodeStorage{}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
