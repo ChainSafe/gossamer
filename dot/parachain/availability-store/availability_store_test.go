@@ -36,22 +36,28 @@ var (
 func setupTestDB(t *testing.T) database.Database {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
+	batch := NewAvailabilityStoreBatch(as)
 
-	err := as.storeChunk(common.Hash{0x01}, testChunk1)
+	_, err := as.storeChunk(common.Hash{0x01}, testChunk1)
 	require.NoError(t, err)
-	err = as.storeChunk(common.Hash{0x01}, testChunk2)
+	_, err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
 
-	err = as.storeAvailableData(common.Hash{0x01}, testavailableData1)
+	err = as.writeAvailableData(batch, common.Hash{0x01}, testavailableData1)
+	require.NoError(t, err)
+	err = batch.Write()
 	require.NoError(t, err)
 
 	return inmemoryDB
 }
-func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
+func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
+	batch := NewAvailabilityStoreBatch(as)
 
-	err := as.storeAvailableData(common.Hash{0x01}, testavailableData1)
+	err := as.writeAvailableData(batch, common.Hash{0x01}, testavailableData1)
+	require.NoError(t, err)
+	err = batch.Write()
 	require.NoError(t, err)
 
 	got, err := as.loadAvailableData(common.Hash{0x01})
@@ -61,22 +67,56 @@ func TestAvailabilityStore_StoreLoadAvailableData(t *testing.T) {
 	got, err = as.loadAvailableData(common.Hash{0x02})
 	require.EqualError(t, err, "getting candidate 0x0200000000000000000000000000000000000000000000000000000000000000"+
 		" from available table: pebble: not found")
-	var ExpectedAvailableData *AvailableData = nil
-	require.Equal(t, ExpectedAvailableData, got)
+	require.Equal(t, (*AvailableData)(nil), got)
+
+	batch = NewAvailabilityStoreBatch(as)
+	err = as.deleteAvailableData(batch, common.Hash{0x01})
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	got, err = as.loadAvailableData(common.Hash{0x01})
+	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000"+
+		" from available table: pebble: not found")
+	require.Equal(t, (*AvailableData)(nil), got)
 }
 
-func TestAvailabilityStore_StoreLoadChuckData(t *testing.T) {
+func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-
-	err := as.storeChunk(common.Hash{0x01}, testChunk1)
+	batch := NewAvailabilityStoreBatch(as)
+	meta := CandidateMeta{
+		State:         State{},
+		DataAvailable: false,
+		ChunksStored:  []bool{false, false},
+	}
+	err := as.writeMeta(batch, common.Hash{0x01}, meta)
 	require.NoError(t, err)
-	err = as.storeChunk(common.Hash{0x01}, testChunk2)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	_, err = as.storeChunk(common.Hash{0x01}, testChunk1)
+	require.NoError(t, err)
+	_, err = as.storeChunk(common.Hash{0x01}, testChunk2)
 	require.NoError(t, err)
 
 	resultChunk, err := as.loadChunk(common.Hash{0x01}, 0)
 	require.NoError(t, err)
 	require.Equal(t, &testChunk1, resultChunk)
+
+	resultChunk, err = as.loadChunk(common.Hash{0x01}, 1)
+	require.NoError(t, err)
+	require.Equal(t, &testChunk2, resultChunk)
+
+	batch = NewAvailabilityStoreBatch(as)
+	err = as.deleteChunk(batch, common.Hash{0x01}, 0)
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	resultChunk, err = as.loadChunk(common.Hash{0x01}, 0)
+	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000, index 0 from chunk table: pebble: not found")
+	require.Equal(t, (*ErasureChunk)(nil), resultChunk)
 }
 
 func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {

@@ -50,6 +50,44 @@ type AvailabilityStore struct {
 	//TODO: pruneByTimeTable database.Table
 }
 
+type AvailabilityStoreBatch struct {
+	availableBatch database.Batch
+	chunkBatch     database.Batch
+	metaBatch      database.Batch
+}
+
+func NewAvailabilityStoreBatch(as *AvailabilityStore) *AvailabilityStoreBatch {
+	return &AvailabilityStoreBatch{
+		availableBatch: as.availableTable.NewBatch(),
+		chunkBatch:     as.chunkTable.NewBatch(),
+		metaBatch:      as.metaTable.NewBatch(),
+	}
+}
+
+func (asb *AvailabilityStoreBatch) Write() error {
+	err := asb.availableBatch.Flush()
+	if err != nil {
+		return asb.Reset(fmt.Errorf("writing available batch: %w", err))
+	}
+	err = asb.chunkBatch.Flush()
+	if err != nil {
+		return asb.Reset(fmt.Errorf("writing chunk batch: %w", err))
+	}
+	err = asb.metaBatch.Flush()
+	if err != nil {
+		return asb.Reset(fmt.Errorf("writing meta batch: %w", err))
+	}
+	return nil
+}
+
+// Reset resets the batch and returns the error
+func (asb *AvailabilityStoreBatch) Reset(err error) error {
+	asb.availableBatch.Reset()
+	asb.chunkBatch.Reset()
+	asb.metaBatch.Reset()
+	return err
+}
+
 // NewAvailabilityStore creates a new instance of AvailabilityStore
 func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 	return &AvailabilityStore{
@@ -73,6 +111,28 @@ func (as *AvailabilityStore) loadAvailableData(candidate common.Hash) (*Availabl
 	return &result, nil
 }
 
+// writeAvailableData put available data in the availabilityBatch of the given batch
+func (as *AvailabilityStore) writeAvailableData(batch *AvailabilityStoreBatch, candidate common.Hash,
+	data AvailableData) error {
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("marshalling available data: %w", err)
+	}
+	err = batch.availableBatch.Put(candidate[:], dataBytes)
+	if err != nil {
+		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
+	}
+	return nil
+}
+
+func (as *AvailabilityStore) deleteAvailableData(batch *AvailabilityStoreBatch, candidate common.Hash) error {
+	err := batch.availableBatch.Del(candidate[:])
+	if err != nil {
+		return fmt.Errorf("deleting available data for candidate %v: %w", candidate, err)
+	}
+	return nil
+}
+
 // loadMetaData loads metadata from the availability store
 func (as *AvailabilityStore) loadMetaData(candidate common.Hash) (*CandidateMeta, error) {
 	resultBytes, err := as.metaTable.Get(candidate[:])
@@ -88,12 +148,12 @@ func (as *AvailabilityStore) loadMetaData(candidate common.Hash) (*CandidateMeta
 }
 
 // storeMetaData stores metadata in the availability store
-func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
+func (as *AvailabilityStore) writeMeta(batch *AvailabilityStoreBatch, candidate common.Hash, meta CandidateMeta) error {
 	dataBytes, err := json.Marshal(meta)
 	if err != nil {
 		return fmt.Errorf("marshalling meta for candidate: %w", err)
 	}
-	err = as.metaTable.Put(candidate[:], dataBytes)
+	err = batch.metaBatch.Put(candidate[:], dataBytes)
 	if err != nil {
 		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
@@ -114,56 +174,66 @@ func (as *AvailabilityStore) loadChunk(candidate common.Hash, validatorIndex uin
 	return &result, nil
 }
 
-// storeChunk stores a chunk in the availability store
-func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChunk) error {
+func (as *AvailabilityStore) writeChunk(batch *AvailabilityStoreBatch, candidate common.Hash,
+	chunk ErasureChunk) error {
+	dataBytes, err := json.Marshal(chunk)
+	if err != nil {
+		return fmt.Errorf("marshalling chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
+	}
+	err = batch.chunkBatch.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
+	if err != nil {
+		return fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
+	}
+	return nil
+}
+
+func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidate common.Hash,
+	chunkIndex uint32) error {
+	err := batch.chunkBatch.Del(append(candidate[:], uint32ToBytes(chunkIndex)...))
+	if err != nil {
+		return fmt.Errorf("deleting chunk for candidate %v, index %d: %w", candidate, chunkIndex, err)
+	}
+	return nil
+}
+
+// storeChunk stores a chunk in the availability store, returns true on success, false on failure,
+// and error on internal error.
+func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChunk) (bool, error) {
+	batch := NewAvailabilityStoreBatch(as)
+
 	meta, err := as.loadMetaData(candidate)
 	if err != nil {
-
 		if errors.Is(err, database.ErrNotFound) {
-			// TODO: were creating metadata here, but we should be doing it in the parachain block import?
-			// TODO: also we need to determine how many chunks we need to store
-			meta = &CandidateMeta{
-				ChunksStored: make([]bool, 16),
-			}
+			// we weren't informed of this candidate by import events
+			return false, nil
 		} else {
-			return fmt.Errorf("load metadata: %w", err)
+			return false, fmt.Errorf("load metadata: %w", err)
 		}
 	}
 
 	if meta.ChunksStored[chunk.Index] {
 		logger.Debugf("Chunk %d already stored", chunk.Index)
-		return nil // already stored
+		return true, nil // already stored
 	} else {
-		dataBytes, err := json.Marshal(chunk)
+		err = as.writeChunk(batch, candidate, chunk)
 		if err != nil {
-			return fmt.Errorf("marshalling chunk: %w", err)
-		}
-		err = as.chunkTable.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
-		if err != nil {
-			return fmt.Errorf("storing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
+			return false, fmt.Errorf("storing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 		}
 
 		meta.ChunksStored[chunk.Index] = true
-		err = as.storeMetaData(candidate, *meta)
+		err = as.writeMeta(batch, candidate, *meta)
 		if err != nil {
-			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+			return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		}
 	}
-	logger.Debugf("stored chuck %d for %v", chunk.Index, candidate)
-	return nil
-}
 
-// storeAvailableData stores available data in the availability store
-func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data AvailableData) error {
-	dataBytes, err := json.Marshal(data)
+	err = batch.Write()
 	if err != nil {
-		return fmt.Errorf("marshalling available data: %w", err)
+		return false, fmt.Errorf("writing batch: %w", err)
 	}
-	err = as.availableTable.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
-	}
-	return nil
+
+	logger.Debugf("stored chuck %d for %v", chunk.Index, candidate)
+	return true, nil
 }
 
 func uint32ToBytes(value uint32) []byte {
@@ -351,7 +421,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChun
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
-	err := av.availabilityStore.storeChunk(msg.CandidateHash, msg.Chunk)
+	_, err := av.availabilityStore.storeChunk(msg.CandidateHash, msg.Chunk)
 	if err != nil {
 		msg.Sender <- err
 		return fmt.Errorf("store chunk: %w", err)
@@ -361,12 +431,13 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
-	err := av.availabilityStore.storeAvailableData(msg.CandidateHash, msg.AvailableData)
-	if err != nil {
-		msg.Sender <- err
-		return fmt.Errorf("store available data: %w", err)
-	}
-	msg.Sender <- err // TODO: determine how to replicate Rust's Result type
+	// TODO: implement store available data
+	//err := av.availabilityStore.writeAvailableData(msg.CandidateHash, msg.AvailableData)
+	//if err != nil {
+	//	msg.Sender <- err
+	//	return fmt.Errorf("store available data: %w", err)
+	//}
+	//msg.Sender <- err // TODO: determine how to replicate Rust's Result type
 	return nil
 }
 
