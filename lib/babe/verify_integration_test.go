@@ -664,13 +664,8 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, len(authorities[3:]), len(verifierInfo.authorities))
-		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
+		require.ElementsMatch(t, authorities[3:], verifierInfo.authorities)
 
-		for i, auth := range verifierInfo.authorities {
-			rawAuthorities[i] = auth
-		}
-
-		require.ElementsMatch(t, authorities[3:], rawAuthorities)
 		require.True(t, verifierInfo.secondarySlots)
 		require.Equal(t, expectedThreshold, verifierInfo.threshold)
 	}
@@ -686,14 +681,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, len(authorities[6:]), len(verifierInfo.authorities))
-		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
-
-		for i, auth := range verifierInfo.authorities {
-			rawAuthorities[i] = auth
-		}
-
 		// should keep the original authorities
-		require.ElementsMatch(t, authorities[6:], rawAuthorities)
+		require.ElementsMatch(t, authorities[6:], verifierInfo.authorities)
+
 		require.True(t, verifierInfo.secondarySlots)
 		require.Equal(t, expectedThreshold, verifierInfo.threshold)
 	}
@@ -719,14 +709,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, len(authorities[6:]), len(verifierInfo.authorities))
-	rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
-
-	for i, auth := range verifierInfo.authorities {
-		rawAuthorities[i] = auth
-	}
-
 	// should keep the original authorities
-	require.ElementsMatch(t, authorities[6:], rawAuthorities)
+	require.ElementsMatch(t, authorities[6:], verifierInfo.authorities)
+
 	require.True(t, verifierInfo.secondarySlots)
 	require.Equal(t, expectedThreshold, verifierInfo.threshold)
 }

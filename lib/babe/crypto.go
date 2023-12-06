@@ -123,8 +123,8 @@ func claimSecondarySlotVRF(randomness Randomness,
 	}, nil
 }
 
-func claimSecondarySlotPlain(randomness Randomness, slot uint64, authorities []types.AuthorityRaw, authorityIndex uint32,
-) error {
+func claimSecondarySlotPlain(randomness Randomness, slot uint64,
+	authorities []types.AuthorityRaw, authorityIndex uint32) error {
 	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
 	if err != nil {
 		return fmt.Errorf("cannot get secondary slot author: %w", err)

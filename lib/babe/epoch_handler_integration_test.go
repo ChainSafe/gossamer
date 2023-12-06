@@ -25,7 +25,10 @@ func TestEpochHandler_run_shouldReturnAfterContextCancel(t *testing.T) {
 		threshold:      scale.MaxUint128,
 		authorityIndex: authorityIndex,
 		authorities: []types.AuthorityRaw{
-			{[32]byte(aliceKeyPair.Public().Encode()), 1},
+			{
+				Key:    [32]byte(aliceKeyPair.Public().Encode()),
+				Weight: 1,
+			},
 		},
 	}
 
@@ -67,7 +70,10 @@ func TestEpochHandler_run(t *testing.T) {
 		threshold:      scale.MaxUint128,
 		authorityIndex: authorityIndex,
 		authorities: []types.AuthorityRaw{
-			{[32]byte(aliceKeyPair.Public().Encode()), 1},
+			{
+				Key:    [32]byte(aliceKeyPair.Public().Encode()),
+				Weight: 1,
+			},
 		},
 	}
 

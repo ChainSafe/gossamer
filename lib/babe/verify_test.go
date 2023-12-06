@@ -1488,7 +1488,9 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), nil)
 	errTestGetEpochData := errors.New("test get epoch data error")
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochDataRaw(uint64(0), types.NewEmptyHeader()).Return(nil, errTestGetEpochData)
+	mockEpochStateGetEpochDataErr.EXPECT().
+		GetEpochDataRaw(uint64(0), types.NewEmptyHeader()).
+		Return(nil, errTestGetEpochData)
 
 	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 
