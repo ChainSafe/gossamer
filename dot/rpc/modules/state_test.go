@@ -363,9 +363,6 @@ func TestStateTrie(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				blockAPIMock := NewMockBlockAPI(ctrl)
 
-				bestBlockHash := common.Hash([32]byte{1, 0, 1, 0, 1})
-				blockAPIMock.EXPECT().BestBlockHash().Return(bestBlockHash)
-
 				fakeStateRoot := common.Hash([32]byte{5, 5, 5, 5, 5})
 				fakeBlockHeader := types.NewHeader(common.EmptyHash, fakeStateRoot,
 					common.EmptyHash, 1, scale.VaryingDataTypeSlice{})
