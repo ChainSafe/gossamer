@@ -5,7 +5,6 @@ import "github.com/ChainSafe/gossamer/lib/common"
 // Signal represents a signal sent from overseer
 type Signal[data any] struct {
 	Data            data
-	Conclude        bool
 	ResponseChannel chan<- any
 }
 
@@ -42,3 +41,6 @@ type ActiveLeavesUpdate struct {
 type BlockFinalized struct {
 	Block
 }
+
+// Conclude the work of overseer and all its subsystems.
+type Conclude struct{}

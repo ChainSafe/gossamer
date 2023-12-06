@@ -97,6 +97,8 @@ func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
 		select {
 		case overseerMessage := <-d.receiver:
 			switch message := overseerMessage.(type) {
+			case overseer.Signal[overseer.Conclude]:
+				return nil, fmt.Errorf("received conclude message before first active leaves update")
 			case overseer.Signal[overseer.ActiveLeavesUpdate]:
 				return message.Data.Activated, nil
 			default:

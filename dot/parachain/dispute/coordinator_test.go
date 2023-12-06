@@ -222,7 +222,8 @@ func (ts *TestState) run(t *testing.T, session *parachaintypes.SessionIndex) {
 		done <- true
 	}()
 
-	time.Sleep(20 * time.Second)
+	// wait for the mock to be ready to receive messages
+	time.Sleep(5 * time.Second)
 	go ts.subsystem.Run()
 	<-done
 }
@@ -412,7 +413,7 @@ func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
 	}
 
 	var messages []disputetypes.UncheckedDisputeMessage
-	var mutex sync.Mutex
+	var lock sync.Mutex
 	var wg sync.WaitGroup
 	for _, leaf := range leaves {
 		wg.Add(1)
@@ -423,9 +424,9 @@ func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
 				events = initialEvents
 			}
 			newMessages := ts.mockSyncQueries(t, leaf, *session, events)
-			mutex.Lock()
+			lock.Lock()
 			messages = append(messages, newMessages...)
-			mutex.Unlock()
+			lock.Unlock()
 		}(len(leaves), leaf)
 
 		activatedLeaf := overseer.ActivatedLeaf{
@@ -540,6 +541,16 @@ func (ts *TestState) handleGetBlockNumber(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("timed out waiting for block number request")
 	}
+}
+
+func (ts *TestState) stopSubsystem(t *testing.T) {
+	t.Helper()
+	concludeSignal := overseer.Signal[overseer.Conclude]{
+		Data:            overseer.Conclude{},
+		ResponseChannel: nil,
+	}
+	err := sendMessage(ts.subsystemReceiver, concludeSignal)
+	require.NoError(t, err)
 }
 
 func getValidCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
@@ -851,7 +862,6 @@ func TestDisputesCoordinator(t *testing.T) {
 		}
 		res, err = call(ts.subsystemReceiver, message, message.ResponseChannel)
 		require.NoError(t, err)
-
 		<-done
 
 		importResult, ok := res.(ImportStatementResult)
@@ -875,8 +885,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		queryResponse, ok = res.([]disputetypes.QueryCandidateVotesResponse)
 		require.True(t, ok)
 		require.Equal(t, 0, len(queryResponse))
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("approval_vote_import_works", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -967,8 +977,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, queryResponse[0].Votes.Invalid.Len(), 1)
 		_, ok = queryResponse[0].Votes.Valid.Value.Get(4)
 		require.True(t, ok)
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("dispute_gets_confirmed_via_participation", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1100,8 +1110,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, 1, len(queryResponse))
 		require.Equal(t, 1, queryResponse[0].Votes.Invalid.Len())
 		require.Equal(t, 1, queryResponse[0].Votes.Valid.Value.Len())
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("dispute_gets_confirmed_at_byzantine_threshold", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1241,8 +1251,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, 1, len(queryResponse))
 		require.Equal(t, 1, queryResponse[0].Votes.Invalid.Len())
 		require.Equal(t, 1, queryResponse[0].Votes.Valid.Value.Len())
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("backing_statements_import_works_and_no_spam", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1341,8 +1351,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		importResult, ok := res.(ImportStatementResult)
 		require.True(t, ok)
 		require.Equal(t, ValidImport, importResult)
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("conflicting_votes_lead_to_dispute_participation", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1459,8 +1469,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, 1, len(queryResponse))
 		require.Equal(t, 2, queryResponse[0].Votes.Invalid.Len())
 		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("positive_votes_dont_trigger_participation", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1566,8 +1576,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, 1, len(queryResponse))
 		require.Equal(t, 0, queryResponse[0].Votes.Invalid.Len())
 		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("wrong_validator_index_is_ignored", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1617,8 +1627,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		disputeBtree, ok := res.(scale.BTree)
 		require.True(t, ok)
 		require.Equal(t, 0, disputeBtree.Len())
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("finality_votes_ignore_disputed_candidates", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1722,8 +1732,10 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.NoError(t, chainResponse.Err)
 		require.Equal(t, uint32(11), chainResponse.Block.Number)
 		require.Equal(t, common.Hash(blockHashA), chainResponse.Block.Hash)
+		ts.stopSubsystem(t)
 	})
 
+	// supermajority checks
 	t.Run("supermajority_valid_dispute_may_be_finalized", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1846,8 +1858,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.NoError(t, chainResponse.Err)
 		require.Equal(t, uint32(12), chainResponse.Block.Number)
 		require.Equal(t, common.Hash(blockHashB), chainResponse.Block.Hash)
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("concluded_supermajority_for_non_active_after_time", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1914,7 +1926,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
 		t.Logf("waiting for the dispute to conclude")
-		time.Sleep(ActiveDuration + 1)
+		time.Sleep(ActiveDuration + 1*time.Second)
 
 		activeDisputeMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
 			Data:            disputetypes.ActiveDisputes{},
@@ -1935,8 +1947,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		recentDisputes, ok := res.(scale.BTree)
 		require.True(t, ok)
 		require.Equal(t, 1, recentDisputes.Len())
+		ts.stopSubsystem(t)
 	})
-
 	t.Run("concluded_supermajority_against_non_active_after_time", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -2016,7 +2028,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
 		t.Logf("waiting for the dispute to conclude")
-		time.Sleep(ActiveDuration + 1)
+		time.Sleep(ActiveDuration + 1*time.Second)
 
 		activeDisputeMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
 			Data:            disputetypes.ActiveDisputes{},
@@ -2037,9 +2049,10 @@ func TestDisputesCoordinator(t *testing.T) {
 		recentDisputes, ok := res.(scale.BTree)
 		require.True(t, ok)
 		require.Equal(t, 1, recentDisputes.Len())
+		ts.stopSubsystem(t)
 	})
 
-	// restart tests
+	// TODO: restart tests
 	t.Run("resume_dispute_without_local_statement", func(t *testing.T) {
 		// TODO: need to implement the restart functionality
 	})
@@ -2057,12 +2070,14 @@ func TestDisputesCoordinator(t *testing.T) {
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
 		ts.run(t, &session)
+		ts.stopSubsystem(t)
 	})
 	t.Run("session_info_caching_doesnt_underflow", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(Window + 1)
 		ts.run(t, &session)
+		ts.stopSubsystem(t)
 	})
 	t.Run("session_info_is_requested_only_once", func(t *testing.T) {
 		t.Parallel()
@@ -2082,6 +2097,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		ts.activateLeafAtSession(t, session+1, 4, []parachaintypes.CandidateEventVDT{
 			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
 		})
+		ts.stopSubsystem(t)
 	})
 	t.Run("session_info_big_jump_works", func(t *testing.T) {
 		t.Parallel()
@@ -2112,6 +2128,8 @@ func TestDisputesCoordinator(t *testing.T) {
 		ts.activateLeafAtSession(t, sessionAfterJump, 4, []parachaintypes.CandidateEventVDT{
 			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
 		})
+		time.Sleep(2 * time.Second)
+		ts.stopSubsystem(t)
 	})
 	t.Run("session_info_small_jump_works", func(t *testing.T) {
 		t.Parallel()
@@ -2141,6 +2159,9 @@ func TestDisputesCoordinator(t *testing.T) {
 		ts.activateLeafAtSession(t, sessionAfterJump, 4, []parachaintypes.CandidateEventVDT{
 			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
 		})
+
+		time.Sleep(2 * time.Second)
+		ts.stopSubsystem(t)
 	})
 
 	// LocalStatement
@@ -2149,6 +2170,101 @@ func TestDisputesCoordinator(t *testing.T) {
 	})
 	t.Run("issue_invalid_local_statement_does_cause_distribution_but_not_duplicate_participation", func(t *testing.T) {
 		issueLocalStatementTest(t, false)
+	})
+
+	t.Run("own_approval_vote_gets_distributed_on_dispute", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+
+		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
+
+		statement := ts.issueApprovalVoteWithIndex(t, 1, candidateHash, session)
+		message := disputetypes.Message[disputetypes.ImportStatements]{
+			Data: disputetypes.ImportStatements{
+				CandidateReceipt: candidateReceipt,
+				Session:          session,
+				Statements: []disputetypes.Statement{
+					{
+						SignedDisputeStatement: statement,
+						ValidatorIndex:         0,
+					},
+				},
+			},
+			ResponseChannel: nil,
+		}
+		err = sendMessage(ts.subsystemReceiver, message)
+		require.NoError(t, err)
+
+		done := make(chan bool)
+		go func() {
+			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			done <- true
+		}()
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			2,
+			1,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		message = disputetypes.Message[disputetypes.ImportStatements]{
+			Data: disputetypes.ImportStatements{
+				CandidateReceipt: candidateReceipt,
+				Session:          session,
+				Statements: []disputetypes.Statement{
+					{
+						SignedDisputeStatement: invalidVote,
+						ValidatorIndex:         1,
+					},
+					{
+						SignedDisputeStatement: validVote,
+						ValidatorIndex:         2,
+					},
+				},
+			},
+			ResponseChannel: make(chan any),
+		}
+		res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+		require.NoError(t, err)
+		importResult, ok := res.(ImportStatementResult)
+		require.True(t, ok)
+		require.Equal(t, ValidImport, importResult)
+		<-done
+		ts.stopSubsystem(t)
+	})
+	t.Run("negative_issue_local_statement_only_triggers_import", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		ts.run(t, &session)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+
+		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
+
+		message := disputetypes.Message[disputetypes.IssueLocalStatementMessage]{
+			Data: disputetypes.IssueLocalStatementMessage{
+				Session:          session,
+				CandidateHash:    candidateHash,
+				CandidateReceipt: candidateReceipt,
+				Valid:            false,
+			},
+			ResponseChannel: nil,
+		}
+		err = sendMessage(ts.subsystemReceiver, message)
+		require.NoError(t, err)
+
+		// ensure no participations
+		time.Sleep(2 * time.Second)
+		ts.stopSubsystem(t)
 	})
 }
 
@@ -2220,6 +2336,7 @@ func issueLocalStatementTest(t *testing.T, valid bool) {
 
 	handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
-	// ensure that there are no participations
+	// ensure no participations
 	time.Sleep(2 * time.Second)
+	ts.stopSubsystem(t)
 }

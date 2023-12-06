@@ -173,8 +173,15 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 			return true
 		}
 
-		concludedAt, _ := dispute.DisputeStatus.ConcludedAt()
-		if concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) < now {
+		isDisputeInactive := func(status types.DisputeStatusVDT) bool {
+			concludedAt, err := dispute.DisputeStatus.ConcludedAt()
+			if err != nil {
+				return false
+			}
+			return concludedAt != nil && *concludedAt+uint64(ActiveDuration.Seconds()) < now
+		}
+
+		if !isDisputeInactive(dispute.DisputeStatus) {
 			activeDisputes.Set(dispute)
 		}
 

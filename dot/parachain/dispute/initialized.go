@@ -100,6 +100,9 @@ func (i *Initialized) runUntilError(overseerChannel chan<- any, backend DBBacken
 		select {
 		case msg := <-i.ParticipationReceiver:
 			switch message := msg.(type) {
+			case overseer.Signal[overseer.Conclude]:
+				logger.Tracef("OverseerSignal::Conclude")
+				return nil
 			case overseer.Signal[overseer.ActiveLeavesUpdate]:
 				logger.Tracef("OverseerSignal::ActiveLeavesUpdate")
 				if err := i.ProcessActiveLeavesUpdate(overseerChannel,
