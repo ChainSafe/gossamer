@@ -316,7 +316,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 
 	handler.handleBlockFinalisation(ctx)
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochData(targetEpoch, nil)
+	stored, err := handler.epochState.(*state.EpochState).GetEpochDataRaw(targetEpoch, nil)
 	require.NoError(t, err)
 
 	digestValue, err := digest.Value()
@@ -326,8 +326,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		t.Fatal()
 	}
 
-	res, err := act.ToEpochData()
-	require.NoError(t, err)
+	res := act.ToEpochDataRaw()
 	require.Equal(t, res, stored)
 }
 

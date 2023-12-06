@@ -236,9 +236,9 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	require.NoError(t, err)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
-		Authorities: []types.Authority{{
-			Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{{
+			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
 	})
 	require.NoError(t, err)
@@ -286,9 +286,9 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
-		Authorities: []types.Authority{{
-			Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{{
+			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
 	})
 	require.NoError(t, err)
@@ -667,7 +667,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
 
 		for i, auth := range verifierInfo.authorities {
-			rawAuthorities[i] = *auth.ToRaw()
+			rawAuthorities[i] = auth
 		}
 
 		require.ElementsMatch(t, authorities[3:], rawAuthorities)
@@ -689,7 +689,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
 
 		for i, auth := range verifierInfo.authorities {
-			rawAuthorities[i] = *auth.ToRaw()
+			rawAuthorities[i] = auth
 		}
 
 		// should keep the original authorities
@@ -722,7 +722,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
 
 	for i, auth := range verifierInfo.authorities {
-		rawAuthorities[i] = *auth.ToRaw()
+		rawAuthorities[i] = auth
 	}
 
 	// should keep the original authorities

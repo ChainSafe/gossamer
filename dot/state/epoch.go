@@ -100,7 +100,7 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 		Randomness:  genesisConfig.Randomness,
 	}
 
-	err = s.setEpochDataRaw(0, epochDataRaw)
+	err = s.SetEpochDataRaw(0, epochDataRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -232,8 +232,8 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	return 0, errNoPreRuntimeDigest
 }
 
-// setEpochDataRaw sets the epoch data raw for a given epoch
-func (s *EpochState) setEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
+// SetEpochDataRaw sets the epoch data raw for a given epoch
+func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
 	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
@@ -594,7 +594,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
 
-	err = s.setEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
+	err = s.SetEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
 	if err != nil {
 		return fmt.Errorf("cannot set epoch data: %w", err)
 	}
