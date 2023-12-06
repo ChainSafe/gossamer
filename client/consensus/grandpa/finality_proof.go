@@ -162,11 +162,6 @@ func proveFinality[
 		return nil, err
 	}
 
-	//authSetChangeIDVal, err := authSetChangeID.Value()
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	var encJustification []byte
 	var justBlock N
 
