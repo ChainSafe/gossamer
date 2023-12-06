@@ -151,8 +151,6 @@ func newTestState(t *testing.T) *state.Service {
 	var rtCfg wazero_runtime.Config
 
 	rtCfg.Storage = storage.NewTrieState(&genTrie)
-	rtCfg.MinPages = 23
-
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 	block.StoreRuntime(block.BestBlockHash(), rt)

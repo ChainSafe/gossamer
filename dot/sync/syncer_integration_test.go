@@ -78,7 +78,6 @@ func newTestSyncer(t *testing.T) *Service {
 	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
-	rtCfg.MinPages = 23
 	instance, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
 

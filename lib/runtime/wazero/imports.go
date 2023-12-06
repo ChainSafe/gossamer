@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/trie/proof"
@@ -969,8 +968,7 @@ func ext_misc_print_utf8_version_1(ctx context.Context, m api.Module, dataSpan u
 // runtime instance using the WASM code provided, and querying it.
 func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	config := Config{
-		LogLvl:   log.DoNotChange,
-		MinPages: allocator.MaxWasmPages - 1,
+		LogLvl: log.DoNotChange,
 	}
 
 	instance, err := NewInstance(code, config)

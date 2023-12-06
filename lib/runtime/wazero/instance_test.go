@@ -72,9 +72,8 @@ func Test_Instance_Version(t *testing.T) {
 				require.NoError(t, err)
 
 				cfg := Config{
-					Storage:  storage.NewTrieState(&genesisTrie),
-					LogLvl:   log.Critical,
-					MinPages: 23,
+					Storage: storage.NewTrieState(&genesisTrie),
+					LogLvl:  log.Critical,
 				}
 
 				instance, err := NewRuntimeFromGenesis(cfg)
@@ -198,9 +197,8 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
-		Storage:  genState,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: genState,
+		LogLvl:  log.Critical,
 	}
 
 	nodeStorage := runtime.NodeStorage{}
@@ -424,9 +422,8 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				genState := storage.NewTrieState(&genTrie)
 
 				cfg := Config{
-					Storage:  genState,
-					LogLvl:   log.Critical,
-					MinPages: 23,
+					Storage: genState,
+					LogLvl:  log.Critical,
 				}
 
 				rt, err := NewRuntimeFromGenesis(cfg)
@@ -624,9 +621,8 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
-		Storage:  genState,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: genState,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
@@ -685,9 +681,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
-		Storage:  genState,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: genState,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
@@ -736,9 +731,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
-		Storage:  genState,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: genState,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewRuntimeFromGenesis(cfg)
@@ -783,9 +777,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	state3783 := storage.NewTrieState(gossTrie3783)
 
 	cfg := Config{
-		Storage:  state3783,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: state3783,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
@@ -830,9 +823,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	state901441 := storage.NewTrieState(ksmTrie901441)
 
 	cfg := Config{
-		Storage:  state901441,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: state901441,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie901441, cfg)
@@ -877,9 +869,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	state := storage.NewTrieState(ksmTrie)
 
 	cfg := Config{
-		Storage:  state,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: state,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
@@ -924,9 +915,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	state := storage.NewTrieState(ksmTrie)
 
 	cfg := Config{
-		Storage:  state,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: state,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
@@ -972,9 +962,8 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	state := storage.NewTrieState(dotTrie)
 
 	cfg := Config{
-		Storage:  state,
-		LogLvl:   log.Critical,
-		MinPages: 23,
+		Storage: state,
+		LogLvl:  log.Critical,
 	}
 
 	instance, err := NewInstanceFromTrie(dotTrie, cfg)

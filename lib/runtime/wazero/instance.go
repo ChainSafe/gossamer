@@ -55,7 +55,6 @@ type Config struct {
 	Network     runtime.BasicNetwork
 	Transaction runtime.TransactionState
 	CodeHash    common.Hash
-	MinPages    uint32
 }
 
 func decompressWasm(code []byte) ([]byte, error) {
@@ -108,7 +107,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 	_, err = rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", cfg.MinPages).
+		ExportMemory("memory", 23).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").

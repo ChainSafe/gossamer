@@ -162,7 +162,6 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 		Storage:     rtstorage.NewTrieState(&genTrie),
 		CodeHash:    codeHash,
 		NodeStorage: runtime.NodeStorage{},
-		MinPages:    23,
 	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)

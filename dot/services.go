@@ -32,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
@@ -158,7 +157,6 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 			Network:     net,
 			Role:        config.Core.Role,
 			CodeHash:    codeHash,
-			MinPages:    allocator.MaxWasmPages - 1,
 		}
 
 		// create runtime executor

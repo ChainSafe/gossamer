@@ -474,7 +474,6 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 		Storage:     rtstorage.NewTrieState(&genTrie),
 		CodeHash:    codeHash,
 		NodeStorage: runtime.NodeStorage{},
-		MinPages:    23,
 	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
