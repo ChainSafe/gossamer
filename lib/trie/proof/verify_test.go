@@ -141,7 +141,7 @@ func Test_buildTrie(t *testing.T) {
 		encodedProofNodes [][]byte
 		rootHash          []byte
 		expectedTrie      *trie.Trie
-		db                Database
+		db                db.Database
 		errWrapped        error
 		errMessage        string
 	}

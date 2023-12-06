@@ -12,9 +12,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/golang/mock/gomock"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_EmptyHash(t *testing.T) {
@@ -33,6 +34,7 @@ func Test_NewEmptyTrie(t *testing.T) {
 	expectedTrie := &Trie{
 		childTries: make(map[common.Hash]*Trie),
 		deltas:     tracking.New(),
+		db:         db.NewEmptyMemoryDB(),
 	}
 	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
@@ -277,8 +279,8 @@ func Test_Trie_registerDeletedNodeHash(t *testing.T) {
 	testCases := map[string]struct {
 		trie                  Trie
 		node                  *Node
-		pendingDeltas         DeltaRecorder
-		expectedPendingDeltas DeltaRecorder
+		pendingDeltas         *tracking.Deltas
+		expectedPendingDeltas *tracking.Deltas
 		expectedTrie          Trie
 	}{
 		"dirty_node_not_registered": {
@@ -461,7 +463,7 @@ func Test_Trie_MustHash(t *testing.T) {
 
 		var trie Trie
 
-		hash := trie.MustHash()
+		hash := V0.MustHash(trie)
 
 		expectedHash := common.Hash{
 			0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
@@ -558,7 +560,7 @@ func Test_Trie_Hash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			hash, err := testCase.trie.Hash()
+			hash, err := V0.Hash(&testCase.trie)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -604,12 +606,12 @@ func Test_Trie_Entries(t *testing.T) {
 		t.Parallel()
 
 		root := &Node{
-			PartialKey:   []byte{0xa},
+			PartialKey:   []byte{0x0, 0xa},
 			StorageValue: []byte("root"),
 			Descendants:  2,
 			Children: padRightChildren([]*Node{
 				{ // index 0
-					PartialKey:   []byte{2, 0xb},
+					PartialKey:   []byte{0xb},
 					StorageValue: []byte("leaf"),
 				},
 				nil,
@@ -626,7 +628,7 @@ func Test_Trie_Entries(t *testing.T) {
 
 		expectedEntries := map[string][]byte{
 			string([]byte{0x0a}):       []byte("root"),
-			string([]byte{0xa0, 0x2b}): []byte("leaf"),
+			string([]byte{0x0a, 0xb}):  []byte("leaf"),
 			string([]byte{0x0a, 0x2b}): []byte("leaf"),
 		}
 
@@ -690,12 +692,13 @@ func Test_Trie_Entries(t *testing.T) {
 		entriesMatch(t, expectedEntries, entries)
 	})
 
-	t.Run("end_to_end", func(t *testing.T) {
+	t.Run("end_to_end_v0", func(t *testing.T) {
 		t.Parallel()
 
 		trie := Trie{
 			root:       nil,
 			childTries: make(map[common.Hash]*Trie),
+			db:         db.NewEmptyMemoryDB(),
 		}
 
 		kv := map[string][]byte{
@@ -703,6 +706,31 @@ func Test_Trie_Entries(t *testing.T) {
 			"abc": []byte("penguin"),
 			"hy":  []byte("feather"),
 			"cb":  []byte("noot"),
+		}
+
+		for k, v := range kv {
+			trie.Put([]byte(k), v)
+		}
+
+		entries := trie.Entries()
+
+		assert.Equal(t, kv, entries)
+	})
+
+	t.Run("end_to_end_v1", func(t *testing.T) {
+		t.Parallel()
+
+		trie := Trie{
+			root:       nil,
+			childTries: make(map[common.Hash]*Trie),
+			db:         db.NewEmptyMemoryDB(),
+		}
+
+		kv := map[string][]byte{
+			"ab":   []byte("pen"),
+			"abc":  []byte("penguin"),
+			"hy":   []byte("feather"),
+			"long": []byte("newvaluewithmorethan32byteslength"),
 		}
 
 		for k, v := range kv {
@@ -1655,6 +1683,7 @@ func Test_LoadFromMap(t *testing.T) {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 		"empty_data": {
@@ -1662,6 +1691,7 @@ func Test_LoadFromMap(t *testing.T) {
 			expectedTrie: Trie{
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 		"bad_key": {
@@ -1695,6 +1725,7 @@ func Test_LoadFromMap(t *testing.T) {
 				},
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 		"load_key_values": {
@@ -1725,6 +1756,7 @@ func Test_LoadFromMap(t *testing.T) {
 				},
 				childTries: map[common.Hash]*Trie{},
 				deltas:     newDeltas(),
+				db:         db.NewEmptyMemoryDB(),
 			},
 		},
 	}
@@ -2088,7 +2120,7 @@ func Test_retrieve(t *testing.T) {
 		parent *Node
 		key    []byte
 		value  []byte
-		db     DBGetter
+		db     db.DBGetter
 	}{
 		"nil_parent": {
 			key: []byte{1},
@@ -2187,9 +2219,9 @@ func Test_retrieve(t *testing.T) {
 						Children: padRightChildren([]*Node{
 							nil, nil, nil, nil,
 							{ // full key 1, 2, 3, 4, 5
-								PartialKey:   []byte{5},
-								StorageValue: hashedValue,
-								HashedValue:  true,
+								PartialKey:    []byte{5},
+								StorageValue:  hashedValue,
+								IsHashedValue: true,
 							},
 						}),
 					},
@@ -2197,7 +2229,7 @@ func Test_retrieve(t *testing.T) {
 			},
 			key:   []byte{1, 2, 3, 4, 5},
 			value: hashedValueResult,
-			db: func() DBGetter {
+			db: func() db.DBGetter {
 				defaultDBGetterMock := NewMockDBGetter(ctrl)
 				defaultDBGetterMock.EXPECT().Get(gomock.Any()).Return(hashedValueResult, nil).Times(1)
 

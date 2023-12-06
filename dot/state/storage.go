@@ -55,7 +55,7 @@ func NewStorageState(blockState *BlockState,
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
-	root := ts.MustRoot()
+	root := ts.MustRoot(trie.NoMaxInlineValueSize)
 
 	if header != nil {
 		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
@@ -96,7 +96,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	if t.MustHash() != *root {
+	if t.MustHash(trie.NoMaxInlineValueSize) != *root {
 		panic("trie does not have expected root")
 	}
 

@@ -59,8 +59,8 @@ func (t *tries) SetEmptyTrie() {
 }
 
 // SetTrie sets the trie at its root hash in the tries map.
-func (t *tries) SetTrie(trie *trie.Trie) {
-	t.softSet(trie.MustHash(), trie)
+func (t *tries) SetTrie(tr *trie.Trie) {
+	t.softSet(tr.MustHash(trie.NoMaxInlineValueSize), tr)
 }
 
 // softSet sets the given trie at the given root hash

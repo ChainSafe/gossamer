@@ -52,7 +52,7 @@ func Test_Put(t *testing.T) {
 			trie: trie.NewTrie(testNode, nil),
 			encoded: func() []byte {
 				encoded := bytes.NewBuffer(nil)
-				err := testNode.Encode(encoded)
+				err := testNode.Encode(encoded, trie.NoMaxInlineValueSize)
 				assert.NoError(t, err)
 
 				return encoded.Bytes()
@@ -68,7 +68,7 @@ func Test_Put(t *testing.T) {
 			}(),
 			encoded: func() []byte {
 				encoded := bytes.NewBuffer(nil)
-				err := testNode.Encode(encoded)
+				err := testNode.Encode(encoded, trie.NoMaxInlineValueSize)
 				assert.NoError(t, err)
 
 				return encoded.Bytes()
@@ -90,7 +90,7 @@ func Test_Put(t *testing.T) {
 			err := trieDB.Put(testCase.trie)
 			assert.NoError(t, err)
 
-			trieFromDB, err := table.Get(testCase.trie.MustHash().ToBytes())
+			trieFromDB, err := table.Get(trie.V0.MustHash(*testCase.trie).ToBytes())
 			if testCase.success {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.encoded, trieFromDB)
@@ -119,7 +119,7 @@ func Test_GetDecodeTrieAndRefreshCache(t *testing.T) {
 
 	// Encode trie to check later
 	encoded := bytes.NewBuffer(nil)
-	err := root.Encode(encoded)
+	err := root.Encode(encoded, trie.NoMaxInlineValueSize)
 	assert.NoError(t, err)
 
 	// Store trie in trieDB
@@ -130,7 +130,7 @@ func Test_GetDecodeTrieAndRefreshCache(t *testing.T) {
 	assert.Len(t, trieDB.tries.rootToTrie, 0)
 
 	// Get trie from trieDB table and check if it matches the encoded trie
-	trieFromTrieDB, err := trieDB.Get(testTrie.MustHash())
+	trieFromTrieDB, err := trieDB.Get(trie.V0.MustHash(*testTrie))
 	assert.NoError(t, err)
 	assert.Equal(t, testTrie.String(), trieFromTrieDB.String())
 
@@ -138,7 +138,7 @@ func Test_GetDecodeTrieAndRefreshCache(t *testing.T) {
 	assert.Len(t, trieDB.tries.rootToTrie, 1)
 
 	// Get from cache
-	fromCache := trieDB.tries.get(testTrie.MustHash())
+	fromCache := trieDB.tries.get(trie.V0.MustHash(*testTrie))
 	assert.Equal(t, testTrie.String(), fromCache.String())
 }
 
@@ -160,7 +160,7 @@ func Test_GetDeletedTrieFromDBShouldReturnError(t *testing.T) {
 
 	// Encode trie to check later
 	encoded := bytes.NewBuffer(nil)
-	err := root.Encode(encoded)
+	err := root.Encode(encoded, trie.NoMaxInlineValueSize)
 	assert.NoError(t, err)
 
 	// Store trie in trieDB
@@ -168,15 +168,15 @@ func Test_GetDeletedTrieFromDBShouldReturnError(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get trie from trieDB table and check if it matches the encoded trie
-	trieFromTrieDB, err := trieDB.Get(testTrie.MustHash())
+	trieFromTrieDB, err := trieDB.Get(trie.V0.MustHash(*testTrie))
 	assert.NoError(t, err)
 	assert.Equal(t, testTrie.String(), trieFromTrieDB.String())
 
 	// Delete trie and try to get it again should return an error
-	err = trieDB.Delete(testTrie.MustHash())
+	err = trieDB.Delete(trie.V0.MustHash(*testTrie))
 	assert.NoError(t, err)
 
-	_, err = trieDB.Get(testTrie.MustHash())
+	_, err = trieDB.Get(trie.V0.MustHash(*testTrie))
 	assert.ErrorContains(t, err, "not found")
 }
 
@@ -202,7 +202,7 @@ func Test_GetKeyFromTrie(t *testing.T) {
 
 	// Encode trie to check later
 	encoded := bytes.NewBuffer(nil)
-	err := root.Encode(encoded)
+	err := root.Encode(encoded, trie.NoMaxInlineValueSize)
 	assert.NoError(t, err)
 
 	// Store trie in trieDB
@@ -210,7 +210,7 @@ func Test_GetKeyFromTrie(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get trie from trieDB table and check if it matches the encoded trie
-	valueFromTrie, err := trieDB.GetKey(testTrie.MustHash(), testKey)
+	valueFromTrie, err := trieDB.GetKey(trie.V0.MustHash(*testTrie), testKey)
 	assert.NoError(t, err)
 	assert.Equal(t, testValue, valueFromTrie)
 }

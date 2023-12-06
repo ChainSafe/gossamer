@@ -4,11 +4,10 @@
 package trie
 
 import (
-	"bytes"
 	"encoding/binary"
-	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,18 +17,46 @@ func TestPutAndGetChild(t *testing.T) {
 	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	childTrieRes, err := parentTrie.GetChild(childKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	if !reflect.DeepEqual(childTrie, childTrieRes) {
-		t.Fatalf("Fail: got %v expected %v", childTrieRes, childTrie)
-	}
+	assert.Equal(t, childTrie, childTrieRes)
+}
+
+func TestPutAndDeleteChild(t *testing.T) {
+	childKey := []byte("default")
+	childTrie := buildSmallTrie()
+	parentTrie := NewEmptyTrie()
+
+	err := parentTrie.SetChild(childKey, childTrie)
+	assert.NoError(t, err)
+
+	err = parentTrie.DeleteChild(childKey)
+	assert.NoError(t, err)
+
+	_, err = parentTrie.GetChild(childKey)
+	assert.ErrorContains(t, err, "child trie does not exist at key")
+}
+
+func TestPutAndClearFromChild(t *testing.T) {
+	childKey := []byte("default")
+	keyInChild := []byte{0x01, 0x35}
+	childTrie := buildSmallTrie()
+	parentTrie := NewEmptyTrie()
+
+	err := parentTrie.SetChild(childKey, childTrie)
+	assert.NoError(t, err)
+
+	err = parentTrie.ClearFromChild(childKey, keyInChild)
+	assert.NoError(t, err)
+
+	childTrie, err = parentTrie.GetChild(childKey)
+	assert.NoError(t, err)
+
+	value := childTrie.Get(keyInChild)
+	assert.Equal(t, []uint8(nil), value)
 }
 
 func TestPutAndGetFromChild(t *testing.T) {
@@ -38,46 +65,32 @@ func TestPutAndGetFromChild(t *testing.T) {
 	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	testKey := []byte("child_key")
 	testValue := []byte("child_value")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	valueRes, err := parentTrie.GetFromChild(childKey, testKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	if !bytes.Equal(valueRes, testValue) {
-		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)
-	}
+	assert.Equal(t, valueRes, testValue)
 
 	testKey = []byte("child_key_again")
 	testValue = []byte("child_value_again")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
 	valueRes, err = parentTrie.GetFromChild(childKey, testKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 
-	if !bytes.Equal(valueRes, testValue) {
-		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)
-	}
+	assert.Equal(t, valueRes, testValue)
 }
 
 func TestChildTrieHashAfterClear(t *testing.T) {
 	trieThatHoldsAChildTrie := NewEmptyTrie()
-	originalEmptyHash := trieThatHoldsAChildTrie.MustHash()
+	originalEmptyHash := V0.MustHash(*trieThatHoldsAChildTrie)
 
 	keyToChild := []byte("crowdloan")
 	keyInChild := []byte("account-alice")
@@ -90,7 +103,7 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 
 	// the parent trie hash SHOULT NOT BE EQUAL to the original
 	// empty hash since it contains a value
-	require.NotEqual(t, originalEmptyHash, trieThatHoldsAChildTrie.MustHash())
+	require.NotEqual(t, originalEmptyHash, V0.MustHash(*trieThatHoldsAChildTrie))
 
 	// ensure the value is inside the child trie
 	valueStored, err := trieThatHoldsAChildTrie.GetFromChild(keyToChild, keyInChild)
@@ -103,6 +116,6 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 
 	// the parent trie hash SHOULD BE EQUAL to the original
 	// empty hash since now it does not have any other value in it
-	require.Equal(t, originalEmptyHash, trieThatHoldsAChildTrie.MustHash())
+	require.Equal(t, originalEmptyHash, V0.MustHash(*trieThatHoldsAChildTrie))
 
 }
