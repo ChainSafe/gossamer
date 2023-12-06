@@ -51,10 +51,15 @@ func TestJustificationEncoding(t *testing.T) {
 	encodedJustification, err := scale.Marshal(justification)
 	require.NoError(t, err)
 
-	newJustificaiton := decodeGrandpaJustification[string, uint, string, dummyAuthID, testHeader[string, uint]]{}
-	err = scale.Unmarshal(encodedJustification, &newJustificaiton)
+	newJustificaiton, err := DecodeGrandpaJustification[
+		string,
+		uint,
+		string,
+		dummyAuthID,
+		testHeader[string, uint],
+	](encodedJustification)
 	require.NoError(t, err)
-	require.Equal(t, justification, *newJustificaiton.GrandpaJustification())
+	require.Equal(t, justification, *newJustificaiton)
 }
 
 func TestJustification_fromCommit(t *testing.T) {

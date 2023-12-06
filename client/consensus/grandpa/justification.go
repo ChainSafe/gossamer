@@ -48,28 +48,46 @@ type decodeGrandpaJustification[
 	H Header[Hash, N],
 ] GrandpaJustification[Hash, N, S, ID]
 
-func (dgj *decodeGrandpaJustification[Hash, N, S, ID, H]) UnmarshalSCALE(reader io.Reader) (err error) {
-	type roundCommit struct {
-		Round  uint64
-		Commit finalityGrandpa.Commit[Hash, N, S, ID]
+func DecodeGrandpaJustification[Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	ID AuthorityID,
+	H Header[Hash, N],
+](encodedJustification []byte) (*GrandpaJustification[Hash, N, S, ID], error) {
+	newJustificaiton := decodeGrandpaJustification[Hash, N, S, ID, H]{}
+	err := scale.Unmarshal(encodedJustification, &newJustificaiton)
+	if err != nil {
+		return nil, err
 	}
-	rc := roundCommit{}
+	return newJustificaiton.GrandpaJustification(), nil
+}
+
+func (dgj *decodeGrandpaJustification[Hash, N, S, ID, H]) UnmarshalSCALE(reader io.Reader) (err error) {
+	type roundCommitHeader struct {
+		Round   uint64
+		Commit  finalityGrandpa.Commit[Hash, N, S, ID]
+		Headers []H
+	}
+	rch := roundCommitHeader{}
 	decoder := scale.NewDecoder(reader)
-	err = decoder.Decode(&rc)
+	err = decoder.Decode(&rch)
 	if err != nil {
 		return
 	}
 
-	dgj.Round = rc.Round
-	dgj.Commit = rc.Commit
-
-	headers := []H{}
-	err = decoder.Decode(&headers)
-	dgj.VotesAncestries = make([]Header[Hash, N], len(headers))
-	for i, header := range headers {
+	dgj.Round = rch.Round
+	dgj.Commit = rch.Commit
+	dgj.VotesAncestries = make([]Header[Hash, N], len(rch.Headers))
+	for i, header := range rch.Headers {
 		dgj.VotesAncestries[i] = header
 	}
 	return
+}
+
+func (dgj decodeGrandpaJustification[Hash, N, S, ID, H]) GrandpaJustification() *GrandpaJustification[Hash, N, S, ID] {
+	return &GrandpaJustification[Hash, N, S, ID]{
+		dgj.Round, dgj.Commit, dgj.VotesAncestries,
+	}
 }
 
 // NewJustificationFromCommit Create a GRANDPA justification from the given commit. This method
@@ -164,12 +182,10 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	finalizedTarget hashNumber[Hash, N],
 	setID uint64,
 	voters finalityGrandpa.VoterSet[ID]) (GrandpaJustification[Hash, N, S, ID], error) {
-	decodeJustification := decodeGrandpaJustification[Hash, N, S, ID, H]{}
-	err := scale.Unmarshal(encoded, &decodeJustification)
+	justification, err := DecodeGrandpaJustification[Hash, N, S, ID, H](encoded)
 	if err != nil {
 		return GrandpaJustification[Hash, N, S, ID]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}
-	justification := decodeJustification.GrandpaJustification()
 
 	decodedTarget := hashNumber[Hash, N]{
 		hash:   justification.Commit.TargetHash,

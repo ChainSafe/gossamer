@@ -217,12 +217,6 @@ func updateBestJustification[
 	return nil
 }
 
-func (dgj decodeGrandpaJustification[Hash, N, S, ID, H]) GrandpaJustification() *GrandpaJustification[Hash, N, S, ID] {
-	return &GrandpaJustification[Hash, N, S, ID]{
-		dgj.Round, dgj.Commit, dgj.VotesAncestries,
-	}
-}
-
 // BestJustification  Fetch the justification for the authoritySetChangeIDLatest block finalized by GRANDPA, if any.
 func BestJustification[
 	Hash constraints.Ordered,
