@@ -96,14 +96,14 @@ func TestImportStatement(t *testing.T) {
 		err                    string
 	}{
 		{
-			description:            "statementVDT not set",
+			description:            "statementVDT_not_set",
 			rpState:                perRelayParentState{},
 			signedStatementWithPVD: SignedFullStatementWithPVD{},
 			summary:                nil,
 			err:                    "getting value from statementVDT:",
 		},
 		{
-			description: "statementVDT in not seconded",
+			description: "statementVDT_in_not_seconded",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -126,7 +126,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "",
 		},
 		{
-			description: "invalid persisted validation data",
+			description: "invalid_persisted_validation_data",
 			rpState:     perRelayParentState{},
 			signedStatementWithPVD: SignedFullStatementWithPVD{
 				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
@@ -137,7 +137,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "persisted validation data is nil",
 		},
 		{
-			description: "statement is seconded and candidate is known",
+			description: "statement_is_seconded_and_candidate_is_known",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -180,7 +180,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "",
 		},
 		{
-			description: "statement is seconded and candidate is unknown",
+			description: "statement_is_seconded_and_candidate_is_unknown",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -212,7 +212,7 @@ func TestImportStatement(t *testing.T) {
 			err:     "",
 		},
 		{
-			description: "statement is seconded and candidate is unknown with prospective parachain mode enabled",
+			description: "statement_is_seconded_and_candidate_is_unknown_with_prospective_parachain_mode_enabled",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -384,7 +384,7 @@ func TestPostImportStatement(t *testing.T) {
 		summary     *Summary
 	}{
 		{
-			description: "summary is nil",
+			description: "summary_is_nil",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -403,7 +403,7 @@ func TestPostImportStatement(t *testing.T) {
 			summary: nil,
 		},
 		{
-			description: "failed to get attested candidate from table",
+			description: "failed_to_get_attested_candidate_from_table",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -422,7 +422,7 @@ func TestPostImportStatement(t *testing.T) {
 			summary: dummySummary(t),
 		},
 		{
-			description: "candidate is already backed",
+			description: "candidate_is_already_backed",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -452,7 +452,7 @@ func TestPostImportStatement(t *testing.T) {
 			summary: dummySummary(t),
 		},
 		{
-			description: "Validity vote from unknown validator",
+			description: "Validity_vote_from_unknown_validator",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
@@ -476,12 +476,12 @@ func TestPostImportStatement(t *testing.T) {
 			summary: dummySummary(t),
 		},
 		{
-			description: "prospective parachain mode is disabled",
+			description: "prospective_parachain_mode_is_disabled",
 			rpState:     rpStateWhenPpmDisabled(t),
 			summary:     dummySummary(t),
 		},
 		{
-			description: "prospective parachain mode is enabled",
+			description: "prospective_parachain_mode_is_enabled",
 			rpState: func() perRelayParentState {
 				state := rpStateWhenPpmDisabled(t)
 				state.ProspectiveParachainsMode = parachaintypes.ProspectiveParachainsMode{
