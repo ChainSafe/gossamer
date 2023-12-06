@@ -24,8 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func balanceKey(t *testing.T, pub []byte) (bKey []byte) {

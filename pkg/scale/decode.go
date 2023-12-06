@@ -75,6 +75,11 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	return
 }
 
+// Unmarshaler is the interface for custom SCALE unmarshalling for a given type
+type Unmarshaler interface {
+	UnmarshalSCALE(io.Reader) error
+}
+
 // Decoder is used to decode from an io.Reader
 type Decoder struct {
 	decodeState
@@ -108,6 +113,18 @@ type decodeState struct {
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
+	unmarshalerType := reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+	if dstv.CanAddr() && dstv.Addr().Type().Implements(unmarshalerType) {
+		methodVal := dstv.Addr().MethodByName("UnmarshalSCALE")
+		values := methodVal.Call([]reflect.Value{reflect.ValueOf(ds.Reader)})
+		if !values[0].IsNil() {
+			errIn := values[0].Interface()
+			err := errIn.(error)
+			return err
+		}
+		return
+	}
+
 	in := dstv.Interface()
 	switch in.(type) {
 	case *big.Int:

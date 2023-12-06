@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 )

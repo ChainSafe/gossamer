@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	github.com/aws/aws-sdk-go v1.42.22
-	github.com/golang/mock v1.6.0
 	github.com/jessevdk/go-flags v1.5.0
+	go.uber.org/mock v0.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

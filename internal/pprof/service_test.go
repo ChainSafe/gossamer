@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	westenddev "github.com/ChainSafe/gossamer/chain/westend-dev"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_NewService(t *testing.T) {

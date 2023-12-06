@@ -16,8 +16,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
 	"github.com/gtank/merlin"
+	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )

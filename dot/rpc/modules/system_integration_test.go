@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcutil/base58"
-	"github.com/golang/mock/gomock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
