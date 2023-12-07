@@ -18,16 +18,17 @@ import (
 // Returns the vector of headers that MUST be validated + imported
 // AND if at least one of those headers is invalid, all other MUST be considered invalid.
 func checkFinalityProof[
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	S comparable,
-	H Header[Hash, N],
-	ID AuthorityID,
+Hash constraints.Ordered,
+N constraints.Unsigned,
+S comparable,
+H Header[Hash, N],
+ID AuthorityID,
 ](
 	t *testing.T,
 	currentSetID uint64,
 	currentAuthorities AuthorityList[ID],
-	remoteProof []byte) (FinalityProof[Hash, N, H], error) {
+	remoteProof []byte,
+) (FinalityProof[Hash, N, H], error) {
 	t.Helper()
 	proof := FinalityProof[Hash, N, H]{}
 	err := scale.Unmarshal(remoteProof, &proof)
@@ -54,7 +55,8 @@ func createCommit(
 	targetHash string,
 	targetNum uint,
 	round uint64,
-	ID dummyAuthID) finalityGrandpa.Commit[string, uint, string, dummyAuthID] {
+	ID dummyAuthID,
+) finalityGrandpa.Commit[string, uint, string, dummyAuthID] {
 	t.Helper()
 	precommit := finalityGrandpa.Precommit[string, uint]{
 		TargetHash:   targetHash,
@@ -154,7 +156,8 @@ func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
 		mockBackend,
 		authoritySetChanges,
 		3,
-		true)
+		true,
+	)
 	require.NoError(t, err)
 	require.Nil(t, proofOf3)
 }
@@ -412,12 +415,8 @@ func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
 	// the best stored justification, for which there is none in this case.
 	authoritySetChanges := AuthoritySetChanges[uint]{}
 	authoritySetChanges.append(0, 5)
-
-	/*
-		TODO For reviewer: When justification is not stored in db, substrate returns None(), but we return error.
-		I think I like error, and we can handle accordingly, but will note this for reviewer feedback
-	*/
-	_, err := proveFinality[
+	
+	proof, err := proveFinality[
 		*BackendMock[string, uint, testHeader[string, uint],
 			*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
 		string,
@@ -432,7 +431,9 @@ func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
 		6,
 		true,
 	)
-	require.ErrorIs(t, err, errValueNotFound)
+	// When justification is not stored in db, return nil
+	require.NoError(t, err)
+	require.Nil(t, proof)
 }
 
 func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {

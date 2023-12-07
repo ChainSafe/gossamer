@@ -48,7 +48,7 @@ type decodeGrandpaJustification[
 	H Header[Hash, N],
 ] GrandpaJustification[Hash, N, S, ID]
 
-func DecodeGrandpaJustification[Hash constraints.Ordered,
+func decodeJustification[Hash constraints.Ordered,
 	N constraints.Unsigned,
 	S comparable,
 	ID AuthorityID,
@@ -182,7 +182,7 @@ func decodeAndVerifyFinalizes[Hash constraints.Ordered,
 	finalizedTarget hashNumber[Hash, N],
 	setID uint64,
 	voters finalityGrandpa.VoterSet[ID]) (GrandpaJustification[Hash, N, S, ID], error) {
-	justification, err := DecodeGrandpaJustification[Hash, N, S, ID, H](encoded)
+	justification, err := decodeJustification[Hash, N, S, ID, H](encoded)
 	if err != nil {
 		return GrandpaJustification[Hash, N, S, ID]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}

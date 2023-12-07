@@ -51,7 +51,7 @@ func TestJustificationEncoding(t *testing.T) {
 	encodedJustification, err := scale.Marshal(justification)
 	require.NoError(t, err)
 
-	newJustificaiton, err := DecodeGrandpaJustification[
+	newJustificaiton, err := decodeJustification[
 		string,
 		uint,
 		string,

@@ -10,14 +10,6 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-var (
-	// The requested block has not yet been finalized
-	errBlockNotYetFinalized = errors.New("block not yet finalized")
-	// The requested block is not covered by authority set changes. Likely this means the block is
-	// in the authoritySetChangeIDLatest authority set, and the subscription API is more appropriate
-	errBlockNotInAuthoritySetChanges = errors.New("block not covered by authority set changes")
-)
-
 // GRANDPA block finality proof generation and check.
 //
 // Finality of block B is proved by providing:
@@ -37,6 +29,14 @@ var (
 // Finality proof provider can choose how to provide finality proof on its own. The incomplete
 // finality proof (that finalises some block C that is ancestor of the B and descendant
 // of the U) could be returned.
+
+var (
+	// The requested block has not yet been finalized
+	errBlockNotYetFinalized = errors.New("block not yet finalized")
+	// The requested block is not covered by authority set changes. Likely this means the block is
+	// in the authoritySetChangeIDLatest authority set, and the subscription API is more appropriate
+	errBlockNotInAuthoritySetChanges = errors.New("block not covered by authority set changes")
+)
 
 const maxUnknownHeaders = 100_000
 
@@ -148,7 +148,8 @@ func proveFinality[
 	backend BE,
 	authSetChanges AuthoritySetChanges[N],
 	block N,
-	collectUnknownHeaders bool) (*FinalityProof[Hash, N, H], error) {
+	collectUnknownHeaders bool,
+) (*FinalityProof[Hash, N, H], error) {
 	// Early-return if we are sure that there are no blocks finalized that cover the requested
 	// block.
 	finalizedNumber := backend.Blockchain().Info().FinalizedNumber
@@ -168,7 +169,7 @@ func proveFinality[
 	switch val := authSetChangeID.(type) {
 	case authoritySetChangeIDLatest:
 		justification, err := BestJustification[Hash, N, S, ID, H](backend)
-		if err != nil {
+		if err != nil && !errors.Is(err, errValueNotFound) {
 			return nil, err
 		}
 

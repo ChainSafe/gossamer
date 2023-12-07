@@ -704,23 +704,23 @@ func (asc *AuthoritySetChanges[N]) append(setID uint64, blockNumber N) {
 	})
 }
 
-type authoritySetChangeID interface {
-	isAuthoritySetChangeID()
+type authoritySetChangeID any
+
+type authoritySetChangeIDs[N constraints.Unsigned] interface {
+	authoritySetChangeIDLatest | authoritySetChangeIDSet[N] | authoritySetChangeIDUnknown
+}
+
+func newAuthoritySetID[N constraints.Unsigned, ID authoritySetChangeIDs[N]](authSetChangeID ID) authoritySetChangeID {
+	return authoritySetChangeID(authSetChangeID)
 }
 
 type authoritySetChangeIDLatest struct{}
-
-func (authoritySetChangeIDLatest) isAuthoritySetChangeID() {}
 
 type authoritySetChangeIDSet[N constraints.Unsigned] struct {
 	inner setIDNumber[N]
 }
 
-func (authoritySetChangeIDSet[N]) isAuthoritySetChangeID() {}
-
 type authoritySetChangeIDUnknown struct{}
-
-func (authoritySetChangeIDUnknown) isAuthoritySetChangeID() {}
 
 // Three states that can be returned: Latest, Set (tuple), Unknown
 func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authoritySetChangeID, error) {
@@ -730,7 +730,7 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authoritySetChangeID
 	authSet := *asc
 	last := authSet[len(authSet)-1]
 	if last.BlockNumber < blockNumber {
-		return authoritySetChangeIDLatest{}, nil
+		return newAuthoritySetID[N](authoritySetChangeIDLatest{}), nil
 	}
 
 	idx, _ := slices.BinarySearchFunc(
@@ -754,15 +754,15 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authoritySetChangeID
 
 		// if this is the first index but not the first set id then we are missing data.
 		if idx == 0 && authChange.SetID != 0 {
-			return authoritySetChangeIDUnknown{}, nil
+			return newAuthoritySetID[N](authoritySetChangeIDUnknown{}), nil
 		}
 
-		return authoritySetChangeIDSet[N]{
+		return newAuthoritySetID[N](authoritySetChangeIDSet[N]{
 			authChange,
-		}, nil
+		}), nil
 	}
 
-	return authoritySetChangeIDUnknown{}, nil
+	return newAuthoritySetID[N](authoritySetChangeIDUnknown{}), nil
 }
 
 func (asc *AuthoritySetChanges[N]) insert(blockNumber N) {
