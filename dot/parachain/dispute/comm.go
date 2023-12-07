@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const timeout = 100 * time.Second
+const timeout = 10 * time.Second
 
 // sendMessage sends the given message to the given channel with a timeout
 func sendMessage(channel chan<- any, message any) error {

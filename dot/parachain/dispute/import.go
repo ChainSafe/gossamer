@@ -33,7 +33,7 @@ type ImportResult interface {
 		now uint64,
 	) (ImportResult, error)
 	// IntoUpdatedVotes returns the updated votes after the import
-	IntoUpdatedVotes() types.CandidateVotes
+	IntoUpdatedVotes() *types.CandidateVotes
 }
 
 // ImportResultHandler implements ImportResult interface
@@ -199,12 +199,12 @@ func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
 	}, nil
 }
 
-func (i ImportResultHandler) IntoUpdatedVotes() types.CandidateVotes {
+func (i ImportResultHandler) IntoUpdatedVotes() *types.CandidateVotes {
 	if !i.VotesChanged() {
-		return types.CandidateVotes{}
+		return nil
 	}
 
-	return i.newState.Votes
+	return &i.newState.Votes
 }
 
 var _ ImportResult = (*ImportResultHandler)(nil)
@@ -270,9 +270,11 @@ func NewImportResultFromStatements(
 					ValidatorSignature: statement.SignedDisputeStatement.ValidatorSignature,
 					DisputeStatement:   statement.SignedDisputeStatement.DisputeStatement,
 				}
-				votes.Invalid.Set(statement.ValidatorIndex, vote)
-				importedInvalidVotes++
-				newInvalidVoters = append(newInvalidVoters, statement.ValidatorIndex)
+				_, ok := votes.Invalid.Set(statement.ValidatorIndex, vote)
+				if !ok {
+					importedInvalidVotes++
+					newInvalidVoters = append(newInvalidVoters, statement.ValidatorIndex)
+				}
 			}
 		default:
 			return nil, fmt.Errorf("unknown dispute statement kind: %T", disputeStatement)

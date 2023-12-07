@@ -163,7 +163,10 @@ const ActiveDuration = 180 * time.Second
 // GetActiveDisputes returns the active disputes, if any.
 func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 	b.recentDisputes.RLock()
-	recentDisputes := b.recentDisputes.BTree.Copy()
+	recentDisputes, err := b.GetRecentDisputes()
+	if err != nil {
+		return scale.BTree{}, fmt.Errorf("get recent disputes: %w", err)
+	}
 	b.recentDisputes.RUnlock()
 
 	activeDisputes := scale.NewBTree[types.Dispute](types.CompareDisputes)

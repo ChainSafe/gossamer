@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const timeout = 10 * time.Second
+const timeout = 100 * time.Second
 
 // getFinalisedBlockNumber sends a message to the overseer to get the finalised block number.
 func getFinalisedBlockNumber(overseerChannel chan<- any) (uint32, error) {

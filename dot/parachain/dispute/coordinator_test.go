@@ -165,8 +165,8 @@ func newTestState(t *testing.T) *TestState {
 	headers[lastBlock] = genesisHeader
 	blockNumToHeader[0] = lastBlock
 
-	mockOverseer := make(chan any, 100)
-	subsystemReceiver := make(chan any, 100)
+	mockOverseer := make(chan any, 10)
+	subsystemReceiver := make(chan any)
 
 	controller := gomock.NewController(t)
 	runtime := NewMockRuntimeInstance(controller)
@@ -188,7 +188,7 @@ func newTestState(t *testing.T) *TestState {
 	}
 }
 
-func (ts *TestState) run(t *testing.T, session *parachaintypes.SessionIndex) {
+func (ts *TestState) run(t *testing.T) {
 	t.Helper()
 	digestItem := scale.MustNewVaryingDataType(types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.SealDigest{})
 	digest := scale.NewVaryingDataTypeSlice(digestItem)
@@ -216,16 +216,8 @@ func (ts *TestState) run(t *testing.T, session *parachaintypes.SessionIndex) {
 	ts.blockNumToHeader[2] = h2Hash
 	ts.lastBlock = h2Hash
 
-	done := make(chan bool)
-	go func() {
-		ts.mockResumeSync(t, session)
-		done <- true
-	}()
-
-	// wait for the mock to be ready to receive messages
-	time.Sleep(5 * time.Second)
-	go ts.subsystem.Run()
-	<-done
+	err := ts.subsystem.Run()
+	require.NoError(t, err)
 }
 
 func (ts *TestState) sessionInfo() *parachaintypes.SessionInfo {
@@ -263,7 +255,6 @@ func (ts *TestState) sessionInfo() *parachaintypes.SessionInfo {
 func (ts *TestState) activateLeafAtSession(t *testing.T,
 	session parachaintypes.SessionIndex,
 	blockNumber uint,
-	candidateEvents []parachaintypes.CandidateEventVDT,
 ) {
 	require.True(t, blockNumber > 0)
 
@@ -280,10 +271,11 @@ func (ts *TestState) activateLeafAtSession(t *testing.T,
 	ts.blockNumToHeader[uint32(blockHeader.Number)] = blockHash
 	ts.lastBlock = blockHash
 
-	done := make(chan bool)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		ts.mockSyncQueries(t, blockHash, session, candidateEvents)
-		done <- true
+		defer wg.Done()
+		ts.mockSyncQueries(t, blockHash, session)
 	}()
 
 	activatedLeaf := overseer.ActivatedLeaf{
@@ -295,25 +287,23 @@ func (ts *TestState) activateLeafAtSession(t *testing.T,
 		Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
 	})
 	require.NoError(t, err)
-	<-done
+	wg.Wait()
 }
 
 func (ts *TestState) mockSyncQueries(t *testing.T,
 	blockHash common.Hash,
 	session parachaintypes.SessionIndex,
-	candidateEvents []parachaintypes.CandidateEventVDT,
 ) []disputetypes.UncheckedDisputeMessage {
 	var (
 		gotSessionInformation  bool
 		gotScrapingInformation bool
-		notifySession          = make(chan bool, 1)
+		notifySession          = make(chan bool)
 	)
 
 	var sentDisputes []disputetypes.UncheckedDisputeMessage
-	ts.runtime.EXPECT().ParachainHostSessionIndexForChild(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (parachaintypes.SessionIndex, error) {
+	ts.runtime.EXPECT().ParachainHostSessionIndexForChild(blockHash).DoAndReturn(func(arg0 common.Hash) (parachaintypes.SessionIndex, error) {
 		require.False(t, gotSessionInformation, "session info already retrieved")
 		gotSessionInformation = true
-		require.Equal(t, blockHash, arg0)
 		firstExpectedSession := saturatingSub(uint32(session), Window-1)
 
 		counter := uint32(0)
@@ -321,10 +311,8 @@ func (ts *TestState) mockSyncQueries(t *testing.T,
 			counter = uint32(session) - firstExpectedSession + 1
 		}
 		if counter > 0 {
-			ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
+			ts.runtime.EXPECT().ParachainHostSessionInfo(blockHash, gomock.Any()).
 				DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
-					require.Equal(t, blockHash, arg0)
-					//require.Equal(t, i, arg1)
 					return ts.sessionInfo(), nil
 				}).Times(int(counter))
 		}
@@ -332,24 +320,7 @@ func (ts *TestState) mockSyncQueries(t *testing.T,
 		ts.knownSession = &session
 		notifySession <- true
 		return session, nil
-	})
-
-	ts.runtime.EXPECT().ParachainHostCandidateEvents(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (*scale.VaryingDataTypeSlice, error) {
-		events, err := parachaintypes.NewCandidateEvents()
-		require.NoError(t, err)
-		for _, event := range candidateEvents {
-			value, err := event.Value()
-			require.NoError(t, err)
-			err = events.Add(value)
-			require.NoError(t, err)
-		}
-		return &events, nil
-	})
-	ts.runtime.EXPECT().ParachainHostOnChainVotes(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (*parachaintypes.ScrapedOnChainVotes, error) {
-		return &parachaintypes.ScrapedOnChainVotes{
-			Session: session,
-		}, nil
-	})
+	}).Times(1)
 
 	for {
 		select {
@@ -390,12 +361,15 @@ func (ts *TestState) mockSyncQueries(t *testing.T,
 				require.NoError(t, err)
 			}
 		case <-notifySession:
+			t.Logf("gotSessionInformation: %t, gotScrapingInformation: %t", gotSessionInformation, gotScrapingInformation)
 			if gotScrapingInformation {
+				ts.runtime.ctrl.Finish()
 				break
 			}
 		}
 
 		if gotSessionInformation && gotScrapingInformation {
+			ts.runtime.ctrl.Finish()
 			break
 		}
 	}
@@ -403,9 +377,57 @@ func (ts *TestState) mockSyncQueries(t *testing.T,
 	return sentDisputes
 }
 
-func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
+func (ts *TestState) mockRuntimeCalls(t *testing.T,
+	session parachaintypes.SessionIndex,
+	initialEvents *scale.VaryingDataTypeSlice,
+	activatedSessionEvents *scale.VaryingDataTypeSlice,
+	resumeEvents *scale.VaryingDataTypeSlice,
+	initialised *bool,
+	restarted *bool,
+) {
+	ts.runtime.EXPECT().ParachainHostCandidateEvents(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (*scale.VaryingDataTypeSlice, error) {
+		leaves := make([]common.Hash, 0, len(ts.headers))
+		for leaf := range ts.headers {
+			leaves = append(leaves, leaf)
+		}
+
+		var (
+			found bool
+			index int
+		)
+		for i, leaf := range leaves {
+			if bytes.Equal(leaf[:], arg0[:]) {
+				found = true
+				index = i
+				break
+			}
+		}
+		require.True(t, found)
+
+		require.NotNil(t, initialised)
+		require.NotNil(t, restarted)
+		if *initialised {
+			if !*restarted {
+				return activatedSessionEvents, nil
+			} else {
+				return resumeEvents, nil
+			}
+		} else {
+			if index != 1 {
+				return nil, nil
+			}
+			return initialEvents, nil
+		}
+	}).AnyTimes()
+	ts.runtime.EXPECT().ParachainHostOnChainVotes(gomock.Any()).DoAndReturn(func(arg0 common.Hash) (*parachaintypes.ScrapedOnChainVotes, error) {
+		return &parachaintypes.ScrapedOnChainVotes{
+			Session: session,
+		}, nil
+	}).AnyTimes()
+}
+
+func (ts *TestState) mockResumeSync(t *testing.T,
 	session *parachaintypes.SessionIndex,
-	initialEvents []parachaintypes.CandidateEventVDT,
 ) []disputetypes.UncheckedDisputeMessage {
 	leaves := make([]common.Hash, 0, len(ts.headers))
 	for leaf := range ts.headers {
@@ -415,23 +437,21 @@ func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
 	var messages []disputetypes.UncheckedDisputeMessage
 	var lock sync.Mutex
 	var wg sync.WaitGroup
-	for _, leaf := range leaves {
+	for n, leaf := range leaves {
 		wg.Add(1)
-		go func(i int, leaf common.Hash) {
+		go func(n int, leaf common.Hash) {
 			defer wg.Done()
-			var events []parachaintypes.CandidateEventVDT
-			if i == 1 {
-				events = initialEvents
-			}
-			newMessages := ts.mockSyncQueries(t, leaf, *session, events)
+			t.Logf("mocking sync for leaf %d", n)
+			newMessages := ts.mockSyncQueries(t, leaf, *session)
 			lock.Lock()
 			messages = append(messages, newMessages...)
 			lock.Unlock()
-		}(len(leaves), leaf)
+		}(n, leaf)
 
+		time.Sleep(1 * time.Second)
 		activatedLeaf := overseer.ActivatedLeaf{
 			Hash:   leaf,
-			Number: uint32(len(leaves)),
+			Number: uint32(n),
 			Status: overseer.LeafStatusFresh,
 		}
 		err := sendMessage(ts.subsystemReceiver, overseer.Signal[overseer.ActiveLeavesUpdate]{
@@ -439,15 +459,11 @@ func (ts *TestState) mockResumeSyncWithEvents(t *testing.T,
 		})
 		require.NoError(t, err)
 		wg.Wait()
+		time.Sleep(2 * time.Second)
 	}
 
+	t.Logf("returning from mockResumeSyncWithEvents")
 	return messages
-}
-
-func (ts *TestState) mockResumeSync(t *testing.T,
-	session *parachaintypes.SessionIndex,
-) []disputetypes.UncheckedDisputeMessage {
-	return ts.mockResumeSyncWithEvents(t, session, nil)
 }
 
 func (ts *TestState) issueExplicitStatementWithIndex(t *testing.T,
@@ -543,7 +559,16 @@ func (ts *TestState) handleGetBlockNumber(t *testing.T) {
 	}
 }
 
-func (ts *TestState) stopSubsystem(t *testing.T) {
+func (ts *TestState) resume(t *testing.T) {
+	t.Helper()
+	ts.knownSession = nil
+	dbBackend := newOverlayBackend(ts.db.inner)
+	ts.subsystem = newDisputesCoordinator(dbBackend, ts.mockOverseer, ts.subsystemReceiver, ts.runtime, ts.subsystemKeystore)
+	err := ts.subsystem.Run()
+	require.NoError(t, err)
+}
+
+func (ts *TestState) conclude(t *testing.T) {
 	t.Helper()
 	concludeSignal := overseer.Signal[overseer.Conclude]{
 		Data:            overseer.Conclude{},
@@ -551,6 +576,18 @@ func (ts *TestState) stopSubsystem(t *testing.T) {
 	}
 	err := sendMessage(ts.subsystemReceiver, concludeSignal)
 	require.NoError(t, err)
+}
+
+func (ts *TestState) awaitConclude(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	select {
+	case msg := <-ts.mockOverseer:
+		err := fmt.Errorf("unexpected message: %T", msg)
+		require.NoError(t, err)
+	case <-ctx.Done():
+		return
+	}
 }
 
 func getValidCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
@@ -576,7 +613,6 @@ func getCandidateBackedEvent(
 	t.Helper()
 	candidateEvent, err := parachaintypes.NewCandidateEventVDT()
 	require.NoError(t, err)
-
 	err = candidateEvent.Set(parachaintypes.CandidateBacked{
 		CandidateReceipt: candidateReceipt,
 		HeadData:         parachaintypes.HeadData{},
@@ -584,7 +620,6 @@ func getCandidateBackedEvent(
 		GroupIndex:       0,
 	})
 	require.NoError(t, err)
-
 	return candidateEvent
 }
 
@@ -661,10 +696,10 @@ func handleParticipationFullHappyPath(t *testing.T,
 	expectedCommitments common.Hash,
 ) {
 	t.Helper()
-	recoverAvailableData(t, mockOverseer)
 	runtime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
 		return &parachaintypes.ValidationCode{}, nil
 	}).Times(1)
+	recoverAvailableData(t, mockOverseer)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -721,8 +756,6 @@ func handleParticipationWithDistribution(t *testing.T,
 		err := fmt.Errorf("timed out waiting for DisputeMessageVDT request")
 		require.NoError(t, err)
 	}
-
-	//<-wait
 }
 
 func participationMissingAvailability(t *testing.T, mockOverseer chan any) {
@@ -749,12 +782,166 @@ func participationMissingAvailability(t *testing.T, mockOverseer chan any) {
 	}
 }
 
+func newImportStatementsMessage(t *testing.T,
+	candidateReceipt parachaintypes.CandidateReceipt,
+	session parachaintypes.SessionIndex,
+	statements []disputetypes.Statement,
+	respChan chan any,
+) disputetypes.Message[disputetypes.ImportStatements] {
+	t.Helper()
+	return disputetypes.Message[disputetypes.ImportStatements]{
+		Data: disputetypes.ImportStatements{
+			CandidateReceipt: candidateReceipt,
+			Session:          session,
+			Statements:       statements,
+		},
+		ResponseChannel: respChan,
+	}
+}
+
+func newActiveDisputesQuery(t *testing.T, respChan chan any) disputetypes.Message[disputetypes.ActiveDisputes] {
+	t.Helper()
+	return disputetypes.Message[disputetypes.ActiveDisputes]{
+		Data:            disputetypes.ActiveDisputes{},
+		ResponseChannel: respChan,
+	}
+}
+
+func newCandidateVotesQuery(t *testing.T,
+	queries []disputetypes.CandidateVotesQuery,
+	respChan chan any,
+) disputetypes.Message[disputetypes.QueryCandidateVotes] {
+	t.Helper()
+	return disputetypes.Message[disputetypes.QueryCandidateVotes]{
+		Data: disputetypes.QueryCandidateVotes{
+			Queries: queries,
+		},
+		ResponseChannel: respChan,
+	}
+}
+
+func newCandidateEvents(t *testing.T, events ...parachaintypes.CandidateEventVDT) scale.VaryingDataTypeSlice {
+	t.Helper()
+	candidateEvents, err := parachaintypes.NewCandidateEvents()
+	require.NoError(t, err)
+	for _, event := range events {
+		value, err := event.Value()
+		require.NoError(t, err)
+		err = candidateEvents.Add(value)
+		require.NoError(t, err)
+	}
+	return candidateEvents
+}
+
+// sendImportStatementsMessage sends an ImportStatements message to the subsystem. If responseChan is nil, the message
+// is sent and the function returns. Otherwise, the message is sent and the response is returned.
+func (ts *TestState) sendImportStatementsMessage(t *testing.T,
+	candidateReceipt parachaintypes.CandidateReceipt,
+	session parachaintypes.SessionIndex,
+	statements []disputetypes.Statement,
+	responseChan chan any,
+) ImportStatementResult {
+	t.Helper()
+	importMessage := newImportStatementsMessage(t,
+		candidateReceipt,
+		session,
+		statements,
+		responseChan,
+	)
+	if responseChan == nil {
+		err := sendMessage(ts.subsystemReceiver, importMessage)
+		require.NoError(t, err)
+		return ValidImport
+	} else {
+		res, err := call(ts.subsystemReceiver, importMessage, importMessage.ResponseChannel)
+		require.NoError(t, err)
+		importResult, ok := res.(ImportStatementResult)
+		require.True(t, ok)
+		return importResult
+	}
+}
+
+func (ts *TestState) getActiveDisputes(t *testing.T) scale.BTree {
+	disputesMessage := newActiveDisputesQuery(t, make(chan any))
+	res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
+	require.NoError(t, err)
+
+	activeDisputes, ok := res.(scale.BTree)
+	require.True(t, ok)
+	return activeDisputes
+}
+
+func (ts *TestState) getRecentDisputes(t *testing.T) scale.BTree {
+	message := disputetypes.Message[disputetypes.RecentDisputesMessage]{
+		Data:            disputetypes.RecentDisputesMessage{},
+		ResponseChannel: make(chan any),
+	}
+	res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+	require.NoError(t, err)
+	recentDisputes, ok := res.(scale.BTree)
+	require.True(t, ok)
+	return recentDisputes
+}
+
+func (ts *TestState) getCandidateVotes(t *testing.T,
+	session parachaintypes.SessionIndex,
+	candidateHash common.Hash,
+) []disputetypes.QueryCandidateVotesResponse {
+	votesQuery := newCandidateVotesQuery(t,
+		[]disputetypes.CandidateVotesQuery{
+			{
+				Session:       session,
+				CandidateHash: candidateHash,
+			},
+		},
+		make(chan any),
+	)
+	res, err := call(ts.subsystemReceiver, votesQuery, votesQuery.ResponseChannel)
+	require.NoError(t, err)
+	candidateVotes, ok := res.([]disputetypes.QueryCandidateVotesResponse)
+	require.True(t, ok)
+	return candidateVotes
+}
+
+func (ts *TestState) determineUndisputedChain(t *testing.T,
+	baseBlock overseer.Block,
+	blockDescriptions []disputetypes.BlockDescription,
+) disputetypes.DetermineUndisputedChainResponse {
+	message := disputetypes.Message[disputetypes.DetermineUndisputedChainMessage]{
+		Data: disputetypes.DetermineUndisputedChainMessage{
+			Base:              baseBlock,
+			BlockDescriptions: blockDescriptions,
+		},
+		ResponseChannel: make(chan any),
+	}
+	res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+	require.NoError(t, err)
+	response, ok := res.(disputetypes.DetermineUndisputedChainResponse)
+	require.True(t, ok)
+	return response
+}
+
 func TestDisputesCoordinator(t *testing.T) {
 	t.Run("too_many_unconfirmed_statements_are_considered_spam", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		candidateReceipt1 := getValidCandidateReceipt(t)
 		candidateHash1, err := candidateReceipt1.Hash()
@@ -762,9 +949,6 @@ func TestDisputesCoordinator(t *testing.T) {
 		candidateReceipt2 := getInvalidCandidateReceipt(t)
 		candidateHash2, err := candidateReceipt2.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
-
 		validVote1, invalidVote1 := ts.generateOpposingVotesPair(t,
 			3,
 			1,
@@ -779,126 +963,86 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			BackingVote,
 		)
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt1,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote1,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote1,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote1,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{})
 
-		// Participation has to fail here, otherwise the dispute will be confirmed. However
+		// Participation has to fail here, otherwise the dispute will be confirmed. However,
 		// participation won't happen at all because the dispute is neither backed, not
 		// confirmed nor the candidate is included. Or in other words - we'll refrain from
 		// participation.
-		disputesMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
-		require.NoError(t, err)
-
-		activeDisputes, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 1, activeDisputes.Len())
+		activeDisputes := ts.getActiveDisputes(t)
 		require.Equal(t, session, activeDisputes.Min().(*disputetypes.Dispute).Comparator.SessionIndex)
 		require.Equal(t, candidateHash1, activeDisputes.Min().(*disputetypes.Dispute).Comparator.CandidateHash)
 
-		request := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash1,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, request, request.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, queryResponse[0].Votes.Valid.Value.Len(), 1)
-		require.Equal(t, queryResponse[0].Votes.Invalid.Len(), 1)
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash1)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, candidateVotes[0].Votes.Valid.Value.Len(), 1)
+		require.Equal(t, candidateVotes[0].Votes.Invalid.Len(), 1)
 
 		// Now we'll try to import a second statement for the same candidate. This should fail
 		// because the candidate is already disputed.
-		done := make(chan bool)
+		wg = sync.WaitGroup{}
+		wg.Add(2)
 		go func() {
+			defer wg.Done()
 			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash2, []overseer.ApprovalSignature{})
-			done <- true
 		}()
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt2,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote2,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote2,
-						ValidatorIndex:         1,
-					},
+		go func() {
+			defer wg.Done()
+			statements = []disputetypes.Statement{
+				{
+					SignedDisputeStatement: validVote2,
+					ValidatorIndex:         3,
 				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, message, message.ResponseChannel)
-		require.NoError(t, err)
-		<-done
-
-		importResult, ok := res.(ImportStatementResult)
-		require.True(t, ok)
-		// Result should be invalid, because it should be considered spam.
-		require.Equal(t, InvalidImport, importResult)
-
-		query := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash2,
-					},
+				{
+					SignedDisputeStatement: invalidVote2,
+					ValidatorIndex:         1,
 				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok = res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 0, len(queryResponse))
-		ts.stopSubsystem(t)
+			}
+			importResult := ts.sendImportStatementsMessage(t, candidateReceipt2, session, statements, make(chan any))
+			require.Equal(t, InvalidImport, importResult)
+		}()
+		wg.Wait()
+
+		candidateVotes = ts.getCandidateVotes(t, session, candidateHash2)
+		require.Equal(t, 0, len(candidateVotes))
+		ts.conclude(t)
 	})
 	t.Run("approval_vote_import_works", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		candidateReceipt1 := getValidCandidateReceipt(t)
 		candidateHash1, err := candidateReceipt1.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
-
 		validVote1, invalidVote1 := ts.generateOpposingVotesPair(t,
 			3,
 			1,
@@ -906,9 +1050,10 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			BackingVote,
 		)
-
-		done := make(chan bool)
+		wg = sync.WaitGroup{}
+		wg.Add(2)
 		go func() {
+			defer wg.Done()
 			approvalVote := ts.issueApprovalVoteWithIndex(t, 4, candidateHash1, session)
 			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{
 				{
@@ -916,86 +1061,73 @@ func TestDisputesCoordinator(t *testing.T) {
 					ValidatorSignature: approvalVote.ValidatorSignature,
 				},
 			})
-			done <- true
 		}()
-
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt1,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote1,
-						ValidatorIndex:         1,
-					},
+		go func() {
+			defer wg.Done()
+			statements := []disputetypes.Statement{
+				{
+					SignedDisputeStatement: validVote1,
+					ValidatorIndex:         3,
 				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		_, err = call(ts.subsystemReceiver, message, message.ResponseChannel)
-		require.NoError(t, err)
+				{
+					SignedDisputeStatement: invalidVote1,
+					ValidatorIndex:         1,
+				},
+			}
+			_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
+		}()
+		wg.Wait()
 
 		// Participation won't happen here because the dispute is neither backed, not confirmed
 		// nor the candidate is included. Or in other words - we'll refrain from participation.
-		disputesMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
-		require.NoError(t, err)
-
-		activeDisputesBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 1, activeDisputesBtree.Len())
-		activeDispute := activeDisputesBtree.Min().(*disputetypes.Dispute)
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+		activeDispute := activeDisputes.Min().(*disputetypes.Dispute)
 		require.Equal(t, session, activeDispute.Comparator.SessionIndex)
 		require.Equal(t, candidateHash1, activeDispute.Comparator.CandidateHash)
 		isActive, err := activeDispute.DisputeStatus.IsActive()
 		require.True(t, isActive)
 
-		request := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash1,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, request, request.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash1)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, candidateVotes[0].Votes.Valid.Value.Len(), 2)
+		require.Equal(t, candidateVotes[0].Votes.Invalid.Len(), 1)
+		_, ok := candidateVotes[0].Votes.Valid.Value.Get(4)
 		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, queryResponse[0].Votes.Valid.Value.Len(), 2)
-		require.Equal(t, queryResponse[0].Votes.Invalid.Len(), 1)
-		_, ok = queryResponse[0].Votes.Valid.Value.Get(4)
-		require.True(t, ok)
-		ts.stopSubsystem(t)
+		ts.conclude(t)
 	})
 	t.Run("dispute_gets_confirmed_via_participation", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt1 := getValidCandidateReceipt(t)
 		candidateHash1, err := candidateReceipt1.Hash()
 		require.NoError(t, err)
 		candidateReceipt2 := getInvalidCandidateReceipt(t)
 		candidateHash2, err := candidateReceipt2.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt1),
 			getCandidateBackedEvent(t, candidateReceipt2),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		validVote1, invalidVote1 := ts.generateOpposingVotesPair(t,
 			3,
@@ -1011,112 +1143,75 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			BackingVote,
 		)
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt1,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote1,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote1,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote1,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{})
-
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash1, candidateReceipt1.CommitmentsHash)
 
 		// after participation
-		disputesMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 1, disputeBtree.Len())
-		dispute := disputeBtree.Min().(*disputetypes.Dispute)
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+		dispute := activeDisputes.Min().(*disputetypes.Dispute)
 		require.Equal(t, session, dispute.Comparator.SessionIndex)
 		require.Equal(t, candidateHash1, dispute.Comparator.CandidateHash)
 		isActive, err := dispute.DisputeStatus.IsActive()
 		require.NoError(t, err)
 		require.True(t, isActive)
 
-		query := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash1,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 1, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash1)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
 
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt2,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote2,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote2,
-						ValidatorIndex:         1,
-					},
-				},
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote2,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote2,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt2, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash2, []overseer.ApprovalSignature{})
 		participationMissingAvailability(t, ts.mockOverseer)
 
-		query = disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash2,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok = res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 1, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 1, queryResponse[0].Votes.Valid.Value.Len())
-		ts.stopSubsystem(t)
+		candidateVotes = ts.getCandidateVotes(t, session, candidateHash2)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 1, candidateVotes[0].Votes.Valid.Value.Len())
+
+		ts.conclude(t)
 	})
 	t.Run("dispute_gets_confirmed_at_byzantine_threshold", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
 
 		candidateReceipt1 := getValidCandidateReceipt(t)
 		candidateHash1, err := candidateReceipt1.Hash()
@@ -1124,9 +1219,6 @@ func TestDisputesCoordinator(t *testing.T) {
 		candidateReceipt2 := getInvalidCandidateReceipt(t)
 		candidateHash2, err := candidateReceipt2.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
-
 		validVote1, invalidVote1 := ts.generateOpposingVotesPair(t,
 			3,
 			1,
@@ -1148,175 +1240,110 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			ExplicitVote,
 		)
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt1,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote1,
-						ValidatorIndex:         1,
-					},
-					{
-						SignedDisputeStatement: validVote1a,
-						ValidatorIndex:         4,
-					},
-					{
-						SignedDisputeStatement: invalidVote1a,
-						ValidatorIndex:         5,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote1,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote1,
+				ValidatorIndex:         1,
+			},
+			{
+				SignedDisputeStatement: validVote1a,
+				ValidatorIndex:         4,
+			},
+			{
+				SignedDisputeStatement: invalidVote1a,
+				ValidatorIndex:         5,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{})
 
 		// Participation won't happen here because the dispute is neither backed, not confirmed
 		// nor the candidate is included. Or in other words - we'll refrain from participation.
-		disputesMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 1, disputeBtree.Len())
-		dispute := disputeBtree.Min().(*disputetypes.Dispute)
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+		dispute := activeDisputes.Min().(*disputetypes.Dispute)
 		require.Equal(t, session, dispute.Comparator.SessionIndex)
 		require.Equal(t, candidateHash1, dispute.Comparator.CandidateHash)
 
-		query := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash1,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
-		require.Equal(t, 2, queryResponse[0].Votes.Invalid.Len())
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash1)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
+		require.Equal(t, 2, candidateVotes[0].Votes.Invalid.Len())
 
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt2,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote2,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote2,
-						ValidatorIndex:         1,
-					},
-				},
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote2,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote2,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt2, session, statements, nil)
 		participationMissingAvailability(t, ts.mockOverseer)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash2, []overseer.ApprovalSignature{})
 
-		query = disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash2,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok = res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 1, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 1, queryResponse[0].Votes.Valid.Value.Len())
-		ts.stopSubsystem(t)
+		candidateVotes = ts.getCandidateVotes(t, session, candidateHash2)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 1, candidateVotes[0].Votes.Valid.Value.Len())
+		ts.conclude(t)
 	})
 	t.Run("backing_statements_import_works_and_no_spam", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
+		sessionEvents := newCandidateEvents(t,
+			getCandidateBackedEvent(t, candidateReceipt),
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
 
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		validVote1 := ts.issueBackingStatementWithIndex(t, 3, candidateHash, session)
 		validVote2 := ts.issueBackingStatementWithIndex(t, 4, candidateHash, session)
-
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: validVote2,
-						ValidatorIndex:         4,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote1,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: validVote2,
+				ValidatorIndex:         4,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 
 		// Just backing votes - we should not have any active disputes now.
-		disputesMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 0, disputeBtree.Len())
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
 
-		query := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 0, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 0, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
 
 		candidateReceipt = getInvalidCandidateReceipt(t)
 		candidateHash, err = candidateReceipt.Hash()
@@ -1325,47 +1352,39 @@ func TestDisputesCoordinator(t *testing.T) {
 		validVote1 = ts.issueBackingStatementWithIndex(t, 3, candidateHash, session)
 		validVote2 = ts.issueBackingStatementWithIndex(t, 4, candidateHash, session)
 
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
-			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		ts.activateLeafAtSession(t, session, 1)
 
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: validVote2,
-						ValidatorIndex:         4,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, message, message.ResponseChannel)
-		require.NoError(t, err)
-		importResult, ok := res.(ImportStatementResult)
-		require.True(t, ok)
+		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
 		require.Equal(t, ValidImport, importResult)
-		ts.stopSubsystem(t)
+		ts.conclude(t)
 	})
 	t.Run("conflicting_votes_lead_to_dispute_participation", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		validVote, invalidVote1 := ts.generateOpposingVotesPair(t,
 			3,
@@ -1375,221 +1394,136 @@ func TestDisputesCoordinator(t *testing.T) {
 			BackingVote,
 		)
 		invalidVote2 := ts.issueExplicitStatementWithIndex(t, 2, candidateHash, session, false)
-
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         3,
-					},
-					{
-						SignedDisputeStatement: invalidVote1,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         3,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote1,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
-
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
 		// after participation
-		disputesMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 1, disputeBtree.Len())
-		dispute := disputeBtree.Min().(*disputetypes.Dispute)
+		activeDisputes := ts.getActiveDisputes(t)
+		dispute := activeDisputes.Min().(*disputetypes.Dispute)
 		require.Equal(t, session, dispute.Comparator.SessionIndex)
 		require.Equal(t, candidateHash, dispute.Comparator.CandidateHash)
 		isActive, err := dispute.DisputeStatus.IsActive()
 		require.NoError(t, err)
 		require.True(t, isActive)
 
-		query := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 1, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
 
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: invalidVote2,
-						ValidatorIndex:         2,
-					},
-				},
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: invalidVote2,
+				ValidatorIndex:         2,
 			},
-			ResponseChannel: nil,
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 
-		query = disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok = res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 2, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
-		ts.stopSubsystem(t)
+		candidateVotes = ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 2, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
+		ts.conclude(t)
 	})
 	t.Run("positive_votes_dont_trigger_participation", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		validVote1 := ts.issueExplicitStatementWithIndex(t, 2, candidateHash, session, true)
 		validVote2 := ts.issueExplicitStatementWithIndex(t, 1, candidateHash, session, true)
-
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote1,
-						ValidatorIndex:         2,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote1,
+				ValidatorIndex:         2,
 			},
-			ResponseChannel: nil,
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 
-		disputeQuery := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputeQuery, disputeQuery.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 0, disputeBtree.Len())
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
 
-		query := disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash,
-					},
-				},
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 0, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 1, candidateVotes[0].Votes.Valid.Value.Len())
+
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote2,
+				ValidatorIndex:         1,
 			},
-			ResponseChannel: make(chan any),
 		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok := res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 0, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 1, queryResponse[0].Votes.Valid.Value.Len())
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote2,
-						ValidatorIndex:         1,
-					},
-				},
-			},
-			ResponseChannel: nil,
-		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		activeDisputes = ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
 
-		disputeQuery = disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, disputeQuery, disputeQuery.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok = res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 0, disputeBtree.Len())
-
-		query = disputetypes.Message[disputetypes.QueryCandidateVotes]{
-			Data: disputetypes.QueryCandidateVotes{
-				Queries: []disputetypes.CandidateVotesMessage{
-					{
-						Session:       session,
-						CandidateHash: candidateHash,
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, query, query.ResponseChannel)
-		require.NoError(t, err)
-		queryResponse, ok = res.([]disputetypes.QueryCandidateVotesResponse)
-		require.True(t, ok)
-		require.Equal(t, 1, len(queryResponse))
-		require.Equal(t, 0, queryResponse[0].Votes.Invalid.Len())
-		require.Equal(t, 2, queryResponse[0].Votes.Valid.Value.Len())
-		ts.stopSubsystem(t)
+		candidateVotes = ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 0, candidateVotes[0].Votes.Invalid.Len())
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
+		ts.conclude(t)
 	})
 	t.Run("wrong_validator_index_is_ignored", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
-
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -1598,49 +1532,49 @@ func TestDisputesCoordinator(t *testing.T) {
 			ExplicitVote,
 		)
 
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         1,
-					},
-					{
-						SignedDisputeStatement: invalidVote,
-						ValidatorIndex:         2,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         1,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         2,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 
-		disputeQuery := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, disputeQuery, disputeQuery.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 0, disputeBtree.Len())
-		ts.stopSubsystem(t)
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
+		ts.conclude(t)
 	})
 	t.Run("finality_votes_ignore_disputed_candidates", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
@@ -1649,106 +1583,94 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			ExplicitVote,
 		)
-
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         2,
-					},
-					{
-						SignedDisputeStatement: invalidVote,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         2,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
-		baseBlock := bytes.Repeat([]byte{0x0f}, 32)
+		baseBlockHash := bytes.Repeat([]byte{0x0f}, 32)
 		blockHashA := bytes.Repeat([]byte{0x0a}, 32)
 		blockHashB := bytes.Repeat([]byte{0x0b}, 32)
 
-		chainMessage := disputetypes.Message[disputetypes.DetermineUndisputedChainMessage]{
-			Data: disputetypes.DetermineUndisputedChainMessage{
-				Base: overseer.Block{
-					Number: 10,
-					Hash:   common.Hash(baseBlock),
-				},
-				BlockDescriptions: []disputetypes.BlockDescription{
+		baseBlock := overseer.Block{
+			Number: 10,
+			Hash:   common.Hash(baseBlockHash),
+		}
+		blockDescriptions := []disputetypes.BlockDescription{
+			{
+				BlockHash: common.Hash(blockHashA),
+				Session:   session,
+				Candidates: []parachaintypes.CandidateHash{
 					{
-						BlockHash: common.Hash(blockHashA),
-						Session:   session,
-						Candidates: []parachaintypes.CandidateHash{
-							{
-								candidateHash,
-							},
-						},
+						candidateHash,
 					},
 				},
 			},
-			ResponseChannel: make(chan any),
 		}
-		res, err := call(ts.subsystemReceiver, chainMessage, chainMessage.ResponseChannel)
-		require.NoError(t, err)
-		chainResponse, ok := res.(disputetypes.DetermineUndisputedChainResponse)
-		require.True(t, ok)
-		require.Equal(t, uint32(10), chainResponse.Block.Number)
-		require.Equal(t, common.Hash(baseBlock), chainResponse.Block.Hash)
+		response := ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
+		require.Equal(t, uint32(10), response.Block.Number)
+		require.Equal(t, common.Hash(baseBlockHash), response.Block.Hash)
 
-		chainMessage = disputetypes.Message[disputetypes.DetermineUndisputedChainMessage]{
-			Data: disputetypes.DetermineUndisputedChainMessage{
-				Base: overseer.Block{
-					Number: 10,
-					Hash:   common.Hash(baseBlock),
-				},
-				BlockDescriptions: []disputetypes.BlockDescription{
-					{
-						BlockHash:  common.Hash(blockHashA),
-						Session:    session,
-						Candidates: []parachaintypes.CandidateHash{},
-					},
-					{
-						BlockHash:  common.Hash(blockHashB),
-						Session:    session,
-						Candidates: []parachaintypes.CandidateHash{{candidateHash}},
-					},
-				},
+		baseBlock = overseer.Block{
+			Number: 10,
+			Hash:   common.Hash(baseBlockHash),
+		}
+		blockDescriptions = []disputetypes.BlockDescription{
+			{
+				BlockHash:  common.Hash(blockHashA),
+				Session:    session,
+				Candidates: []parachaintypes.CandidateHash{},
 			},
-			ResponseChannel: make(chan any),
+			{
+				BlockHash:  common.Hash(blockHashB),
+				Session:    session,
+				Candidates: []parachaintypes.CandidateHash{{candidateHash}},
+			},
 		}
-		res, err = call(ts.subsystemReceiver, chainMessage, chainMessage.ResponseChannel)
-		require.NoError(t, err)
-
-		chainResponse, ok = res.(disputetypes.DetermineUndisputedChainResponse)
-		require.True(t, ok)
-		require.NoError(t, chainResponse.Err)
-		require.Equal(t, uint32(11), chainResponse.Block.Number)
-		require.Equal(t, common.Hash(blockHashA), chainResponse.Block.Hash)
-		ts.stopSubsystem(t)
+		response = ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
+		require.NoError(t, response.Err)
+		require.Equal(t, uint32(11), response.Block.Number)
+		require.Equal(t, common.Hash(blockHashA), response.Block.Hash)
+		ts.conclude(t)
 	})
 
-	// supermajority checks
+	//// supermajority checks
 	t.Run("supermajority_valid_dispute_may_be_finalized", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
@@ -1758,30 +1680,21 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			ExplicitVote,
 		)
-
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         2,
-					},
-					{
-						SignedDisputeStatement: invalidVote,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         2,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
-		var statements []disputetypes.Statement
+		statements = []disputetypes.Statement{}
 		for i := 0; i < superMajorityThreshold-1; i++ {
 			validatorIndex := parachaintypes.ValidatorIndex(i + 3)
 			vote := ts.issueExplicitStatementWithIndex(t, validatorIndex, candidateHash, session, true)
@@ -1790,89 +1703,78 @@ func TestDisputesCoordinator(t *testing.T) {
 				ValidatorIndex:         validatorIndex,
 			})
 		}
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements:       statements,
-			},
-			ResponseChannel: nil,
-		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
 		blockHash := bytes.Repeat([]byte{0x0f}, 32)
 		blockHashA := bytes.Repeat([]byte{0x0a}, 32)
 		blockHashB := bytes.Repeat([]byte{0x0b}, 32)
 
-		chainMessage := disputetypes.Message[disputetypes.DetermineUndisputedChainMessage]{
-			Data: disputetypes.DetermineUndisputedChainMessage{
-				Base: overseer.Block{
-					Number: 10,
-					Hash:   common.Hash(blockHash),
-				},
-				BlockDescriptions: []disputetypes.BlockDescription{
-					{
-						BlockHash:  common.Hash(blockHashA),
-						Session:    session,
-						Candidates: []parachaintypes.CandidateHash{{candidateHash}},
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
+		baseBlock := overseer.Block{
+			Number: 10,
+			Hash:   common.Hash(blockHash),
 		}
-		res, err := call(ts.subsystemReceiver, chainMessage, chainMessage.ResponseChannel)
-		require.NoError(t, err)
-		chainResponse, ok := res.(disputetypes.DetermineUndisputedChainResponse)
-		require.True(t, ok)
-		require.NoError(t, chainResponse.Err)
-		require.Equal(t, uint32(11), chainResponse.Block.Number)
-		require.Equal(t, common.Hash(blockHashA), chainResponse.Block.Hash)
+		blockDescriptions := []disputetypes.BlockDescription{
+			{
+				BlockHash:  common.Hash(blockHashA),
+				Session:    session,
+				Candidates: []parachaintypes.CandidateHash{{candidateHash}},
+			},
+		}
+		response := ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
+		require.NoError(t, response.Err)
+		require.Equal(t, uint32(11), response.Block.Number)
+		require.Equal(t, common.Hash(blockHashA), response.Block.Hash)
 
-		chainMessage = disputetypes.Message[disputetypes.DetermineUndisputedChainMessage]{
-			Data: disputetypes.DetermineUndisputedChainMessage{
-				Base: overseer.Block{
-					Number: 10,
-					Hash:   common.Hash(blockHash),
-				},
-				BlockDescriptions: []disputetypes.BlockDescription{
-					{
-						BlockHash:  common.Hash(blockHashA),
-						Session:    session,
-						Candidates: []parachaintypes.CandidateHash{{}},
-					},
-					{
-						BlockHash:  common.Hash(blockHashB),
-						Session:    session,
-						Candidates: []parachaintypes.CandidateHash{{candidateHash}},
-					},
-				},
-			},
-			ResponseChannel: make(chan any),
+		baseBlock = overseer.Block{
+			Number: 10,
+			Hash:   common.Hash(blockHash),
 		}
-		res, err = call(ts.subsystemReceiver, chainMessage, chainMessage.ResponseChannel)
-		require.NoError(t, err)
-		chainResponse, ok = res.(disputetypes.DetermineUndisputedChainResponse)
-		require.True(t, ok)
-		require.NoError(t, chainResponse.Err)
-		require.Equal(t, uint32(12), chainResponse.Block.Number)
-		require.Equal(t, common.Hash(blockHashB), chainResponse.Block.Hash)
-		ts.stopSubsystem(t)
+		blockDescriptions = []disputetypes.BlockDescription{
+			{
+				BlockHash:  common.Hash(blockHashA),
+				Session:    session,
+				Candidates: []parachaintypes.CandidateHash{{}},
+			},
+			{
+				BlockHash:  common.Hash(blockHashB),
+				Session:    session,
+				Candidates: []parachaintypes.CandidateHash{{candidateHash}},
+			},
+		}
+		response = ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
+		require.NoError(t, response.Err)
+		require.Equal(t, uint32(12), response.Block.Number)
+		require.Equal(t, common.Hash(blockHashB), response.Block.Hash)
+		ts.conclude(t)
 	})
 	t.Run("concluded_supermajority_for_non_active_after_time", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
@@ -1882,29 +1784,21 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			ExplicitVote,
 		)
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         2,
-					},
-					{
-						SignedDisputeStatement: invalidVote,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         2,
 			},
-			ResponseChannel: nil,
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         1,
+			},
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
-		var statements []disputetypes.Statement
+		statements = []disputetypes.Statement{}
 		for i := 0; i < superMajorityThreshold-2; i++ {
 			validatorIndex := parachaintypes.ValidatorIndex(i + 3)
 			vote := ts.issueExplicitStatementWithIndex(t, validatorIndex, candidateHash, session, true)
@@ -1913,55 +1807,46 @@ func TestDisputesCoordinator(t *testing.T) {
 				ValidatorIndex:         validatorIndex,
 			})
 		}
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements:       statements,
-			},
-			ResponseChannel: nil,
-		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
 		t.Logf("waiting for the dispute to conclude")
 		time.Sleep(ActiveDuration + 1*time.Second)
 
-		activeDisputeMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err := call(ts.subsystemReceiver, activeDisputeMessage, activeDisputeMessage.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 0, disputeBtree.Len())
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
 
-		recentDisputesMessage := disputetypes.Message[disputetypes.RecentDisputesMessage]{
-			Data:            disputetypes.RecentDisputesMessage{},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, recentDisputesMessage, recentDisputesMessage.ResponseChannel)
-		require.NoError(t, err)
-		recentDisputes, ok := res.(scale.BTree)
-		require.True(t, ok)
+		recentDisputes := ts.getRecentDisputes(t)
 		require.Equal(t, 1, recentDisputes.Len())
-		ts.stopSubsystem(t)
+		ts.conclude(t)
 	})
 	t.Run("concluded_supermajority_against_non_active_after_time", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
+		initialised := false
+		restarted := false
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
+		sessionEvents := newCandidateEvents(t,
 			getCandidateBackedEvent(t, candidateReceipt),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
@@ -1972,40 +1857,31 @@ func TestDisputesCoordinator(t *testing.T) {
 			ExplicitVote,
 		)
 
-		done := make(chan bool)
+		wg = sync.WaitGroup{}
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 			// Use a different expected commitments hash to ensure the candidate validation returns
 			// invalid.
 			dummyHash := common.Hash{0x01}
 			handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, dummyHash)
-			done <- true
 		}()
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         2,
-					},
-					{
-						SignedDisputeStatement: invalidVote,
-						ValidatorIndex:         1,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         2,
 			},
-			ResponseChannel: make(chan any),
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         1,
+			},
 		}
-		res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
-		require.NoError(t, err)
-		importResult, ok := res.(ImportStatementResult)
-		require.True(t, ok)
+		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
 		require.Equal(t, ValidImport, importResult)
-		<-done
+		wg.Wait()
 
-		var statements []disputetypes.Statement
+		statements = []disputetypes.Statement{}
 		// minus 2, because of local vote and one previously imported invalid vote.
 		for i := 0; i < superMajorityThreshold-2; i++ {
 			validatorIndex := parachaintypes.ValidatorIndex(i + 3)
@@ -2015,52 +1891,287 @@ func TestDisputesCoordinator(t *testing.T) {
 				ValidatorIndex:         validatorIndex,
 			})
 		}
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements:       statements,
-			},
-			ResponseChannel: nil,
-		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
 		t.Logf("waiting for the dispute to conclude")
 		time.Sleep(ActiveDuration + 1*time.Second)
 
-		activeDisputeMessage := disputetypes.Message[disputetypes.ActiveDisputes]{
-			Data:            disputetypes.ActiveDisputes{},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, activeDisputeMessage, activeDisputeMessage.ResponseChannel)
-		require.NoError(t, err)
-		disputeBtree, ok := res.(scale.BTree)
-		require.True(t, ok)
-		require.Equal(t, 0, disputeBtree.Len())
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
 
-		recentDisputesMessage := disputetypes.Message[disputetypes.RecentDisputesMessage]{
-			Data:            disputetypes.RecentDisputesMessage{},
-			ResponseChannel: make(chan any),
-		}
-		res, err = call(ts.subsystemReceiver, recentDisputesMessage, recentDisputesMessage.ResponseChannel)
-		require.NoError(t, err)
-		recentDisputes, ok := res.(scale.BTree)
-		require.True(t, ok)
+		recentDisputes := ts.getRecentDisputes(t)
 		require.Equal(t, 1, recentDisputes.Len())
-		ts.stopSubsystem(t)
+		ts.conclude(t)
 	})
 
-	// TODO: restart tests
+	// restart tests
 	t.Run("resume_dispute_without_local_statement", func(t *testing.T) {
-		// TODO: need to implement the restart functionality
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		resumeEvents := newCandidateEvents(t,
+			getCandidateBackedEvent(t, candidateReceipt),
+		)
+		ts.mockRuntimeCalls(t, session, nil, nil, &resumeEvents, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			1,
+			2,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         1,
+			},
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         2,
+			},
+		}
+		wg = sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		}()
+		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+		require.Equal(t, ValidImport, importResult)
+		wg.Wait()
+
+		// should refrain from participation
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+		ts.conclude(t)
+
+		//time.Sleep(5 * time.Second)
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.resume(t)
+		}()
+		go func() {
+			defer wg.Done()
+			disputeMessages := ts.mockResumeSync(t, &session)
+			require.Nil(t, disputeMessages)
+		}()
+		wg.Wait()
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
+			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		}()
+		go func() {
+			defer wg.Done()
+			var statements []disputetypes.Statement
+			for i := 3; i <= 7; i++ {
+				vote := ts.issueExplicitStatementWithIndex(t, parachaintypes.ValidatorIndex(i), candidateHash, session, true)
+				statements = append(statements, disputetypes.Statement{
+					SignedDisputeStatement: vote,
+					ValidatorIndex:         parachaintypes.ValidatorIndex(i),
+				})
+			}
+
+			_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+		}()
+		wg.Wait()
+		ts.conclude(t)
 	})
 	t.Run("resume_dispute_with_local_statement", func(t *testing.T) {
-		// TODO: need to implement the restart functionality
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		sessionEvents, err := parachaintypes.NewCandidateEvents()
+		require.NoError(t, err)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		localValidVote := ts.issueExplicitStatementWithIndex(t, 0, candidateHash, session, true)
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			1,
+			2,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		wg = sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		}()
+		go func() {
+			defer wg.Done()
+			statements := []disputetypes.Statement{
+				{
+					SignedDisputeStatement: localValidVote,
+					ValidatorIndex:         0,
+				},
+				{
+					SignedDisputeStatement: validVote,
+					ValidatorIndex:         1,
+				},
+				{
+					SignedDisputeStatement: invalidVote,
+					ValidatorIndex:         2,
+				},
+			}
+			importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+			require.Equal(t, ValidImport, importResult)
+		}()
+		wg.Wait()
+
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+		ts.conclude(t)
+
+		time.Sleep(5 * time.Second)
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.resume(t)
+		}()
+		go func() {
+			defer wg.Done()
+			sessionEvents = newCandidateEvents(t,
+				getCandidateBackedEvent(t, candidateReceipt),
+			)
+			disputeMessages := ts.mockResumeSync(t, &session)
+			require.NotNil(t, disputeMessages)
+			require.Equal(t, 1, len(disputeMessages))
+		}()
+		wg.Wait()
+		ts.conclude(t)
 	})
 	t.Run("resume_dispute_without_local_statement_or_local_key", func(t *testing.T) {
-		// TODO: need to implement the restart functionality
+		t.Parallel()
+		ts := newTestState(t)
+
+		subsystemKeyStore := keystore.NewBasicKeystore("overseer", crypto.Sr25519Type)
+		pair4, err := sr25519.NewKeypairFromSeed(
+			common.MustHexToBytes("0x1581798c69bade2b05f27852d63237eee80e2918a13a3a8b7b08863478b32076"),
+		)
+		require.NoError(t, err)
+		err = subsystemKeyStore.Insert(pair4)
+		require.NoError(t, err)
+		ts.subsystemKeystore = subsystemKeyStore
+		session := parachaintypes.SessionIndex(1)
+		wg := sync.WaitGroup{}
+		initialised := false
+		restarted := false
+		sessionEvents := newCandidateEvents(t,
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		)
+		require.NoError(t, err)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.resume(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			1,
+			2,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		wg = sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		}()
+		go func() {
+			defer wg.Done()
+			statements := []disputetypes.Statement{
+				{
+					SignedDisputeStatement: validVote,
+					ValidatorIndex:         1,
+				},
+				{
+					SignedDisputeStatement: invalidVote,
+					ValidatorIndex:         2,
+				},
+			}
+			importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+			require.Equal(t, ValidImport, importResult)
+		}()
+		wg.Wait()
+
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+		ts.awaitConclude(t)
+		ts.conclude(t)
+
+		time.Sleep(5 * time.Second)
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.resume(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		ts.awaitConclude(t)
+		ts.conclude(t)
 	})
 
 	// Session info tests
@@ -2069,21 +2180,68 @@ func TestDisputesCoordinator(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-		ts.stopSubsystem(t)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			//time.Sleep(1 * time.Second)
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		ts.conclude(t)
 	})
 	t.Run("session_info_caching_doesnt_underflow", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(Window + 1)
-		ts.run(t, &session)
-		ts.stopSubsystem(t)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		ts.conclude(t)
 	})
 	t.Run("session_info_is_requested_only_once", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		sessionEvents := newCandidateEvents(t,
+			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		initialised = true
 
 		ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
@@ -2091,26 +2249,36 @@ func TestDisputesCoordinator(t *testing.T) {
 				return ts.sessionInfo(), nil
 			}).Times(1)
 
-		ts.activateLeafAtSession(t, session, 3, []parachaintypes.CandidateEventVDT{
-			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
-		})
-		ts.activateLeafAtSession(t, session+1, 4, []parachaintypes.CandidateEventVDT{
-			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
-		})
-		ts.stopSubsystem(t)
+		ts.activateLeafAtSession(t, session, 3)
+		ts.activateLeafAtSession(t, session+1, 4)
+		ts.conclude(t)
 	})
 	t.Run("session_info_big_jump_works", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
-		ts.activateLeafAtSession(t, session, 3, []parachaintypes.CandidateEventVDT{
+		initialised := false
+		restarted := false
+		sessionEvents := newCandidateEvents(t,
 			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 3)
 
 		sessionAfterJump := session + parachaintypes.SessionIndex(Window) + 10
-
 		firstExpectedSession := saturatingSub(uint32(sessionAfterJump), uint32(Window-1))
 		go func() {
 			times := uint32(sessionAfterJump) - firstExpectedSession + 1
@@ -2125,21 +2293,35 @@ func TestDisputesCoordinator(t *testing.T) {
 					return ts.sessionInfo(), nil
 				}).Times(int(times))
 		}()
-		ts.activateLeafAtSession(t, sessionAfterJump, 4, []parachaintypes.CandidateEventVDT{
-			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
-		})
+		ts.activateLeafAtSession(t, sessionAfterJump, 4)
 		time.Sleep(2 * time.Second)
-		ts.stopSubsystem(t)
+		ts.conclude(t)
 	})
 	t.Run("session_info_small_jump_works", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
-
-		ts.activateLeafAtSession(t, session, 3, []parachaintypes.CandidateEventVDT{
+		initialised := false
+		restarted := false
+		sessionEvents := newCandidateEvents(t,
 			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
-		})
+		)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		initialised = true
+
+		ts.activateLeafAtSession(t, session, 3)
 
 		sessionAfterJump := session + Window - 1
 		firstExpectedSession := session + 1
@@ -2156,12 +2338,10 @@ func TestDisputesCoordinator(t *testing.T) {
 					return ts.sessionInfo(), nil
 				}).Times(int(times))
 		}()
-		ts.activateLeafAtSession(t, sessionAfterJump, 4, []parachaintypes.CandidateEventVDT{
-			getCandidateIncludedEvent(t, getValidCandidateReceipt(t)),
-		})
+		ts.activateLeafAtSession(t, sessionAfterJump, 4)
 
 		time.Sleep(2 * time.Second)
-		ts.stopSubsystem(t)
+		ts.conclude(t)
 	})
 
 	// LocalStatement
@@ -2176,35 +2356,41 @@ func TestDisputesCoordinator(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
 
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
-
-		statement := ts.issueApprovalVoteWithIndex(t, 1, candidateHash, session)
-		message := disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: statement,
-						ValidatorIndex:         0,
-					},
-				},
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: ts.issueApprovalVoteWithIndex(t, 1, candidateHash, session),
+				ValidatorIndex:         0,
 			},
-			ResponseChannel: nil,
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
-		require.NoError(t, err)
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
 
-		done := make(chan bool)
+		wg = sync.WaitGroup{}
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
-			done <- true
 		}()
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
@@ -2213,43 +2399,46 @@ func TestDisputesCoordinator(t *testing.T) {
 			session,
 			ExplicitVote,
 		)
-		message = disputetypes.Message[disputetypes.ImportStatements]{
-			Data: disputetypes.ImportStatements{
-				CandidateReceipt: candidateReceipt,
-				Session:          session,
-				Statements: []disputetypes.Statement{
-					{
-						SignedDisputeStatement: invalidVote,
-						ValidatorIndex:         1,
-					},
-					{
-						SignedDisputeStatement: validVote,
-						ValidatorIndex:         2,
-					},
-				},
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         1,
 			},
-			ResponseChannel: make(chan any),
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         2,
+			},
 		}
-		res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
-		require.NoError(t, err)
-		importResult, ok := res.(ImportStatementResult)
-		require.True(t, ok)
+		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
 		require.Equal(t, ValidImport, importResult)
-		<-done
-		ts.stopSubsystem(t)
+		wg.Wait()
+		ts.conclude(t)
 	})
 	t.Run("negative_issue_local_statement_only_triggers_import", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
 		session := parachaintypes.SessionIndex(1)
-		ts.run(t, &session)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
 
 		candidateReceipt := getValidCandidateReceipt(t)
 		candidateHash, err := candidateReceipt.Hash()
 		require.NoError(t, err)
-
-		ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{})
-
 		message := disputetypes.Message[disputetypes.IssueLocalStatementMessage]{
 			Data: disputetypes.IssueLocalStatementMessage{
 				Session:          session,
@@ -2263,8 +2452,348 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.NoError(t, err)
 
 		// ensure no participations
+		ts.awaitConclude(t)
+		ts.conclude(t)
+
+		votes, err := ts.db.GetCandidateVotes(session, candidateHash)
+		require.NoError(t, err)
+		require.Equal(t, 0, votes.Valid.Value.Len())
+		require.Equal(t, 1, votes.Invalid.Len())
+	})
+	t.Run("redundant_votes_ignored", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t,
+			session,
+			nil,
+			nil,
+			nil,
+			&initialised,
+			&restarted,
+		)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		validVote1 := ts.issueBackingStatementWithIndex(t, 1, candidateHash, session)
+		validVote2 := ts.issueBackingStatementWithIndex(t, 1, candidateHash, session)
+		require.NotEqual(t, validVote1.ValidatorSignature, validVote2.ValidatorSignature)
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote1,
+				ValidatorIndex:         1,
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote2,
+				ValidatorIndex:         1,
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+		ts.conclude(t)
+
+		votes, err := ts.db.GetCandidateVotes(session, candidateHash)
+		require.NoError(t, err)
+		require.Equal(t, 1, votes.Valid.Value.Len())
+		require.Equal(t, 0, votes.Invalid.Len())
+		_, vote, ok := votes.Valid.Value.Min()
+		require.True(t, ok)
+		actualSignature := parachaintypes.ValidatorSignature(vote.ValidatorSignature)
+		require.Equal(t, validVote1.ValidatorSignature, actualSignature)
+	})
+	t.Run("no_onesided_disputes", func(t *testing.T) {
+		// Make sure no disputes are recorded when there are no opposing votes, even if we reached supermajority.
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		wg := sync.WaitGroup{}
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t,
+			session,
+			nil,
+			nil,
+			nil,
+			&initialised,
+			&restarted,
+		)
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		var statements []disputetypes.Statement
+		for i := 0; i < 10; i++ {
+			validatorIndex := parachaintypes.ValidatorIndex(i)
+			vote := ts.issueBackingStatementWithIndex(t, validatorIndex, candidateHash, session)
+			statements = append(statements, disputetypes.Statement{
+				SignedDisputeStatement: vote,
+				ValidatorIndex:         validatorIndex,
+			})
+		}
+		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+		require.Equal(t, ValidImport, importResult)
+
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 0, activeDisputes.Len())
+		ts.conclude(t)
+	})
+	t.Run("refrain_from_participation", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t,
+			session,
+			nil,
+			nil,
+			nil,
+			&initialised,
+			&restarted,
+		)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			1,
+			2,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         1,
+			},
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         2,
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, candidateVotes[0].Votes.Valid.Value.Len())
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+
+		ts.activateLeafAtSession(t, session, 2)
+		ts.awaitConclude(t)
+		ts.conclude(t)
+	})
+	t.Run("participation_for_included_candidates", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		sessionEvents := newCandidateEvents(t,
+			getCandidateIncludedEvent(t, candidateReceipt),
+		)
+		ts.mockRuntimeCalls(t,
+			session,
+			nil,
+			&sessionEvents,
+			nil,
+			&initialised,
+			&restarted,
+		)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			1,
+			2,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         1,
+			},
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         2,
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
+
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 2, candidateVotes[0].Votes.Valid.Value.Len())
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+
+		ts.conclude(t)
+	})
+	t.Run("local_participation_in_dispute_for_backed_candidate", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		sessionEvents, err := parachaintypes.NewCandidateEvents()
+		require.NoError(t, err)
+		ts.mockRuntimeCalls(t,
+			session,
+			nil,
+			&sessionEvents,
+			nil,
+			&initialised,
+			&restarted,
+		)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			1,
+			2,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         1,
+			},
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         2,
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 		time.Sleep(2 * time.Second)
-		ts.stopSubsystem(t)
+
+		sessionEvents = newCandidateEvents(t,
+			getCandidateBackedEvent(t, candidateReceipt),
+		)
+		ts.activateLeafAtSession(t, session, 1)
+
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: ts.issueBackingStatementWithIndex(t, 3, candidateHash, session),
+				ValidatorIndex:         3,
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
+
+		activeDisputes := ts.getActiveDisputes(t)
+		require.Equal(t, 1, activeDisputes.Len())
+
+		candidateVotes := ts.getCandidateVotes(t, session, candidateHash)
+		require.Equal(t, 1, len(candidateVotes))
+		require.Equal(t, 3, candidateVotes[0].Votes.Valid.Value.Len())
+		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
+	})
+	// TODO: tests
+	t.Run("participation_requests_reprioritized_for_newly_included", func(t *testing.T) {
+		//t.Parallel()
+		//ts := newTestState(t)
+		//session := parachaintypes.SessionIndex(1)
+		//wg := sync.WaitGroup{}
+		//wg.Add(2)
+		//go func() {
+		//	defer wg.Done()
+		//	ts.mockResumeSync(t, &session)
+		//}()
+		//go func() {
+		//	defer wg.Done()
+		//	ts.run(t)
+		//}()
+		//wg.Wait()
+	})
+	t.Run("informs_chain_selection_when_dispute_concluded_against", func(t *testing.T) {
+
 	})
 }
 
@@ -2272,34 +2801,35 @@ func issueLocalStatementTest(t *testing.T, valid bool) {
 	t.Parallel()
 	ts := newTestState(t)
 	session := parachaintypes.SessionIndex(1)
-	ts.run(t, &session)
-
+	initialised := false
+	restarted := false
 	candidateReceipt := getValidCandidateReceipt(t)
 	candidateHash, err := candidateReceipt.Hash()
 	require.NoError(t, err)
+	ts.mockRuntimeCalls(t, session, nil, nil, nil, &initialised, &restarted)
 
-	ts.activateLeafAtSession(t, session, 1, []parachaintypes.CandidateEventVDT{
-		getCandidateBackedEvent(t, candidateReceipt),
-	})
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		ts.run(t)
+	}()
+	go func() {
+		defer wg.Done()
+		ts.mockResumeSync(t, &session)
+	}()
+	wg.Wait()
+	initialised = true
+	ts.activateLeafAtSession(t, session, 1)
 
 	otherVote := ts.issueExplicitStatementWithIndex(t, 1, candidateHash, session, !valid)
-	message := disputetypes.Message[disputetypes.ImportStatements]{
-		Data: disputetypes.ImportStatements{
-			CandidateReceipt: candidateReceipt,
-			Session:          session,
-			Statements: []disputetypes.Statement{
-				{
-					SignedDisputeStatement: otherVote,
-					ValidatorIndex:         1,
-				},
-			},
+	statements := []disputetypes.Statement{
+		{
+			SignedDisputeStatement: otherVote,
+			ValidatorIndex:         1,
 		},
-		ResponseChannel: make(chan any),
 	}
-	res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
-	require.NoError(t, err)
-	importResult, ok := res.(ImportStatementResult)
-	require.True(t, ok)
+	importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
 	require.Equal(t, ValidImport, importResult)
 
 	// initiate dispute
@@ -2337,6 +2867,6 @@ func issueLocalStatementTest(t *testing.T, valid bool) {
 	handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
 
 	// ensure no participations
-	time.Sleep(2 * time.Second)
-	ts.stopSubsystem(t)
+	ts.awaitConclude(t)
+	ts.conclude(t)
 }

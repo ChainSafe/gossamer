@@ -60,8 +60,9 @@ func (i *Initialized) Run(overseerChannel chan<- any, backend DBBackend, initial
 		for {
 			if err := i.runUntilError(overseerChannel, backend, initialData); err == nil {
 				logger.Info("received `Conclude` signal, exiting")
+				break
 			} else {
-				logger.Errorf("error in dispute coordinator, restarting", "error", err)
+				logger.Errorf("error in dispute coordinator, restarting: %v", err)
 			}
 		}
 	}()
@@ -578,7 +579,7 @@ func (i *Initialized) HandleIncoming(
 			return nil, fmt.Errorf("send undisputed chain: %w", err)
 		}
 	default:
-		return nil, fmt.Errorf("unknown dispute coordinator message")
+		return nil, fmt.Errorf("unknown dispute coordinator message type %T", msg)
 	}
 
 	return nil, nil
@@ -960,7 +961,8 @@ func (i *Initialized) HandleImportStatements(
 	// TODO: update metrics
 
 	// Only write when votes have changed.
-	if importResult.VotesChanged() {
+	votes := importResult.IntoUpdatedVotes()
+	if votes != nil {
 		if err := backend.SetCandidateVotes(session, candidateHash, &newState.Votes); err != nil {
 			return InvalidImport, fmt.Errorf("set candidate votes: %w", err)
 		}

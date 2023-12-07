@@ -69,9 +69,13 @@ func (cs *ChainScraper) ProcessActiveLeavesUpdate(
 	}
 
 	earliestBlockNumber := update.Activated.Number - uint32(len(ancestors))
-	blockNumbers := make([]uint32, 0, update.Activated.Number-earliestBlockNumber)
-	for i := update.Activated.Number; i >= earliestBlockNumber; i-- {
+	var blockNumbers []uint32
+	for i := update.Activated.Number; ; {
 		blockNumbers = append(blockNumbers, i)
+		if i == earliestBlockNumber {
+			break
+		}
+		i--
 	}
 	blockHashes := append([]common.Hash{update.Activated.Hash}, ancestors...)
 
@@ -197,10 +201,12 @@ func (cs *ChainScraper) GetRelevantBlockAncestors(
 		earliestBlockNumber := saturatingSub(headNumber, uint32(len(hashes)))
 		var blockNumbers []uint32
 		// The reversed order is parent, grandparent, etc. excluding the head.
-		startIndex := int(headNumber - 1)
-		endIndex := int(earliestBlockNumber)
-		for i := startIndex; i >= endIndex; i-- {
-			blockNumbers = append(blockNumbers, uint32(i))
+		for i := headNumber - 1; ; {
+			blockNumbers = append(blockNumbers, i)
+			if i == earliestBlockNumber {
+				break
+			}
+			i--
 		}
 
 		for i, blockNumber := range blockNumbers {
