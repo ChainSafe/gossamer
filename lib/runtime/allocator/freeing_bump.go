@@ -37,7 +37,7 @@ const (
 	MaxPossibleAllocations uint32 = 33554432
 
 	PageSize     = 65536
-	MaxWasmPages = 4 * 1024 * 1024 * 1024 / PageSize
+	MaxWasmPages = (4 * 1024 * 1024 * 1024 / PageSize) - 1
 )
 
 var (

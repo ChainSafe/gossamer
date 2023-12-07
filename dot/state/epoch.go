@@ -242,7 +242,7 @@ func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) erro
 	return s.db.Put(epochDataKey(epoch), enc)
 }
 
-// GetEpochDataRaw returns the epoch data raw for a given epoch persisted in database
+// GetEpochDataRaw returns the raw epoch data for a given epoch persisted in database
 // otherwise will try to get the data from the in-memory map using the header
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error) {
