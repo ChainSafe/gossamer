@@ -1,11 +1,11 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
-
 //go:build integration
 
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -18,13 +18,340 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
 
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
 
-func TestWSConn_HandleConn(t *testing.T) {
+func TestWSConn_HandleConnParallel(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		badRequest             bool
+		msg                    []byte
+		subscriptions          int
+		readErr, initErr       error
+		readErrMsg, initErrMsg string
+		storageAPIset          bool
+		reqID                  float64
+		params                 interface{}
+	}{
+		"test StorageAPI not set": {
+			badRequest: true,
+			msg: []byte(`{"jsonrpc":"2.0",` +
+				`"error":{"code":null,"message":"error StorageAPI not set"},` +
+				`"id":1}` + "\n"),
+			subscriptions: 0,
+			initErr:       errStorageNotSet,
+			initErrMsg:    "error StorageAPI not set",
+			storageAPIset: false,
+			reqID:         1,
+			params:        nil,
+		},
+		"req 1 unexpected type nil": {
+			badRequest:    true,
+			msg:           nil,
+			subscriptions: 0,
+			initErr:       errUnexpectedType,
+			initErrMsg:    "unexpected type: <nil>, expected type []interface{}",
+			storageAPIset: true,
+			reqID:         1,
+			params:        nil,
+		},
+		"req 2": {
+			badRequest:    false,
+			msg:           []byte(`{"jsonrpc":"2.0","result":1,"id":2}` + "\n"),
+			subscriptions: 1,
+			initErr:       nil,
+			initErrMsg:    "",
+			storageAPIset: true,
+			reqID:         2,
+			params:        []interface{}{},
+		},
+		"req 3": {
+			badRequest:    false,
+			msg:           []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n"),
+			subscriptions: 1,
+			initErr:       nil,
+			initErrMsg:    "",
+			storageAPIset: true,
+			reqID:         3,
+			params:        []interface{}{"0x26aa"},
+		},
+		"req 1 unexpected type []int": {
+			badRequest:    true,
+			msg:           nil,
+			subscriptions: 0,
+			initErr:       errUnexpectedType,
+			initErrMsg:    "unexpected type: []int, expected type string, []string, []interface{}",
+			storageAPIset: true,
+			reqID:         1,
+			params:        []interface{}{[]int{123}},
+		},
+		"req 1 unexpected type int": {
+			badRequest:    true,
+			msg:           nil,
+			subscriptions: 0,
+			initErr:       errUnexpectedType,
+			initErrMsg:    "unexpected type: int, expected type string, []string, []interface{}",
+			storageAPIset: true,
+			reqID:         1,
+			params:        []interface{}{123},
+		},
+	}
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			wsconn, c, cancel := setupWSConn(t)
+			wsconn.Subscriptions = make(map[uint32]Listener)
+			if testCase.storageAPIset {
+				wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
+			}
+			defer cancel()
+			go wsconn.HandleConn()
+			time.Sleep(time.Second * 2)
+			res, initErr := wsconn.initStorageChangeListener(testCase.reqID, testCase.params)
+			if testCase.badRequest {
+				require.Nil(t, res)
+			} else {
+				require.NotNil(t, res)
+			}
+			require.Equal(t, len(wsconn.Subscriptions), testCase.subscriptions)
+			require.ErrorIs(t, initErr, testCase.initErr)
+			if testCase.initErr != nil {
+				require.EqualError(t, initErr, testCase.initErrMsg)
+			}
+
+			if testCase.msg != nil {
+				_, msg, readErr := c.ReadMessage()
+				require.NoError(t, readErr)
+				require.Equal(t, testCase.msg, msg)
+			}
+
+		})
+	}
+}
+
+func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
+	t.Parallel()
+	type Case struct {
+		reqID         float64
+		params        []interface{}
+		response      []byte
+		subscriptions int
+	}
+	testCases := map[string]struct {
+		requests []*Case
+	}{
+		"test case with 1 request": {
+			requests: []*Case{
+				{reqID: 1, params: []interface{}{"0x26aa"}, subscriptions: 1, response: []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n")},
+			},
+		},
+		"test case with 2 requests": {
+			requests: []*Case{
+				{reqID: 1, params: []interface{}{"0x26aa"}, subscriptions: 1, response: []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n")},
+				{reqID: 2, params: []interface{}{"0x26ab"}, subscriptions: 2, response: []byte(`{"jsonrpc":"2.0","result":2,"id":2}` + "\n")},
+			},
+		},
+		"test case with 4 requests 1 bad": {
+			requests: []*Case{
+				{reqID: 1, params: []interface{}{"0x26aa"}, subscriptions: 1, response: []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n")},
+				{reqID: 2, params: []interface{}{"0x26ab"}, subscriptions: 2, response: []byte(`{"jsonrpc":"2.0","result":2,"id":2}` + "\n")},
+				{reqID: 3, params: []interface{}{[]int{123}}, subscriptions: 2, response: nil},
+				{reqID: 4, params: []interface{}{"0x26aa"}, subscriptions: 3, response: []byte(`{"jsonrpc":"2.0","result":3,"id":4}` + "\n")},
+			},
+		},
+	}
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			wsconn, c, cancel := setupWSConn(t)
+			wsconn.Subscriptions = make(map[uint32]Listener)
+			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
+			defer cancel()
+			go wsconn.HandleConn()
+			time.Sleep(time.Second * 2)
+			for _, v := range testCase.requests {
+				res, err := wsconn.initStorageChangeListener(v.reqID, v.params)
+				// bad request
+				if v.response == nil {
+					require.Nil(t, res)
+					require.Error(t, err)
+				} else {
+					require.NotNil(t, res)
+					require.NoError(t, err)
+				}
+				require.Len(t, wsconn.Subscriptions, v.subscriptions)
+				_, msg, err := c.ReadMessage()
+				require.NoError(t, err)
+				require.Equal(t, v.response, msg)
+			}
+		})
+	}
+}
+
+func TestWSCon_WriteMessage(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		request []byte
+		respErr error
+		resp    []byte
+	}{
+		"state_subscribeStorage request": {
+			request: []byte(`{
+    		"jsonrpc": "2.0",
+			"method": "state_subscribeStorage",
+    		"params": ["` +
+				`0x26aa394eea5630e07c48ae0c9558c` +
+				`ef7b99d880ec681799c0cf30e888637` +
+				`1da9de1e86a9a8c739864cf3cc5ec2b` +
+				`ea59fd43593c715fdd31c61141abd04` +
+				`a99fd6822c8558854ccde39a5684e7a` +
+				`56da27d"],
+			"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","result":1,"id":7}` + "\n"),
+		},
+		"invalid state_unsubscribeStorage request wrong params": {
+			request: []byte(`{
+    					"jsonrpc": "2.0",
+						"method": "state_unsubscribeStorage",
+						"params": "foo",
+						"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}` + "\n"),
+		},
+		"invalid state_unsubscribeStorage request empty params array": {
+			request: []byte(`{
+    					"jsonrpc": "2.0",
+						"method": "state_unsubscribeStorage",
+						"params": "[]",
+						"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}` + "\n"),
+		},
+		"state_unsubscribeStorage request #1 string param": {
+			request: []byte(`{
+    					"jsonrpc": "2.0",
+						"method": "state_unsubscribeStorage",
+						"params": ["6"],
+						"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","result":false,"id":7}` + "\n"),
+		},
+		"state_unsubscribeStorage request #2 string param ": {
+			request: []byte(`{
+    					"jsonrpc": "2.0",
+						"method": "state_unsubscribeStorage",
+						"params": ["4"],
+						"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","result":true,"id":7}` + "\n"),
+		},
+		"state_unsubscribeStorage request #3 int param": {
+			request: []byte(`{
+    					"jsonrpc": "2.0",
+						"method": "state_unsubscribeStorage",
+						"params": [6],
+						"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","result":false,"id":7}` + "\n"),
+		},
+		"state_unsubscribeStorage request #4 int param": {
+			request: []byte(`{
+    					"jsonrpc": "2.0",
+						"method": "state_unsubscribeStorage",
+						"params": [4],
+						"id": 7}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","result":true,"id":7}` + "\n"),
+		},
+		"chain_subscribeNewHeads request": {
+			request: []byte(`{
+							"jsonrpc": "2.0",
+							"method": "chain_subscribeNewHeads",
+							"params": [],
+							"id": 8
+						}`),
+			respErr: nil,
+			resp:    []byte(`{"jsonrpc":"2.0","result":6,"id":8}` + "\n"),
+		},
+	}
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			wsconn, c, cancel := setupWSConn(t)
+			wsconn.Subscriptions = make(map[uint32]Listener)
+			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
+			defer cancel()
+			go wsconn.HandleConn()
+			time.Sleep(time.Second * 2)
+
+			c.WriteMessage(websocket.TextMessage, testCase.request)
+
+			_, msg, err := c.ReadMessage()
+			require.NoError(t, err)
+			require.Equal(t, testCase.resp, msg)
+		})
+	}
+
+}
+
+func TestWSConn_InitBlockListener(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		setBlocAPI bool
+		respErr    error
+		resp       []byte
+	}{
+		"blockAPI not set": {
+			setBlocAPI: false,
+			resp:       []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}` + "\n"),
+			respErr:    errors.New("error BlockAPI not set"),
+		},
+		"blockAPI set": {
+			setBlocAPI: true,
+			resp:       []byte(`{"jsonrpc":"2.0","result":5,"id":1}` + "\n"),
+			respErr:    nil,
+		},
+	}
+
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			wsconn, c, cancel := setupWSConn(t)
+			wsconn.Subscriptions = make(map[uint32]Listener)
+			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
+			defer cancel()
+			go wsconn.HandleConn()
+			time.Sleep(time.Second * 2)
+
+			if testCase.setBlocAPI {
+				wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
+			}
+
+			res, err := wsconn.initBlockListener(1, nil)
+			require.EqualError(t, err, testCase.respErr.Error())
+			require.Nil(t, res)
+			_, msg, err := c.ReadMessage()
+			require.NoError(t, err)
+			require.Equal(t, testCase.resp, msg)
+
+		})
+	}
+}
+
+func TestWSConn_InitBlockFinalizedListener(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	wsconn, c, cancel := setupWSConn(t)
@@ -34,228 +361,126 @@ func TestWSConn_HandleConn(t *testing.T) {
 	go wsconn.HandleConn()
 	time.Sleep(time.Second * 2)
 
-	// test storageChangeListener
-	res, err := wsconn.initStorageChangeListener(1, nil)
-	require.Nil(t, res)
-	require.Len(t, wsconn.Subscriptions, 0)
-	require.EqualError(t, err, "error StorageAPI not set")
-	_, msg, err := c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0",`+
-		`"error":{"code":null,"message":"error StorageAPI not set"},`+
-		`"id":1}`+"\n"), msg)
-
 	wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
 
-	res, err = wsconn.initStorageChangeListener(1, nil)
-	require.Nil(t, res)
-	require.Len(t, wsconn.Subscriptions, 0)
-	require.ErrorIs(t, err, errUnexpectedType)
-	require.EqualError(t, err, "unexpected type: <nil>, expected type []interface{}")
+	wsconn.BlockAPI = nil
 
-	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
-	require.NotNil(t, res)
+	res, err := wsconn.initBlockFinalizedListener(1, nil)
+	require.EqualError(t, err, "error BlockAPI not set")
+	require.Nil(t, res)
+	_, msg, err := c.ReadMessage()
 	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
+
+	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
+
+	res, err = wsconn.initBlockFinalizedListener(1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 1)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":2}`+"\n"), msg)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":1}`+"\n"), msg)
+}
 
-	var testFilter0 = []interface{}{"0x26aa"}
-	res, err = wsconn.initStorageChangeListener(3, testFilter0)
-	require.NotNil(t, res)
-	require.NoError(t, err)
-	require.Len(t, wsconn.Subscriptions, 2)
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":2,"id":3}`+"\n"), msg)
+func TestWSConn_InitExtrinsicWatchTest(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		setBlocAPI bool
+		initErr    error
+		reqID      float64
+		param      []interface{}
+		msg        []byte
+	}{
+		"non hex params": {
+			setBlocAPI: false,
+			initErr:    errors.New("could not byteify non 0x prefixed string: NotHex"),
+			reqID:      0,
+			param:      []interface{}{"NotHex"},
+		},
+		"block API not set": {
+			setBlocAPI: false,
+			initErr:    errors.New("could not byteify non 0x prefixed string: NotHex"),
+			reqID:      0,
+			param:      []interface{}{"NotHex"},
+		},
+		"block API set": {
+			setBlocAPI: true,
+			initErr:    nil,
+			reqID:      0,
+			param:      []interface{}{"0x26aa"},
+			msg:        []byte(`{"jsonrpc":"2.0","result":1,"id":0}` + "\n"),
+		},
+	}
 
-	var testFilter1 = []interface{}{[]interface{}{"0x26aa", "0x26a1"}}
-	res, err = wsconn.initStorageChangeListener(4, testFilter1)
-	require.NoError(t, err)
-	require.NotNil(t, res)
-	require.Len(t, wsconn.Subscriptions, 3)
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":3,"id":4}`+"\n"), msg)
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 
-	var testFilterWrongType = []interface{}{[]int{123}}
-	res, err = wsconn.initStorageChangeListener(5, testFilterWrongType)
-	require.ErrorIs(t, err, errUnexpectedType)
-	require.EqualError(t, err, "unexpected type: []int, expected type string, []string, []interface{}")
-	require.Nil(t, res)
-	// keep subscriptions len == 3, no additions was made
-	require.Len(t, wsconn.Subscriptions, 3)
+			wsconn, c, cancel := setupWSConn(t)
+			wsconn.Subscriptions = make(map[uint32]Listener)
+			defer cancel()
 
-	res, err = wsconn.initStorageChangeListener(6, []interface{}{1})
-	require.ErrorIs(t, err, errUnexpectedType)
-	require.EqualError(t, err, "unexpected type: int, expected type string, []string, []interface{}")
-	require.Nil(t, res)
-	require.Len(t, wsconn.Subscriptions, 3)
+			go wsconn.HandleConn()
+			time.Sleep(time.Second * 2)
 
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_subscribeStorage",
-    "params": ["`+
-		`0x26aa394eea5630e07c48ae0c9558c`+
-		`ef7b99d880ec681799c0cf30e888637`+
-		`1da9de1e86a9a8c739864cf3cc5ec2b`+
-		`ea59fd43593c715fdd31c61141abd04`+
-		`a99fd6822c8558854ccde39a5684e7a`+
-		`56da27d"],
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":4,"id":7}`+"\n"), msg)
+			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
+			wsconn.CoreAPI = modules.NewMockAnyAPI(ctrl)
+			if testCase.setBlocAPI {
+				wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
+				transactionStateAPI := NewMockTransactionStateAPI(ctrl)
+				transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).Times(1)
+				wsconn.TxStateAPI = transactionStateAPI
+			}
 
-	// test state_unsubscribeStorage
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_unsubscribeStorage",
-    "params": "foo",
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+			listner, err := wsconn.initExtrinsicWatch(testCase.reqID, testCase.param)
+			if testCase.setBlocAPI {
+				require.NotNil(t, listner)
+				require.NoError(t, err)
+				_, msg, err := c.ReadMessage()
+				require.NoError(t, err)
+				require.Equal(t, testCase.msg, msg)
+			} else {
+				require.Nil(t, listner)
+				require.EqualError(t, err, testCase.initErr.Error())
+			}
+		})
+	}
 
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_unsubscribeStorage",
-    "params": [],
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+}
+func TestWSConn_InitExtrinsicWatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
 
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_unsubscribeStorage",
-    "params": ["6"],
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
 
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_unsubscribeStorage",
-    "params": ["4"],
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
+	go wsconn.HandleConn()
+	time.Sleep(time.Second * 2)
 
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_unsubscribeStorage",
-    "params": [6],
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
-
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-    "jsonrpc": "2.0",
-    "method": "state_unsubscribeStorage",
-    "params": [4],
-    "id": 7}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
-
-	// test initBlockListener
-	res, err = wsconn.initBlockListener(1, nil)
-	require.EqualError(t, err, "error BlockAPI not set")
-	require.Nil(t, res)
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
-
+	wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
 	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
-
-	res, err = wsconn.initBlockListener(1, nil)
-	require.NoError(t, err)
-	require.NotNil(t, res)
-	require.Len(t, wsconn.Subscriptions, 5)
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":5,"id":1}`+"\n"), msg)
-
-	c.WriteMessage(websocket.TextMessage, []byte(`{
-		"jsonrpc": "2.0",
-		"method": "chain_subscribeNewHeads",
-		"params": [],
-		"id": 8
-	}`))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":6,"id":8}`+"\n"), msg)
-
-	// test initBlockFinalizedListener
-	wsconn.BlockAPI = nil
-
-	res, err = wsconn.initBlockFinalizedListener(1, nil)
-	require.EqualError(t, err, "error BlockAPI not set")
-	require.Nil(t, res)
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
-
-	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
-
-	res, err = wsconn.initBlockFinalizedListener(1, nil)
-	require.NoError(t, err)
-	require.NotNil(t, res)
-	require.Len(t, wsconn.Subscriptions, 7)
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
-
-	// test initExtrinsicWatch
-	wsconn.CoreAPI = modules.NewMockAnyAPI(ctrl)
-	wsconn.BlockAPI = nil
-
 	transactionStateAPI := NewMockTransactionStateAPI(ctrl)
-	transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).Times(2)
+	transactionStateAPI.EXPECT().GetStatusNotifierChannel(gomock.Any()).Return(make(chan transaction.Status)).Times(1)
 	wsconn.TxStateAPI = transactionStateAPI
-
-	listner, err := wsconn.initExtrinsicWatch(0, []string{"NotHex"})
-	require.EqualError(t, err, "could not byteify non 0x prefixed string: NotHex")
-	require.Nil(t, listner)
-
-	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
-	require.EqualError(t, err, "error BlockAPI not set")
-	require.Nil(t, listner)
-
-	wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
-	listner, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
-	require.NoError(t, err)
-	require.NotNil(t, listner)
-	require.Len(t, wsconn.Subscriptions, 8)
-
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
 	// test initExtrinsicWatch with invalid transaction
 	invalidTransaction := runtime.NewInvalidTransaction()
-	err = invalidTransaction.Set(runtime.Future{})
-	require.NoError(t, err)
-
+	err := invalidTransaction.Set(runtime.Future{})
 	require.NoError(t, err)
 	coreAPI := mocks.NewMockCoreAPI(ctrl)
-	coreAPI.EXPECT().HandleSubmittedExtrinsic(gomock.Any()).
-		Return(invalidTransaction)
 	wsconn.CoreAPI = coreAPI
-	listner, err = wsconn.initExtrinsicWatch(0,
-		[]interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"}) //nolint:lll
+	coreAPI.EXPECT().HandleSubmittedExtrinsic(gomock.Any()).Return(invalidTransaction)
+	listner, err := wsconn.initExtrinsicWatch(0, []interface{}{"0xa9018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019e91c8d44bf01ffe36d54f9e43dade2b2fc653270a0e002daed1581435c2e1755bc4349f1434876089d99c9dac4d4128e511c2a3e0788a2a74dd686519cb7c83000000000104ab"}) //nolint:lll
 	require.Error(t, err)
 	require.Nil(t, listner)
 
-	_, msg, err = c.ReadMessage()
+	_, msg, err := c.ReadMessage()
+	fmt.Println("HEHRHEHRHE")
+
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate",`+
-		`"params":{"result":"invalid","subscription":9}}`+"\n", string(msg))
+		`"params":{"result":"invalid","subscription":1}}`+"\n", string(msg))
 
 	mockedJust := grandpa.Justification{
 		Round: 1,
@@ -284,7 +509,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","result":10,"id":0}`+"\n", string(msg))
+	require.Equal(t, `{"jsonrpc":"2.0","result":2,"id":0}`+"\n", string(msg))
 
 	listener.Listen()
 	header := &types.Header{
@@ -297,7 +522,7 @@ func TestWSConn_HandleConn(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":2}}` + "\n"
 	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
