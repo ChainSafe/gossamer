@@ -96,7 +96,7 @@ func (v *OwnVoteStateVDT) VoteMissing() bool {
 		return false
 	}
 
-	return len(voted.Votes) == 0
+	return voted.Votes == nil || len(voted.Votes) == 0
 }
 
 // ApprovalVotes returns the approval votes for the candidate
@@ -366,7 +366,7 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 			return false, nil
 		case inherents.ExplicitValidDisputeStatementKind, inherents.ApprovalChecking:
 			vcv.Value.Set(vote.ValidatorIndex, vote)
-			return true, nil
+			return false, nil
 		default:
 			return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
 		}
@@ -383,9 +383,9 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 		default:
 			return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
 		}
+	default:
+		return false, fmt.Errorf("invalid dispute statement type: %T", disputeStatement)
 	}
-
-	return false, nil
 }
 
 func NewInvalidCandidateVotes(degree int) scale.BTreeMap[parachainTypes.ValidatorIndex, Vote] {

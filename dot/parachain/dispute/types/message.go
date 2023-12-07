@@ -190,8 +190,11 @@ func NewDisputeMessage(
 	)
 
 	var firstVote Vote
-	_, ok := disputeStatement.(inherents.ValidDisputeStatementKind)
-	if ok {
+	switch disputeStatement.(type) {
+	case inherents.ValidDisputeStatementKind:
+		if votes.Invalid.Len() == 0 {
+			return DisputeMessageVDT{}, fmt.Errorf("no opposite votes")
+		}
 		votes.Invalid.Descend(0, func(key parachainTypes.ValidatorIndex, vote Vote) bool {
 			firstVote = vote
 			return true
@@ -211,7 +214,10 @@ func NewDisputeMessage(
 		}
 
 		invalidIndex = firstVote.ValidatorIndex
-	} else {
+	case inherents.InvalidDisputeStatementKind:
+		if votes.Valid.Value.Len() == 0 {
+			return DisputeMessageVDT{}, fmt.Errorf("no opposite votes")
+		}
 		votes.Valid.Value.Map.Descend(0, func(key parachainTypes.ValidatorIndex, vote Vote) bool {
 			firstVote = vote
 			return true
@@ -252,15 +258,15 @@ type RecentDisputesMessage struct{}
 // ActiveDisputes message to request active disputes
 type ActiveDisputes struct{}
 
-// CandidateVotesMessage message to request candidate votes
-type CandidateVotesMessage struct {
+// CandidateVotesQuery message to request candidate votes
+type CandidateVotesQuery struct {
 	Session       parachainTypes.SessionIndex
 	CandidateHash common.Hash
 }
 
 // QueryCandidateVotes message to request candidate votes
 type QueryCandidateVotes struct {
-	Queries []CandidateVotesMessage
+	Queries []CandidateVotesQuery
 }
 
 // QueryCandidateVotesResponse response to a candidate votes query

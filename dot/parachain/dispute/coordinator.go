@@ -98,7 +98,7 @@ func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
 		case overseerMessage := <-d.receiver:
 			switch message := overseerMessage.(type) {
 			case overseer.Signal[overseer.Conclude]:
-				return nil, fmt.Errorf("received conclude message before first active leaves update")
+				return nil, nil
 			case overseer.Signal[overseer.ActiveLeavesUpdate]:
 				return message.Data.Activated, nil
 			default:
@@ -113,9 +113,20 @@ func (d *Coordinator) initialize() (
 	*initializeResult,
 	error,
 ) {
-	firstLeaf, err := d.waitForFirstLeaf()
-	if err != nil {
-		return nil, fmt.Errorf("wait for first leaf: %w", err)
+	var (
+		firstLeaf *overseer.ActivatedLeaf
+		err       error
+	)
+	for {
+		firstLeaf, err = d.waitForFirstLeaf()
+		if err != nil {
+			logger.Errorf("wait for first leaf: %s", err)
+			continue
+		}
+		if firstLeaf == nil {
+			continue
+		}
+		break
 	}
 
 	startupData, err := d.handleStartup(firstLeaf)
@@ -206,21 +217,21 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 		if err != nil {
 			logger.Errorf("failed to get initial candidate votes for dispute %s: %s",
 				dispute.Comparator.CandidateHash, err)
-			return false
+			return true
 		}
 
 		voteState, err := types.NewCandidateVoteState(*votes, env, uint64(now))
 		if err != nil {
 			logger.Errorf("failed to create candidate vote state for dispute %s: %s",
 				dispute.Comparator.CandidateHash, err)
-			return false
+			return true
 		}
 
 		potentialSpam, err := scraper.IsPotentialSpam(voteState, dispute.Comparator.CandidateHash)
 		if err != nil {
 			logger.Errorf("failed to check if dispute %s is potential spam: %s",
 				dispute.Comparator.CandidateHash, err)
-			return false
+			return true
 		}
 		isIncluded := scraper.IsCandidateIncluded(dispute.Comparator.CandidateHash)
 
@@ -231,10 +242,7 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 				session:   dispute.Comparator.SessionIndex,
 				candidate: dispute.Comparator.CandidateHash,
 			}
-			if _, ok := spamDisputes[disputeKey]; !ok {
-				spamDisputes[disputeKey] = treeset.NewWithIntComparator()
-			}
-			spamDisputes[disputeKey].Add(voteState.Votes.VotedIndices())
+			spamDisputes[disputeKey] = voteState.Votes.VotedIndices()
 		} else if voteState.Own.VoteMissing() {
 			logger.Tracef("found valid dispute, with no vote from us on startup - participating. %s")
 			priority := ParticipationPriorityHigh
