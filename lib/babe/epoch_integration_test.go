@@ -150,12 +150,11 @@ func TestService_getLatestEpochData_genesis(t *testing.T) {
 
 	latestEpochData, err := service.getLatestEpochData()
 	require.NoError(t, err)
-	auths, err := types.BABEAuthorityRawToAuthority(genesisCfg.GenesisAuthorities)
-	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(auths))
+
+	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(genesisCfg.GenesisAuthorities))
 	require.NoError(t, err)
 
-	require.Equal(t, auths, latestEpochData.authorities)
+	require.Equal(t, genesisCfg.GenesisAuthorities, latestEpochData.authorities)
 	require.Equal(t, threshold, latestEpochData.threshold)
 	require.Equal(t, genesisCfg.Randomness, latestEpochData.randomness)
 }
