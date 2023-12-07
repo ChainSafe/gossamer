@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_NewTrieDB(t *testing.T) {
@@ -28,9 +29,72 @@ func Test_NewTrieDB(t *testing.T) {
 			setCounter:    setCounter,
 			deleteCounter: deleteCounter,
 		},
+		trieDBGetDuration: trieDBGetDuration,
 	}
 
 	assert.Equal(t, expected, trieDB)
+}
+
+func Test_Get(t *testing.T) {
+	root := &trie.Node{
+		PartialKey:   []byte{0},
+		StorageValue: []byte{17},
+		Dirty:        true,
+	}
+
+	// Create trie DB using in memory db table
+	db := NewInMemoryDB(t)
+	table := database.NewTable(db, "storage")
+	trieDB := NewTrieDB(table)
+
+	// Build trie with test root node
+	testTrie := trie.NewTrie(root, table)
+
+	// Store trie in trieDB
+	err := trieDB.Put(testTrie)
+	assert.NoError(t, err)
+
+	// Encode trie to check later
+	encoded := bytes.NewBuffer(nil)
+	err = root.Encode(encoded, trie.NoMaxInlineValueSize)
+	assert.NoError(t, err)
+
+	ctrl := gomock.NewController(t)
+
+	t.Run("get_and_update_histogram", func(t *testing.T) {
+		t.Parallel()
+
+		trieDBGetDuration := NewMockHistogram(ctrl)
+
+		trieDB := TrieDB{
+			db:                table,
+			tries:             newTries(),
+			trieDBGetDuration: trieDBGetDuration,
+		}
+
+		trieDBGetDuration.EXPECT().Observe(gomock.Any()).AnyTimes()
+
+		_, err = trieDB.Get(trie.V0.MustHash(*testTrie))
+		assert.NoError(t, err)
+	})
+
+	t.Run("decode trie and refresh cache", func(t *testing.T) {
+		t.Parallel()
+		// Cache should be empty
+		assert.Len(t, trieDB.tries.rootToTrie, 0)
+
+		// Get trie from trieDB table and check if it matches the encoded trie
+		trieFromTrieDB, err := trieDB.Get(trie.V0.MustHash(*testTrie))
+		assert.NoError(t, err)
+		assert.Equal(t, testTrie.String(), trieFromTrieDB.String())
+
+		// Trie should be added to cache
+		assert.Len(t, trieDB.tries.rootToTrie, 1)
+
+		// Get from cache
+		fromCache := trieDB.tries.get(trie.V0.MustHash(*testTrie))
+		assert.Equal(t, testTrie.String(), fromCache.String())
+	})
 }
 
 func Test_Put(t *testing.T) {
@@ -99,47 +163,6 @@ func Test_Put(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_GetDecodeTrieAndRefreshCache(t *testing.T) {
-	t.Parallel()
-
-	// Create trie DB using in memory db table
-	db := NewInMemoryDB(t)
-	table := database.NewTable(db, "storage")
-	trieDB := NewTrieDB(table)
-
-	// Build trie with test root node
-	root := &trie.Node{
-		PartialKey:   []byte{0},
-		StorageValue: []byte{17},
-		Dirty:        true,
-	}
-	testTrie := trie.NewTrie(root, table)
-
-	// Encode trie to check later
-	encoded := bytes.NewBuffer(nil)
-	err := root.Encode(encoded, trie.NoMaxInlineValueSize)
-	assert.NoError(t, err)
-
-	// Store trie in trieDB
-	err = trieDB.Put(testTrie)
-	assert.NoError(t, err)
-
-	// Cache should be empty
-	assert.Len(t, trieDB.tries.rootToTrie, 0)
-
-	// Get trie from trieDB table and check if it matches the encoded trie
-	trieFromTrieDB, err := trieDB.Get(trie.V0.MustHash(*testTrie))
-	assert.NoError(t, err)
-	assert.Equal(t, testTrie.String(), trieFromTrieDB.String())
-
-	// Trie should be added to cache
-	assert.Len(t, trieDB.tries.rootToTrie, 1)
-
-	// Get from cache
-	fromCache := trieDB.tries.get(trie.V0.MustHash(*testTrie))
-	assert.Equal(t, testTrie.String(), fromCache.String())
 }
 
 func Test_GetDeletedTrieFromDBShouldReturnError(t *testing.T) {

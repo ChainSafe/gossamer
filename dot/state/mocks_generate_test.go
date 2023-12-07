@@ -7,4 +7,5 @@ package state
 //go:generate mockgen -destination=mocks_runtime_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/runtime Instance
 //go:generate mockgen -destination=mock_gauge_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Gauge
 //go:generate mockgen -destination=mock_counter_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Counter
+//go:generate mockgen -destination=mock_histogram_test.go -package $GOPACKAGE github.com/prometheus/client_golang/prometheus Histogram
 //go:generate mockgen -destination=mocks_database_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/trie/db Database

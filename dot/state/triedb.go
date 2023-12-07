@@ -7,20 +7,32 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	trieDBGetDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "gossamer_storage_tries",
+		Name:      "get_trie_duration",
+		Help:      "Time spent getting a trie from the trieDB (database / cache)",
+	})
 )
 
 // TrieDB is a wrapper around a database.Table that stores tries and keep a cache of them in memory
 // db is a database.Table that stores the tries to prevent colissions with keys in the same DB
 type TrieDB struct {
-	db    database.Table
-	tries *tries
+	db                database.Table
+	tries             *tries
+	trieDBGetDuration prometheus.Histogram
 }
 
 // NewTrieDB creates a new TrieDB
 func NewTrieDB(db database.Table) *TrieDB {
 	return &TrieDB{
-		db:    db,
-		tries: newTries(),
+		db:                db,
+		tries:             newTries(),
+		trieDBGetDuration: trieDBGetDuration,
 	}
 }
 
@@ -37,6 +49,8 @@ func (tdb *TrieDB) Put(t *trie.Trie) error {
 
 // Get returns the trie with the given root
 func (tdb *TrieDB) Get(root common.Hash) (*trie.Trie, error) {
+	timer := prometheus.NewTimer(trieDBGetDuration)
+	defer timer.ObserveDuration()
 	// Get trie from memory
 	t := tdb.tries.get(root)
 
