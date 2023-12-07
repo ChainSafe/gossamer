@@ -36,6 +36,8 @@ func Test_NewTrieDB(t *testing.T) {
 }
 
 func Test_Get(t *testing.T) {
+	t.Parallel()
+
 	root := &trie.Node{
 		PartialKey:   []byte{0},
 		StorageValue: []byte{17},
