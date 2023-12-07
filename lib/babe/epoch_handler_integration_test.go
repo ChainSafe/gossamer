@@ -24,8 +24,11 @@ func TestEpochHandler_run_shouldReturnAfterContextCancel(t *testing.T) {
 	epochData := &epochData{
 		threshold:      scale.MaxUint128,
 		authorityIndex: authorityIndex,
-		authorities: []types.Authority{
-			*types.NewAuthority(aliceKeyPair.Public(), 1),
+		authorities: []types.AuthorityRaw{
+			{
+				Key:    [32]byte(aliceKeyPair.Public().Encode()),
+				Weight: 1,
+			},
 		},
 	}
 
@@ -66,8 +69,11 @@ func TestEpochHandler_run(t *testing.T) {
 	epochData := &epochData{
 		threshold:      scale.MaxUint128,
 		authorityIndex: authorityIndex,
-		authorities: []types.Authority{
-			*types.NewAuthority(aliceKeyPair.Public(), 1),
+		authorities: []types.AuthorityRaw{
+			{
+				Key:    [32]byte(aliceKeyPair.Public().Encode()),
+				Weight: 1,
+			},
 		},
 	}
 

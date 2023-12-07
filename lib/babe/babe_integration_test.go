@@ -64,9 +64,9 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
 
-	authData := []types.Authority{
-		{Key: pubA, Weight: 1},
-		{Key: pubB, Weight: 1},
+	authData := []types.AuthorityRaw{
+		{Key: pubA.AsBytes(), Weight: 1},
+		{Key: pubB.AsBytes(), Weight: 1},
 	}
 
 	bs := &Service{
