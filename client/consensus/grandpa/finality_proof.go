@@ -109,13 +109,12 @@ func (provider FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B]) proveFin
 		return nil, nil
 	}
 
-	// TODO address lock copy
-	authoritySetChanges := *provider.sharedAuthoritySet //nolint
 	return proveFinality[BE, Hash, N, S, ID, H, B](
 		provider.backend,
-		authoritySetChanges.inner.AuthoritySetChanges,
+		provider.sharedAuthoritySet.inner.AuthoritySetChanges,
 		block,
-		collectUnknownHeaders)
+		collectUnknownHeaders,
+	)
 }
 
 // FinalityProof Finality for block B is proved by providing:

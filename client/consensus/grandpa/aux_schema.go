@@ -84,13 +84,11 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 			}
 		}
 
-		newSharedVoterSetState := sharedVoterSetState[H, N, ID, Sig]{
-			Inner: setState,
-		}
-
 		return &persistentData[H, N, ID, Sig]{
 			authoritySet: SharedAuthoritySet[H, N, ID]{inner: *authSet},
-			setState:     SharedVoterSetState[H, N, ID, Sig]{Inner: newSharedVoterSetState}, //nolint
+			setState: SharedVoterSetState[H, N, ID, Sig]{Inner: sharedVoterSetState[H, N, ID, Sig]{
+				Inner: setState,
+			}},
 		}, nil
 	}
 
@@ -125,13 +123,11 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 		return nil, err
 	}
 
-	newSharedVoterSetState := sharedVoterSetState[H, N, ID, Sig]{
-		Inner: genesisState,
-	}
-
 	return &persistentData[H, N, ID, Sig]{
 		authoritySet: SharedAuthoritySet[H, N, ID]{inner: *genesisSet},
-		setState:     SharedVoterSetState[H, N, ID, Sig]{Inner: newSharedVoterSetState}, //nolint
+		setState: SharedVoterSetState[H, N, ID, Sig]{Inner: sharedVoterSetState[H, N, ID, Sig]{
+			Inner: genesisState,
+		}},
 	}, nil
 }
 

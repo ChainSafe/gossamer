@@ -20,7 +20,7 @@ var (
 	errBlockNotDescendentOfBase = errors.New("block not descendent of base")
 )
 
-// Justification is a GRANDPA justification for block finality, it includes a commit message and
+// GrandpaJustification is a GRANDPA justification for block finality, it includes a commit message and
 // an ancestry proof including all headers routing all precommit target blocks
 // to the commit target block. Due to the current voting strategy the precommit
 // targets should be the same as the commit target, since honest voters don't

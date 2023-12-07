@@ -18,11 +18,11 @@ import (
 // Returns the vector of headers that MUST be validated + imported
 // AND if at least one of those headers is invalid, all other MUST be considered invalid.
 func checkFinalityProof[
-Hash constraints.Ordered,
-N constraints.Unsigned,
-S comparable,
-H Header[Hash, N],
-ID AuthorityID,
+	Hash constraints.Ordered,
+	N constraints.Unsigned,
+	S comparable,
+	H Header[Hash, N],
+	ID AuthorityID,
 ](
 	t *testing.T,
 	currentSetID uint64,
@@ -415,7 +415,7 @@ func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
 	// the best stored justification, for which there is none in this case.
 	authoritySetChanges := AuthoritySetChanges[uint]{}
 	authoritySetChanges.append(0, 5)
-	
+
 	proof, err := proveFinality[
 		*BackendMock[string, uint, testHeader[string, uint],
 			*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
