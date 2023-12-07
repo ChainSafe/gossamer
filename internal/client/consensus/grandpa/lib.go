@@ -223,7 +223,7 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	sharedVoterState SharedVoterState[ID],
 	justificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
 	telemetry *telemetry.TelemetryHandle,
-) *voterWork[Hash, Number, Signature, ID, R] {
+) voterWork[Hash, Number, Signature, ID, R] {
 	// TODO: register to prometheus registry
 
 	voters := persistentData.authoritySet.CurrentAuthorities()
@@ -242,5 +242,20 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 		Telemetry:           telemetry,
 	}
 
-	return nil
+	work := voterWork[Hash, Number, Signature, ID, R]{
+		// `voter` is set to a temporary value and replaced below when
+		// calling `rebuild_voter`.
+		voter:            nil,
+		sharedVoterState: sharedVoterState,
+		env:              env,
+		voterCommandsRx:  voterCommandsRx,
+		network:          network,
+		telemetry:        telemetry,
+		metrics:          nil,
+	}
+	work.rebuildVoter()
+	return work
+}
+
+func (vw *voterWork[Hash, Number, Signature, ID, R]) rebuildVoter() {
 }
