@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -28,6 +27,15 @@ const (
 	pruneByTimePrefix   = "prune_by_time"
 
 	tombstoneValue = " "
+
+	// Unavailable blocks are kept for 1 hour.
+	KEEP_UNAVAILABLE_FOR = time.Hour
+
+	// Finalized data is kept for 25 hours.
+	KEEP_FINALIZED_FOR = time.Hour * 25
+
+	// The pruning interval.
+	PRUNING_INTERVAL = time.Minute * 5
 )
 
 type BETimestamp uint64
@@ -36,6 +44,27 @@ func (b BETimestamp) ToBytes() []byte {
 	res := make([]byte, 8)
 	binary.LittleEndian.PutUint64(res, uint64(b))
 	return res
+}
+
+type SubsystemClock struct{}
+
+func (sc *SubsystemClock) Now() BETimestamp {
+	return BETimestamp(time.Now().Unix())
+}
+
+// PruningConfig Struct holding pruning timing configuration.
+// The only purpose of this structure is to use different timing
+// configurations in production and in testing.
+type PruningConfig struct {
+	keepUnavailableFor time.Duration
+	keepFinalizedFor   time.Duration
+	pruningInterval    time.Duration
+}
+
+var DefaultPruningConfig = PruningConfig{
+	keepUnavailableFor: KEEP_UNAVAILABLE_FOR,
+	keepFinalizedFor:   KEEP_FINALIZED_FOR,
+	pruningInterval:    PRUNING_INTERVAL,
 }
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
@@ -342,21 +371,60 @@ func (as *AvailabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 	return true, nil
 }
 
-//func (as *AvailabilityStore) storeAvailableData(candidate parachaintypes.CandidateHash,
-//	nValidators uint, data AvailableData, expectedErasureRoot common.Hash) (bool, error) {
-//	batch := NewAvailabilityStoreBatch(as)
-//	meta, err := as.loadMeta(candidate)
-//	if err != nil {
-//		if errors.Is(err, database.ErrNotFound) {
-//			// we weren't informed of this candidate by import events
-//			return false, nil
-//		} else {
-//			return false, fmt.Errorf("load metadata: %w", err)
-//		}
-//	}
-//}
+func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
+	candidate parachaintypes.CandidateHash, nValidators uint32, data AvailableData,
+	expectedErasureRoot common.Hash) (bool, error) {
+	batch := NewAvailabilityStoreBatch(as)
+	meta, err := as.loadMeta(candidate)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return false, fmt.Errorf("load metadata: %w", err)
+	}
+	if meta != nil && meta.DataAvailable {
+		return true, nil // already stored
+	} else {
+		meta = &CandidateMeta{}
+	}
+	now := subsystem.clock.Now()
+	pruneAt := now + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
+	err = as.writePruningKey(batch, pruneAt, candidate)
+	if err != nil {
+		return false, fmt.Errorf("writing pruning key: %w", err)
+	}
 
-// todo(ed) determin if this should be LittleEndian or BigEndian
+	meta.State = NewStateVDT()
+	err = meta.State.Set(Unavailable{Timestamp: now})
+	if err != nil {
+		return false, fmt.Errorf("setting state to unavailable: %w", err)
+	}
+	meta.DataAvailable = false
+	meta.ChunksStored = make([]bool, nValidators)
+
+	// TODO: implement create erasure_span
+
+	// TODO: write chunks to store
+
+	meta.DataAvailable = true
+	// todo: udate chunks stored in meta
+
+	err = as.writeMeta(batch, candidate, *meta)
+	if err != nil {
+		return false, fmt.Errorf("writing metadata: %w", err)
+	}
+	err = as.writeAvailableData(batch, candidate, data)
+	if err != nil {
+		return false, fmt.Errorf("writing available data: %w", err)
+	}
+
+	err = batch.Write()
+	if err != nil {
+		return false, fmt.Errorf("writing batch: %w", err)
+	}
+
+	logger.Debugf("stored data and chunks for %v", candidate.Value)
+	return true, nil
+}
+
+// todo(ed) determine if this should be LittleEndian or BigEndian
 func uint32ToBytes(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.LittleEndian.PutUint32(result, value)
@@ -558,13 +626,26 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
-	// TODO: implement store available data
-	//err := av.availabilityStore.writeAvailableData(msg.CandidateHash, msg.AvailableData)
-	//if err != nil {
-	//	msg.Sender <- err
-	//	return fmt.Errorf("store available data: %w", err)
-	//}
-	//msg.Sender <- err // TODO: determine how to replicate Rust's Result type
+	// TODO: add to metric on_chunks_received
+
+	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.NValidators, msg.AvailableData,
+		msg.ExpectedErasureRoot)
+	if res {
+		msg.Sender <- true
+		return nil
+	}
+	if err != nil && errors.Is(err, InvalidErasureRoot) {
+		msg.Sender <- err
+		return fmt.Errorf("store available data: %w", err)
+	}
+	if err != nil {
+		// We do not bubble up internal errors to caller subsystems, instead the
+		// tx channel is dropped and that error is caught by the caller subsystem.
+		//
+		// We bubble up the specific error here so `av-store` logs still tell what
+		// happened.
+		return fmt.Errorf("store available data: %w", err)
+	}
 	return nil
 }
 

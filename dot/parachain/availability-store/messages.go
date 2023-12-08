@@ -4,6 +4,8 @@
 package availabilitystore
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -73,7 +75,7 @@ type StoreChunk struct {
 
 // StoreAvailableData store an `AvailableData` in the AV store
 type StoreAvailableData struct {
-	CandidateHash       common.Hash
+	CandidateHash       parachaintypes.CandidateHash
 	NValidators         uint32
 	AvailableData       AvailableData
 	ExpectedErasureRoot common.Hash
@@ -96,15 +98,31 @@ type CandidateMeta struct {
 // State is the state of candidate data
 type State scale.VaryingDataType
 
+// New will enable scale to create new instance when needed
+func (State) New() State {
+	return NewStateVDT()
+}
+
 // NewState creates a new State
-func NewState() State {
+func NewStateVDT() State {
 	vdt := scale.MustNewVaryingDataType(Unavailable{}, Unfinalized{}, Finalized{})
 	return State(vdt)
 }
 
+// Set will set VaryingDataTypeValue using underlying VaryingDataType
+func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*s)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value te varying data type: %w", err)
+	}
+	*s = State(vdt)
+	return nil
+}
+
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
-	Timestamp time.Time
+	Timestamp BETimestamp
 }
 
 // Index returns the index of the varying data type
@@ -142,3 +160,5 @@ type BlockNumberHash struct {
 	blockNumber parachaintypes.BlockNumber //nolint:unused,structcheck
 	blockHash   common.Hash                //nolint:unused,structcheck
 }
+
+var InvalidErasureRoot = errors.New("Invalid erasure root")

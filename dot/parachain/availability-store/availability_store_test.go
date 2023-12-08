@@ -614,13 +614,14 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	}
 	msgSenderChan := make(chan any)
 	msg := StoreAvailableData{
-		CandidateHash:       common.Hash{0x01},
+		CandidateHash:       parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 		NValidators:         0,
 		AvailableData:       AvailableData{},
 		ExpectedErasureRoot: common.Hash{},
 		Sender:              msgSenderChan,
 	}
 
+	// TODO: hondle error below
 	go asSub.handleStoreAvailableData(msg)
 	msgSenderChanResult := <-msg.Sender
 	require.Equal(t, nil, msgSenderChanResult)
