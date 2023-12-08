@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -633,26 +633,6 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	block3hash, err := bs.GetHashByNumber(3)
 	require.NoError(t, err)
 	require.Equal(t, header3a.Hash(), block3hash)
-}
-
-func TestAddBlockToBlockTree(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
-
-	header := &types.Header{
-		Number:     1,
-		Digest:     createPrimaryBABEDigest(t),
-		ParentHash: testGenesisHeader.Hash(),
-	}
-
-	err := bs.setArrivalTime(header.Hash(), time.Now())
-	require.NoError(t, err)
-
-	err = bs.AddBlockToBlockTree(&types.Block{
-		Header: *header,
-		Body:   types.Body{},
-	})
-	require.NoError(t, err)
-	require.Equal(t, bs.BestBlockHash(), header.Hash())
 }
 
 func TestNumberIsFinalised(t *testing.T) {

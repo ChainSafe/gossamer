@@ -95,15 +95,12 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
 	}
 
-	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
-	if err != nil {
-		return nil, err
+	epochDataRaw := &types.EpochDataRaw{
+		Authorities: genesisConfig.GenesisAuthorities,
+		Randomness:  genesisConfig.Randomness,
 	}
 
-	err = s.SetEpochData(0, &types.EpochData{
-		Authorities: auths,
-		Randomness:  genesisConfig.Randomness,
-	})
+	err = s.SetEpochDataRaw(0, epochDataRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -235,10 +232,8 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	return 0, errNoPreRuntimeDigest
 }
 
-// SetEpochData sets the epoch data for a given epoch
-func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
-	raw := info.ToEpochDataRaw()
-
+// SetEpochDataRaw sets the epoch data raw for a given epoch
+func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
 	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
@@ -247,17 +242,17 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	return s.db.Put(epochDataKey(epoch), enc)
 }
 
-// GetEpochData returns the epoch data for a given epoch persisted in database
+// GetEpochDataRaw returns the raw epoch data for a given epoch persisted in database
 // otherwise will try to get the data from the in-memory map using the header
 // if the header params is nil then it will search only in database
-func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.EpochData, error) {
-	epochData, err := s.getEpochDataFromDatabase(epoch)
+func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error) {
+	epochDataRaw, err := s.getEpochDataRawFromDatabase(epoch)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
 	}
 
-	if epochData != nil {
-		return epochData, nil
+	if epochDataRaw != nil {
+		return epochDataRaw, nil
 	}
 
 	if header == nil {
@@ -272,38 +267,33 @@ func (s *EpochState) GetEpochData(epoch uint64, header *types.Header) (*types.Ep
 		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
 	}
 
-	epochData, err = inMemoryEpochData.ToEpochData()
-	if err != nil {
-		return nil, fmt.Errorf("cannot transform into epoch data: %w", err)
-	}
-
-	return epochData, nil
+	return inMemoryEpochData.ToEpochDataRaw(), nil
 }
 
-// getEpochDataFromDatabase returns the epoch data for a given epoch persisted in database
-func (s *EpochState) getEpochDataFromDatabase(epoch uint64) (*types.EpochData, error) {
+// getEpochDataRawFromDatabase returns the epoch data for a given epoch persisted in database
+func (s *EpochState) getEpochDataRawFromDatabase(epoch uint64) (*types.EpochDataRaw, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
 		return nil, err
 	}
 
-	raw := &types.EpochDataRaw{}
+	raw := new(types.EpochDataRaw)
 	err = scale.Unmarshal(enc, raw)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshaling into epoch data raw: %w", err)
 	}
 
-	return raw.ToEpochData()
+	return raw, nil
 }
 
-// GetLatestEpochData returns the EpochData for the current epoch
-func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
+// GetLatestEpochDataRaw returns the EpochData for the current epoch
+func (s *EpochState) GetLatestEpochDataRaw() (*types.EpochDataRaw, error) {
 	curr, err := s.GetCurrentEpoch()
 	if err != nil {
 		return nil, err
 	}
 
-	return s.GetEpochData(curr, nil)
+	return s.GetEpochDataRaw(curr, nil)
 }
 
 // SetConfigData sets the BABE config data for a given epoch
@@ -586,7 +576,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		nextEpoch = finalizedBlockEpoch + 1
 	}
 
-	epochInDatabase, err := s.getEpochDataFromDatabase(nextEpoch)
+	epochRawInDatabase, err := s.getEpochDataRawFromDatabase(nextEpoch)
 
 	// if an error occurs and the error is database.ErrNotFound we ignore
 	// since this error is what we will handle in the next lines
@@ -595,7 +585,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	}
 
 	// epoch data already defined we don't need to lookup in the map
-	if epochInDatabase != nil {
+	if epochRawInDatabase != nil {
 		return nil
 	}
 
@@ -604,12 +594,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
 
-	ed, err := finalizedNextEpochData.ToEpochData()
-	if err != nil {
-		return fmt.Errorf("cannot transform epoch data: %w", err)
-	}
-
-	err = s.SetEpochData(nextEpoch, ed)
+	err = s.SetEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
 	if err != nil {
 		return fmt.Errorf("cannot set epoch data: %w", err)
 	}
