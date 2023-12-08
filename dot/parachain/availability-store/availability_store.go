@@ -21,7 +21,7 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
 
 const (
-	avaliableDataPrefix = "available"
+	availableDataPrefix = "available"
 	chunkPrefix         = "chunk"
 	metaPrefix          = "meta"
 	unfinalizedPrefix   = "unfinalized"
@@ -116,7 +116,7 @@ func (asb *AvailabilityStoreBatch) Reset(err error) error {
 // NewAvailabilityStore creates a new instance of AvailabilityStore
 func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 	return &AvailabilityStore{
-		availableTable:   database.NewTable(db, avaliableDataPrefix),
+		availableTable:   database.NewTable(db, availableDataPrefix),
 		chunkTable:       database.NewTable(db, chunkPrefix),
 		metaTable:        database.NewTable(db, metaPrefix),
 		unfinalizedTable: database.NewTable(db, unfinalizedPrefix),
@@ -125,10 +125,10 @@ func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 }
 
 // loadAvailableData loads available data from the availability store
-func (as *AvailabilityStore) loadAvailableData(candidate common.Hash) (*AvailableData, error) {
-	resultBytes, err := as.availableTable.Get(candidate[:])
+func (as *AvailabilityStore) loadAvailableData(candidate parachaintypes.CandidateHash) (*AvailableData, error) {
+	resultBytes, err := as.availableTable.Get(candidate.Value[:])
 	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v from available table: %w", candidate, err)
+		return nil, fmt.Errorf("getting candidate %v from available table: %w", candidate.Value, err)
 	}
 	result := AvailableData{}
 	err = json.Unmarshal(resultBytes, &result)
@@ -139,21 +139,22 @@ func (as *AvailabilityStore) loadAvailableData(candidate common.Hash) (*Availabl
 }
 
 // writeAvailableData put available data in the availabilityBatch of the given batch
-func (as *AvailabilityStore) writeAvailableData(batch *AvailabilityStoreBatch, candidate common.Hash,
-	data AvailableData) error {
+func (as *AvailabilityStore) writeAvailableData(batch *AvailabilityStoreBatch,
+	candidate parachaintypes.CandidateHash, data AvailableData) error {
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("marshalling available data: %w", err)
 	}
-	err = batch.availableBatch.Put(candidate[:], dataBytes)
+	err = batch.availableBatch.Put(candidate.Value[:], dataBytes)
 	if err != nil {
 		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
 	}
 	return nil
 }
 
-func (as *AvailabilityStore) deleteAvailableData(batch *AvailabilityStoreBatch, candidate common.Hash) error {
-	err := batch.availableBatch.Del(candidate[:])
+func (as *AvailabilityStore) deleteAvailableData(batch *AvailabilityStoreBatch,
+	candidate parachaintypes.CandidateHash) error {
+	err := batch.availableBatch.Del(candidate.Value[:])
 	if err != nil {
 		return fmt.Errorf("deleting available data for candidate %v: %w", candidate, err)
 	}
@@ -161,10 +162,10 @@ func (as *AvailabilityStore) deleteAvailableData(batch *AvailabilityStoreBatch, 
 }
 
 // loadMetaData loads metadata from the availability store
-func (as *AvailabilityStore) loadMeta(candidate common.Hash) (*CandidateMeta, error) {
-	resultBytes, err := as.metaTable.Get(candidate[:])
+func (as *AvailabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*CandidateMeta, error) {
+	resultBytes, err := as.metaTable.Get(candidate.Value[:])
 	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v from meta table: %w", candidate, err)
+		return nil, fmt.Errorf("getting candidate %v from meta table: %w", candidate.Value, err)
 	}
 	result := CandidateMeta{}
 	err = json.Unmarshal(resultBytes, &result)
@@ -175,20 +176,21 @@ func (as *AvailabilityStore) loadMeta(candidate common.Hash) (*CandidateMeta, er
 }
 
 // storeMetaData stores metadata in the availability store
-func (as *AvailabilityStore) writeMeta(batch *AvailabilityStoreBatch, candidate common.Hash, meta CandidateMeta) error {
+func (as *AvailabilityStore) writeMeta(batch *AvailabilityStoreBatch, candidate parachaintypes.CandidateHash,
+	meta CandidateMeta) error {
 	dataBytes, err := json.Marshal(meta)
 	if err != nil {
 		return fmt.Errorf("marshalling meta for candidate: %w", err)
 	}
-	err = batch.metaBatch.Put(candidate[:], dataBytes)
+	err = batch.metaBatch.Put(candidate.Value[:], dataBytes)
 	if err != nil {
 		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
 	return nil
 }
 
-func (as *AvailabilityStore) deleteMeta(batch *AvailabilityStoreBatch, candidate common.Hash) error {
-	err := batch.metaBatch.Del(candidate[:])
+func (as *AvailabilityStore) deleteMeta(batch *AvailabilityStoreBatch, candidate parachaintypes.CandidateHash) error {
+	err := batch.metaBatch.Del(candidate.Value[:])
 	if err != nil {
 		return fmt.Errorf("deleting meta for candidate %v: %w", candidate, err)
 	}
@@ -196,10 +198,11 @@ func (as *AvailabilityStore) deleteMeta(batch *AvailabilityStoreBatch, candidate
 }
 
 // loadChunk loads a chunk from the availability store
-func (as *AvailabilityStore) loadChunk(candidate common.Hash, validatorIndex uint32) (*ErasureChunk, error) {
-	resultBytes, err := as.chunkTable.Get(append(candidate[:], uint32ToBytes(validatorIndex)...))
+func (as *AvailabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
+	error) {
+	resultBytes, err := as.chunkTable.Get(append(candidate.Value[:], uint32ToBytes(validatorIndex)...))
 	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate, validatorIndex, err)
+		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate.Value, validatorIndex, err)
 	}
 	result := ErasureChunk{}
 	err = json.Unmarshal(resultBytes, &result)
@@ -209,22 +212,22 @@ func (as *AvailabilityStore) loadChunk(candidate common.Hash, validatorIndex uin
 	return &result, nil
 }
 
-func (as *AvailabilityStore) writeChunk(batch *AvailabilityStoreBatch, candidate common.Hash,
+func (as *AvailabilityStore) writeChunk(batch *AvailabilityStoreBatch, candidate parachaintypes.CandidateHash,
 	chunk ErasureChunk) error {
 	dataBytes, err := json.Marshal(chunk)
 	if err != nil {
 		return fmt.Errorf("marshalling chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 	}
-	err = batch.chunkBatch.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
+	err = batch.chunkBatch.Put(append(candidate.Value[:], uint32ToBytes(chunk.Index)...), dataBytes)
 	if err != nil {
 		return fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 	}
 	return nil
 }
 
-func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidate common.Hash,
+func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidate parachaintypes.CandidateHash,
 	chunkIndex uint32) error {
-	err := batch.chunkBatch.Del(append(candidate[:], uint32ToBytes(chunkIndex)...))
+	err := batch.chunkBatch.Del(append(candidate.Value[:], uint32ToBytes(chunkIndex)...))
 	if err != nil {
 		return fmt.Errorf("deleting chunk for candidate %v, index %d: %w", candidate, chunkIndex, err)
 	}
@@ -300,7 +303,8 @@ func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pru
 
 // storeChunk stores a chunk in the availability store, returns true on success, false on failure,
 // and error on internal error.
-func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChunk) (bool, error) {
+func (as *AvailabilityStore) storeChunk(candidate parachaintypes.CandidateHash, chunk ErasureChunk) (bool,
+	error) {
 	batch := NewAvailabilityStoreBatch(as)
 
 	meta, err := as.loadMeta(candidate)
@@ -337,6 +341,20 @@ func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChun
 	logger.Debugf("stored chuck %d for %v", chunk.Index, candidate)
 	return true, nil
 }
+
+//func (as *AvailabilityStore) storeAvailableData(candidate parachaintypes.CandidateHash,
+//	nValidators uint, data AvailableData, expectedErasureRoot common.Hash) (bool, error) {
+//	batch := NewAvailabilityStoreBatch(as)
+//	meta, err := as.loadMeta(candidate)
+//	if err != nil {
+//		if errors.Is(err, database.ErrNotFound) {
+//			// we weren't informed of this candidate by import events
+//			return false, nil
+//		} else {
+//			return false, fmt.Errorf("load metadata: %w", err)
+//		}
+//	}
+//}
 
 // todo(ed) determin if this should be LittleEndian or BigEndian
 func uint32ToBytes(value uint32) []byte {

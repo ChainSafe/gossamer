@@ -13,7 +13,7 @@ import (
 
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan AvailableData
 }
 
@@ -23,7 +23,7 @@ type QueryAvailableData struct {
 // matters, but we don't want to necessarily pass around multiple
 // megabytes of data to get a single bit of information.
 type QueryDataAvailability struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan bool
 }
 
@@ -36,20 +36,20 @@ type ErasureChunk struct {
 
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
 type QueryChunk struct {
-	CandidateHash  common.Hash
+	CandidateHash  parachaintypes.CandidateHash
 	ValidatorIndex uint32
 	Sender         chan ErasureChunk
 }
 
 // QueryChunkSize get the size of an `ErasureChunk` from the AV store by candidate hash
 type QueryChunkSize struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan uint32
 }
 
 // QueryAllChunks query all chunks that we have for the given candidate hash
 type QueryAllChunks struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan []ErasureChunk
 }
 
@@ -59,14 +59,14 @@ type QueryAllChunks struct {
 // matters, but we don't want to necessarily pass around multiple
 // megabytes of data to get a single bit of information.
 type QueryChunkAvailability struct {
-	CandidateHash  common.Hash
+	CandidateHash  parachaintypes.CandidateHash
 	ValidatorIndex uint32
 	Sender         chan bool
 }
 
 // StoreChunk store an `ErasureChunk` in the AV store
 type StoreChunk struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Chunk         ErasureChunk
 	Sender        chan any
 }
