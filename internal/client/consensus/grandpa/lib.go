@@ -10,10 +10,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/communication"
+	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
 	"github.com/ChainSafe/gossamer/internal/client/telemetry"
-	"github.com/ChainSafe/gossamer/internal/keystore"
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
@@ -257,5 +257,15 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 	return work
 }
 
+// / Rebuilds the `self.voter` field using the current authority set
+// / state. This method should be called when we know that the authority set
+// / has changed (e.g. as signalled by a voter command).
 func (vw *voterWork[Hash, Number, Signature, ID, R]) rebuildVoter() {
+	// debug!(
+	// 	target: LOG_TARGET,
+	// 	"{}: Starting new voter with set ID {}",
+	// 	self.env.config.name(),
+	// 	self.env.set_id
+	// );
+	// logger.Debug()
 }
