@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -200,6 +201,13 @@ type Config struct {
 	ProtocolName network.ProtocolName
 }
 
+func (c Config) name() string {
+	if c.Name == nil {
+		return "<unknown>"
+	}
+	return *c.Name
+}
+
 // / Future that powers the voter.
 type voterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID AuthorityID, R any] struct {
 	voter            *grandpa.Voter[Hash, Number, Signature, ID]
@@ -268,4 +276,39 @@ func (vw *voterWork[Hash, Number, Signature, ID, R]) rebuildVoter() {
 	// 	self.env.set_id
 	// );
 	// logger.Debug()
+	logger.Debugf("%s: Starting new voter with set ID %v", vw.env.Config.name(), vw.env.SetID)
+
+	maybeAuthorityID := local
+}
+
+// / Checks if this node has any available keys in the keystore for any authority id in the given
+// / voter set.  Returns the authority id for which keys are available, or `None` if no keys are
+// / available.
+// fn local_authority_id(
+//
+//	voters: &VoterSet<AuthorityId>,
+//	keystore: Option<&KeystorePtr>,
+//
+//	) -> Option<AuthorityId> {
+//		keystore.and_then(|keystore| {
+//			voters
+//				.iter()
+//				.find(|(p, _)| keystore.has_keys(&[(p.to_raw_vec(), AuthorityId::ID)]))
+//				.map(|(p, _)| p.clone())
+//		})
+//	}
+func localAuthorityID[ID AuthorityID](voters grandpa.VoterSet[ID], keystore *keystore.KeyStore) *ID {
+	if keystore == nil {
+		return nil
+	}
+	for _, idVoterInfo := range voters.Iter() {
+		publicKeys := []struct {
+			Key []byte
+			crypto.KeyTypeID
+		}{
+			Key: []byte(idVoterInfo.ID),
+		}
+		(*keystore).HasKeys(publicKeys)
+	}
+	return nil
 }
