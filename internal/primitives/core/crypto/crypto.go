@@ -1,5 +1,40 @@
 package crypto
 
+// / Trait used for types that are really just a fixed-length array.
+// pub trait ByteArray: AsRef<[u8]> + AsMut<[u8]> + for<'a> TryFrom<&'a [u8], Error = ()> {
+type ByteArray interface {
+	// 	/// The "length" of the values of this type, which is always the same.
+	// 	const LEN: usize;
+
+	// 	/// A new instance from the given slice that should be `Self::LEN` bytes long.
+	// 	fn from_slice(data: &[u8]) -> Result<Self, ()> {
+	// 		Self::try_from(data)
+	// 	}
+
+	// 	/// Return a `Vec<u8>` filled with raw data.
+	// 	fn to_raw_vec(&self) -> Vec<u8> {
+	// 		self.as_slice().to_vec()
+	// 	}
+
+	// /// Return a slice filled with raw data.
+	//
+	//	fn as_slice(&self) -> &[u8] {
+	//		self.as_ref()
+	//	}
+}
+
+// / Trait suitable for typical cryptographic key public type.
+// pub trait Public: ByteArray + Derive + CryptoType + PartialEq + Eq + Clone + Send + Sync {}
+type Public interface {
+	ByteArray
+}
+
+// / An identifier for a specific cryptographic algorithm used by a key pair
+// #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode)]
+// #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+// pub struct CryptoTypeId(pub [u8; 4]);
+type CryptoTypeID string
+
 // / An identifier for a type of cryptographic key.
 // /
 // / To avoid clashes with other modules when distributing your module publicly, register your

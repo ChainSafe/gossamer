@@ -129,4 +129,81 @@ type KeyStore interface {
 	// 	msg: &[u8; 32],
 	// ) -> Result<Option<ecdsa::Signature>, Error>;
 	ECDSASignPrehashed(keyType crypto.KeyTypeID, public ecdsa.Public, msg [32]byte) (*ecdsa.Signature, error)
+
+	/// Insert a new secret key.
+	// fn insert(&self, key_type: KeyTypeId, suri: &str, public: &[u8]) -> Result<(), ()>;
+
+	/// List all supported keys of a given type.
+	///
+	/// Returns a set of public keys the signer supports in raw format.
+	// fn keys(&self, key_type: KeyTypeId) -> Result<Vec<Vec<u8>>, Error>;
+
+	/// Checks if the private keys for the given public key and key type combinations exist.
+	///
+	/// Returns `true` iff all private keys could be found.
+	// fn has_keys(&self, public_keys: &[(Vec<u8>, KeyTypeId)]) -> bool;
+	HasKeys(publicKeys []struct {
+		Key []byte
+		crypto.KeyTypeID
+	}) bool
+
+	/// Convenience method to sign a message using the given key type and a raw public key
+	/// for secret lookup.
+	///
+	/// The message is signed using the cryptographic primitive specified by `crypto_id`.
+	///
+	/// Schemes supported by the default trait implementation:
+	/// - sr25519
+	/// - ed25519
+	/// - ecdsa
+	/// - bls381
+	/// - bls377
+	///
+	/// To support more schemes you can overwrite this method.
+	///
+	/// Returns the SCALE encoded signature if key is found and supported, `None` if the key doesn't
+	/// exist or an error when something failed.
+	// fn sign_with(
+	// 	&self,
+	// 	id: KeyTypeId,
+	// 	crypto_id: CryptoTypeId,
+	// 	public: &[u8],
+	// 	msg: &[u8],
+	// ) -> Result<Option<Vec<u8>>, Error> {
+	// 	use codec::Encode;
+
+	// 	let signature = match crypto_id {
+	// 		sr25519::CRYPTO_ID => {
+	// 			let public = sr25519::Public::from_slice(public)
+	// 				.map_err(|_| Error::ValidationError("Invalid public key format".into()))?;
+	// 			self.sr25519_sign(id, &public, msg)?.map(|s| s.encode())
+	// 		},
+	// 		ed25519::CRYPTO_ID => {
+	// 			let public = ed25519::Public::from_slice(public)
+	// 				.map_err(|_| Error::ValidationError("Invalid public key format".into()))?;
+	// 			self.ed25519_sign(id, &public, msg)?.map(|s| s.encode())
+	// 		},
+	// 		ecdsa::CRYPTO_ID => {
+	// 			let public = ecdsa::Public::from_slice(public)
+	// 				.map_err(|_| Error::ValidationError("Invalid public key format".into()))?;
+
+	// 			self.ecdsa_sign(id, &public, msg)?.map(|s| s.encode())
+	// 		},
+	// 		#[cfg(feature = "bls-experimental")]
+	// 		bls381::CRYPTO_ID => {
+	// 			let public = bls381::Public::from_slice(public)
+	// 				.map_err(|_| Error::ValidationError("Invalid public key format".into()))?;
+	// 			self.bls381_sign(id, &public, msg)?.map(|s| s.encode())
+	// 		},
+	// 		#[cfg(feature = "bls-experimental")]
+	// 		bls377::CRYPTO_ID => {
+	// 			let public = bls377::Public::from_slice(public)
+	// 				.map_err(|_| Error::ValidationError("Invalid public key format".into()))?;
+	// 			self.bls377_sign(id, &public, msg)?.map(|s| s.encode())
+	// 		},
+	// 		_ => return Err(Error::KeyNotSupported(id)),
+	// 	};
+	// 	Ok(signature)
+	// }
+	SignWith(id crypto.KeyTypeID, cryptoID crypto.CryptoTypeID, public []byte, msg []byte) (*[]byte, error)
 }
