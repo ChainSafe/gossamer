@@ -10,6 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/erasure"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -372,7 +375,7 @@ func (as *AvailabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 }
 
 func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
-	candidate parachaintypes.CandidateHash, nValidators uint32, data AvailableData,
+	candidate parachaintypes.CandidateHash, nValidators uint, data AvailableData,
 	expectedErasureRoot common.Hash) (bool, error) {
 	batch := NewAvailabilityStoreBatch(as)
 	meta, err := as.loadMeta(candidate)
@@ -400,8 +403,16 @@ func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	meta.ChunksStored = make([]bool, nValidators)
 
 	// TODO: implement create erasure_span
+	dataEncoded, err := scale.Encode(data)
+	if err != nil {
+		return false, fmt.Errorf("encoding data: %w", err)
+	}
+	chunks, err := erasure.ObtainChunks(nValidators, dataEncoded)
+	if err != nil {
+		return false, fmt.Errorf("obtaining chunks: %w", err)
+	}
 
-	// TODO: write chunks to store
+	// TODO: implement erasure.branch function and branch_hash function
 
 	meta.DataAvailable = true
 	// todo: udate chunks stored in meta
