@@ -129,6 +129,20 @@ The purpose of this section is to outline the standard naming conventions approv
 
 **<TYPE>[SCOPE]: brief description**
 
+**<TYPE>**
+
+- fix = patches a bug or a resolves a particular issue
+- feat = introduces new functionality
+- chore = regular code maintenance
+- docs = anything related to documentation
+- style = updates related to styling (e.g. logs)
+- test = anything related to tests
+- refactor = refactoring a section of the code base
+
+**[SCOPE]**
+
+- name of primary package that changes were introduced (e.g. lib/runtime)
+
 ### Example PR names:
 
 - fix(dot/rpc): fixed return type for chain head
@@ -145,19 +159,6 @@ The purpose of this section is to outline the standard naming conventions approv
 
 - refactor(lib/trie): Refactored how trie is pruned
 
-**<TYPE>**
-
-- fix = patches a bug or a resolves a particular issue
-- feat = introduces new functionality
-- chore = regular code maintenance
-- docs = anything related to documentation
-- style = updates related to styling (e.g. logs)
-- test = anything related to tests
-- refactor = refactoring a section of the code base
-
-**[SCOPE]**
-
-- name of primary package that changes were introduced (e.g. lib/runtime)
 
 > For improved Git commit messages refer to:  
 > https://www.freecodecamp.org/news/writing-good-commit-messages-a-practical-guide/
