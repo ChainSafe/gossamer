@@ -73,9 +73,9 @@ func TestBabeService_checkAndSetFirstSlot(t *testing.T) {
 func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 	kp := keyring.Alice().(*sr25519.Keypair)
 	authority := types.NewAuthority(kp.Public(), uint64(1))
-	testEpochData := &types.EpochData{
+	testEpochData := &types.EpochDataRaw{
 		Randomness:  [32]byte{1},
-		Authorities: []types.Authority{*authority},
+		Authorities: []types.AuthorityRaw{*authority.ToRaw()},
 	}
 
 	testConfigData := &types.ConfigData{
@@ -88,9 +88,11 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 		C2: 2,
 	}
 
-	testEpochDataEpoch0 := &types.EpochData{
-		Randomness:  [32]byte{9},
-		Authorities: []types.Authority{*authority},
+	testEpochDataEpoch0 := &types.EpochDataRaw{
+		Randomness: [32]byte{9},
+		Authorities: []types.AuthorityRaw{
+			*authority.ToRaw(),
+		},
 	}
 
 	threshold0, err := CalculateThreshold(testConfigData.C1, testConfigData.C2, 1)
@@ -111,7 +113,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 
-				mockEpochState.EXPECT().GetLatestEpochData().Return(testEpochDataEpoch0, nil)
+				mockEpochState.EXPECT().GetLatestEpochDataRaw().Return(testEpochDataEpoch0, nil)
 				mockEpochState.EXPECT().GetLatestConfigData().Return(testConfigData, nil)
 
 				return &Service{
@@ -134,7 +136,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 
-				mockEpochState.EXPECT().GetEpochData(uint64(1), nil).Return(testEpochData, nil)
+				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), nil).Return(testEpochData, nil)
 				mockEpochState.EXPECT().GetConfigData(uint64(1), nil).Return(testConfigData, nil)
 
 				return &Service{
@@ -157,7 +159,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 
-				mockEpochState.EXPECT().GetEpochData(uint64(1), nil).Return(testEpochData, nil)
+				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), nil).Return(testEpochData, nil)
 				mockEpochState.EXPECT().GetConfigData(uint64(1), nil).Return(testLatestConfigData, nil)
 
 				return &Service{

@@ -58,46 +58,42 @@ func TestEpochState_EpochData(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	auth := types.Authority{
-		Key:    keyring.Alice().Public().(*sr25519.PublicKey),
+	auth := types.AuthorityRaw{
+		Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
 		Weight: 1,
 	}
 
-	info := &types.EpochData{
-		Authorities: []types.Authority{auth},
+	info := &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{auth},
 		Randomness:  [32]byte{77},
 	}
 
-	err = s.SetEpochData(1, info)
+	err = s.SetEpochDataRaw(1, info)
 	require.NoError(t, err)
-	res, err := s.GetEpochData(1, nil)
+	res, err := s.GetEpochDataRaw(1, nil)
 	require.NoError(t, err)
 	require.Equal(t, info.Randomness, res.Randomness)
 
 	for i, auth := range res.Authorities {
-		expected, err := info.Authorities[i].Encode()
-		require.NoError(t, err)
-		res, err := auth.Encode()
-		require.NoError(t, err)
-		require.Equal(t, expected, res)
+		require.Equal(t, info.Authorities[i], auth)
 	}
 }
 
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	info := &types.EpochData{
+	info := &types.EpochDataRaw{
 		Randomness: [32]byte{77},
 	}
 
-	err := s.SetEpochData(2, info)
+	err := s.SetEpochDataRaw(2, info)
 	require.NoError(t, err)
 
-	info = &types.EpochData{
+	info = &types.EpochDataRaw{
 		Randomness: [32]byte{77},
 	}
 
-	err = s.SetEpochData(3, info)
+	err = s.SetEpochDataRaw(3, info)
 	require.NoError(t, err)
 
 	start, err := s.GetStartSlotForEpoch(0)
@@ -405,10 +401,8 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				expected, err := expectedNextEpochData.ToEpochData()
-				require.NoError(t, err)
-
-				gotNextEpochData, err := epochState.GetEpochData(tt.finalizeEpoch, nil)
+				expected := expectedNextEpochData.ToEpochDataRaw()
+				gotNextEpochData, err := epochState.GetEpochDataRaw(tt.finalizeEpoch, nil)
 				require.NoError(t, err)
 
 				require.Equal(t, expected, gotNextEpochData)
