@@ -45,14 +45,13 @@ type FinalityProofProvider[
 	BE Backend[Hash, N, H, B],
 	Hash constraints.Ordered,
 	N constraints.Unsigned,
-	AuthID AuthorityID,
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N],
 	B BlockchainBackend[Hash, N, H],
 ] struct {
 	backend            BE
-	sharedAuthoritySet *SharedAuthoritySet[Hash, N, AuthID]
+	sharedAuthoritySet *SharedAuthoritySet[Hash, N, ID]
 }
 
 // NewFinalityProofProvider Create new finality proof provider using:
@@ -64,15 +63,14 @@ func NewFinalityProofProvider[
 	BE Backend[Hash, N, H, B],
 	Hash constraints.Ordered,
 	N constraints.Unsigned,
-	AuthID AuthorityID,
 	S comparable,
 	ID AuthorityID,
 	H Header[Hash, N],
 	B BlockchainBackend[Hash, N, H],
 ](
 	backend BE,
-	sharedAuthSet *SharedAuthoritySet[Hash, N, AuthID]) *FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B] {
-	return &FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B]{
+	sharedAuthSet *SharedAuthoritySet[Hash, N, ID]) *FinalityProofProvider[BE, Hash, N, S, ID, H, B] {
+	return &FinalityProofProvider[BE, Hash, N, S, ID, H, B]{
 		backend:            backend,
 		sharedAuthoritySet: sharedAuthSet,
 	}
@@ -80,7 +78,7 @@ func NewFinalityProofProvider[
 
 // ProveFinality Prove finality for the given block number by returning a Justification for the last block of
 // the authority set in bytes.
-func (provider FinalityProofProvider[BE, H, N, AuthID, S, ID, Header, B]) ProveFinality(block N) (*[]byte, error) {
+func (provider FinalityProofProvider[BE, H, N, S, ID, Header, B]) ProveFinality(block N) (*[]byte, error) {
 	proof, err := provider.proveFinalityProof(block, true)
 	if err != nil {
 		return nil, err
@@ -102,7 +100,7 @@ func (provider FinalityProofProvider[BE, H, N, AuthID, S, ID, Header, B]) ProveF
 //
 // If `collect_unknown_headers` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
-func (provider FinalityProofProvider[BE, Hash, N, AuthID, S, ID, H, B]) proveFinalityProof(
+func (provider FinalityProofProvider[BE, Hash, N, S, ID, H, B]) proveFinalityProof(
 	block N,
 	collectUnknownHeaders bool) (*FinalityProof[Hash, N, H], error) {
 	if provider.sharedAuthoritySet == nil {
