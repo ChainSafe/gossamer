@@ -159,9 +159,8 @@ The purpose of this section is to outline the standard naming conventions approv
 
 - name of primary package that changes were introduced (e.g. lib/runtime)
 
-For improved Git commit messages refer to:
-
-- https://www.freecodecamp.org/news/writing-good-commit-messages-a-practical-guide/
+> For improved Git commit messages refer to:  
+> https://www.freecodecamp.org/news/writing-good-commit-messages-a-practical-guide/
 
 
 
