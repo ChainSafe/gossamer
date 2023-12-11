@@ -37,7 +37,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 		reqID                  float64
 		params                 interface{}
 	}{
-		"test StorageAPI not set": {
+		"test_StorageAPI_not_set": {
 			badRequest: true,
 			msg: []byte(`{"jsonrpc":"2.0",` +
 				`"error":{"code":null,"message":"error StorageAPI not set"},` +
@@ -49,7 +49,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 			reqID:         1,
 			params:        nil,
 		},
-		"req 1 unexpected type nil": {
+		"req_1_unexpected_type_nil": {
 			badRequest:    true,
 			msg:           nil,
 			subscriptions: 0,
@@ -59,7 +59,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 			reqID:         1,
 			params:        nil,
 		},
-		"req 2": {
+		"req_2": {
 			badRequest:    false,
 			msg:           []byte(`{"jsonrpc":"2.0","result":1,"id":2}` + "\n"),
 			subscriptions: 1,
@@ -69,7 +69,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 			reqID:         2,
 			params:        []interface{}{},
 		},
-		"req 3": {
+		"req_3": {
 			badRequest:    false,
 			msg:           []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n"),
 			subscriptions: 1,
@@ -79,7 +79,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 			reqID:         3,
 			params:        []interface{}{"0x26aa"},
 		},
-		"req 1 unexpected type []int": {
+		"req_1_unexpected_type_[]int": {
 			badRequest:    true,
 			msg:           nil,
 			subscriptions: 0,
@@ -89,7 +89,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 			reqID:         1,
 			params:        []interface{}{[]int{123}},
 		},
-		"req 1 unexpected type int": {
+		"req_1_unexpected_type_int": {
 			badRequest:    true,
 			msg:           nil,
 			subscriptions: 0,
@@ -147,7 +147,7 @@ func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
 	testCases := map[string]struct {
 		requests []*Case
 	}{
-		"test case with 1 request": {
+		"test_case_with_1_request": {
 			requests: []*Case{
 				{
 					reqID:         1,
@@ -157,7 +157,7 @@ func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
 				},
 			},
 		},
-		"test case with 2 requests": {
+		"test_case_with_2_requests": {
 			requests: []*Case{
 				{
 					reqID:         1,
@@ -173,7 +173,7 @@ func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
 				},
 			},
 		},
-		"test case with 4 requests 1 bad": {
+		"test_case_with_4_requests_1_bad": {
 			requests: []*Case{
 				{
 					reqID:         1,
@@ -240,7 +240,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 		respErr error
 		resp    []byte
 	}{
-		"state_subscribeStorage request": {
+		"state_subscribeStorage_request": {
 			request: []byte(`{
     		"jsonrpc": "2.0",
 			"method": "state_subscribeStorage",
@@ -255,7 +255,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","result":1,"id":7}` + "\n"),
 		},
-		"invalid state_unsubscribeStorage request wrong params": {
+		"invalid_state_unsubscribeStorage_request_wrong_params": {
 			request: []byte(`{
     					"jsonrpc": "2.0",
 						"method": "state_unsubscribeStorage",
@@ -264,7 +264,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}` + "\n"),
 		},
-		"invalid state_unsubscribeStorage request empty params array": {
+		"invalid_state_unsubscribeStorage_request_empty_params_array": {
 			request: []byte(`{
     					"jsonrpc": "2.0",
 						"method": "state_unsubscribeStorage",
@@ -273,7 +273,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}` + "\n"),
 		},
-		"state_unsubscribeStorage request #1 string param": {
+		"state_unsubscribeStorage_request_#1_string_param": {
 			request: []byte(`{
     					"jsonrpc": "2.0",
 						"method": "state_unsubscribeStorage",
@@ -282,7 +282,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","result":false,"id":7}` + "\n"),
 		},
-		"state_unsubscribeStorage request #2 string param ": {
+		"state_unsubscribeStorage_request_#2_string_param_": {
 			request: []byte(`{
     					"jsonrpc": "2.0",
 						"method": "state_unsubscribeStorage",
@@ -291,7 +291,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","result":true,"id":7}` + "\n"),
 		},
-		"state_unsubscribeStorage request #3 int param": {
+		"state_unsubscribeStorage_request_#3_int_param": {
 			request: []byte(`{
     					"jsonrpc": "2.0",
 						"method": "state_unsubscribeStorage",
@@ -300,7 +300,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","result":false,"id":7}` + "\n"),
 		},
-		"state_unsubscribeStorage request #4 int param": {
+		"state_unsubscribeStorage_request_#4_int_param": {
 			request: []byte(`{
     					"jsonrpc": "2.0",
 						"method": "state_unsubscribeStorage",
@@ -309,7 +309,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			respErr: nil,
 			resp:    []byte(`{"jsonrpc":"2.0","result":true,"id":7}` + "\n"),
 		},
-		"chain_subscribeNewHeads request": {
+		"chain_subscribeNewHeads_request": {
 			request: []byte(`{
 							"jsonrpc": "2.0",
 							"method": "chain_subscribeNewHeads",
@@ -350,12 +350,12 @@ func TestWSConn_InitBlockListener(t *testing.T) {
 		respErr    error
 		resp       []byte
 	}{
-		"blockAPI not set": {
+		"blockAPI_not_set": {
 			setBlocAPI: false,
 			resp:       []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}` + "\n"),
 			respErr:    errors.New("error BlockAPI not set"),
 		},
-		"blockAPI set": {
+		"blockAPI_set": {
 			setBlocAPI: true,
 			resp:       []byte(`{"jsonrpc":"2.0","result":5,"id":1}` + "\n"),
 			respErr:    nil,
@@ -431,19 +431,19 @@ func TestWSConn_InitExtrinsicWatchTest(t *testing.T) {
 		param      []interface{}
 		msg        []byte
 	}{
-		"non hex params": {
+		"non_hex_params": {
 			setBlocAPI: false,
 			initErr:    errors.New("could not byteify non 0x prefixed string: NotHex"),
 			reqID:      0,
 			param:      []interface{}{"NotHex"},
 		},
-		"block API not set": {
+		"block_API_not_set": {
 			setBlocAPI: false,
 			initErr:    errors.New("could not byteify non 0x prefixed string: NotHex"),
 			reqID:      0,
 			param:      []interface{}{"NotHex"},
 		},
-		"block API set": {
+		"block_API_set": {
 			setBlocAPI: true,
 			initErr:    nil,
 			reqID:      0,
