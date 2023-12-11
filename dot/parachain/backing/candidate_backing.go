@@ -530,14 +530,15 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
 	}
 
-	if rpState.issuedStatements[candidateHash] || rpState.AwaitingValidation[candidateHash] {
+	if rpState.issuedStatements[candidateHash] {
 		return
 	}
 
-	rpState.AwaitingValidation[candidateHash] = true
 	pov := getPovFromValidator()
 
-	go backgroundValidateAndMakeAvailable(
+	// add context and close channel on context done
+	rpState.BackgroundValidateAndMakeAvailable(
+		executorParamsAtRelayParent,
 		subSystemToOverseer,
 		chRelayParentAndCommand,
 		attesting.candidate,
@@ -546,27 +547,63 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		pov,
 		uint32(len(rpState.TableContext.validators)),
 		Attest,
+		candidateHash,
 	)
 }
 
-func backgroundValidateAndMakeAvailable(
+func (rpState *perRelayParentState) BackgroundValidateAndMakeAvailable(
+	executorParamsAtRelayParentFunc ExecutorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan RelayParentAndCommand,
 	candidateReceipt parachaintypes.CandidateReceipt,
-	relayPaent common.Hash,
+	relayParent common.Hash,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
 	numValidator uint32,
 	makeCommand ValidatedCandidateCommand,
+	candidateHash parachaintypes.CandidateHash,
+) {
+	if rpState.AwaitingValidation[candidateHash] {
+		return
+	}
+
+	rpState.AwaitingValidation[candidateHash] = true
+
+	// TODO: add context
+	go validateAndMakeAvailable(
+		executorParamsAtRelayParent,
+		subSystemToOverseer,
+		chRelayParentAndCommand,
+		candidateReceipt,
+		rpState.RelayParent,
+		pvd,
+		pov,
+		uint32(len(rpState.TableContext.validators)),
+		Attest,
+		candidateHash,
+	)
+}
+
+// this is temporary until we implement executorParamsAtRelayParent #3544
+type ExecutorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
+
+func validateAndMakeAvailable(
+	executorParamsAtRelayParentFunc ExecutorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
+	subSystemToOverseer chan<- any,
+	chRelayParentAndCommand chan RelayParentAndCommand,
+	candidateReceipt parachaintypes.CandidateReceipt,
+	relayParent common.Hash,
+	pvd parachaintypes.PersistedValidationData,
+	pov parachaintypes.PoV,
+	numValidator uint32,
+	makeCommand ValidatedCandidateCommand,
+	candidateHash parachaintypes.CandidateHash,
 ) {
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(candidateReceipt)),
-	}
 
 	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
 	subSystemToOverseer <- parachaintypes.RAMRequest{
-		RelayParent: relayPaent,
+		RelayParent: relayParent,
 		RuntimeApiRequest: parachaintypes.RARValidationCodeByHash{
 			ValidationCodeHash: validationCodeHash,
 			Ch:                 chValidationCodeByHashRes,
@@ -579,9 +616,18 @@ func backgroundValidateAndMakeAvailable(
 		return
 	}
 
-	executorParams, err := executorParamsAtRelayParent(relayPaent, subSystemToOverseer)
+	// executorParamsAtRelayParent() should be called after it is implemented #3544
+	executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
 	if err != nil {
-		logger.Errorf("could not get executor params at relay parent: %w", err)
+		logger.Errorf("getting executor params at relay parent: %s", err)
+		return
+	}
+
+	pvfExecTimeoutKind := parachaintypes.NewPvfExecTimeoutKind()
+	err = pvfExecTimeoutKind.Set(parachaintypes.Backing{})
+	if err != nil {
+		logger.Errorf("setting pvfExecTimeoutKind: %s", err)
+		return
 	}
 
 	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
@@ -591,13 +637,14 @@ func backgroundValidateAndMakeAvailable(
 		CandidateReceipt:        candidateReceipt,
 		PoV:                     pov,
 		ExecutorParams:          executorParams,
-		PvfPrepTimeoutKind:      parachaintypes.Approval,
+		PvfExecTimeoutKind:      pvfExecTimeoutKind,
 		Ch:                      chValidationResultRes,
 	}
 
 	ValidationResultRes := <-chValidationResultRes
 	if ValidationResultRes.Err != nil {
 		logger.Error(ValidationResultRes.Err.Error())
+		return
 	}
 
 	var backgroundValidationResult BackgroundValidationResult
@@ -608,6 +655,8 @@ func backgroundValidateAndMakeAvailable(
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
 		// candidate validity.
 
+		logger.Debugf("validation successful! candidateHash=%s", candidateHash)
+
 		chStoreAvailableDataError := make(chan error)
 		subSystemToOverseer <- parachaintypes.ASMStoreAvailableData{
 			CandidateHash: candidateHash,
@@ -616,7 +665,8 @@ func backgroundValidateAndMakeAvailable(
 				PoV:            pov,
 				ValidationData: pvd,
 			},
-			Ch: chStoreAvailableDataError,
+			ExpectedErasureRoot: candidateReceipt.Descriptor.ErasureRoot,
+			Ch:                  chStoreAvailableDataError,
 		}
 
 		storeAvailableDataError := <-chStoreAvailableDataError
@@ -644,12 +694,12 @@ func backgroundValidateAndMakeAvailable(
 		logger.Error(ValidationResultRes.Data.Err.Error())
 		backgroundValidationResult = BackgroundValidationResult{
 			CandidateReceipt: &candidateReceipt,
-			Err:              ErrInvalidErasureRoot,
+			Err:              ValidationResultRes.Data.Err,
 		}
 	}
 
 	chRelayParentAndCommand <- RelayParentAndCommand{
-		RelayParent:   relayPaent,
+		RelayParent:   relayParent,
 		Command:       makeCommand,
 		ValidationRes: backgroundValidationResult,
 		CandidateHash: candidateHash,
