@@ -66,61 +66,11 @@ func (c *LRUCache[K, V]) Get(key K) V {
 	return zeroV
 }
 
-// Has checks if the cache contains the given key.
-func (c *LRUCache[K, V]) Has(key K) bool {
-	c.RLock()
-	defer c.RUnlock()
-
-	_, exists := c.cache[key]
-	return exists
-}
-
 // Put adds a key-value pair to the cache.
 func (c *LRUCache[K, V]) Put(key K, value V) {
 	c.Lock()
 	defer c.Unlock()
 
-	c.insertEntry(key, value)
-}
-
-// SoftPut adds a key-value pair to the cache if it does not already exist.
-func (c *LRUCache[K, V]) SoftPut(key K, value V) bool {
-	c.Lock()
-	defer c.Unlock()
-
-	if _, exists := c.cache[key]; exists {
-		return false
-	}
-
-	c.insertEntry(key, value)
-	return true
-}
-
-// Delete removes the given key from the cache.
-func (c *LRUCache[K, V]) Delete(key K) bool {
-	c.Lock()
-	defer c.Unlock()
-
-	val, exists := c.cache[key]
-	if !exists {
-		return false
-	}
-
-	c.lruList.Remove(val)
-
-	delete(c.cache, key)
-	return true
-}
-
-// Len returns the number of items in the cache.
-func (c *LRUCache[K, V]) Len() int {
-	c.Lock()
-	defer c.Unlock()
-
-	return len(c.cache)
-}
-
-func (c *LRUCache[K, V]) insertEntry(key K, value V) {
 	// If the key already exists in the cache, update its value and move it to the front.
 	if elem, exists := c.cache[key]; exists {
 		elem.Value.(*Entry[K, V]).value = value

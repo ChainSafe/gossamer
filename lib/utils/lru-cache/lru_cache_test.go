@@ -56,30 +56,4 @@ func TestLRUCache(t *testing.T) {
 		v := cache.Get(999)
 		require.Equal(t, "", v)
 	})
-
-	t.Run("TestPutAndGetLen", func(t *testing.T) {
-		cache.Put(1, "Alice")
-		cache.Put(2, "Bob")
-
-		len := cache.Len()
-		require.Equal(t, 2, len)
-	})
-
-	t.Run("TestPutAndDelete", func(t *testing.T) {
-		cache.Put(1, "Alice")
-		cache.Put(2, "Bob")
-
-		require.True(t, cache.Has(1))
-
-		cache.Delete(1)
-
-		require.False(t, cache.Has(1))
-	})
-
-	t.Run("TestSoftPut", func(t *testing.T) {
-		cache.Put(1, "Alice")
-		cache.SoftPut(1, "Bob")
-
-		require.Equal(t, "Alice", cache.Get(1))
-	})
 }
