@@ -18,10 +18,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-  
-	"go.uber.org/mock/gomock"
+
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestWSConn_HandleConnParallel(t *testing.T) {
@@ -101,6 +101,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 		},
 	}
 	for name, testCase := range testCases {
+		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -148,25 +149,61 @@ func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
 	}{
 		"test case with 1 request": {
 			requests: []*Case{
-				{reqID: 1, params: []interface{}{"0x26aa"}, subscriptions: 1, response: []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n")},
+				{
+					reqID:         1,
+					params:        []interface{}{"0x26aa"},
+					subscriptions: 1,
+					response:      []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n"),
+				},
 			},
 		},
 		"test case with 2 requests": {
 			requests: []*Case{
-				{reqID: 1, params: []interface{}{"0x26aa"}, subscriptions: 1, response: []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n")},
-				{reqID: 2, params: []interface{}{"0x26ab"}, subscriptions: 2, response: []byte(`{"jsonrpc":"2.0","result":2,"id":2}` + "\n")},
+				{
+					reqID:         1,
+					params:        []interface{}{"0x26aa"},
+					subscriptions: 1,
+					response:      []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n"),
+				},
+				{
+					reqID:         2,
+					params:        []interface{}{"0x26ab"},
+					subscriptions: 2,
+					response:      []byte(`{"jsonrpc":"2.0","result":2,"id":2}` + "\n"),
+				},
 			},
 		},
 		"test case with 4 requests 1 bad": {
 			requests: []*Case{
-				{reqID: 1, params: []interface{}{"0x26aa"}, subscriptions: 1, response: []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n")},
-				{reqID: 2, params: []interface{}{"0x26ab"}, subscriptions: 2, response: []byte(`{"jsonrpc":"2.0","result":2,"id":2}` + "\n")},
-				{reqID: 3, params: []interface{}{[]int{123}}, subscriptions: 2, response: nil},
-				{reqID: 4, params: []interface{}{"0x26aa"}, subscriptions: 3, response: []byte(`{"jsonrpc":"2.0","result":3,"id":4}` + "\n")},
+				{
+					reqID:         1,
+					params:        []interface{}{"0x26aa"},
+					subscriptions: 1,
+					response:      []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n"),
+				},
+				{
+					reqID:         2,
+					params:        []interface{}{"0x26ab"},
+					subscriptions: 2,
+					response:      []byte(`{"jsonrpc":"2.0","result":2,"id":2}` + "\n"),
+				},
+				{
+					reqID:         3,
+					params:        []interface{}{[]int{123}},
+					subscriptions: 2,
+					response:      nil,
+				},
+				{
+					reqID:         4,
+					params:        []interface{}{"0x26aa"},
+					subscriptions: 3,
+					response:      []byte(`{"jsonrpc":"2.0","result":3,"id":4}` + "\n"),
+				},
 			},
 		},
 	}
 	for name, testCase := range testCases {
+		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -284,6 +321,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 		},
 	}
 	for name, testCase := range testCases {
+		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -325,6 +363,7 @@ func TestWSConn_InitBlockListener(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
+		testCase := testCase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -414,7 +453,9 @@ func TestWSConn_InitExtrinsicWatchTest(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
+		testCase := testCase
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			ctrl := gomock.NewController(t)
 
 			wsconn, c, cancel := setupWSConn(t)
