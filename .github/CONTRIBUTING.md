@@ -129,7 +129,7 @@ The purpose of this section is to outline the standard naming conventions approv
 
 **<TYPE>[SCOPE]: brief description**
 
-Example PR names:
+### Example PR names:
 
 **fix : dot/rpc: fixed return type for chain head**
 
