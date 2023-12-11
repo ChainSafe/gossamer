@@ -131,19 +131,19 @@ The purpose of this section is to outline the standard naming conventions approv
 
 ### Example PR names:
 
-**fix : dot/rpc: fixed return type for chain head**
+- fix(dot/rpc): fixed return type for chain head
 
-**feat: dot/rpc: Add support for submit and watch extrinisic**
+- feat(dot/rpc): Add support for submit and watch extrinisic
 
-**docs: Updated usage section for running a gossamer node**
+- docs: Updated usage section for running a gossamer node
 
-**tests: lib/runtime: Added additional test coverage for allocator**
+- tests(lib/runtime): Added additional test coverage for allocator
 
-**chore: lib/runtime: Bumped wasmer to 1.0**
+- chore(lib/runtime): Bumped wasmer to 1.0
 
-**style: cmd/gossamer: Updated CLI arguments format**
+- style(cmd/gossamer): Updated CLI arguments format
 
-**refactor: lib/trie : Refactored how trie is pruned**
+- refactor(lib/trie): Refactored how trie is pruned
 
 **<TYPE>**
 
