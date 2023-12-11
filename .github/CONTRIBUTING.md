@@ -125,7 +125,7 @@ func TestLargeStringTest(t *testing.T) {
 ## PR & Commit Standards
 The purpose of this section is to outline the standard naming conventions approved by the Gossamer team for Pull Requests and commit messages. The reasoning is to have improved understanding and auto generated changelogs for releases.
 
-PR and final commit message should follow:
+### PR and final commit message should follow:
 
 **<TYPE>[SCOPE]: brief description**
 
