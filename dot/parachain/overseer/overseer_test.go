@@ -11,6 +11,7 @@ import (
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,12 +46,21 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 	}
 }
 
+func (s *TestSubsystem) ProcessOverseerSignals() error {
+	fmt.Printf("%s ProcessOverseerSignals\n", s.name)
+	return nil
+}
+
 func (s *TestSubsystem) String() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
 func TestStart2SubsytemsActivate1(t *testing.T) {
-	overseer := NewOverseer()
+	ctrl := gomock.NewController(t)
+
+	blockState := NewMockBlockState(ctrl)
+	overseer := NewOverseer(blockState)
+
 	require.NotNil(t, overseer)
 
 	subSystem1 := &TestSubsystem{name: "subSystem1"}
@@ -81,7 +91,7 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem1)
 
 	// let subsystems run for a bit
 	time.Sleep(4000 * time.Millisecond)
@@ -94,7 +104,10 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 }
 
 func TestStart2SubsytemsActivate2Different(t *testing.T) {
-	overseer := NewOverseer()
+	ctrl := gomock.NewController(t)
+
+	blockState := NewMockBlockState(ctrl)
+	overseer := NewOverseer(blockState)
 	require.NotNil(t, overseer)
 
 	subSystem1 := &TestSubsystem{name: "subSystem1"}
@@ -127,9 +140,9 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 		Number: 2,
 	}
 	time.Sleep(250 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf1}, subSystem1)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf1}, subSystem1)
 	time.Sleep(400 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf2}, subSystem2)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf2}, subSystem2)
 	// let subsystems run for a bit
 	time.Sleep(3000 * time.Millisecond)
 
@@ -141,7 +154,11 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 }
 
 func TestStart2SubsytemsActivate2Same(t *testing.T) {
-	overseer := NewOverseer()
+	ctrl := gomock.NewController(t)
+
+	blockState := NewMockBlockState(ctrl)
+	overseer := NewOverseer(blockState)
+
 	require.NotNil(t, overseer)
 
 	subSystem1 := &TestSubsystem{name: "subSystem1"}
@@ -170,9 +187,9 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 		Number: 1,
 	}
 	time.Sleep(300 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem1)
 	time.Sleep(400 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem2)
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem2)
 	// let subsystems run for a bit
 	time.Sleep(2000 * time.Millisecond)
 
