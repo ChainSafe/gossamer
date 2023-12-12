@@ -25,7 +25,6 @@ type Coordinator struct {
 	runtime      parachain.RuntimeInstance
 	maxSpamVotes uint32
 
-	overseer chan<- any
 	receiver chan any
 }
 
@@ -46,6 +45,7 @@ type initializeResult struct {
 }
 
 func (d *Coordinator) sendDisputeMessages(
+	receiver chan<- any,
 	env types.CandidateEnvironment,
 	voteState types.CandidateVoteState,
 ) {
@@ -86,7 +86,7 @@ func (d *Coordinator) sendDisputeMessages(
 			continue
 		}
 
-		if err := sendMessage(d.overseer, disputeMessage); err != nil {
+		if err := sendMessage(receiver, disputeMessage); err != nil {
 			logger.Errorf("send dispute message: %s", err)
 		}
 	}
@@ -109,7 +109,7 @@ func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
 	}
 }
 
-func (d *Coordinator) initialize() (
+func (d *Coordinator) initialize(sender chan<- any) (
 	*initializeResult,
 	error,
 ) {
@@ -129,7 +129,7 @@ func (d *Coordinator) initialize() (
 		break
 	}
 
-	startupData, err := d.handleStartup(firstLeaf)
+	startupData, err := d.handleStartup(sender, firstLeaf)
 	if err != nil {
 		return nil, fmt.Errorf("handle startup: %w", err)
 	}
@@ -144,8 +144,8 @@ func (d *Coordinator) initialize() (
 		participation: startupData.participation,
 		votes:         startupData.votes,
 		activatedLeaf: firstLeaf,
-		initialized: NewInitializedState(d.overseer,
-			d.receiver,
+		initialized: NewInitializedState(d.receiver,
+			sender,
 			d.runtime,
 			startupData.spamSlots,
 			startupData.orderingProvider,
@@ -156,7 +156,7 @@ func (d *Coordinator) initialize() (
 	}, nil
 }
 
-func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
+func (d *Coordinator) handleStartup(sender chan<- any, initialHead *overseer.ActivatedLeaf) (
 	*startupResult,
 	error,
 ) {
@@ -195,7 +195,7 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	var participationRequests []ParticipationData
 	spamDisputes := make(map[unconfirmedKey]*treeset.Set)
 	leafHash := initialHead.Hash
-	scraper, scrapedVotes, err := scraping.NewChainScraper(d.overseer, d.runtime, initialHead)
+	scraper, scrapedVotes, err := scraping.NewChainScraper(sender, d.runtime, initialHead)
 	if err != nil {
 		return nil, fmt.Errorf("new chain scraper: %w", err)
 	}
@@ -260,7 +260,7 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 			})
 		} else {
 			logger.Tracef("found valid dispute, with vote from us on startup - distributing. %s")
-			d.sendDisputeMessages(*env, voteState)
+			d.sendDisputeMessages(sender, *env, voteState)
 		}
 
 		return true
@@ -276,8 +276,8 @@ func (d *Coordinator) handleStartup(initialHead *overseer.ActivatedLeaf) (
 	}, nil
 }
 
-func (d *Coordinator) Run() error {
-	initResult, err := d.initialize()
+func (d *Coordinator) Run(sender chan<- any) error {
+	initResult, err := d.initialize(sender)
 	if err != nil {
 		return fmt.Errorf("initialize dispute coordinator: %w", err)
 	}
@@ -287,17 +287,16 @@ func (d *Coordinator) Run() error {
 		Votes:         initResult.votes,
 		Leaf:          initResult.activatedLeaf,
 	}
-	initResult.initialized.Run(d.overseer, d.store.inner, &initData)
+	initResult.initialized.Run(sender, d.store.inner, &initData)
 	return nil
 }
 
-func NewDisputesCoordinator(db *badger.DB, overseer chan<- any, receiver chan any) (*Coordinator, error) {
+func NewDisputesCoordinator(db *badger.DB, receiver chan any) (*Coordinator, error) {
 	dbBackend := NewDBBackend(db)
 	backend := newOverlayBackend(dbBackend)
 
 	return &Coordinator{
 		store:        backend,
-		overseer:     overseer,
 		receiver:     receiver,
 		maxSpamVotes: MaxSpamVotes,
 	}, nil

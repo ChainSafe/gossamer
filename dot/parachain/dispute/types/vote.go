@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/common"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -175,6 +176,7 @@ func NewOwnVoteStateVDT(value scale.VaryingDataTypeValue) (OwnVoteStateVDT, erro
 	return OwnVoteStateVDT(vdt), nil
 }
 
+// NewOwnVoteStateVDTWithVotes returns a new OwnVoteStateVDT with the given votes
 func NewOwnVoteStateVDTWithVotes(voteState CandidateVotes, env *CandidateEnvironment) (OwnVoteStateVDT, error) {
 	if len(env.ControlledIndices) == 0 {
 		return NewOwnVoteStateVDT(CannotVote{})
@@ -267,8 +269,8 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 	}
 
 	numberOfValidators := len(env.Session.Validators)
-	byzantineThreshold := getByzantineThreshold(numberOfValidators)
-	superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
+	byzantineThreshold := common.GetByzantineThreshold(numberOfValidators)
+	superMajorityThreshold := common.GetSuperMajorityThreshold(numberOfValidators)
 	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Value.Len() == 0)
 	if isDisputed {
 		status, err := NewDisputeStatusVDT()
@@ -388,6 +390,7 @@ func (vcv ValidCandidateVotes) InsertVote(vote Vote) (bool, error) {
 	}
 }
 
+// NewInvalidCandidateVotes creates a new instance of BTreeMap for invalid votes.
 func NewInvalidCandidateVotes(degree int) scale.BTreeMap[parachainTypes.ValidatorIndex, Vote] {
 	return scale.NewBTreeMap[parachainTypes.ValidatorIndex, Vote](degree)
 }
@@ -399,6 +402,7 @@ type CandidateVotes struct {
 	Invalid          scale.BTreeMap[parachainTypes.ValidatorIndex, Vote] `scale:"3"`
 }
 
+// Copy returns a copy of the CandidateVotes
 func (cv *CandidateVotes) Copy() CandidateVotes {
 	return CandidateVotes{
 		CandidateReceipt: cv.CandidateReceipt,
@@ -471,15 +475,4 @@ func NewCandidateVotesFromReceipt(receipt parachainTypes.CandidateReceipt) Candi
 		Valid:            NewValidCandidateVotes(32),
 		Invalid:          scale.NewBTreeMap[parachainTypes.ValidatorIndex, Vote](32),
 	}
-}
-
-func getByzantineThreshold(n int) int {
-	if n < 1 {
-		return 0
-	}
-	return (n - 1) / 3
-}
-
-func getSuperMajorityThreshold(n int) int {
-	return n - getByzantineThreshold(n)
 }
