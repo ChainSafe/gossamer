@@ -34,7 +34,7 @@ var (
 	// The requested block has not yet been finalized
 	errBlockNotYetFinalized = errors.New("block not yet finalized")
 	// The requested block is not covered by authority set changes. Likely this means the block is
-	// in the authoritySetChangeIDLatest authority set, and the subscription API is more appropriate
+	// in the latest authority set, and the subscription API is more appropriate
 	errBlockNotInAuthoritySetChanges = errors.New("block not covered by authority set changes")
 )
 
@@ -57,8 +57,8 @@ type FinalityProofProvider[
 // NewFinalityProofProvider Create new finality proof provider using:
 //
 // - backend for accessing blockchain data;
-// - authority_provider for calling and proving runtime methods.
-// - shared_authority_set for accessing authority set data
+// - authorityProvider for calling and proving runtime methods.
+// - sharedAuthoritySet for accessing authority set data
 func NewFinalityProofProvider[
 	BE Backend[Hash, N, H, B],
 	Hash constraints.Ordered,
@@ -98,7 +98,7 @@ func (provider FinalityProofProvider[BE, H, N, S, ID, Header, B]) ProveFinality(
 // Prove finality for the given block number by returning a Justification for the last block of
 // the authority set.
 //
-// If `collect_unknown_headers` is true, the finality proof will include all headers from the
+// If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
 func (provider FinalityProofProvider[BE, Hash, N, S, ID, H, B]) proveFinalityProof(
 	block N,
@@ -123,15 +123,15 @@ type FinalityProof[Hash constraints.Ordered, N constraints.Unsigned, H Header[Ha
 	Block Hash
 	// Justification of the block F
 	Justification []byte
-	// The set of headers in the range (B; F] that we believe are authoritySetChangeIDUnknown to the caller. Ordered.
+	// The set of headers in the range (B; F] that we believe are unknown to the caller. Ordered.
 	UnknownHeaders []H
 }
 
 // Prove finality for the given block number by returning a justification for the last block of
-// the authority set of which the given block is part of, or a justification for the authoritySetChangeIDLatest
+// the authority set of which the given block is part of, or a justification for the latest
 // finalized block if the given block is part of the current authority set.
 //
-// If `collect_unknown_headers` is true, the finality proof will include all headers from the
+// If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
 func proveFinality[
 	BE Backend[Hash, N, H, B],

@@ -24,12 +24,10 @@ func checkFinalityProof[
 	H Header[Hash, N],
 	ID AuthorityID,
 ](
-	t *testing.T,
 	currentSetID uint64,
 	currentAuthorities AuthorityList[ID],
 	remoteProof []byte,
 ) (FinalityProof[Hash, N, H], error) {
-	t.Helper()
 	proof := FinalityProof[Hash, N, H]{}
 	err := scale.Unmarshal(remoteProof, &proof)
 	if err != nil {
@@ -166,7 +164,6 @@ func TestFinalityProof_CheckFailsWhenProofDecodeFails(t *testing.T) {
 	// When we can't decode proof from Vec<u8>
 	authorityList := AuthorityList[dummyAuthID]{}
 	_, err := checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-		t,
 		1,
 		authorityList,
 		[]byte{42},
@@ -186,7 +183,6 @@ func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
 	encJustification, err := scale.Marshal(grandpaJustification)
 	require.NoError(t, err)
 	_, err = checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-		t,
 		1,
 		authorityList,
 		encJustification,
@@ -219,7 +215,6 @@ func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
 	}
 
 	_, err := checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-		t,
 		1,
 		authorityList,
 		scale.MustMarshal(finalityProof),
@@ -250,7 +245,6 @@ func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	}
 
 	newFinalityProof, err := checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-		t,
 		1,
 		authorityList,
 		scale.MustMarshal(finalityProof),
