@@ -37,12 +37,24 @@ func setupTestDB(t *testing.T) database.Database {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := NewAvailabilityStoreBatch(as)
-
-	_, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
+	meta := CandidateMeta{
+		State:         State{},
+		DataAvailable: false,
+		ChunksStored:  []bool{false, false, false},
+	}
+	err := as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, meta)
 	require.NoError(t, err)
-	_, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk2)
+	err = batch.Write()
 	require.NoError(t, err)
 
+	stored, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
+	require.NoError(t, err)
+	require.Equal(t, true, stored)
+	stored, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk2)
+	require.NoError(t, err)
+	require.Equal(t, true, stored)
+
+	batch = NewAvailabilityStoreBatch(as)
 	err = as.writeAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testavailableData1)
 	require.NoError(t, err)
 	err = batch.Write()
@@ -96,10 +108,12 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	err = batch.Write()
 	require.NoError(t, err)
 
-	_, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
+	got, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
 	require.NoError(t, err)
-	_, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk2)
+	require.Equal(t, true, got)
+	got, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk2)
 	require.NoError(t, err)
+	require.Equal(t, true, got)
 
 	resultChunk, err := as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
 	require.NoError(t, err)
@@ -499,7 +513,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 			expectedResult: []ErasureChunk{},
 			err: errors.New(
 				"load metadata: getting candidate 0x0700000000000000000000000000000000000000000000000000000000000000" +
-					" from available table: pebble: not found"),
+					" from meta table: pebble: not found"),
 		},
 	}
 	for name, tt := range tests {
@@ -563,7 +577,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 			expectedResult: false,
 			err: errors.New(
 				"load metadata: getting candidate 0x0700000000000000000000000000000000000000000000000000000000000000" +
-					" from available table: pebble: not found"),
+					" from meta table: pebble: not found"),
 		},
 	}
 	for name, tt := range tests {
@@ -615,14 +629,85 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	msgSenderChan := make(chan any)
 	msg := StoreAvailableData{
 		CandidateHash:       parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-		NValidators:         0,
+		NValidators:         2,
 		AvailableData:       AvailableData{},
-		ExpectedErasureRoot: common.Hash{},
+		ExpectedErasureRoot: common.MustHexToHash("0xc3d486f444a752cbf49857ceb2fce0a235268fb8b63e9e019eab619d192650bc"),
 		Sender:              msgSenderChan,
 	}
 
-	// TODO: hondle error below
-	go asSub.handleStoreAvailableData(msg)
+	go func() {
+		err := asSub.handleStoreAvailableData(msg)
+		require.NoError(t, err)
+	}()
 	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, nil, msgSenderChanResult)
+	require.Equal(t, true, msgSenderChanResult)
+}
+
+func TestAvailabilityStore_storeAvailableData(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		candidate           parachaintypes.CandidateHash
+		nValidators         uint
+		data                AvailableData
+		expectedErasureRoot common.Hash
+	}
+	tests := map[string]struct {
+		args args
+		want bool
+		err  error
+	}{
+		"empty_availableData": {
+			args: args{
+				candidate:           parachaintypes.CandidateHash{},
+				nValidators:         0,
+				data:                AvailableData{},
+				expectedErasureRoot: common.Hash{},
+			},
+			want: false,
+			err:  errors.New("obtaining chunks: expected at least 2 validators"),
+		},
+		"2_validators": {
+			args: args{
+				candidate:   parachaintypes.CandidateHash{},
+				nValidators: 2,
+				data: AvailableData{
+					PoV: parachaintypes.PoV{BlockData: []byte{2}},
+				},
+				expectedErasureRoot: common.MustHexToHash("0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991"),
+			},
+			want: true,
+			err:  nil,
+		},
+		"2_validators_error_erasure_root": {
+			args: args{
+				candidate:   parachaintypes.CandidateHash{},
+				nValidators: 2,
+				data: AvailableData{
+					PoV: parachaintypes.PoV{BlockData: []byte{2}},
+				},
+				expectedErasureRoot: common.Hash{},
+			},
+			want: false,
+			err:  InvalidErasureRoot,
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			inmemoryDB := setupTestDB(t)
+			as := NewAvailabilityStore(inmemoryDB)
+			asSub := &AvailabilityStoreSubsystem{
+				availabilityStore: *as,
+			}
+			got, err := as.storeAvailableData(asSub, tt.args.candidate, tt.args.nValidators,
+				tt.args.data, tt.args.expectedErasureRoot)
+			if tt.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tt.err.Error())
+			}
+			require.Equal(t, tt.want, got)
+		})
+	}
 }

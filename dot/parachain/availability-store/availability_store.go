@@ -10,14 +10,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/erasure"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/erasure"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
@@ -402,20 +403,40 @@ func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	meta.DataAvailable = false
 	meta.ChunksStored = make([]bool, nValidators)
 
-	// TODO: implement create erasure_span
-	dataEncoded, err := scale.Encode(data)
+	dataEncoded, err := scale.Marshal(data)
 	if err != nil {
 		return false, fmt.Errorf("encoding data: %w", err)
 	}
+
 	chunks, err := erasure.ObtainChunks(nValidators, dataEncoded)
 	if err != nil {
 		return false, fmt.Errorf("obtaining chunks: %w", err)
 	}
 
-	// TODO: implement erasure.branch function and branch_hash function
+	branches, err := branchesFromChunks(chunks)
+	if err != nil {
+		return false, fmt.Errorf("creating branches from chunks: %w", err)
+	}
+	if branches.root != expectedErasureRoot {
+		return false, InvalidErasureRoot
+	}
+
+	for i, chunk := range chunks {
+		err = as.writeChunk(batch, candidate, ErasureChunk{
+			Index: uint32(i),
+			Chunk: chunk,
+		})
+		if err != nil {
+			return false, fmt.Errorf("writing chunk %d: %w", i, err)
+		}
+		meta.ChunksStored[i] = true
+	}
 
 	meta.DataAvailable = true
-	// todo: udate chunks stored in meta
+	meta.ChunksStored = make([]bool, nValidators)
+	for i := range meta.ChunksStored {
+		meta.ChunksStored[i] = true
+	}
 
 	err = as.writeMeta(batch, candidate, *meta)
 	if err != nil {
@@ -446,6 +467,24 @@ func uint32ToBytesBigEndian(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.BigEndian.PutUint32(result, value)
 	return result
+}
+
+func branchesFromChunks(chunks [][]byte) (Branches, error) {
+	tr := trie.NewEmptyTrie()
+
+	for i, chunk := range chunks {
+		err := tr.Put(uint32ToBytes(uint32(i)), common.MustBlake2bHash(chunk).ToBytes())
+		if err != nil {
+			return Branches{}, fmt.Errorf("putting chunk %d in trie: %w", i, err)
+		}
+	}
+	b := Branches{
+		trieStorage: tr,
+		root:        tr.MustHash(),
+		chunks:      chunks,
+		currentPos:  0,
+	}
+	return b, nil
 }
 
 // Run runs the availability store subsystem

@@ -10,6 +10,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -76,7 +77,7 @@ type StoreChunk struct {
 // StoreAvailableData store an `AvailableData` in the AV store
 type StoreAvailableData struct {
 	CandidateHash       parachaintypes.CandidateHash
-	NValidators         uint32
+	NValidators         uint
 	AvailableData       AvailableData
 	ExpectedErasureRoot common.Hash
 	Sender              chan any
@@ -162,3 +163,10 @@ type BlockNumberHash struct {
 }
 
 var InvalidErasureRoot = errors.New("Invalid erasure root")
+
+type Branches struct {
+	trieStorage *trie.Trie
+	root        common.Hash
+	chunks      [][]byte
+	currentPos  uint
+}
