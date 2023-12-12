@@ -97,6 +97,7 @@ func (o *Overseer) Start() error {
 	go o.processMessages()
 	go o.handleBlockEvents()
 
+	// TODO: add logic to start listening for Block Imported events and Finalisation events
 	return nil
 }
 
@@ -238,6 +239,11 @@ func (o *Overseer) Stop() error {
 	fmt.Printf("timedOut: %v\n", timedOut)
 
 	return nil
+}
+
+// sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
+func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdateSignal, subsystem Subsystem) {
+	o.subsystems[subsystem] <- update
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) (timeouted bool) {

@@ -103,6 +103,7 @@ func TestHandleBlockEvents(t *testing.T) {
 				go incrementCounters(t, msg, &finalizedCounter, &importedCounter)
 				wg.Done()
 			}
+
 		}
 	}()
 
@@ -112,6 +113,15 @@ func TestHandleBlockEvents(t *testing.T) {
 	importedBlockNotiferChan <- &types.Block{}
 
 	wg.Wait()
+	time.Sleep(1000 * time.Millisecond)
+	activedLeaf := ActivatedLeaf{
+		Hash:   [32]byte{1},
+		Number: 1,
+	}
+	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
+
+	// let subsystems run for a bit
+	time.Sleep(4000 * time.Millisecond)
 
 	err = overseer.Stop()
 	require.NoError(t, err)
