@@ -3,13 +3,13 @@ package dispute
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
-	"sync"
-	"sync/atomic"
-
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // CandidateComparator comparator for ordering of disputes for candidate.
@@ -53,16 +53,16 @@ type ParticipationStatement struct {
 // Participation keeps track of the disputes we need to participate in.
 type Participation interface {
 	// Queue a dispute for the node to participate in
-	Queue(overseerChannel chan<- any, data ParticipationData) error
+	Queue(sender chan<- any, data ParticipationData) error
 
 	// Clear clears a participation request. This is called when we have the dispute result.
-	Clear(candidateHash common.Hash) error
+	Clear(sender chan<- any, candidateHash common.Hash) error
 
 	// ProcessActiveLeavesUpdate processes an active leaves update
-	ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate)
+	ProcessActiveLeavesUpdate(sender chan<- any, update overseer.ActiveLeavesUpdate)
 
 	// BumpPriority bumps the priority for the given receipts
-	BumpPriority(overseerChannel chan<- any, receipts []parachainTypes.CandidateReceipt)
+	BumpPriority(sender chan<- any, receipts []parachainTypes.CandidateReceipt)
 }
 
 type block struct {
@@ -87,7 +87,7 @@ type ParticipationHandler struct {
 
 const MaxParallelParticipation = 3
 
-func (p *ParticipationHandler) Queue(overseerChannel chan<- any,
+func (p *ParticipationHandler) Queue(sender chan<- any,
 	data ParticipationData,
 ) error {
 	if _, ok := p.runningParticipation.Load(data.request.candidateHash); ok {
@@ -96,11 +96,11 @@ func (p *ParticipationHandler) Queue(overseerChannel chan<- any,
 
 	// if we already have a recent block, participate right away
 	if p.recentBlock != nil && p.numberOfWorkers() < MaxParallelParticipation {
-		p.forkParticipation(data.request, p.recentBlock.Hash)
+		p.forkParticipation(sender, data.request, p.recentBlock.Hash)
 		return nil
 	}
 
-	blockNumber, err := getBlockNumber(overseerChannel, data.request.candidateReceipt)
+	blockNumber, err := getBlockNumber(sender, data.request.candidateReceipt)
 	if err != nil {
 		return fmt.Errorf("get block number: %w", err)
 	}
@@ -118,7 +118,7 @@ func (p *ParticipationHandler) Queue(overseerChannel chan<- any,
 	return nil
 }
 
-func (p *ParticipationHandler) Clear(candidateHash common.Hash) error {
+func (p *ParticipationHandler) Clear(sender chan<- any, candidateHash common.Hash) error {
 	p.runningParticipation.Delete(candidateHash)
 	p.workers.Add(-1)
 
@@ -126,11 +126,11 @@ func (p *ParticipationHandler) Clear(candidateHash common.Hash) error {
 		panic("we never ever reset recentBlock to nil and we already received a result, so it must have been set before. qed")
 	}
 
-	p.dequeueUntilCapacity(p.recentBlock.Hash)
+	p.dequeueUntilCapacity(sender, p.recentBlock.Hash)
 	return nil
 }
 
-func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveLeavesUpdate) {
+func (p *ParticipationHandler) ProcessActiveLeavesUpdate(sender chan<- any, update overseer.ActiveLeavesUpdate) {
 	if update.Activated == nil {
 		return
 	}
@@ -146,12 +146,12 @@ func (p *ParticipationHandler) ProcessActiveLeavesUpdate(update overseer.ActiveL
 		Number: update.Activated.Number,
 		Hash:   update.Activated.Hash,
 	}
-	p.dequeueUntilCapacity(update.Activated.Hash)
+	p.dequeueUntilCapacity(sender, update.Activated.Hash)
 }
 
-func (p *ParticipationHandler) BumpPriority(overseerChannel chan<- any, receipts []parachainTypes.CandidateReceipt) {
+func (p *ParticipationHandler) BumpPriority(sender chan<- any, receipts []parachainTypes.CandidateReceipt) {
 	for _, receipt := range receipts {
-		blockNumber, err := getBlockNumber(overseerChannel, receipt)
+		blockNumber, err := getBlockNumber(sender, receipt)
 		if err != nil {
 			logger.Errorf(
 				"failed to get block number. CommitmentsHash: %s, Error: %s",
@@ -187,18 +187,18 @@ func (p *ParticipationHandler) numberOfWorkers() int {
 	return int(p.workers.Load())
 }
 
-func (p *ParticipationHandler) dequeueUntilCapacity(recentHead common.Hash) {
+func (p *ParticipationHandler) dequeueUntilCapacity(sender chan<- any, recentHead common.Hash) {
 	for p.numberOfWorkers() < MaxParallelParticipation {
 		request := p.queue.Dequeue()
 		if request == nil {
 			break
 		}
 
-		p.forkParticipation(*request.request, recentHead)
+		p.forkParticipation(sender, *request.request, recentHead)
 	}
 }
 
-func (p *ParticipationHandler) forkParticipation(request ParticipationRequest, recentHead common.Hash) {
+func (p *ParticipationHandler) forkParticipation(sender chan<- any, request ParticipationRequest, recentHead common.Hash) {
 	_, ok := p.runningParticipation.LoadOrStore(request.candidateHash, nil)
 	if ok {
 		return
@@ -206,7 +206,7 @@ func (p *ParticipationHandler) forkParticipation(request ParticipationRequest, r
 
 	p.workers.Add(1)
 	go func() {
-		if err := p.participate(recentHead, request); err != nil {
+		if err := p.participate(sender, recentHead, request); err != nil {
 			logger.Debugf(
 				"failed to participate in dispute. CandidateHash: %s, Error: %s",
 				request.candidateHash.String(),
@@ -216,7 +216,8 @@ func (p *ParticipationHandler) forkParticipation(request ParticipationRequest, r
 	}()
 }
 
-func (p *ParticipationHandler) participate(blockHash common.Hash, request ParticipationRequest) error {
+func (p *ParticipationHandler) participate(sender chan<- any, blockHash common.Hash, request ParticipationRequest) error {
+	time.Sleep(100 * time.Millisecond)
 	// get available data from the overseer
 	respCh := make(chan any, 1)
 	message := overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]{
@@ -276,7 +277,7 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 	}
 	res, err = call(p.overseer, validateMessage, validateMessage.ResponseChannel)
 	if err != nil {
-		sendResult(p.receiver, request, types.ParticipationOutcomeError)
+		sendResult(sender, request, types.ParticipationOutcomeError)
 	}
 	result, ok := res.(overseer.ValidationResult)
 	if !ok {
@@ -300,15 +301,15 @@ func (p *ParticipationHandler) participate(blockHash common.Hash, request Partic
 
 var _ Participation = (*ParticipationHandler)(nil)
 
-func NewParticipation(overseer chan<- any,
-	receiver chan<- any,
+func NewParticipation(receiver chan<- any,
+	overseer chan<- any,
 	runtime parachain.RuntimeInstance,
 ) *ParticipationHandler {
 	return &ParticipationHandler{
 		runningParticipation: sync.Map{},
 		queue:                NewQueue(),
-		overseer:             overseer,
 		receiver:             receiver,
+		overseer:             overseer,
 		runtime:              runtime,
 	}
 }

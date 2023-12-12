@@ -3,18 +3,17 @@ package dispute
 import (
 	"context"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-	"sync"
-	"testing"
-	"time"
-
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	disputeTypes "github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"sync"
+	"testing"
+	"time"
 )
 
 func dummyCandidateCommitments() parachainTypes.CandidateCommitments {
@@ -105,6 +104,7 @@ func dummyCandidateReceiptBadSignature(
 func activateLeaf(
 	participation Participation,
 	blockNumber parachainTypes.BlockNumber,
+	sender chan<- any,
 ) error {
 	encodedBlockNumber, err := scale.Marshal(blockNumber)
 	if err != nil {
@@ -131,7 +131,7 @@ func activateLeaf(
 		},
 	}
 
-	participation.ProcessActiveLeavesUpdate(update)
+	participation.ProcessActiveLeavesUpdate(sender, update)
 	return nil
 }
 
@@ -173,17 +173,6 @@ func participateWithCommitmentsHash(
 	return participation.Queue(overseerChannel, participationData)
 }
 
-func TestNewParticipation(t *testing.T) {
-	t.Parallel()
-	ctrl := gomock.NewController(t)
-	mockRuntime := NewMockRuntimeInstance(ctrl)
-	mockOverseer := make(chan any)
-	mockReceiver := make(chan any)
-
-	participation := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
-	require.NotNil(t, participation, "should not be nil")
-}
-
 func TestParticipationHandler_Queue(t *testing.T) {
 	t.Parallel()
 	t.Run("should_not_queue_the_same_request_if_the_participation_is_already_running", func(t *testing.T) {
@@ -195,9 +184,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
 
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(11))
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(11), mockOverseer)
 		require.NoError(t, err)
 
 		go func() {
@@ -242,7 +231,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
 	})
-
 	t.Run("requests_get_queued_when_out_of_capacity", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -255,8 +243,8 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		var wg sync.WaitGroup
 		participationTest := func() {
 			defer wg.Done()
-			participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
-			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+			participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
+			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 			require.NoError(t, err)
 
 			err = participate(participationHandler, mockOverseer)
@@ -268,21 +256,19 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			}
 
 			for i := 0; i < MaxParallelParticipation+1; i++ {
-				err = participationHandler.Clear(common.Hash{byte(i)})
+				err = participationHandler.Clear(mockOverseer, common.Hash{byte(i)})
 				require.NoError(t, err)
 			}
 		}
 
-		requestHandler := func() {
+		overseerHandler := func() {
 			defer wg.Done()
 			counter := 0
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 			for {
 				select {
 				case msg := <-mockOverseer:
-					if counter == 9 {
-						panic("too many requests")
-					}
-					counter++
 					switch message := msg.(type) {
 					case overseer.ChainAPIMessage[overseer.BlockNumber]:
 						response := uint32(1)
@@ -292,28 +278,54 @@ func TestParticipationHandler_Queue(t *testing.T) {
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
 						}
-					case ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.UnAvailableOutcome:
-							return
-						default:
-							panic("invalid outcome")
-						}
 					default:
-						panic("unknown message type")
+						err := fmt.Errorf("unexpected message type: %T", msg)
+						require.NoError(t, err)
 					}
+				case <-ctx.Done():
+					err := fmt.Errorf("timeout")
+					require.NoError(t, err)
+				}
+
+				counter++
+				if counter == 5 {
+					break
 				}
 			}
 		}
+		receiverHandler := func() {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			select {
+			case msg := <-mockReceiver:
+				switch message := msg.(type) {
+				case disputeTypes.Message[ParticipationStatement]:
+					outcome, err := message.Data.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.UnAvailableOutcome:
+						return
+					default:
+						err := fmt.Errorf("unexpected outcome: %T", outcome)
+						require.NoError(t, err)
+					}
+				default:
+					err := fmt.Errorf("unexpected message type: %T", msg)
+					require.NoError(t, err)
+				}
+			case <-ctx.Done():
+				err := fmt.Errorf("timeout")
+				require.NoError(t, err)
+			}
+		}
 
-		wg.Add(2)
-		go requestHandler()
+		wg.Add(3)
+		go overseerHandler()
+		go receiverHandler()
 		go participationTest()
 		wg.Wait()
 	})
-
 	t.Run("requests_get_queued_on_no_recent_block", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -327,7 +339,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		var wg sync.WaitGroup
 		participationTest := func() {
 			defer wg.Done()
-			participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
+			participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
 
 			go func() {
 				err := participate(participationHandler, mockOverseer)
@@ -338,7 +350,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			// the participation is queued in race-free way
 			<-waitTx
 
-			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+			err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 			require.NoError(t, err)
 		}
 
@@ -404,7 +416,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		go participationTest()
 		wg.Wait()
 	})
-
 	t.Run("cannot_participate_if_cannot_recover_the_available_data", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -414,8 +425,8 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 		require.NoError(t, err)
 
 		go func() {
@@ -453,7 +464,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
 	})
-
 	t.Run("cannot_participate_if_cannot_recover_validation_code", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -462,7 +472,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockOverseer := make(chan any)
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
 
 		go func() {
 			for {
@@ -500,7 +510,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).
 			Return(nil, nil).Times(1)
 
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 		require.NoError(t, err)
 
 		err = participate(participationHandler, mockOverseer)
@@ -509,7 +519,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
 	})
-
 	t.Run("cast_invalid_vote_if_available_data_is_invalid", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -519,9 +528,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
 
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 		require.NoError(t, err)
 
 		err = participate(participationHandler, mockOverseer)
@@ -559,7 +568,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
 	})
-
 	t.Run("cast_invalid_vote_if_validation_fails_or_is_invalid", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -568,9 +576,9 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockOverseer := make(chan any)
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
 
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 		require.NoError(t, err)
 
 		err = participate(participationHandler, mockOverseer)
@@ -625,7 +633,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
 	})
-
 	// TODO: currently, the candidate validation doesn't support all the error types
 	// this test is only setting it as string, but we need to set the appropriate error type
 	// refer https://github.com/ChainSafe/gossamer/issues/3426
@@ -638,8 +645,8 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 		require.NoError(t, err)
 
 		go func() {
@@ -698,7 +705,6 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// sleep for a while to ensure we don't have any further results nor recovery requests
 		time.Sleep(5 * time.Second)
 	})
-
 	t.Run("cast_vote_if_the_validation_passes", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
@@ -708,8 +714,8 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		mockReceiver := make(chan any)
 		mockRuntime := NewMockRuntimeInstance(ctrl)
 
-		participationHandler := NewParticipation(mockOverseer, mockReceiver, mockRuntime)
-		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10))
+		participationHandler := NewParticipation(mockReceiver, mockOverseer, mockRuntime)
+		err := activateLeaf(participationHandler, parachainTypes.BlockNumber(10), mockOverseer)
 		require.NoError(t, err)
 
 		go func() {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/common"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	disputetypes "github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -22,19 +23,7 @@ import (
 	"time"
 )
 
-func getByzantineThreshold(n int) int {
-	if n < 1 {
-		return 0
-	}
-	return (n - 1) / 3
-}
-
-func getSuperMajorityThreshold(n int) int {
-	return n - getByzantineThreshold(n)
-}
-
 func newDisputesCoordinator(backend *overlayBackend,
-	overseer chan any,
 	receiver chan any,
 	runtime *MockRuntimeInstance,
 	keystore keystore.Keystore,
@@ -42,7 +31,6 @@ func newDisputesCoordinator(backend *overlayBackend,
 	runtimeCache := newRuntimeInfo(runtime)
 	return Coordinator{
 		store:        backend,
-		overseer:     overseer,
 		receiver:     receiver,
 		runtime:      runtimeCache,
 		keystore:     keystore,
@@ -56,26 +44,6 @@ const (
 	BackingVote VoteType = iota
 	ExplicitVote
 )
-
-func (ts *TestState) generateOpposingVotesPair(t *testing.T,
-	validVoterID, invalidVoterID parachaintypes.ValidatorIndex,
-	candidateHash common.Hash,
-	session parachaintypes.SessionIndex,
-	validVoteType VoteType,
-) (disputetypes.SignedDisputeStatement, disputetypes.SignedDisputeStatement) {
-	var validVote, invalidVote disputetypes.SignedDisputeStatement
-	switch validVoteType {
-	case BackingVote:
-		validVote = ts.issueBackingStatementWithIndex(t, validVoterID, candidateHash, session)
-	case ExplicitVote:
-		validVote = ts.issueExplicitStatementWithIndex(t, validVoterID, candidateHash, session, true)
-	default:
-		panic("invalid vote type")
-	}
-
-	invalidVote = ts.issueExplicitStatementWithIndex(t, invalidVoterID, candidateHash, session, false)
-	return validVote, invalidVote
-}
 
 type TestState struct {
 	validators        []keystore.KeyPair
@@ -184,7 +152,7 @@ func newTestState(t *testing.T) *TestState {
 		mockOverseer:      mockOverseer,
 		subsystemReceiver: subsystemReceiver,
 		runtime:           runtime,
-		subsystem:         newDisputesCoordinator(backend, mockOverseer, subsystemReceiver, runtime, subsystemKeyStore),
+		subsystem:         newDisputesCoordinator(backend, subsystemReceiver, runtime, subsystemKeyStore),
 	}
 }
 
@@ -216,7 +184,38 @@ func (ts *TestState) run(t *testing.T) {
 	ts.blockNumToHeader[2] = h2Hash
 	ts.lastBlock = h2Hash
 
-	err := ts.subsystem.Run()
+	err := ts.subsystem.Run(ts.mockOverseer)
+	require.NoError(t, err)
+}
+
+func (ts *TestState) resume(t *testing.T) {
+	t.Helper()
+	ts.knownSession = nil
+	dbBackend := newOverlayBackend(ts.db.inner)
+	ts.subsystem = newDisputesCoordinator(dbBackend, ts.subsystemReceiver, ts.runtime, ts.subsystemKeystore)
+	err := ts.subsystem.Run(ts.mockOverseer)
+	require.NoError(t, err)
+}
+
+func (ts *TestState) awaitConclude(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	select {
+	case msg := <-ts.mockOverseer:
+		err := fmt.Errorf("unexpected message: %T", msg)
+		require.NoError(t, err)
+	case <-ctx.Done():
+		return
+	}
+}
+
+func (ts *TestState) conclude(t *testing.T) {
+	t.Helper()
+	concludeSignal := overseer.Signal[overseer.Conclude]{
+		Data:            overseer.Conclude{},
+		ResponseChannel: nil,
+	}
+	err := sendMessage(ts.subsystemReceiver, concludeSignal)
 	require.NoError(t, err)
 }
 
@@ -542,6 +541,26 @@ func (ts *TestState) issueApprovalVoteWithIndex(t *testing.T,
 	}
 }
 
+func (ts *TestState) generateOpposingVotesPair(t *testing.T,
+	validVoterID, invalidVoterID parachaintypes.ValidatorIndex,
+	candidateHash common.Hash,
+	session parachaintypes.SessionIndex,
+	validVoteType VoteType,
+) (disputetypes.SignedDisputeStatement, disputetypes.SignedDisputeStatement) {
+	var validVote, invalidVote disputetypes.SignedDisputeStatement
+	switch validVoteType {
+	case BackingVote:
+		validVote = ts.issueBackingStatementWithIndex(t, validVoterID, candidateHash, session)
+	case ExplicitVote:
+		validVote = ts.issueExplicitStatementWithIndex(t, validVoterID, candidateHash, session, true)
+	default:
+		panic("invalid vote type")
+	}
+
+	invalidVote = ts.issueExplicitStatementWithIndex(t, invalidVoterID, candidateHash, session, false)
+	return validVote, invalidVote
+}
+
 func (ts *TestState) handleGetBlockNumber(t *testing.T) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -557,280 +576,6 @@ func (ts *TestState) handleGetBlockNumber(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("timed out waiting for block number request")
 	}
-}
-
-func (ts *TestState) resume(t *testing.T) {
-	t.Helper()
-	ts.knownSession = nil
-	dbBackend := newOverlayBackend(ts.db.inner)
-	ts.subsystem = newDisputesCoordinator(dbBackend, ts.mockOverseer, ts.subsystemReceiver, ts.runtime, ts.subsystemKeystore)
-	err := ts.subsystem.Run()
-	require.NoError(t, err)
-}
-
-func (ts *TestState) conclude(t *testing.T) {
-	t.Helper()
-	concludeSignal := overseer.Signal[overseer.Conclude]{
-		Data:            overseer.Conclude{},
-		ResponseChannel: nil,
-	}
-	err := sendMessage(ts.subsystemReceiver, concludeSignal)
-	require.NoError(t, err)
-}
-
-func (ts *TestState) awaitConclude(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	select {
-	case msg := <-ts.mockOverseer:
-		err := fmt.Errorf("unexpected message: %T", msg)
-		require.NoError(t, err)
-	case <-ctx.Done():
-		return
-	}
-}
-
-func getValidCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
-	t.Helper()
-	candidateReceipt, err := dummyCandidateReceiptBadSignature(common.Hash{}, &common.Hash{})
-	require.NoError(t, err)
-	candidateReceipt.CommitmentsHash, err = parachaintypes.CandidateCommitments{}.Hash()
-	require.NoError(t, err)
-	return candidateReceipt
-}
-
-func getInvalidCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
-	t.Helper()
-	candidateReceipt, err := dummyCandidateReceiptBadSignature(common.Hash{}, &common.Hash{})
-	require.NoError(t, err)
-	return candidateReceipt
-}
-
-func getCandidateBackedEvent(
-	t *testing.T,
-	candidateReceipt parachaintypes.CandidateReceipt,
-) parachaintypes.CandidateEventVDT {
-	t.Helper()
-	candidateEvent, err := parachaintypes.NewCandidateEventVDT()
-	require.NoError(t, err)
-	err = candidateEvent.Set(parachaintypes.CandidateBacked{
-		CandidateReceipt: candidateReceipt,
-		HeadData:         parachaintypes.HeadData{},
-		CoreIndex:        parachaintypes.CoreIndex{},
-		GroupIndex:       0,
-	})
-	require.NoError(t, err)
-	return candidateEvent
-}
-
-func getCandidateIncludedEvent(t *testing.T,
-	candidateReceipt parachaintypes.CandidateReceipt,
-) parachaintypes.CandidateEventVDT {
-	t.Helper()
-	candidateEvent, err := parachaintypes.NewCandidateEventVDT()
-	require.NoError(t, err)
-
-	err = candidateEvent.Set(parachaintypes.CandidateIncluded{
-		CandidateReceipt: candidateReceipt,
-		HeadData:         parachaintypes.HeadData{},
-		CoreIndex:        parachaintypes.CoreIndex{},
-		GroupIndex:       0,
-	})
-	require.NoError(t, err)
-
-	return candidateEvent
-}
-
-func handleApprovalVoteRequest(t *testing.T, overseerChan chan any, expectedHash common.Hash, signature []overseer.ApprovalSignature) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	select {
-	case msg := <-overseerChan:
-		switch message := msg.(type) {
-		case overseer.ApprovalVotingMessage[overseer.ApprovalSignatureForCandidate]:
-			require.Equal(t, expectedHash, message.Message.CandidateHash)
-			message.ResponseChan <- overseer.ApprovalSignatureResponse{
-				Signature: signature,
-				Error:     nil,
-			}
-		default:
-			err := fmt.Errorf("unexpected message type: %T", msg)
-			require.NoError(t, err)
-		}
-	case <-ctx.Done():
-		err := fmt.Errorf("timed out waiting for ApprovalSignatureForCandidate request")
-		require.NoError(t, err)
-	}
-}
-
-func recoverAvailableData(t *testing.T, mockOverseer chan any) {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	select {
-	case msg := <-mockOverseer:
-		switch message := msg.(type) {
-		case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-			availableData := overseer.AvailableData{
-				POV:            []byte{},
-				ValidationData: overseer.PersistedValidationData{},
-			}
-			message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-				AvailableData: &availableData,
-				Error:         nil,
-			}
-			return
-		default:
-			err := fmt.Errorf("unexpected message type: %T", msg)
-			require.NoError(t, err)
-		}
-	case <-ctx.Done():
-		err := fmt.Errorf("timed out waiting for RecoverAvailableData request")
-		require.NoError(t, err)
-	}
-}
-
-func handleParticipationFullHappyPath(t *testing.T,
-	mockOverseer chan any,
-	runtime *MockRuntimeInstance,
-	expectedCommitments common.Hash,
-) {
-	t.Helper()
-	runtime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
-		return &parachaintypes.ValidationCode{}, nil
-	}).Times(1)
-	recoverAvailableData(t, mockOverseer)
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	select {
-	case msg := <-mockOverseer:
-		switch message := msg.(type) {
-		case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
-			if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-				message.ResponseChannel <- overseer.ValidationResult{
-					IsValid: expectedCommitments == message.Data.CandidateReceipt.CommitmentsHash,
-					Error:   nil,
-				}
-			}
-			return
-		default:
-			err := fmt.Errorf("unexpected message type: %T", msg)
-			require.NoError(t, err)
-		}
-	case <-ctx.Done():
-		err := fmt.Errorf("timed out waiting for ValidateFromExhaustive request")
-		require.NoError(t, err)
-	}
-}
-
-func handleParticipationWithDistribution(t *testing.T,
-	mockOverseer chan any,
-	runtime *MockRuntimeInstance,
-	candidateHash common.Hash,
-	expectedCommitmentsHash common.Hash,
-) {
-	t.Helper()
-	handleParticipationFullHappyPath(t, mockOverseer, runtime, expectedCommitmentsHash)
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	select {
-	case msg := <-mockOverseer:
-		switch message := msg.(type) {
-		case disputetypes.DisputeMessageVDT:
-			value, err := message.Value()
-			require.NoError(t, err)
-			dispute, ok := value.(disputetypes.UncheckedDisputeMessage)
-			require.True(t, ok)
-
-			receivedHash, err := dispute.CandidateReceipt.Hash()
-			require.NoError(t, err)
-			require.Equal(t, candidateHash, receivedHash)
-			return
-		default:
-			err := fmt.Errorf("unexpected message type: %T", msg)
-			require.NoError(t, err)
-		}
-	case <-ctx.Done():
-		err := fmt.Errorf("timed out waiting for DisputeMessageVDT request")
-		require.NoError(t, err)
-	}
-}
-
-func participationMissingAvailability(t *testing.T, mockOverseer chan any) {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	select {
-	case msg := <-mockOverseer:
-		switch message := msg.(type) {
-		case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-			err := overseer.RecoveryErrorUnavailable
-			message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-				AvailableData: nil,
-				Error:         &err,
-			}
-			return
-		default:
-			err := fmt.Errorf("unexpected message type: %T", msg)
-			require.NoError(t, err)
-		}
-	case <-ctx.Done():
-		err := fmt.Errorf("timed out waiting for RecoverAvailableData request")
-		require.NoError(t, err)
-	}
-}
-
-func newImportStatementsMessage(t *testing.T,
-	candidateReceipt parachaintypes.CandidateReceipt,
-	session parachaintypes.SessionIndex,
-	statements []disputetypes.Statement,
-	respChan chan any,
-) disputetypes.Message[disputetypes.ImportStatements] {
-	t.Helper()
-	return disputetypes.Message[disputetypes.ImportStatements]{
-		Data: disputetypes.ImportStatements{
-			CandidateReceipt: candidateReceipt,
-			Session:          session,
-			Statements:       statements,
-		},
-		ResponseChannel: respChan,
-	}
-}
-
-func newActiveDisputesQuery(t *testing.T, respChan chan any) disputetypes.Message[disputetypes.ActiveDisputes] {
-	t.Helper()
-	return disputetypes.Message[disputetypes.ActiveDisputes]{
-		Data:            disputetypes.ActiveDisputes{},
-		ResponseChannel: respChan,
-	}
-}
-
-func newCandidateVotesQuery(t *testing.T,
-	queries []disputetypes.CandidateVotesQuery,
-	respChan chan any,
-) disputetypes.Message[disputetypes.QueryCandidateVotes] {
-	t.Helper()
-	return disputetypes.Message[disputetypes.QueryCandidateVotes]{
-		Data: disputetypes.QueryCandidateVotes{
-			Queries: queries,
-		},
-		ResponseChannel: respChan,
-	}
-}
-
-func newCandidateEvents(t *testing.T, events ...parachaintypes.CandidateEventVDT) scale.VaryingDataTypeSlice {
-	t.Helper()
-	candidateEvents, err := parachaintypes.NewCandidateEvents()
-	require.NoError(t, err)
-	for _, event := range events {
-		value, err := event.Value()
-		require.NoError(t, err)
-		err = candidateEvents.Add(value)
-		require.NoError(t, err)
-	}
-	return candidateEvents
 }
 
 // sendImportStatementsMessage sends an ImportStatements message to the subsystem. If responseChan is nil, the message
@@ -921,6 +666,381 @@ func (ts *TestState) determineUndisputedChain(t *testing.T,
 	return response
 }
 
+func (ts *TestState) handleApprovalVoteRequest(t *testing.T, expectedHash common.Hash, signature []overseer.ApprovalSignature) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case msg := <-ts.mockOverseer:
+		switch message := msg.(type) {
+		case overseer.ApprovalVotingMessage[overseer.ApprovalSignatureForCandidate]:
+			require.Equal(t, expectedHash, message.Message.CandidateHash)
+			message.ResponseChan <- overseer.ApprovalSignatureResponse{
+				Signature: signature,
+				Error:     nil,
+			}
+		default:
+			err := fmt.Errorf("unexpected message type: %T", msg)
+			require.NoError(t, err)
+		}
+	case <-ctx.Done():
+		err := fmt.Errorf("timed out waiting for ApprovalSignatureForCandidate request")
+		require.NoError(t, err)
+	}
+}
+
+func handleRecoverAvailableData(t *testing.T, mockOverseer chan any) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case msg := <-mockOverseer:
+		switch message := msg.(type) {
+		case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+			availableData := overseer.AvailableData{
+				POV:            []byte{},
+				ValidationData: overseer.PersistedValidationData{},
+			}
+			message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+				AvailableData: &availableData,
+				Error:         nil,
+			}
+			return
+		default:
+			err := fmt.Errorf("unexpected message type: %T", msg)
+			require.NoError(t, err)
+		}
+	case <-ctx.Done():
+		err := fmt.Errorf("timed out waiting for RecoverAvailableData request")
+		require.NoError(t, err)
+	}
+}
+
+func handleParticipationFullHappyPath2(t *testing.T,
+	mockOverseer chan any,
+	runtime *MockRuntimeInstance,
+	expectedCommitments []common.Hash,
+) {
+	t.Helper()
+	runtime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
+		return &parachaintypes.ValidationCode{}, nil
+	}).Times(len(expectedCommitments))
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	counter := 0
+	for {
+		select {
+		case msg := <-mockOverseer:
+			switch message := msg.(type) {
+			case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
+				if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+					isValid := false
+					for _, commitment := range expectedCommitments {
+						if commitment == message.Data.CandidateReceipt.CommitmentsHash {
+							isValid = true
+							break
+						}
+					}
+
+					message.ResponseChannel <- overseer.ValidationResult{
+						IsValid: isValid,
+						Error:   nil,
+					}
+				}
+				return
+			case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+				availableData := overseer.AvailableData{
+					POV:            []byte{},
+					ValidationData: overseer.PersistedValidationData{},
+				}
+				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+					AvailableData: &availableData,
+					Error:         nil,
+				}
+			default:
+				err := fmt.Errorf("unexpected message type: %T", msg)
+				require.NoError(t, err)
+			}
+		case <-ctx.Done():
+			err := fmt.Errorf("timed out waiting for ValidateFromExhaustive request")
+			require.NoError(t, err)
+		}
+		counter++
+		if counter == len(expectedCommitments)*2+1 {
+			return
+		}
+	}
+}
+
+func handleParticipationFullHappyPath(t *testing.T,
+	mockOverseer chan any,
+	runtime *MockRuntimeInstance,
+	expectedCommitments common.Hash,
+) {
+	t.Helper()
+	runtime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
+		return &parachaintypes.ValidationCode{}, nil
+	}).Times(1)
+	handleRecoverAvailableData(t, mockOverseer)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case msg := <-mockOverseer:
+		switch message := msg.(type) {
+		case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
+			if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+				message.ResponseChannel <- overseer.ValidationResult{
+					IsValid: expectedCommitments == message.Data.CandidateReceipt.CommitmentsHash,
+					Error:   nil,
+				}
+			}
+			return
+		default:
+			err := fmt.Errorf("unexpected message type: %T", msg)
+			require.NoError(t, err)
+		}
+	case <-ctx.Done():
+		err := fmt.Errorf("timed out waiting for ValidateFromExhaustive request")
+		require.NoError(t, err)
+	}
+}
+
+func handleParticipationWithDistribution(t *testing.T,
+	mockOverseer chan any,
+	runtime *MockRuntimeInstance,
+	candidateHash common.Hash,
+	expectedCommitmentsHash common.Hash,
+) {
+	t.Helper()
+	handleParticipationFullHappyPath(t, mockOverseer, runtime, expectedCommitmentsHash)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case msg := <-mockOverseer:
+		switch message := msg.(type) {
+		case disputetypes.DisputeMessageVDT:
+			value, err := message.Value()
+			require.NoError(t, err)
+			dispute, ok := value.(disputetypes.UncheckedDisputeMessage)
+			require.True(t, ok)
+
+			receivedHash, err := dispute.CandidateReceipt.Hash()
+			require.NoError(t, err)
+			require.Equal(t, candidateHash, receivedHash)
+			return
+		default:
+			err := fmt.Errorf("unexpected message type: %T", msg)
+			require.NoError(t, err)
+		}
+	case <-ctx.Done():
+		err := fmt.Errorf("timed out waiting for DisputeMessageVDT request")
+		require.NoError(t, err)
+	}
+}
+
+func handleParticipationsWithDistribution(t *testing.T,
+	mockOverseer chan any,
+	runtime *MockRuntimeInstance,
+	candidateHash []common.Hash,
+	expectedCommitmentsHash []common.Hash,
+) {
+	t.Helper()
+	runtime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
+		return &parachaintypes.ValidationCode{}, nil
+	}).Times(len(expectedCommitmentsHash))
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	counter := 0
+	for {
+		select {
+		case msg := <-mockOverseer:
+			switch message := msg.(type) {
+			case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
+				if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+					isValid := false
+					for _, commitment := range expectedCommitmentsHash {
+						if commitment == message.Data.CandidateReceipt.CommitmentsHash {
+							isValid = true
+							break
+						}
+					}
+
+					message.ResponseChannel <- overseer.ValidationResult{
+						IsValid: isValid,
+						Error:   nil,
+					}
+				}
+				return
+			case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+				availableData := overseer.AvailableData{
+					POV:            []byte{},
+					ValidationData: overseer.PersistedValidationData{},
+				}
+				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+					AvailableData: &availableData,
+					Error:         nil,
+				}
+			case disputetypes.DisputeMessageVDT:
+				value, err := message.Value()
+				require.NoError(t, err)
+				dispute, ok := value.(disputetypes.UncheckedDisputeMessage)
+				require.True(t, ok)
+
+				receivedHash, err := dispute.CandidateReceipt.Hash()
+				require.NoError(t, err)
+				exists := false
+				for _, hash := range candidateHash {
+					if hash == receivedHash {
+						exists = true
+						break
+					}
+				}
+				require.True(t, exists)
+				return
+			default:
+				err := fmt.Errorf("unexpected message type: %T", msg)
+				require.NoError(t, err)
+			}
+		case <-ctx.Done():
+			err := fmt.Errorf("timed out waiting for DisputeMessageVDT request")
+			require.NoError(t, err)
+		}
+		counter++
+		if counter == len(candidateHash) {
+			return
+		}
+	}
+}
+
+func participationMissingAvailability(t *testing.T, mockOverseer chan any) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	select {
+	case msg := <-mockOverseer:
+		switch message := msg.(type) {
+		case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+			err := overseer.RecoveryErrorUnavailable
+			message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+				AvailableData: nil,
+				Error:         &err,
+			}
+			return
+		default:
+			err := fmt.Errorf("unexpected message type: %T", msg)
+			require.NoError(t, err)
+		}
+	case <-ctx.Done():
+		err := fmt.Errorf("timed out waiting for RecoverAvailableData request")
+		require.NoError(t, err)
+	}
+}
+
+func newImportStatementsMessage(t *testing.T,
+	candidateReceipt parachaintypes.CandidateReceipt,
+	session parachaintypes.SessionIndex,
+	statements []disputetypes.Statement,
+	respChan chan any,
+) disputetypes.Message[disputetypes.ImportStatements] {
+	t.Helper()
+	return disputetypes.Message[disputetypes.ImportStatements]{
+		Data: disputetypes.ImportStatements{
+			CandidateReceipt: candidateReceipt,
+			Session:          session,
+			Statements:       statements,
+		},
+		ResponseChannel: respChan,
+	}
+}
+
+func newActiveDisputesQuery(t *testing.T, respChan chan any) disputetypes.Message[disputetypes.ActiveDisputes] {
+	t.Helper()
+	return disputetypes.Message[disputetypes.ActiveDisputes]{
+		Data:            disputetypes.ActiveDisputes{},
+		ResponseChannel: respChan,
+	}
+}
+
+func newCandidateVotesQuery(t *testing.T,
+	queries []disputetypes.CandidateVotesQuery,
+	respChan chan any,
+) disputetypes.Message[disputetypes.QueryCandidateVotes] {
+	t.Helper()
+	return disputetypes.Message[disputetypes.QueryCandidateVotes]{
+		Data: disputetypes.QueryCandidateVotes{
+			Queries: queries,
+		},
+		ResponseChannel: respChan,
+	}
+}
+
+func newCandidateEvents(t *testing.T, events ...parachaintypes.CandidateEventVDT) scale.VaryingDataTypeSlice {
+	t.Helper()
+	candidateEvents, err := parachaintypes.NewCandidateEvents()
+	require.NoError(t, err)
+	for _, event := range events {
+		value, err := event.Value()
+		require.NoError(t, err)
+		err = candidateEvents.Add(value)
+		require.NoError(t, err)
+	}
+	return candidateEvents
+}
+
+func getValidCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
+	t.Helper()
+	candidateReceipt, err := dummyCandidateReceiptBadSignature(common.Hash{}, &common.Hash{})
+	require.NoError(t, err)
+	candidateReceipt.CommitmentsHash, err = parachaintypes.CandidateCommitments{}.Hash()
+	require.NoError(t, err)
+	return candidateReceipt
+}
+
+func getInvalidCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
+	t.Helper()
+	candidateReceipt, err := dummyCandidateReceiptBadSignature(common.Hash{}, &common.Hash{})
+	require.NoError(t, err)
+	return candidateReceipt
+}
+
+func getCandidateBackedEvent(
+	t *testing.T,
+	candidateReceipt parachaintypes.CandidateReceipt,
+) parachaintypes.CandidateEventVDT {
+	t.Helper()
+	candidateEvent, err := parachaintypes.NewCandidateEventVDT()
+	require.NoError(t, err)
+	err = candidateEvent.Set(parachaintypes.CandidateBacked{
+		CandidateReceipt: candidateReceipt,
+		HeadData:         parachaintypes.HeadData{},
+		CoreIndex:        parachaintypes.CoreIndex{},
+		GroupIndex:       0,
+	})
+	require.NoError(t, err)
+	return candidateEvent
+}
+
+func getCandidateIncludedEvent(t *testing.T,
+	candidateReceipt parachaintypes.CandidateReceipt,
+) parachaintypes.CandidateEventVDT {
+	t.Helper()
+	candidateEvent, err := parachaintypes.NewCandidateEventVDT()
+	require.NoError(t, err)
+
+	err = candidateEvent.Set(parachaintypes.CandidateIncluded{
+		CandidateReceipt: candidateReceipt,
+		HeadData:         parachaintypes.HeadData{},
+		CoreIndex:        parachaintypes.CoreIndex{},
+		GroupIndex:       0,
+	})
+	require.NoError(t, err)
+
+	return candidateEvent
+}
+
 func TestDisputesCoordinator(t *testing.T) {
 	t.Run("too_many_unconfirmed_statements_are_considered_spam", func(t *testing.T) {
 		t.Parallel()
@@ -974,7 +1094,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash1, []overseer.ApprovalSignature{})
 
 		// Participation has to fail here, otherwise the dispute will be confirmed. However,
 		// participation won't happen at all because the dispute is neither backed, not
@@ -995,7 +1115,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash2, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash2, []overseer.ApprovalSignature{})
 		}()
 		go func() {
 			defer wg.Done()
@@ -1055,7 +1175,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			approvalVote := ts.issueApprovalVoteWithIndex(t, 4, candidateHash1, session)
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{
+			ts.handleApprovalVoteRequest(t, candidateHash1, []overseer.ApprovalSignature{
 				{
 					ValidatorIndex:     4,
 					ValidatorSignature: approvalVote.ValidatorSignature,
@@ -1154,7 +1274,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash1, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash1, candidateReceipt1.CommitmentsHash)
 
 		// after participation
@@ -1183,7 +1303,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt2, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash2, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash2, []overseer.ApprovalSignature{})
 		participationMissingAvailability(t, ts.mockOverseer)
 
 		candidateVotes = ts.getCandidateVotes(t, session, candidateHash2)
@@ -1259,7 +1379,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt1, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash1, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash1, []overseer.ApprovalSignature{})
 
 		// Participation won't happen here because the dispute is neither backed, not confirmed
 		// nor the candidate is included. Or in other words - we'll refrain from participation.
@@ -1285,8 +1405,8 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt2, session, statements, nil)
+		ts.handleApprovalVoteRequest(t, candidateHash2, []overseer.ApprovalSignature{})
 		participationMissingAvailability(t, ts.mockOverseer)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash2, []overseer.ApprovalSignature{})
 
 		candidateVotes = ts.getCandidateVotes(t, session, candidateHash2)
 		require.Equal(t, 1, len(candidateVotes))
@@ -1405,7 +1525,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
 		// after participation
@@ -1594,7 +1714,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
 		baseBlockHash := bytes.Repeat([]byte{0x0f}, 32)
@@ -1643,7 +1763,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		ts.conclude(t)
 	})
 
-	//// supermajority checks
+	// supermajority checks
 	t.Run("supermajority_valid_dispute_may_be_finalized", func(t *testing.T) {
 		t.Parallel()
 		ts := newTestState(t)
@@ -1672,7 +1792,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		initialised = true
 		ts.activateLeafAtSession(t, session, 1)
 
-		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
+		superMajorityThreshold := disputesCommon.GetSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -1691,7 +1811,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
 		statements = []disputetypes.Statement{}
@@ -1704,7 +1824,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			})
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 
 		blockHash := bytes.Repeat([]byte{0x0f}, 32)
 		blockHashA := bytes.Repeat([]byte{0x0a}, 32)
@@ -1776,7 +1896,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		initialised = true
 		ts.activateLeafAtSession(t, session, 1)
 
-		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
+		superMajorityThreshold := disputesCommon.GetSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -1795,7 +1915,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
 		statements = []disputetypes.Statement{}
@@ -1808,7 +1928,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			})
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 
 		t.Logf("waiting for the dispute to conclude")
 		time.Sleep(ActiveDuration + 1*time.Second)
@@ -1848,7 +1968,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		initialised = true
 		ts.activateLeafAtSession(t, session, 1)
 
-		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
+		superMajorityThreshold := disputesCommon.GetSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -1861,7 +1981,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 			// Use a different expected commitments hash to ensure the candidate validation returns
 			// invalid.
 			dummyHash := common.Hash{0x01}
@@ -1892,7 +2012,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			})
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 
 		t.Logf("waiting for the dispute to conclude")
 		time.Sleep(ActiveDuration + 1*time.Second)
@@ -1955,7 +2075,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		}()
 		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
 		require.Equal(t, ValidImport, importResult)
@@ -1983,7 +2103,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		}()
 		go func() {
 			defer wg.Done()
@@ -2041,7 +2161,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		}()
 		go func() {
 			defer wg.Done()
@@ -2135,7 +2255,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		}()
 		go func() {
 			defer wg.Done()
@@ -2390,7 +2510,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		}()
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
@@ -2620,7 +2740,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 
 		activeDisputes := ts.getActiveDisputes(t)
 		require.Equal(t, 1, activeDisputes.Len())
@@ -2686,7 +2806,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, candidateReceipt.CommitmentsHash)
 
 		activeDisputes := ts.getActiveDisputes(t)
@@ -2750,7 +2870,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 		}
 		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
-		handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+		ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 		time.Sleep(2 * time.Second)
 
 		sessionEvents = newCandidateEvents(t,
@@ -2775,22 +2895,98 @@ func TestDisputesCoordinator(t *testing.T) {
 		require.Equal(t, 3, candidateVotes[0].Votes.Valid.Value.Len())
 		require.Equal(t, 1, candidateVotes[0].Votes.Invalid.Len())
 	})
-	// TODO: tests
-	t.Run("participation_requests_reprioritized_for_newly_included", func(t *testing.T) {
-		//t.Parallel()
-		//ts := newTestState(t)
-		//session := parachaintypes.SessionIndex(1)
-		//wg := sync.WaitGroup{}
-		//wg.Add(2)
-		//go func() {
-		//	defer wg.Done()
-		//	ts.mockResumeSync(t, &session)
-		//}()
-		//go func() {
-		//	defer wg.Done()
-		//	ts.run(t)
-		//}()
-		//wg.Wait()
+	t.Run("participation_requests_prioritized_for_newly_included", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		var receipts []parachaintypes.CandidateReceipt
+		for i := 1; i <= 3; i++ {
+			candidateReceipt := getValidCandidateReceipt(t)
+			candidateReceipt.Descriptor.PovHash = common.Hash(bytes.Repeat([]byte{byte(i)}, 32))
+			candidateReceipt.Descriptor.RelayParent = ts.blockNumToHeader[uint32(i-1)]
+			receipts = append(receipts, candidateReceipt)
+		}
+		candidateEvents, err := parachaintypes.NewCandidateEvents()
+		require.NoError(t, err)
+		for _, candidateReceipt := range receipts {
+			event := getCandidateBackedEvent(t, candidateReceipt)
+			value, err := event.Value()
+			require.NoError(t, err)
+			err = candidateEvents.Add(value)
+			require.NoError(t, err)
+		}
+		initialised := false
+		restarted := false
+		ts.mockRuntimeCalls(t,
+			session,
+			nil,
+			&candidateEvents,
+			nil,
+			&initialised,
+			&restarted,
+		)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+		ts.activateLeafAtSession(t, session, 1)
+
+		for i, candidateReceipt := range receipts {
+			candidateHash, err := candidateReceipt.Hash()
+			require.NoError(t, err)
+			validVote, invalidVote := ts.generateOpposingVotesPair(t,
+				1,
+				2,
+				candidateHash,
+				session,
+				ExplicitVote,
+			)
+			statements := []disputetypes.Statement{
+				{
+					SignedDisputeStatement: validVote,
+					ValidatorIndex:         1,
+				},
+				{
+					SignedDisputeStatement: invalidVote,
+					ValidatorIndex:         2,
+				},
+			}
+			_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, nil)
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
+
+			if i >= MaxParallelParticipation {
+				ts.handleGetBlockNumber(t)
+			}
+		}
+
+		// Generate included event for one of the candidates here
+		lastReceipt := receipts[len(receipts)-1]
+		candidateEvents = newCandidateEvents(t,
+			getCandidateIncludedEvent(t, lastReceipt),
+		)
+		ts.activateLeafAtSession(t, session, 2)
+		var (
+			expectedCandidateHashes   []common.Hash
+			expectedCommitmentsHashes []common.Hash
+		)
+		for _, receipt := range receipts {
+			hash, err := receipt.Hash()
+			require.NoError(t, err)
+			expectedCandidateHashes = append(expectedCandidateHashes, hash)
+			expectedCommitmentsHashes = append(expectedCommitmentsHashes, receipt.CommitmentsHash)
+		}
+
+		handleParticipationsWithDistribution(t, ts.mockOverseer, ts.runtime, expectedCandidateHashes, expectedCommitmentsHashes)
+		ts.conclude(t)
 	})
 	t.Run("informs_chain_selection_when_dispute_concluded_against", func(t *testing.T) {
 
@@ -2864,7 +3060,7 @@ func issueLocalStatementTest(t *testing.T, valid bool) {
 		require.NoError(t, err)
 	}
 
-	handleApprovalVoteRequest(t, ts.mockOverseer, candidateHash, []overseer.ApprovalSignature{})
+	ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
 
 	// ensure no participations
 	ts.awaitConclude(t)
