@@ -92,7 +92,7 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 }
 
 func (cpvs CollatorProtocolValidatorSide) ProcessOverseerSignals() {
-	// TODO
+	// NOTE: nothing to do here
 }
 
 // requestCollation requests a collation from the network.

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -28,6 +29,10 @@ const (
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	availabilityStore   AvailabilityStore
@@ -171,7 +176,7 @@ func uint32ToBytes(value uint32) []byte {
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
 	SubsystemToOverseer chan any) error {
 
-	// TODO: Add a waitgroup here and make sure these two go routines are finished when the subsystem stops.
+	av.wg.Add(2)
 	go av.processMessages()
 	go av.ProcessOverseerSignals()
 
@@ -184,54 +189,67 @@ func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 }
 
 func (av *AvailabilityStoreSubsystem) processMessages() {
-	for msg := range av.OverseerToSubSystem {
-		logger.Debugf("received message %v", msg)
-		switch msg := msg.(type) {
-		case QueryAvailableData:
-			err := av.handleQueryAvailableData(msg)
-			if err != nil {
-				logger.Errorf("failed to handle available data: %w", err)
+	for {
+		select {
+		case msg := <-av.OverseerToSubSystem:
+			logger.Debugf("received message %v", msg)
+			switch msg := msg.(type) {
+			case QueryAvailableData:
+				err := av.handleQueryAvailableData(msg)
+				if err != nil {
+					logger.Errorf("failed to handle available data: %w", err)
+				}
+			case QueryDataAvailability:
+				err := av.handleQueryDataAvailability(msg)
+				if err != nil {
+					logger.Errorf("failed to handle query data availability: %w", err)
+				}
+			case QueryChunk:
+				err := av.handleQueryChunk(msg)
+				if err != nil {
+					logger.Errorf("failed to handle query chunk: %w", err)
+				}
+			case QueryChunkSize:
+				err := av.handleQueryChunkSize(msg)
+				if err != nil {
+					logger.Errorf("failed to handle query chunk size: %w", err)
+				}
+			case QueryAllChunks:
+				err := av.handleQueryAllChunks(msg)
+				if err != nil {
+					logger.Errorf("failed to handle query all chunks: %w", err)
+				}
+			case QueryChunkAvailability:
+				err := av.handleQueryChunkAvailability(msg)
+				if err != nil {
+					logger.Errorf("failed to handle query chunk availability: %w", err)
+				}
+			case StoreChunk:
+				err := av.handleStoreChunk(msg)
+				if err != nil {
+					logger.Errorf("failed to handle store chunk: %w", err)
+				}
+			case StoreAvailableData:
+				err := av.handleStoreAvailableData(msg)
+				if err != nil {
+					logger.Errorf("failed to handle store available data: %w", err)
+				}
+
 			}
-		case QueryDataAvailability:
-			err := av.handleQueryDataAvailability(msg)
-			if err != nil {
-				logger.Errorf("failed to handle query data availability: %w", err)
+
+		case <-av.ctx.Done():
+			if err := av.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
 			}
-		case QueryChunk:
-			err := av.handleQueryChunk(msg)
-			if err != nil {
-				logger.Errorf("failed to handle query chunk: %w", err)
-			}
-		case QueryChunkSize:
-			err := av.handleQueryChunkSize(msg)
-			if err != nil {
-				logger.Errorf("failed to handle query chunk size: %w", err)
-			}
-		case QueryAllChunks:
-			err := av.handleQueryAllChunks(msg)
-			if err != nil {
-				logger.Errorf("failed to handle query all chunks: %w", err)
-			}
-		case QueryChunkAvailability:
-			err := av.handleQueryChunkAvailability(msg)
-			if err != nil {
-				logger.Errorf("failed to handle query chunk availability: %w", err)
-			}
-		case StoreChunk:
-			err := av.handleStoreChunk(msg)
-			if err != nil {
-				logger.Errorf("failed to handle store chunk: %w", err)
-			}
-		case StoreAvailableData:
-			err := av.handleStoreAvailableData(msg)
-			if err != nil {
-				logger.Errorf("failed to handle store available data: %w", err)
-			}
+			av.wg.Done()
+			return
 		}
+
 	}
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessOverseerSignals() {
+	av.wg.Done()
 	// TODO: #3630
 }
 
@@ -340,4 +358,9 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 	}
 	msg.Sender <- err // TODO: determine how to replicate Rust's Result type
 	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) Stop() {
+	av.cancel()
+	av.wg.Wait()
 }
