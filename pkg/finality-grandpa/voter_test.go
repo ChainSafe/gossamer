@@ -296,11 +296,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	item := <-roundIn
 	// wait for a prevote
 	assert.NoError(t, item.Error)
-<<<<<<< HEAD
 	assert.IsType(t, Prevote[string, uint32]{}, item.SignedMessage.Message.Value)
-=======
-	assert.IsType(t, Prevote[string, uint32]{}, item.SignedMessage.Message.value)
->>>>>>> 2dd16240a (lib(pkg): standalone `finality-grandpa` package (#3235))
 	assert.Equal(t, localID, item.SignedMessage.ID)
 
 	// send our prevote and precommit
@@ -314,11 +310,7 @@ waitForPrecommit:
 		item = <-roundIn
 		// wait for a precommit
 		assert.NoError(t, item.Error)
-<<<<<<< HEAD
 		switch item.SignedMessage.Message.Value.(type) {
-=======
-		switch item.SignedMessage.Message.value.(type) {
->>>>>>> 2dd16240a (lib(pkg): standalone `finality-grandpa` package (#3235))
 		case Precommit[string, uint32]:
 			if item.SignedMessage.ID == localID {
 				break waitForPrecommit
