@@ -6,6 +6,7 @@ package availabilitystore
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
