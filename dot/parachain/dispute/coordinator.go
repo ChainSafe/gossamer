@@ -18,7 +18,7 @@ const Window = 6
 
 var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
 
-// Coordinator implements the CoordinatorSubsystem interface.
+// Coordinator is the disputes coordinator
 type Coordinator struct {
 	keystore     keystore.Keystore
 	store        *overlayBackend
@@ -28,6 +28,7 @@ type Coordinator struct {
 	receiver chan any
 }
 
+// startupResult is the result of the startup phase
 type startupResult struct {
 	participation    []ParticipationData
 	votes            []parachainTypes.ScrapedOnChainVotes
@@ -37,6 +38,7 @@ type startupResult struct {
 	gapsInCache      bool
 }
 
+// initializeResult is the result of the initialization phase
 type initializeResult struct {
 	participation []ParticipationData
 	votes         []parachainTypes.ScrapedOnChainVotes
@@ -44,6 +46,7 @@ type initializeResult struct {
 	initialized   *Initialized
 }
 
+// sendDisputeMessages sends the dispute message to the given receiver
 func (d *Coordinator) sendDisputeMessages(
 	receiver chan<- any,
 	env types.CandidateEnvironment,
@@ -92,6 +95,7 @@ func (d *Coordinator) sendDisputeMessages(
 	}
 }
 
+// waitForFirstLeaf waits for the first active leaf update
 func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
 	for {
 		select {
@@ -109,6 +113,7 @@ func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
 	}
 }
 
+// initialize initializes the dispute coordinator
 func (d *Coordinator) initialize(sender chan<- any) (
 	*initializeResult,
 	error,
@@ -156,6 +161,7 @@ func (d *Coordinator) initialize(sender chan<- any) (
 	}, nil
 }
 
+// handleStartup handles the startup phase
 func (d *Coordinator) handleStartup(sender chan<- any, initialHead *overseer.ActivatedLeaf) (
 	*startupResult,
 	error,
@@ -276,13 +282,14 @@ func (d *Coordinator) handleStartup(sender chan<- any, initialHead *overseer.Act
 	}, nil
 }
 
+// Run runs the dispute coordinator
 func (d *Coordinator) Run(sender chan<- any) error {
 	initResult, err := d.initialize(sender)
 	if err != nil {
 		return fmt.Errorf("initialize dispute coordinator: %w", err)
 	}
 
-	initData := InitialData{
+	initData := initialData{
 		Participation: initResult.participation,
 		Votes:         initResult.votes,
 		Leaf:          initResult.activatedLeaf,
@@ -291,6 +298,7 @@ func (d *Coordinator) Run(sender chan<- any) error {
 	return nil
 }
 
+// NewDisputesCoordinator returns a new dispute coordinator
 func NewDisputesCoordinator(db *badger.DB, receiver chan any) (*Coordinator, error) {
 	dbBackend := NewDBBackend(db)
 	backend := newOverlayBackend(dbBackend)

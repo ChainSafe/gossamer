@@ -210,9 +210,10 @@ func NewOwnVoteStateVDTWithVotes(voteState CandidateVotes, env *CandidateEnviron
 
 // CandidateVoteState is the state of the votes for a candidate
 type CandidateVoteState struct {
-	Votes         CandidateVotes
-	Own           OwnVoteStateVDT
-	DisputeStatus *DisputeStatusVDT
+	Votes                     CandidateVotes
+	Own                       OwnVoteStateVDT
+	DisputeStatus             *DisputeStatusVDT
+	ByzantineThresholdAgainst bool
 }
 
 // IsDisputed returns true if we have an ongoing dispute
@@ -250,17 +251,19 @@ func (c *CandidateVoteState) IsConcludedAgainst() (bool, error) {
 // IntoOldState Extracts `CandidateVotes` for handling import of new statements.
 func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState) {
 	return c.Votes.Copy(), CandidateVoteState{
-		Votes:         NewCandidateVotes(),
-		Own:           c.Own,
-		DisputeStatus: c.DisputeStatus,
+		Votes:                     NewCandidateVotes(),
+		Own:                       c.Own,
+		DisputeStatus:             c.DisputeStatus,
+		ByzantineThresholdAgainst: c.ByzantineThresholdAgainst,
 	}
 }
 
 // NewCandidateVoteState creates a new CandidateVoteState
 func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now uint64) (CandidateVoteState, error) {
 	var (
-		disputeStatus *DisputeStatusVDT
-		err           error
+		disputeStatus             *DisputeStatusVDT
+		byzantineThresholdAgainst bool
+		err                       error
 	)
 
 	ownVoteState, err := NewOwnVoteStateVDTWithVotes(votes, env)
@@ -303,12 +306,14 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 			}
 		}
 		disputeStatus = &status
+		byzantineThresholdAgainst = votes.Invalid.Len() > byzantineThreshold
 	}
 
 	return CandidateVoteState{
-		Votes:         votes,
-		Own:           ownVoteState,
-		DisputeStatus: disputeStatus,
+		Votes:                     votes,
+		Own:                       ownVoteState,
+		DisputeStatus:             disputeStatus,
+		ByzantineThresholdAgainst: byzantineThresholdAgainst,
 	}, nil
 }
 

@@ -217,6 +217,8 @@ func (p *ParticipationHandler) forkParticipation(sender chan<- any, request Part
 }
 
 func (p *ParticipationHandler) participate(sender chan<- any, blockHash common.Hash, request ParticipationRequest) error {
+	// TODO: determine if this has any effect on performance
+	// also look into how we can enable this only for tests. using ENVs maybe?
 	time.Sleep(100 * time.Millisecond)
 	// get available data from the overseer
 	respCh := make(chan any, 1)
