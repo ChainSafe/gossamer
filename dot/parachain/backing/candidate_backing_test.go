@@ -63,11 +63,14 @@ func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCan
 func mockOverseer(t *testing.T, ch chan any) {
 	t.Helper()
 	for data := range ch {
-		switch data.(type) {
+		switch data := data.(type) {
 		case parachaintypes.PPMIntroduceCandidate:
-			ppmIntroduceCandidate := data.(parachaintypes.PPMIntroduceCandidate)
-			ppmIntroduceCandidate.Ch <- nil
+			data.Ch <- nil
+		case parachaintypes.PPMCandidateSeconded, parachaintypes.PMProvisionableData,
+			parachaintypes.PPMCandidateBacked, parachaintypes.CPMBacked, parachaintypes.SDMBacked:
+			continue
 		default:
+			t.Errorf("unknown type: %T\n", data)
 		}
 	}
 }
@@ -413,7 +416,7 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
-				).Return(nil, errors.New("getting attested candidate from table"))
+				).Return(nil, errors.New("could not get attested candidate from table"))
 
 				return perRelayParentState{
 					Table: mockTable,
@@ -504,6 +507,244 @@ func TestPostImportStatement(t *testing.T) {
 			go mockOverseer(t, subSystemToOverseer)
 
 			c.rpState.postImportStatement(subSystemToOverseer, c.summary)
+		})
+	}
+}
+
+func TestKickOffValidationWork(t *testing.T) {
+	attesting := AttestingData{
+		candidate: getDummyCommittedCandidateReceipt(t).ToCandidateReceipt(),
+	}
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
+	}
+	testCases := []struct {
+		description string
+		rpState     perRelayParentState
+	}{
+		{
+			description: "already_issued_statement_for_candidate",
+			rpState: perRelayParentState{
+				issuedStatements: map[parachaintypes.CandidateHash]bool{
+					candidateHash: true,
+				},
+			},
+		},
+		{
+			description: "not_issued_statement_but_waiting_for_validation",
+			rpState: perRelayParentState{
+				issuedStatements: map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{
+					candidateHash: true,
+				},
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			subSystemToOverseer := make(chan any)
+			chRelayParentAndCommand := make(chan RelayParentAndCommand)
+			pvd := parachaintypes.PersistedValidationData{}
+
+			err := c.rpState.kickOffValidationWork(subSystemToOverseer, chRelayParentAndCommand, pvd, attesting)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
+	var pvd parachaintypes.PersistedValidationData
+	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToCandidateReceipt()
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(candidateReceipt)),
+	}
+	relayParent := getDummyHash(t, 5)
+
+	testCases := []struct {
+		description              string
+		rpState                  perRelayParentState
+		expectedErr              string
+		mockOverseer             func(ch chan any)
+		mockExecutorParamsGetter ExecutorParamsGetter
+	}{
+		{
+			description: "validation_process_already_started_for_candidate",
+			rpState: perRelayParentState{
+				issuedStatements: map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{
+					candidateHash: true,
+				},
+			},
+			expectedErr:              "",
+			mockOverseer:             func(ch chan any) {},
+			mockExecutorParamsGetter: executorParamsAtRelayParent,
+		},
+		{
+			description: "unable_to_get_validation_code",
+			rpState: perRelayParentState{
+				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+			},
+			expectedErr: "getting validation code by hash: ",
+			mockOverseer: func(ch chan any) {
+				data := <-ch
+				req, ok := data.(parachaintypes.RAMRequest)
+				if !ok {
+					t.Errorf("invalid overseer message type: %T\n", data)
+				}
+
+				req.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
+					Err: errors.New("mock error getting validation code"),
+				}
+			},
+			mockExecutorParamsGetter: executorParamsAtRelayParent,
+		},
+		{
+			description: "unable_to_get_executor_params",
+			rpState: perRelayParentState{
+				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+			},
+			expectedErr: "getting executor params at relay parent: ",
+			mockOverseer: func(ch chan any) {
+				data := <-ch
+				req, ok := data.(parachaintypes.RAMRequest)
+				if !ok {
+					t.Errorf("invalid overseer message type: %T\n", data)
+				}
+
+				req.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
+					Data: parachaintypes.ValidationCode{1, 2, 3},
+				}
+			},
+			mockExecutorParamsGetter: func(h common.Hash, c chan<- any) (parachaintypes.ExecutorParams, error) {
+				return parachaintypes.NewExecutorParams(), errors.New("mock error getting executor params")
+			},
+		},
+		{
+			description: "unable_to_get_validation_result",
+			rpState: perRelayParentState{
+				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+			},
+			expectedErr: "getting validation result: ",
+			mockOverseer: func(ch chan any) {
+				for data := range ch {
+					switch data := data.(type) {
+					case parachaintypes.RAMRequest:
+						data.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
+							Data: parachaintypes.ValidationCode{1, 2, 3},
+						}
+					case parachaintypes.CVMValidateFromExhaustive:
+						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
+							Err: errors.New("mock error getting validation result"),
+						}
+					default:
+						t.Errorf("invalid overseer message type: %T\n", data)
+					}
+				}
+			},
+			mockExecutorParamsGetter: executorParamsAtRelayParent,
+		},
+		{
+			description: "validation_result_is_invalid",
+			rpState: perRelayParentState{
+				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+			},
+			expectedErr: "",
+			mockOverseer: func(ch chan any) {
+				for data := range ch {
+					switch data := data.(type) {
+					case parachaintypes.RAMRequest:
+						data.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
+							Data: parachaintypes.ValidationCode{1, 2, 3},
+						}
+					case parachaintypes.CVMValidateFromExhaustive:
+						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
+							Data: parachaintypes.ValidationResult{
+								IsValid: false,
+								Err:     errors.New("mock error validating candidate"),
+							},
+						}
+					default:
+						t.Errorf("invalid overseer message type: %T\n", data)
+					}
+				}
+			},
+			mockExecutorParamsGetter: executorParamsAtRelayParent,
+		},
+		{
+			description: "validation_result_is_valid",
+			rpState: perRelayParentState{
+				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
+				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+			},
+			expectedErr: "",
+			mockOverseer: func(ch chan any) {
+				for data := range ch {
+					switch data := data.(type) {
+					case parachaintypes.RAMRequest:
+						data.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
+							Data: parachaintypes.ValidationCode{1, 2, 3},
+						}
+					case parachaintypes.CVMValidateFromExhaustive:
+						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
+							Data: parachaintypes.ValidationResult{
+								IsValid: true,
+							},
+						}
+					case parachaintypes.ASMStoreAvailableData:
+						data.Ch <- ErrInvalidErasureRoot
+					default:
+						t.Errorf("invalid overseer message type: %T\n", data)
+					}
+				}
+			},
+			mockExecutorParamsGetter: executorParamsAtRelayParent,
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			subSystemToOverseer := make(chan any)
+			chRelayParentAndCommand := make(chan RelayParentAndCommand)
+
+			go c.mockOverseer(subSystemToOverseer)
+			go func(chRelayParentAndCommand chan RelayParentAndCommand) {
+				_ = <-chRelayParentAndCommand
+			}(chRelayParentAndCommand)
+
+			err := c.rpState.validateAndMakeAvailable(
+				c.mockExecutorParamsGetter,
+				subSystemToOverseer,
+				chRelayParentAndCommand,
+				candidateReceipt,
+				relayParent,
+				pvd,
+				parachaintypes.PoV{},
+				2,
+				Attest,
+				candidateHash,
+			)
+
+			if c.expectedErr != "" {
+				require.ErrorContains(t, err, c.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
