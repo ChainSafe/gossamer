@@ -2989,7 +2989,140 @@ func TestDisputesCoordinator(t *testing.T) {
 		ts.conclude(t)
 	})
 	t.Run("informs_chain_selection_when_dispute_concluded_against", func(t *testing.T) {
+		t.Parallel()
+		ts := newTestState(t)
+		session := parachaintypes.SessionIndex(1)
+		initialised := false
+		restarted := false
+		sessionEvents, err := parachaintypes.NewCandidateEvents()
+		require.NoError(t, err)
+		ts.mockRuntimeCalls(t, session, nil, &sessionEvents, nil, &initialised, &restarted)
 
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ts.mockResumeSync(t, &session)
+		}()
+		go func() {
+			defer wg.Done()
+			ts.run(t)
+		}()
+		wg.Wait()
+		initialised = true
+
+		candidateReceipt := getValidCandidateReceipt(t)
+		candidateHash, err := candidateReceipt.Hash()
+		require.NoError(t, err)
+		parent1Number := uint32(1)
+		parent2Number := uint32(2)
+		block1Header := types.Header{
+			ParentHash:     ts.lastBlock,
+			Number:         uint(parent1Number),
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         types.NewDigest(),
+		}
+		parent1Hash := block1Header.Hash()
+		event := getCandidateIncludedEvent(t, candidateReceipt)
+		value, err := event.Value()
+		require.NoError(t, err)
+		err = sessionEvents.Add(value)
+		require.NoError(t, err)
+		ts.activateLeafAtSession(t, session, uint(parent1Number))
+
+		block2Header := types.Header{
+			ParentHash:     ts.lastBlock,
+			Number:         uint(parent2Number),
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         types.NewDigest(),
+		}
+		parent2Hash := block2Header.Hash()
+		ts.activateLeafAtSession(t, session, uint(parent2Number))
+
+		byzantineThreshold := disputesCommon.GetByzantineThreshold(len(ts.validators))
+		validVote, invalidVote := ts.generateOpposingVotesPair(t,
+			2,
+			1,
+			candidateHash,
+			session,
+			ExplicitVote,
+		)
+		wg = sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ts.handleApprovalVoteRequest(t, candidateHash, []overseer.ApprovalSignature{})
+		}()
+		statements := []disputetypes.Statement{
+			{
+				SignedDisputeStatement: validVote,
+				ValidatorIndex:         2,
+			},
+			{
+				SignedDisputeStatement: invalidVote,
+				ValidatorIndex:         1,
+			},
+		}
+		importResult := ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+		require.Equal(t, ValidImport, importResult)
+		wg.Wait()
+
+		// Use a different expected commitments hash to ensure the candidate validation returns
+		// invalid.
+		handleParticipationWithDistribution(t, ts.mockOverseer, ts.runtime, candidateHash, common.Hash{1})
+
+		statements = []disputetypes.Statement{}
+		for i := 3; i < byzantineThreshold+3; i++ {
+			vote := ts.issueExplicitStatementWithIndex(t, parachaintypes.ValidatorIndex(i), candidateHash, session, false)
+			statements = append(statements, disputetypes.Statement{
+				SignedDisputeStatement: vote,
+				ValidatorIndex:         parachaintypes.ValidatorIndex(i),
+			})
+		}
+		importResult = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+		require.Equal(t, ValidImport, importResult)
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		select {
+		case msg := <-ts.mockOverseer:
+			switch data := msg.(type) {
+			case overseer.ChainSelectionMessage[overseer.RevertBlocks]:
+				parent1Exists := false
+				parent2Exists := false
+				for _, b := range data.Message.Blocks {
+					if b.Hash == parent1Hash && b.Number == parent1Number {
+						parent1Exists = true
+					}
+					if b.Hash == parent2Hash && b.Number == parent2Number {
+						parent2Exists = true
+					}
+				}
+				require.True(t, parent1Exists)
+				require.True(t, parent2Exists)
+			default:
+				err := fmt.Errorf("unexpected message type: %T", msg)
+				require.NoError(t, err)
+			}
+		case <-ctx.Done():
+			err := fmt.Errorf("timeout waiting for chain selection message")
+			require.NoError(t, err)
+		}
+
+		// One more import which should not trigger reversion
+		// Validator index is `byzantineThreshold + 4`
+		vote := ts.issueExplicitStatementWithIndex(t, parachaintypes.ValidatorIndex(byzantineThreshold+4), candidateHash, session, false)
+		statements = []disputetypes.Statement{
+			{
+				SignedDisputeStatement: vote,
+				ValidatorIndex:         parachaintypes.ValidatorIndex(byzantineThreshold + 4),
+			},
+		}
+		_ = ts.sendImportStatementsMessage(t, candidateReceipt, session, statements, make(chan any))
+		ts.awaitConclude(t)
+		ts.conclude(t)
 	})
 }
 

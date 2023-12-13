@@ -14,12 +14,12 @@ type runtimeInfo struct {
 	runtime parachain.RuntimeInstance
 }
 
-func (r runtimeInfo) ParachainHostPersistedValidationData(parachaidID uint32, assumption parachainTypes.OccupiedCoreAssumption) (*parachainTypes.PersistedValidationData, error) {
-	return r.runtime.ParachainHostPersistedValidationData(parachaidID, assumption)
+func (r runtimeInfo) ParachainHostPersistedValidationData(parachainID uint32, assumption parachainTypes.OccupiedCoreAssumption) (*parachainTypes.PersistedValidationData, error) {
+	return r.runtime.ParachainHostPersistedValidationData(parachainID, assumption)
 }
 
-func (r runtimeInfo) ParachainHostValidationCode(parachaidID uint32, assumption parachainTypes.OccupiedCoreAssumption) (*parachainTypes.ValidationCode, error) {
-	return r.runtime.ParachainHostValidationCode(parachaidID, assumption)
+func (r runtimeInfo) ParachainHostValidationCode(parachainID uint32, assumption parachainTypes.OccupiedCoreAssumption) (*parachainTypes.ValidationCode, error) {
+	return r.runtime.ParachainHostValidationCode(parachainID, assumption)
 }
 
 func (r runtimeInfo) ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachainTypes.CandidateCommitments) (bool, error) {

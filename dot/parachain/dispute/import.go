@@ -34,6 +34,8 @@ type ImportResult interface {
 	) (ImportResult, error)
 	// IntoUpdatedVotes returns the updated votes after the import
 	IntoUpdatedVotes() *types.CandidateVotes
+	// HasFreshByzantineThresholdAgainst returns true if there are byzantineThreshold + 1 invalid votes
+	HasFreshByzantineThresholdAgainst() bool
 }
 
 // ImportResultHandler implements ImportResult interface
@@ -205,6 +207,10 @@ func (i ImportResultHandler) IntoUpdatedVotes() *types.CandidateVotes {
 	}
 
 	return &i.newState.Votes
+}
+
+func (i ImportResultHandler) HasFreshByzantineThresholdAgainst() bool {
+	return !i.oldState.ByzantineThresholdAgainst && i.newState.ByzantineThresholdAgainst
 }
 
 var _ ImportResult = (*ImportResultHandler)(nil)
