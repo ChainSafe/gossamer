@@ -13,6 +13,9 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 
+// GrandpaEngineID is the hard-coded grandpa ID
+var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
+
 type AuthorityID interface {
 	constraints.Ordered
 	Verify(msg []byte, sig []byte) (bool, error)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 )
@@ -705,64 +704,33 @@ func (asc *AuthoritySetChanges[N]) append(setID uint64, blockNumber N) {
 	})
 }
 
-type authoritySetChangeID scale.VaryingDataType
+type authoritySetChangeID any
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (asc *authoritySetChangeID) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*asc)
-	err = vdt.Set(val)
-	if err != nil {
-		return
-	}
-	*asc = authoritySetChangeID(vdt)
-	return
+type authoritySetChangeIDs[N constraints.Unsigned] interface {
+	authoritySetChangeIDLatest | authoritySetChangeIDSet[N] | authoritySetChangeIDUnknown
 }
 
-// Value will return value from underying VaryingDataType
-func (asc *authoritySetChangeID) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*asc)
-	return vdt.Value()
+func newAuthoritySetID[N constraints.Unsigned, ID authoritySetChangeIDs[N]](authSetChangeID ID) authoritySetChangeID {
+	return authoritySetChangeID(authSetChangeID)
 }
 
-func newAuthoritySetChangeID[N constraints.Unsigned]() authoritySetChangeID {
-	vdt := scale.MustNewVaryingDataType(latest{}, set[N]{}, unknown{})
-	return authoritySetChangeID(vdt)
-}
+type authoritySetChangeIDLatest struct{}
 
-type latest struct{}
-
-func (latest) Index() uint {
-	return 0
-}
-
-type set[N constraints.Unsigned] struct {
+type authoritySetChangeIDSet[N constraints.Unsigned] struct {
 	inner setIDNumber[N]
 }
 
-func (set[N]) Index() uint {
-	return 1
-}
-
-type unknown struct{}
-
-func (unknown) Index() uint {
-	return 2
-}
+type authoritySetChangeIDUnknown struct{}
 
 // Three states that can be returned: Latest, Set (tuple), Unknown
-func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID authoritySetChangeID, err error) {
+func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authoritySetChangeID, error) {
 	if asc == nil {
-		return authSetChangeID, fmt.Errorf("getSetID: authSetChanges is nil")
+		return nil, fmt.Errorf("getSetID: authSetChanges is nil")
 	}
-	authSetChangeID = newAuthoritySetChangeID[N]()
 	authSet := *asc
 	last := authSet[len(authSet)-1]
 	if last.BlockNumber < blockNumber {
-		err = authSetChangeID.Set(latest{})
-		if err != nil {
-			return authSetChangeID, err
-		}
-		return authSetChangeID, nil
+		return newAuthoritySetID[N](authoritySetChangeIDLatest{}), nil
 	}
 
 	idx, _ := slices.BinarySearchFunc(
@@ -786,26 +754,15 @@ func (asc *AuthoritySetChanges[N]) getSetID(blockNumber N) (authSetChangeID auth
 
 		// if this is the first index but not the first set id then we are missing data.
 		if idx == 0 && authChange.SetID != 0 {
-			err = authSetChangeID.Set(unknown{})
-			if err != nil {
-				return authSetChangeID, err
-			}
-			return authSetChangeID, nil
+			return newAuthoritySetID[N](authoritySetChangeIDUnknown{}), nil
 		}
-		err = authSetChangeID.Set(set[N]{
+
+		return newAuthoritySetID[N](authoritySetChangeIDSet[N]{
 			authChange,
-		})
-		if err != nil {
-			return authSetChangeID, err
-		}
-		return authSetChangeID, nil
+		}), nil
 	}
 
-	err = authSetChangeID.Set(unknown{})
-	if err != nil {
-		return authSetChangeID, err
-	}
-	return authSetChangeID, nil
+	return newAuthoritySetID[N](authoritySetChangeIDUnknown{}), nil
 }
 
 func (asc *AuthoritySetChanges[N]) insert(blockNumber N) {
