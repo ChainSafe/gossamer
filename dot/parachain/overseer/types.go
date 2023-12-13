@@ -36,5 +36,5 @@ type Subsystem interface {
 	// Run runs the subsystem.
 	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
 	Name() parachaintypes.SubSystemName
-	ProcessOverseerSignals() error
+	ProcessOverseerSignals()
 }

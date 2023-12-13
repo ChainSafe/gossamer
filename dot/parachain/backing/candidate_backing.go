@@ -72,12 +72,19 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 	// other backing related overseer message.
 	// This would become more clear after we complete processMessages function. It would give us clarity
 	// if we need background_validation_rx or background_validation_tx, as done in rust.
-	cb.processMessages()
+
+	// TODO: Add a waitgroup here and make sure these two go routines are finished when the subsystem stops.
+	go cb.processMessages()
+	go cb.ProcessOverseerSignals()
 	return nil
 }
 
 func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
+}
+
+func (cb *CandidateBacking) ProcessOverseerSignals() {
+	// TODO
 }
 
 func (cb *CandidateBacking) processMessages() {

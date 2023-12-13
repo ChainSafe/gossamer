@@ -46,9 +46,8 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 	}
 }
 
-func (s *TestSubsystem) ProcessOverseerSignals() error {
+func (s *TestSubsystem) ProcessOverseerSignals() {
 	fmt.Printf("%s ProcessOverseerSignals\n", s.name)
-	return nil
 }
 
 func (s *TestSubsystem) String() parachaintypes.SubSystemName {

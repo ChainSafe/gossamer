@@ -170,7 +170,11 @@ func uint32ToBytes(value uint32) []byte {
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
 	SubsystemToOverseer chan any) error {
-	av.processMessages()
+
+	// TODO: Add a waitgroup here and make sure these two go routines are finished when the subsystem stops.
+	go av.processMessages()
+	go av.ProcessOverseerSignals()
+
 	return nil
 }
 
@@ -225,6 +229,10 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 			}
 		}
 	}
+}
+
+func (av *AvailabilityStoreSubsystem) ProcessOverseerSignals() {
+	// TODO: #3630
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {

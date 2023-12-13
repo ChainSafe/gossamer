@@ -91,6 +91,10 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
+func (cpvs CollatorProtocolValidatorSide) ProcessOverseerSignals() {
+	// TODO
+}
+
 // requestCollation requests a collation from the network.
 // This function will
 // - check for duplicate requests
