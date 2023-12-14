@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/common"
+	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	disputetypes "github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 )
+
+const timeout = 10 * time.Second
 
 func newDisputesCoordinator(backend *overlayBackend,
 	receiver chan any,
@@ -215,7 +217,7 @@ func (ts *TestState) conclude(t *testing.T) {
 		Data:            overseer.Conclude{},
 		ResponseChannel: nil,
 	}
-	err := sendMessage(ts.subsystemReceiver, concludeSignal)
+	err := disputesCommon.SendMessage(ts.subsystemReceiver, concludeSignal)
 	require.NoError(t, err)
 }
 
@@ -282,7 +284,7 @@ func (ts *TestState) activateLeafAtSession(t *testing.T,
 		Number: uint32(blockNumber),
 		Status: overseer.LeafStatusFresh,
 	}
-	err := sendMessage(ts.subsystemReceiver, overseer.Signal[overseer.ActiveLeavesUpdate]{
+	err := disputesCommon.SendMessage(ts.subsystemReceiver, overseer.Signal[overseer.ActiveLeavesUpdate]{
 		Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
 	})
 	require.NoError(t, err)
@@ -453,7 +455,7 @@ func (ts *TestState) mockResumeSync(t *testing.T,
 			Number: uint32(n),
 			Status: overseer.LeafStatusFresh,
 		}
-		err := sendMessage(ts.subsystemReceiver, overseer.Signal[overseer.ActiveLeavesUpdate]{
+		err := disputesCommon.SendMessage(ts.subsystemReceiver, overseer.Signal[overseer.ActiveLeavesUpdate]{
 			Data: overseer.ActiveLeavesUpdate{Activated: &activatedLeaf},
 		})
 		require.NoError(t, err)
@@ -594,11 +596,11 @@ func (ts *TestState) sendImportStatementsMessage(t *testing.T,
 		responseChan,
 	)
 	if responseChan == nil {
-		err := sendMessage(ts.subsystemReceiver, importMessage)
+		err := disputesCommon.SendMessage(ts.subsystemReceiver, importMessage)
 		require.NoError(t, err)
 		return ValidImport
 	} else {
-		res, err := call(ts.subsystemReceiver, importMessage, importMessage.ResponseChannel)
+		res, err := disputesCommon.Call(ts.subsystemReceiver, importMessage, importMessage.ResponseChannel)
 		require.NoError(t, err)
 		importResult, ok := res.(ImportStatementResult)
 		require.True(t, ok)
@@ -608,7 +610,7 @@ func (ts *TestState) sendImportStatementsMessage(t *testing.T,
 
 func (ts *TestState) getActiveDisputes(t *testing.T) scale.BTree {
 	disputesMessage := newActiveDisputesQuery(t, make(chan any))
-	res, err := call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
+	res, err := disputesCommon.Call(ts.subsystemReceiver, disputesMessage, disputesMessage.ResponseChannel)
 	require.NoError(t, err)
 
 	activeDisputes, ok := res.(scale.BTree)
@@ -621,7 +623,7 @@ func (ts *TestState) getRecentDisputes(t *testing.T) scale.BTree {
 		Data:            disputetypes.RecentDisputesMessage{},
 		ResponseChannel: make(chan any),
 	}
-	res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+	res, err := disputesCommon.Call(ts.subsystemReceiver, message, message.ResponseChannel)
 	require.NoError(t, err)
 	recentDisputes, ok := res.(scale.BTree)
 	require.True(t, ok)
@@ -641,7 +643,7 @@ func (ts *TestState) getCandidateVotes(t *testing.T,
 		},
 		make(chan any),
 	)
-	res, err := call(ts.subsystemReceiver, votesQuery, votesQuery.ResponseChannel)
+	res, err := disputesCommon.Call(ts.subsystemReceiver, votesQuery, votesQuery.ResponseChannel)
 	require.NoError(t, err)
 	candidateVotes, ok := res.([]disputetypes.QueryCandidateVotesResponse)
 	require.True(t, ok)
@@ -659,7 +661,7 @@ func (ts *TestState) determineUndisputedChain(t *testing.T,
 		},
 		ResponseChannel: make(chan any),
 	}
-	res, err := call(ts.subsystemReceiver, message, message.ResponseChannel)
+	res, err := disputesCommon.Call(ts.subsystemReceiver, message, message.ResponseChannel)
 	require.NoError(t, err)
 	response, ok := res.(disputetypes.DetermineUndisputedChainResponse)
 	require.True(t, ok)
@@ -712,63 +714,6 @@ func handleRecoverAvailableData(t *testing.T, mockOverseer chan any) {
 	case <-ctx.Done():
 		err := fmt.Errorf("timed out waiting for RecoverAvailableData request")
 		require.NoError(t, err)
-	}
-}
-
-func handleParticipationFullHappyPath2(t *testing.T,
-	mockOverseer chan any,
-	runtime *MockRuntimeInstance,
-	expectedCommitments []common.Hash,
-) {
-	t.Helper()
-	runtime.EXPECT().ParachainHostValidationCodeByHash(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
-		return &parachaintypes.ValidationCode{}, nil
-	}).Times(len(expectedCommitments))
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	counter := 0
-	for {
-		select {
-		case msg := <-mockOverseer:
-			switch message := msg.(type) {
-			case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
-				if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-					isValid := false
-					for _, commitment := range expectedCommitments {
-						if commitment == message.Data.CandidateReceipt.CommitmentsHash {
-							isValid = true
-							break
-						}
-					}
-
-					message.ResponseChannel <- overseer.ValidationResult{
-						IsValid: isValid,
-						Error:   nil,
-					}
-				}
-				return
-			case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-				availableData := overseer.AvailableData{
-					POV:            []byte{},
-					ValidationData: overseer.PersistedValidationData{},
-				}
-				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-					AvailableData: &availableData,
-					Error:         nil,
-				}
-			default:
-				err := fmt.Errorf("unexpected message type: %T", msg)
-				require.NoError(t, err)
-			}
-		case <-ctx.Done():
-			err := fmt.Errorf("timed out waiting for ValidateFromExhaustive request")
-			require.NoError(t, err)
-		}
-		counter++
-		if counter == len(expectedCommitments)*2+1 {
-			return
-		}
 	}
 }
 
@@ -1727,13 +1672,9 @@ func TestDisputesCoordinator(t *testing.T) {
 		}
 		blockDescriptions := []disputetypes.BlockDescription{
 			{
-				BlockHash: common.Hash(blockHashA),
-				Session:   session,
-				Candidates: []parachaintypes.CandidateHash{
-					{
-						candidateHash,
-					},
-				},
+				BlockHash:  common.Hash(blockHashA),
+				Session:    session,
+				Candidates: []common.Hash{candidateHash},
 			},
 		}
 		response := ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
@@ -1748,12 +1689,12 @@ func TestDisputesCoordinator(t *testing.T) {
 			{
 				BlockHash:  common.Hash(blockHashA),
 				Session:    session,
-				Candidates: []parachaintypes.CandidateHash{},
+				Candidates: []common.Hash{},
 			},
 			{
 				BlockHash:  common.Hash(blockHashB),
 				Session:    session,
-				Candidates: []parachaintypes.CandidateHash{{candidateHash}},
+				Candidates: []common.Hash{candidateHash},
 			},
 		}
 		response = ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
@@ -1792,7 +1733,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		initialised = true
 		ts.activateLeafAtSession(t, session, 1)
 
-		superMajorityThreshold := disputesCommon.GetSuperMajorityThreshold(len(ts.validators))
+		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -1838,7 +1779,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			{
 				BlockHash:  common.Hash(blockHashA),
 				Session:    session,
-				Candidates: []parachaintypes.CandidateHash{{candidateHash}},
+				Candidates: []common.Hash{candidateHash},
 			},
 		}
 		response := ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
@@ -1854,12 +1795,12 @@ func TestDisputesCoordinator(t *testing.T) {
 			{
 				BlockHash:  common.Hash(blockHashA),
 				Session:    session,
-				Candidates: []parachaintypes.CandidateHash{{}},
+				Candidates: []common.Hash{},
 			},
 			{
 				BlockHash:  common.Hash(blockHashB),
 				Session:    session,
-				Candidates: []parachaintypes.CandidateHash{{candidateHash}},
+				Candidates: []common.Hash{candidateHash},
 			},
 		}
 		response = ts.determineUndisputedChain(t, baseBlock, blockDescriptions)
@@ -1896,7 +1837,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		initialised = true
 		ts.activateLeafAtSession(t, session, 1)
 
-		superMajorityThreshold := disputesCommon.GetSuperMajorityThreshold(len(ts.validators))
+		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -1968,7 +1909,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		initialised = true
 		ts.activateLeafAtSession(t, session, 1)
 
-		superMajorityThreshold := disputesCommon.GetSuperMajorityThreshold(len(ts.validators))
+		superMajorityThreshold := getSuperMajorityThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -2406,7 +2347,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
 					require.Equal(t, expectedSession, arg1)
-					// set the expected session for the next call
+					// set the expected session for the next Call
 					if expectedSession < sessionAfterJump {
 						expectedSession++
 					}
@@ -2451,7 +2392,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			ts.runtime.EXPECT().ParachainHostSessionInfo(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(arg0 common.Hash, arg1 parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error) {
 					require.Equal(t, expectedSession, arg1)
-					// set the expected session for the next call
+					// set the expected session for the next Call
 					if expectedSession < sessionAfterJump {
 						expectedSession++
 					}
@@ -2568,7 +2509,7 @@ func TestDisputesCoordinator(t *testing.T) {
 			},
 			ResponseChannel: nil,
 		}
-		err = sendMessage(ts.subsystemReceiver, message)
+		err = disputesCommon.SendMessage(ts.subsystemReceiver, message)
 		require.NoError(t, err)
 
 		// ensure no participations
@@ -3041,7 +2982,7 @@ func TestDisputesCoordinator(t *testing.T) {
 		parent2Hash := block2Header.Hash()
 		ts.activateLeafAtSession(t, session, uint(parent2Number))
 
-		byzantineThreshold := disputesCommon.GetByzantineThreshold(len(ts.validators))
+		byzantineThreshold := getByzantineThreshold(len(ts.validators))
 		validVote, invalidVote := ts.generateOpposingVotesPair(t,
 			2,
 			1,
@@ -3171,7 +3112,7 @@ func issueLocalStatementTest(t *testing.T, valid bool) {
 		},
 		ResponseChannel: nil,
 	}
-	err = sendMessage(ts.subsystemReceiver, localStatement)
+	err = disputesCommon.SendMessage(ts.subsystemReceiver, localStatement)
 	require.NoError(t, err)
 
 	// expect it in the distribution
@@ -3198,4 +3139,46 @@ func issueLocalStatementTest(t *testing.T, valid bool) {
 	// ensure no participations
 	ts.awaitConclude(t)
 	ts.conclude(t)
+}
+
+func TestGetByzantineThreshold(t *testing.T) {
+	cases := []struct {
+		n, expected int
+	}{
+		{0, 0},
+		{1, 0},
+		{2, 0},
+		{3, 0},
+		{4, 1},
+		{5, 1},
+		{6, 1},
+		{9, 2},
+		{10, 3},
+	}
+
+	for _, c := range cases {
+		got := getByzantineThreshold(c.n)
+		require.Equal(t, c.expected, got)
+	}
+}
+
+func TestGetSuperMajorityThreshold(t *testing.T) {
+	cases := []struct {
+		n, expected int
+	}{
+		{0, 0},
+		{1, 1},
+		{2, 2},
+		{3, 3},
+		{4, 3},
+		{5, 4},
+		{6, 5},
+		{9, 7},
+		{10, 7},
+	}
+
+	for _, c := range cases {
+		got := getSuperMajorityThreshold(c.n)
+		require.Equal(t, c.expected, got)
+	}
 }

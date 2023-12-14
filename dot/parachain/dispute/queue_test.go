@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"encoding/binary"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"sync"
 	"testing"
 
@@ -31,10 +32,10 @@ func newComparator(blockNumber, order uint32) CandidateComparator {
 
 func dummyParticipationData(priority ParticipationPriority) ParticipationData {
 	return ParticipationData{
-		ParticipationRequest{
-			candidateHash:    [32]byte{},
-			candidateReceipt: parachain.CandidateReceipt{},
-			session:          1,
+		types.ParticipationRequest{
+			CandidateHash:    [32]byte{},
+			CandidateReceipt: parachain.CandidateReceipt{},
+			Session:          1,
 		},
 		priority,
 	}

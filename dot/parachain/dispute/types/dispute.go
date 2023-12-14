@@ -2,9 +2,6 @@ package types
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -13,14 +10,6 @@ import (
 type Comparator struct {
 	SessionIndex  parachainTypes.SessionIndex `scale:"1"`
 	CandidateHash common.Hash                 `scale:"2"`
-}
-
-// NewDisputeComparator creates a new dispute comparator.
-func NewDisputeComparator(sessionIndex parachainTypes.SessionIndex, candidateHash common.Hash) Comparator {
-	return Comparator{
-		SessionIndex:  sessionIndex,
-		CandidateHash: candidateHash,
-	}
 }
 
 // Dispute is a dispute for a candidate.
@@ -60,16 +49,4 @@ type SendDispute struct {
 
 func (SendDispute) Index() uint {
 	return 0
-}
-
-// DisputeDistributionMessageVDT is the message sent to the collator to distribute the dispute
-type DisputeDistributionMessageVDT scale.VaryingDataType
-
-// NewDisputeDistributionMessageVDT returns a new dispute distribution message
-func NewDisputeDistributionMessageVDT() (DisputeDistributionMessageVDT, error) {
-	vdt, err := scale.NewVaryingDataType(SendDispute{})
-	if err != nil {
-		return DisputeDistributionMessageVDT{}, fmt.Errorf("failed to create new varying data type: %w", err)
-	}
-	return DisputeDistributionMessageVDT(vdt), nil
 }

@@ -9,10 +9,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
-<<<<<<<< HEAD:dot/parachain/dispute/mock_runtime_test.go
 	scale "github.com/ChainSafe/gossamer/pkg/scale"
-========
->>>>>>>> e496f25e2 (add tests):dot/parachain/runtime_mock.go
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -48,7 +45,7 @@ func (m *MockRuntimeInstance) ParachainHostCandidateEvents(arg0 common.Hash) (*s
 	return ret0, ret1
 }
 
-// ParachainHostCandidateEvents indicates an expected call of ParachainHostCandidateEvents.
+// ParachainHostCandidateEvents indicates an expected Call of ParachainHostCandidateEvents.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCandidateEvents(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidateEvents", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostCandidateEvents), arg0)
@@ -63,7 +60,7 @@ func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 uint32, a
 	return ret0, ret1
 }
 
-// ParachainHostCheckValidationOutputs indicates an expected call of ParachainHostCheckValidationOutputs.
+// ParachainHostCheckValidationOutputs indicates an expected Call of ParachainHostCheckValidationOutputs.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCheckValidationOutputs", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostCheckValidationOutputs), arg0, arg1)
@@ -78,7 +75,7 @@ func (m *MockRuntimeInstance) ParachainHostOnChainVotes(arg0 common.Hash) (*para
 	return ret0, ret1
 }
 
-// ParachainHostOnChainVotes indicates an expected call of ParachainHostOnChainVotes.
+// ParachainHostOnChainVotes indicates an expected Call of ParachainHostOnChainVotes.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostOnChainVotes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostOnChainVotes", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostOnChainVotes), arg0)
@@ -93,7 +90,7 @@ func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(arg0 uint32, 
 	return ret0, ret1
 }
 
-// ParachainHostPersistedValidationData indicates an expected call of ParachainHostPersistedValidationData.
+// ParachainHostPersistedValidationData indicates an expected Call of ParachainHostPersistedValidationData.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostPersistedValidationData(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostPersistedValidationData", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostPersistedValidationData), arg0, arg1)
@@ -108,7 +105,7 @@ func (m *MockRuntimeInstance) ParachainHostSessionIndexForChild(arg0 common.Hash
 	return ret0, ret1
 }
 
-// ParachainHostSessionIndexForChild indicates an expected call of ParachainHostSessionIndexForChild.
+// ParachainHostSessionIndexForChild indicates an expected Call of ParachainHostSessionIndexForChild.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostSessionIndexForChild(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionIndexForChild", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostSessionIndexForChild), arg0)
@@ -123,7 +120,7 @@ func (m *MockRuntimeInstance) ParachainHostSessionInfo(arg0 common.Hash, arg1 pa
 	return ret0, ret1
 }
 
-// ParachainHostSessionInfo indicates an expected call of ParachainHostSessionInfo.
+// ParachainHostSessionInfo indicates an expected Call of ParachainHostSessionInfo.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostSessionInfo(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionInfo", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostSessionInfo), arg0, arg1)
@@ -138,7 +135,7 @@ func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 uint32, arg1 para
 	return ret0, ret1
 }
 
-// ParachainHostValidationCode indicates an expected call of ParachainHostValidationCode.
+// ParachainHostValidationCode indicates an expected Call of ParachainHostValidationCode.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostValidationCode(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCode", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostValidationCode), arg0, arg1)
@@ -153,7 +150,7 @@ func (m *MockRuntimeInstance) ParachainHostValidationCodeByHash(arg0 common.Hash
 	return ret0, ret1
 }
 
-// ParachainHostValidationCodeByHash indicates an expected call of ParachainHostValidationCodeByHash.
+// ParachainHostValidationCodeByHash indicates an expected Call of ParachainHostValidationCodeByHash.
 func (mr *MockRuntimeInstanceMockRecorder) ParachainHostValidationCodeByHash(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCodeByHash", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostValidationCodeByHash), arg0, arg1)

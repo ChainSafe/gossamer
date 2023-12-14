@@ -288,7 +288,7 @@ type IssueLocalStatementMessage struct {
 type BlockDescription struct {
 	BlockHash  common.Hash
 	Session    parachainTypes.SessionIndex
-	Candidates []parachainTypes.CandidateHash
+	Candidates []common.Hash
 }
 
 // DetermineUndisputedChainMessage message to determine the undisputed chain
@@ -307,4 +307,20 @@ type DetermineUndisputedChainResponse struct {
 type Message[data any] struct {
 	Data            data
 	ResponseChannel chan any
+}
+
+// ParticipationStatement is a statement as result of the validation process.
+type ParticipationStatement struct {
+	Session          parachainTypes.SessionIndex
+	CandidateHash    common.Hash
+	CandidateReceipt parachainTypes.CandidateReceipt
+	Outcome          ParticipationOutcomeVDT
+}
+
+// ParticipationRequest a dispute participation request
+type ParticipationRequest struct {
+	CandidateHash    common.Hash
+	CandidateReceipt parachainTypes.CandidateReceipt
+	Session          parachainTypes.SessionIndex
+	//TODO: requestTimer for metrics
 }

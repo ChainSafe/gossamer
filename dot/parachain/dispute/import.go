@@ -3,8 +3,6 @@ package dispute
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
@@ -27,8 +25,7 @@ type ImportResult interface {
 	// IsFreshlyConcluded returns true if the dispute state changed to concluded during the import
 	IsFreshlyConcluded() (bool, error)
 	// ImportApprovalVotes imports the given approval votes into the current import
-	ImportApprovalVotes(keystore keystore.Keystore,
-		approvalVotes []overseer.ApprovalSignature,
+	ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature,
 		env *types.CandidateEnvironment,
 		now uint64,
 	) (ImportResult, error)
@@ -132,8 +129,7 @@ func (i ImportResultHandler) IsFreshlyConcluded() (bool, error) {
 	return isFreshlyConcludedFor || isFreshlyConcludedAgainst, nil
 }
 
-func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
-	approvalVotes []overseer.ApprovalSignature,
+func (i ImportResultHandler) ImportApprovalVotes(approvalVotes []overseer.ApprovalSignature,
 	env *types.CandidateEnvironment,
 	now uint64) (ImportResult, error) {
 	votes := i.newState.Votes
@@ -186,7 +182,10 @@ func (i ImportResultHandler) ImportApprovalVotes(keystore keystore.Keystore,
 		}
 	}
 
-	newState, err := types.NewCandidateVoteState(votes, env, now)
+	numberOfValidators := len(env.Session.Validators)
+	byzantineThreshold := getByzantineThreshold(numberOfValidators)
+	superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
+	newState, err := types.NewCandidateVoteState(votes, env, now, byzantineThreshold, superMajorityThreshold)
 	if err != nil {
 		return nil, fmt.Errorf("creating new candidate vote state: %w", err)
 	}
@@ -287,7 +286,10 @@ func NewImportResultFromStatements(
 		}
 	}
 
-	newState, err := types.NewCandidateVoteState(votes, env, now)
+	numberOfValidators := len(env.Session.Validators)
+	byzantineThreshold := getByzantineThreshold(numberOfValidators)
+	superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
+	newState, err := types.NewCandidateVoteState(votes, env, now, byzantineThreshold, superMajorityThreshold)
 	if err != nil {
 		return nil, fmt.Errorf("creating new candidate vote state: %w", err)
 	}

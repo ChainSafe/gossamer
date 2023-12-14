@@ -576,3 +576,8 @@ type ValidatorSignature Signature
 
 // Signature represents a cryptographic signature.
 type Signature [64]byte
+
+// CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
+type CandidateHash struct {
+	Value common.Hash `scale:"1"`
+}

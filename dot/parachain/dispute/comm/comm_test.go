@@ -1,4 +1,4 @@
-package dispute
+package comm
 
 import (
 	"context"
@@ -11,20 +11,20 @@ func TestSendMessage(t *testing.T) {
 		ch := make(chan any, 1)
 		defer close(ch)
 
-		err := sendMessage(ch, "test")
+		err := SendMessage(ch, "test")
 		require.NoError(t, err)
 	})
 	t.Run("timeout", func(t *testing.T) {
 		ch := make(chan any)
 		defer close(ch)
 
-		err := sendMessage(ch, "test")
-		require.NoError(t, err)
+		err := SendMessage(ch, "test")
+		require.Error(t, err)
 	})
 }
 
 func TestCall(t *testing.T) {
-	t.Run("successful call", func(t *testing.T) {
+	t.Run("successful Call", func(t *testing.T) {
 		receiver := make(chan any)
 		response := make(chan any)
 		defer close(receiver)
@@ -41,7 +41,7 @@ func TestCall(t *testing.T) {
 			}
 		}()
 
-		res, err := call(receiver, "ping", response)
+		res, err := Call(receiver, "ping", response)
 		require.NoError(t, err)
 		require.Equal(t, "pong", res)
 	})
@@ -51,7 +51,7 @@ func TestCall(t *testing.T) {
 		defer close(receiver)
 		defer close(response)
 
-		res, err := call(receiver, "ping", response)
+		res, err := Call(receiver, "ping", response)
 		require.Error(t, err)
 		require.Nil(t, res)
 	})

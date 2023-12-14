@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"bytes"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 
@@ -28,32 +29,26 @@ var (
 // ParticipationItem implements btree.Item
 type ParticipationItem struct {
 	comparator CandidateComparator
-	request    *ParticipationRequest
+	request    *types.ParticipationRequest
 }
 
 func participationItemComparator(a, b any) bool {
 	pi1, pi2 := a.(*ParticipationItem), b.(*ParticipationItem)
-
-	if pi1.comparator.relayParentBlockNumber == nil && pi2.comparator.relayParentBlockNumber == nil {
+	switch {
+	case pi1.comparator.relayParentBlockNumber == nil && pi2.comparator.relayParentBlockNumber == nil:
 		return bytes.Compare(pi1.comparator.candidateHash[:], pi2.comparator.candidateHash[:]) < 0
-	}
-
-	if pi1.comparator.relayParentBlockNumber == nil {
-		return false
-	}
-
-	if pi2.comparator.relayParentBlockNumber == nil {
+	case pi1.comparator.relayParentBlockNumber == nil:
 		return true
-	}
-
-	if isEqual := *pi1.comparator.relayParentBlockNumber == *pi2.comparator.relayParentBlockNumber; isEqual {
+	case pi2.comparator.relayParentBlockNumber == nil:
+		return false
+	case *pi1.comparator.relayParentBlockNumber == *pi2.comparator.relayParentBlockNumber:
 		return bytes.Compare(pi1.comparator.candidateHash[:], pi2.comparator.candidateHash[:]) < 0
+	default:
+		return *pi1.comparator.relayParentBlockNumber < *pi2.comparator.relayParentBlockNumber
 	}
-
-	return *pi1.comparator.relayParentBlockNumber < *pi2.comparator.relayParentBlockNumber
 }
 
-func newParticipationItem(comparator CandidateComparator, request *ParticipationRequest) *ParticipationItem {
+func newParticipationItem(comparator CandidateComparator, request *types.ParticipationRequest) *ParticipationItem {
 	return &ParticipationItem{
 		comparator: comparator,
 		request:    request,

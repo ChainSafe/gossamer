@@ -210,7 +210,7 @@ func (b *BadgerBackend) setWatermarkTxn(txn *badger.Txn, session parachainTypes.
 }
 
 // getWatermark gets the session watermark.
-// session watermark is used to cleanup old candidate votes.
+// session watermark is used to clean up old candidate votes.
 func (b *BadgerBackend) getWatermark() (parachainTypes.SessionIndex, error) {
 	var watermark parachainTypes.SessionIndex
 	if err := b.db.View(func(txn *badger.Txn) error {
@@ -235,7 +235,7 @@ func (b *BadgerBackend) getWatermark() (parachainTypes.SessionIndex, error) {
 	return watermark, nil
 }
 
-// setVotesCleanupTxn sets the badger txn to cleanup old candidate votes.
+// setVotesCleanupTxn sets the badger txn to clean up old candidate votes.
 func (b *BadgerBackend) setVotesCleanupTxn(txn *badger.Txn, earliestSession parachainTypes.SessionIndex) error {
 	// Get watermark
 	watermark, err := b.getWatermark()

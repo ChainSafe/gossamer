@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/scraping"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
@@ -17,6 +18,19 @@ import (
 const Window = 6
 
 var logger = log.NewFromGlobal(log.AddContext("parachain", "disputes"))
+
+// getByzantineThreshold returns the byzantine threshold for the given number of validators.
+func getByzantineThreshold(n int) int {
+	if n < 1 {
+		return 0
+	}
+	return (n - 1) / 3
+}
+
+// getSuperMajorityThreshold returns the super majority threshold for the given number of validators.
+func getSuperMajorityThreshold(n int) int {
+	return n - getByzantineThreshold(n)
+}
 
 // Coordinator is the disputes coordinator
 type Coordinator struct {
@@ -89,7 +103,7 @@ func (d *Coordinator) sendDisputeMessages(
 			continue
 		}
 
-		if err := sendMessage(receiver, disputeMessage); err != nil {
+		if err := comm.SendMessage(receiver, disputeMessage); err != nil {
 			logger.Errorf("send dispute message: %s", err)
 		}
 	}
@@ -226,7 +240,15 @@ func (d *Coordinator) handleStartup(sender chan<- any, initialHead *overseer.Act
 			return true
 		}
 
-		voteState, err := types.NewCandidateVoteState(*votes, env, uint64(now))
+		numberOfValidators := len(env.Session.Validators)
+		byzantineThreshold := getByzantineThreshold(numberOfValidators)
+		superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
+		voteState, err := types.NewCandidateVoteState(*votes,
+			env,
+			uint64(now),
+			byzantineThreshold,
+			superMajorityThreshold,
+		)
 		if err != nil {
 			logger.Errorf("failed to create candidate vote state for dispute %s: %s",
 				dispute.Comparator.CandidateHash, err)
@@ -240,35 +262,31 @@ func (d *Coordinator) handleStartup(sender chan<- any, initialHead *overseer.Act
 			return true
 		}
 		isIncluded := scraper.IsCandidateIncluded(dispute.Comparator.CandidateHash)
-
 		if potentialSpam {
 			logger.Tracef("found potential spam dispute on startup %s", dispute.Comparator.CandidateHash)
-
 			disputeKey := unconfirmedKey{
 				session:   dispute.Comparator.SessionIndex,
 				candidate: dispute.Comparator.CandidateHash,
 			}
 			spamDisputes[disputeKey] = voteState.Votes.VotedIndices()
 		} else if voteState.Own.VoteMissing() {
-			logger.Tracef("found valid dispute, with no vote from us on startup - participating. %s")
+			logger.Tracef("found valid dispute, with no vote from us on startup - participating.")
 			priority := ParticipationPriorityHigh
 			if !isIncluded {
 				priority = ParticipationPriorityBestEffort
 			}
-
 			participationRequests = append(participationRequests, ParticipationData{
-				request: ParticipationRequest{
-					candidateHash:    dispute.Comparator.CandidateHash,
-					candidateReceipt: voteState.Votes.CandidateReceipt,
-					session:          dispute.Comparator.SessionIndex,
+				request: types.ParticipationRequest{
+					CandidateHash:    dispute.Comparator.CandidateHash,
+					CandidateReceipt: voteState.Votes.CandidateReceipt,
+					Session:          dispute.Comparator.SessionIndex,
 				},
 				priority: priority,
 			})
 		} else {
-			logger.Tracef("found valid dispute, with vote from us on startup - distributing. %s")
+			logger.Tracef("found valid dispute, with vote from us on startup - distributing.")
 			d.sendDisputeMessages(sender, *env, voteState)
 		}
-
 		return true
 	})
 
@@ -302,7 +320,6 @@ func (d *Coordinator) Run(sender chan<- any) error {
 func NewDisputesCoordinator(db *badger.DB, receiver chan any) (*Coordinator, error) {
 	dbBackend := NewDBBackend(db)
 	backend := newOverlayBackend(dbBackend)
-
 	return &Coordinator{
 		store:        backend,
 		receiver:     receiver,

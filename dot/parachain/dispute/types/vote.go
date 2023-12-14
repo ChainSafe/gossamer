@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/common"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -14,21 +13,6 @@ type Vote struct {
 	ValidatorIndex     parachainTypes.ValidatorIndex `scale:"1"`
 	DisputeStatement   inherents.DisputeStatement    `scale:"2"`
 	ValidatorSignature [64]byte                      `scale:"3"`
-}
-
-// CompareVoteIndices compares two votes by their validator index
-func CompareVoteIndices(a, b interface{}) bool {
-	voteA, ok := a.(Vote)
-	if !ok {
-		panic(fmt.Errorf("invalid type for vote: expected Vote, got %T", a))
-	}
-
-	voteB, ok := b.(Vote)
-	if !ok {
-		panic(fmt.Errorf("invalid type for vote: expected Vote, got %T", b))
-	}
-
-	return parachainTypes.CompareValidatorIndices(voteA.ValidatorIndex, voteB.ValidatorIndex)
 }
 
 // Voted represents the voted state with the votes for a dispute statement
@@ -259,7 +243,11 @@ func (c *CandidateVoteState) IntoOldState() (CandidateVotes, CandidateVoteState)
 }
 
 // NewCandidateVoteState creates a new CandidateVoteState
-func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now uint64) (CandidateVoteState, error) {
+func NewCandidateVoteState(votes CandidateVotes,
+	env *CandidateEnvironment,
+	now uint64, byzantineThreshold,
+	superMajorityThreshold int,
+) (CandidateVoteState, error) {
 	var (
 		disputeStatus             *DisputeStatusVDT
 		byzantineThresholdAgainst bool
@@ -271,9 +259,6 @@ func NewCandidateVoteState(votes CandidateVotes, env *CandidateEnvironment, now 
 		return CandidateVoteState{}, fmt.Errorf("create own vote state vdt: %w", err)
 	}
 
-	numberOfValidators := len(env.Session.Validators)
-	byzantineThreshold := common.GetByzantineThreshold(numberOfValidators)
-	superMajorityThreshold := common.GetSuperMajorityThreshold(numberOfValidators)
 	isDisputed := !(votes.Invalid.Len() == 0) && !(votes.Valid.Value.Len() == 0)
 	if isDisputed {
 		status, err := NewDisputeStatusVDT()

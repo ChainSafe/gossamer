@@ -2,6 +2,7 @@ package dispute
 
 import (
 	"fmt"
+	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/scraping"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
@@ -96,7 +97,6 @@ func (i *Initialized) runUntilError(sender chan<- any, backend DBBackend, initia
 			initialData.Leaf.Hash); err != nil {
 			return fmt.Errorf("process chain import backlog: %w", err)
 		}
-
 		if !overlayDB.IsEmpty() {
 			if err := overlayDB.WriteToDB(); err != nil {
 				return fmt.Errorf("write overlay backend to db: %w", err)
@@ -141,13 +141,11 @@ func (i *Initialized) runUntilError(sender chan<- any, backend DBBackend, initia
 				}
 			}
 		}
-
 		if !overlayDB.IsEmpty() {
 			if err := overlayDB.WriteToDB(); err != nil {
 				return fmt.Errorf("write overlay backend to db: %w", err)
 			}
 		}
-
 		if confirmWrite != nil {
 			err := confirmWrite()
 			if err != nil {
@@ -172,7 +170,6 @@ func (i *Initialized) processActiveLeavesUpdate(
 
 	i.Participation.BumpPriority(sender, scrappedUpdates.IncludedReceipts)
 	i.Participation.ProcessActiveLeavesUpdate(sender, update)
-
 	if update.Activated != nil {
 		sessionIDx, err := i.runtime.ParachainHostSessionIndexForChild(update.Activated.Hash)
 		if err != nil {
@@ -201,7 +198,7 @@ func (i *Initialized) processActiveLeavesUpdate(
 			i.HighestSessionSeen = sessionIDx
 			earliestSession := saturatingSub(uint32(sessionIDx), Window-1)
 			if err := backend.NoteEarliestSession(parachainTypes.SessionIndex(earliestSession)); err != nil {
-				logger.Tracef("error noting earliest session: %w", err)
+				logger.Tracef("error noting earliest session: %v", err)
 			}
 
 			i.SpamSlots.PruneOld(parachainTypes.SessionIndex(earliestSession))
@@ -218,7 +215,6 @@ func (i *Initialized) processActiveLeavesUpdate(
 			return fmt.Errorf("process chain import backlog: %w", err)
 		}
 	}
-
 	logger.Tracef("finished processing ActiveLeavesUpdate")
 	return nil
 }
@@ -243,7 +239,7 @@ func (i *Initialized) processChainImportBacklog(
 	for k := 0; k < importRange; k++ {
 		votes := chainImportBacklog.PopFront()
 		if err := i.processOnChainVotes(overseerChannel, backend, votes, now, blockHash); err != nil {
-			logger.Errorf("skipping scraping block due to error: %w", err)
+			logger.Errorf("skipping scraping block due to error: %v", err)
 		}
 	}
 
@@ -272,7 +268,7 @@ func (i *Initialized) processOnChainVotes(
 			votes.Session,
 		)
 		if err != nil {
-			logger.Warnf("failed to get session info for candidate %s, session %d: %s",
+			logger.Warnf("failed to get session info for candidate %v, session %d: %s",
 				backingValidators.CandidateReceipt,
 				votes.Session,
 				err)
@@ -463,7 +459,7 @@ func (i *Initialized) handleIncoming(
 	now uint64,
 ) (func() error, error) {
 	switch message := msg.(type) {
-	case types.Message[ParticipationStatement]:
+	case types.Message[types.ParticipationStatement]:
 		if err := i.Participation.Clear(sender, message.Data.CandidateHash); err != nil {
 			return nil, fmt.Errorf("clear participation: %w", err)
 		}
@@ -512,7 +508,7 @@ func (i *Initialized) handleIncoming(
 
 		report := func() error {
 			if message.ResponseChannel != nil {
-				if err := sendMessage(message.ResponseChannel, outcome); err != nil {
+				if err := disputesCommon.SendMessage(message.ResponseChannel, outcome); err != nil {
 					return fmt.Errorf("confirm import statements: %w", err)
 				}
 			}
@@ -532,7 +528,7 @@ func (i *Initialized) handleIncoming(
 			return nil, fmt.Errorf("get recent disputes: %w", err)
 		}
 
-		if err := sendMessage(message.ResponseChannel, recentDisputes); err != nil {
+		if err := disputesCommon.SendMessage(message.ResponseChannel, recentDisputes); err != nil {
 			return nil, fmt.Errorf("send recent disputes: %w", err)
 		}
 	case types.Message[types.ActiveDisputes]:
@@ -542,7 +538,7 @@ func (i *Initialized) handleIncoming(
 			return nil, fmt.Errorf("get active disputes: %w", err)
 		}
 
-		if err := sendMessage(message.ResponseChannel, activeDisputes); err != nil {
+		if err := disputesCommon.SendMessage(message.ResponseChannel, activeDisputes); err != nil {
 			return nil, fmt.Errorf("send active disputes: %w", err)
 		}
 	case types.Message[types.QueryCandidateVotes]:
@@ -567,7 +563,7 @@ func (i *Initialized) handleIncoming(
 			}
 		}
 
-		if err := sendMessage(message.ResponseChannel, queryOutput); err != nil {
+		if err := disputesCommon.SendMessage(message.ResponseChannel, queryOutput); err != nil {
 			return nil, fmt.Errorf("send candidate votes: %w", err)
 		}
 	case types.Message[types.IssueLocalStatementMessage]:
@@ -592,7 +588,7 @@ func (i *Initialized) handleIncoming(
 			Block: undisputedChain,
 			Err:   err,
 		}
-		if err := sendMessage(message.ResponseChannel, resp); err != nil {
+		if err := disputesCommon.SendMessage(message.ResponseChannel, resp); err != nil {
 			return nil, fmt.Errorf("send undisputed chain: %w", err)
 		}
 	default:
@@ -660,8 +656,11 @@ func (i *Initialized) handleImportStatements(
 	// us from seeing the backing votes by withholding arbitrary blocks, and hence we do
 	// not have a `CandidateReceipt` available.
 	var oldState types.CandidateVoteState
+	numberOfValidators := len(env.Session.Validators)
+	byzantineThreshold := getByzantineThreshold(numberOfValidators)
+	superMajorityThreshold := getSuperMajorityThreshold(numberOfValidators)
 	if votesInDB != nil {
-		oldState, err = types.NewCandidateVoteState(*votesInDB, env, now)
+		oldState, err = types.NewCandidateVoteState(*votesInDB, env, now, byzantineThreshold, superMajorityThreshold)
 		if err != nil {
 			return InvalidImport, fmt.Errorf("new candidate vote state: %w", err)
 		}
@@ -713,7 +712,7 @@ func (i *Initialized) handleImportStatements(
 		}
 
 		// TODO: we need to send this to a prioritised channel
-		res, err := call(overseerChannel, message, message.ResponseChan)
+		res, err := disputesCommon.Call(overseerChannel, message, message.ResponseChan)
 		if err != nil {
 			logger.Warnf("failed to fetch approval signatures for candidate %s: %s",
 				candidateHash,
@@ -729,7 +728,7 @@ func (i *Initialized) handleImportStatements(
 				return InvalidImport, fmt.Errorf("approval signature response: %w", response.Error)
 			}
 
-			result, err := intermediateResult.ImportApprovalVotes(i.keystore, response.Signature, env, now)
+			result, err := intermediateResult.ImportApprovalVotes(response.Signature, env, now)
 			if err != nil {
 				return InvalidImport, fmt.Errorf("import approval votes: %w", err)
 			}
@@ -823,10 +822,10 @@ func (i *Initialized) handleImportStatements(
 		)
 		// TODO: metrics
 		participationData := ParticipationData{
-			ParticipationRequest{
-				candidateHash:    candidateHash,
-				candidateReceipt: newState.Votes.CandidateReceipt,
-				session:          session,
+			types.ParticipationRequest{
+				CandidateHash:    candidateHash,
+				CandidateReceipt: newState.Votes.CandidateReceipt,
+				Session:          session,
 			},
 			priority,
 		}
@@ -895,7 +894,7 @@ func (i *Initialized) handleImportStatements(
 				return InvalidImport, fmt.Errorf("new dispute message: %w", err)
 			}
 
-			if err := sendMessage(overseerChannel, disputeMessage); err != nil {
+			if err := disputesCommon.SendMessage(overseerChannel, disputeMessage); err != nil {
 				return InvalidImport, fmt.Errorf("send dispute message: %w", err)
 			}
 		}
@@ -968,7 +967,7 @@ func (i *Initialized) handleImportStatements(
 			message := overseer.ChainSelectionMessage[overseer.RevertBlocks]{
 				Message: overseer.RevertBlocks{Blocks: blocks},
 			}
-			if err := sendMessage(overseerChannel, message); err != nil {
+			if err := disputesCommon.SendMessage(overseerChannel, message); err != nil {
 				return InvalidImport, fmt.Errorf("send revert blocks request: %w", err)
 			}
 		} else {
@@ -1043,7 +1042,7 @@ func (i *Initialized) issueLocalStatement(
 
 	env, err := types.NewCandidateEnvironment(i.keystore, i.runtime, session, candidateReceipt.Descriptor.RelayParent)
 	if err != nil {
-		logger.Warnf("missing session info for candidate %s, session %d: %s",
+		logger.Warnf("missing session info for candidate %s, session %d",
 			candidateHash,
 			session,
 		)
@@ -1110,7 +1109,7 @@ func (i *Initialized) issueLocalStatement(
 			continue
 		}
 
-		if err := sendMessage(overseerChannel, disputeMessage); err != nil {
+		if err := disputesCommon.SendMessage(overseerChannel, disputeMessage); err != nil {
 			logger.Warnf("failed to send dispute message for validator index %d: %s",
 				statement.ValidatorIndex,
 				err,
@@ -1201,7 +1200,7 @@ func (i *Initialized) determineUndisputedChain(backend OverlayBackend,
 
 	for i, blockDescription := range blockDescriptions {
 		for _, candidate := range blockDescription.Candidates {
-			if isPossiblyInvalid(blockDescription.Session, candidate.Value) {
+			if isPossiblyInvalid(blockDescription.Session, candidate) {
 				if i == 0 {
 					return baseBlock, nil
 				} else {

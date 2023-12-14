@@ -59,25 +59,6 @@ func dummyCandidateDescriptorBadSignature(relayParent common.Hash) parachainType
 	}
 }
 
-func DummyCandidateReceipt(relayParent common.Hash) parachainTypes.CandidateReceipt {
-	descriptor := parachainTypes.CandidateDescriptor{
-		ParaID:                      0,
-		RelayParent:                 relayParent,
-		Collator:                    parachainTypes.CollatorID{},
-		PersistedValidationDataHash: common.Hash{},
-		PovHash:                     common.Hash{},
-		ErasureRoot:                 common.Hash{},
-		Signature:                   parachainTypes.CollatorSignature{},
-		ParaHead:                    common.Hash{},
-		ValidationCodeHash:          parachainTypes.ValidationCodeHash{},
-	}
-
-	return parachainTypes.CandidateReceipt{
-		Descriptor:      descriptor,
-		CommitmentsHash: common.Hash{},
-	}
-}
-
 func dummyCandidateReceiptBadSignature(
 	relayParent common.Hash,
 	commitments *common.Hash,
@@ -162,10 +143,10 @@ func participateWithCommitmentsHash(
 	}
 
 	participationData := ParticipationData{
-		ParticipationRequest{
-			candidateHash:    candidateHash,
-			candidateReceipt: candidateReceipt,
-			session:          session,
+		disputeTypes.ParticipationRequest{
+			CandidateHash:    candidateHash,
+			CandidateReceipt: candidateReceipt,
+			Session:          session,
 		},
 		ParticipationPriorityBestEffort,
 	}
@@ -202,7 +183,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
 						}
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {
@@ -300,7 +281,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			select {
 			case msg := <-mockReceiver:
 				switch message := msg.(type) {
-				case disputeTypes.Message[ParticipationStatement]:
+				case disputeTypes.Message[disputeTypes.ParticipationStatement]:
 					outcome, err := message.Data.Outcome.Value()
 					require.NoError(t, err)
 					switch outcome.(type) {
@@ -392,7 +373,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 						Error: &response,
 					}
-				case ParticipationStatement:
+				case disputeTypes.ParticipationStatement:
 					outcome, err := message.Outcome.Value()
 					require.NoError(t, err)
 					switch outcome.(type) {
@@ -442,7 +423,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
 						}
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {
@@ -492,7 +473,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 							AvailableData: &availableData,
 							Error:         nil,
 						}
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {
@@ -549,7 +530,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
 							Error: &response,
 						}
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {
@@ -610,7 +591,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 							Error:         nil,
 						}
 
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {
@@ -679,7 +660,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 						} else {
 							panic("unexpected message")
 						}
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {
@@ -749,7 +730,7 @@ func TestParticipationHandler_Queue(t *testing.T) {
 						} else {
 							panic("unexpected message")
 						}
-					case ParticipationStatement:
+					case disputeTypes.ParticipationStatement:
 						outcome, err := message.Outcome.Value()
 						require.NoError(t, err)
 						switch outcome.(type) {

@@ -2,6 +2,7 @@ package scraping
 
 import (
 	"fmt"
+	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -122,11 +123,7 @@ func (cs *ChainScraper) ProcessCandidateEvents(
 	blockNumber uint32,
 	blockHash common.Hash,
 ) ([]parachainTypes.CandidateReceipt, error) {
-	var (
-		candidateEvents  []parachainTypes.CandidateEventVDT
-		includedReceipts []parachainTypes.CandidateReceipt
-	)
-
+	var includedReceipts []parachainTypes.CandidateReceipt
 	events, err := cs.Runtime.ParachainHostCandidateEvents(blockHash)
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate events: %w", err)
@@ -135,12 +132,8 @@ func (cs *ChainScraper) ProcessCandidateEvents(
 	if events == nil {
 		return nil, nil
 	}
-
 	for _, event := range events.Types {
-		candidateEvents = append(candidateEvents, parachainTypes.CandidateEventVDT(event))
-	}
-
-	for _, candidateEvent := range candidateEvents {
+		candidateEvent := parachainTypes.CandidateEventVDT(event)
 		e, err := candidateEvent.Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting candidate event value: %w", err)
@@ -176,7 +169,7 @@ func (cs *ChainScraper) GetRelevantBlockAncestors(
 	head common.Hash,
 	headNumber uint32,
 ) ([]common.Hash, error) {
-	targetAncestor, err := getFinalisedBlockNumber(overseerChannel)
+	targetAncestor, err := disputesCommon.GetFinalisedBlockNumber(overseerChannel)
 	if err != nil {
 		return nil, fmt.Errorf("getting finalised block number: %w", err)
 	}
@@ -189,7 +182,7 @@ func (cs *ChainScraper) GetRelevantBlockAncestors(
 	}
 
 	for {
-		hashes, err := getBlockAncestors(overseerChannel, head, AncestryChunkSize)
+		hashes, err := disputesCommon.GetBlockAncestors(overseerChannel, head, AncestryChunkSize)
 		if err != nil {
 			return nil, fmt.Errorf("getting block ancestors: %w", err)
 		}
