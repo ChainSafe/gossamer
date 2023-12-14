@@ -83,6 +83,11 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
 
+		case <-cpvs.ctx.Done():
+			if err := cpvs.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
+			return nil
 		}
 	}
 }
@@ -93,6 +98,10 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 
 func (cpvs CollatorProtocolValidatorSide) ProcessOverseerSignals() {
 	// NOTE: nothing to do here
+}
+
+func (cpvs CollatorProtocolValidatorSide) Stop() {
+	cpvs.cancel()
 }
 
 // requestCollation requests a collation from the network.
@@ -295,6 +304,9 @@ type CollationEvent struct {
 }
 
 type CollatorProtocolValidatorSide struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	net Network
 
 	SubSystemToOverseer chan<- any

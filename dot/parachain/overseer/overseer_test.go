@@ -54,6 +54,8 @@ func (s *TestSubsystem) String() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
+func (s *TestSubsystem) Stop() {}
+
 func TestStart2SubsytemsActivate1(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
