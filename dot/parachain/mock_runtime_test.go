@@ -8,8 +8,11 @@ import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+<<<<<<<< HEAD:dot/parachain/mock_runtime_test.go
 	common "github.com/ChainSafe/gossamer/lib/common"
 	scale "github.com/ChainSafe/gossamer/pkg/scale"
+========
+>>>>>>>> 7c50d399b (moved `lib/parachain` to `dot/parachain` (#3429)):dot/parachain/mocks_runtime_test.go
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -110,6 +113,7 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostValidationCode(arg0, arg
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCode", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostValidationCode), arg0, arg1)
 }
+<<<<<<<< HEAD:dot/parachain/mock_runtime_test.go
 
 // ParachainHostValidationCodeByHash mocks base method.
 func (m *MockRuntimeInstance) ParachainHostValidationCodeByHash(arg0 common.Hash, arg1 parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
@@ -125,3 +129,5 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostValidationCodeByHash(arg
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostValidationCodeByHash", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostValidationCodeByHash), arg0, arg1)
 }
+========
+>>>>>>>> 7c50d399b (moved `lib/parachain` to `dot/parachain` (#3429)):dot/parachain/mocks_runtime_test.go

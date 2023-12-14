@@ -72,7 +72,7 @@ func Test_Vote(t *testing.T) {
 	validVote := Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyValidDisputeStatement(t),
-		ValidatorSignature: getRandomSignature(),
+		ValidatorSignature: GetRandomSignature(),
 	}
 
 	encoded, err := scale.Marshal(validVote)
@@ -87,7 +87,7 @@ func Test_Vote(t *testing.T) {
 	invalidVote := Vote{
 		ValidatorIndex:     1,
 		DisputeStatement:   DummyInvalidDisputeStatement(t),
-		ValidatorSignature: getRandomSignature(),
+		ValidatorSignature: GetRandomSignature(),
 	}
 
 	encoded, err = scale.Marshal(invalidVote)
@@ -125,12 +125,12 @@ func TestOwnVoteState_Voted(t *testing.T) {
 		{
 			ValidatorIndex:     1,
 			DisputeStatement:   DummyValidDisputeStatement(t),
-			ValidatorSignature: getRandomSignature(),
+			ValidatorSignature: GetRandomSignature(),
 		},
 		{
 			ValidatorIndex:     2,
 			DisputeStatement:   DummyInvalidDisputeStatement(t),
-			ValidatorSignature: getRandomSignature(),
+			ValidatorSignature: GetRandomSignature(),
 		},
 	}
 
