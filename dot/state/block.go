@@ -492,21 +492,6 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	return nil
 }
 
-// AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
-// TODO: remove this func and usage from sync (after sync refactor?)
-func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
-	bs.Lock()
-	defer bs.Unlock()
-
-	arrivalTime, err := bs.GetArrivalTime(block.Header.Hash())
-	if err != nil {
-		arrivalTime = time.Now()
-	}
-
-	bs.unfinalisedBlocks.store(block)
-	return bs.bt.AddBlock(&block.Header, arrivalTime)
-}
-
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
 func (bs *BlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
 	header, err := bs.GetHeaderByNumber(num)

@@ -169,7 +169,11 @@ func (p *OfflinePruner) Prune() error {
 
 	storagePrefixBytes := []byte(storagePrefix)
 	// Ignore non-storage keys
-	inputDBIter := inputDB.NewPrefixIterator(storagePrefixBytes)
+	inputDBIter, err := inputDB.NewPrefixIterator(storagePrefixBytes)
+	if err != nil {
+		return fmt.Errorf("creating prefix iterator: %w", err)
+	}
+
 	defer inputDBIter.Release()
 
 	writeBatch := inputDB.NewBatch()

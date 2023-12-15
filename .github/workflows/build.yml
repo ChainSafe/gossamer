@@ -30,7 +30,7 @@ jobs:
         platform: [macos-latest, buildjet-4vcpu-ubuntu-2204]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.21"
           stable: true
@@ -65,7 +65,7 @@ jobs:
     timeout-minutes: 60
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.21"
           stable: true

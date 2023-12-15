@@ -94,7 +94,7 @@ func checkPrimaryThreshold(randomness Randomness,
 
 func claimSecondarySlotVRF(randomness Randomness,
 	slot, epoch uint64,
-	authorities []types.Authority,
+	authorities []types.AuthorityRaw,
 	keypair *sr25519.Keypair,
 	authorityIndex uint32,
 ) (*VrfOutputAndProof, error) {
@@ -123,8 +123,8 @@ func claimSecondarySlotVRF(randomness Randomness,
 	}, nil
 }
 
-func claimSecondarySlotPlain(randomness Randomness, slot uint64, authorities []types.Authority, authorityIndex uint32,
-) error {
+func claimSecondarySlotPlain(randomness Randomness, slot uint64,
+	authorities []types.AuthorityRaw, authorityIndex uint32) error {
 	secondarySlotAuthor, err := getSecondarySlotAuthor(slot, len(authorities), randomness)
 	if err != nil {
 		return fmt.Errorf("cannot get secondary slot author: %w", err)

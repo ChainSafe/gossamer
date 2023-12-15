@@ -102,16 +102,11 @@ func (d NextEpochData) String() string { //skipcq: GO-W1029
 }
 
 // ToEpochData returns the NextEpochData as EpochData
-func (d *NextEpochData) ToEpochData() (*EpochData, error) { //skipcq: GO-W1029
-	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
-	if err != nil {
-		return nil, err
-	}
-
-	return &EpochData{
-		Authorities: auths,
+func (d *NextEpochData) ToEpochDataRaw() *EpochDataRaw {
+	return &EpochDataRaw{
+		Authorities: d.Authorities,
 		Randomness:  d.Randomness,
-	}, nil
+	}
 }
 
 // BABEOnDisabled represents a GRANDPA authority being disabled
