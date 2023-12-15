@@ -218,6 +218,9 @@ func (es *encodeState) encodeCustomVaryingDataType(in interface{}) (err error) {
 
 func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 	index, value, err := vdt.IndexValue()
+	if err != nil {
+		return
+	}
 	_, err = es.Write([]byte{byte(index)})
 	if err != nil {
 		return

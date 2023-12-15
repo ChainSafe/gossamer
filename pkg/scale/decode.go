@@ -129,7 +129,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		addr := dstv.Addr()
 		vdt, ok := addr.Interface().(VaryingDataType)
 		if ok {
-			fmt.Println("in herrr")
 			err = ds.decodeVaryingDataType(vdt)
 			return
 		}
@@ -155,7 +154,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	case Result:
 		err = ds.decodeResult(dstv)
 	// case VaryingDataType:
-	// 	fmt.Println("huh??")
 	// 	err = ds.decodeVaryingDataType(dstv)
 	// case VaryingDataTypeSlice:
 	// 	err = ds.decodeVaryingDataTypeSlice(dstv)
@@ -426,8 +424,7 @@ func (ds *decodeState) decodeVaryingDataType(vdt VaryingDataType) (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println("in here!")
-	err = vdt.SetValue(tempVal.Elem().Interface().(VaryingDataTypeValue))
+	err = vdt.SetValue(tempVal.Elem().Interface())
 	if err != nil {
 		return
 	}

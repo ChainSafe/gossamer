@@ -21,7 +21,7 @@ import (
 // 	"github.com/google/go-cmp/cmp/cmpopts"
 // )
 
-// func mustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt *DefaultVaryingDataType) {
+// func mustNewVaryingDataType(values ...any) (vdt *DefaultVaryingDataType) {
 // 	dvdt, err := NewDefaultVaryingDataType(values...)
 // 	if err != nil {
 // 		panic(err)
@@ -30,7 +30,7 @@ import (
 // 	return
 // }
 
-// func mustNewVaryingDataTypeAndSet(value VaryingDataTypeValue, values ...VaryingDataTypeValue) (vdt *DefaultVaryingDataType) {
+// func mustNewVaryingDataTypeAndSet(value any, values ...any) (vdt *DefaultVaryingDataType) {
 // 	dvdt := mustNewVaryingDataType(values...)
 // 	err := vdt.SetValue(value)
 // 	if err != nil {
@@ -458,7 +458,7 @@ func (VDTValue3) String() string { return "" }
 
 // func TestNewVaryingDataType(t *testing.T) {
 // 	type args struct {
-// 		values []VaryingDataTypeValue
+// 		values []any
 // 	}
 // 	tests := []struct {
 // 		name    string
@@ -468,18 +468,18 @@ func (VDTValue3) String() string { return "" }
 // 	}{
 // 		{
 // 			args: args{
-// 				values: []VaryingDataTypeValue{},
+// 				values: []any{},
 // 			},
 // 			wantErr: true,
 // 		},
 // 		{
 // 			args: args{
-// 				values: []VaryingDataTypeValue{
+// 				values: []any{
 // 					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
 // 				},
 // 			},
 // 			wantVdt: &DefaultVaryingDataType{
-// 				cache: map[uint]VaryingDataTypeValue{
+// 				cache: map[uint]any{
 // 					VDTValue{}.Index():   VDTValue{},
 // 					VDTValue1{}.Index():  VDTValue1{},
 // 					VDTValue2{}.Index():  VDTValue2{},
@@ -489,12 +489,12 @@ func (VDTValue3) String() string { return "" }
 // 		},
 // 		{
 // 			args: args{
-// 				values: []VaryingDataTypeValue{
+// 				values: []any{
 // 					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0), VDTValue{},
 // 				},
 // 			},
 // 			wantVdt: &DefaultVaryingDataType{
-// 				cache: map[uint]VaryingDataTypeValue{
+// 				cache: map[uint]any{
 // 					VDTValue{}.Index():   VDTValue{},
 // 					VDTValue1{}.Index():  VDTValue1{},
 // 					VDTValue2{}.Index():  VDTValue2{},
@@ -520,7 +520,7 @@ func (VDTValue3) String() string { return "" }
 
 // func TestVaryingDataType_Set(t *testing.T) {
 // 	type args struct {
-// 		value VaryingDataTypeValue
+// 		value any
 // 	}
 // 	tests := []struct {
 // 		name    string
@@ -566,7 +566,7 @@ func (VDTValue3) String() string { return "" }
 
 // func TestVaryingDataTypeSlice_Add(t *testing.T) {
 // 	type args struct {
-// 		values []VaryingDataTypeValue
+// 		values []any
 // 	}
 // 	tests := []struct {
 // 		name       string
@@ -579,7 +579,7 @@ func (VDTValue3) String() string { return "" }
 // 			name: "happy_path",
 // 			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))),
 // 			args: args{
-// 				values: []VaryingDataTypeValue{
+// 				values: []any{
 // 					VDTValue{
 // 						B: 1,
 // 					},
@@ -598,7 +598,7 @@ func (VDTValue3) String() string { return "" }
 // 			name: "invalid_value_error_case",
 // 			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{})),
 // 			args: args{
-// 				values: []VaryingDataTypeValue{
+// 				values: []any{
 // 					VDTValue3(0),
 // 				},
 // 			},
@@ -777,7 +777,7 @@ func setMyVaryingDataType[Value MyVaryingDataTypeValues](mvdt *MyVaryingDataType
 	mvdt.inner = value
 }
 
-func (mvdt *MyVaryingDataType) SetValue(value VaryingDataTypeValue) (err error) {
+func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case VDTValue:
 		setMyVaryingDataType[VDTValue](mvdt, value)
@@ -796,26 +796,26 @@ func (mvdt *MyVaryingDataType) SetValue(value VaryingDataTypeValue) (err error) 
 	}
 }
 
-func (mvdt MyVaryingDataType) IndexValue() (index uint, value VaryingDataTypeValue, err error) {
+func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case VDTValue:
-		return 1, VaryingDataTypeValue(mvdt.inner), nil
+		return 1, any(mvdt.inner), nil
 	case VDTValue1:
-		return 2, VaryingDataTypeValue(mvdt.inner), nil
+		return 2, any(mvdt.inner), nil
 	case VDTValue2:
-		return 3, VaryingDataTypeValue(mvdt.inner), nil
+		return 3, any(mvdt.inner), nil
 	case VDTValue3:
-		return 4, VaryingDataTypeValue(mvdt.inner), nil
+		return 4, any(mvdt.inner), nil
 	}
 	return 0, nil, ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt MyVaryingDataType) Value() (value VaryingDataTypeValue, err error) {
+func (mvdt MyVaryingDataType) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func (mvdt MyVaryingDataType) ValueAt(index uint) (value VaryingDataTypeValue, err error) {
+func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 1:
 		return VDTValue{}, nil

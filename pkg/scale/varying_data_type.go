@@ -40,94 +40,20 @@ package scale
 // }
 
 // func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType,
-// 	values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
-// 	vdts = NewVaryingDataTypeSlice(vdt)
-// 	if err := vdts.Add(values...); err != nil {
-// 		panic(fmt.Sprintf("adding varying data type value: %s", err))
-// 	}
-// 	return
-// }
-
-// VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
-type VaryingDataTypeValue interface {
-	// Index() uint
-}
-
-type VaryingDataType interface {
-	SetValue(value VaryingDataTypeValue) (err error)
-	IndexValue() (index uint, value VaryingDataTypeValue, err error)
-	Value() (value VaryingDataTypeValue, err error)
-	ValueAt(index uint) (value VaryingDataTypeValue, err error)
-}
+//
+//		values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
+//		vdts = NewVaryingDataTypeSlice(vdt)
+//		if err := vdts.Add(values...); err != nil {
+//			panic(fmt.Sprintf("adding varying data type value: %s", err))
+//		}
+//		return
+//	}
+//
 
 // VaryingDataType is analogous to a rust enum.  Name is taken from polkadot spec.
-type DefaultVaryingDataType struct {
-	value VaryingDataTypeValue
-	cache map[uint]VaryingDataTypeValue
+type VaryingDataType interface {
+	SetValue(value any) (err error)
+	IndexValue() (index uint, value any, err error)
+	Value() (value any, err error)
+	ValueAt(index uint) (value any, err error)
 }
-
-// // Set will set the VaryingDataType value
-// func (vdt *DefaultVaryingDataType) SetValue(value VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
-// 	_, ok := vdt.cache[value.Index()]
-// 	if !ok {
-// 		err = fmt.Errorf("%w: %v (%T)", ErrUnsupportedVaryingDataTypeValue, value, value)
-// 		return
-// 	}
-// 	vdt.value = value
-// 	return
-// }
-
-// // IndexValue returns VaryingDataTypeValue with the matching index
-// func (vdt *DefaultVaryingDataType) IndexValue(index uint) VaryingDataTypeValue {
-// 	val, ok := vdt.cache[index]
-// 	if !ok {
-// 		return nil
-// 	}
-// 	return val
-// }
-
-// // Value returns value stored in vdt
-// func (vdt *DefaultVaryingDataType) Value() VaryingDataTypeValue { //skipcq: GO-W1029
-// 	if vdt.value == nil {
-// 		return nil
-// 	}
-// 	return vdt.value
-// }
-
-// func (vdt *DefaultVaryingDataType) String() string { //skipcq: GO-W1029
-// 	if vdt.value == nil {
-// 		return "VaryingDataType(nil)"
-// 	}
-// 	stringer, ok := vdt.value.(fmt.Stringer)
-// 	if !ok {
-// 		return fmt.Sprintf("VaryingDataType(%v)", vdt.value)
-// 	}
-// 	return stringer.String()
-// }
-
-// // NewVaryingDataType is constructor for VaryingDataType
-// func NewDefaultVaryingDataType(values ...VaryingDataTypeValue) (vdt DefaultVaryingDataType, err error) {
-// 	if len(values) == 0 {
-// 		err = fmt.Errorf("%w", ErrMustProvideVaryingDataTypeValue)
-// 		return
-// 	}
-// 	vdt.cache = make(map[uint]VaryingDataTypeValue)
-// 	for _, value := range values {
-// 		_, ok := vdt.cache[value.Index()]
-// 		if ok {
-// 			err = fmt.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
-// 			return
-// 		}
-// 		vdt.cache[value.Index()] = value
-// 	}
-// 	return
-// }
-
-// // MustNewVaryingDataType is constructor for VaryingDataType
-// func MustNewDefaultVaryingDataType(values ...VaryingDataTypeValue) (vdt DefaultVaryingDataType) {
-// 	vdt, err := NewDefaultVaryingDataType(values...)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return
-// }
