@@ -103,10 +103,6 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeBool(in)
 	case Result:
 		err = es.encodeResult(in)
-	// case VaryingDataType:
-	// 	err = es.encodeVaryingDataType(in)
-	// case VaryingDataTypeSlice:
-	// 	err = es.encodeVaryingDataTypeSlice(in)
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
@@ -127,12 +123,6 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.marshal(elem.Interface())
 			}
 		case reflect.Struct:
-			// ok := reflect.ValueOf(in).CanConvert(reflect.TypeOf(VaryingDataType{}))
-			// if ok {
-			// 	err = es.encodeCustomVaryingDataType(in)
-			// } else {
-			// 	err = es.encodeStruct(in)
-			// }
 			err = es.encodeStruct(in)
 		case reflect.Array:
 			err = es.encodeArray(in)
@@ -210,12 +200,6 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 	return
 }
 
-func (es *encodeState) encodeCustomVaryingDataType(in interface{}) (err error) {
-	// vdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType)).Interface().(VaryingDataType)
-	vdt := in.(VaryingDataType)
-	return es.encodeVaryingDataType(vdt)
-}
-
 func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 	index, value, err := vdt.IndexValue()
 	if err != nil {
@@ -228,11 +212,6 @@ func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 	err = es.marshal(value)
 	return
 }
-
-// func (es *encodeState) encodeVaryingDataTypeSlice(vdts VaryingDataTypeSlice) (err error) {
-// 	err = es.marshal(vdts.Types)
-// 	return
-// }
 
 func (es *encodeState) encodeSlice(in interface{}) (err error) {
 	v := reflect.ValueOf(in)
