@@ -101,8 +101,6 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeVaryingDataType(in)
 	case VaryingDataTypeSlice:
 		err = es.encodeVaryingDataTypeSlice(in)
-	case BTreeCodec:
-		err = in.Encode(es)
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,

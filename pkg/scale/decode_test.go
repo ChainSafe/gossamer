@@ -588,9 +588,10 @@ func Test_decodeState_Unmarshaller(t *testing.T) {
 		Middle: uint32(2),
 		Last:   3,
 	}
-	bytes := MustMarshal(expected)
+	encoded := MustMarshal(expected)
 	ms := myStruct{}
-	Unmarshal(bytes, &ms)
+	err := Unmarshal(encoded, &ms)
+	assert.NoError(t, err)
 	assert.Equal(t, expected, ms)
 
 	type myParentStruct struct {
@@ -603,9 +604,10 @@ func Test_decodeState_Unmarshaller(t *testing.T) {
 		Middle: expected,
 		Last:   3,
 	}
-	bytes = MustMarshal(expectedParent)
+	encoded = MustMarshal(expectedParent)
 	mps := myParentStruct{}
-	Unmarshal(bytes, &mps)
+	err = Unmarshal(encoded, &mps)
+	assert.NoError(t, err)
 	assert.Equal(t, expectedParent, mps)
 }
 
@@ -615,8 +617,8 @@ func Test_decodeState_Unmarshaller_Error(t *testing.T) {
 		Middle: uint32(2),
 		Last:   3,
 	}
-	bytes := MustMarshal(expected)
+	encoded := MustMarshal(expected)
 	mse := myStructError{}
-	err := Unmarshal(bytes, &mse)
-	assert.Error(t, err, "eh?")
+	err := Unmarshal(encoded, &mse)
+	assert.Error(t, err)
 }

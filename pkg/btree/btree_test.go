@@ -1,9 +1,10 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package scale
+package btree
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -26,11 +27,10 @@ func TestBTree_Codec(t *testing.T) {
 	tree.Set(dummy{Field1: 1})
 	tree.Set(dummy{Field1: 2})
 	tree.Set(dummy{Field1: 3})
-
-	encoded, err := Marshal(&tree)
+	encoded, err := scale.Marshal(tree)
 	require.NoError(t, err)
 
-	//let mut btree = BTreeMap::<u32, Hash>::new();
+	//let mut btree = Map::<u32, Hash>::new();
 	//btree.insert(1, Hash::zero());
 	//btree.insert(2, Hash::zero());
 	//btree.insert(3, Hash::zero());
@@ -44,7 +44,7 @@ func TestBTree_Codec(t *testing.T) {
 	require.Equal(t, expectedEncoded, encoded)
 
 	expected := NewBTree[dummy](comparator)
-	err = Unmarshal(encoded, &expected)
+	err = scale.Unmarshal(expectedEncoded, &expected)
 	require.NoError(t, err)
 
 	// Check that the expected BTree has the same items as the original
@@ -62,11 +62,10 @@ func TestBTreeMap_Codec(t *testing.T) {
 	btreeMap.Set(uint32(1), dummy{Field1: 1})
 	btreeMap.Set(uint32(2), dummy{Field1: 2})
 	btreeMap.Set(uint32(3), dummy{Field1: 3})
-
-	encoded, err := Marshal(&btreeMap)
+	encoded, err := scale.Marshal(btreeMap)
 	require.NoError(t, err)
 
-	//let mut btree = BTreeMap::<u32, (u32, Hash)>::new();
+	//let mut btree = Map::<u32, (u32, Hash)>::new();
 	//btree.insert(1, (1, Hash::zero()));
 	//btree.insert(2, (2, Hash::zero()));
 	//btree.insert(3, (3, Hash::zero()));
@@ -78,10 +77,8 @@ func TestBTreeMap_Codec(t *testing.T) {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	}
 	require.Equal(t, expectedEncoded, encoded)
-
 	expected := NewBTreeMap[uint32, dummy](32)
-	err = Unmarshal(encoded, &expected)
+	err = scale.Unmarshal(expectedEncoded, &expected)
 	require.NoError(t, err)
-
 	require.Equal(t, btreeMap.Len(), expected.Len())
 }

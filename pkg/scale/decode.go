@@ -11,7 +11,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	"strings"
 )
 
 // indirect walks down v allocating pointers as needed,
@@ -114,29 +113,8 @@ type decodeState struct {
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
-	// Handle BTreeMap type separately for the following reasons:
-	// 1. BTreeMap is a generic type, so we can't use the normal type switch
-	// 2. We cannot use BTreeCodec because we are comparing the type of the dstv.Interface() in the type switch
-	if isBTree(dstv.Type()) {
-		if btm, ok := dstv.Addr().Interface().(BTreeCodec); ok {
-			if err := btm.Decode(ds, dstv); err != nil {
-				return err
-			}
-		} else {
-			return fmt.Errorf("could not type assert to BTreeCodec")
-		}
-		return nil
-
-	unmarshalerType := reflect.TypeOf((*Unmarshaler)(nil)).Elem()
-	if dstv.CanAddr() && dstv.Addr().Type().Implements(unmarshalerType) {
-		methodVal := dstv.Addr().MethodByName("UnmarshalSCALE")
-		values := methodVal.Call([]reflect.Value{reflect.ValueOf(ds.Reader)})
-		if !values[0].IsNil() {
-			errIn := values[0].Interface()
-			err := errIn.(error)
-			return err
-		}
-		return
+	if unmarshaler, ok := dstv.Addr().Interface().(Unmarshaler); ok {
+		return unmarshaler.UnmarshalSCALE(ds.Reader)
 	}
 
 	in := dstv.Interface()
@@ -798,44 +776,4 @@ func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	}
 	dstv.Set(reflect.ValueOf(ui128))
 	return
-}
-
-// isBTree returns true if the type is a BTree or BTreeMap
-func isBTree(t reflect.Type) bool {
-	if t.Kind() != reflect.Struct {
-		return false
-	}
-
-	// For BTreeMap
-	mapField, hasMap := t.FieldByName("Map")
-	_, hasDegree := t.FieldByName("Degree")
-
-	// For BTree
-	btreeField, hasBTree := t.FieldByName("BTree")
-	comparatorField, hasComparator := t.FieldByName("Comparator")
-	itemTypeField, hasItemType := t.FieldByName("ItemType")
-
-	if hasMap &&
-		hasDegree &&
-		mapField.Type.Kind() == reflect.Ptr &&
-		strings.HasPrefix(mapField.Type.String(), "*btree.Map[") {
-		return true
-	}
-
-	if hasBTree &&
-		hasComparator &&
-		hasItemType {
-		if btreeField.Type.Kind() != reflect.Ptr || btreeField.Type.String() != "*btree.BTree" {
-			return false
-		}
-		if comparatorField.Type.Kind() != reflect.Func {
-			return false
-		}
-		if itemTypeField.Type != reflect.TypeOf((*reflect.Type)(nil)).Elem() {
-			return false
-		}
-		return true
-	}
-
-	return false
 }
