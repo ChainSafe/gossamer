@@ -50,10 +50,17 @@ package scale
 //	}
 //
 
-// VaryingDataType is analogous to a rust enum.  Name is taken from polkadot spec.
-type VaryingDataType interface {
-	SetValue(value any) (err error)
+type varyingDataTypeEncode interface {
 	IndexValue() (index uint, value any, err error)
 	Value() (value any, err error)
 	ValueAt(index uint) (value any, err error)
+}
+type varyingDataTypeDecode interface {
+	SetValue(value any) (err error)
+}
+
+// VaryingDataType is analogous to a rust enum.  Name is taken from polkadot spec.
+type VaryingDataType interface {
+	varyingDataTypeEncode
+	varyingDataTypeDecode
 }

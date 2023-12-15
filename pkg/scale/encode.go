@@ -78,9 +78,9 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		return
 	}
 
-	vdt, ok := in.(VaryingDataType)
+	vdt, ok := in.(varyingDataTypeEncode)
 	if ok {
-		es.encodeVaryingDataType(vdt)
+		err = es.encodeVaryingDataType(vdt)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 	return
 }
 
-func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
+func (es *encodeState) encodeVaryingDataType(vdt varyingDataTypeEncode) (err error) {
 	index, value, err := vdt.IndexValue()
 	if err != nil {
 		return

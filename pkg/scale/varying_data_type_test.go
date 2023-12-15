@@ -346,7 +346,7 @@ var varyingDataTypeTests = tests{
 func TestVaryingDataType_Encode(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			vdt := tt.in.(VaryingDataType)
+			vdt := tt.in.(varyingDataTypeEncode)
 			bytes, err := Marshal(vdt)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, bytes)
