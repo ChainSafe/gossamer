@@ -5,9 +5,10 @@ package btree
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 	"reflect"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"golang.org/x/exp/constraints"
 
@@ -19,17 +20,17 @@ type Codec interface {
 	UnmarshalSCALE(reader io.Reader) error
 }
 
-// BTree is a wrapper around tidwall/btree.BTree that also stores the comparator function and the type of the items
-// stored in the BTree. This is needed during decoding because the BTree is a generic type, and we need to know the
-// type of the items stored in the BTree in order to decode them.
-type BTree struct {
+// Tree is a wrapper around tidwall/btree.BTree that also stores the comparator function and the type of the items
+// stored in the BTree. This is needed during decoding because the Tree item is a generic type, and we need to know it
+// at the time of decoding.
+type Tree struct {
 	*btree.BTree
 	Comparator func(a, b interface{}) bool
 	ItemType   reflect.Type
 }
 
-// MarshalSCALE encodes the BTree using SCALE.
-func (bt BTree) MarshalSCALE() ([]byte, error) {
+// MarshalSCALE encodes the Tree using SCALE.
+func (bt Tree) MarshalSCALE() ([]byte, error) {
 	encodedLen, err := scale.Marshal(uint(bt.Len()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode BTree length: %w", err)
@@ -50,8 +51,8 @@ func (bt BTree) MarshalSCALE() ([]byte, error) {
 	return append(encodedLen, encodedItems...), err
 }
 
-// UnmarshalSCALE decodes the BTree using SCALE.
-func (bt BTree) UnmarshalSCALE(reader io.Reader) error {
+// UnmarshalSCALE decodes the Tree using SCALE.
+func (bt Tree) UnmarshalSCALE(reader io.Reader) error {
 	if bt.Comparator == nil {
 		return fmt.Errorf("comparator not found")
 	}
@@ -74,26 +75,26 @@ func (bt BTree) UnmarshalSCALE(reader io.Reader) error {
 	return nil
 }
 
-// Copy returns a copy of the BTree.
-func (bt BTree) Copy() *BTree {
-	return &BTree{
+// Copy returns a copy of the Tree.
+func (bt Tree) Copy() *Tree {
+	return &Tree{
 		BTree:      bt.BTree.Copy(),
 		Comparator: bt.Comparator,
 		ItemType:   bt.ItemType,
 	}
 }
 
-// NewBTree creates a new BTree with the given comparator function.
-func NewBTree[T any](comparator func(a, b any) bool) BTree {
+// NewTree creates a new Tree with the given comparator function.
+func NewTree[T any](comparator func(a, b any) bool) Tree {
 	elementType := reflect.TypeOf((*T)(nil)).Elem()
-	return BTree{
+	return Tree{
 		BTree:      btree.New(comparator),
 		Comparator: comparator,
 		ItemType:   elementType,
 	}
 }
 
-var _ Codec = (*BTree)(nil)
+var _ Codec = (*Tree)(nil)
 
 // Map is a wrapper around tidwall/btree.Map
 type Map[K constraints.Ordered, V any] struct {
@@ -110,10 +111,9 @@ type mapItem[K constraints.Ordered, V any] struct {
 func (btm Map[K, V]) MarshalSCALE() ([]byte, error) {
 	encodedLen, err := scale.Marshal(uint(btm.Len()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode BTree length: %w", err)
+		return nil, fmt.Errorf("failed to encode Map length: %w", err)
 	}
 
-	// write each item in the tree
 	var (
 		pivot        K
 		encodedItems []byte
@@ -155,11 +155,11 @@ func (btm Map[K, V]) UnmarshalSCALE(reader io.Reader) error {
 	slicePtr := reflect.New(sliceType)
 	encodedItems, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("read BTree items: %w", err)
+		return fmt.Errorf("read Map items: %w", err)
 	}
 	err = scale.Unmarshal(encodedItems, slicePtr.Interface())
 	if err != nil {
-		return fmt.Errorf("decode BTree items: %w", err)
+		return fmt.Errorf("decode Map items: %w", err)
 	}
 
 	for i := 0; i < slicePtr.Elem().Len(); i++ {
@@ -176,8 +176,8 @@ func (btm Map[K, V]) Copy() Map[K, V] {
 	}
 }
 
-// NewBTreeMap creates a new Map with the given degree.
-func NewBTreeMap[K constraints.Ordered, V any](degree int) Map[K, V] {
+// NewMap creates a new Map with the given degree.
+func NewMap[K constraints.Ordered, V any](degree int) Map[K, V] {
 	return Map[K, V]{
 		Map:    btree.NewMap[K, V](degree),
 		Degree: degree,

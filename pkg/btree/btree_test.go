@@ -4,8 +4,9 @@
 package btree
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -22,8 +23,8 @@ func TestBTree_Codec(t *testing.T) {
 		return v1.Field1 < v2.Field1
 	}
 
-	// Create a BTree with 3 dummy items
-	tree := NewBTree[dummy](comparator)
+	// Create a Tree with 3 dummy items
+	tree := NewTree[dummy](comparator)
 	tree.Set(dummy{Field1: 1})
 	tree.Set(dummy{Field1: 2})
 	tree.Set(dummy{Field1: 3})
@@ -43,11 +44,11 @@ func TestBTree_Codec(t *testing.T) {
 	}
 	require.Equal(t, expectedEncoded, encoded)
 
-	expected := NewBTree[dummy](comparator)
+	expected := NewTree[dummy](comparator)
 	err = scale.Unmarshal(expectedEncoded, &expected)
 	require.NoError(t, err)
 
-	// Check that the expected BTree has the same items as the original
+	// Check that the expected Tree has the same items as the original
 	require.Equal(t, tree.Len(), expected.Len())
 	require.Equal(t, tree.ItemType, expected.ItemType)
 	require.Equal(t, tree.Min(), expected.Min())
@@ -58,7 +59,7 @@ func TestBTree_Codec(t *testing.T) {
 }
 
 func TestBTreeMap_Codec(t *testing.T) {
-	btreeMap := NewBTreeMap[uint32, dummy](32)
+	btreeMap := NewMap[uint32, dummy](32)
 	btreeMap.Set(uint32(1), dummy{Field1: 1})
 	btreeMap.Set(uint32(2), dummy{Field1: 2})
 	btreeMap.Set(uint32(3), dummy{Field1: 3})
@@ -77,7 +78,7 @@ func TestBTreeMap_Codec(t *testing.T) {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	}
 	require.Equal(t, expectedEncoded, encoded)
-	expected := NewBTreeMap[uint32, dummy](32)
+	expected := NewMap[uint32, dummy](32)
 	err = scale.Unmarshal(expectedEncoded, &expected)
 	require.NoError(t, err)
 	require.Equal(t, btreeMap.Len(), expected.Len())
