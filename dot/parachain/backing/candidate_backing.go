@@ -252,7 +252,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	rpState.postImportStatement(cb.SubSystemToOverseer, summary)
 
 	if summary == nil {
-		logger.Debug("statement is nil")
+		logger.Debug("summary is nil")
 		return nil
 	}
 
@@ -262,10 +262,9 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
-	if err != nil {
-		return fmt.Errorf("getting value from statementVDT: %w", err)
-	}
+	// already ensured in importStatement that the value of the statementVDT has been set.
+	// that is why there is no chance we can get an error here.
+	statementVDT, _ := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 
 	var attesting AttestingData
 	switch statementVDT.Index() {
@@ -275,10 +274,10 @@ func (cb *CandidateBacking) handleStatementMessage(
 			return fmt.Errorf("getting candidate: %w", err)
 		}
 
-		candidateReceipt := parachaintypes.CandidateReceipt{
-			Descriptor:      commitedCandidateReceipt.Descriptor,
-			CommitmentsHash: common.MustBlake2bHash(scale.MustMarshal(commitedCandidateReceipt.Commitments)),
-		}
+		candidateReceipt := commitedCandidateReceipt.ToCandidateReceipt()
+
+		fmt.Printf("\n\ncommitedCandidateReceipt=> %+v\n\n", commitedCandidateReceipt)
+		fmt.Printf("candidateReceipt=> %+v\n\n\n", candidateReceipt)
 
 		attesting = AttestingData{
 			candidate:     candidateReceipt,
@@ -290,9 +289,10 @@ func (cb *CandidateBacking) handleStatementMessage(
 		rpState.fallbacks[summary.Candidate] = attesting
 
 	case 2: // Valid
-		attesting, ok = rpState.fallbacks[summary.Candidate]
+		candidateHash := parachaintypes.CandidateHash(statementVDT.(parachaintypes.Valid))
+		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
-			return ErrAttestingDataNotFound
+			return nil
 		}
 
 		ourIndex := rpState.TableContext.validator.index
@@ -300,7 +300,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 			return nil
 		}
 
-		if rpState.AwaitingValidation[summary.Candidate] {
+		if rpState.AwaitingValidation[candidateHash] {
 			logger.Debug("Job already running")
 			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
 			return nil
@@ -312,6 +312,8 @@ func (cb *CandidateBacking) handleStatementMessage(
 	default:
 		return fmt.Errorf("invalid statementVDT index: %d", statementVDT.Index())
 	}
+
+	fmt.Printf("summary.Candidate hash in handleStatementMessage: %s\n", summary.Candidate)
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
 	pc, ok := cb.perCandidate[summary.Candidate]
@@ -528,6 +530,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
 	}
 
+	fmt.Printf("candidate hash in kickOffValidationWork: %s\n", candidateHash)
 	if rpState.issuedStatements[candidateHash] {
 		return nil
 	}

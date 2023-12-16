@@ -60,9 +60,9 @@ func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCan
 	return ccr
 }
 
-func mockOverseer(t *testing.T, ch chan any) {
+func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 	t.Helper()
-	for data := range ch {
+	for data := range subsystemToOverseer {
 		switch data := data.(type) {
 		case parachaintypes.PPMIntroduceCandidate:
 			data.Ch <- nil
@@ -745,6 +745,232 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestHandleStatementMessage(t *testing.T) {
+	relayParent := getDummyHash(t, 5)
+	chRelayParentAndCommand := make(chan RelayParentAndCommand)
+
+	statementVDTValid := parachaintypes.NewStatementVDT()
+	err := statementVDTValid.Set(parachaintypes.Valid{})
+	require.NoError(t, err)
+
+	dummyCommittedCandidateReceipt := getDummyCommittedCandidateReceipt(t)
+	seconded := parachaintypes.Seconded(dummyCommittedCandidateReceipt)
+
+	statementVDTSeconded := parachaintypes.NewStatementVDT()
+	err = statementVDTSeconded.Set(seconded)
+	require.NoError(t, err)
+
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(seconded)),
+	}
+
+	testCases := []struct {
+		description    string
+		perRelayParent map[common.Hash]perRelayParentState
+		//perCandidate   map[parachaintypes.CandidateHash]perCandidateState
+		signedStatementWithPVD SignedFullStatementWithPVD
+		err                    error
+	}{
+		{
+			description:            "unknown_relay_parent",
+			perRelayParent:         map[common.Hash]perRelayParentState{},
+			signedStatementWithPVD: SignedFullStatementWithPVD{},
+			err:                    ErrStatementForUnknownRelayParent,
+		},
+		{
+			description: "getting_error_importing_statement",
+			perRelayParent: map[common.Hash]perRelayParentState{
+				relayParent: {},
+			},
+			signedStatementWithPVD: SignedFullStatementWithPVD{},
+			err:                    scale.ErrVaryingDataTypeNotSet,
+		},
+		{
+			description: "getting_nil_summary_of_import_statement",
+			perRelayParent: map[common.Hash]perRelayParentState{
+				relayParent: func() perRelayParentState {
+					ctrl := gomock.NewController(t)
+					mockTable := NewMockTable(ctrl)
+
+					mockTable.EXPECT().importStatement(
+						gomock.AssignableToTypeOf(new(TableContext)),
+						gomock.AssignableToTypeOf(SignedFullStatementWithPVD{}),
+					).Return(nil, nil)
+					mockTable.EXPECT().drainMisbehaviors().
+						Return([]parachaintypes.PDMisbehaviorReport{})
+
+					return perRelayParentState{
+						Table: mockTable,
+					}
+				}(),
+			},
+			signedStatementWithPVD: SignedFullStatementWithPVD{
+				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
+					Payload: statementVDTValid,
+				},
+			},
+			err: nil,
+		},
+		{
+			description: "paraId_is_not_assigned_to_the_local_validator",
+			perRelayParent: map[common.Hash]perRelayParentState{
+				relayParent: func() perRelayParentState {
+					ctrl := gomock.NewController(t)
+					mockTable := NewMockTable(ctrl)
+
+					mockTable.EXPECT().importStatement(
+						gomock.AssignableToTypeOf(new(TableContext)),
+						gomock.AssignableToTypeOf(SignedFullStatementWithPVD{}),
+					).Return(&Summary{
+						GroupID: 4,
+					}, nil)
+					mockTable.EXPECT().drainMisbehaviors().
+						Return([]parachaintypes.PDMisbehaviorReport{})
+					mockTable.EXPECT().attestedCandidate(
+						gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+						gomock.AssignableToTypeOf(new(TableContext)),
+					).Return(nil, errors.New("could not get attested candidate from table"))
+
+					return perRelayParentState{
+						Table:      mockTable,
+						Assignment: 5,
+					}
+				}(),
+			},
+			signedStatementWithPVD: SignedFullStatementWithPVD{
+				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
+					Payload: statementVDTValid,
+				},
+			},
+			err: nil,
+		},
+		{
+			description: "statementVDT_set_to_seconded_and_error_getting_candidate_from_table",
+			perRelayParent: map[common.Hash]perRelayParentState{
+				relayParent: func() perRelayParentState {
+					ctrl := gomock.NewController(t)
+					mockTable := NewMockTable(ctrl)
+
+					mockTable.EXPECT().importStatement(
+						gomock.AssignableToTypeOf(new(TableContext)),
+						gomock.AssignableToTypeOf(SignedFullStatementWithPVD{}),
+					).Return(&Summary{
+						Candidate: candidateHash,
+						GroupID:   4,
+					}, nil)
+					mockTable.EXPECT().drainMisbehaviors().
+						Return([]parachaintypes.PDMisbehaviorReport{})
+					mockTable.EXPECT().attestedCandidate(
+						gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+						gomock.AssignableToTypeOf(new(TableContext)),
+					).Return(new(AttestedCandidate), nil)
+					mockTable.EXPECT().getCandidate(
+						gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
+					).Return(&dummyCommittedCandidateReceipt, nil)
+
+					return perRelayParentState{
+						Table:      mockTable,
+						Assignment: 4,
+						backed: map[parachaintypes.CandidateHash]bool{
+							candidateHash: true,
+						},
+						fallbacks: map[parachaintypes.CandidateHash]AttestingData{},
+						issuedStatements: map[parachaintypes.CandidateHash]bool{
+							candidateHash: true,
+						},
+					}
+				}(),
+			},
+			signedStatementWithPVD: SignedFullStatementWithPVD{
+				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
+					Payload: statementVDTSeconded,
+				},
+				PersistedValidationData: &parachaintypes.PersistedValidationData{
+					ParentHead: parachaintypes.HeadData{
+						Data: []byte{1, 2, 3},
+					},
+					RelayParentNumber:      5,
+					RelayParentStorageRoot: getDummyHash(t, 5),
+					MaxPovSize:             3,
+				},
+			},
+			err: nil,
+		},
+		//{
+		//	description: "statementVDT_set_to_seconded_and_error_getting_candidate_from_table",
+		//	perRelayParent: map[common.Hash]perRelayParentState{
+		//		relayParent: func() perRelayParentState {
+		//			ctrl := gomock.NewController(t)
+		//			mockTable := NewMockTable(ctrl)
+		//
+		//			mockTable.EXPECT().importStatement(
+		//				gomock.AssignableToTypeOf(new(TableContext)),
+		//				gomock.AssignableToTypeOf(SignedFullStatementWithPVD{}),
+		//			).Return(&Summary{
+		//				Candidate: candidateHash,
+		//				GroupID:   4,
+		//			}, nil)
+		//			mockTable.EXPECT().drainMisbehaviors().
+		//				Return([]parachaintypes.PDMisbehaviorReport{})
+		//			mockTable.EXPECT().attestedCandidate(
+		//				gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+		//				gomock.AssignableToTypeOf(new(TableContext)),
+		//			).Return(new(AttestedCandidate), nil)
+		//			mockTable.EXPECT().getCandidate(
+		//				gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
+		//			).Return(&dummyCommittedCandidateReceipt, nil)
+		//
+		//			return perRelayParentState{
+		//				Table:      mockTable,
+		//				Assignment: 4,
+		//				backed: map[parachaintypes.CandidateHash]bool{
+		//					candidateHash: true,
+		//				},
+		//				fallbacks: map[parachaintypes.CandidateHash]AttestingData{},
+		//				issuedStatements: map[parachaintypes.CandidateHash]bool{
+		//					candidateHash: true,
+		//				},
+		//			}
+		//		}(),
+		//	},
+		//	signedStatementWithPVD: SignedFullStatementWithPVD{
+		//		SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
+		//			Payload: statementVDTSeconded,
+		//		},
+		//		PersistedValidationData: &parachaintypes.PersistedValidationData{
+		//			ParentHead: parachaintypes.HeadData{
+		//				Data: []byte{1, 2, 3},
+		//			},
+		//			RelayParentNumber:      5,
+		//			RelayParentStorageRoot: getDummyHash(t, 5),
+		//			MaxPovSize:             3,
+		//		},
+		//	},
+		//	err: nil,
+		//},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.description, func(t *testing.T) {
+			t.Parallel()
+
+			ch := make(chan any)
+
+			backing := CandidateBacking{
+				SubSystemToOverseer: ch,
+				perRelayParent:      c.perRelayParent,
+				perCandidate:        map[parachaintypes.CandidateHash]perCandidateState{},
+			}
+
+			go mockOverseer(t, ch)
+
+			err := backing.handleStatementMessage(relayParent, c.signedStatementWithPVD, chRelayParentAndCommand)
+			require.ErrorIs(t, err, c.err)
 		})
 	}
 }
