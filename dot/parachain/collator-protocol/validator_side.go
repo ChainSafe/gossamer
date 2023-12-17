@@ -33,6 +33,18 @@ var (
 	ErrNotExpectedOnValidatorSide           = errors.New("message is not expected on the validator side of the protocol")
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
+	ErrProtocolMismatch                     = errors.New("an advertisement format doesn't match the relay parent")
+	ErrSecondedLimitReached                 = errors.New("para reached a limit of seconded" +
+		" candidates for this relay parent")
+	ErrRelayParentUnknown     = errors.New("relay parent is unknown")
+	ErrUndeclaredPara         = errors.New("peer has not declared its para id")
+	ErrInvalidAssignment      = errors.New("we're assigned to a different para at the given relay parent")
+	ErrInvalidAdvertisement   = errors.New("advertisement is invalid")
+	ErrUndeclaredCollator     = errors.New("no prior declare message received for this collator")
+	ErrOutOfView              = errors.New("collation relay parent is out of our view")
+	ErrDuplicateAdvertisement = errors.New("advertisement is already known")
+	ErrPeerLimitReached       = errors.New("limit for announcements per peer is reached")
+	ErrNotAdvertised          = errors.New("collation was not previously advertised")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -61,7 +73,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 
 			// check if this peer id has advertised this relay parent
 			peerData := cpvs.peerData[unfetchedCollation.PendingCollation.PeerID]
-			if peerData.HasAdvertisedRelayParent(unfetchedCollation.PendingCollation.RelayParent) {
+			if peerData.HasAdvertised(unfetchedCollation.PendingCollation.RelayParent, nil) {
 				// if so request collation from this peer id
 				collation, err := cpvs.requestCollation(unfetchedCollation.PendingCollation.RelayParent,
 					unfetchedCollation.PendingCollation.ParaID, unfetchedCollation.PendingCollation.PeerID)
@@ -85,6 +97,8 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 // - check if the requested collation is in our view
 func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Hash,
 	paraID parachaintypes.ParaID, peerID peer.ID) (*parachaintypes.Collation, error) {
+
+	// TODO: Make sure that the request can be done in MAX_UNSHARED_DOWNLOAD_TIME timeout
 	if !slices.Contains[[]common.Hash](cpvs.ourView.heads, relayParent) {
 		return nil, ErrCollationNotInView
 	}
@@ -120,10 +134,11 @@ type UnfetchedCollation struct {
 }
 
 type PendingCollation struct {
-	RelayParent    common.Hash
-	ParaID         parachaintypes.ParaID
-	PeerID         peer.ID
-	CommitmentHash *common.Hash
+	RelayParent          common.Hash
+	ParaID               parachaintypes.ParaID
+	PeerID               peer.ID
+	CommitmentHash       *common.Hash
+	ProspectiveCandidate *ProspectiveCandidate
 }
 
 type PeerData struct {
@@ -131,12 +146,19 @@ type PeerData struct {
 	state PeerStateInfo
 }
 
-func (peerData *PeerData) HasAdvertisedRelayParent(relayParent common.Hash) bool {
+func (peerData *PeerData) HasAdvertised(
+	relayParent common.Hash,
+	mayBeCandidateHash *parachaintypes.CandidateHash) bool {
 	if peerData.state.PeerState == Connected {
 		return false
 	}
 
-	return slices.Contains(peerData.view.heads, relayParent)
+	candidates, ok := peerData.state.CollatingPeerState.advertisements[relayParent]
+	if mayBeCandidateHash == nil {
+		return ok
+	}
+
+	return slices.Contains(candidates, *mayBeCandidateHash)
 }
 
 func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, paraID parachaintypes.ParaID) {
@@ -149,9 +171,70 @@ func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, par
 	}
 }
 
-func (peerData *PeerData) InsertAdvertisement() error {
-	// TODO: part of https://github.com/ChainSafe/gossamer/issues/3514
-	return nil
+func IsRelayParentInImplicitView(
+	relayParent common.Hash,
+	relayParentMode ProspectiveParachainsMode,
+	implicitView ImplicitView,
+	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+	paraID parachaintypes.ParaID,
+) bool {
+	if !relayParentMode.isEnabled {
+		_, ok := activeLeaves[relayParent]
+		return ok
+	}
+
+	for hash, mode := range activeLeaves {
+		knownAllowedRelayParent := implicitView.KnownAllowedRelayParentsUnder(hash, paraID)
+		if mode.isEnabled && knownAllowedRelayParent.String() == relayParent.String() {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Note an advertisement by the collator. Returns `true` if the advertisement was imported
+// successfully. Fails if the advertisement is duplicate, out of view, or the peer has not
+// declared itself a collator.
+func (peerData *PeerData) InsertAdvertisement(
+	onRelayParent common.Hash,
+	relayParentMode ProspectiveParachainsMode,
+	candidateHash *parachaintypes.CandidateHash,
+	implicitView ImplicitView,
+	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+) (isAdvertisementInvalid bool, err error) {
+	switch peerData.state.PeerState {
+	case Connected:
+		return false, ErrUndeclaredCollator
+	case Collating:
+		if !IsRelayParentInImplicitView(onRelayParent, relayParentMode, implicitView,
+			activeLeaves, peerData.state.CollatingPeerState.ParaID) {
+			return false, ErrOutOfView
+		}
+
+		if relayParentMode.isEnabled {
+			// relayParentMode.maxCandidateDepth
+			candidates, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
+			if ok && slices.Contains[[]parachaintypes.CandidateHash](candidates, *candidateHash) {
+				return false, ErrDuplicateAdvertisement
+			}
+
+			if len(candidates) > int(relayParentMode.maxCandidateDepth) {
+				return false, ErrPeerLimitReached
+			}
+			candidates = append(candidates, *candidateHash)
+			peerData.state.CollatingPeerState.advertisements[onRelayParent] = candidates
+		} else {
+			_, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
+			if ok {
+				return false, ErrDuplicateAdvertisement
+			}
+			peerData.state.CollatingPeerState.advertisements[onRelayParent] = []parachaintypes.CandidateHash{*candidateHash}
+		}
+
+		peerData.state.CollatingPeerState.lastActive = time.Now()
+	}
+	return true, nil
 }
 
 type PeerStateInfo struct {
@@ -162,10 +245,11 @@ type PeerStateInfo struct {
 }
 
 type CollatingPeerState struct {
-	CollatorID     parachaintypes.CollatorID
-	ParaID         parachaintypes.ParaID
-	advertisements []common.Hash //nolint
-	lastActive     time.Time     //nolint
+	CollatorID parachaintypes.CollatorID
+	ParaID     parachaintypes.ParaID
+	// collations advertised by peer per relay parent
+	advertisements map[common.Hash][]parachaintypes.CandidateHash
+	lastActive     time.Time
 }
 
 type PeerState uint
@@ -222,12 +306,93 @@ type CollatorProtocolValidatorSide struct {
 
 	ourView View
 
-	// Keep track of all pending candidate collations
-	pendingCandidates map[common.Hash]CollationEvent
-
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
+
+	// state tracked per relay parent
+	perRelayParent map[common.Hash]PerRelayParent
+
+	// TODO: In rust this is a map, let's see if we can get away with a map
+	// blocked_advertisements: HashMap<(ParaId, Hash), Vec<BlockedAdvertisement>>,
+	BlockedAdvertisements []BlockedAdvertisement
+
+	// Leaves that do support asynchronous backing along with
+	// implicit ancestry. Leaves from the implicit view are present in
+	// `active_leaves`, the opposite doesn't hold true.
+	//
+	// Relay-chain blocks which don't support prospective parachains are
+	// never included in the fragment trees of active leaves which do. In
+	// particular, this means that if a given relay parent belongs to implicit
+	// ancestry of some active leaf, then it does support prospective parachains.
+	implicitView ImplicitView
+
+	/// All active leaves observed by us, including both that do and do not
+	/// support prospective parachains. This mapping works as a replacement for
+	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
+	/// to asynchronous backing is done.
+	activeLeaves map[common.Hash]ProspectiveParachainsMode
+
+	// Collations that we have successfully requested from peers and waiting
+	// on validation.
+	fetchedCandidates map[string]CollationEvent
+}
+
+// Identifier of a fetched collation
+type fetchedCollationInfo struct {
+	// Candidate's relay parent
+	relayParent   common.Hash
+	paraID        parachaintypes.ParaID
+	candidateHash parachaintypes.CandidateHash
+	// Id of the collator the collation was fetched from
+	collatorID parachaintypes.CollatorID
+}
+
+func (f fetchedCollationInfo) String() string {
+	return fmt.Sprintf("relay parent: %s, para id: %d, candidate hash: %s, collator id: %+v",
+		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
+}
+
+// Prospective parachains mode of a relay parent. Defined by
+// the Runtime API version.
+//
+// Needed for the period of transition to asynchronous backing.
+type ProspectiveParachainsMode struct {
+	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
+	isEnabled bool
+
+	// these values would be present only if `isEnabled` is true
+
+	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
+	// Restricts nodes from building arbitrary long chains and spamming other validators.
+	maxCandidateDepth uint
+}
+
+type PerRelayParent struct {
+	prospectiveParachainMode ProspectiveParachainsMode
+	assignment               *parachaintypes.ParaID
+	collations               Collations
+}
+
+type Collations struct {
+	// What is the current status in regards to a collation for this relay parent?
+	status CollationStatus
+	// how many collations have been seconded
+	secondedCount uint
+	// Collation that were advertised to us, but we did not yet fetch.
+	waitingQueue []UnfetchedCollation // : VecDeque<(PendingCollation, CollatorId)>,
+}
+
+// IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
+func (collations Collations) IsSecondedLimitReached(relayParentMode ProspectiveParachainsMode) bool {
+	var secondedLimit uint
+	if relayParentMode.isEnabled {
+		secondedLimit = relayParentMode.maxCandidateDepth + 1
+	} else {
+		secondedLimit = 1
+	}
+
+	return collations.secondedCount >= secondedLimit
 }
 
 func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,
@@ -254,9 +419,10 @@ type NetworkBridgeUpdate struct {
 	// TODO: not quite sure if we would need this or something similar to this
 }
 
+// SecondedOverseerMsg represents that the candidate we recommended to be seconded was validated successfully.
 type SecondedOverseerMsg struct {
 	Parent common.Hash
-	Stmt   parachaintypes.StatementVDT
+	Stmt   parachaintypes.UncheckedSignedFullStatement
 }
 
 type Backed struct {
@@ -265,12 +431,14 @@ type Backed struct {
 	ParaHead common.Hash
 }
 
+// InvalidOverseerMsg represents an invalid candidata.
+// We recommended a particular candidate to be seconded, but it was invalid; penalise the collator.
 type InvalidOverseerMsg struct {
 	Parent           common.Hash
 	CandidateReceipt parachaintypes.CandidateReceipt
 }
 
-func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error {
+func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
@@ -291,21 +459,95 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
 	case SecondedOverseerMsg:
-		// TODO: handle seconded message https://github.com/ChainSafe/gossamer/issues/3516
-		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1466 //nolint
+		statementV, err := msg.Stmt.Payload.Value()
+		if err != nil {
+			return fmt.Errorf("getting value of statement: %w", err)
+		}
+		if statementV.Index() != 1 {
+			return fmt.Errorf("expected a seconded statement")
+		}
 
+		receipt, ok := statementV.(parachaintypes.Seconded)
+		if !ok {
+			return fmt.Errorf("statement value expected: Seconded, got: %T", statementV)
+		}
+
+		candidateReceipt := parachaintypes.CommittedCandidateReceipt(receipt)
+
+		fetchedCollation, err := newFetchedCollationInfo(candidateReceipt.ToPlain())
+		if err != nil {
+			return fmt.Errorf("getting fetched collation info: %w", err)
+		}
+
+		// remove the candidate from the list of fetched candidates
+		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
+		if !ok {
+			logger.Error("collation has been seconded, but the relay parent is deactivated")
+			return nil
+		}
+
+		delete(cpvs.fetchedCandidates, fetchedCollation.String())
+
+		// notify good collation
+		peerID, ok := cpvs.getPeerIDFromCollatorID(collationEvent.CollatorId)
+		if !ok {
+			return ErrPeerIDNotFoundForCollator
+		}
+		cpvs.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.BenefitNotifyGoodValue,
+			Reason: peerset.BenefitNotifyGoodReason,
+		}, peerID)
+
+		// notify collation seconded
+		_, ok = cpvs.peerData[peerID]
+		if ok {
+			collatorProtocolMessage := NewCollatorProtocolMessage()
+			err = collatorProtocolMessage.Set(CollationSeconded{
+				RelayParent: msg.Parent,
+				Statement:   msg.Stmt,
+			})
+			if err != nil {
+				return fmt.Errorf("setting collation seconded: %w", err)
+			}
+			collationMessage := NewCollationProtocol()
+
+			err = collationMessage.Set(collatorProtocolMessage)
+			if err != nil {
+				return fmt.Errorf("setting collation message: %w", err)
+			}
+
+			err = cpvs.net.SendMessage(peerID, &collationMessage)
+			if err != nil {
+				return fmt.Errorf("sending collation message: %w", err)
+			}
+
+			perRelayParent, ok := cpvs.perRelayParent[msg.Parent]
+			if ok {
+				perRelayParent.collations.status = Seconded
+				perRelayParent.collations.secondedCount++
+				cpvs.perRelayParent[msg.Parent] = perRelayParent
+			}
+
+			// TODO: Few more things for async backing, but we don't have async backing yet
+			// https://github.com/paritytech/polkadot-sdk/blob/7035034710ecb9c6a786284e5f771364c520598d/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1531-L1532
+		}
 	case Backed:
 		// TODO: handle backed message https://github.com/ChainSafe/gossamer/issues/3517
 	case InvalidOverseerMsg:
 		invalidOverseerMsg := msg
 
-		collationEvent, ok := cpvs.pendingCandidates[invalidOverseerMsg.Parent]
+		fetchedCollation, err := newFetchedCollationInfo(msg.CandidateReceipt)
+		if err != nil {
+			return fmt.Errorf("getting fetched collation info: %w", err)
+		}
+
+		collationEvent, ok := cpvs.fetchedCandidates[fetchedCollation.String()]
 		if !ok {
 			return nil
 		}
 
 		if *collationEvent.PendingCollation.CommitmentHash == (invalidOverseerMsg.CandidateReceipt.CommitmentsHash) {
-			delete(cpvs.pendingCandidates, invalidOverseerMsg.Parent)
+			delete(cpvs.fetchedCandidates, fetchedCollation.String())
 		} else {
 			logger.Error("reported invalid candidate for unknown `pending_candidate`")
 			return nil
@@ -324,4 +566,19 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg interface{}) error 
 	}
 
 	return nil
+}
+
+func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) (*fetchedCollationInfo, error) {
+	candidateHash, err := candidateReceipt.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("getting candidate hash: %w", err)
+	}
+	return &fetchedCollationInfo{
+		paraID:      parachaintypes.ParaID(candidateReceipt.Descriptor.ParaID),
+		relayParent: candidateReceipt.Descriptor.RelayParent,
+		collatorID:  candidateReceipt.Descriptor.Collator,
+		candidateHash: parachaintypes.CandidateHash{
+			Value: candidateHash,
+		},
+	}, nil
 }
