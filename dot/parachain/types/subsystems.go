@@ -85,7 +85,7 @@ type Misbehaviour interface {
 	IsMisbehaviour()
 }
 
-// ValidityDoubleVote misbehavior: voting more than one way on candidate validity.
+// ValidityDoubleVote misbehaviour: voting more than one way on candidate validity.
 // Since there are three possible ways to vote, a double vote is possible in
 // three possible combinations (unordered)
 type ValidityDoubleVote interface {
@@ -111,7 +111,7 @@ type CommittedCandidateReceiptAndSign struct {
 	Signature                 ValidatorSignature
 }
 
-// MultipleCandidates misbehavior: declaring multiple candidates.
+// MultipleCandidates misbehaviour: declaring multiple candidates.
 type MultipleCandidates struct {
 	First  CommittedCandidateReceiptAndSign
 	Second CommittedCandidateReceiptAndSign
@@ -126,7 +126,7 @@ type SignedStatement struct {
 	Sender    ValidatorIndex     `scale:"3"`
 }
 
-// UnauthorizedStatement misbehavior: submitted statement for wrong group.
+// UnauthorizedStatement misbehaviour: submitted statement for wrong group.
 type UnauthorizedStatement struct {
 	// A signed statement which was submitted without proper authority.
 	Statement SignedStatement
@@ -134,7 +134,7 @@ type UnauthorizedStatement struct {
 
 func (UnauthorizedStatement) IsMisbehaviour() {}
 
-// DoubleSign misbehavior: multiple signatures on same statement.
+// DoubleSign misbehaviour: multiple signatures on same statement.
 type DoubleSign interface {
 	Misbehaviour
 	IsDoubleSign()
@@ -410,7 +410,8 @@ func (StackNativeMax) Index() uint {
 	return 3
 }
 
-// PrecheckingMaxMemory represents the maximum memory allowance for the preparation worker during pre-checking, measured in bytes.
+// PrecheckingMaxMemory represents the maximum memory allowance for the preparation worker during pre-checking,
+// measured in bytes.
 type PrecheckingMaxMemory uint64
 
 // Index returns the index of varying data type

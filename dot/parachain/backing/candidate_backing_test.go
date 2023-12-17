@@ -25,7 +25,7 @@ func getDummyHash(t *testing.T, num byte) common.Hash {
 
 func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCandidateReceipt {
 	t.Helper()
-	hash5 := getDummyHash(t, 5)
+	hash5 := getDummyHash(t, 6)
 
 	var collatorID parachaintypes.CollatorID
 	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
@@ -75,7 +75,10 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 	}
 }
 
-func secondedSignedFullStatementWithPVD(t *testing.T, statementVDTSeconded parachaintypes.StatementVDT) SignedFullStatementWithPVD {
+func secondedSignedFullStatementWithPVD(
+	t *testing.T,
+	statementVDTSeconded parachaintypes.StatementVDT,
+) SignedFullStatementWithPVD {
 	t.Helper()
 	return SignedFullStatementWithPVD{
 		SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
@@ -93,6 +96,8 @@ func secondedSignedFullStatementWithPVD(t *testing.T, statementVDTSeconded parac
 }
 
 func TestImportStatement(t *testing.T) {
+	t.Parallel()
+
 	dummyCCR := getDummyCommittedCandidateReceipt(t)
 	seconded := parachaintypes.Seconded(dummyCCR)
 
@@ -361,6 +366,8 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 }
 
 func TestPostImportStatement(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		description string
 		rpState     perRelayParentState
@@ -490,6 +497,8 @@ func TestPostImportStatement(t *testing.T) {
 }
 
 func TestKickOffValidationWork(t *testing.T) {
+	t.Parallel()
+
 	attesting := AttestingData{
 		candidate: getDummyCommittedCandidateReceipt(t).ToCandidateReceipt(),
 	}
@@ -534,6 +543,8 @@ func TestKickOffValidationWork(t *testing.T) {
 }
 
 func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
+	t.Parallel()
+
 	var pvd parachaintypes.PersistedValidationData
 	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToCandidateReceipt()
 	candidateHash := candidateReceipt.Hash()
@@ -700,7 +711,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 
 			go c.mockOverseer(subSystemToOverseer)
 			go func(chRelayParentAndCommand chan RelayParentAndCommand) {
-				_ = <-chRelayParentAndCommand
+				<-chRelayParentAndCommand
 			}(chRelayParentAndCommand)
 
 			err := c.rpState.validateAndMakeAvailable(
