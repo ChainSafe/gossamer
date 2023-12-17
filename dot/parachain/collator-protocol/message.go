@@ -195,7 +195,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	candidateHash parachaintypes.CandidateHash,
 	parentHeadDataHash common.Hash,
 ) bool {
-	canSecondRequest := backing.CanSecond{
+	canSecondRequest := backing.CanSecondMessage{
 		CandidateParaID:      candidateParaID,
 		CandidateRelayParent: candidateRelayParent,
 		CandidateHash:        candidateHash,
@@ -206,7 +206,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 
 	cpvs.SubSystemToOverseer <- struct {
 		responseChan     chan bool
-		canSecondRequest backing.CanSecond
+		canSecondRequest backing.CanSecondMessage
 	}{
 		responseChan:     responseChan,
 		canSecondRequest: canSecondRequest,

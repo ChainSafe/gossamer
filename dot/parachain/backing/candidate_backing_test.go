@@ -105,7 +105,10 @@ func TestImportStatement(t *testing.T) {
 	err := statementVDTSeconded.Set(seconded)
 	require.NoError(t, err)
 
-	candidateHash := dummyCCR.Hash()
+	hash, err := dummyCCR.Hash()
+	require.NoError(t, err)
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	statementVDTValid := parachaintypes.NewStatementVDT()
 	err = statementVDTValid.Set(parachaintypes.Valid{})
@@ -418,7 +421,10 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				candidate := getDummyCommittedCandidateReceipt(t)
-				candidateHash := candidate.Hash()
+				hash, err := candidate.Hash()
+				require.NoError(t, err)
+
+				candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.PDMisbehaviorReport{})
@@ -500,9 +506,13 @@ func TestKickOffValidationWork(t *testing.T) {
 	t.Parallel()
 
 	attesting := AttestingData{
-		candidate: getDummyCommittedCandidateReceipt(t).ToCandidateReceipt(),
+		candidate: getDummyCommittedCandidateReceipt(t).ToPlain(),
 	}
-	candidateHash := attesting.candidate.Hash()
+
+	hash, err := attesting.candidate.Hash()
+	require.NoError(t, err)
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	testCases := []struct {
 		description string
@@ -546,9 +556,12 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 	t.Parallel()
 
 	var pvd parachaintypes.PersistedValidationData
-	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToCandidateReceipt()
-	candidateHash := candidateReceipt.Hash()
+	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToPlain()
 
+	hash, err := candidateReceipt.Hash()
+	require.NoError(t, err)
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 	relayParent := getDummyHash(t, 5)
 
 	testCases := []struct {
@@ -749,7 +762,8 @@ func TestHandleStatementMessage(t *testing.T) {
 	err := statementVDTSeconded.Set(seconded)
 	require.NoError(t, err)
 
-	candidateHash := dummyCCR.Hash()
+	hash, err := dummyCCR.Hash()
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	statementVDTValid := parachaintypes.NewStatementVDT()
 	err = statementVDTValid.Set(parachaintypes.Valid(candidateHash))
@@ -982,7 +996,7 @@ func TestHandleStatementMessage(t *testing.T) {
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]AttestingData{
 							candidateHash: {
-								candidate: getDummyCommittedCandidateReceipt(t).ToCandidateReceipt(),
+								candidate: getDummyCommittedCandidateReceipt(t).ToPlain(),
 							},
 						},
 						AwaitingValidation: map[parachaintypes.CandidateHash]bool{},

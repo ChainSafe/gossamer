@@ -169,9 +169,8 @@ func uint32ToBytes(value uint32) []byte {
 
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
-	SubsystemToOverseer chan any) error {
+	SubsystemToOverseer chan any) {
 	av.processMessages()
-	return nil
 }
 
 // Name returns the name of the availability store subsystem

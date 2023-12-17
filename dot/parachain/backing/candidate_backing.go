@@ -275,7 +275,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		}
 
 		attesting = AttestingData{
-			candidate:     commitedCandidateReceipt.ToCandidateReceipt(),
+			candidate:     commitedCandidateReceipt.ToPlain(),
 			povHash:       statementVDT.Descriptor.PovHash,
 			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
@@ -339,7 +339,12 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
-	candidateHash := parachaintypes.CommittedCandidateReceipt(statementVDTSeconded).Hash()
+	hash, err := parachaintypes.CommittedCandidateReceipt(statementVDTSeconded).Hash()
+	if err != nil {
+		return nil, fmt.Errorf("getting candidate hash: %w", err)
+	}
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
 		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
@@ -396,7 +401,13 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		return
 	}
 
-	candidateHash := attested.Candidate.Hash()
+	hash, err := attested.Candidate.Hash()
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	// If the candidate is already backed, issue new misbehaviors and return.
 	if rpState.backed[candidateHash] {
@@ -443,7 +454,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		// parachains, and the block production rate of the relay chain.
 		subSystemToOverseer <- parachaintypes.PMProvisionableData{
 			RelayParent:       rpState.RelayParent,
-			ProvisionableData: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToCandidateReceipt()),
+			ProvisionableData: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
 
@@ -512,7 +523,12 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	pvd parachaintypes.PersistedValidationData,
 	attesting AttestingData,
 ) error {
-	candidateHash := attesting.candidate.Hash()
+	hash, err := attesting.candidate.Hash()
+	if err != nil {
+		return fmt.Errorf("getting candidate hash: %w", err)
+	}
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if rpState.issuedStatements[candidateHash] {
 		return nil
