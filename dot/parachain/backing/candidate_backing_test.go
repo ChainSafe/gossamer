@@ -763,6 +763,8 @@ func TestHandleStatementMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	hash, err := dummyCCR.Hash()
+	require.NoError(t, err)
+
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	statementVDTValid := parachaintypes.NewStatementVDT()
