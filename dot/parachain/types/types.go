@@ -259,6 +259,10 @@ func (c CommittedCandidateReceipt) ToCandidateReceipt() CandidateReceipt {
 	}
 }
 
+func (c CommittedCandidateReceipt) Hash() CandidateHash {
+	return c.ToCandidateReceipt().Hash()
+}
+
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte
@@ -328,6 +332,12 @@ type CandidateReceipt struct {
 	Descriptor CandidateDescriptor `scale:"1"`
 	// The candidate event.
 	CommitmentsHash common.Hash `scale:"2"`
+}
+
+func (c CandidateReceipt) Hash() CandidateHash {
+	return CandidateHash{
+		Value: common.MustBlake2bHash(scale.MustMarshal(c)),
+	}
 }
 
 // HeadData Parachain head data included in the chain.

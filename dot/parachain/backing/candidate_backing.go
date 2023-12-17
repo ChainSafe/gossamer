@@ -267,29 +267,24 @@ func (cb *CandidateBacking) handleStatementMessage(
 	statementVDT, _ := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 
 	var attesting AttestingData
-	switch statementVDT.Index() {
-	case 1: // Seconded
+	switch statementVDT := statementVDT.(type) {
+	case parachaintypes.Seconded:
 		commitedCandidateReceipt, err := rpState.Table.getCandidate(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}
 
-		candidateReceipt := commitedCandidateReceipt.ToCandidateReceipt()
-
-		fmt.Printf("\n\ncommitedCandidateReceipt=> %+v\n\n", commitedCandidateReceipt)
-		fmt.Printf("candidateReceipt=> %+v\n\n\n", candidateReceipt)
-
 		attesting = AttestingData{
-			candidate:     candidateReceipt,
-			povHash:       statementVDT.(parachaintypes.Seconded).Descriptor.PovHash,
+			candidate:     commitedCandidateReceipt.ToCandidateReceipt(),
+			povHash:       statementVDT.Descriptor.PovHash,
 			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 
 		rpState.fallbacks[summary.Candidate] = attesting
 
-	case 2: // Valid
-		candidateHash := parachaintypes.CandidateHash(statementVDT.(parachaintypes.Valid))
+	case parachaintypes.Valid:
+		candidateHash := parachaintypes.CandidateHash(statementVDT)
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
 			return nil
@@ -308,12 +303,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 
 		logger.Debug("No job, so start another with current validator")
 		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
-
-	default:
-		return fmt.Errorf("invalid statementVDT index: %d", statementVDT.Index())
 	}
-
-	fmt.Printf("summary.Candidate hash in handleStatementMessage: %s\n", summary.Candidate)
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
 	pc, ok := cb.perCandidate[summary.Candidate]
@@ -349,9 +339,7 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(statementVDTSeconded)),
-	}
+	candidateHash := parachaintypes.CommittedCandidateReceipt(statementVDTSeconded).Hash()
 
 	if _, ok := perCandidate[candidateHash]; ok {
 		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
@@ -408,9 +396,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		return
 	}
 
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(attested.Candidate)),
-	}
+	candidateHash := attested.Candidate.Hash()
 
 	// If the candidate is already backed, issue new misbehaviors and return.
 	if rpState.backed[candidateHash] {
@@ -526,11 +512,8 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	pvd parachaintypes.PersistedValidationData,
 	attesting AttestingData,
 ) error {
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
-	}
+	candidateHash := attesting.candidate.Hash()
 
-	fmt.Printf("candidate hash in kickOffValidationWork: %s\n", candidateHash)
 	if rpState.issuedStatements[candidateHash] {
 		return nil
 	}
