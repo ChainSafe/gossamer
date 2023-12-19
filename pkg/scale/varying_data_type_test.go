@@ -6,6 +6,7 @@ package scale
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,8 +96,16 @@ func (VDTValue3) String() string { return "" }
 type MyVaryingDataType struct {
 	inner any
 }
+
+type customAny any
+
 type MyVaryingDataTypeValues interface {
-	VDTValue | VDTValue1 | VDTValue2 | VDTValue3
+	VDTValue | VDTValue1 | VDTValue2 | VDTValue3 | customAny
+}
+
+func TestSomething(t *testing.T) {
+
+	reflect.TypeOf((*varyingDataTypeDecode)(nil)).Elem()
 }
 
 func NewMyVaringDataType[Value MyVaryingDataTypeValues](value ...Value) *MyVaryingDataType {
@@ -126,6 +135,9 @@ func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
 	case VDTValue3:
 		setMyVaryingDataType[VDTValue3](mvdt, value)
 		return
+	case customAny:
+		setMyVaryingDataType(mvdt, value)
+		return
 	default:
 		return fmt.Errorf("unsupported type")
 	}
@@ -141,6 +153,8 @@ func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
 		return 3, any(mvdt.inner), nil
 	case VDTValue3:
 		return 4, any(mvdt.inner), nil
+	case customAny:
+		return 5, any(mvdt.inner), nil
 	}
 	return 0, nil, ErrUnsupportedVaryingDataTypeValue
 }
@@ -160,6 +174,8 @@ func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
 		return VDTValue2{}, nil
 	case 4:
 		return VDTValue3(0), nil
+	case 5:
+		return customAny(0), nil
 	}
 	return nil, errUnknownVaryingDataTypeValue
 }
@@ -337,6 +353,18 @@ var varyingDataTypeTests = tests{
 		want: newWant(
 			// index of VDTValue2
 			[]byte{4},
+			// encoding of int16
+			[]byte{0xff, 0x3f},
+		),
+	},
+	{
+		name: "customAny",
+		in: NewMyVaringDataType(
+			customAny(int16(16383)),
+		),
+		want: newWant(
+			// index of VDTValue2
+			[]byte{5},
 			// encoding of int16
 			[]byte{0xff, 0x3f},
 		),
