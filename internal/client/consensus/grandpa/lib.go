@@ -306,7 +306,10 @@ func localAuthorityID[ID AuthorityID](voters grandpa.VoterSet[ID], keystore *key
 			Key []byte
 			crypto.KeyTypeID
 		}{
-			Key: []byte(idVoterInfo.ID),
+			{
+				Key:       []byte(idVoterInfo.ID.ToRawVec()),
+				KeyTypeID: Authori,
+			},
 		}
 		(*keystore).HasKeys(publicKeys)
 	}
