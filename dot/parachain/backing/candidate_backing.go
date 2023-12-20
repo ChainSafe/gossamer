@@ -19,7 +19,6 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backin
 
 var (
 	ErrRejectedByProspectiveParachains = errors.New("candidate rejected by prospective parachains subsystem")
-	ErrValidationFailed                = errors.New("validation failed")
 	ErrInvalidErasureRoot              = errors.New("erasure root doesn't match the announced by the candidate receipt")
 	ErrStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
 	ErrCandidateStateNotFound          = errors.New("candidate state not found")
@@ -261,7 +260,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	rpState.postImportStatement(cb.SubSystemToOverseer, summary)
 
 	if summary == nil {
-		logger.Debug("statement is nil")
+		logger.Debug("summary is nil")
 		return nil
 	}
 
@@ -271,37 +270,32 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
-	if err != nil {
-		return fmt.Errorf("getting value from statementVDT: %w", err)
-	}
+	// already ensured in importStatement that the value of the statementVDT has been set.
+	// that is why there is no chance we can get an error here.
+	statementVDT, _ := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 
 	var attesting AttestingData
-	switch statementVDT.Index() {
-	case 1: // Seconded
+	switch statementVDT := statementVDT.(type) {
+	case parachaintypes.Seconded:
 		commitedCandidateReceipt, err := rpState.Table.getCandidate(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}
 
-		candidateReceipt := parachaintypes.CandidateReceipt{
-			Descriptor:      commitedCandidateReceipt.Descriptor,
-			CommitmentsHash: common.MustBlake2bHash(scale.MustMarshal(commitedCandidateReceipt.Commitments)),
-		}
-
 		attesting = AttestingData{
-			candidate:     candidateReceipt,
-			povHash:       statementVDT.(parachaintypes.Seconded).Descriptor.PovHash,
+			candidate:     commitedCandidateReceipt.ToPlain(),
+			povHash:       statementVDT.Descriptor.PovHash,
 			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 
 		rpState.fallbacks[summary.Candidate] = attesting
 
-	case 2: // Valid
-		attesting, ok = rpState.fallbacks[summary.Candidate]
+	case parachaintypes.Valid:
+		candidateHash := parachaintypes.CandidateHash(statementVDT)
+		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
-			return ErrAttestingDataNotFound
+			return nil
 		}
 
 		ourIndex := rpState.TableContext.validator.index
@@ -309,7 +303,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 			return nil
 		}
 
-		if rpState.AwaitingValidation[summary.Candidate] {
+		if rpState.AwaitingValidation[candidateHash] {
 			logger.Debug("Job already running")
 			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
 			return nil
@@ -317,9 +311,6 @@ func (cb *CandidateBacking) handleStatementMessage(
 
 		logger.Debug("No job, so start another with current validator")
 		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
-
-	default:
-		return fmt.Errorf("invalid statementVDT index: %d", statementVDT.Index())
 	}
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
@@ -328,13 +319,12 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return ErrCandidateStateNotFound
 	}
 
-	rpState.kickOffValidationWork(
+	return rpState.kickOffValidationWork(
 		cb.SubSystemToOverseer,
 		chRelayParentAndCommand,
 		pc.persistedValidationData,
 		attesting,
 	)
-	return nil
 }
 
 func (rpState *perRelayParentState) importStatement(
@@ -357,9 +347,12 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(statementVDTSeconded)),
+	hash, err := parachaintypes.CommittedCandidateReceipt(statementVDTSeconded).Hash()
+	if err != nil {
+		return nil, fmt.Errorf("getting candidate hash: %w", err)
 	}
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
 		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
@@ -416,9 +409,13 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		return
 	}
 
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(attested.Candidate)),
+	hash, err := attested.Candidate.Hash()
+	if err != nil {
+		logger.Error(err.Error())
+		return
 	}
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	// If the candidate is already backed, issue new misbehaviors and return.
 	if rpState.backed[candidateHash] {
@@ -465,7 +462,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		// parachains, and the block production rate of the relay chain.
 		subSystemToOverseer <- parachaintypes.PMProvisionableData{
 			RelayParent:       rpState.RelayParent,
-			ProvisionableData: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToCandidateReceipt()),
+			ProvisionableData: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
 
@@ -515,7 +512,7 @@ func attestedToBackedCandidate(
 		}
 
 		if !validatorIndices[positionInGroup] {
-			logger.Error("Validity vote from unknown validator")
+			logger.Error("validity vote from unknown validator")
 			return nil
 		}
 	}
@@ -533,82 +530,96 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	chRelayParentAndCommand chan RelayParentAndCommand,
 	pvd parachaintypes.PersistedValidationData,
 	attesting AttestingData,
-) {
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(attesting.candidate)),
+) error {
+	hash, err := attesting.candidate.Hash()
+	if err != nil {
+		return fmt.Errorf("getting candidate hash: %w", err)
 	}
+
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if rpState.issuedStatements[candidateHash] {
-		return
+		return nil
 	}
 
-	if !rpState.AwaitingValidation[candidateHash] {
-		rpState.AwaitingValidation[candidateHash] = true
+	pov := getPovFromValidator()
 
-		pov := getPovFromValidator()
-
-		go backgroundValidateAndMakeAvailable(
-			subSystemToOverseer,
-			chRelayParentAndCommand,
-			attesting.candidate,
-			rpState.RelayParent,
-			pvd,
-			pov,
-			uint32(len(rpState.TableContext.validators)),
-			Attest,
-		)
-	}
+	return rpState.validateAndMakeAvailable(
+		executorParamsAtRelayParent,
+		subSystemToOverseer,
+		chRelayParentAndCommand,
+		attesting.candidate,
+		rpState.RelayParent,
+		pvd,
+		pov,
+		uint32(len(rpState.TableContext.validators)),
+		Attest,
+		candidateHash,
+	)
 }
 
-func backgroundValidateAndMakeAvailable(
+// this is temporary until we implement executorParamsAtRelayParent #3544
+type ExecutorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
+
+func (rpState *perRelayParentState) validateAndMakeAvailable(
+	executorParamsAtRelayParentFunc ExecutorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan RelayParentAndCommand,
 	candidateReceipt parachaintypes.CandidateReceipt,
-	relayPaent common.Hash,
+	relayParent common.Hash,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
 	numValidator uint32,
 	makeCommand ValidatedCandidateCommand,
-) {
-	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
-	candidateHash := parachaintypes.CandidateHash{
-		Value: common.MustBlake2bHash(scale.MustMarshal(candidateReceipt)),
+	candidateHash parachaintypes.CandidateHash,
+) error {
+	if rpState.AwaitingValidation[candidateHash] {
+		return nil
 	}
+
+	rpState.AwaitingValidation[candidateHash] = true
+	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 
 	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
 	subSystemToOverseer <- parachaintypes.RAMRequest{
-		RelayParent: relayPaent,
+		RelayParent: relayParent,
 		RuntimeApiRequest: parachaintypes.RARValidationCodeByHash{
 			ValidationCodeHash: validationCodeHash,
 			Ch:                 chValidationCodeByHashRes,
 		},
 	}
 
-	ValidationCodeByHashRes := <-chValidationCodeByHashRes
-	if ValidationCodeByHashRes.Err != nil {
-		logger.Error(ValidationCodeByHashRes.Err.Error())
-		return
+	validationCodeByHashRes := <-chValidationCodeByHashRes
+	if validationCodeByHashRes.Err != nil {
+		return fmt.Errorf("getting validation code by hash: %w", validationCodeByHashRes.Err)
 	}
 
-	executorParams, err := executorParamsAtRelayParent(relayPaent, subSystemToOverseer)
+	// executorParamsAtRelayParent() should be called after it is implemented #3544
+	executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
 	if err != nil {
-		logger.Errorf("could not get executor params at relay parent: %w", err)
+		return fmt.Errorf("getting executor params at relay parent: %w", err)
+	}
+
+	pvfExecTimeoutKind := parachaintypes.NewPvfExecTimeoutKind()
+	err = pvfExecTimeoutKind.Set(parachaintypes.Backing{})
+	if err != nil {
+		return fmt.Errorf("setting pvfExecTimeoutKind: %w", err)
 	}
 
 	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
 	subSystemToOverseer <- parachaintypes.CVMValidateFromExhaustive{
 		PersistedValidationData: pvd,
-		ValidationCode:          ValidationCodeByHashRes.Data,
+		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
 		PoV:                     pov,
 		ExecutorParams:          executorParams,
-		PvfPrepTimeoutKind:      parachaintypes.Approval,
+		PvfExecTimeoutKind:      pvfExecTimeoutKind,
 		Ch:                      chValidationResultRes,
 	}
 
 	ValidationResultRes := <-chValidationResultRes
 	if ValidationResultRes.Err != nil {
-		logger.Error(ValidationResultRes.Err.Error())
+		return fmt.Errorf("getting validation result: %w", ValidationResultRes.Err)
 	}
 
 	var backgroundValidationResult BackgroundValidationResult
@@ -619,6 +630,8 @@ func backgroundValidateAndMakeAvailable(
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
 		// candidate validity.
 
+		logger.Debugf("validation successful! candidateHash=%s", candidateHash)
+
 		chStoreAvailableDataError := make(chan error)
 		subSystemToOverseer <- parachaintypes.ASMStoreAvailableData{
 			CandidateHash: candidateHash,
@@ -627,19 +640,20 @@ func backgroundValidateAndMakeAvailable(
 				PoV:            pov,
 				ValidationData: pvd,
 			},
-			Ch: chStoreAvailableDataError,
+			ExpectedErasureRoot: candidateReceipt.Descriptor.ErasureRoot,
+			Ch:                  chStoreAvailableDataError,
 		}
 
 		storeAvailableDataError := <-chStoreAvailableDataError
-		switch storeAvailableDataError {
-		case nil:
+		switch {
+		case storeAvailableDataError == nil:
 			backgroundValidationResult = BackgroundValidationResult{
 				CandidateReceipt:        &candidateReceipt,
 				CandidateCommitments:    &ValidationResultRes.Data.CandidateCommitments,
 				PersistedValidationData: &ValidationResultRes.Data.PersistedValidationData,
 				Err:                     nil,
 			}
-		case ErrInvalidErasureRoot:
+		case errors.Is(storeAvailableDataError, ErrInvalidErasureRoot):
 			logger.Debug(ErrInvalidErasureRoot.Error())
 
 			backgroundValidationResult = BackgroundValidationResult{
@@ -647,24 +661,24 @@ func backgroundValidateAndMakeAvailable(
 				Err:              ErrInvalidErasureRoot,
 			}
 		default:
-			logger.Error(storeAvailableDataError.Error())
-			return
+			return fmt.Errorf("storing available data: %w", storeAvailableDataError)
 		}
 
 	} else { // Invalid
 		logger.Error(ValidationResultRes.Data.Err.Error())
 		backgroundValidationResult = BackgroundValidationResult{
 			CandidateReceipt: &candidateReceipt,
-			Err:              ErrInvalidErasureRoot,
+			Err:              ValidationResultRes.Data.Err,
 		}
 	}
 
 	chRelayParentAndCommand <- RelayParentAndCommand{
-		RelayParent:   relayPaent,
+		RelayParent:   relayParent,
 		Command:       makeCommand,
 		ValidationRes: backgroundValidationResult,
 		CandidateHash: candidateHash,
 	}
+	return nil
 }
 
 func getPovFromValidator() parachaintypes.PoV {
