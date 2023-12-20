@@ -15,6 +15,7 @@ type ByteArray interface {
 	// 	fn to_raw_vec(&self) -> Vec<u8> {
 	// 		self.as_slice().to_vec()
 	// 	}
+	ToRawVec() []byte
 
 	// /// Return a slice filled with raw data.
 	//

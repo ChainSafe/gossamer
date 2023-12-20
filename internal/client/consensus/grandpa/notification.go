@@ -12,8 +12,4 @@ type GrandpaJustificationSender[
 	N constraints.Unsigned,
 	S comparable,
 	ID AuthorityID,
-] <-chan GrandpaJustification[
-	Hash, N, S, ID,
-	// TODO: shouldn't need to have to include this as generic param
-	Header[Hash, N],
-]
+] <-chan GrandpaJustification[Hash, N, S, ID]
