@@ -21,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/constraints"
 )
@@ -56,49 +55,6 @@ type newAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struc
 	CanonHash   H
 	SetId       N
 	Authorities []Authority[ID]
-}
-
-type messageData[H comparable, N constraints.Unsigned] struct {
-	Round   uint64
-	SetID   uint64
-	Message grandpa.Message[H, N]
-}
-
-// Check a message signature by encoding the message as a localised payload and
-// verifying the provided signature using the expected authority id.
-// The encoding necessary to verify the signature will be done using the given
-// buffer, the original content of the buffer will be cleared.
-func checkMessageSignature[H comparable, N constraints.Unsigned, ID AuthorityID](
-	message grandpa.Message[H, N],
-	id ID,
-	signature any,
-	round uint64,
-	setID uint64) (bool, error) {
-
-	sig, ok := signature.([]byte)
-
-	// Verify takes []byte, but string is a valid signature type,
-	// so if signature is not already type []byte, check if it is a string
-	sigString, okString := signature.(string)
-	if !okString && !ok {
-		sig = []byte(sigString)
-	}
-
-	m := messageData[H, N]{
-		round,
-		setID,
-		message,
-	}
-
-	enc, err := scale.Marshal(m)
-	if err != nil {
-		return false, err
-	}
-	valid, err := id.Verify(enc, sig[:])
-	if err != nil {
-		return false, err
-	}
-	return valid, nil
 }
 
 type SharedVoterState[AuthorityID comparable] struct {
