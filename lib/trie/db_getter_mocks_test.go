@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=db_getter_mocks_test.go -package=trie github.com/ChainSafe/gossamer/lib/trie/db DBGetter
 //
+
 // Package trie is a generated GoMock package.
 package trie
 
