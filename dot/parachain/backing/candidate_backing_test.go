@@ -380,7 +380,7 @@ func TestPostImportStatement(t *testing.T) {
 
 	testCases := []struct {
 		description string
-		rpState     perRelayParentState
+		rpState     func() perRelayParentState
 		summary     *Summary
 	}{
 		{
@@ -399,7 +399,7 @@ func TestPostImportStatement(t *testing.T) {
 				return perRelayParentState{
 					Table: mockTable,
 				}
-			}(),
+			},
 			summary: nil,
 		},
 		{
@@ -418,7 +418,7 @@ func TestPostImportStatement(t *testing.T) {
 				return perRelayParentState{
 					Table: mockTable,
 				}
-			}(),
+			},
 			summary: dummySummary(t),
 		},
 		{
@@ -449,7 +449,7 @@ func TestPostImportStatement(t *testing.T) {
 						candidateHash: true,
 					},
 				}
-			}(),
+			},
 			summary: dummySummary(t),
 		},
 		{
@@ -473,13 +473,15 @@ func TestPostImportStatement(t *testing.T) {
 					backed:       map[parachaintypes.CandidateHash]bool{},
 					TableContext: dummyTableContext(t),
 				}
-			}(),
+			},
 			summary: dummySummary(t),
 		},
 		{
 			description: "prospective_parachain_mode_is_disabled",
-			rpState:     rpStateWhenPpmDisabled(t),
-			summary:     dummySummary(t),
+			rpState: func() perRelayParentState {
+				return rpStateWhenPpmDisabled(t)
+			},
+			summary: dummySummary(t),
 		},
 		{
 			description: "prospective_parachain_mode_is_enabled",
@@ -491,7 +493,7 @@ func TestPostImportStatement(t *testing.T) {
 					AllowedAncestryLen: 2,
 				}
 				return state
-			}(),
+			},
 			summary: dummySummary(t),
 		},
 	}
@@ -504,7 +506,8 @@ func TestPostImportStatement(t *testing.T) {
 			subSystemToOverseer := make(chan any)
 			go mockOverseer(t, subSystemToOverseer)
 
-			c.rpState.postImportStatement(subSystemToOverseer, c.summary)
+			rpState := c.rpState()
+			rpState.postImportStatement(subSystemToOverseer, c.summary)
 		})
 	}
 }
