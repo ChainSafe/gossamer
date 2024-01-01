@@ -10,5 +10,5 @@ import (
 )
 
 type ImplicitView interface {
-	knownAllowedRelayParentsUnder(blockHash common.Hash, paraID *parachaintypes.ParaID) []common.Hash
+	knownAllowedRelayParentsUnder(blockHash common.Hash, paraID parachaintypes.ParaID) []common.Hash
 }
