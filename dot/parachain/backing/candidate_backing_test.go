@@ -116,15 +116,17 @@ func TestImportStatement(t *testing.T) {
 
 	testCases := []struct {
 		description            string
-		rpState                perRelayParentState
+		rpState                func() perRelayParentState
 		perCandidate           map[parachaintypes.CandidateHash]perCandidateState
 		signedStatementWithPVD SignedFullStatementWithPVD
 		summary                *Summary
 		err                    string
 	}{
 		{
-			description:            "statementVDT_not_set",
-			rpState:                perRelayParentState{},
+			description: "statementVDT_not_set",
+			rpState: func() perRelayParentState {
+				return perRelayParentState{}
+			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{},
 			summary:                nil,
 			err:                    "getting value from statementVDT:",
@@ -143,7 +145,7 @@ func TestImportStatement(t *testing.T) {
 				return perRelayParentState{
 					Table: mockTable,
 				}
-			}(),
+			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{
 				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 					Payload: statementVDTValid,
@@ -154,7 +156,9 @@ func TestImportStatement(t *testing.T) {
 		},
 		{
 			description: "invalid_persisted_validation_data",
-			rpState:     perRelayParentState{},
+			rpState: func() perRelayParentState {
+				return perRelayParentState{}
+			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{
 				SignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 					Payload: statementVDTSeconded,
@@ -177,7 +181,7 @@ func TestImportStatement(t *testing.T) {
 				return perRelayParentState{
 					Table: mockTable,
 				}
-			}(),
+			},
 			perCandidate: map[parachaintypes.CandidateHash]perCandidateState{
 				candidateHash: {
 					persistedValidationData: parachaintypes.PersistedValidationData{
@@ -208,7 +212,7 @@ func TestImportStatement(t *testing.T) {
 				return perRelayParentState{
 					Table: mockTable,
 				}
-			}(),
+			},
 			perCandidate:           map[parachaintypes.CandidateHash]perCandidateState{},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
 			summary:                new(Summary),
@@ -233,7 +237,7 @@ func TestImportStatement(t *testing.T) {
 						AllowedAncestryLen: 2,
 					},
 				}
-			}(),
+			},
 			perCandidate:           map[parachaintypes.CandidateHash]perCandidateState{},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
 			summary:                new(Summary),
@@ -247,11 +251,14 @@ func TestImportStatement(t *testing.T) {
 			t.Parallel()
 
 			subSystemToOverseer := make(chan any)
-			if c.rpState.ProspectiveParachainsMode.IsEnabled {
+			defer close(subSystemToOverseer)
+
+			rpState := c.rpState()
+			if rpState.ProspectiveParachainsMode.IsEnabled {
 				go mockOverseer(t, subSystemToOverseer)
 			}
 
-			summary, err := c.rpState.importStatement(subSystemToOverseer, c.signedStatementWithPVD, c.perCandidate)
+			summary, err := rpState.importStatement(subSystemToOverseer, c.signedStatementWithPVD, c.perCandidate)
 			if c.summary == nil {
 				require.Nil(t, summary)
 			} else {
