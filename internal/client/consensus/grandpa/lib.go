@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
@@ -27,34 +28,34 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 
-// GrandpaEngineID is the hard-coded grandpa ID
-var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
+// // GrandpaEngineID is the hard-coded grandpa ID
+// var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
-type AuthorityID interface {
-	constraints.Ordered
-	Verify(msg []byte, sig []byte) (bool, error)
-}
+// type AuthorityID interface {
+// 	constraints.Ordered
+// 	Verify(msg []byte, sig []byte) (bool, error)
+// }
 
-type AuthoritySignature comparable
+// type AuthoritySignature comparable
 
 // Authority represents a grandpa authority
-type Authority[ID AuthorityID] struct {
-	Key    ID
-	Weight uint64
-}
+// type Authority[ID AuthorityID] struct {
+// 	Key    ID
+// 	Weight uint64
+// }
 
-type AuthorityList[ID AuthorityID] []Authority[ID]
+// type AuthorityList[ID AuthorityID] []Authority[ID]
 
 // / The monotonic identifier of a GRANDPA set of authorities.
 // pub type SetId = u64;
 type SetID uint64
 
 // newAuthoritySet A new authority set along with the canonical block it changed at.
-type newAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+type newAuthoritySet[H, N any] struct {
 	CanonNumber N
 	CanonHash   H
-	SetId       N
-	Authorities []Authority[ID]
+	SetId       pgrandpa.SetID
+	Authorities pgrandpa.AuthorityList
 }
 
 type SharedVoterState[AuthorityID comparable] struct {
@@ -127,11 +128,11 @@ type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interfa
 
 // / Commands issued to the voter.
 type voterCommand any
-type voterCommands[H comparable, N constraints.Unsigned, ID AuthorityID] interface {
-	voterCommandPause | voterCommandChangeAuthorities[H, N, ID]
+type voterCommands[H comparable, N constraints.Unsigned] interface {
+	voterCommandPause | voterCommandChangeAuthorities[H, N]
 }
 type voterCommandPause string
-type voterCommandChangeAuthorities[H comparable, N constraints.Unsigned, ID AuthorityID] newAuthoritySet[H, N, ID]
+type voterCommandChangeAuthorities[H comparable, N constraints.Unsigned] newAuthoritySet[H, N]
 
 type Config struct {
 	/// The expected duration for a message to be gossiped across the network.
@@ -165,9 +166,9 @@ func (c Config) name() string {
 }
 
 // / Future that powers the voter.
-type voterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID AuthorityID, R any] struct {
-	voter            *grandpa.Voter[Hash, Number, Signature, ID]
-	sharedVoterState SharedVoterState[ID]
+type voterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, R any] struct {
+	voter            *grandpa.Voter[Hash, Number, Signature, string]
+	sharedVoterState SharedVoterState[string]
 	env              environment[R, Number, Hash, ID, Signature]
 	voterCommandsRx  <-chan voterCommand
 	network          communication.NetworkBridge[Hash, Number]

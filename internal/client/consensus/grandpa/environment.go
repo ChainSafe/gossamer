@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/communication"
 	"github.com/ChainSafe/gossamer/internal/client/telemetry"
+	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -20,7 +21,7 @@ import (
 
 // completedRound Data about a completed round. The set of votes that is stored must be
 // minimal, i.e. at most one equivocation is stored per voter.
-type completedRound[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
+type completedRound[H comparable, N constraints.Unsigned] struct {
 	// The round number
 	Number uint64
 	// The round state (prevote ghost, estimate, finalized, etc.)
@@ -29,7 +30,7 @@ type completedRound[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 	Base grandpa.HashNumber[H, N]
 	// All the votes observed in the round
 	// I think this is signature type, double check
-	Votes []grandpa.SignedMessage[H, N, ID, Sig]
+	Votes []grandpa.SignedMessage[H, N, pgrandpa.AuthorityID, pgrandpa.AuthoritySignature]
 }
 
 // numLastCompletedRounds NOTE: the current strategy for persisting completed rounds is very naive
@@ -40,35 +41,35 @@ const numLastCompletedRounds = 2
 // completedRounds Data about last completed rounds within a single voter set. Stores
 // numLastCompletedRounds and always contains data about at least one round
 // (genesis).
-type completedRounds[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
-	Rounds []completedRound[H, N, ID, Sig]
+type completedRounds[H comparable, N constraints.Unsigned] struct {
+	Rounds []completedRound[H, N]
 	SetId  uint64
-	Voters []ID
+	Voters []pgrandpa.AuthorityID
 }
 
 // NewCompletedRounds Create a new completed rounds tracker with NUM_LAST_COMPLETED_ROUNDS capacity.
-func NewCompletedRounds[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	genesis completedRound[H, N, ID, Sig],
+func NewCompletedRounds[H comparable, N constraints.Unsigned](
+	genesis completedRound[H, N],
 	setId uint64,
-	voters AuthoritySet[H, N, ID]) completedRounds[H, N, ID, Sig] {
-	rounds := make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds)
+	voters AuthoritySet[H, N]) completedRounds[H, N] {
+	rounds := make([]completedRound[H, N], 0, numLastCompletedRounds)
 	rounds = append(rounds, genesis)
 
-	var voterIDs []ID
+	var voterIDs []pgrandpa.AuthorityID
 	currentAuthorities := voters.CurrentAuthorities
 	for _, auth := range currentAuthorities {
-		voterIDs = append(voterIDs, auth.Key)
+		voterIDs = append(voterIDs, auth.AuthorityID)
 	}
 
-	return completedRounds[H, N, ID, Sig]{
+	return completedRounds[H, N]{
 		rounds,
 		setId,
 		voterIDs,
 	}
 }
 
-func (cr *completedRounds[H, N, ID, Sig]) iter() []completedRound[H, N, ID, Sig] {
-	var reversed []completedRound[H, N, ID, Sig]
+func (cr *completedRounds[H, N]) iter() []completedRound[H, N] {
+	var reversed []completedRound[H, N]
 	for i := len(cr.Rounds) - 1; i >= 0; i-- {
 		reversed = append(reversed, cr.Rounds[i])
 	}
@@ -76,7 +77,7 @@ func (cr *completedRounds[H, N, ID, Sig]) iter() []completedRound[H, N, ID, Sig]
 }
 
 // last Returns the last (latest) completed round
-func (cr *completedRounds[H, N, ID, Sig]) last() completedRound[H, N, ID, Sig] {
+func (cr *completedRounds[H, N]) last() completedRound[H, N] {
 	if len(cr.Rounds) == 0 {
 		panic("inner is never empty; always contains at least genesis; qed")
 	}
@@ -85,11 +86,11 @@ func (cr *completedRounds[H, N, ID, Sig]) last() completedRound[H, N, ID, Sig] {
 
 // push a new completed round, oldest round is evicted if number of rounds
 // is higher than `NUM_LAST_COMPLETED_ROUNDS`.
-func (cr *completedRounds[H, N, ID, Sig]) push(compRound completedRound[H, N, ID, Sig]) {
+func (cr *completedRounds[H, N]) push(compRound completedRound[H, N]) {
 	idx, found := slices.BinarySearchFunc(
 		cr.Rounds,
 		N(compRound.Number),
-		func(a completedRound[H, N, ID, Sig], b N) int {
+		func(a completedRound[H, N], b N) int {
 			switch {
 			case N(a.Number) == b:
 				return 0
@@ -122,45 +123,45 @@ func (cr *completedRounds[H, N, ID, Sig]) push(compRound completedRound[H, N, ID
 // CurrentRounds A map with voter status information for currently live rounds,
 // which votes have we cast and what are they.
 // TODO convert to btree after #3480 is implemented
-type CurrentRounds[H comparable, N constraints.Unsigned, ID AuthorityID] map[uint64]hasVoted[H, N, ID]
+type CurrentRounds[H comparable, N constraints.Unsigned] map[uint64]hasVoted[H, N]
 
 // A tracker for the rounds that we are actively participating on (i.e. voting)
 // and the authority id under which we are doing it.
-type votingTracker[ID AuthorityID] struct {
+type votingTracker struct {
 	sync.Mutex
-	Inner map[uint64]ID
+	Inner map[uint64]pgrandpa.AuthorityID
 }
 
-type sharedVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
+type sharedVoterSetState[H comparable, N constraints.Unsigned] struct {
 	sync.Mutex
-	Inner voterSetState[H, N, ID, Sig]
+	Inner voterSetState[H, N]
 }
 
 // SharedVoterSetState A voter set state meant to be shared safely across multiple owners
-type SharedVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
-	Inner  sharedVoterSetState[H, N, ID, Sig]
-	Voting votingTracker[ID]
+type SharedVoterSetState[H comparable, N constraints.Unsigned] struct {
+	Inner  sharedVoterSetState[H, N]
+	Voting votingTracker
 }
 
 // NewSharedVoterSetState Create a new shared voter set tracker with the given state.
-func NewSharedVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	state voterSetState[H, N, ID, Sig]) SharedVoterSetState[H, N, ID, Sig] {
-	return SharedVoterSetState[H, N, ID, Sig]{
-		Inner: sharedVoterSetState[H, N, ID, Sig]{
+func NewSharedVoterSetState[H comparable, N constraints.Unsigned](
+	state voterSetState[H, N]) SharedVoterSetState[H, N] {
+	return SharedVoterSetState[H, N]{
+		Inner: sharedVoterSetState[H, N]{
 			Inner: state,
 		},
 	}
 }
 
 // Read the inner voter set state
-func (svss *SharedVoterSetState[H, N, ID, Sig]) read() voterSetState[H, N, ID, Sig] { //nolint
+func (svss *SharedVoterSetState[H, N]) read() voterSetState[H, N] { //nolint
 	svss.Inner.Lock()
 	defer svss.Inner.Unlock()
 	return svss.Inner.Inner
 }
 
 // Get the authority id that we are using to vote on the given round, if any
-func (svss *SharedVoterSetState[H, N, ID, Sig]) votingOn(round uint64) *ID { //nolint
+func (svss *SharedVoterSetState[H, N]) votingOn(round uint64) *pgrandpa.AuthorityID { //nolint
 	svss.Voting.Lock()
 	defer svss.Voting.Unlock()
 	key, ok := svss.Voting.Inner[round]
@@ -171,7 +172,7 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) votingOn(round uint64) *ID { //n
 }
 
 // Note that we started voting on the give round with the given authority id
-func (svss *SharedVoterSetState[H, N, ID, Sig]) startedVotingOn(round uint64, localID ID) { //nolint
+func (svss *SharedVoterSetState[H, N]) startedVotingOn(round uint64, localID pgrandpa.AuthorityID) { //nolint
 	svss.Voting.Lock()
 	defer svss.Voting.Unlock()
 	svss.Voting.Inner[round] = localID
@@ -180,18 +181,18 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) startedVotingOn(round uint64, lo
 // Note that we have finished voting on the given round. If we were voting on
 // the given round, the authority id that we were using to do it will be
 // cleared.
-func (svss *SharedVoterSetState[H, N, ID, Sig]) finishedVotingOn(round uint64) { //nolint
+func (svss *SharedVoterSetState[H, N]) finishedVotingOn(round uint64) { //nolint
 	svss.Voting.Lock()
 	defer svss.Voting.Unlock()
 	delete(svss.Voting.Inner, round)
 }
 
 // Return vote status information for the current round
-func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted[H, N, ID], error) {
+func (svss *SharedVoterSetState[H, N]) hasVoted(round uint64) (hasVoted[H, N], error) {
 	svss.Inner.Lock()
 	defer svss.Inner.Unlock()
 
-	hasNotVotedFunc := func(newHasVoted hasVoted[H, N, ID]) (hasVoted[H, N, ID], error) {
+	hasNotVotedFunc := func(newHasVoted hasVoted[H, N]) (hasVoted[H, N], error) {
 		err := newHasVoted.Set(no{})
 		if err != nil {
 			return newHasVoted, err
@@ -200,7 +201,7 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted
 		return newHasVoted, nil
 	}
 
-	newHasVoted := hasVoted[H, N, ID]{}
+	newHasVoted := hasVoted[H, N]{}
 	newHasVoted = newHasVoted.New()
 
 	vss, err := svss.Inner.Inner.Value()
@@ -209,7 +210,7 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted
 		return hasNotVotedFunc(newHasVoted)
 	}
 	switch val := vss.(type) {
-	case voterSetStateLive[H, N, ID, Sig]:
+	case voterSetStateLive[H, N]:
 		hasVoted, ok := val.CurrentRounds[round]
 		if !ok {
 			return hasNotVotedFunc(newHasVoted)
@@ -220,7 +221,7 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted
 			return newHasVoted, err
 		}
 		switch hasVotedValue.(type) {
-		case yes[H, N, ID]:
+		case yes[H, N]:
 			return hasVoted, nil
 		}
 	}
@@ -233,37 +234,37 @@ func (svss *SharedVoterSetState[H, N, ID, Sig]) hasVoted(round uint64) (hasVoted
 // voting status is used when restarting the voter, i.e. it will re-use the
 // previous votes for a given round if appropriate (same round and same local
 // key).
-type voterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] scale.VaryingDataType
+type voterSetState[H comparable, N constraints.Unsigned] scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (tve *voterSetState[H, N, ID, Sig]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
+func (tve *voterSetState[H, N]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*tve)
 	err = vdt.Set(val)
 	if err != nil {
 		return err
 	}
-	*tve = voterSetState[H, N, ID, Sig](vdt)
+	*tve = voterSetState[H, N](vdt)
 	return nil
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (tve *voterSetState[H, N, ID, Sig]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
+func (tve *voterSetState[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*tve)
 	return vdt.Value()
 }
 
 // New Creates a new voterSetState
-func (tve voterSetState[H, N, ID, Sig]) New() voterSetState[H, N, ID, Sig] {
-	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N, ID, Sig]{
-		CompletedRounds: completedRounds[H, N, ID, Sig]{
-			Rounds: make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds),
+func (tve voterSetState[H, N]) New() voterSetState[H, N] {
+	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N]{
+		CompletedRounds: completedRounds[H, N]{
+			Rounds: make([]completedRound[H, N], 0, numLastCompletedRounds),
 		},
-		CurrentRounds: make(map[uint64]hasVoted[H, N, ID]), // init the map
-	}, voterSetStatePaused[H, N, ID, Sig]{})
+		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
+	}, voterSetStatePaused[H, N]{})
 	if err != nil {
 		panic(err)
 	}
-	vs := voterSetState[H, N, ID, Sig](vdt)
+	vs := voterSetState[H, N](vdt)
 	return vs
 }
 
@@ -271,31 +272,30 @@ func (tve voterSetState[H, N, ID, Sig]) New() voterSetState[H, N, ID, Sig] {
 func NewVoterSetState[
 	H comparable,
 	N constraints.Unsigned,
-	ID AuthorityID,
-	Sig AuthoritySignature]() *voterSetState[H, N, ID, Sig] {
-	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N, ID, Sig]{
-		CompletedRounds: completedRounds[H, N, ID, Sig]{
-			Rounds: make([]completedRound[H, N, ID, Sig], 0, numLastCompletedRounds),
+]() *voterSetState[H, N] {
+	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N]{
+		CompletedRounds: completedRounds[H, N]{
+			Rounds: make([]completedRound[H, N], 0, numLastCompletedRounds),
 		},
-		CurrentRounds: make(map[uint64]hasVoted[H, N, ID]), // init the map
-	}, voterSetStatePaused[H, N, ID, Sig]{})
+		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
+	}, voterSetStatePaused[H, N]{})
 	if err != nil {
 		panic(err)
 	}
-	tve := voterSetState[H, N, ID, Sig](vdt)
+	tve := voterSetState[H, N](vdt)
 	return &tve
 }
 
 // NewLiveVoterSetState Create a new live voterSetState with round 0 as a completed round using
 // the given genesis state and the given authorities. Round 1 is added as a
 // current round (with state `hasVoted::no`).
-func NewLiveVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
+func NewLiveVoterSetState[H comparable, N constraints.Unsigned](
 	setId uint64,
-	authSet AuthoritySet[H, N, ID],
-	genesisState grandpa.HashNumber[H, N]) (voterSetState[H, N, ID, Sig], error) {
+	authSet AuthoritySet[H, N],
+	genesisState grandpa.HashNumber[H, N]) (voterSetState[H, N], error) {
 	state := grandpa.NewRoundState[H, N](genesisState)
-	completedRounds := NewCompletedRounds[H, N, ID, Sig](
-		completedRound[H, N, ID, Sig]{
+	completedRounds := NewCompletedRounds[H, N](
+		completedRound[H, N]{
 			State: state,
 			Base:  genesisState,
 		},
@@ -303,41 +303,41 @@ func NewLiveVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, 
 		authSet,
 	)
 	//currentRounds := make(map[uint64]hasVoted[string, uint])
-	currentRounds := CurrentRounds[H, N, ID](
-		make(map[uint64]hasVoted[H, N, ID]),
+	currentRounds := CurrentRounds[H, N](
+		make(map[uint64]hasVoted[H, N]),
 	)
-	hasVoted := hasVoted[H, N, ID]{}
+	hasVoted := hasVoted[H, N]{}
 	hasVoted = hasVoted.New()
 	err := hasVoted.Set(no{})
 	if err != nil {
-		return voterSetState[H, N, ID, Sig]{}, err
+		return voterSetState[H, N]{}, err
 	}
 	currentRounds[1] = hasVoted
 
-	liveState := voterSetStateLive[H, N, ID, Sig]{
+	liveState := voterSetStateLive[H, N]{
 		CompletedRounds: completedRounds,
 		CurrentRounds:   currentRounds,
 	}
 
-	newVoterSetState := *NewVoterSetState[H, N, ID, Sig]()
+	newVoterSetState := *NewVoterSetState[H, N]()
 	err = newVoterSetState.Set(liveState)
 
 	if err != nil {
-		return voterSetState[H, N, ID, Sig]{}, err
+		return voterSetState[H, N]{}, err
 	}
 	return newVoterSetState, nil
 }
 
 // completedRounds Returns the last completed rounds
-func (tve *voterSetState[H, N, ID, Sig]) completedRounds() (completedRounds[H, N, ID, Sig], error) {
+func (tve *voterSetState[H, N]) completedRounds() (completedRounds[H, N], error) {
 	value, err := tve.Value()
 	if err != nil {
-		return completedRounds[H, N, ID, Sig]{}, err
+		return completedRounds[H, N]{}, err
 	}
 	switch v := value.(type) {
-	case voterSetStateLive[H, N, ID, Sig]:
+	case voterSetStateLive[H, N]:
 		return v.CompletedRounds, nil
-	case voterSetStatePaused[H, N, ID, Sig]:
+	case voterSetStatePaused[H, N]:
 		return v.CompletedRounds, nil
 	default:
 		panic("completedRounds: invalid voter set state")
@@ -345,15 +345,15 @@ func (tve *voterSetState[H, N, ID, Sig]) completedRounds() (completedRounds[H, N
 }
 
 // lastCompletedRound Returns the last completed round
-func (tve *voterSetState[H, N, ID, Sig]) lastCompletedRound() (completedRound[H, N, ID, Sig], error) {
+func (tve *voterSetState[H, N]) lastCompletedRound() (completedRound[H, N], error) {
 	value, err := tve.Value()
 	if err != nil {
-		return completedRound[H, N, ID, Sig]{}, err
+		return completedRound[H, N]{}, err
 	}
 	switch v := value.(type) {
-	case voterSetStateLive[H, N, ID, Sig]:
+	case voterSetStateLive[H, N]:
 		return v.CompletedRounds.last(), nil
-	case voterSetStatePaused[H, N, ID, Sig]:
+	case voterSetStatePaused[H, N]:
 		return v.CompletedRounds.last(), nil
 	default:
 		panic("completedRounds: invalid voter set state")
@@ -362,24 +362,24 @@ func (tve *voterSetState[H, N, ID, Sig]) lastCompletedRound() (completedRound[H,
 
 // withCurrentRound Returns the voter set state validating that it includes the given round
 // in current rounds and that the voter isn't paused
-func (tve *voterSetState[H, N, ID, Sig]) withCurrentRound(
-	round uint64) (completedRounds[H, N, ID, Sig], CurrentRounds[H, N, ID], error) {
+func (tve *voterSetState[H, N]) withCurrentRound(
+	round uint64) (completedRounds[H, N], CurrentRounds[H, N], error) {
 	value, err := tve.Value()
 	if err != nil {
-		return completedRounds[H, N, ID, Sig]{}, CurrentRounds[H, N, ID]{}, err
+		return completedRounds[H, N]{}, CurrentRounds[H, N]{}, err
 	}
 	switch v := value.(type) {
-	case voterSetStateLive[H, N, ID, Sig]:
+	case voterSetStateLive[H, N]:
 		_, contains := v.CurrentRounds[round]
 		if contains {
 			return v.CompletedRounds, v.CurrentRounds, nil
 		}
-		return completedRounds[H, N, ID, Sig]{},
-			CurrentRounds[H, N, ID]{},
+		return completedRounds[H, N]{},
+			CurrentRounds[H, N]{},
 			fmt.Errorf("voter acting on a live round we are not tracking")
-	case voterSetStatePaused[H, N, ID, Sig]:
-		return completedRounds[H, N, ID, Sig]{},
-			CurrentRounds[H, N, ID]{},
+	case voterSetStatePaused[H, N]:
+		return completedRounds[H, N]{},
+			CurrentRounds[H, N]{},
 			fmt.Errorf("voter acting while in paused state")
 	default:
 		panic("completedRounds: invalid voter set state")
@@ -387,50 +387,50 @@ func (tve *voterSetState[H, N, ID, Sig]) withCurrentRound(
 }
 
 // voterSetStateLive The voter is live, i.e. participating in rounds.
-type voterSetStateLive[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
+type voterSetStateLive[H comparable, N constraints.Unsigned] struct {
 	// The previously completed rounds
-	CompletedRounds completedRounds[H, N, ID, Sig]
+	CompletedRounds completedRounds[H, N]
 	// Voter status for the currently live rounds.
-	CurrentRounds CurrentRounds[H, N, ID]
+	CurrentRounds CurrentRounds[H, N]
 }
 
 // Index returns VDT index
-func (voterSetStateLive[H, N, ID, Sig]) Index() uint { return 0 }
+func (voterSetStateLive[H, N]) Index() uint { return 0 }
 
 // voterSetStatePaused The voter is paused, i.e. not casting or importing any votes.
-type voterSetStatePaused[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
+type voterSetStatePaused[H comparable, N constraints.Unsigned] struct {
 	// The previously completed rounds
-	CompletedRounds completedRounds[H, N, ID, Sig]
+	CompletedRounds completedRounds[H, N]
 }
 
 // Index returns VDT index
-func (voterSetStatePaused[H, N, ID, Sig]) Index() uint { return 1 }
+func (voterSetStatePaused[H, N]) Index() uint { return 1 }
 
 // hasVoted Whether we've voted already during a prior run of the program
-type hasVoted[H comparable, N constraints.Unsigned, ID AuthorityID] scale.VaryingDataType
+type hasVoted[H comparable, N constraints.Unsigned] scale.VaryingDataType
 
 // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (hv *hasVoted[H, N, ID]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
+func (hv *hasVoted[H, N]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*hv)
 	err = vdt.Set(val)
 	if err != nil {
 		return err
 	}
-	*hv = hasVoted[H, N, ID](vdt)
+	*hv = hasVoted[H, N](vdt)
 	return nil
 }
 
 // Value will return the value from the underlying VaryingDataType
-func (hv *hasVoted[H, N, ID]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
+func (hv *hasVoted[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
 	vdt := scale.VaryingDataType(*hv)
 	return vdt.Value()
 }
 
 // New is constructor for hasVoted
-func (hv hasVoted[H, N, ID]) New() hasVoted[H, N, ID] {
-	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N, ID]{})
+func (hv hasVoted[H, N]) New() hasVoted[H, N] {
+	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N]{})
 
-	newHv := hasVoted[H, N, ID](vdt)
+	newHv := hasVoted[H, N](vdt)
 	return newHv
 }
 
@@ -441,30 +441,30 @@ type no struct{}
 func (no) Index() uint { return 0 }
 
 // yes Has voted in this round
-type yes[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
-	AuthId ID
+type yes[H comparable, N constraints.Unsigned] struct {
+	AuthId pgrandpa.AuthorityID
 	Vote   vote[H, N]
 }
 
 // Index returns VDT index
-func (yes[H, N, ID]) Index() uint { return 1 }
+func (yes[H, N]) Index() uint { return 1 }
 
-func (yes[H, N, ID]) New() yes[H, N, ID] {
+func (yes[H, N]) New() yes[H, N] {
 	vote := vote[H, N]{}
 	vote = vote.New()
-	return yes[H, N, ID]{
+	return yes[H, N]{
 		Vote: vote,
 	}
 }
 
 // propose Returns the proposal we should vote with (if any.)
-func (hv *hasVoted[H, N, ID]) Propose() *grandpa.PrimaryPropose[H, N] {
+func (hv *hasVoted[H, N]) Propose() *grandpa.PrimaryPropose[H, N] {
 	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
 	switch v := value.(type) {
-	case yes[H, N, ID]:
+	case yes[H, N]:
 		value, err = v.Vote.Value()
 		if err != nil {
 			return nil
@@ -483,13 +483,13 @@ func (hv *hasVoted[H, N, ID]) Propose() *grandpa.PrimaryPropose[H, N] {
 }
 
 // prevote Returns the prevote we should vote with (if any.)
-func (hv *hasVoted[H, N, ID]) Prevote() *grandpa.Prevote[H, N] {
+func (hv *hasVoted[H, N]) Prevote() *grandpa.Prevote[H, N] {
 	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
 	switch v := value.(type) {
-	case yes[H, N, ID]:
+	case yes[H, N]:
 		value, err = v.Vote.Value()
 		if err != nil {
 			return nil
@@ -506,13 +506,13 @@ func (hv *hasVoted[H, N, ID]) Prevote() *grandpa.Prevote[H, N] {
 }
 
 // precommit Returns the precommit we should vote with (if any.)
-func (hv *hasVoted[H, N, ID]) Precommit() *grandpa.Precommit[H, N] {
+func (hv *hasVoted[H, N]) Precommit() *grandpa.Precommit[H, N] {
 	value, err := hv.Value()
 	if err != nil {
 		return nil
 	}
 	switch v := value.(type) {
-	case yes[H, N, ID]:
+	case yes[H, N]:
 		value, err = v.Vote.Value()
 		if err != nil {
 			return nil
@@ -527,17 +527,17 @@ func (hv *hasVoted[H, N, ID]) Precommit() *grandpa.Precommit[H, N] {
 }
 
 // CanPropose Returns true if the voter can still propose, false otherwise
-func (hv *hasVoted[H, N, ID]) CanPropose() bool {
+func (hv *hasVoted[H, N]) CanPropose() bool {
 	return hv.Propose() == nil
 }
 
 // CanPrevote Returns true if the voter can still prevote, false otherwise
-func (hv *hasVoted[H, N, ID]) CanPrevote() bool {
+func (hv *hasVoted[H, N]) CanPrevote() bool {
 	return hv.Prevote() == nil
 }
 
 // CanPrecommit Returns true if the voter can still precommit, false otherwise
-func (hv *hasVoted[H, N, ID]) CanPrecommit() bool {
+func (hv *hasVoted[H, N]) CanPrecommit() bool {
 	return hv.Precommit() == nil
 }
 
@@ -607,17 +607,17 @@ type metrics struct {
 }
 
 // / The environment we run GRANDPA in.
-type environment[R any, N runtime.Number, H statemachine.HasherOut, ID AuthorityID, S AuthoritySignature] struct {
+type environment[R any, N runtime.Number, H statemachine.HasherOut] struct {
 	Client              ClientForGrandpa[R, N, H]
 	SelectChain         consensus.SelectChain[H, N]
-	Voters              grandpa.VoterSet[ID]
+	Voters              grandpa.VoterSet[string]
 	Config              Config
-	AuthoritySet        SharedAuthoritySet[H, N, ID]
+	AuthoritySet        SharedAuthoritySet[H, N]
 	Network             communication.NetworkBridge[H, N]
 	SetID               SetID
-	VoterSetState       SharedVoterSetState[H, N, ID, S]
+	VoterSetState       SharedVoterSetState[H, N]
 	VotingRule          VotingRule[H, N]
 	Metrics             *metrics
-	JustificationSender *GrandpaJustificationSender[H, N, S, ID]
+	JustificationSender *GrandpaJustificationSender[H, N]
 	Telemetry           *telemetry.TelemetryHandle
 }

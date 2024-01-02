@@ -3,23 +3,19 @@
 
 package grandpa
 
-import (
-	"golang.org/x/exp/constraints"
-)
+// // Telemetry TODO issue #3474
+// type Telemetry interface{}
 
-// Telemetry TODO issue #3474
-type Telemetry interface{}
+// /*
+// 	Following is from api/backend
+// */
 
-/*
-	Following is from api/backend
-*/
+// type Key []byte
 
-type Key []byte
-
-type KeyValue struct {
-	Key   Key
-	Value []byte
-}
+// type KeyValue struct {
+// 	Key   Key
+// 	Value []byte
+// }
 
 // AuxStore is part of the substrate backend.
 // Provides access to an auxiliary database.
@@ -28,14 +24,14 @@ type KeyValue struct {
 // information like total block weight/difficulty for fork resolution purposes as a common use
 // case.
 // TODO should this just be in Backend?
-type AuxStore interface {
-	// Insert auxiliary data into key-Value store.
-	//
-	// Deletions occur after insertions.
-	Insert(insert []KeyValue, delete []Key) error
-	// Get Query auxiliary data from key-Value store.
-	Get(key Key) (*[]byte, error)
-}
+// type AuxStore interface {
+// 	// Insert auxiliary data into key-Value store.
+// 	//
+// 	// Deletions occur after insertions.
+// 	Insert(insert []KeyValue, delete []Key) error
+// 	// Get Query auxiliary data from key-Value store.
+// 	Get(key Key) (*[]byte, error)
+// }
 
 // Backend Client backend.
 //
@@ -59,14 +55,15 @@ type AuxStore interface {
 // While a block is pinned, its state is also preserved.
 //
 // The backend should internally reference count the number of pin / unpin calls.
-type Backend[
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H]] interface {
-	AuxStore
-	Blockchain() B
-}
+// type Backend[
+// 	Hash constraints.Ordered,
+// 	N constraints.Unsigned,
+// 	H Header[Hash, N],
+// 	B BlockchainBackend[Hash, N, H],
+// ] interface {
+// 	AuxStore
+// 	Blockchain() B
+// }
 
 /*
 	Following is from primitives/blockchain
@@ -74,43 +71,43 @@ type Backend[
 
 // HeaderBackend Blockchain database header backend. Does not perform any validation.
 // primitives/blockchains/src/backend
-type HeaderBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
-	// Header Get block header. Returns None if block is not found.
-	Header(hash Hash) (*H, error)
-	// Info Get blockchain info.
-	Info() Info[N]
-	// ExpectBlockHashFromID This takes an enum blockID, but for now just using block Number N
-	ExpectBlockHashFromID(id N) (Hash, error)
-	// ExpectHeader return Header
-	ExpectHeader(hash Hash) (H, error)
-}
+// type HeaderBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
+// 	// Header Get block header. Returns None if block is not found.
+// 	Header(hash Hash) (*H, error)
+// 	// Info Get blockchain info.
+// 	Info() Info[N]
+// 	// ExpectBlockHashFromID This takes an enum blockID, but for now just using block Number N
+// 	ExpectBlockHashFromID(id N) (Hash, error)
+// 	// ExpectHeader return Header
+// 	ExpectHeader(hash Hash) (H, error)
+// }
 
 // Info HeaderBackend blockchain info
-type Info[N constraints.Unsigned] struct {
-	FinalizedNumber N
-}
+// type Info[N constraints.Unsigned] struct {
+// 	FinalizedNumber N
+// }
 
 // BlockchainBackend Blockchain database backend. Does not perform any validation.
 // pub trait Backend<Block: BlockT>:HeaderBackend<Block> + HeaderMetadata<Block, Error = Error
 // primitives/blockchains/src/backend
-type BlockchainBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
-	HeaderBackend[Hash, N, H]
-	Justifications(hash Hash) (*Justifications, error)
-}
+// type BlockchainBackend[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] interface {
+// 	HeaderBackend[Hash, N, H]
+// 	Justifications(hash Hash) (*Justifications, error)
+// }
 
 /*
 	Following is from primitives/runtime
 */
 
-// Header interface for header
-type Header[Hash constraints.Ordered, N constraints.Unsigned] interface {
-	ParentHash() Hash
-	Hash() Hash
-	Number() N
-}
+// // Header interface for header
+// type Header[Hash constraints.Ordered, N constraints.Unsigned] interface {
+// 	ParentHash() Hash
+// 	Hash() Hash
+// 	Number() N
+// }
 
 // ConsensusEngineID ID for consensus engine
-type ConsensusEngineID [4]byte
+// type ConsensusEngineID [4]byte
 
 // Justification An abstraction over justification for a block's validity under a consensus algorithm.
 //
@@ -123,21 +120,21 @@ type ConsensusEngineID [4]byte
 // Each justification is provided as an encoded blob, and is tagged with an ID
 // to identify the consensus engine that generated the proof (we might have
 // multiple justifications from different engines for the same block).
-type Justification struct {
-	EngineID             ConsensusEngineID
-	EncodedJustification []byte
-}
+// type Justification struct {
+// 	EngineID             ConsensusEngineID
+// 	EncodedJustification []byte
+// }
 
-// Justifications slice of justifications
-type Justifications []Justification
+// // Justifications slice of justifications
+// type Justifications []Justification
 
-// IntoJustification Return a copy of the encoded justification for the given consensus
-// engine, if it exists
-func (j Justifications) IntoJustification(engineID ConsensusEngineID) *[]byte {
-	for _, justification := range j {
-		if justification.EngineID == engineID {
-			return &justification.EncodedJustification
-		}
-	}
-	return nil
-}
+// // IntoJustification Return a copy of the encoded justification for the given consensus
+// // engine, if it exists
+// func (j Justifications) IntoJustification(engineID ConsensusEngineID) *[]byte {
+// 	for _, justification := range j {
+// 		if justification.EngineID == engineID {
+// 			return &justification.EncodedJustification
+// 		}
+// 	}
+// 	return nil
+// }

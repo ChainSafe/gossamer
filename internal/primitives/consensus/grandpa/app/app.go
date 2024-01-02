@@ -38,10 +38,19 @@ func (p Public) ToRawVec() []byte {
 // type Generic = ed25519::Public;
 // }
 func (p Public) Verify(msg []byte, signature Signature) bool {
+	// TODO: implement this!
 	// reutrn p.Public
 	return true
 }
 
+func (p Public) String() string {
+	return string(p.Public[:])
+}
+
 type Signature struct {
 	ed25519.Signature
+}
+
+func (s Signature) String() string {
+	return string(s.Signature[:])
 }
