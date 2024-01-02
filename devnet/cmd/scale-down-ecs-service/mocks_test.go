@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_test.go -package=main github.com/ChainSafe/gossamer/devnet/cmd/scale-down-ecs-service/internal ECSAPI
 //
-
 // Package main is a generated GoMock package.
 package main
 
