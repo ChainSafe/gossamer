@@ -7,8 +7,6 @@ import (
 )
 
 func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
-	// TODO: Implement this #3505
-
 	rpState, ok := cb.perRelayParent[msg.CandidateRelayParent]
 	if !ok {
 		// Relay parent is unknown
@@ -54,7 +52,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 // Returns false if the candidate cannot be seconded.
 func (cb *CandidateBacking) secondingSanityCheck(
 	hypotheticalCandidate parachaintypes.HypotheticalCandidate,
-	backedInPathOnly bool,
+	backedInPathOnly bool, //nolint:unparam
 ) (bool, map[common.Hash][]uint) {
 	type response struct {
 		depths          []uint
