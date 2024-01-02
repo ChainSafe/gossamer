@@ -46,6 +46,17 @@ type AuthorityIDWeight struct {
 // pub type AuthorityList = Vec<(AuthorityId, AuthorityWeight)>;
 type AuthorityList []AuthorityIDWeight
 
+// / A signed message.
+// pub type SignedMessage<Header> = grandpa::SignedMessage<
+//
+//	<Header as HeaderT>::Hash,
+//	<Header as HeaderT>::Number,
+//	AuthoritySignature,
+//	AuthorityId,
+//
+// >;
+type SignedMessage[H, N any] grandpa.SignedMessage[H, N, AuthoritySignature, AuthorityID]
+
 // / A commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 

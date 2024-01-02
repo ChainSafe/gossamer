@@ -30,7 +30,7 @@ type completedRound[H comparable, N constraints.Unsigned] struct {
 	Base grandpa.HashNumber[H, N]
 	// All the votes observed in the round
 	// I think this is signature type, double check
-	Votes []grandpa.SignedMessage[H, N, pgrandpa.AuthorityID, pgrandpa.AuthoritySignature]
+	Votes []pgrandpa.SignedMessage[H, N]
 }
 
 // numLastCompletedRounds NOTE: the current strategy for persisting completed rounds is very naive
