@@ -196,14 +196,14 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	key12 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
 	key12 = append(key12, candidateHash.Value[:]...)
 
-	got, err := as.unfinalizedTable.Get(key12)
+	got, err := as.unfinalized.Get(key12)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
 	key16 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
 	key16 = append(key16, candidateHash.Value[:]...)
 
-	got, err = as.unfinalizedTable.Get(key16)
+	got, err = as.unfinalized.Get(key16)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
@@ -215,18 +215,18 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.NoError(t, err)
 
 	// check that the key is deleted
-	got, err = as.unfinalizedTable.Get(key12)
+	got, err = as.unfinalized.Get(key12)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
-	got, err = as.unfinalizedTable.Get(key16)
+	got, err = as.unfinalized.Get(key16)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
 	key := append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
-	got, err = as.unfinalizedTable.Get(key)
+	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 }
@@ -255,14 +255,14 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	key12 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
 	key12 = append(key12, candidateHash.Value[:]...)
 
-	got, err := as.unfinalizedTable.Get(key12)
+	got, err := as.unfinalized.Get(key12)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
 	key16 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
 	key16 = append(key16, candidateHash.Value[:]...)
 
-	got, err = as.unfinalizedTable.Get(key16)
+	got, err = as.unfinalized.Get(key16)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
@@ -274,18 +274,18 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	require.NoError(t, err)
 
 	// check that the key is deleted
-	got, err = as.unfinalizedTable.Get(key12)
+	got, err = as.unfinalized.Get(key12)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
-	got, err = as.unfinalizedTable.Get(key16)
+	got, err = as.unfinalized.Get(key16)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
 	key := append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
-	got, err = as.unfinalizedTable.Get(key)
+	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 }
@@ -296,40 +296,40 @@ func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 	batch := NewAvailabilityStoreBatch(as)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
 
-	err := as.writePruningKey(batch, BETimestamp(1), candidateHash)
+	err := as.writePruningKey(batch, Timestamp(1), candidateHash)
 	require.NoError(t, err)
-	err = as.writePruningKey(batch, BETimestamp(2), candidateHash)
+	err = as.writePruningKey(batch, Timestamp(2), candidateHash)
 	require.NoError(t, err)
 
 	err = batch.Flush()
 	require.NoError(t, err)
 
 	// check that the key is written
-	key1 := append(BETimestamp(1).ToBytes(), candidateHash.Value[:]...)
+	key1 := append(Timestamp(1).ToBEBytes(), candidateHash.Value[:]...)
 
-	got, err := as.pruneByTimeTable.Get(key1)
+	got, err := as.pruneByTime.Get(key1)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key2 := append(BETimestamp(2).ToBytes(), candidateHash.Value[:]...)
-	got, err = as.pruneByTimeTable.Get(key2)
+	key2 := append(Timestamp(2).ToBEBytes(), candidateHash.Value[:]...)
+	got, err = as.pruneByTime.Get(key2)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
 	// delete pruning key, timestamp 1
 	batch = NewAvailabilityStoreBatch(as)
-	err = as.deletePruningKey(batch, BETimestamp(1), candidateHash)
+	err = as.deletePruningKey(batch, Timestamp(1), candidateHash)
 	require.NoError(t, err)
 	err = batch.Flush()
 	require.NoError(t, err)
 
 	// check that the key is deleted
-	got, err = as.pruneByTimeTable.Get(key1)
+	got, err = as.pruneByTime.Get(key1)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
-	got, err = as.pruneByTimeTable.Get(key2)
+	got, err = as.pruneByTime.Get(key2)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 }
@@ -699,7 +699,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 				expectedErasureRoot: common.Hash{},
 			},
 			want: false,
-			err:  InvalidErasureRoot,
+			err:  ErrInvalidErasureRoot,
 		},
 	}
 	for name, tt := range tests {

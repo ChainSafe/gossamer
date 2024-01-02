@@ -123,7 +123,7 @@ func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
 
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
-	Timestamp BETimestamp
+	Timestamp Timestamp
 }
 
 // Index returns the index of the varying data type
@@ -162,7 +162,7 @@ type BlockNumberHash struct {
 	blockHash   common.Hash                //nolint:unused,structcheck
 }
 
-var InvalidErasureRoot = errors.New("Invalid erasure root")
+var ErrInvalidErasureRoot = errors.New("Invalid erasure root")
 
 type Branches struct {
 	trieStorage *trie.Trie
