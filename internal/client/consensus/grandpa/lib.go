@@ -18,7 +18,6 @@ import (
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -166,33 +165,34 @@ func (c Config) name() string {
 }
 
 // / Future that powers the voter.
-type voterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, R any] struct {
-	voter            *grandpa.Voter[Hash, Number, Signature, string]
+type voterWork[Hash constraints.Ordered, Number runtime.Number, R any] struct {
+	// use string for AuthorityID and AuthoritySignature
+	voter            *grandpa.Voter[Hash, Number, string, string]
 	sharedVoterState SharedVoterState[string]
-	env              environment[R, Number, Hash, ID, Signature]
+	env              environment[R, Number, Hash]
 	voterCommandsRx  <-chan voterCommand
 	network          communication.NetworkBridge[Hash, Number]
 	telemetry        *telemetry.TelemetryHandle
 	metrics          *metrics
 }
 
-func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature comparable, ID AuthorityID, R any](
+func newVoterWork[Hash constraints.Ordered, Number runtime.Number, R any](
 	client ClientForGrandpa[R, Number, Hash],
 	config Config,
 	network communication.NetworkBridge[Hash, Number],
 	selectChain consensus.SelectChain[Hash, Number],
 	votingRule VotingRule[Hash, Number],
-	persistentData persistentData[Hash, Number, ID, Signature],
+	persistentData persistentData[Hash, Number],
 	voterCommandsRx <-chan voterCommand,
 	prometheusRegistry prometheus.Registry,
-	sharedVoterState SharedVoterState[ID],
-	justificationSender GrandpaJustificationSender[Hash, Number, Signature, ID],
+	sharedVoterState SharedVoterState[string],
+	justificationSender GrandpaJustificationSender[Hash, Number],
 	telemetry *telemetry.TelemetryHandle,
-) voterWork[Hash, Number, Signature, ID, R] {
+) voterWork[Hash, Number, R] {
 	// TODO: register to prometheus registry
 
 	voters := persistentData.authoritySet.CurrentAuthorities()
-	env := environment[R, Number, Hash, ID, Signature]{
+	env := environment[R, Number, Hash]{
 		Client:              client,
 		SelectChain:         selectChain,
 		VotingRule:          votingRule,
@@ -207,7 +207,7 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 		Telemetry:           telemetry,
 	}
 
-	work := voterWork[Hash, Number, Signature, ID, R]{
+	work := voterWork[Hash, Number, R]{
 		// `voter` is set to a temporary value and replaced below when
 		// calling `rebuild_voter`.
 		voter:            nil,
@@ -225,7 +225,7 @@ func newVoterWork[Hash constraints.Ordered, Number runtime.Number, Signature com
 // / Rebuilds the `self.voter` field using the current authority set
 // / state. This method should be called when we know that the authority set
 // / has changed (e.g. as signalled by a voter command).
-func (vw *voterWork[Hash, Number, Signature, ID, R]) rebuildVoter() {
+func (vw *voterWork[Hash, Number, R]) rebuildVoter() {
 	// debug!(
 	// 	target: LOG_TARGET,
 	// 	"{}: Starting new voter with set ID {}",
@@ -235,7 +235,7 @@ func (vw *voterWork[Hash, Number, Signature, ID, R]) rebuildVoter() {
 	// logger.Debug()
 	logger.Debugf("%s: Starting new voter with set ID %v", vw.env.Config.name(), vw.env.SetID)
 
-	maybeAuthorityID := local
+	// maybeAuthorityID := local
 }
 
 // / Checks if this node has any available keys in the keystore for any authority id in the given
@@ -254,21 +254,21 @@ func (vw *voterWork[Hash, Number, Signature, ID, R]) rebuildVoter() {
 //				.map(|(p, _)| p.clone())
 //		})
 //	}
-func localAuthorityID[ID AuthorityID](voters grandpa.VoterSet[ID], keystore *keystore.KeyStore) *ID {
+func localAuthorityID(voters grandpa.VoterSet[string], keystore *keystore.KeyStore) *pgrandpa.AuthorityID {
 	if keystore == nil {
 		return nil
 	}
-	for _, idVoterInfo := range voters.Iter() {
-		publicKeys := []struct {
-			Key []byte
-			crypto.KeyTypeID
-		}{
-			{
-				Key:       []byte(idVoterInfo.ID.ToRawVec()),
-				KeyTypeID: Authori,
-			},
-		}
-		(*keystore).HasKeys(publicKeys)
-	}
+	// for _, idVoterInfo := range voters.Iter() {
+	// 	publicKeys := []struct {
+	// 		Key []byte
+	// 		crypto.KeyTypeID
+	// 	}{
+	// 		{
+	// 			Key:       []byte(idVoterInfo.ID.ToRawVec()),
+	// 			KeyTypeID: Authori,
+	// 		},
+	// 	}
+	// 	(*keystore).HasKeys(publicKeys)
+	// }
 	return nil
 }

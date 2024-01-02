@@ -627,7 +627,7 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 		}
 
 		if val.value != nil {
-			logger.Infof("👴 Applying authority set hashNumber forced at block #%d", *val.value)
+			logger.Infof("👴 Applying authority set scheduled at block #%d", val.value.CanonHeight)
 
 			// TODO add telemetry
 

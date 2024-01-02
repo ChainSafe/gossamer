@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	applicationcrypto "github.com/ChainSafe/gossamer/internal/primitives/application-crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
@@ -30,6 +32,17 @@ var (
 // }
 func (p Public) ToRawVec() []byte {
 	return p.Public[:]
+}
+
+func NewPublic(data []byte) (Public, error) {
+	if len(data) != 32 {
+		return Public{}, fmt.Errorf("invalid public key from data: %v", data)
+	}
+	pub := ed25519.Public{}
+	copy(pub[:], data)
+	return Public{
+		Public: pub,
+	}, nil
 }
 
 // impl $crate::Public for Public{}

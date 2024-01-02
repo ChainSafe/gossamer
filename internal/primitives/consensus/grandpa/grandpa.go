@@ -37,12 +37,14 @@ type SetID uint64
 // pub type RoundNumber = u64;
 type RoundNumber uint64
 
-// / A list of Grandpa authorities with associated weights.
-// pub type AuthorityList = Vec<(AuthorityId, AuthorityWeight)>;
-type AuthorityList []struct {
+type AuthorityIDWeight struct {
 	AuthorityID
 	AuthorityWeight
 }
+
+// / A list of Grandpa authorities with associated weights.
+// pub type AuthorityList = Vec<(AuthorityId, AuthorityWeight)>;
+type AuthorityList []AuthorityIDWeight
 
 // / A commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]

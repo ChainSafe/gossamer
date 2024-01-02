@@ -27,9 +27,9 @@ type states[T, W any] interface {
 }
 
 // The state of a voting round.
-type state[T, W any] states[T, W]
+type state any
 
-func setState[T, W any, V states[T, W], S state[T, W]](s *S, val V) {
+func setState[T, W any, V states[T, W]](s *state, val V) {
 	*s = val
 }
 
