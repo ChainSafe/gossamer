@@ -28,6 +28,17 @@ type EncodedJustification []byte
 // pub struct Justifications(Vec<Justification>);
 type Justifications []Justification
 
+// IntoJustification returns a copy of the encoded justification for the given consensus
+// engine, if it exists
+func (j Justifications) IntoJustification(engineID ConsensusEngineID) *EncodedJustification {
+	for _, justification := range j {
+		if justification.ConsensusEngineID == engineID {
+			return &justification.EncodedJustification
+		}
+	}
+	return nil
+}
+
 // / Consensus engine unique ID.
 // pub type ConsensusEngineId = [u8; 4];
 type ConsensusEngineID [4]byte

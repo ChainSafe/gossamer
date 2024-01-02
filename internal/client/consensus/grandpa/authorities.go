@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/client/telemetry"
+	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
@@ -26,9 +28,9 @@ var (
 )
 
 // SharedAuthoritySet A shared authority set
-type SharedAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+type SharedAuthoritySet[H comparable, N constraints.Unsigned] struct {
 	mtx   sync.Mutex
-	inner AuthoritySet[H, N, ID]
+	inner AuthoritySet[H, N]
 }
 
 // IsDescendentOf is the function definition to determine if target is a descendant of base
@@ -47,13 +49,13 @@ type hashNumber[H, N any] struct {
 }
 
 // appliedChanges represents the median and new set when a forced change has occurred
-type appliedChanges[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+type appliedChanges[H comparable, N constraints.Unsigned] struct {
 	median N
-	set    AuthoritySet[H, N, ID]
+	set    AuthoritySet[H, N]
 }
 
 // / Get the current authorities and their weights (for the current set ID).
-func (sas *SharedAuthoritySet[H, N, ID]) CurrentAuthorities() grandpa.VoterSet[ID] {
+func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[string] {
 	//	pub fn current_authorities(&self) -> VoterSet<AuthorityId> {
 	//		VoterSet::new(self.inner().current_authorities.iter().cloned()).expect(
 	//			"current_authorities is non-empty and weights are non-zero; \
@@ -63,14 +65,14 @@ func (sas *SharedAuthoritySet[H, N, ID]) CurrentAuthorities() grandpa.VoterSet[I
 	//	}
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
-	idWeights := make([]grandpa.IDWeight[ID], len(sas.inner.CurrentAuthorities))
+	idWeights := make([]grandpa.IDWeight[string], len(sas.inner.CurrentAuthorities))
 	for i, auth := range sas.inner.CurrentAuthorities {
-		idWeights[i] = grandpa.IDWeight[ID]{
-			ID:     auth.Key,
-			Weight: auth.Weight,
+		idWeights[i] = grandpa.IDWeight[string]{
+			ID:     auth.AuthorityID.String(),
+			Weight: uint64(auth.AuthorityWeight),
 		}
 	}
-	voterSet := grandpa.NewVoterSet[ID](idWeights)
+	voterSet := grandpa.NewVoterSet[string](idWeights)
 	if voterSet == nil {
 		panic(fmt.Errorf("current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed."))
 	}
@@ -78,40 +80,40 @@ func (sas *SharedAuthoritySet[H, N, ID]) CurrentAuthorities() grandpa.VoterSet[I
 }
 
 // Current Get the current set id and a reference to the current authority set.
-func (sas *SharedAuthoritySet[H, N, ID]) Current() (uint64, *[]Authority[ID]) {
+func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *pgrandpa.AuthorityList) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.current()
 }
 
-func (sas *SharedAuthoritySet[H, N, ID]) revert() { //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	sas.inner.revert()
 }
 
-func (sas *SharedAuthoritySet[H, N, ID]) nextChange(bestHash H, //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) nextChange(bestHash H, //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.nextChange(bestHash, isDescendentOf)
 }
 
-func (sas *SharedAuthoritySet[H, N, ID]) addStandardChange(pending PendingChange[H, N, ID], //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) addStandardChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.addStandardChange(pending, isDescendentOf)
 }
 
-func (sas *SharedAuthoritySet[H, N, ID]) addForcedChange(pending PendingChange[H, N, ID], //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.addForcedChange(pending, isDescendentOf)
 }
 
-func (sas *SharedAuthoritySet[H, N, ID]) addPendingChange(pending PendingChange[H, N, ID], //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
@@ -121,7 +123,7 @@ func (sas *SharedAuthoritySet[H, N, ID]) addPendingChange(pending PendingChange[
 // PendingChanges Inspect pending changes. Standard pending changes are iterated first,
 // and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
-func (sas *SharedAuthoritySet[H, N, ID]) PendingChanges() []PendingChange[H, N, ID] {
+func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.pendingChanges()
@@ -133,16 +135,16 @@ func (sas *SharedAuthoritySet[H, N, ID]) PendingChanges() []PendingChange[H, N, 
 //
 // Only standard changes are taken into account for the current
 // limit, since any existing forced change should preclude the voter from voting.
-func (sas *SharedAuthoritySet[H, N, ID]) currentLimit(min N) (limit *N) { //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) { //nolint //skipcq: SCC-U1000
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.currentLimit(min)
 }
 
-func (sas *SharedAuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //skipcq: SCC-U1000
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
-	telemetry *Telemetry) (newSet *appliedChanges[H, N, ID], err error) {
+	telemetry *telemetry.TelemetryHandle) (newSet *appliedChanges[H, N], err error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf, telemetry)
@@ -158,10 +160,10 @@ func (sas *SharedAuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //nolint
 // When the set has changed, the return value will be a status type where newSetBlockInfo
 // is the canonical block where the set last changed (i.e. the given
 // hash and number).
-func (sas *SharedAuthoritySet[H, N, ID]) applyStandardChanges(finalisedHash H, //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nolint //skipcq: SCC-U1000
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
-	telemetry *Telemetry) (status[H, N], error) {
+	telemetry *telemetry.TelemetryHandle) (status[H, N], error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf, telemetry)
@@ -177,7 +179,7 @@ func (sas *SharedAuthoritySet[H, N, ID]) applyStandardChanges(finalisedHash H, /
 // other dependent changes, and nil if no change is enacted. The given
 // function `is_descendent_of` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
-func (sas *SharedAuthoritySet[H, N, ID]) EnactsStandardChange(finalisedHash H,
+func (sas *SharedAuthoritySet[H, N]) EnactsStandardChange(finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H]) (*bool, error) {
 	sas.mtx.Lock()
@@ -195,15 +197,15 @@ type status[H comparable, N constraints.Unsigned] struct {
 }
 
 // AuthoritySet A set of authorities.
-type AuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+type AuthoritySet[H comparable, N constraints.Unsigned] struct {
 	// The current active authorities.
-	CurrentAuthorities []Authority[ID]
+	CurrentAuthorities pgrandpa.AuthorityList
 	// The current set id.
 	SetID uint64
 	// Tree of pending standard changes across forks. Standard changes are
 	// enacted on finality and must be enacted (i.e. finalised) in-order across
 	// a given branch
-	PendingStandardChanges ChangeTree[H, N, ID]
+	PendingStandardChanges ChangeTree[H, N]
 	// Pending forced changes across different forks (at most one per fork).
 	// Forced changes are enacted on block depth (not finality), for this
 	// reason only one forced hashNumber should exist per fork. When trying to
@@ -212,7 +214,7 @@ type AuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
 	// that is an ancestor of the forced changed and its effective block number
 	// is lower than the last finalised block (as signalled in the forced
 	// hashNumber) must be applied beforehand.
-	PendingForcedChanges []PendingChange[H, N, ID]
+	PendingForcedChanges []PendingChange[H, N]
 	// Track at which blocks the set id changed. This is useful when we need to prove finality for
 	// a given block since we can figure out what set the block belongs to and when the set
 	// started/ended.
@@ -220,13 +222,13 @@ type AuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
 }
 
 // invalidAuthorityList authority sets must be non-empty and all weights must be greater than 0
-func invalidAuthorityList[ID AuthorityID](authorities []Authority[ID]) bool { //skipcq:  RVV-B0001
+func invalidAuthorityList(authorities pgrandpa.AuthorityList) bool { //skipcq:  RVV-B0001
 	if len(authorities) == 0 {
 		return true
 	}
 
 	for _, authority := range authorities {
-		if authority.Weight == 0 {
+		if authority.AuthorityWeight == 0 {
 			return true
 		}
 	}
@@ -234,29 +236,30 @@ func invalidAuthorityList[ID AuthorityID](authorities []Authority[ID]) bool { //
 }
 
 // NewGenesisAuthoritySet Get a genesis set with given authorities.
-func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID](initial []Authority[ID]) (
-	authSet *AuthoritySet[H, N, ID], err error) {
+func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](initial pgrandpa.AuthorityList) (
+	authSet *AuthoritySet[H, N], err error) {
 	if invalidAuthorityList(initial) {
 		return nil, errInvalidAuthorityList
 	}
 
-	return &AuthoritySet[H, N, ID]{
+	return &AuthoritySet[H, N]{
 		CurrentAuthorities: initial,
 	}, nil
 }
 
 // NewAuthoritySet creates a new AuthoritySet
-func NewAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID](authorities []Authority[ID],
+func NewAuthoritySet[H comparable, N constraints.Unsigned](
+	authorities pgrandpa.AuthorityList,
 	setID uint64,
-	pendingStandardChanges ChangeTree[H, N, ID],
-	pendingForcedChanges []PendingChange[H, N, ID],
+	pendingStandardChanges ChangeTree[H, N],
+	pendingForcedChanges []PendingChange[H, N],
 	authoritySetChanges AuthoritySetChanges[N],
-) (authSet *AuthoritySet[H, N, ID], err error) {
+) (authSet *AuthoritySet[H, N], err error) {
 	if invalidAuthorityList(authorities) {
 		return nil, errInvalidAuthorityList
 	}
 
-	return &AuthoritySet[H, N, ID]{
+	return &AuthoritySet[H, N]{
 		CurrentAuthorities:     authorities,
 		SetID:                  setID,
 		PendingStandardChanges: pendingStandardChanges,
@@ -266,7 +269,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID](autho
 }
 
 // current Get the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N, ID]) current() (uint64, *[]Authority[ID]) {
+func (authSet *AuthoritySet[H, N]) current() (uint64, *pgrandpa.AuthorityList) {
 	return authSet.SetID, &authSet.CurrentAuthorities
 }
 
@@ -274,14 +277,14 @@ func (authSet *AuthoritySet[H, N, ID]) current() (uint64, *[]Authority[ID]) {
 // This removes all the authority set changes that were announced after
 // the revert point.
 // Revert point is identified by `number` and `hash`.
-func (authSet *AuthoritySet[H, N, ID]) revert() { //nolint //skipcq: SCC-U1000 //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000 //skipcq:  RVV-B0001
 	panic("AuthoritySet.revert not implemented yet")
 }
 
 // Returns the block hash and height at which the next pending hashNumber in
 // the given chain (i.e. it includes `best_hash`) was signalled, nil if
 // there are no pending changes for the given chain.
-func (authSet *AuthoritySet[H, N, ID]) nextChange(bestHash H, //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
 	isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
 	var forced *hashNumber[H, N]
 	for _, c := range authSet.PendingForcedChanges {
@@ -331,8 +334,8 @@ func (authSet *AuthoritySet[H, N, ID]) nextChange(bestHash H, //skipcq:  RVV-B00
 	}
 }
 
-func (authSet *AuthoritySet[H, N, ID]) addStandardChange(
-	pending PendingChange[H, N, ID],
+func (authSet *AuthoritySet[H, N]) addStandardChange(
+	pending PendingChange[H, N],
 	isDescendentOf IsDescendentOf[H]) error {
 	hash := pending.CanonHash
 	number := pending.CanonHeight
@@ -356,7 +359,7 @@ func (authSet *AuthoritySet[H, N, ID]) addStandardChange(
 	return nil
 }
 
-func (pc PendingChange[H, N, ID]) GreaterThan(other PendingChange[H, N, ID]) bool {
+func (pc PendingChange[H, N]) GreaterThan(other PendingChange[H, N]) bool {
 	effectiveNumberGreaterThan := pc.EffectiveNumber() > other.EffectiveNumber()
 	cannonHeighGreaterThan := pc.EffectiveNumber() == other.EffectiveNumber() &&
 		pc.CanonHeight > other.CanonHeight
@@ -364,7 +367,7 @@ func (pc PendingChange[H, N, ID]) GreaterThan(other PendingChange[H, N, ID]) boo
 	return effectiveNumberGreaterThan || cannonHeighGreaterThan
 }
 
-func (pc PendingChange[H, N, ID]) LessThan(other PendingChange[H, N, ID]) bool {
+func (pc PendingChange[H, N]) LessThan(other PendingChange[H, N]) bool {
 	effectiveNumberLessThan := pc.EffectiveNumber() < other.EffectiveNumber()
 	cannonHeighLessThan := pc.EffectiveNumber() == other.EffectiveNumber() &&
 		pc.CanonHeight < other.CanonHeight
@@ -372,8 +375,8 @@ func (pc PendingChange[H, N, ID]) LessThan(other PendingChange[H, N, ID]) bool {
 	return effectiveNumberLessThan || cannonHeighLessThan
 }
 
-func (authSet *AuthoritySet[H, N, ID]) addForcedChange(
-	pending PendingChange[H, N, ID],
+func (authSet *AuthoritySet[H, N]) addForcedChange(
+	pending PendingChange[H, N],
 	isDescendentOf IsDescendentOf[H]) error {
 	for _, change := range authSet.PendingForcedChanges {
 		if change.CanonHash == pending.CanonHash {
@@ -394,7 +397,7 @@ func (authSet *AuthoritySet[H, N, ID]) addForcedChange(
 	idx, _ := slices.BinarySearchFunc(
 		authSet.PendingForcedChanges,
 		pending,
-		func(change, toInsert PendingChange[H, N, ID]) int {
+		func(change, toInsert PendingChange[H, N]) int {
 			switch {
 			case toInsert.LessThan(change):
 				return 1
@@ -436,10 +439,10 @@ func (authSet *AuthoritySet[H, N, ID]) addForcedChange(
 // on the same branch will be added in-order. The given function
 // `is_descendent_of` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
-func (authSet *AuthoritySet[H, N, ID]) addPendingChange(
-	pending PendingChange[H, N, ID],
+func (authSet *AuthoritySet[H, N]) addPendingChange(
+	pending PendingChange[H, N],
 	isDescendentOf IsDescendentOf[H]) error {
-	if invalidAuthorityList[ID](pending.NextAuthorities) {
+	if invalidAuthorityList(pending.NextAuthorities) {
 		return errInvalidAuthoritySet
 	}
 
@@ -456,7 +459,7 @@ func (authSet *AuthoritySet[H, N, ID]) addPendingChange(
 // pendingChanges Inspect pending changes. Standard pending changes are iterated first,
 // and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
-func (authSet *AuthoritySet[H, N, ID]) pendingChanges() []PendingChange[H, N, ID] { //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) pendingChanges() []PendingChange[H, N] { //skipcq:  RVV-B0001
 	// get everything from standard hashNumber roots
 	changes := authSet.PendingStandardChanges.PendingChanges()
 
@@ -472,7 +475,7 @@ func (authSet *AuthoritySet[H, N, ID]) pendingChanges() []PendingChange[H, N, ID
 //
 // Only standard changes are taken into account for the current
 // limit, since any existing forced hashNumber should preclude the voter from voting.
-func (authSet *AuthoritySet[H, N, ID]) currentLimit(min N) (limit *N) {
+func (authSet *AuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 	roots := authSet.PendingStandardChanges.Roots()
 	for i := 0; i < len(roots); i++ {
 		effectiveNumber := roots[i].Change.EffectiveNumber()
@@ -503,10 +506,10 @@ func (authSet *AuthoritySet[H, N, ID]) currentLimit(min N) (limit *N) {
 // block number is lower than the last finalised block (as defined by the
 // forced hashNumber), then the forced hashNumber cannot be applied. An error will
 // be returned in that case which will prevent block import.
-func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV-B0001
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
-	_ Telemetry) (newSet *appliedChanges[H, N, ID], err error) {
+	_ *telemetry.TelemetryHandle) (newSet *appliedChanges[H, N], err error) {
 
 	for _, change := range authSet.PendingForcedChanges {
 		effectiveNumber := change.EffectiveNumber()
@@ -548,13 +551,13 @@ func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq: 
 
 				authSetChanges := authSet.AuthoritySetChanges
 				authSetChanges.append(authSet.SetID, medianLastFinalized)
-				newSet = &appliedChanges[H, N, ID]{
+				newSet = &appliedChanges[H, N]{
 					medianLastFinalized,
-					AuthoritySet[H, N, ID]{
+					AuthoritySet[H, N]{
 						CurrentAuthorities:     change.NextAuthorities,
 						SetID:                  authSet.SetID + 1,
-						PendingStandardChanges: NewChangeTree[H, N, ID](), // new set, new changes
-						PendingForcedChanges:   []PendingChange[H, N, ID]{},
+						PendingStandardChanges: NewChangeTree[H, N](), // new set, new changes
+						PendingForcedChanges:   []PendingChange[H, N]{},
 						AuthoritySetChanges:    authSetChanges,
 					},
 				}
@@ -578,18 +581,18 @@ func (authSet *AuthoritySet[H, N, ID]) applyForcedChanges(bestHash H, //skipcq: 
 // When the set has changed, the return value will be a status type where newSetBlock
 // is the canonical block where the set last changed (i.e. the given
 // hash and number).
-func (authSet *AuthoritySet[H, N, ID]) applyStandardChanges( //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 	finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
-	_ Telemetry) (status[H, N], error) {
+	_ *telemetry.TelemetryHandle) (status[H, N], error) {
 	// TODO telemetry here is just a place holder, replace with real
 
 	status := status[H, N]{}
 	finalisationResult, err := authSet.PendingStandardChanges.FinalizeWithDescendentIf(&finalisedHash,
 		finalisedNumber,
 		isDescendentOf,
-		func(change *PendingChange[H, N, ID]) bool {
+		func(change *PendingChange[H, N]) bool {
 			return change.EffectiveNumber() <= finalisedNumber
 		})
 	if err != nil {
@@ -603,13 +606,13 @@ func (authSet *AuthoritySet[H, N, ID]) applyStandardChanges( //skipcq:  RVV-B000
 	switch val := finalisationResultVal.(type) {
 	case unchanged:
 		return status, nil
-	case changed[H, N, ID]:
+	case changed[H, N]:
 		// Changed Case
 		status.Changed = true
 
 		// Flush pending forced changes to re add
 		pendingForcedChanges := authSet.PendingForcedChanges
-		authSet.PendingForcedChanges = []PendingChange[H, N, ID]{}
+		authSet.PendingForcedChanges = []PendingChange[H, N]{}
 
 		// we will keep all forced changes for any later blocks and that are a
 		// descendent of the finalised block (i.e. they are part of this branch).
@@ -655,12 +658,12 @@ func (authSet *AuthoritySet[H, N, ID]) applyStandardChanges( //skipcq:  RVV-B000
 // other dependent changes, and nil if no hashNumber is enacted. The given
 // function `is_descendent_of` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
-func (authSet *AuthoritySet[H, N, ID]) EnactsStandardChange( //skipcq:  RVV-B0001
+func (authSet *AuthoritySet[H, N]) EnactsStandardChange( //skipcq:  RVV-B0001
 	finalisedHash H, finalisedNumber N, isDescendentOf IsDescendentOf[H]) (*bool, error) {
 	applied, err := authSet.PendingStandardChanges.FinalizesAnyWithDescendentIf(&finalisedHash,
 		finalisedNumber,
 		isDescendentOf,
-		func(change *PendingChange[H, N, ID]) bool {
+		func(change *PendingChange[H, N]) bool {
 			return change.EffectiveNumber() == finalisedNumber
 		})
 	if err != nil {
@@ -698,9 +701,9 @@ type Best[N constraints.Unsigned] struct {
 //
 // This will be applied when the announcing block is at some depth within
 // the finalised or unfinalised chain.
-type PendingChange[H comparable, N constraints.Unsigned, ID AuthorityID] struct {
+type PendingChange[H comparable, N constraints.Unsigned] struct {
 	// The new authorities and weights to apply.
-	NextAuthorities []Authority[ID]
+	NextAuthorities pgrandpa.AuthorityList
 	// How deep in the chain the announcing block must be
 	// before the hashNumber is applied.
 	Delay N
@@ -713,7 +716,7 @@ type PendingChange[H comparable, N constraints.Unsigned, ID AuthorityID] struct 
 }
 
 // EffectiveNumber Returns the effective number this hashNumber will be applied at.
-func (pc *PendingChange[H, N, ID]) EffectiveNumber() N {
+func (pc *PendingChange[H, N]) EffectiveNumber() N {
 	return pc.CanonHeight + pc.Delay
 }
 
