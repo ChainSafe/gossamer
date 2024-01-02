@@ -127,17 +127,17 @@ The purpose of this section is to outline the standard naming conventions approv
 
 ### PR and final commit message should follow:
 
-**<TYPE>[SCOPE]: brief description**
+`**TYPE:[SCOPE]: brief description**`
 
-**<TYPE>**
+**TYPEs**:
 
-- fix = patches a bug or a resolves a particular issue
-- feat = introduces new functionality
-- chore = regular code maintenance
-- docs = anything related to documentation
-- style = updates related to styling (e.g. logs)
-- test = anything related to tests
-- refactor = refactoring a section of the code base
+- **fix** = patches a bug or a resolves a particular issue
+- **feat** = introduces new functionality
+- **chore** = regular code maintenance
+- **docs** = anything related to documentation
+- **style** = updates related to styling (e.g. logs)
+- **test** = anything related to tests
+- **refactor** = refactoring a section of the code base
 
 **[SCOPE]**
 
