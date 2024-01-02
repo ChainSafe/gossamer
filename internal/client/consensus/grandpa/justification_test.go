@@ -3,18 +3,27 @@
 
 package grandpa
 
-// func makePrecommit(t *testing.T,
-// 	targetHash string,
-// 	targetNumber uint, id dummyAuthID) grandpa.SignedPrecommit[string, uint, string, dummyAuthID] {
-// 	t.Helper()
-// 	return grandpa.SignedPrecommit[string, uint, string, dummyAuthID]{
-// 		Precommit: grandpa.Precommit[string, uint]{
-// 			TargetHash:   targetHash,
-// 			TargetNumber: targetNumber,
-// 		},
-// 		ID: id,
-// 	}
-// }
+import (
+	"testing"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+)
+
+func makePrecommit(t *testing.T,
+	targetHash string,
+	targetNumber uint,
+	id app.Public,
+) grandpa.SignedPrecommit[string, uint, string, string] {
+	t.Helper()
+	return grandpa.SignedPrecommit[string, uint, string, string]{
+		Precommit: grandpa.Precommit[string, uint]{
+			TargetHash:   targetHash,
+			TargetNumber: targetNumber,
+		},
+		ID: id.String(),
+	}
+}
 
 // func TestJustificationEncoding(t *testing.T) {
 // 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
@@ -502,4 +511,39 @@ package grandpa
 // 			assert.Equal(t, tt.want, got)
 // 		})
 // 	}
+// }
+
+// func TestWriteJustification(t *testing.T) {
+// 	store := newDummyStore()
+
+// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
+// 	precommit := makePrecommit(t, "a", 1, 1)
+// 	precommits = append(precommits, precommit)
+
+// 	expAncestries := make([]Header[string, uint], 0)
+// 	expAncestries = append(expAncestries, testHeader[string, uint]{
+// 		NumberField:     100,
+// 		ParentHashField: "a",
+// 	})
+
+// 	justification := GrandpaJustification[string, uint, string, dummyAuthID]{
+// 		Round: 2,
+// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
+// 			TargetHash:   "a",
+// 			TargetNumber: 1,
+// 			Precommits:   precommits,
+// 		},
+// 		VotesAncestries: expAncestries,
+// 	}
+
+// 	_, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
+// 	require.ErrorIs(t, err, errValueNotFound)
+
+// 	err = updateBestJustification[string, uint, string, dummyAuthID](justification, write(store))
+// 	require.NoError(t, err)
+
+// 	bestJust, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
+// 	require.NoError(t, err)
+// 	require.NotNil(t, bestJust)
+// 	require.Equal(t, justification, *bestJust)
 // }
