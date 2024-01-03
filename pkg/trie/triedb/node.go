@@ -16,14 +16,14 @@ type (
 	Empty struct{}
 	// NodeLeaf represents a leaf node
 	Leaf[H HashOut] struct {
-		nibble nibble.NibbleVec
-		value  Value[H]
+		partialKey nibble.NibbleVec
+		value      Value[H]
 	}
 	// NodeNibbledBranch represents a branch node
 	NibbledBranch[H HashOut] struct {
-		nibble nibble.NibbleVec
-		childs [nibble.NibbleLength]NodeHandle[H]
-		value  Value[H]
+		partialKey nibble.NibbleVec
+		childs     [nibble.NibbleLength]NodeHandle[H]
+		value      Value[H]
 	}
 )
 

@@ -1,5 +1,7 @@
 package triedb
 
+import "fmt"
+
 type RecordedForKey uint8
 
 const (
@@ -53,9 +55,9 @@ type (
 		fullKey []byte
 	}
 
-	// TrieAccessNotExisting means that the value/hash for fullKey was accessed, but it couldn't be found in the trie
+	// TrieAccessNonExisting means that the value/hash for fullKey was accessed, but it couldn't be found in the trie
 	// Should map to RecordedForKeyValue when checking the recorder
-	TrieAccessNotExisting struct {
+	TrieAccessNonExisting struct {
 		fullKey []byte
 	}
 )
@@ -65,4 +67,57 @@ func (a TrieAccessEncodedNode[H]) Type() string { return "EncodedNode" }
 func (a TrieAccessValue[H]) Type() string       { return "Value" }
 func (a TrieAccessInlineValue[H]) Type() string { return "InlineValue" }
 func (a TrieAccessHash[H]) Type() string        { return "Hash" }
-func (a TrieAccessNotExisting) Type() string    { return "NotExisting" }
+func (a TrieAccessNonExisting) Type() string    { return "NotExisting" }
+
+// Recorder implementation
+
+type Record[H HashOut] struct {
+	/// The hash of the node.
+	Hash H
+	/// The data representing the node.
+	Data []byte
+}
+
+type Recorder[H HashOut] struct {
+	nodes        []Record[H]
+	recorderKeys map[string]RecordedForKey // TODO: revisit this later, it should be a BTreeMap
+	layout       TrieLayout[H]
+}
+
+// NewRecorder creates a new Recorder which records all given nodes
+func NewRecorder[H HashOut]() *Recorder[H] {
+	return &Recorder[H]{
+		nodes:        make([]Record[H], 0),
+		recorderKeys: make(map[string]RecordedForKey),
+	}
+}
+
+// Drain drains all visited records
+func (r *Recorder[H]) Drain() {
+	clear(r.nodes)
+	clear(r.recorderKeys)
+}
+
+// Impl of TrieRecorder for Recorder
+func (r *Recorder[H]) record(access TrieAccess[H]) {
+	switch access := access.(type) {
+	case TrieAccessEncodedNode[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: access.encodedNode})
+	case TrieAccessNode[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: EncodeNode(access.node, r.layout.Codec())})
+	case TrieAccessValue[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: access.value})
+		r.recorderKeys[string(access.fullKey)] = RecordedForKeyValue
+	case TrieAccessHash[H]:
+		if _, inserted := r.recorderKeys[string(access.fullKey)]; !inserted {
+			r.recorderKeys[string(access.fullKey)] = RecordedForKeyHash
+		}
+	case TrieAccessNonExisting:
+		// We handle the non existing value/hash like having recorded the value.
+		r.recorderKeys[string(access.fullKey)] = RecordedForKeyValue
+	case TrieAccessInlineValue[H]:
+		r.recorderKeys[string(access.fullKey)] = RecordedForKeyValue
+	default:
+		panic(fmt.Sprintf("unknown access type %s", access.Type()))
+	}
+}
