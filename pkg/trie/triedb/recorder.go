@@ -93,9 +93,16 @@ func NewRecorder[H HashOut]() *Recorder[H] {
 }
 
 // Drain drains all visited records
-func (r *Recorder[H]) Drain() {
+func (r *Recorder[H]) Drain() []Record[H] {
+	// Store temporal nodes
+	nodes := make([]Record[H], len(r.nodes))
+	copy(nodes, r.nodes)
+
+	// Clean up internal data and return the nodes
 	clear(r.nodes)
 	clear(r.recorderKeys)
+
+	return nodes
 }
 
 // Impl of TrieRecorder for Recorder
