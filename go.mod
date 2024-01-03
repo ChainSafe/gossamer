@@ -16,7 +16,7 @@ require (
 	github.com/fatih/color v1.16.0
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/google/go-cmp v0.6.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.1
@@ -38,7 +38,7 @@ require (
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	go.uber.org/mock v0.3.0
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/term v0.15.0
 	google.golang.org/protobuf v1.31.0
