@@ -1,6 +1,10 @@
 package triedb
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
+)
 
 type HashOut interface {
 	comparable
@@ -10,18 +14,19 @@ type HashOut interface {
 type NodeCodec[H HashOut] interface {
 	HashedNullNode() H
 	EmptyNode() []byte
-	LeafNode(partialKey []byte, numberNibble uint, value Value[H]) []byte
-	BranchNodeNibbled(partialKey []byte, numberNibble uint, children [16]NodeHandle[H], value Value[H]) []byte
+	LeafNode(partialKey nibble.NibbleSlice, numberNibble uint, value Value) []byte
+	BranchNodeNibbled(partialKey nibble.NibbleSlice, numberNibble uint, children [16]NodeHandle, value Value) []byte
+	Decode(data []byte) (Node[H], error)
 }
 
 func EncodeNode[H HashOut](node Node[H], codec NodeCodec[H]) []byte {
 	switch n := node.(type) {
 	case Empty:
 		return codec.EmptyNode()
-	case Leaf[H]:
-		return codec.LeafNode(n.partialKey.RightIter(), n.partialKey.Len(), n.value)
-	case NibbledBranch[H]:
-		return codec.BranchNodeNibbled(n.partialKey.RightIter(), n.partialKey.Len(), n.childs, n.value)
+	case Leaf:
+		return codec.LeafNode(n.partialKey, n.partialKey.Len(), n.value)
+	case NibbledBranch:
+		return codec.BranchNodeNibbled(n.partialKey, n.partialKey.Len(), n.children, n.value)
 	default:
 		panic(fmt.Sprintf("unknown node type %s", n.Type()))
 	}

@@ -1,12 +1,30 @@
 package triedb
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
-// Nodes
+// Value
+type Value interface {
+	Type() string
+}
 
-// Node is a trie node
+type (
+	// InlineNodeValue if the value is inlined we can get the bytes and the hash of the value
+	InlineValue struct {
+		bytes []byte
+	}
+	// HashedNodeValue is a trie node pointer to a hashed node
+	NodeValue struct {
+		bytes []byte
+	}
+)
+
+func (v InlineValue) Type() string { return "Inline" }
+func (v NodeValue) Type() string   { return "Node" }
+
+// Nodes
 type Node[H HashOut] interface {
 	Type() string
 }
@@ -15,59 +33,102 @@ type (
 	// NodeEmptyNode represents an empty node
 	Empty struct{}
 	// NodeLeaf represents a leaf node
-	Leaf[H HashOut] struct {
-		partialKey nibble.NibbleVec
-		value      Value[H]
+	Leaf struct {
+		partialKey nibble.NibbleSlice
+		value      Value
 	}
 	// NodeNibbledBranch represents a branch node
-	NibbledBranch[H HashOut] struct {
-		partialKey nibble.NibbleVec
-		childs     [nibble.NibbleLength]NodeHandle[H]
-		value      Value[H]
+	NibbledBranch struct {
+		partialKey nibble.NibbleSlice
+		children   [nibble.NibbleLength]NodeHandle
+		value      Value
 	}
 )
 
-func (n Empty) Type() string            { return "Empty" }
-func (n Leaf[H]) Type() string          { return "Leaf" }
-func (n NibbledBranch[H]) Type() string { return "NibbledBranch" }
+func (n Empty) Type() string         { return "Empty" }
+func (n Leaf) Type() string          { return "Leaf" }
+func (n NibbledBranch) Type() string { return "NibbledBranch" }
+
+// NodeOwned is a trie node
+type NodeOwned[H HashOut] interface {
+	Type() string
+}
+
+type (
+	// NodeEmptyNode represents an empty node
+	NodeOwnedEmpty struct{}
+	// NodeLeaf represents a leaf node
+	NodeOwnedLeaf[H HashOut] struct {
+		partialKey nibble.NibbleSlice
+		value      ValueOwned[H]
+	}
+	// NodeNibbledBranch represents a branch node
+	NodeOwnedNibbledBranch[H HashOut] struct {
+		partialKey nibble.NibbleSlice
+		children   [nibble.NibbleLength]NodeHandleOwned[H]
+		value      ValueOwned[H]
+	}
+)
+
+func (n NodeOwnedEmpty) Type() string            { return "Empty" }
+func (n NodeOwnedLeaf[H]) Type() string          { return "Leaf" }
+func (n NodeOwnedNibbledBranch[H]) Type() string { return "NibbledBranch" }
 
 // Value is a trie node value
-type Value[H HashOut] interface {
+type ValueOwned[H HashOut] interface {
 	Type() string
-	Hash() H
-	Value() []byte
 }
 type (
 	// InlineNodeValue if the value is inlined we can get the bytes and the hash of the value
-	InlineValue[H HashOut] struct {
+	InlineValueOwned[H HashOut] struct {
 		bytes []byte
 		hash  H
 	}
 	// HashedNodeValue is a trie node pointer to a hashed node
-	HashedValue[H comparable] struct {
+	NodeValueOwned[H comparable] struct {
 		hash H
 	}
 )
 
-func (v InlineValue[H]) Type() string  { return "Inline" }
-func (v InlineValue[H]) Hash() H       { return v.hash }
-func (v InlineValue[H]) Value() []byte { return v.bytes }
-func (v HashedValue[H]) Type() string  { return "Node" }
-func (v HashedValue[H]) Hash() H       { return v.hash }
-func (v HashedValue[H]) Value() []byte { return nil }
+func (v InlineValueOwned[H]) Type() string { return "Inline" }
+func (v NodeValueOwned[H]) Type() string   { return "Node" }
 
 // NodeHandle is a reference to a trie node which may be stored within another trie node.
-type NodeHandle[H HashOut] interface {
+type NodeHandleOwned[H HashOut] interface {
 	Type() string
 }
 type (
-	HashNodeHandle[H HashOut] struct {
-		value H
+	NodeHandleOwnedHash[H HashOut] struct {
+		ValueOwned H
 	}
-	InlineNodeHandle[H HashOut] struct {
-		node Node[H]
+	NodeHandleOwnedInline[H HashOut] struct {
+		node NodeOwned[H]
 	}
 )
 
-func (h HashNodeHandle[H]) Type() string   { return "Hash" }
-func (h InlineNodeHandle[H]) Type() string { return "Inline" }
+func (h NodeHandleOwnedHash[H]) Type() string   { return "Hash" }
+func (h NodeHandleOwnedInline[H]) Type() string { return "Inline" }
+
+// NodeHandle is a reference to a trie node which may be stored within another trie node.
+type NodeHandle interface {
+	Type() string
+}
+type (
+	Hash struct {
+		value []byte
+	}
+	Inline struct {
+		value []byte
+	}
+)
+
+func (h Hash) Type() string   { return "Hash" }
+func (h Inline) Type() string { return "Inline" }
+
+func DecodeHash[H HashOut](data []byte, hasher hashdb.Hasher[H]) *H {
+	if len(data) != hasher.Length() {
+		return nil
+	}
+	hash := hasher.FromBytes(data)
+	return &hash
+}

@@ -14,13 +14,14 @@ type HasherOut interface {
 // / is a non expanded byte slice followed by a last padded byte representation.
 // / The padded byte is an optional padded value.
 type Prefix struct {
-	partialKey []byte
-	paddedByte byte
+	PartialKey []byte
+	PaddedByte *byte
 }
 
-type Hasher[Out HasherOut] interface {
+type Hasher[Hash HasherOut] interface {
 	Length() int
-	Hash(value []byte) Out
+	Hash(value []byte) Hash
+	FromBytes(value []byte) Hash
 }
 
 type PlainDB[K any, V any] interface {
@@ -30,20 +31,10 @@ type PlainDB[K any, V any] interface {
 	Remove(key K)
 }
 
-type PlainDBReadOnly[K any, V any] interface {
-	Get(key K) *V
-	Contains(key K) bool
-}
-
-type HashDB[Out HasherOut, T any] interface {
-	Get(key Out, prefix Prefix) *T
-	Contains(key Out, prefix Prefix) bool
-	Insert(prefix Prefix, value []byte) Out
-	Emplace(key Out, prefix Prefix, value T)
-	remove(key Out, prefix Prefix)
-}
-
-type HashDBReadOnly[Out HasherOut, T any] interface {
-	Get(key Out, prefix Prefix) *T
-	Contains(key Out, prefix Prefix) bool
+type HashDB[Hash HasherOut, T any] interface {
+	Get(key Hash, prefix Prefix) *T
+	Contains(key Hash, prefix Prefix) bool
+	Insert(prefix Prefix, value []byte) Hash
+	Emplace(key Hash, prefix Prefix, value T)
+	remove(key Hash, prefix Prefix)
 }
