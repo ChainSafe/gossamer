@@ -43,12 +43,12 @@ type CandidateBacking struct {
 	// While it would be technically possible to support such leaves in
 	// fragment trees, it only benefits the transition period when asynchronous
 	// backing is being enabled and complicates code complexity.
-	perRelayParent map[common.Hash]perRelayParentState
+	perRelayParent map[common.Hash]*perRelayParentState
 	// State tracked for all candidates relevant to the implicit view.
 	//
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
-	perCandidate map[parachaintypes.CandidateHash]perCandidateState
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -167,8 +167,8 @@ type SignedFullStatementWithPVD struct {
 func New(overseerChan chan<- any) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
-		perRelayParent:      map[common.Hash]perRelayParentState{},
-		perCandidate:        map[parachaintypes.CandidateHash]perCandidateState{},
+		perRelayParent:      map[common.Hash]*perRelayParentState{},
+		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
 	}
 }
 
@@ -280,9 +280,6 @@ func (cb *CandidateBacking) handleStatementMessage(
 			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
-
-		rpState.fallbacks[summary.Candidate] = attesting
-
 	case parachaintypes.Valid:
 		candidateHash := parachaintypes.CandidateHash(statementVDT)
 		attesting, ok = rpState.fallbacks[candidateHash]
@@ -305,6 +302,8 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
 	}
 
+	rpState.fallbacks[summary.Candidate] = attesting
+
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
 	pc, ok := cb.perCandidate[summary.Candidate]
 	if !ok {
@@ -322,7 +321,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 func (rpState *perRelayParentState) importStatement(
 	subSystemToOverseer chan<- any,
 	signedStatementWithPVD SignedFullStatementWithPVD,
-	perCandidate map[parachaintypes.CandidateHash]perCandidateState,
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState,
 ) (*Summary, error) {
 	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 	if err != nil {
@@ -373,7 +372,7 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	// Only save the candidate if it was approved by prospective parachains.
-	perCandidate[candidateHash] = perCandidateState{
+	perCandidate[candidateHash] = &perCandidateState{
 		persistedValidationData: *signedStatementWithPVD.PersistedValidationData,
 		SecondedLocally:         false, // This is set after importing when seconding locally.
 		ParaID:                  parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),

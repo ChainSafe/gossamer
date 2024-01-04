@@ -117,7 +117,7 @@ func TestImportStatement(t *testing.T) {
 	testCases := []struct {
 		description            string
 		rpState                func() perRelayParentState
-		perCandidate           map[parachaintypes.CandidateHash]perCandidateState
+		perCandidate           map[parachaintypes.CandidateHash]*perCandidateState
 		signedStatementWithPVD SignedFullStatementWithPVD
 		summary                *Summary
 		err                    string
@@ -182,7 +182,7 @@ func TestImportStatement(t *testing.T) {
 					Table: mockTable,
 				}
 			},
-			perCandidate: map[parachaintypes.CandidateHash]perCandidateState{
+			perCandidate: map[parachaintypes.CandidateHash]*perCandidateState{
 				candidateHash: {
 					persistedValidationData: parachaintypes.PersistedValidationData{
 						ParentHead: parachaintypes.HeadData{
@@ -213,7 +213,7 @@ func TestImportStatement(t *testing.T) {
 					Table: mockTable,
 				}
 			},
-			perCandidate:           map[parachaintypes.CandidateHash]perCandidateState{},
+			perCandidate:           map[parachaintypes.CandidateHash]*perCandidateState{},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
 			summary:                new(Summary),
 			err:                    "",
@@ -238,7 +238,7 @@ func TestImportStatement(t *testing.T) {
 					},
 				}
 			},
-			perCandidate:           map[parachaintypes.CandidateHash]perCandidateState{},
+			perCandidate:           map[parachaintypes.CandidateHash]*perCandidateState{},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
 			summary:                new(Summary),
 			err:                    "",
@@ -785,24 +785,24 @@ func TestHandleStatementMessage(t *testing.T) {
 
 	testCases := []struct {
 		description            string
-		perRelayParent         func() map[common.Hash]perRelayParentState
-		perCandidate           map[parachaintypes.CandidateHash]perCandidateState
+		perRelayParent         func() map[common.Hash]*perRelayParentState
+		perCandidate           map[parachaintypes.CandidateHash]*perCandidateState
 		signedStatementWithPVD SignedFullStatementWithPVD
 		err                    string
 	}{
 
 		{
 			description: "unknown_relay_parent",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
-				return map[common.Hash]perRelayParentState{}
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
+				return map[common.Hash]*perRelayParentState{}
 			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{},
 			err:                    ErrStatementForUnknownRelayParent.Error(),
 		},
 		{
 			description: "getting_error_importing_statement",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
-				return map[common.Hash]perRelayParentState{
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {},
 				}
 			},
@@ -811,7 +811,7 @@ func TestHandleStatementMessage(t *testing.T) {
 		},
 		{
 			description: "getting_nil_summary_of_import_statement",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -822,7 +822,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.PDMisbehaviorReport{})
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table: mockTable,
 					},
@@ -838,7 +838,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 		{
 			description: "paraId_is_not_assigned_to_the_local_validator",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -855,7 +855,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:      mockTable,
 						Assignment: 5,
@@ -872,7 +872,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 		{
 			description: "statementVDT_set_to_valid_and_candidate_not_in_fallbacks",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -890,7 +890,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:      mockTable,
 						Assignment: 4,
@@ -909,7 +909,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 		{
 			description: "statementVDT_set_to_valid_also_same_validatorIndex_in_tableContext_and_signedStatement",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -927,7 +927,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:        mockTable,
 						TableContext: dummyTableContext(t),
@@ -949,7 +949,7 @@ func TestHandleStatementMessage(t *testing.T) {
 		},
 		{
 			description: "statementVDT_set_to_valid_and_validation_job_already_running_for_candidate",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -967,7 +967,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:        mockTable,
 						TableContext: dummyTableContext(t),
@@ -992,7 +992,7 @@ func TestHandleStatementMessage(t *testing.T) {
 		},
 		{
 			description: "statementVDT_set_to_valid_and_start_validation_job_for_candidate",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -1010,7 +1010,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:        mockTable,
 						TableContext: dummyTableContext(t),
@@ -1029,7 +1029,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				}
 			},
 
-			perCandidate: map[parachaintypes.CandidateHash]perCandidateState{
+			perCandidate: map[parachaintypes.CandidateHash]*perCandidateState{
 				candidateHash: {},
 			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{
@@ -1042,7 +1042,7 @@ func TestHandleStatementMessage(t *testing.T) {
 		},
 		{
 			description: "statementVDT_set_to_seconded_and_error_getting_candidate_from_table",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -1066,7 +1066,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					errors.New("could not get candidate from table"),
 				)
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:      mockTable,
 						Assignment: 4,
@@ -1085,7 +1085,7 @@ func TestHandleStatementMessage(t *testing.T) {
 		},
 		{
 			description: "statementVDT_set_to_seconded_and_successfully_get_candidate_from_table",
-			perRelayParent: func() map[common.Hash]perRelayParentState {
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
@@ -1106,7 +1106,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 				).Return(&dummyCCR, nil)
 
-				return map[common.Hash]perRelayParentState{
+				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						Table:      mockTable,
 						Assignment: 4,
@@ -1136,9 +1136,9 @@ func TestHandleStatementMessage(t *testing.T) {
 			backing := CandidateBacking{
 				SubSystemToOverseer: subSystemToOverseer,
 				perRelayParent:      c.perRelayParent(),
-				perCandidate: func() map[parachaintypes.CandidateHash]perCandidateState {
+				perCandidate: func() map[parachaintypes.CandidateHash]*perCandidateState {
 					if c.perCandidate == nil {
-						return map[parachaintypes.CandidateHash]perCandidateState{}
+						return map[parachaintypes.CandidateHash]*perCandidateState{}
 					}
 					return c.perCandidate
 				}(),
