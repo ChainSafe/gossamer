@@ -98,7 +98,8 @@ func NewJustificationFromCommit[
 ](
 	client blockchain.HeaderBackend[Hash, N],
 	round uint64,
-	commit pgrandpa.Commit[Hash, N]) (GrandpaJustification[Hash, N], error) {
+	commit pgrandpa.Commit[Hash, N],
+) (GrandpaJustification[Hash, N], error) {
 	votesAncestriesHashes := make(map[Hash]struct{})
 	voteAncestries := make([]runtime.Header[N, Hash], 0)
 
