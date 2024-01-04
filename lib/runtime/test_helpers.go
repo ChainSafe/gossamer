@@ -43,6 +43,18 @@ func NewInMemoryDB(t *testing.T) database.Database {
 	return db
 }
 
+func NewBenchInMemoryDB(b *testing.B) database.Database {
+	testDatadirPath := b.TempDir()
+
+	db, err := database.NewPebble(testDatadirPath, true)
+	require.NoError(b, err)
+	b.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	return db
+}
+
 var (
 	ErrRuntimeUnknown  = errors.New("runtime is not known")
 	ErrHTTPStatusNotOK = errors.New("HTTP status code received is not OK")

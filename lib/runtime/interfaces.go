@@ -11,6 +11,13 @@ import (
 
 // Storage runtime interface.
 type Storage interface {
+	ResetDBTracker()
+	StartDBTracker()
+	StopDBTracker()
+	Whitelist(string)
+	ReadCount() uint32
+	WriteCount() uint32
+
 	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
 	Root(maxInlineValueSize int) (common.Hash, error)
