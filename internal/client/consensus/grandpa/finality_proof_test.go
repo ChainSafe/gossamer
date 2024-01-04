@@ -3,245 +3,236 @@
 
 package grandpa
 
-// // Check GRANDPA proof-of-finality for the given block.
-// //
-// // Returns the vector of headers that MUST be validated + imported
-// // AND if at least one of those headers is invalid, all other MUST be considered invalid.
-// func checkFinalityProof[
-// 	Hash constraints.Ordered,
-// 	N constraints.Unsigned,
-// 	S comparable,
-// 	H Header[Hash, N],
-// 	ID AuthorityID,
-// ](
-// 	currentSetID uint64,
-// 	currentAuthorities AuthorityList[ID],
-// 	remoteProof []byte,
-// ) (FinalityProof[Hash, N, H], error) {
-// 	proof := FinalityProof[Hash, N, H]{}
-// 	err := scale.Unmarshal(remoteProof, &proof)
-// 	if err != nil {
-// 		return FinalityProof[Hash, N, H]{}, fmt.Errorf("failed to decode finality proof %s", err)
-// 	}
+import (
+	"fmt"
+	"testing"
 
-// 	justification := GrandpaJustification[Hash, N, S, ID]{}
-// 	err = scale.Unmarshal(proof.Justification, &justification)
-// 	if err != nil {
-// 		return FinalityProof[Hash, N, H]{}, fmt.Errorf("error decoding justification for header %s", err)
-// 	}
+	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
+	"github.com/stretchr/testify/require"
 
-// 	err = justification.Verify(currentSetID, currentAuthorities)
-// 	if err != nil {
-// 		return FinalityProof[Hash, N, H]{}, err
-// 	}
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"golang.org/x/exp/constraints"
+)
 
-// 	return proof, nil
-// }
+// Check GRANDPA proof-of-finality for the given block.
+//
+// Returns the vector of headers that MUST be validated + imported
+// AND if at least one of those headers is invalid, all other MUST be considered invalid.
+func checkFinalityProof[Hash constraints.Ordered, N runtime.Number](
+	currentSetID uint64,
+	currentAuthorities pgrandpa.AuthorityList,
+	remoteProof []byte,
+) (FinalityProof[Hash, N], error) {
+	proof := FinalityProof[Hash, N]{}
+	err := scale.Unmarshal(remoteProof, &proof)
+	if err != nil {
+		return FinalityProof[Hash, N]{}, fmt.Errorf("failed to decode finality proof %s", err)
+	}
 
-// func createCommit(
-// 	t *testing.T,
-// 	targetHash string,
-// 	targetNum uint,
-// 	round uint64,
-// 	ID dummyAuthID,
-// ) grandpa.Commit[string, uint, string, dummyAuthID] {
-// 	t.Helper()
-// 	precommit := grandpa.Precommit[string, uint]{
-// 		TargetHash:   targetHash,
-// 		TargetNumber: targetNum,
-// 	}
+	justification := GrandpaJustification[Hash, N]{}
+	err = scale.Unmarshal(proof.Justification, &justification)
+	if err != nil {
+		return FinalityProof[Hash, N]{}, fmt.Errorf("error decoding justification for header %s", err)
+	}
 
-// 	message := grandpa.Message[string, uint]{
-// 		Value: precommit,
-// 	}
+	err = justification.Verify(currentSetID, currentAuthorities)
+	if err != nil {
+		return FinalityProof[Hash, N]{}, err
+	}
 
-// 	msg := messageData[string, uint]{
-// 		round,
-// 		1,
-// 		message,
-// 	}
+	return proof, nil
+}
 
-// 	encMsg, err := scale.Marshal(msg)
-// 	require.NoError(t, err)
+func createCommit(
+	t *testing.T,
+	targetHash string,
+	targetNum uint32,
+	round uint64,
+	id uint8,
+) pgrandpa.Commit[string, uint32] {
+	t.Helper()
+	precommit := grandpa.Precommit[string, uint32]{
+		TargetHash:   targetHash,
+		TargetNumber: targetNum,
+	}
 
-// 	signedPrecommit := grandpa.SignedPrecommit[string, uint, string, dummyAuthID]{
-// 		Precommit: precommit,
-// 		ID:        ID,
-// 		Signature: string(encMsg),
-// 	}
+	message := grandpa.Message[string, uint32]{
+		Value: precommit,
+	}
 
-// 	commit := grandpa.Commit[string, uint, string, dummyAuthID]{
-// 		TargetHash:   targetHash,
-// 		TargetNumber: targetNum,
-// 		Precommits:   []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]{signedPrecommit},
-// 	}
+	msg := messageData[string, uint32]{
+		round,
+		1,
+		message,
+	}
 
-// 	return commit
-// }
+	encMsg, err := scale.Marshal(msg)
+	require.NoError(t, err)
 
-// func TestFinalityProof_FailsIfNoMoreLastFinalizedBlocks(t *testing.T) {
-// 	dummyInfo := Info[uint]{
-// 		FinalizedNumber: 4,
-// 	}
-// 	mockBlockchain := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
-// 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
+	signedPrecommit := grandpa.SignedPrecommit[string, uint32, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
+		Precommit: precommit,
+		ID:        newTestPublic(t, 1),
+		Signature: string(encMsg),
+	}
 
-// 	mockBackend := NewBackendMock[
-// 		string,
-// 		uint,
-// 		testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
-// 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Once()
+	commit := pgrandpa.Commit[string, uint32]{
+		TargetHash:   targetHash,
+		TargetNumber: targetNum,
+		Precommits:   []grandpa.SignedPrecommit[string, uint32, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{signedPrecommit},
+	}
 
-// 	// The last finalized block is 4, so we cannot provide further justifications.
-// 	authoritySetChanges := AuthoritySetChanges[uint]{}
-// 	_, err := proveFinality[
-// 		*BackendMock[string, uint, testHeader[string, uint],
-// 			*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
-// 		string,
-// 		uint,
-// 		string,
-// 		dummyAuthID,
-// 		testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
-// 	](
-// 		mockBackend,
-// 		authoritySetChanges,
-// 		5,
-// 		true)
-// 	require.ErrorIs(t, err, errBlockNotYetFinalized)
-// }
+	return commit
+}
 
-// func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
-// 	dummyInfo := Info[uint]{
-// 		FinalizedNumber: 4,
-// 	}
-// 	dummyHash := "dummyHash"
-// 	mockBlockchain := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
-// 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
-// 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(4)).Return(dummyHash, nil).Once()
-// 	mockBlockchain.EXPECT().Justifications(dummyHash).Return(nil, nil).Once()
+func TestFinalityProof_FailsIfNoMoreLastFinalizedBlocks(t *testing.T) {
+	dummyInfo := blockchain.Info[string, uint32]{
+		FinalizedNumber: 4,
+	}
+	mockBlockchain := mocks.NewBlockchainBackend[string, uint32](t)
+	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
 
-// 	mockBackend := NewBackendMock[string, uint, testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
-// 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(3)
+	mockBackend := mocks.NewBackend[string, uint32](t)
+	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Once()
 
-// 	authoritySetChanges := AuthoritySetChanges[uint]{}
-// 	authoritySetChanges.append(0, 4)
+	// The last finalized block is 4, so we cannot provide further justifications.
+	authoritySetChanges := AuthoritySetChanges[uint32]{}
+	_, err := proveFinality[string, uint32](
+		mockBackend,
+		authoritySetChanges,
+		5,
+		true)
+	require.ErrorIs(t, err, errBlockNotYetFinalized)
+}
 
-// 	// Block 4 is finalized without justification
-// 	// => we can't prove finality of 3
-// 	proofOf3, err := proveFinality[
-// 		*BackendMock[string, uint, testHeader[string, uint],
-// 			*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
-// 		string,
-// 		uint,
-// 		string,
-// 		dummyAuthID,
-// 		testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
-// 	](
-// 		mockBackend,
-// 		authoritySetChanges,
-// 		3,
-// 		true,
-// 	)
-// 	require.NoError(t, err)
-// 	require.Nil(t, proofOf3)
-// }
+func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
+	dummyInfo := blockchain.Info[string, uint32]{
+		FinalizedNumber: 4,
+	}
+	dummyHash := "dummyHash"
+	mockBlockchain := mocks.NewBlockchainBackend[string, uint32](t)
+	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
+	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint32(4)).Return(dummyHash, nil).Once()
+	mockBlockchain.EXPECT().Justifications(dummyHash).Return(nil, nil).Once()
 
-// func TestFinalityProof_CheckFailsWhenProofDecodeFails(t *testing.T) {
-// 	// When we can't decode proof from Vec<u8>
-// 	authorityList := AuthorityList[dummyAuthID]{}
-// 	_, err := checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-// 		1,
-// 		authorityList,
-// 		[]byte{42},
-// 	)
-// 	require.NotNil(t, err)
-// 	require.ErrorContains(t, err, "failed to decode finality proof")
-// }
+	mockBackend := mocks.NewBackend[string, uint32](t)
+	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(3)
 
-// func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
-// 	// When decoded proof has zero length
-// 	authorityList := AuthorityList[dummyAuthID]{}
-// 	grandpaJustification := GrandpaJustification[string,
-// 		uint,
-// 		string,
-// 		dummyAuthID,
-// 	]{}
-// 	encJustification, err := scale.Marshal(grandpaJustification)
-// 	require.NoError(t, err)
-// 	_, err = checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-// 		1,
-// 		authorityList,
-// 		encJustification,
-// 	)
-// 	require.NotNil(t, err)
-// }
+	authoritySetChanges := AuthoritySetChanges[uint32]{}
+	authoritySetChanges.append(0, 4)
 
-// func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
-// 	authorityList := AuthorityList[dummyAuthID]{
-// 		Authority[dummyAuthID]{
-// 			Key:    dummyAuthID(1),
-// 			Weight: uint64(1),
-// 		},
-// 	}
+	// Block 4 is finalized without justification
+	// => we can't prove finality of 3
+	proofOf3, err := proveFinality[string, uint32](
+		mockBackend,
+		authoritySetChanges,
+		3,
+		true,
+	)
+	require.NoError(t, err)
+	require.Nil(t, proofOf3)
+}
 
-// 	// Create a commit without precommits
-// 	commit := grandpa.Commit[string, uint, string, dummyAuthID]{
-// 		TargetHash:   "hash7",
-// 		TargetNumber: uint(7),
-// 	}
+func TestFinalityProof_CheckFailsWhenProofDecodeFails(t *testing.T) {
+	// When we can't decode proof from Vec<u8>
+	_, err := checkFinalityProof[string, uint32](
+		1,
+		pgrandpa.AuthorityList{},
+		[]byte{42},
+	)
+	require.NotNil(t, err)
+	require.ErrorContains(t, err, "failed to decode finality proof")
+}
 
-// 	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Round:  8,
-// 		Commit: commit,
-// 	}
+func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
+	// When decoded proof has zero length
+	authorityList := pgrandpa.AuthorityList{}
+	grandpaJustification := GrandpaJustification[string, uint32]{}
+	encJustification, err := scale.Marshal(grandpaJustification)
+	require.NoError(t, err)
+	_, err = checkFinalityProof[string, uint32](
+		1,
+		authorityList,
+		encJustification,
+	)
+	require.NotNil(t, err)
+}
 
-// 	finalityProof := FinalityProof[string, uint, testHeader[string, uint]]{
-// 		Block:         "hash2",
-// 		Justification: scale.MustMarshal(grandpaJust),
-// 	}
+func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
+	authorityList := pgrandpa.AuthorityList{
+		pgrandpa.AuthorityIDWeight{
+			AuthorityID:     newTestPublic(t, 1),
+			AuthorityWeight: 1,
+		},
+	}
 
-// 	_, err := checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-// 		1,
-// 		authorityList,
-// 		scale.MustMarshal(finalityProof),
-// 	)
-// 	require.ErrorIs(t, err, errBadJustification)
-// }
+	// Create a commit without precommits
+	commit := pgrandpa.Commit[string, uint32]{
+		TargetHash:   "hash7",
+		TargetNumber: 7,
+	}
 
-// func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
-// 	ID := dummyAuthID(1)
-// 	targetHash := "target"
-// 	targetNum := uint(21)
-// 	authorityList := AuthorityList[dummyAuthID]{
-// 		Authority[dummyAuthID]{
-// 			Key:    ID,
-// 			Weight: uint64(1),
-// 		},
-// 	}
+	grandpaJust := GrandpaJustification[string, uint32]{
+		Justification: pgrandpa.GrandpaJustification[string, uint32]{
+			Round:  8,
+			Commit: commit,
+		},
+	}
 
-// 	commit := createCommit(t, targetHash, targetNum, 1, ID)
-// 	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Round:  8,
-// 		Commit: commit,
-// 	}
+	finalityProof := FinalityProof[string, uint32]{
+		Block:         "hash2",
+		Justification: scale.MustMarshal(grandpaJust),
+	}
 
-// 	finalityProof := FinalityProof[string, uint, testHeader[string, uint]]{
-// 		Block:         "hash2",
-// 		Justification: scale.MustMarshal(grandpaJust),
-// 	}
+	_, err := checkFinalityProof[string, uint32](
+		1,
+		authorityList,
+		scale.MustMarshal(finalityProof),
+	)
+	require.ErrorIs(t, err, errBadJustification)
+}
 
-// 	newFinalityProof, err := checkFinalityProof[string, uint, string, testHeader[string, uint], dummyAuthID](
-// 		1,
-// 		authorityList,
-// 		scale.MustMarshal(finalityProof),
-// 	)
-// 	require.NoError(t, err)
-// 	require.Equal(t, finalityProof, newFinalityProof)
-// }
+func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
+	targetHash := "target"
+	targetNum := uint(21)
+
+	authorityList := pgrandpa.AuthorityList{
+		pgrandpa.AuthorityIDWeight{
+			AuthorityID:     newTestPublic(t, 1),
+			AuthorityWeight: 1,
+		},
+	}
+
+	var client blockchain.HeaderBackend[string, uint32]
+	setID := uint64(1)
+	round := uint64(8)
+
+	commit := createCommit(t, targetHash, targetNum, 1, 1)
+	// grandpaJust := GrandpaJustification[string, uint32]{
+	// 	Justification: pgrandpa.GrandpaJustification[string, uint32]{
+	// 		Round:  8,
+	// 		Commit: commit,
+	// 	},
+	// }
+	grandpaJust, err := NewJustificationFromCommit(client, round, commit)
+	require.NoError(t, err)
+
+	finalityProof := FinalityProof[string, uint32]{
+		Block:         "hash2",
+		Justification: scale.MustMarshal(grandpaJust),
+	}
+
+	newFinalityProof, err := checkFinalityProof[string, uint32](
+		1,
+		authorityList,
+		scale.MustMarshal(finalityProof),
+	)
+	require.NoError(t, err)
+	require.Equal(t, finalityProof, newFinalityProof)
+}
 
 // func TestFinalityProof_UsingAuthoritySetChangesFailsWithUndefinedStart(t *testing.T) {
 // 	dummyInfo := Info[uint]{

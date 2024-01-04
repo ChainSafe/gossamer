@@ -45,11 +45,10 @@ const maxUnknownHeaders = 100_000
 
 // FinalityProofProvider Finality proof provider for serving network requests.
 type FinalityProofProvider[
-	BE api.Backend[Hash, N],
 	Hash constraints.Ordered,
 	N runtime.Number,
 ] struct {
-	backend            BE
+	backend            api.Backend[Hash, N]
 	sharedAuthoritySet *SharedAuthoritySet[Hash, N]
 }
 
@@ -59,14 +58,13 @@ type FinalityProofProvider[
 // - authorityProvider for calling and proving runtime methods.
 // - sharedAuthoritySet for accessing authority set data
 func NewFinalityProofProvider[
-	BE api.Backend[Hash, N],
 	Hash constraints.Ordered,
 	N runtime.Number,
 ](
-	backend BE,
+	backend api.Backend[Hash, N],
 	sharedAuthSet *SharedAuthoritySet[Hash, N],
-) *FinalityProofProvider[BE, Hash, N] {
-	return &FinalityProofProvider[BE, Hash, N]{
+) *FinalityProofProvider[Hash, N] {
+	return &FinalityProofProvider[Hash, N]{
 		backend:            backend,
 		sharedAuthoritySet: sharedAuthSet,
 	}
@@ -74,7 +72,7 @@ func NewFinalityProofProvider[
 
 // ProveFinality Prove finality for the given block number by returning a Justification for the last block of
 // the authority set in bytes.
-func (provider FinalityProofProvider[BE, Hash, N]) ProveFinality(block N) (*[]byte, error) {
+func (provider FinalityProofProvider[Hash, N]) ProveFinality(block N) (*[]byte, error) {
 	proof, err := provider.proveFinalityProof(block, true)
 	if err != nil {
 		return nil, err
@@ -96,14 +94,14 @@ func (provider FinalityProofProvider[BE, Hash, N]) ProveFinality(block N) (*[]by
 //
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
-func (provider FinalityProofProvider[BE, Hash, N]) proveFinalityProof(
+func (provider FinalityProofProvider[Hash, N]) proveFinalityProof(
 	block N,
 	collectUnknownHeaders bool) (*FinalityProof[Hash, N], error) {
 	if provider.sharedAuthoritySet == nil {
 		return nil, nil
 	}
 
-	return proveFinality[BE, Hash, N](
+	return proveFinality[Hash, N](
 		provider.backend,
 		provider.sharedAuthoritySet.inner.AuthoritySetChanges,
 		block,
@@ -130,11 +128,10 @@ type FinalityProof[Hash constraints.Ordered, N runtime.Number] struct {
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
 func proveFinality[
-	BE api.Backend[Hash, N],
 	Hash constraints.Ordered,
 	N runtime.Number,
 ](
-	backend BE,
+	backend api.Backend[Hash, N],
 	authSetChanges AuthoritySetChanges[N],
 	block N,
 	collectUnknownHeaders bool,
