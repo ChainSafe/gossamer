@@ -67,10 +67,13 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 	t.Helper()
 	for data := range subsystemToOverseer {
 		switch data := data.(type) {
-		case parachaintypes.PPMIntroduceCandidate:
+		case parachaintypes.ProspectiveParachainsMessageIntroduceCandidate:
 			data.Ch <- nil
-		case parachaintypes.PPMCandidateSeconded, parachaintypes.PMProvisionableData,
-			parachaintypes.PPMCandidateBacked, parachaintypes.CPMBacked, parachaintypes.SDMBacked:
+		case parachaintypes.ProspectiveParachainsMessageCandidateSeconded,
+			parachaintypes.ProvisionerMessageProvisionableData,
+			parachaintypes.ProspectiveParachainsMessageCandidateBacked,
+			parachaintypes.CollatorProtocolMessageBacked,
+			parachaintypes.StatementDistributionMessageBacked:
 			continue
 		default:
 			t.Errorf("unknown type: %T\n", data)
@@ -362,7 +365,7 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 	mockTable := NewMockTable(ctrl)
 
 	mockTable.EXPECT().drainMisbehaviors().
-		Return([]parachaintypes.PDMisbehaviorReport{})
+		Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 	mockTable.EXPECT().attestedCandidate(
 		gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 		gomock.AssignableToTypeOf(new(TableContext)),
@@ -392,7 +395,7 @@ func TestPostImportStatement(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
-				mockTable.EXPECT().drainMisbehaviors().Return([]parachaintypes.PDMisbehaviorReport{
+				mockTable.EXPECT().drainMisbehaviors().Return([]parachaintypes.ProvisionableDataMisbehaviorReport{
 					{
 						ValidatorIndex: 1,
 						Misbehaviour:   parachaintypes.MultipleCandidates{},
@@ -412,7 +415,7 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -437,7 +440,7 @@ func TestPostImportStatement(t *testing.T) {
 				candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -462,7 +465,7 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -607,12 +610,12 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			expectedErr: "getting validation code by hash: ",
 			mockOverseer: func(ch chan any) {
 				data := <-ch
-				req, ok := data.(parachaintypes.RAMRequest)
+				req, ok := data.(parachaintypes.RuntimeApiMessageRequest)
 				if !ok {
 					t.Errorf("invalid overseer message type: %T\n", data)
 				}
 
-				req.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+				req.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
 					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 					Err: errors.New("mock error getting validation code"),
 				}
@@ -628,12 +631,12 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			expectedErr: "getting executor params at relay parent: ",
 			mockOverseer: func(ch chan any) {
 				data := <-ch
-				req, ok := data.(parachaintypes.RAMRequest)
+				req, ok := data.(parachaintypes.RuntimeApiMessageRequest)
 				if !ok {
 					t.Errorf("invalid overseer message type: %T\n", data)
 				}
 
-				req.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+				req.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
 					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 					Data: parachaintypes.ValidationCode{1, 2, 3},
 				}
@@ -652,12 +655,12 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			mockOverseer: func(ch chan any) {
 				for data := range ch {
 					switch data := data.(type) {
-					case parachaintypes.RAMRequest:
-						data.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+					case parachaintypes.RuntimeApiMessageRequest:
+						data.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
 							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
-					case parachaintypes.CVMValidateFromExhaustive:
+					case parachaintypes.CandidateValidationMessageValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
 							Err: errors.New("mock error getting validation result"),
 						}
@@ -678,12 +681,12 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			mockOverseer: func(ch chan any) {
 				for data := range ch {
 					switch data := data.(type) {
-					case parachaintypes.RAMRequest:
-						data.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+					case parachaintypes.RuntimeApiMessageRequest:
+						data.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
 							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
-					case parachaintypes.CVMValidateFromExhaustive:
+					case parachaintypes.CandidateValidationMessageValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
 							Data: parachaintypes.ValidationResult{
 								IsValid: false,
@@ -707,18 +710,18 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			mockOverseer: func(ch chan any) {
 				for data := range ch {
 					switch data := data.(type) {
-					case parachaintypes.RAMRequest:
-						data.RuntimeApiRequest.(parachaintypes.RARValidationCodeByHash).
+					case parachaintypes.RuntimeApiMessageRequest:
+						data.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
 							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
-					case parachaintypes.CVMValidateFromExhaustive:
+					case parachaintypes.CandidateValidationMessageValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
 							Data: parachaintypes.ValidationResult{
 								IsValid: true,
 							},
 						}
-					case parachaintypes.ASMStoreAvailableData:
+					case parachaintypes.AvailabilityStoreMessageStoreAvailableData:
 						data.Ch <- ErrInvalidErasureRoot
 					default:
 						t.Errorf("invalid overseer message type: %T\n", data)
@@ -823,7 +826,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(SignedFullStatementWithPVD{}),
 				).Return(nil, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
@@ -852,7 +855,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID: 4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -887,7 +890,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID:   4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -907,7 +910,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Payload: statementVDTValid,
 				},
 			},
-			err: "",
+			err: ErrAttestingDataNotFound.Error(),
 		},
 
 		{
@@ -924,7 +927,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID:   4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -964,7 +967,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID:   4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -1007,7 +1010,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID:   4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -1057,7 +1060,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID:   4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),
@@ -1100,7 +1103,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					GroupID:   4,
 				}, nil)
 				mockTable.EXPECT().drainMisbehaviors().
-					Return([]parachaintypes.PDMisbehaviorReport{})
+					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
 					gomock.AssignableToTypeOf(new(TableContext)),

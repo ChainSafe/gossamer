@@ -6,9 +6,9 @@ package parachaintypes
 import "github.com/ChainSafe/gossamer/lib/common"
 
 var (
-	_ ProvisionerMessage           = (*PMProvisionableData)(nil)
-	_ ProvisionableData            = (*PDBackedCandidate)(nil)
-	_ ProvisionableData            = (*PDMisbehaviorReport)(nil)
+	_ ProvisionerMessage           = (*ProvisionerMessageProvisionableData)(nil)
+	_ ProvisionableData            = (*ProvisionableDataBackedCandidate)(nil)
+	_ ProvisionableData            = (*ProvisionableDataMisbehaviorReport)(nil)
 	_ Misbehaviour                 = (*MultipleCandidates)(nil)
 	_ Misbehaviour                 = (*UnauthorizedStatement)(nil)
 	_ Misbehaviour                 = (*IssuedAndValidity)(nil)
@@ -16,15 +16,15 @@ var (
 	_ Misbehaviour                 = (*OnValidity)(nil)
 	_ DoubleSign                   = (*OnSeconded)(nil)
 	_ DoubleSign                   = (*OnValidity)(nil)
-	_ StatementDistributionMessage = (*SDMBacked)(nil)
-	_ CollatorProtocolMessage      = (*CPMBacked)(nil)
-	_ ProspectiveParachainsMessage = (*PPMCandidateBacked)(nil)
-	_ ProspectiveParachainsMessage = (*PPMIntroduceCandidate)(nil)
-	_ ProspectiveParachainsMessage = (*PPMCandidateSeconded)(nil)
-	_ RuntimeApiMessage            = (*RAMRequest)(nil)
-	_ RuntimeApiRequest            = (*RARValidationCodeByHash)(nil)
-	_ CandidateValidationMessage   = (*CVMValidateFromExhaustive)(nil)
-	_ AvailabilityStoreMessage     = (*ASMStoreAvailableData)(nil)
+	_ StatementDistributionMessage = (*StatementDistributionMessageBacked)(nil)
+	_ CollatorProtocolMessage      = (*CollatorProtocolMessageBacked)(nil)
+	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateBacked)(nil)
+	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageIntroduceCandidate)(nil)
+	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateSeconded)(nil)
+	_ RuntimeApiMessage            = (*RuntimeApiMessageRequest)(nil)
+	_ RuntimeApiRequest            = (*RuntimeApiRequestValidationCodeByHash)(nil)
+	_ CandidateValidationMessage   = (*CandidateValidationMessageValidateFromExhaustive)(nil)
+	_ AvailabilityStoreMessage     = (*AvailabilityStoreMessageStoreAvailableData)(nil)
 	_ ValidityDoubleVote           = (*IssuedAndValidity)(nil)
 )
 
@@ -39,33 +39,33 @@ type ProvisionerMessage interface {
 	IsProvisionerMessage()
 }
 
-// PMProvisionableData is a provisioner message.
+// ProvisionerMessageProvisionableData is a provisioner message.
 // This data should become part of a relay chain block.
-type PMProvisionableData struct {
+type ProvisionerMessageProvisionableData struct {
 	RelayParent       common.Hash
 	ProvisionableData ProvisionableData
 }
 
-func (PMProvisionableData) IsProvisionerMessage() {}
+func (ProvisionerMessageProvisionableData) IsProvisionerMessage() {}
 
 // ProvisionableData becomes intrinsics or extrinsics which should be included in a future relay chain block.
 type ProvisionableData interface {
 	IsProvisionableData()
 }
 
-// PDBackedCandidate is a provisionable data.
+// ProvisionableDataBackedCandidate is a provisionable data.
 // The Candidate Backing subsystem believes that this candidate is valid, pending availability.
-type PDBackedCandidate CandidateReceipt
+type ProvisionableDataBackedCandidate CandidateReceipt
 
-func (PDBackedCandidate) IsProvisionableData() {}
+func (ProvisionableDataBackedCandidate) IsProvisionableData() {}
 
-// PDMisbehaviorReport represents self-contained proofs of validator misbehaviour.
-type PDMisbehaviorReport struct {
+// ProvisionableDataMisbehaviorReport represents self-contained proofs of validator misbehaviour.
+type ProvisionableDataMisbehaviorReport struct {
 	ValidatorIndex ValidatorIndex
 	Misbehaviour   Misbehaviour
 }
 
-func (PDMisbehaviorReport) IsProvisionableData() {}
+func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
 
 // Misbehaviour is intended to represent different kinds of misbehaviour along with supporting proofs.
 type Misbehaviour interface {
@@ -152,65 +152,65 @@ type StatementDistributionMessage interface {
 	IsStatementDistributionMessage()
 }
 
-// SDMBacked is a statement distribution message.
+// StatementDistributionMessageBacked is a statement distribution message.
 // it represents a message indicating that a candidate has received sufficient
 // validity votes from the backing group. If backed as a result of a local statement,
 // it must be preceded by a `Share` message for that statement to ensure awareness of
 // full candidates before the `Backed` notification, even in groups of size 1.
-type SDMBacked CandidateHash
+type StatementDistributionMessageBacked CandidateHash
 
-func (SDMBacked) IsStatementDistributionMessage() {}
+func (StatementDistributionMessageBacked) IsStatementDistributionMessage() {}
 
 // CollatorProtocolMessage represents messages that are received by the Collator Protocol subsystem.
 type CollatorProtocolMessage interface {
 	IsCollatorProtocolMessage()
 }
 
-// CPMBacked is a collator protocol message.
+// CollatorProtocolMessageBacked is a collator protocol message.
 // The candidate received enough validity votes from the backing group.
-type CPMBacked struct {
+type CollatorProtocolMessageBacked struct {
 	// Candidate's para id.
 	ParaID ParaID
 	// Hash of the para head generated by candidate.
 	ParaHead common.Hash
 }
 
-func (CPMBacked) IsCollatorProtocolMessage() {}
+func (CollatorProtocolMessageBacked) IsCollatorProtocolMessage() {}
 
 // ProspectiveParachainsMessage represents messages that are sent to the Prospective Parachains subsystem.
 type ProspectiveParachainsMessage interface {
 	IsProspectiveParachainsMessage()
 }
 
-// PPMCandidateBacked is a prospective parachains message.
+// ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
 // a previously introduced candidate has been successfully backed.
-type PPMCandidateBacked struct {
+type ProspectiveParachainsMessageCandidateBacked struct {
 	ParaID        ParaID
 	CandidateHash CandidateHash
 }
 
-func (PPMCandidateBacked) IsProspectiveParachainsMessage() {}
+func (ProspectiveParachainsMessageCandidateBacked) IsProspectiveParachainsMessage() {}
 
-// PPMIntroduceCandidate is a prospective parachains message.
+// ProspectiveParachainsMessageIntroduceCandidate is a prospective parachains message.
 // it inform the Prospective Parachains Subsystem about a new candidate.
-type PPMIntroduceCandidate struct {
+type ProspectiveParachainsMessageIntroduceCandidate struct {
 	IntroduceCandidateRequest IntroduceCandidateRequest
 	Ch                        chan error
 }
 
-func (PPMIntroduceCandidate) IsProspectiveParachainsMessage() {}
+func (ProspectiveParachainsMessageIntroduceCandidate) IsProspectiveParachainsMessage() {}
 
-// PPMCandidateSeconded is a prospective parachains message.
+// ProspectiveParachainsMessageCandidateSeconded is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that a previously introduced candidate
 // has been seconded. This requires that the candidate was successfully introduced in
 // the past.
-type PPMCandidateSeconded struct {
+type ProspectiveParachainsMessageCandidateSeconded struct {
 	ParaID        ParaID
 	CandidateHash CandidateHash
 }
 
-func (PPMCandidateSeconded) IsProspectiveParachainsMessage() {}
+func (ProspectiveParachainsMessageCandidateSeconded) IsProspectiveParachainsMessage() {}
 
 // IntroduceCandidateRequest is a request to introduce a candidate into the Prospective Parachains Subsystem.
 type IntroduceCandidateRequest struct {
@@ -227,26 +227,26 @@ type RuntimeApiMessage interface {
 	IsRuntimeApiMessage()
 }
 
-type RAMRequest struct {
+type RuntimeApiMessageRequest struct {
 	RelayParent common.Hash
 	// Make a request of the runtime API against the post-state of the given relay-parent.
 	RuntimeApiRequest RuntimeApiRequest
 }
 
-func (RAMRequest) IsRuntimeApiMessage() {}
+func (RuntimeApiMessageRequest) IsRuntimeApiMessage() {}
 
 type RuntimeApiRequest interface {
 	IsRuntimeApiRequest()
 }
 
-// RARValidationCodeByHash retrieves validation code by its hash. It can return
+// RuntimeApiRequestValidationCodeByHash retrieves validation code by its hash. It can return
 // past, current, or future code as long as state is available.
-type RARValidationCodeByHash struct {
+type RuntimeApiRequestValidationCodeByHash struct {
 	ValidationCodeHash ValidationCodeHash
 	Ch                 chan OverseerFuncRes[ValidationCode]
 }
 
-func (RARValidationCodeByHash) IsRuntimeApiRequest() {}
+func (RuntimeApiRequestValidationCodeByHash) IsRuntimeApiRequest() {}
 
 // CandidateValidationMessage represents messages received by the Validation subsystem.
 // Validation requests should return an error only in case of internal errors.
@@ -254,11 +254,11 @@ type CandidateValidationMessage interface {
 	IsCandidateValidationMessage()
 }
 
-// CVMValidateFromExhaustive performs full validation of a candidate with provided parameters,
+// CandidateValidationMessageValidateFromExhaustive performs full validation of a candidate with provided parameters,
 // including `PersistedValidationData` and `ValidationCode`. It doesn't involve acceptance
 // criteria checking and is typically used when the candidate's validity is established
 // through prior relay-chain checks.
-type CVMValidateFromExhaustive struct {
+type CandidateValidationMessageValidateFromExhaustive struct {
 	PersistedValidationData PersistedValidationData
 	ValidationCode          ValidationCode
 	CandidateReceipt        CandidateReceipt
@@ -268,7 +268,7 @@ type CVMValidateFromExhaustive struct {
 	Ch                      chan OverseerFuncRes[ValidationResult]
 }
 
-func (CVMValidateFromExhaustive) IsCandidateValidationMessage() {}
+func (CandidateValidationMessageValidateFromExhaustive) IsCandidateValidationMessage() {}
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
 type ValidationResult struct {
@@ -283,9 +283,9 @@ type AvailabilityStoreMessage interface {
 	IsAvailabilityStoreMessage()
 }
 
-// ASMStoreAvailableData computes and checks the erasure root of `AvailableData`
+// AvailabilityStoreMessageStoreAvailableData computes and checks the erasure root of `AvailableData`
 // before storing its chunks in the AV store.
-type ASMStoreAvailableData struct {
+type AvailabilityStoreMessageStoreAvailableData struct {
 	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
 	CandidateHash CandidateHash
 	// The number of validators in the session.
@@ -298,7 +298,7 @@ type ASMStoreAvailableData struct {
 	Ch chan error
 }
 
-func (ASMStoreAvailableData) IsAvailabilityStoreMessage() {}
+func (AvailabilityStoreMessageStoreAvailableData) IsAvailabilityStoreMessage() {}
 
 // AvailableData represents the data that is kept available for each candidate included in the relay chain.
 type AvailableData struct {

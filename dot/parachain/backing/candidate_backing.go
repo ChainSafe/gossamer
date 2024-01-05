@@ -358,7 +358,7 @@ func (rpState *perRelayParentState) importStatement(
 
 	if rpState.ProspectiveParachainsMode.IsEnabled {
 		chIntroduceCandidate := make(chan error)
-		subSystemToOverseer <- parachaintypes.PPMIntroduceCandidate{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
 			IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
 				CandidateParaID:           parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
 				CommittedCandidateReceipt: parachaintypes.CommittedCandidateReceipt(statementVDTSeconded),
@@ -378,7 +378,7 @@ func (rpState *perRelayParentState) importStatement(
 			return nil, fmt.Errorf("%w: %w", ErrRejectedByProspectiveParachains, introduceCandidateErr)
 		}
 
-		subSystemToOverseer <- parachaintypes.PPMCandidateSeconded{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateSeconded{
 			ParaID:        parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
 			CandidateHash: candidateHash,
 		}
@@ -395,6 +395,8 @@ func (rpState *perRelayParentState) importStatement(
 	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
 }
 
+// postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
+// misbehaviors as a result of importing a statement.
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
 	// If the summary is nil, issue new misbehaviors and return.
 	if summary == nil {
@@ -442,19 +444,19 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	if rpState.ProspectiveParachainsMode.IsEnabled {
 
 		// Inform the prospective parachains subsystem that the candidate is now backed.
-		subSystemToOverseer <- parachaintypes.PPMCandidateBacked{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
 			ParaID:        parachaintypes.ParaID(paraID),
 			CandidateHash: candidateHash,
 		}
 
 		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
-		subSystemToOverseer <- parachaintypes.CPMBacked{
+		subSystemToOverseer <- parachaintypes.CollatorProtocolMessageBacked{
 			ParaID:   parachaintypes.ParaID(paraID),
 			ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
 		}
 
 		// Notify statement distribution of backed candidate.
-		subSystemToOverseer <- parachaintypes.SDMBacked(candidateHash)
+		subSystemToOverseer <- parachaintypes.StatementDistributionMessageBacked(candidateHash)
 
 	} else {
 		// TODO: figure out what this comment means by 'avoid cycles'.
@@ -464,9 +466,9 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		//
 		// Backed candidates are bounded by the number of validators,
 		// parachains, and the block production rate of the relay chain.
-		subSystemToOverseer <- parachaintypes.PMProvisionableData{
+		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
 			RelayParent:       rpState.RelayParent,
-			ProvisionableData: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToPlain()),
+			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
 
@@ -486,9 +488,9 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 		//
 		// Misbehaviors are bounded by the number of validators and
 		// the block production protocol.
-		subSystemToOverseer <- parachaintypes.PMProvisionableData{
+		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
 			RelayParent: relayParent,
-			ProvisionableData: parachaintypes.PDMisbehaviorReport{
+			ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
 				ValidatorIndex: m.ValidatorIndex,
 				Misbehaviour:   m.Misbehaviour,
 			},
@@ -585,9 +587,9 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 
 	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
-	subSystemToOverseer <- parachaintypes.RAMRequest{
+	subSystemToOverseer <- parachaintypes.RuntimeApiMessageRequest{
 		RelayParent: relayParent,
-		RuntimeApiRequest: parachaintypes.RARValidationCodeByHash{
+		RuntimeApiRequest: parachaintypes.RuntimeApiRequestValidationCodeByHash{
 			ValidationCodeHash: validationCodeHash,
 			Ch:                 chValidationCodeByHashRes,
 		},
@@ -611,7 +613,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
-	subSystemToOverseer <- parachaintypes.CVMValidateFromExhaustive{
+	subSystemToOverseer <- parachaintypes.CandidateValidationMessageValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
@@ -637,7 +639,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		logger.Debugf("validation successful! candidateHash=%s", candidateHash)
 
 		chStoreAvailableDataError := make(chan error)
-		subSystemToOverseer <- parachaintypes.ASMStoreAvailableData{
+		subSystemToOverseer <- parachaintypes.AvailabilityStoreMessageStoreAvailableData{
 			CandidateHash: candidateHash,
 			NumValidators: numValidator,
 			AvailableData: parachaintypes.AvailableData{
