@@ -210,7 +210,13 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	case SecondMessage:
 		cb.handleSecondMessage()
 	case StatementMessage:
-		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
+		err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
+
+		if errors.Is(err, ErrRejectedByProspectiveParachains) || errors.Is(err, ErrAttestingDataNotFound) {
+			logger.Error(err.Error())
+			return nil
+		}
+		return err
 	default:
 		return fmt.Errorf("unknown message type: %T", msg)
 	}
@@ -284,7 +290,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		candidateHash := parachaintypes.CandidateHash(statementVDT)
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
-			return nil
+			return ErrAttestingDataNotFound
 		}
 
 		ourIndex := rpState.TableContext.validator.index
@@ -318,6 +324,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	)
 }
 
+// importStatement imports a statement into the statement table and returns the summary of the import.
 func (rpState *perRelayParentState) importStatement(
 	subSystemToOverseer chan<- any,
 	signedStatementWithPVD SignedFullStatementWithPVD,
@@ -360,7 +367,13 @@ func (rpState *perRelayParentState) importStatement(
 			Ch: chIntroduceCandidate,
 		}
 
-		introduceCandidateErr := <-chIntroduceCandidate
+		introduceCandidateErr, ok := <-chIntroduceCandidate
+		if !ok {
+			return nil, fmt.Errorf("%w: %s",
+				ErrRejectedByProspectiveParachains,
+				"Could not reach the Prospective Parachains subsystem.",
+			)
+		}
 		if introduceCandidateErr != nil {
 			return nil, fmt.Errorf("%w: %w", ErrRejectedByProspectiveParachains, introduceCandidateErr)
 		}
