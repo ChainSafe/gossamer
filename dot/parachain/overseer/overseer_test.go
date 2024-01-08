@@ -12,7 +12,9 @@ import (
 	"testing"
 	"time"
 
+	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -220,4 +222,42 @@ func TestHandleBlockEvents(t *testing.T) {
 
 	require.Equal(t, int32(2), finalizedCounter.Load())
 	require.Equal(t, int32(2), importedCounter.Load())
+}
+
+func TestSignalAvailabilityStore(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	blockState := NewMockBlockState(ctrl)
+
+	finalizedNotifierChan := make(chan *types.FinalisationInfo)
+	importedBlockNotiferChan := make(chan *types.Block)
+
+	blockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
+	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
+	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
+	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
+
+	overseer := NewOverseer(blockState)
+
+	require.NotNil(t, overseer)
+
+	stateService := state.NewService(state.Config{})
+	stateService.UseMemDB()
+
+	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, stateService)
+	require.NoError(t, err)
+
+	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+
+	err = overseer.Start()
+	require.NoError(t, err)
+
+	finalizedNotifierChan <- &types.FinalisationInfo{}
+	importedBlockNotiferChan <- &types.Block{}
+
+	time.Sleep(1000 * time.Millisecond)
+
+	err = overseer.Stop()
+	require.NoError(t, err)
+
 }
