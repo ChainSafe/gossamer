@@ -6,6 +6,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// handleCanSecondMessage Performs seconding sanity check for an advertisement.
 func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 	rpState, ok := cb.perRelayParent[msg.CandidateRelayParent]
 	if !ok {
@@ -21,7 +22,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 		return
 	}
 
-	hypotheticalCandidate := parachaintypes.HCIncomplete{
+	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{
 		CandidateHash:      msg.CandidateHash,
 		CandidateParaID:    msg.CandidateParaID,
 		ParentHeadDataHash: msg.ParentHeadDataHash,
@@ -30,17 +31,18 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 
 	isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
 
-	if isSecondingAllowed {
-		for _, v := range membership {
-			// candidate should be recognised by at least some fragment tree.
-			if v != nil {
-				msg.resCh <- true
-				return
-			}
-		}
+	if !isSecondingAllowed {
+		msg.resCh <- false
+		return
 	}
 
-	msg.resCh <- false
+	for _, v := range membership {
+		// candidate should be recognised by at least some fragment tree.
+		if v != nil {
+			msg.resCh <- true
+			return
+		}
+	}
 }
 
 // secondingSanityCheck checks whether a candidate can be seconded based on its
@@ -68,10 +70,10 @@ func (cb *CandidateBacking) secondingSanityCheck(
 	)
 
 	switch v := hypotheticalCandidate.(type) {
-	case parachaintypes.HCIncomplete:
+	case parachaintypes.HypotheticalCandidateIncomplete:
 		candidateParaID = v.CandidateParaID
 		candidateRelayParent = v.RelayParent
-	case parachaintypes.HCComplete:
+	case parachaintypes.HypotheticalCandidateComplete:
 		candidateParaID = parachaintypes.ParaID(v.CommittedCandidateReceipt.Descriptor.ParaID)
 		candidateRelayParent = v.CommittedCandidateReceipt.Descriptor.RelayParent
 	}
@@ -85,7 +87,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 			}
 
 			responseCh := make(chan parachaintypes.HypotheticalFrontierResponse)
-			cb.SubSystemToOverseer <- parachaintypes.PPMGetHypotheticalFrontier{
+			cb.SubSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier{
 				HypotheticalFrontierRequest: parachaintypes.HypotheticalFrontierRequest{
 					Candidates:              []parachaintypes.HypotheticalCandidate{hypotheticalCandidate},
 					FragmentTreeRelayParent: &head,

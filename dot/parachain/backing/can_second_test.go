@@ -107,9 +107,9 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go func(SubSystemToOverseer chan any) {
 			in := <-SubSystemToOverseer
-			in.(parachaintypes.PPMGetHypotheticalFrontier).Ch <- parachaintypes.HypotheticalFrontierResponse{
+			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).Ch <- parachaintypes.HypotheticalFrontierResponse{
 				{
-					HypotheticalCandidate: parachaintypes.HCIncomplete{
+					HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
 						CandidateHash:      candidateHash,
 						CandidateParaID:    1,
 						ParentHeadDataHash: getDummyHash(t, 4),
@@ -135,7 +135,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
-	hypotheticalCandidate := parachaintypes.HCIncomplete{
+	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{
 		CandidateHash:      candidateHash,
 		CandidateParaID:    1,
 		ParentHeadDataHash: getDummyHash(t, 4),
@@ -217,7 +217,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 
 		go func(SubSystemToOverseer chan any) {
 			in := <-SubSystemToOverseer
-			in.(parachaintypes.PPMGetHypotheticalFrontier).Ch <- parachaintypes.HypotheticalFrontierResponse{
+			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).Ch <- parachaintypes.HypotheticalFrontierResponse{
 				{
 					HypotheticalCandidate: hypotheticalCandidate,
 					FragmentTreeMembership: []parachaintypes.FragmentTreeMembership{{
@@ -266,7 +266,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 
 		go func(SubSystemToOverseer chan any) {
 			in := <-SubSystemToOverseer
-			in.(parachaintypes.PPMGetHypotheticalFrontier).Ch <- parachaintypes.HypotheticalFrontierResponse{
+			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).Ch <- parachaintypes.HypotheticalFrontierResponse{
 				{
 					HypotheticalCandidate: hypotheticalCandidate,
 					FragmentTreeMembership: []parachaintypes.FragmentTreeMembership{{

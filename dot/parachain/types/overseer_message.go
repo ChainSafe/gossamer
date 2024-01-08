@@ -21,9 +21,9 @@ var (
 	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateBacked)(nil)
 	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageIntroduceCandidate)(nil)
 	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateSeconded)(nil)
-	_ ProspectiveParachainsMessage = (*PPMGetHypotheticalFrontier)(nil)
-	_ HypotheticalCandidate        = (*HCIncomplete)(nil)
-	_ HypotheticalCandidate        = (*HCComplete)(nil)
+	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageGetHypotheticalFrontier)(nil)
+	_ HypotheticalCandidate        = (*HypotheticalCandidateIncomplete)(nil)
+	_ HypotheticalCandidate        = (*HypotheticalCandidateComplete)(nil)
 	_ RuntimeApiMessage            = (*RuntimeApiMessageRequest)(nil)
 	_ RuntimeApiRequest            = (*RuntimeApiRequestValidationCodeByHash)(nil)
 	_ CandidateValidationMessage   = (*CandidateValidationMessageValidateFromExhaustive)(nil)
@@ -230,12 +230,12 @@ func (ProspectiveParachainsMessageCandidateSeconded) IsProspectiveParachainsMess
 //
 // For any candidate which is already known, this returns the depths the candidate
 // occupies.
-type PPMGetHypotheticalFrontier struct {
+type ProspectiveParachainsMessageGetHypotheticalFrontier struct {
 	HypotheticalFrontierRequest HypotheticalFrontierRequest
 	Ch                          chan HypotheticalFrontierResponse
 }
 
-func (PPMGetHypotheticalFrontier) IsProspectiveParachainsMessage() {}
+func (ProspectiveParachainsMessageGetHypotheticalFrontier) IsProspectiveParachainsMessage() {}
 
 // Request specifying which candidates are either already included
 // or might be included in the hypothetical frontier of fragment trees
@@ -275,9 +275,9 @@ type HypotheticalCandidate interface {
 	isHypotheticalCandidate()
 }
 
-// HCIncomplete represents an incomplete hypothetical candidate.
+// HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
 // this
-type HCIncomplete struct {
+type HypotheticalCandidateIncomplete struct {
 	// CandidateHash is the claimed hash of the candidate.
 	CandidateHash CandidateHash
 	// ParaID is the claimed para-ID of the candidate.
@@ -288,17 +288,17 @@ type HCIncomplete struct {
 	RelayParent common.Hash
 }
 
-func (HCIncomplete) isHypotheticalCandidate() {}
+func (HypotheticalCandidateIncomplete) isHypotheticalCandidate() {}
 
-// HCComplete represents a complete candidate, including its hash, committed candidate receipt,
+// HypotheticalCandidateComplete represents a complete candidate, including its hash, committed candidate receipt,
 // and persisted validation data.
-type HCComplete struct {
+type HypotheticalCandidateComplete struct {
 	CandidateHash             CandidateHash
 	CommittedCandidateReceipt CommittedCandidateReceipt
 	PersistedValidationData   PersistedValidationData
 }
 
-func (HCComplete) isHypotheticalCandidate() {}
+func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
 
 // RuntimeApiMessage is a message to the Runtime API subsystem.
 type RuntimeApiMessage interface {

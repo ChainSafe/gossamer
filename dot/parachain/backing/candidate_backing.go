@@ -60,7 +60,7 @@ type CandidateBacking struct {
 type ActiveLeafState struct {
 	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	SecondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
-	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
+	perCandidate              map[parachaintypes.CandidateHash]*perCandidateState //nolint:unused
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
