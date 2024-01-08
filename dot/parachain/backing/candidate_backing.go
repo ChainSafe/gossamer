@@ -44,12 +44,12 @@ type CandidateBacking struct {
 	// While it would be technically possible to support such leaves in
 	// fragment trees, it only benefits the transition period when asynchronous
 	// backing is being enabled and complicates code complexity.
-	perRelayParent map[common.Hash]perRelayParentState
+	perRelayParent map[common.Hash]*perRelayParentState
 	// State tracked for all candidates relevant to the implicit view.
 	//
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
-	perCandidate map[parachaintypes.CandidateHash]perCandidateState
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
 	perLeaf map[common.Hash]ActiveLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
@@ -60,6 +60,7 @@ type CandidateBacking struct {
 type ActiveLeafState struct {
 	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	SecondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -179,8 +180,8 @@ type SignedFullStatementWithPVD struct {
 func New(overseerChan chan<- any) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
-		perRelayParent:      map[common.Hash]perRelayParentState{},
-		perCandidate:        map[parachaintypes.CandidateHash]perCandidateState{},
+		perRelayParent:      map[common.Hash]*perRelayParentState{},
+		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
 	}
 }
 
@@ -222,7 +223,13 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	case SecondMessage:
 		cb.handleSecondMessage()
 	case StatementMessage:
-		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
+		err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
+
+		if errors.Is(err, ErrRejectedByProspectiveParachains) || errors.Is(err, ErrAttestingDataNotFound) {
+			logger.Error(err.Error())
+			return nil
+		}
+		return err
 	default:
 		return fmt.Errorf("unknown message type: %T", msg)
 	}
@@ -288,14 +295,11 @@ func (cb *CandidateBacking) handleStatementMessage(
 			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
-
-		rpState.fallbacks[summary.Candidate] = attesting
-
 	case parachaintypes.Valid:
 		candidateHash := parachaintypes.CandidateHash(statementVDT)
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
-			return nil
+			return ErrAttestingDataNotFound
 		}
 
 		ourIndex := rpState.TableContext.validator.index
@@ -313,6 +317,8 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
 	}
 
+	rpState.fallbacks[summary.Candidate] = attesting
+
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
 	pc, ok := cb.perCandidate[summary.Candidate]
 	if !ok {
@@ -327,10 +333,11 @@ func (cb *CandidateBacking) handleStatementMessage(
 	)
 }
 
+// importStatement imports a statement into the statement table and returns the summary of the import.
 func (rpState *perRelayParentState) importStatement(
 	subSystemToOverseer chan<- any,
 	signedStatementWithPVD SignedFullStatementWithPVD,
-	perCandidate map[parachaintypes.CandidateHash]perCandidateState,
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState,
 ) (*Summary, error) {
 	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 	if err != nil {
@@ -360,7 +367,7 @@ func (rpState *perRelayParentState) importStatement(
 
 	if rpState.ProspectiveParachainsMode.IsEnabled {
 		chIntroduceCandidate := make(chan error)
-		subSystemToOverseer <- parachaintypes.PPMIntroduceCandidate{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
 			IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
 				CandidateParaID:           parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
 				CommittedCandidateReceipt: parachaintypes.CommittedCandidateReceipt(statementVDTSeconded),
@@ -369,19 +376,25 @@ func (rpState *perRelayParentState) importStatement(
 			Ch: chIntroduceCandidate,
 		}
 
-		introduceCandidateErr := <-chIntroduceCandidate
+		introduceCandidateErr, ok := <-chIntroduceCandidate
+		if !ok {
+			return nil, fmt.Errorf("%w: %s",
+				ErrRejectedByProspectiveParachains,
+				"Could not reach the Prospective Parachains subsystem.",
+			)
+		}
 		if introduceCandidateErr != nil {
 			return nil, fmt.Errorf("%w: %w", ErrRejectedByProspectiveParachains, introduceCandidateErr)
 		}
 
-		subSystemToOverseer <- parachaintypes.PPMCandidateSeconded{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateSeconded{
 			ParaID:        parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
 			CandidateHash: candidateHash,
 		}
 	}
 
 	// Only save the candidate if it was approved by prospective parachains.
-	perCandidate[candidateHash] = perCandidateState{
+	perCandidate[candidateHash] = &perCandidateState{
 		persistedValidationData: *signedStatementWithPVD.PersistedValidationData,
 		SecondedLocally:         false, // This is set after importing when seconding locally.
 		ParaID:                  parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
@@ -391,6 +404,8 @@ func (rpState *perRelayParentState) importStatement(
 	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
 }
 
+// postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
+// misbehaviors as a result of importing a statement.
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
 	// If the summary is nil, issue new misbehaviors and return.
 	if summary == nil {
@@ -438,19 +453,19 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	if rpState.ProspectiveParachainsMode.IsEnabled {
 
 		// Inform the prospective parachains subsystem that the candidate is now backed.
-		subSystemToOverseer <- parachaintypes.PPMCandidateBacked{
+		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
 			ParaID:        parachaintypes.ParaID(paraID),
 			CandidateHash: candidateHash,
 		}
 
 		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
-		subSystemToOverseer <- parachaintypes.CPMBacked{
+		subSystemToOverseer <- parachaintypes.CollatorProtocolMessageBacked{
 			ParaID:   parachaintypes.ParaID(paraID),
 			ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
 		}
 
 		// Notify statement distribution of backed candidate.
-		subSystemToOverseer <- parachaintypes.SDMBacked(candidateHash)
+		subSystemToOverseer <- parachaintypes.StatementDistributionMessageBacked(candidateHash)
 
 	} else {
 		// TODO: figure out what this comment means by 'avoid cycles'.
@@ -460,9 +475,9 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		//
 		// Backed candidates are bounded by the number of validators,
 		// parachains, and the block production rate of the relay chain.
-		subSystemToOverseer <- parachaintypes.PMProvisionableData{
+		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
 			RelayParent:       rpState.RelayParent,
-			ProvisionableData: parachaintypes.PDBackedCandidate(backedCandidate.Candidate.ToPlain()),
+			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
 
@@ -482,9 +497,9 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 		//
 		// Misbehaviors are bounded by the number of validators and
 		// the block production protocol.
-		subSystemToOverseer <- parachaintypes.PMProvisionableData{
+		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
 			RelayParent: relayParent,
-			ProvisionableData: parachaintypes.PDMisbehaviorReport{
+			ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
 				ValidatorIndex: m.ValidatorIndex,
 				Misbehaviour:   m.Misbehaviour,
 			},
@@ -581,9 +596,9 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 
 	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
-	subSystemToOverseer <- parachaintypes.RAMRequest{
+	subSystemToOverseer <- parachaintypes.RuntimeApiMessageRequest{
 		RelayParent: relayParent,
-		RuntimeApiRequest: parachaintypes.RARValidationCodeByHash{
+		RuntimeApiRequest: parachaintypes.RuntimeApiRequestValidationCodeByHash{
 			ValidationCodeHash: validationCodeHash,
 			Ch:                 chValidationCodeByHashRes,
 		},
@@ -607,7 +622,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
-	subSystemToOverseer <- parachaintypes.CVMValidateFromExhaustive{
+	subSystemToOverseer <- parachaintypes.CandidateValidationMessageValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
@@ -633,7 +648,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		logger.Debugf("validation successful! candidateHash=%s", candidateHash)
 
 		chStoreAvailableDataError := make(chan error)
-		subSystemToOverseer <- parachaintypes.ASMStoreAvailableData{
+		subSystemToOverseer <- parachaintypes.AvailabilityStoreMessageStoreAvailableData{
 			CandidateHash: candidateHash,
 			NumValidators: numValidator,
 			AvailableData: parachaintypes.AvailableData{

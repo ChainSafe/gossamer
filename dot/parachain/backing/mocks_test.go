@@ -51,10 +51,10 @@ func (mr *MockTableMockRecorder) attestedCandidate(arg0, arg1 interface{}) *gomo
 }
 
 // drainMisbehaviors mocks base method.
-func (m *MockTable) drainMisbehaviors() []types.PDMisbehaviorReport {
+func (m *MockTable) drainMisbehaviors() []types.ProvisionableDataMisbehaviorReport {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "drainMisbehaviors")
-	ret0, _ := ret[0].([]types.PDMisbehaviorReport)
+	ret0, _ := ret[0].([]types.ProvisionableDataMisbehaviorReport)
 	return ret0
 }
 

@@ -10,7 +10,7 @@ type Table interface {
 	getCandidate(parachaintypes.CandidateHash) (*parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*TableContext, SignedFullStatementWithPVD) (*Summary, error)
 	attestedCandidate(*parachaintypes.CandidateHash, *TableContext) (*AttestedCandidate, error)
-	drainMisbehaviors() []parachaintypes.PDMisbehaviorReport
+	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
 // Summary represents summary of import of a statement.

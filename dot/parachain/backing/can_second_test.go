@@ -40,7 +40,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 	t.Run("async_backing_is_disabled", func(t *testing.T) {
 		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
 					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{IsEnabled: false},
 				},
@@ -53,7 +53,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 	t.Run("seconding is not allowed", func(t *testing.T) {
 		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
 					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
@@ -81,7 +81,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		cb := CandidateBacking{
 			SubSystemToOverseer: SubSystemToOverseer,
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
 					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
@@ -160,7 +160,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 		).Return([]common.Hash{})
 
 		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
 			perLeaf: map[common.Hash]ActiveLeafState{
@@ -193,7 +193,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 
 		cb := CandidateBacking{
 			SubSystemToOverseer: SubSystemToOverseer,
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
 			perLeaf: map[common.Hash]ActiveLeafState{
@@ -246,7 +246,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 
 		cb := CandidateBacking{
 			SubSystemToOverseer: SubSystemToOverseer,
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
 			perLeaf: map[common.Hash]ActiveLeafState{
@@ -288,7 +288,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 
 	t.Run("prospective_parachains_mode_disabled_and_leaf_is_already_occupied", func(t *testing.T) {
 		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]perRelayParentState{
+			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
 			perLeaf: map[common.Hash]ActiveLeafState{

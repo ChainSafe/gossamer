@@ -173,19 +173,19 @@ func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, par
 
 func IsRelayParentInImplicitView(
 	relayParent common.Hash,
-	relayParentMode ProspectiveParachainsMode,
+	relayParentMode parachaintypes.ProspectiveParachainsMode,
 	implicitView ImplicitView,
-	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode,
 	paraID parachaintypes.ParaID,
 ) bool {
-	if !relayParentMode.isEnabled {
+	if !relayParentMode.IsEnabled {
 		_, ok := activeLeaves[relayParent]
 		return ok
 	}
 
 	for hash, mode := range activeLeaves {
 		knownAllowedRelayParent := implicitView.KnownAllowedRelayParentsUnder(hash, paraID)
-		if mode.isEnabled && knownAllowedRelayParent.String() == relayParent.String() {
+		if mode.IsEnabled && knownAllowedRelayParent.String() == relayParent.String() {
 			return true
 		}
 	}
@@ -198,10 +198,10 @@ func IsRelayParentInImplicitView(
 // declared itself a collator.
 func (peerData *PeerData) InsertAdvertisement(
 	onRelayParent common.Hash,
-	relayParentMode ProspectiveParachainsMode,
+	relayParentMode parachaintypes.ProspectiveParachainsMode,
 	candidateHash *parachaintypes.CandidateHash,
 	implicitView ImplicitView,
-	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode,
 ) (isAdvertisementInvalid bool, err error) {
 	switch peerData.state.PeerState {
 	case Connected:
@@ -212,14 +212,14 @@ func (peerData *PeerData) InsertAdvertisement(
 			return false, ErrOutOfView
 		}
 
-		if relayParentMode.isEnabled {
+		if relayParentMode.IsEnabled {
 			// relayParentMode.maxCandidateDepth
 			candidates, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
 			if ok && slices.Contains[[]parachaintypes.CandidateHash](candidates, *candidateHash) {
 				return false, ErrDuplicateAdvertisement
 			}
 
-			if len(candidates) > int(relayParentMode.maxCandidateDepth) {
+			if len(candidates) > int(relayParentMode.MaxCandidateDepth) {
 				return false, ErrPeerLimitReached
 			}
 			candidates = append(candidates, *candidateHash)
@@ -331,7 +331,7 @@ type CollatorProtocolValidatorSide struct {
 	/// support prospective parachains. This mapping works as a replacement for
 	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
 	/// to asynchronous backing is done.
-	activeLeaves map[common.Hash]ProspectiveParachainsMode
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode
 
 	// Collations that we have successfully requested from peers and waiting
 	// on validation.
@@ -353,23 +353,8 @@ func (f fetchedCollationInfo) String() string {
 		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
 }
 
-// Prospective parachains mode of a relay parent. Defined by
-// the Runtime API version.
-//
-// Needed for the period of transition to asynchronous backing.
-type ProspectiveParachainsMode struct {
-	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
-	isEnabled bool
-
-	// these values would be present only if `isEnabled` is true
-
-	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
-	// Restricts nodes from building arbitrary long chains and spamming other validators.
-	maxCandidateDepth uint
-}
-
 type PerRelayParent struct {
-	prospectiveParachainMode ProspectiveParachainsMode
+	prospectiveParachainMode parachaintypes.ProspectiveParachainsMode
 	assignment               *parachaintypes.ParaID
 	collations               Collations
 }
@@ -384,10 +369,10 @@ type Collations struct {
 }
 
 // IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
-func (collations Collations) IsSecondedLimitReached(relayParentMode ProspectiveParachainsMode) bool {
+func (collations Collations) IsSecondedLimitReached(relayParentMode parachaintypes.ProspectiveParachainsMode) bool {
 	var secondedLimit uint
-	if relayParentMode.isEnabled {
-		secondedLimit = relayParentMode.maxCandidateDepth + 1
+	if relayParentMode.IsEnabled {
+		secondedLimit = relayParentMode.MaxCandidateDepth + 1
 	} else {
 		secondedLimit = 1
 	}
