@@ -128,7 +128,7 @@ docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile .
 
-gossamer: clean compile-erasure build
+gossamer: clean build
 
 ## install: install the gossamer binary in $GOPATH/bin
 install: build
