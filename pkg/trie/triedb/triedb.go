@@ -1,6 +1,3 @@
-// Copyright 2024 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package triedb
 
 import (
@@ -158,12 +155,34 @@ type RemoveAtResult struct {
 	changed bool
 }
 
-// TODO: implement me
+func (tdb *TrieDB[H]) record(
+	access TrieAccess[H],
+) {
+	if tdb.recorder != nil {
+		tdb.recorder.record(access)
+	}
+}
+
 func (tdb *TrieDB[H]) lookupAndCache(
 	hash H,
 	key hashdb.Prefix,
 ) (StorageHandle, error) {
-	panic("implement me")
+	var node Node[H]
+
+	nodeFromCache := tdb.cache.GetNode(hash)
+	if nodeFromCache != nil {
+		tdb.record(TrieAccessNodeOwned[H]{hash: hash, nodeOwned: *nodeFromCache})
+		node = NodeFromNodeOwned(*nodeFromCache, tdb.storage)
+	} else {
+		nodeEncoded := tdb.db.Get(hash, key)
+		if nodeEncoded == nil {
+			return 0, ErrIncompleteDB
+		}
+
+		tdb.record(TrieAccessEncodedNode[H]{hash: hash, encodedNode: *nodeEncoded})
+	}
+
+	return tdb.storage.alloc(StoredCached[H]{Node: node, Hash: hash}), nil
 }
 
 type PostInspectAction interface {
@@ -331,4 +350,24 @@ func (tdb *TrieDB[H]) Insert(key []byte, value []byte) (*TrieValue, error) {
 	tdb.rootHandle = InMemory{insertRes.handle}
 
 	return oldVal, nil
+}
+
+func NodeFromNodeOwned[H HashOut](nodeOwned n.NodeOwned[H], storage NodeStorage[H]) Node[H] {
+	switch node := nodeOwned.(type) {
+	case Empty:
+		return Empty{}
+	case Leaf:
+		return Leaf{
+			PartialKey: node.PartialKey,
+			Value:      node.Value,
+		}
+	case NibbledBranch:
+		return NibbledBranch{
+			PartialKey: node.PartialKey,
+			Children:   node.Children,
+			Value:      node.Value,
+		}
+	default:
+		panic("Invalid node")
+	}
 }

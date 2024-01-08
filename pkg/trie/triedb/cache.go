@@ -30,6 +30,6 @@ func (v Existing[H]) Type() string     { return "Existing" }
 type TrieCache[Out node.HashOut] interface {
 	LookupValueForKey(key []byte) *CachedValue[Out]
 	CacheValueForKey(key []byte, value CachedValue[Out])
-	GetOrInsertNode(hash Out, fetchNode func() (node.Node[Out], error))
-	GetNode(hash Out) node.Node[Out]
+	GetOrInsertNode(hash Out, fetchNode func() (node.NodeOwned[Out], error))
+	GetNode(hash Out) *node.NodeOwned[Out]
 }

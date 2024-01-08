@@ -29,9 +29,9 @@ type TrieAccess[Out node.HashOut] interface {
 
 type (
 	// TrieAccessNode means that the given node was accessed using its hash
-	TrieAccessNode[H node.HashOut] struct {
-		hash H
-		node node.Node[H]
+	TrieAccessNodeOwned[H node.HashOut] struct {
+		hash      H
+		nodeOwned node.NodeOwned[H]
 	}
 
 	// TrieAccessEncodedNode means that the given encodedNode was accessed using its hash
@@ -69,7 +69,7 @@ type (
 	}
 )
 
-func (a TrieAccessNode[H]) Type() string        { return "Node" }
+func (a TrieAccessNodeOwned[H]) Type() string   { return "Node" }
 func (a TrieAccessEncodedNode[H]) Type() string { return "EncodedNode" }
 func (a TrieAccessValue[H]) Type() string       { return "Value" }
 func (a TrieAccessInlineValue[H]) Type() string { return "InlineValue" }
@@ -117,8 +117,8 @@ func (r *Recorder[H]) record(access TrieAccess[H]) {
 	switch access := access.(type) {
 	case TrieAccessEncodedNode[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: access.encodedNode})
-	case TrieAccessNode[H]:
-		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: node.EncodeNode(access.node, r.layout.Codec())})
+	case TrieAccessNodeOwned[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: node.EncodeNodeOwned(access.nodeOwned, r.layout.Codec())})
 	case TrieAccessValue[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: access.value})
 		r.recorderKeys[string(access.fullKey)] = RecordedForKeyValue

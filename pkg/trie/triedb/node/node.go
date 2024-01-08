@@ -62,14 +62,14 @@ type (
 	NodeOwnedEmpty struct{}
 	// NodeLeaf represents a leaf node
 	NodeOwnedLeaf[H HashOut] struct {
-		partialKey nibble.NibbleSlice
-		value      ValueOwned[H]
+		PartialKey nibble.NibbleSlice
+		Value      ValueOwned[H]
 	}
 	// NodeNibbledBranch represents a branch node
 	NodeOwnedNibbledBranch[H HashOut] struct {
-		partialKey nibble.NibbleSlice
-		children   [nibble.NibbleLength]NodeHandleOwned[H]
-		value      ValueOwned[H]
+		PartialKey nibble.NibbleSlice
+		Children   [nibble.NibbleLength]NodeHandleOwned[H]
+		Value      ValueOwned[H]
 	}
 )
 
@@ -80,6 +80,7 @@ func (n NodeOwnedNibbledBranch[H]) Type() string { return "NibbledBranch" }
 // Value is a trie node value
 type ValueOwned[H HashOut] interface {
 	Type() string
+	AsValue() Value
 }
 type (
 	// InlineNodeValue if the value is inlined we can get the bytes and the hash of the value
@@ -88,17 +89,24 @@ type (
 		hash  H
 	}
 	// HashedNodeValue is a trie node pointer to a hashed node
-	NodeValueOwned[H comparable] struct {
+	NodeValueOwned[H HashOut] struct {
 		hash H
 	}
 )
 
 func (v InlineValueOwned[H]) Type() string { return "Inline" }
-func (v NodeValueOwned[H]) Type() string   { return "Node" }
+func (v InlineValueOwned[H]) AsValue() Value {
+	return InlineValue{Bytes: v.bytes}
+}
+func (v NodeValueOwned[H]) Type() string { return "Node" }
+func (v NodeValueOwned[H]) AsValue() Value {
+	return NodeValue{Bytes: v.hash.ToBytes()}
+}
 
 // NodeHandle is a reference to a trie node which may be stored within another trie node.
 type NodeHandleOwned[H HashOut] interface {
 	Type() string
+	AsChildReference(codec NodeCodec[H]) ChildReference[H]
 }
 type (
 	NodeHandleOwnedHash[H HashOut] struct {
@@ -109,8 +117,18 @@ type (
 	}
 )
 
-func (h NodeHandleOwnedHash[H]) Type() string   { return "Hash" }
+func (h NodeHandleOwnedHash[H]) Type() string { return "Hash" }
+func (h NodeHandleOwnedHash[H]) AsChildReference(codec NodeCodec[H]) ChildReference[H] {
+	return ChildReferenceHash[H]{hash: h.ValueOwned}
+}
 func (h NodeHandleOwnedInline[H]) Type() string { return "Inline" }
+func (h NodeHandleOwnedInline[H]) AsChildReference(codec NodeCodec[H]) ChildReference[H] {
+	encoded := EncodeNodeOwned(h.node, codec)
+	if len(encoded) > codec.Hasher().Length() {
+		panic("Invalid inline node handle")
+	}
+	return ChildReferenceInline[H]{hash: codec.Hasher().FromBytes(encoded), length: uint(len(encoded))}
+}
 
 // NodeHandle is a reference to a trie node which may be stored within another trie node.
 type NodeHandle interface {
