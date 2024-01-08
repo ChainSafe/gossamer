@@ -17,6 +17,10 @@ func NewNibbleSlice(data []byte) *NibbleSlice {
 	return &NibbleSlice{data, 0}
 }
 
+func NewFromStored(i NodeKey) *NibbleSlice {
+	return NewNibbleSliceWithPadding(i.nibbles.data, i.offset)
+}
+
 func NewNibbleSliceWithPadding(data []byte, padding uint) *NibbleSlice {
 	return &NibbleSlice{data, padding}
 }
@@ -48,14 +52,14 @@ func (ns *NibbleSlice) At(i uint) byte {
 }
 
 func (ns *NibbleSlice) StartsWith(other *NibbleSlice) bool {
-	return ns.commonPrefix(other) == other.Len()
+	return ns.CommonPrefix(other) == other.Len()
 }
 
 func (ns *NibbleSlice) Eq(other *NibbleSlice) bool {
 	return ns.Len() == other.Len() && ns.StartsWith(other)
 }
 
-func (ns *NibbleSlice) commonPrefix(other *NibbleSlice) uint {
+func (ns *NibbleSlice) CommonPrefix(other *NibbleSlice) uint {
 	selfAlign := ns.offset % NibblePerByte
 	otherAlign := other.offset % NibblePerByte
 	if selfAlign == otherAlign {

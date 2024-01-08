@@ -1,9 +1,17 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package nibble
 
 const NibblePerByte uint = 2
 const PaddingBitmask byte = 0x0F
 const BitPerNibble = 4
 const NibbleLength = 16
+
+type NodeKey struct {
+	offset  uint
+	nibbles NibbleSlice
+}
 
 func padLeft(b byte) byte {
 	padded := (b & ^PaddingBitmask)

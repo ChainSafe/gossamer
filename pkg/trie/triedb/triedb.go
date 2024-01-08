@@ -1,25 +1,74 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package triedb
 
 import (
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+	n "github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
 	"github.com/gammazero/deque"
 )
 
-type StorageHandle = uint
-type NibbleFullKey = nibble.NibbleSlice
+type HashOut = n.HashOut
 
-type Stored[H node.HashOut] interface {
+// Value
+type Value interface {
 	Type() string
 }
 
 type (
-	StoredNew[Out node.HashOut] struct {
-		Node node.Node[Out]
+	InlineValue struct {
+		Bytes []byte
 	}
-	StoredCached[Out node.HashOut] struct {
-		Node node.Node[Out]
+	NodeValue[H HashOut] struct {
+		Hash H
+	}
+
+	NewNode[H HashOut] struct {
+		Hash  *H
+		Bytes []byte
+	}
+)
+
+// Node types in the Trie
+type Node[H HashOut] interface {
+	Type() string
+}
+
+type (
+	// NodeEmptyNode represents an empty node
+	Empty struct{}
+	// NodeLeaf represents a leaf node
+	Leaf struct {
+		PartialKey nibble.NodeKey
+		Value      Value
+	}
+	// NodeNibbledBranch represents a branch node
+	NibbledBranch struct {
+		PartialKey nibble.NodeKey
+		Children   [nibble.NibbleLength]NodeHandle
+		Value      Value
+	}
+)
+
+func (n Empty) Type() string         { return "Empty" }
+func (n Leaf) Type() string          { return "Leaf" }
+func (n NibbledBranch) Type() string { return "NibbledBranch" }
+
+type StorageHandle = uint
+type NibbleFullKey = nibble.NibbleSlice
+
+type Stored[H HashOut] interface {
+	Type() string
+}
+
+type (
+	StoredNew[Out HashOut] struct {
+		Node Node[Out]
+	}
+	StoredCached[Out HashOut] struct {
+		Node Node[Out]
 		Hash Out
 	}
 )
@@ -31,7 +80,7 @@ type NodeHandle interface {
 	Type() string
 }
 type (
-	Hash[H node.HashOut] struct {
+	Hash[H HashOut] struct {
 		Value H
 	}
 	InMemory struct {
@@ -43,12 +92,12 @@ func (h Hash[H]) Type() string  { return "Hash" }
 func (h InMemory) Type() string { return "InMemory" }
 
 // Compact storage for tree nodes
-type NodeStorage[H node.HashOut] struct {
+type NodeStorage[H HashOut] struct {
 	nodes       []Stored[H]
 	freeIndices deque.Deque[uint]
 }
 
-func NewEmptyNodeStorage[H node.HashOut]() *NodeStorage[H] {
+func NewEmptyNodeStorage[H HashOut]() *NodeStorage[H] {
 	return &NodeStorage[H]{
 		nodes: make([]Stored[H], 0),
 	}
@@ -69,7 +118,7 @@ func (ns *NodeStorage[H]) destroy(handle StorageHandle) Stored[H] {
 	idx := handle
 
 	ns.freeIndices.PushBack(idx)
-	ns.nodes[idx] = StoredNew[H]{node.Empty{}}
+	ns.nodes[idx] = StoredNew[H]{Empty{}}
 	return ns.nodes[idx]
 }
 
@@ -78,11 +127,11 @@ type deathRowValue struct {
 	b           *[]byte
 }
 
-type TrieDB[Out node.HashOut] struct {
+type TrieDB[Out HashOut] struct {
 	storage    NodeStorage[Out]
 	db         hashdb.HashDB[Out, DBValue]
 	root       Out
-	rootHandle node.NodeHandle
+	rootHandle NodeHandle
 	deathRow   map[Out]struct{}
 	hashCount  uint
 	cache      TrieCache[Out]
@@ -90,7 +139,7 @@ type TrieDB[Out node.HashOut] struct {
 	layout     TrieLayout[Out]
 }
 
-func NewTrieDB[H node.HashOut](
+func NewTrieDB[H HashOut](
 	db hashdb.HashDB[H, DBValue],
 	root H,
 	cache TrieCache[H],
@@ -114,7 +163,7 @@ func (tdb *TrieDB[H]) lookupAndCache(
 	hash H,
 	key hashdb.Prefix,
 ) (StorageHandle, error) {
-	return 0, nil
+	panic("implement me")
 }
 
 type PostInspectAction interface {
@@ -122,20 +171,20 @@ type PostInspectAction interface {
 }
 
 type (
-	Replace[H node.HashOut] struct {
-		node node.Node[H]
+	PostInspectActionReplace[H HashOut] struct {
+		node Node[H]
 	}
-	Restore[H node.HashOut] struct {
-		node node.Node[H]
+	PostInspectActionRestore[H HashOut] struct {
+		node Node[H]
 	}
-	Delete struct{}
+	PostInspectActionDelete struct{}
 )
 
-func (r Replace[H]) Type() string { return "Replace" }
-func (r Restore[H]) Type() string { return "Restore" }
-func (r Delete) Type() string     { return "Delete" }
+func (r PostInspectActionReplace[H]) Type() string { return "Replace" }
+func (r PostInspectActionRestore[H]) Type() string { return "Restore" }
+func (r PostInspectActionDelete) Type() string     { return "Delete" }
 
-type InspectResult[H node.HashOut] struct {
+type InspectResult[H HashOut] struct {
 	stored  Stored[H]
 	changed bool
 }
@@ -145,7 +194,7 @@ func (tdb *TrieDB[H]) inspect(
 	stored Stored[H],
 	key NibbleFullKey,
 	inspector func(
-		node node.Node[H],
+		node Node[H],
 		key NibbleFullKey,
 	) (PostInspectAction, error),
 ) (InspectResult[H], error) {
@@ -154,11 +203,21 @@ func (tdb *TrieDB[H]) inspect(
 
 // TODO: implement me
 func (tdb *TrieDB[H]) removeInspector(
-	node node.Node[H],
+	node Node[H],
 	key NibbleFullKey,
 	oldVal *TrieValue,
 ) (PostInspectAction, error) {
 	panic("implement me")
+}
+
+// TODO: implement me
+func (tdb *TrieDB[H]) insertInspector(
+	node Node[H],
+	key NibbleFullKey,
+	value []byte,
+	oldVal *TrieValue,
+) (PostInspectAction, error) {
+	panic("Implement me")
 }
 
 // Removes a node from the trie based on key
@@ -180,7 +239,7 @@ func (tdb *TrieDB[H]) removeAt(
 		stored = tdb.storage.destroy(fromCache)
 	}
 
-	res, err := tdb.inspect(stored, key, func(node node.Node[H], key NibbleFullKey) (PostInspectAction, error) {
+	res, err := tdb.inspect(stored, key, func(node Node[H], key NibbleFullKey) (PostInspectAction, error) {
 		return tdb.removeInspector(node, key, oldVal)
 	})
 
@@ -220,14 +279,40 @@ type InsertAtResult struct {
 	changed bool
 }
 
-// TODO: implement me
+// / Insert a key-value pair into the trie, creating new nodes if necessary.
 func (tdb *TrieDB[H]) insertAt(
 	handle NodeHandle,
 	key NibbleFullKey,
 	value []byte,
 	oldVal *TrieValue,
 ) (InsertAtResult, error) {
-	panic("implement me")
+	var storageHandle StorageHandle
+	var err error
+
+	switch h := handle.(type) {
+	case InMemory:
+		storageHandle = h.Value
+	case Hash[H]:
+		storageHandle, err = tdb.lookupAndCache(h.Value, key.Left())
+		if err != nil {
+			return InsertAtResult{}, err
+		}
+	}
+
+	stored := tdb.storage.destroy(storageHandle)
+
+	res, err := tdb.inspect(stored, key, func(node Node[H], key NibbleFullKey) (PostInspectAction, error) {
+		return tdb.insertInspector(node, key, value, oldVal)
+	})
+
+	if err != nil {
+		return InsertAtResult{}, err
+	}
+
+	return InsertAtResult{
+		tdb.storage.alloc(res.stored),
+		res.changed,
+	}, nil
 }
 
 func (tdb *TrieDB[H]) Insert(key []byte, value []byte) (*TrieValue, error) {
