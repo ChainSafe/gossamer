@@ -51,7 +51,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		cb.handleCanSecondMessage(msg)
 	})
 
-	t.Run("seconding is not allowed", func(t *testing.T) {
+	t.Run("seconding_is_not_allowed", func(t *testing.T) {
 		cb := CandidateBacking{
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
@@ -68,7 +68,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		cb.handleCanSecondMessage(msg)
 	})
 
-	t.Run("candidate recognised by at least one fragment tree", func(t *testing.T) {
+	t.Run("candidate_recognised_by_at_least_one_fragment_tree", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
