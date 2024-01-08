@@ -1,4 +1,4 @@
-package triedb
+package node
 
 import (
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
@@ -13,11 +13,11 @@ type Value interface {
 type (
 	// InlineNodeValue if the value is inlined we can get the bytes and the hash of the value
 	InlineValue struct {
-		bytes []byte
+		Bytes []byte
 	}
 	// HashedNodeValue is a trie node pointer to a hashed node
 	NodeValue struct {
-		bytes []byte
+		Bytes []byte
 	}
 )
 
@@ -34,14 +34,14 @@ type (
 	Empty struct{}
 	// NodeLeaf represents a leaf node
 	Leaf struct {
-		partialKey nibble.NibbleSlice
-		value      Value
+		PartialKey nibble.NibbleSlice
+		Value      Value
 	}
 	// NodeNibbledBranch represents a branch node
 	NibbledBranch struct {
-		partialKey nibble.NibbleSlice
-		children   [nibble.NibbleLength]NodeHandle
-		value      Value
+		PartialKey nibble.NibbleSlice
+		Children   [nibble.NibbleLength]NodeHandle
+		Value      Value
 	}
 )
 
@@ -115,10 +115,10 @@ type NodeHandle interface {
 }
 type (
 	Hash struct {
-		value []byte
+		Value []byte
 	}
 	Inline struct {
-		value []byte
+		Value []byte
 	}
 )
 

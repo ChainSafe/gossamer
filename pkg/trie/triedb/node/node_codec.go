@@ -1,4 +1,4 @@
-package triedb
+package node
 
 import (
 	"fmt"
@@ -24,9 +24,9 @@ func EncodeNode[H HashOut](node Node[H], codec NodeCodec[H]) []byte {
 	case Empty:
 		return codec.EmptyNode()
 	case Leaf:
-		return codec.LeafNode(n.partialKey, n.partialKey.Len(), n.value)
+		return codec.LeafNode(n.PartialKey, n.PartialKey.Len(), n.Value)
 	case NibbledBranch:
-		return codec.BranchNodeNibbled(n.partialKey, n.partialKey.Len(), n.children, n.value)
+		return codec.BranchNodeNibbled(n.PartialKey, n.PartialKey.Len(), n.Children, n.Value)
 	default:
 		panic(fmt.Sprintf("unknown node type %s", n.Type()))
 	}

@@ -6,11 +6,12 @@ package triedb
 import (
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
 )
 
 var EmptyValue = []byte{}
 
-type Lookup[Hash HashOut] struct {
+type Lookup[Hash node.HashOut] struct {
 	db       hashdb.HashDB[Hash, DBValue]
 	hash     Hash
 	cache    TrieCache[Hash]
@@ -18,7 +19,7 @@ type Lookup[Hash HashOut] struct {
 	layout   TrieLayout[Hash]
 }
 
-func NewLookup[H HashOut](
+func NewLookup[H node.HashOut](
 	db hashdb.HashDB[H, DBValue], hash H, cache TrieCache[H], recorder TrieRecorder[H]) *Lookup[H] {
 	return &Lookup[H]{
 		db:       db,
@@ -69,21 +70,21 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 				return nil, DecoderError
 			}
 
-			var nextNode NodeHandle = nil
+			var nextNode node.NodeHandle = nil
 
 			switch node := decodedNode.(type) {
-			case Empty:
+			case node.Empty:
 				return EmptyValue, nil
-			case Leaf:
+			case node.Leaf:
 				// If leaf and matches return value
-				if partial.Eq(&node.partialKey) {
-					return l.loadValue(node.value, nibbleKey.OriginalDataAsPrefix())
+				if partial.Eq(&node.PartialKey) {
+					return l.loadValue(node.Value, nibbleKey.OriginalDataAsPrefix())
 				}
 				return EmptyValue, nil
-			case NibbledBranch:
-				slice := node.partialKey
-				children := node.children
-				value := node.value
+			case node.NibbledBranch:
+				slice := node.PartialKey
+				children := node.Children
+				value := node.Value
 				// Get next node
 				if !partial.StartsWith(&slice) {
 					return EmptyValue, nil
@@ -104,28 +105,28 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 				keyNibbles += slice.Len() + 1
 			}
 
-			switch node := nextNode.(type) {
-			case Hash:
-				nextHash := DecodeHash(node.value, l.layout.Hasher())
+			switch n := nextNode.(type) {
+			case node.Hash:
+				nextHash := node.DecodeHash(n.Value, l.layout.Hasher())
 				if nextHash == nil {
 					return nil, InvalidHash
 				}
 				hash = *nextHash
 				break
-			case Inline:
-				nodeData = &node.value
+			case node.Inline:
+				nodeData = &n.Value
 			}
 		}
 		depth++
 	}
 }
 
-func (l Lookup[H]) loadValue(value Value, prefix hashdb.Prefix) ([]byte, error) {
+func (l Lookup[H]) loadValue(value node.Value, prefix hashdb.Prefix) ([]byte, error) {
 	switch v := value.(type) {
-	case InlineValue:
-		return v.bytes, nil
-	case NodeValue:
-		hash := l.layout.Hasher().FromBytes(v.bytes)
+	case node.InlineValue:
+		return v.Bytes, nil
+	case node.NodeValue:
+		hash := l.layout.Hasher().FromBytes(v.Bytes)
 		bytes := l.db.Get(hash, prefix)
 		if bytes == nil {
 			return nil, ErrIncompleteDB

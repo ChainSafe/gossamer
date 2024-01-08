@@ -1,11 +1,14 @@
 package triedb
 
-import "github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+import (
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+)
 
-type TrieLayout[Out HashOut] interface {
+type TrieLayout[Out node.HashOut] interface {
 	UseExtension() bool
 	AllowEmpty() bool
 	MaxInlineValue() *uint
 	Hasher() hashdb.Hasher[Out]
-	Codec() NodeCodec[Out]
+	Codec() node.NodeCodec[Out]
 }

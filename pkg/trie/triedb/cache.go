@@ -1,5 +1,7 @@
 package triedb
 
+import "github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+
 // CachedValue a value as cached by TrieCache
 type CachedValue[H comparable] interface {
 	Type() string
@@ -22,9 +24,9 @@ func (v NonExisting) Type() string     { return "NonExisting" }
 func (v ExistingHash[H]) Type() string { return "ExistingHash" }
 func (v Existing[H]) Type() string     { return "Existing" }
 
-type TrieCache[Out HashOut] interface {
+type TrieCache[Out node.HashOut] interface {
 	LookupValueForKey(key []byte) *CachedValue[Out]
 	CacheValueForKey(key []byte, value CachedValue[Out])
-	GetOrInsertNode(hash Out, fetchNode func() (Node[Out], error))
-	GetNode(hash Out) Node[Out]
+	GetOrInsertNode(hash Out, fetchNode func() (node.Node[Out], error))
+	GetNode(hash Out) node.Node[Out]
 }

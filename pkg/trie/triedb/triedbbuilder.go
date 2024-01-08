@@ -1,17 +1,20 @@
 package triedb
 
-import "github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+import (
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+)
 
 type DBValue = []byte
 
-type TrieDBBuilder[Out HashOut] struct {
+type TrieDBBuilder[Out node.HashOut] struct {
 	db       hashdb.HashDB[Out, DBValue]
 	root     Out
 	cache    TrieCache[Out]
 	recorder TrieRecorder[Out]
 }
 
-func NewTrieDBBuilder[Out HashOut](
+func NewTrieDBBuilder[Out node.HashOut](
 	db hashdb.HashDB[Out, DBValue],
 	root Out,
 ) *TrieDBBuilder[Out] {
