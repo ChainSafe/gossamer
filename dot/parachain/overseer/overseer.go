@@ -247,11 +247,6 @@ func (o *Overseer) Stop() error {
 	return nil
 }
 
-// sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
-func (o *Overseer) sendActiveLeavesUpdate(update parachaintypes.ActiveLeavesUpdateSignal, subsystem Subsystem) {
-	o.subsystems[subsystem] <- update
-}
-
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) (timeouted bool) {
 	c := make(chan struct{})
 	go func() {
