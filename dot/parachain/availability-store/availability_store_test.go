@@ -296,29 +296,29 @@ func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 	batch := NewAvailabilityStoreBatch(as)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
 
-	err := as.writePruningKey(batch, Timestamp(1), candidateHash)
+	err := as.writePruningKey(batch, timestamp(1), candidateHash)
 	require.NoError(t, err)
-	err = as.writePruningKey(batch, Timestamp(2), candidateHash)
+	err = as.writePruningKey(batch, timestamp(2), candidateHash)
 	require.NoError(t, err)
 
 	err = batch.Flush()
 	require.NoError(t, err)
 
 	// check that the key is written
-	key1 := append(Timestamp(1).ToBEBytes(), candidateHash.Value[:]...)
+	key1 := append(timestamp(1).ToBigEndianBytes(), candidateHash.Value[:]...)
 
 	got, err := as.pruneByTime.Get(key1)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key2 := append(Timestamp(2).ToBEBytes(), candidateHash.Value[:]...)
+	key2 := append(timestamp(2).ToBigEndianBytes(), candidateHash.Value[:]...)
 	got, err = as.pruneByTime.Get(key2)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
 	// delete pruning key, timestamp 1
 	batch = NewAvailabilityStoreBatch(as)
-	err = as.deletePruningKey(batch, Timestamp(1), candidateHash)
+	err = as.deletePruningKey(batch, timestamp(1), candidateHash)
 	require.NoError(t, err)
 	err = batch.Flush()
 	require.NoError(t, err)

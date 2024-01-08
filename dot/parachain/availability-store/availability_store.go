@@ -30,32 +30,32 @@ const (
 	pruneByTimePrefix   = "prune_by_time"
 
 	// Unavailable blocks are kept for 1 hour.
-	KeepUnavilableFor = time.Hour
+	keepUnavilableFor = time.Hour
 
 	// Finalized data is kept for 25 hours.
-	KeepFinalizedFor = time.Hour * 25
+	keepFinalizedFor = time.Hour * 25
 
 	// The pruning interval.
-	PruningInterval = time.Minute * 5
+	pruningInterval = time.Minute * 5
 )
 
 // BETimestamp is a unix time wrapper with big-endian encoding
-type Timestamp uint64
+type timestamp uint64
 
-// ToBEBytes returns the big-endian encoding of the timestamp
-func (b Timestamp) ToBEBytes() []byte {
+// ToBigEndianBytes returns the big-endian encoding of the timestamp
+func (b timestamp) ToBigEndianBytes() []byte {
 	res := make([]byte, 8)
 	binary.BigEndian.PutUint64(res, uint64(b))
 	return res
 }
 
-type SubsystemClock struct{}
+type subsystemClock struct{}
 
-func (sc *SubsystemClock) Now() Timestamp {
-	return Timestamp(time.Now().Unix())
+func (sc *subsystemClock) Now() timestamp {
+	return timestamp(time.Now().Unix())
 }
 
-// PruningConfig Struct holding pruning timing configuration.
+// pruningConfig Struct holding pruning timing configuration.
 // The only purpose of this structure is to use different timing
 // configurations in production and in testing.
 type PruningConfig struct {
@@ -64,10 +64,10 @@ type PruningConfig struct {
 	pruningInterval    time.Duration
 }
 
-var DefaultPruningConfig = PruningConfig{
-	keepUnavailableFor: KeepUnavilableFor,
-	keepFinalizedFor:   KeepFinalizedFor,
-	pruningInterval:    PruningInterval,
+var defaultPruningConfig = pruningConfig{
+	keepUnavailableFor: keepUnavilableFor,
+	keepFinalizedFor:   keepFinalizedFor,
+	pruningInterval:    pruningInterval,
 }
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
@@ -79,6 +79,8 @@ type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	availabilityStore   AvailabilityStore
+	pruningConfig       pruningConfig
+	clock               subsystemClock
 	//TODO: pruningConfig PruningConfig
 	//TODO: clock         Clock
 	//TODO: metrics       Metrics
@@ -328,9 +330,9 @@ func (as *AvailabilityStore) deleteUnfinalizedHeight(batch *AvailabilityStoreBat
 }
 
 // writePruningKey writes a pruning key to the availability store of the given batch
-func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, pruneAt Timestamp,
+func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, pruneAt timestamp,
 	candidate parachaintypes.CandidateHash) error {
-	pruneKey := append(pruneAt.ToBEBytes(), candidate.Value[:]...)
+	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
 	err := batch.pruneByTime.Put(pruneKey, nil)
 	if err != nil {
 		return fmt.Errorf("writing pruning key: %w", err)
@@ -339,9 +341,9 @@ func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, prun
 }
 
 // deletePruningKey deletes a pruning key from the availability store of the given batch
-func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pruneAt Timestamp,
+func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pruneAt timestamp,
 	candidate parachaintypes.CandidateHash) error {
-	pruneKey := append(pruneAt.ToBEBytes(), candidate.Value[:]...)
+	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
 	err := batch.pruneByTime.Del(pruneKey)
 	if err != nil {
 		return fmt.Errorf("deleting pruning key: %w", err)
@@ -404,7 +406,7 @@ func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	meta = &CandidateMeta{}
 
 	now := subsystem.clock.Now()
-	pruneAt := now + Timestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
+	pruneAt := now + timestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
 	err = as.writePruningKey(batch, pruneAt, candidate)
 	if err != nil {
 		return false, fmt.Errorf("writing pruning key: %w", err)
@@ -712,9 +714,4 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		return fmt.Errorf("store available data: %w", err)
 	}
 	return nil
-}
-
-func (av *AvailabilityStoreSubsystem) Stop() {
-	av.cancel()
-	av.wg.Wait()
 }
