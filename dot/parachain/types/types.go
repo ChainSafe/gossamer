@@ -561,6 +561,8 @@ type ValidatorSignature Signature
 // Signature represents a cryptographic signature.
 type Signature [64]byte
 
+func (s Signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
+
 // BackedCandidate is a backed (or backable, depending on context) candidate.
 type BackedCandidate struct {
 	// The candidate referred to.
@@ -583,4 +585,17 @@ type ProspectiveParachainsMode struct {
 	MaxCandidateDepth uint
 	// How many ancestors of a relay parent are allowed to build candidates on top of.
 	AllowedAncestryLen uint
+}
+
+// UncheckedSignedAvailabilityBitfield a signed bitfield with signature not yet checked
+type UncheckedSignedAvailabilityBitfield struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload scale.BitVec `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
 }
