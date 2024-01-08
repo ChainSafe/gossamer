@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -59,16 +59,16 @@ func (b BETimestamp) ToBigEndianBytes() []byte {
 // pruningConfig Struct holding pruning timing configuration.
 // The only purpose of this structure is to use different timing
 // configurations in production and in testing.
-type PruningConfig struct {
-	KeepUnavailableFor time.Duration
-	KeepFinalizedFor   time.Duration
-	PruningInterval    time.Duration
+type pruningConfig struct {
+	keepUnavailableFor time.Duration
+	keepFinalizedFor   time.Duration
+	pruningInterval    time.Duration
 }
 
-var defaultPruningConfig = PruningConfig{
-	KeepUnavailableFor: keepUnavilableFor,
-	KeepFinalizedFor:   keepFinalizedFor,
-	PruningInterval:    pruningInterval,
+var defaultPruningConfig = pruningConfig{
+	keepUnavailableFor: keepUnavilableFor,
+	keepFinalizedFor:   keepFinalizedFor,
+	pruningInterval:    pruningInterval,
 }
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
@@ -82,7 +82,7 @@ type AvailabilityStoreSubsystem struct {
 	availabilityStore      availabilityStore
 	finalizedBlockNumber   parachaintypes.BlockNumber
 	knownUnfinalizedBlocks knownUnfinalizedBlocks
-	pruningConfig          PruningConfig
+	pruningConfig          pruningConfig
 }
 
 // NewAvailabilityStoreSubsystem creates a new instance of AvailabilityStoreSubsystem
