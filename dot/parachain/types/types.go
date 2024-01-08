@@ -558,6 +558,8 @@ type Collation struct {
 // ValidatorSignature represents the signature with which parachain validators sign blocks.
 type ValidatorSignature Signature
 
+func (v ValidatorSignature) String() string { return Signature(v).String() }
+
 // Signature represents a cryptographic signature.
 type Signature [64]byte
 

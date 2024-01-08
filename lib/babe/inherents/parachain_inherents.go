@@ -1,12 +1,11 @@
-// // Copyright 2022 ChainSafe Systems (ON)
-// // SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: LGPL-3.0-only
+// Copyright 2022 ChainSafe Systems (ON)
 
 package inherents
 
 import (
 	"fmt"
 
-	// "github.com/ChainSafe/gossamer/dot/parachain"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -181,8 +180,6 @@ func newDisputeStatement() disputeStatement { //skipcq
 
 // multiDisputeStatementSet is a set of dispute statements.
 type multiDisputeStatementSet []disputeStatementSet
-
-// func (v validatorSignature) String() string { return parachaintypes.Signature(v).String() }
 
 // statement about the candidate.
 // Used as translation of `Vec<(DisputeStatement, ValidatorIndex, ValidatorSignature)>` from rust to go
