@@ -242,7 +242,7 @@ func (o *Overseer) Stop() error {
 }
 
 // sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
-func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdateSignal, subsystem Subsystem) {
+func (o *Overseer) sendActiveLeavesUpdate(update parachaintypes.ActiveLeavesUpdateSignal, subsystem Subsystem) {
 	o.subsystems[subsystem] <- update
 }
 

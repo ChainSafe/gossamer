@@ -37,7 +37,6 @@ const (
 var (
 	ErrUnexpectedMessageOnCollationProtocol = errors.New("unexpected message on collation protocol")
 	ErrUnknownPeer                          = errors.New("unknown peer")
-	ErrUnknownOverseerMessage               = errors.New("unknown overseer message type")
 	ErrNotExpectedOnValidatorSide           = errors.New("message is not expected on the validator side of the protocol")
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
