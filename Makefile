@@ -75,7 +75,7 @@ deps:
 	go mod download
 
 ## build: Builds application binary and stores it in `./bin/gossamer`
-build:
+build: compile-erasure
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	go build -trimpath -o ./bin/gossamer -ldflags="-s -w" ./cmd/gossamer
 
@@ -128,7 +128,7 @@ docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile .
 
-gossamer: clean compile-erasure build
+gossamer: clean build
 
 ## install: install the gossamer binary in $GOPATH/bin
 install: build
