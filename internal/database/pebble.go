@@ -120,10 +120,7 @@ func (p *PebbleDB) NewBatch() Batch {
 // NewIterator returns an implementation of Iterator interface using the
 // internal database
 func (p *PebbleDB) NewIterator() (Iterator, error) {
-	iter, err := p.db.NewIter(nil)
-	if err != nil {
-		return nil, fmt.Errorf("instantiating an iterator: %w", err)
-	}
+	iter := p.db.NewIter(nil)
 
 	return &pebbleIterator{
 		iter,
@@ -153,10 +150,7 @@ func (p *PebbleDB) NewPrefixIterator(prefix []byte) (Iterator, error) {
 		UpperBound: keyUpperBound(prefix),
 	}
 
-	iter, err := p.db.NewIter(prefixIterOptions)
-	if err != nil {
-		return nil, fmt.Errorf("instantiating an iterator: %w", err)
-	}
+	iter := p.db.NewIter(prefixIterOptions)
 
 	return &pebbleIterator{
 		iter,
