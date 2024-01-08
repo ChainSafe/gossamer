@@ -29,7 +29,6 @@ const (
 var (
 	ErrUnexpectedMessageOnCollationProtocol = errors.New("unexpected message on collation protocol")
 	ErrUnknownPeer                          = errors.New("unknown peer")
-	ErrUnknownOverseerMessage               = errors.New("unknown overseer message type")
 	ErrNotExpectedOnValidatorSide           = errors.New("message is not expected on the validator side of the protocol")
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
@@ -96,7 +95,11 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
-func (cpvs CollatorProtocolValidatorSide) ProcessOverseerSignals() {
+func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
+	// NOTE: nothing to do here
+}
+
+func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal() {
 	// NOTE: nothing to do here
 }
 
@@ -577,8 +580,14 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			Value:  peerset.ReportBadCollatorValue,
 			Reason: peerset.ReportBadCollatorReason,
 		}, peerID)
+
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		cpvs.ProcessActiveLeavesUpdateSignal()
+	case parachaintypes.BlockFinalizedSignal:
+		cpvs.ProcessBlockFinalizedSignal()
+
 	default:
-		return ErrUnknownOverseerMessage
+		return parachaintypes.ErrUnknownOverseerMessage
 	}
 
 	return nil

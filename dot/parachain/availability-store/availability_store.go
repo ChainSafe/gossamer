@@ -178,7 +178,6 @@ func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsyst
 
 	av.wg.Add(2)
 	go av.processMessages()
-	go av.ProcessOverseerSignals()
 
 	return nil
 }
@@ -235,6 +234,14 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 					logger.Errorf("failed to handle store available data: %w", err)
 				}
 
+			case parachaintypes.ActiveLeavesUpdateSignal:
+				av.ProcessActiveLeavesUpdateSignal()
+
+			case parachaintypes.BlockFinalizedSignal:
+				av.ProcessBlockFinalizedSignal()
+
+			default:
+				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
 			}
 
 		case <-av.ctx.Done():
@@ -248,8 +255,11 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessOverseerSignals() {
-	av.wg.Done()
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
+	// TODO: #3630
+}
+
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 	// TODO: #3630
 }
 

@@ -182,8 +182,8 @@ func (o *Overseer) handleBlockEvents() {
 					}
 
 			*/
-			activeLeavesUpdate := ActiveLeavesUpdateSignal{
-				Activated: &ActivatedLeaf{
+			activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
+				Activated: &parachaintypes.ActivatedLeaf{
 					Hash:   imported.Header.Hash(),
 					Number: uint32(imported.Header.Number),
 				},
@@ -202,7 +202,7 @@ func (o *Overseer) handleBlockEvents() {
 				}
 			}
 
-			o.broadcast(BlockFinalizedSignal{
+			o.broadcast(parachaintypes.BlockFinalizedSignal{
 				Hash:        finalised.Header.Hash(),
 				BlockNumber: uint32(finalised.Header.Number),
 			})
@@ -212,7 +212,7 @@ func (o *Overseer) handleBlockEvents() {
 			// Our peers will be informed about our finalized block the next time we
 			// activating/deactivating some leaf.
 			if len(deactivated) > 0 {
-				o.broadcast(ActiveLeavesUpdateSignal{
+				o.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
 					Deactivated: deactivated,
 				})
 			}
@@ -248,7 +248,7 @@ func (o *Overseer) Stop() error {
 }
 
 // sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
-func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdateSignal, subsystem Subsystem) {
+func (o *Overseer) sendActiveLeavesUpdate(update parachaintypes.ActiveLeavesUpdateSignal, subsystem Subsystem) {
 	o.subsystems[subsystem] <- update
 }
 

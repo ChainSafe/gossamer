@@ -80,7 +80,6 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 
 	cb.wg.Add(2)
 	go cb.processMessages()
-	go cb.ProcessOverseerSignals()
 
 	return nil
 }
@@ -89,8 +88,11 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
 }
 
-func (cb *CandidateBacking) ProcessOverseerSignals() {
-	cb.wg.Done()
+func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
+	// TODO #3644
+}
+
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
 	// TODO #3644
 }
 
@@ -101,8 +103,6 @@ func (cb *CandidateBacking) processMessages() {
 			// process these received messages by referencing
 			// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 			switch msg.(type) {
-			case ActiveLeavesUpdate:
-				cb.handleActiveLeavesUpdate()
 			case GetBackedCandidates:
 				cb.handleGetBackedCandidates()
 			case CanSecond:
@@ -111,8 +111,13 @@ func (cb *CandidateBacking) processMessages() {
 				cb.handleSecond()
 			case Statement:
 				cb.handleStatement()
+			case parachaintypes.ActiveLeavesUpdateSignal:
+				cb.ProcessActiveLeavesUpdateSignal()
+			case parachaintypes.BlockFinalizedSignal:
+				cb.ProcessBlockFinalizedSignal()
 			default:
-				logger.Error("unknown message type")
+				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+				return
 			}
 
 		case <-cb.ctx.Done():
@@ -123,10 +128,6 @@ func (cb *CandidateBacking) processMessages() {
 			return
 		}
 	}
-}
-
-func (cb *CandidateBacking) handleActiveLeavesUpdate() {
-	// TODO: Implement this #3503
 }
 
 func (cb *CandidateBacking) handleGetBackedCandidates() {

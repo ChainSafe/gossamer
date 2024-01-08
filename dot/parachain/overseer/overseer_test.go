@@ -48,8 +48,12 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 	}
 }
 
-func (s *TestSubsystem) ProcessOverseerSignals() {
-	fmt.Printf("%s ProcessOverseerSignals\n", s.name)
+func (s *TestSubsystem) ProcessActiveLeavesUpdateSignal() {
+	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
+}
+
+func (s *TestSubsystem) ProcessBlockFinalizedSignal() {
+	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
 }
 
 func (s *TestSubsystem) String() parachaintypes.SubSystemName {
@@ -90,11 +94,11 @@ func TestStart2SubsytemsActivate1(t *testing.T) {
 	}()
 
 	time.Sleep(1000 * time.Millisecond)
-	activedLeaf := ActivatedLeaf{
+	activedLeaf := parachaintypes.ActivatedLeaf{
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem1)
+	overseer.sendActiveLeavesUpdate(parachaintypes.ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem1)
 
 	// let subsystems run for a bit
 	time.Sleep(4000 * time.Millisecond)
@@ -134,18 +138,18 @@ func TestStart2SubsytemsActivate2Different(t *testing.T) {
 		close(done)
 	}()
 
-	activedLeaf1 := ActivatedLeaf{
+	activedLeaf1 := parachaintypes.ActivatedLeaf{
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
-	activedLeaf2 := ActivatedLeaf{
+	activedLeaf2 := parachaintypes.ActivatedLeaf{
 		Hash:   [32]byte{2},
 		Number: 2,
 	}
 	time.Sleep(250 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf1}, subSystem1)
+	overseer.sendActiveLeavesUpdate(parachaintypes.ActiveLeavesUpdateSignal{Activated: &activedLeaf1}, subSystem1)
 	time.Sleep(400 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf2}, subSystem2)
+	overseer.sendActiveLeavesUpdate(parachaintypes.ActiveLeavesUpdateSignal{Activated: &activedLeaf2}, subSystem2)
 	// let subsystems run for a bit
 	time.Sleep(3000 * time.Millisecond)
 
@@ -185,14 +189,14 @@ func TestStart2SubsytemsActivate2Same(t *testing.T) {
 		close(done)
 	}()
 
-	activedLeaf := ActivatedLeaf{
+	activedLeaf := parachaintypes.ActivatedLeaf{
 		Hash:   [32]byte{1},
 		Number: 1,
 	}
 	time.Sleep(300 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem1)
+	overseer.sendActiveLeavesUpdate(parachaintypes.ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem1)
 	time.Sleep(400 * time.Millisecond)
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem2)
+	overseer.sendActiveLeavesUpdate(parachaintypes.ActiveLeavesUpdateSignal{Activated: &activedLeaf}, subSystem2)
 	// let subsystems run for a bit
 	time.Sleep(2000 * time.Millisecond)
 
@@ -237,12 +241,12 @@ func TestHandleBlockEvents(t *testing.T) {
 					continue
 				}
 
-				_, ok := msg.(BlockFinalizedSignal)
+				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
 				if ok {
 					finalizedCounter.Add(1)
 				}
 
-				_, ok = msg.(ActiveLeavesUpdateSignal)
+				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
 				if ok {
 					importedCounter.Add(1)
 				}
@@ -251,12 +255,12 @@ func TestHandleBlockEvents(t *testing.T) {
 					continue
 				}
 
-				_, ok := msg.(BlockFinalizedSignal)
+				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
 				if ok {
 					finalizedCounter.Add(1)
 				}
 
-				_, ok = msg.(ActiveLeavesUpdateSignal)
+				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
 				if ok {
 					importedCounter.Add(1)
 				}
