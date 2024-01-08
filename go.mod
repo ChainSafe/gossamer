@@ -33,7 +33,7 @@ require (
 	github.com/prometheus/client_model v0.5.0
 	github.com/qdm12/gotree v0.2.0
 	github.com/spf13/cobra v1.8.0
-	github.com/spf13/viper v1.18.1
+	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
