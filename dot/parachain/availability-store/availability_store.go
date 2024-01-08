@@ -625,10 +625,33 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 			default:
 				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
 			}
+		case <-av.ctx.Done():
+			if err := av.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v", err)
+			}
+			av.wg.Done()
+			return
+		}
+	}
+}
+
+func (av *AvailabilityStoreSubsystem) ProcessOverseerSignals() {
+	for {
+		select {
+		case signal := <-av.OverseerToSubSystem:
+			logger.Debugf("received signal %v", signal)
+			switch signal := signal.(type) {
+			case overseer.ActiveLeavesUpdateSignal:
+				// handle active leaves update
+				logger.Debugf("active leaves update: %v", signal)
+			case overseer.BlockFinalizedSignal:
+				// handle finalized signal
+				logger.Debugf("block finalized: %v", signal)
+			}
 
 		case <-av.ctx.Done():
 			if err := av.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v\n", err)
+				logger.Errorf("ctx error: %v", err)
 			}
 			av.wg.Done()
 			return
@@ -637,14 +660,9 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
-	// TODO: #3630
-}
+func (av *AvailabilityStoreSubsystem) processBlockActivated() {
 
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
-	// TODO: #3630
 }
-
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {
 	result, err := av.availabilityStore.loadAvailableData(msg.CandidateHash)
 	if err != nil {
