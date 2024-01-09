@@ -257,6 +257,19 @@ func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*
 	return &result, nil
 }
 
+// storeMetaData stores metadata in the availability store
+func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
+	dataBytes, err := json.Marshal(meta)
+	if err != nil {
+		return fmt.Errorf("marshalling meta for candidate: %w", err)
+	}
+	err = as.metaTable.Put(candidate[:], dataBytes)
+	if err != nil {
+		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+	}
+	return nil
+}
+
 // loadChunk loads a chunk from the availability store
 func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
 	error) {
