@@ -12,9 +12,14 @@ import (
 // Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
-	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
+	Run(ctx context.Context, OverseerToSubSystem chan Message[any, any], SubSystemToOverseer chan Message[any, any]) error
 	Name() parachaintypes.SubSystemName
 	ProcessActiveLeavesUpdateSignal()
 	ProcessBlockFinalizedSignal()
 	Stop()
+}
+
+type Message[Data any, Response any] struct {
+	Data     Data
+	Response Response
 }

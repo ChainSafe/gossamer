@@ -35,8 +35,8 @@ type Overseer struct {
 	imported  chan *types.Block
 	finalised chan *types.FinalisationInfo
 
-	SubsystemsToOverseer chan any
-	subsystems           map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
+	SubsystemsToOverseer chan Message[any, any]               // channel for subsystems to send messages to overseer
+	subsystems           map[Subsystem]chan Message[any, any] // map[Subsystem]OverseerToSubSystem channel
 	nameToSubsystem      map[parachaintypes.SubSystemName]Subsystem
 	wg                   sync.WaitGroup
 }
@@ -59,16 +59,16 @@ func NewOverseer(blockState BlockState) *Overseer {
 		errChan:              make(chan error),
 		blockState:           blockState,
 		activeLeaves:         make(map[common.Hash]uint32),
-		SubsystemsToOverseer: make(chan any),
-		subsystems:           make(map[Subsystem]chan any),
+		SubsystemsToOverseer: make(chan Message[any, any]),
+		subsystems:           make(map[Subsystem]chan Message[any, any]),
 		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
 	}
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,
 // Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
-func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
-	OverseerToSubSystem := make(chan any)
+func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan Message[any, any] {
+	OverseerToSubSystem := make(chan Message[any, any])
 	o.subsystems[subsystem] = OverseerToSubSystem
 	o.nameToSubsystem[subsystem.Name()] = subsystem
 
@@ -86,7 +86,7 @@ func (o *Overseer) Start() error {
 	// start subsystems
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
-		go func(sub Subsystem, overseerToSubSystem chan any) {
+		go func(sub Subsystem, overseerToSubSystem chan Message[any, any]) {
 			err := sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
 			if err != nil {
 				logger.Errorf("running subsystem %v failed: %v", sub, err)
@@ -109,7 +109,7 @@ func (o *Overseer) processMessages() {
 		case msg := <-o.SubsystemsToOverseer:
 			var subsystem Subsystem
 
-			switch msg.(type) {
+			switch msg.Data.(type) {
 			case backing.GetBackedCandidates, backing.CanSecond, backing.Second, backing.Statement:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
@@ -190,7 +190,11 @@ func (o *Overseer) handleBlockEvents() {
 				Deactivated: []common.Hash{imported.Header.ParentHash},
 			}
 
-			o.broadcast(activeLeavesUpdate)
+			o.broadcast(
+				Message[any, any]{
+					Data:     activeLeavesUpdate,
+					Response: nil,
+				})
 
 		case finalised := <-o.finalised:
 			deactivated := make([]common.Hash, 0)
@@ -202,9 +206,12 @@ func (o *Overseer) handleBlockEvents() {
 				}
 			}
 
-			o.broadcast(parachaintypes.BlockFinalizedSignal{
-				Hash:        finalised.Header.Hash(),
-				BlockNumber: uint32(finalised.Header.Number),
+			o.broadcast(Message[any, any]{
+				Data: parachaintypes.BlockFinalizedSignal{
+					Hash:        finalised.Header.Hash(),
+					BlockNumber: uint32(finalised.Header.Number),
+				},
+				Response: nil,
 			})
 
 			// If there are no leaves being deactivated, we don't need to send an update.
@@ -212,15 +219,19 @@ func (o *Overseer) handleBlockEvents() {
 			// Our peers will be informed about our finalized block the next time we
 			// activating/deactivating some leaf.
 			if len(deactivated) > 0 {
-				o.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
-					Deactivated: deactivated,
-				})
+				o.broadcast(
+					Message[any, any]{
+						Data: parachaintypes.ActiveLeavesUpdateSignal{
+							Deactivated: deactivated,
+						},
+						Response: nil,
+					})
 			}
 		}
 	}
 }
 
-func (o *Overseer) broadcast(msg any) {
+func (o *Overseer) broadcast(msg Message[any, any]) {
 	for _, overseerToSubSystem := range o.subsystems {
 		overseerToSubSystem <- msg
 	}

@@ -25,7 +25,7 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
-func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan Message[any, any], SubSystemToOverseer chan Message[any, any]) error {
 	fmt.Printf("%s run\n", s.name)
 	counter := 0
 	for {
@@ -42,7 +42,7 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 			// simulate work, and sending messages to overseer
 			r := rand.Intn(1000)
 			time.Sleep(time.Duration(r) * time.Millisecond)
-			SubSystemToOverseer <- fmt.Sprintf("hello from %v, i: %d", s.name, counter)
+			SubSystemToOverseer <- Message[any, any]{Data: fmt.Sprintf("hello from %v, i: %d", s.name, counter)}
 			counter++
 		}
 	}
@@ -92,30 +92,30 @@ func TestHandleBlockEvents(t *testing.T) {
 		for {
 			select {
 			case msg := <-overseerToSubSystem1:
-				if msg == nil {
+				if msg.Data == nil {
 					continue
 				}
 
-				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
+				_, ok := msg.Data.(parachaintypes.BlockFinalizedSignal)
 				if ok {
 					finalizedCounter.Add(1)
 				}
 
-				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
+				_, ok = msg.Data.(parachaintypes.ActiveLeavesUpdateSignal)
 				if ok {
 					importedCounter.Add(1)
 				}
 			case msg := <-overseerToSubSystem2:
-				if msg == nil {
+				if msg.Data == nil {
 					continue
 				}
 
-				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
+				_, ok := msg.Data.(parachaintypes.BlockFinalizedSignal)
 				if ok {
 					finalizedCounter.Add(1)
 				}
 
-				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
+				_, ok = msg.Data.(parachaintypes.ActiveLeavesUpdateSignal)
 				if ok {
 					importedCounter.Add(1)
 				}
