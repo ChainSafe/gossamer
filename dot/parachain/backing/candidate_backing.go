@@ -5,6 +5,7 @@ package backing
 
 import (
 	"context"
+	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -14,6 +15,10 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
 type CandidateBacking struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 }
@@ -72,7 +77,10 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 	// other backing related overseer message.
 	// This would become more clear after we complete processMessages function. It would give us clarity
 	// if we need background_validation_rx or background_validation_tx, as done in rust.
-	cb.processMessages()
+
+	cb.wg.Add(1)
+	go cb.processMessages()
+
 	return nil
 }
 
@@ -80,29 +88,46 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
 }
 
-func (cb *CandidateBacking) processMessages() {
-	for msg := range cb.OverseerToSubSystem {
-		// process these received messages by referencing
-		// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
-		switch msg.(type) {
-		case ActiveLeavesUpdate:
-			cb.handleActiveLeavesUpdate()
-		case GetBackedCandidates:
-			cb.handleGetBackedCandidates()
-		case CanSecond:
-			cb.handleCanSecond()
-		case Second:
-			cb.handleSecond()
-		case Statement:
-			cb.handleStatement()
-		default:
-			logger.Error("unknown message type")
-		}
-	}
+func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
+	// TODO #3644
 }
 
-func (cb *CandidateBacking) handleActiveLeavesUpdate() {
-	// TODO: Implement this #3503
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
+	// TODO #3644
+}
+
+func (cb *CandidateBacking) processMessages() {
+	for {
+		select {
+		case msg := <-cb.OverseerToSubSystem:
+			// process these received messages by referencing
+			// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
+			switch msg.(type) {
+			case GetBackedCandidates:
+				cb.handleGetBackedCandidates()
+			case CanSecond:
+				cb.handleCanSecond()
+			case Second:
+				cb.handleSecond()
+			case Statement:
+				cb.handleStatement()
+			case parachaintypes.ActiveLeavesUpdateSignal:
+				cb.ProcessActiveLeavesUpdateSignal()
+			case parachaintypes.BlockFinalizedSignal:
+				cb.ProcessBlockFinalizedSignal()
+			default:
+				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+				return
+			}
+
+		case <-cb.ctx.Done():
+			if err := cb.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
+			cb.wg.Done()
+			return
+		}
+	}
 }
 
 func (cb *CandidateBacking) handleGetBackedCandidates() {
@@ -119,6 +144,11 @@ func (cb *CandidateBacking) handleSecond() {
 
 func (cb *CandidateBacking) handleStatement() {
 	// TODO: Implement this #3507
+}
+
+func (cb *CandidateBacking) Stop() {
+	cb.cancel()
+	cb.wg.Wait()
 }
 
 // SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
