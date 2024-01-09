@@ -2,6 +2,8 @@ package dispute
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/scraping"
@@ -12,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/emirpasic/gods/sets/treeset"
-	"time"
 )
 
 const Window = 6
@@ -57,7 +58,7 @@ type initializeResult struct {
 	participation []ParticipationData
 	votes         []parachainTypes.ScrapedOnChainVotes
 	activatedLeaf *overseer.ActivatedLeaf
-	initialized   *Initialized
+	initialised   *Initialised
 }
 
 // sendDisputeMessages sends the dispute message to the given receiver
@@ -97,7 +98,11 @@ func (d *Coordinator) sendDisputeMessages(
 			continue
 		}
 
-		disputeMessage, err := types.NewDisputeMessage(keypair, voteState.Votes, &signedDisputeStatement, vote.ValidatorIndex, env.Session)
+		disputeMessage, err := types.NewDisputeMessage(keypair,
+			voteState.Votes, &signedDisputeStatement,
+			vote.ValidatorIndex,
+			env.Session,
+		)
 		if err != nil {
 			logger.Errorf("create dispute message: %s", err)
 			continue
@@ -110,24 +115,21 @@ func (d *Coordinator) sendDisputeMessages(
 }
 
 // waitForFirstLeaf waits for the first active leaf update
-func (d *Coordinator) waitForFirstLeaf() (*overseer.ActivatedLeaf, error) {
-	for {
-		select {
-		case overseerMessage := <-d.receiver:
-			switch message := overseerMessage.(type) {
-			case overseer.Signal[overseer.Conclude]:
-				return nil, nil
-			case overseer.Signal[overseer.ActiveLeavesUpdate]:
-				return message.Data.Activated, nil
-			default:
-				logger.Warnf("Received message before first active leaves update. "+
-					"This is not expected - message will be dropped. %T", message)
-			}
-		}
+func (d *Coordinator) waitForFirstLeaf() *overseer.ActivatedLeaf {
+	msg := <-d.receiver
+	switch message := msg.(type) {
+	case overseer.Signal[overseer.Conclude]:
+		return nil
+	case overseer.Signal[overseer.ActiveLeavesUpdate]:
+		return message.Data.Activated
+	default:
+		logger.Warnf("Received message before first active leaves update. "+
+			"This is not expected - message will be dropped. %T", message)
+		return nil
 	}
 }
 
-// initialize initializes the dispute coordinator
+// initialize initialises the dispute coordinator
 func (d *Coordinator) initialize(sender chan<- any) (
 	*initializeResult,
 	error,
@@ -137,11 +139,7 @@ func (d *Coordinator) initialize(sender chan<- any) (
 		err       error
 	)
 	for {
-		firstLeaf, err = d.waitForFirstLeaf()
-		if err != nil {
-			logger.Errorf("wait for first leaf: %s", err)
-			continue
-		}
+		firstLeaf = d.waitForFirstLeaf()
 		if firstLeaf == nil {
 			continue
 		}
@@ -163,7 +161,7 @@ func (d *Coordinator) initialize(sender chan<- any) (
 		participation: startupData.participation,
 		votes:         startupData.votes,
 		activatedLeaf: firstLeaf,
-		initialized: NewInitializedState(d.receiver,
+		initialised: NewInitialisedState(d.receiver,
 			sender,
 			d.runtime,
 			startupData.spamSlots,
@@ -312,7 +310,7 @@ func (d *Coordinator) Run(sender chan<- any) error {
 		Votes:         initResult.votes,
 		Leaf:          initResult.activatedLeaf,
 	}
-	initResult.initialized.Run(sender, d.store.inner, &initData)
+	initResult.initialised.Run(sender, d.store.inner, &initData)
 	return nil
 }
 

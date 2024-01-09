@@ -2,9 +2,10 @@ package dispute
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 	"time"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -177,7 +178,7 @@ func (b *overlayBackend) GetActiveDisputes(now uint64) (scale.BTree, error) {
 		}
 
 		isDisputeInactive := func(status types.DisputeStatusVDT) bool {
-			concludedAt, err := dispute.DisputeStatus.ConcludedAt()
+			concludedAt, err := status.ConcludedAt()
 			if err != nil {
 				return false
 			}

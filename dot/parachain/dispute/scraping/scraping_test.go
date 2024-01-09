@@ -115,49 +115,47 @@ func configureMockOverseer(
 	)
 
 	for {
-		select {
-		case msg := <-overseerChannel:
-			switch request := msg.(type) {
-			case overseer.ChainAPIMessage[overseer.FinalizedBlockNumber]:
-				require.LessOrEqual(t, finalisedBlockRequestCalls, messages.finalisedBlockRequests)
-				result := finalisedBlock
-				if finalisedBlockRequestCalls == 0 {
-					result = 0
-				}
-				finalisedBlockRequestCalls++
-
-				response := overseer.BlockNumberResponse{
-					Number: result,
-					Err:    nil,
-				}
-				request.ResponseChannel <- response
-			case overseer.ChainAPIMessage[overseer.Ancestors]:
-				require.LessOrEqual(t, ancestorRequestCalls, messages.ancestorRequests)
-				ancestorRequestCalls++
-				maybeBlockPosition := -1
-				for idx, h := range *chain {
-					if h == request.Message.Hash {
-						maybeBlockPosition = idx
-						break
-					}
-				}
-
-				var ancestors []common.Hash
-				if maybeBlockPosition != -1 {
-					ancestors = make([]common.Hash, 0)
-					for i := maybeBlockPosition - 1; i >= 0 && i >= maybeBlockPosition-int(request.Message.K); i-- {
-						ancestors = append(ancestors, (*chain)[i])
-					}
-				}
-
-				response := overseer.AncestorsResponse{
-					Ancestors: ancestors,
-					Error:     nil,
-				}
-				request.ResponseChannel <- response
-			default:
-				t.Errorf("unexpected message type: %T", request)
+		msg := <-overseerChannel
+		switch request := msg.(type) {
+		case overseer.ChainAPIMessage[overseer.FinalizedBlockNumber]:
+			require.LessOrEqual(t, finalisedBlockRequestCalls, messages.finalisedBlockRequests)
+			result := finalisedBlock
+			if finalisedBlockRequestCalls == 0 {
+				result = 0
 			}
+			finalisedBlockRequestCalls++
+
+			response := overseer.BlockNumberResponse{
+				Number: result,
+				Err:    nil,
+			}
+			request.ResponseChannel <- response
+		case overseer.ChainAPIMessage[overseer.Ancestors]:
+			require.LessOrEqual(t, ancestorRequestCalls, messages.ancestorRequests)
+			ancestorRequestCalls++
+			maybeBlockPosition := -1
+			for idx, h := range *chain {
+				if h == request.Message.Hash {
+					maybeBlockPosition = idx
+					break
+				}
+			}
+
+			var ancestors []common.Hash
+			if maybeBlockPosition != -1 {
+				ancestors = make([]common.Hash, 0)
+				for i := maybeBlockPosition - 1; i >= 0 && i >= maybeBlockPosition-int(request.Message.K); i-- {
+					ancestors = append(ancestors, (*chain)[i])
+				}
+			}
+
+			response := overseer.AncestorsResponse{
+				Ancestors: ancestors,
+				Error:     nil,
+			}
+			request.ResponseChannel <- response
+		default:
+			t.Errorf("unexpected message type: %T", request)
 		}
 	}
 }
@@ -318,7 +316,7 @@ func configureMockRuntime(
 				return eventGenerator(blockHash, chain)
 			}
 
-			return nil, nil //nolint: nilnil
+			return nil, nil
 		}).Times(calls.candidateEventsRequests)
 
 	runtime.EXPECT().ParachainHostOnChainVotes(gomock.Any()).Return(nil, nil).Times(calls.candidateVotesRequests)

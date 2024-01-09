@@ -1,10 +1,11 @@
 package dispute
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 

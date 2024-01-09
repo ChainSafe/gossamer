@@ -1,9 +1,10 @@
 package dispute
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"

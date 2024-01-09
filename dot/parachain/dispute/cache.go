@@ -14,19 +14,27 @@ type runtimeInfo struct {
 	runtime parachain.RuntimeInstance
 }
 
-func (r runtimeInfo) ParachainHostPersistedValidationData(parachainID uint32, assumption parachainTypes.OccupiedCoreAssumption) (*parachainTypes.PersistedValidationData, error) {
+func (r runtimeInfo) ParachainHostPersistedValidationData(parachainID uint32,
+	assumption parachainTypes.OccupiedCoreAssumption,
+) (*parachainTypes.PersistedValidationData, error) {
 	return r.runtime.ParachainHostPersistedValidationData(parachainID, assumption)
 }
 
-func (r runtimeInfo) ParachainHostValidationCode(parachainID uint32, assumption parachainTypes.OccupiedCoreAssumption) (*parachainTypes.ValidationCode, error) {
+func (r runtimeInfo) ParachainHostValidationCode(parachainID uint32,
+	assumption parachainTypes.OccupiedCoreAssumption,
+) (*parachainTypes.ValidationCode, error) {
 	return r.runtime.ParachainHostValidationCode(parachainID, assumption)
 }
 
-func (r runtimeInfo) ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachainTypes.CandidateCommitments) (bool, error) {
+func (r runtimeInfo) ParachainHostCheckValidationOutputs(parachainID uint32,
+	outputs parachainTypes.CandidateCommitments,
+) (bool, error) {
 	return r.runtime.ParachainHostCheckValidationOutputs(parachainID, outputs)
 }
 
-func (r runtimeInfo) ParachainHostValidationCodeByHash(blockHash common.Hash, validationCodeHash parachainTypes.ValidationCodeHash) (*parachainTypes.ValidationCode, error) {
+func (r runtimeInfo) ParachainHostValidationCodeByHash(blockHash common.Hash,
+	validationCodeHash parachainTypes.ValidationCodeHash,
+) (*parachainTypes.ValidationCode, error) {
 	return r.runtime.ParachainHostValidationCodeByHash(blockHash, validationCodeHash)
 }
 
@@ -38,7 +46,9 @@ func (r runtimeInfo) ParachainHostCandidateEvents(blockHash common.Hash) (*scale
 	return r.runtime.ParachainHostCandidateEvents(blockHash)
 }
 
-func (r runtimeInfo) ParachainHostSessionInfo(blockHash common.Hash, sessionIndex parachainTypes.SessionIndex) (*parachainTypes.SessionInfo, error) {
+func (r runtimeInfo) ParachainHostSessionInfo(blockHash common.Hash,
+	sessionIndex parachainTypes.SessionIndex,
+) (*parachainTypes.SessionInfo, error) {
 	if info, ok := r.sessionInfoCache[sessionIndex]; ok {
 		return &info, nil
 	}

@@ -2,9 +2,10 @@ package dispute
 
 import (
 	"encoding/binary"
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"sync"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"

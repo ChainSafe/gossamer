@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/pkg/scale"

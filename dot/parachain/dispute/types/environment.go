@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -40,7 +41,10 @@ func getControlledIndices(keystore keystore.Keystore,
 ) map[parachainTypes.ValidatorIndex]struct{} {
 	controlled := make(map[parachainTypes.ValidatorIndex]struct{})
 	for index := range validators {
-		if kp, err := GetValidatorKeyPair(keystore, validators, parachainTypes.ValidatorIndex(index)); kp != nil && err == nil {
+		if kp, err := GetValidatorKeyPair(keystore,
+			validators,
+			parachainTypes.ValidatorIndex(index),
+		); kp != nil && err == nil {
 			controlled[parachainTypes.ValidatorIndex(index)] = struct{}{}
 		}
 	}
@@ -70,7 +74,9 @@ func GetValidatorKeyPair(ks keystore.Keystore,
 	return keypair, nil
 }
 
-func GetValidatorID(validators []parachainTypes.ValidatorID, index parachainTypes.ValidatorIndex) (parachainTypes.ValidatorID, error) {
+func GetValidatorID(validators []parachainTypes.ValidatorID,
+	index parachainTypes.ValidatorIndex,
+) (parachainTypes.ValidatorID, error) {
 	if int(index) >= len(validators) {
 		return parachainTypes.ValidatorID{}, fmt.Errorf("invalid validator index: %d", index)
 	}

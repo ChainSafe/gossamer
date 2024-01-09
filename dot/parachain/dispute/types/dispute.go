@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )

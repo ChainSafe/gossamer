@@ -829,7 +829,8 @@ func isBTree(t reflect.Type) bool {
 	comparatorField, hasComparator := t.FieldByName("Comparator")
 	itemTypeField, hasItemType := t.FieldByName("ItemType")
 
-	if hasMap && hasDegree && mapField.Type.Kind() == reflect.Ptr && strings.HasPrefix(mapField.Type.String(), "*btree.Map[") {
+	if hasMap && hasDegree && mapField.Type.Kind() == reflect.Ptr &&
+		strings.HasPrefix(mapField.Type.String(), "*btree.Map[") {
 		return true
 	}
 

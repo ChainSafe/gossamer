@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
@@ -230,6 +231,9 @@ func NewDisputeMessage(
 			ourVote.CandidateHash,
 			ourVote.SessionIndex,
 		)
+		if err != nil {
+			return DisputeMessageVDT{}, fmt.Errorf("new signed dispute statement: %w", err)
+		}
 
 		invalidStatement = *ourVote
 		invalidIndex = ourIndex

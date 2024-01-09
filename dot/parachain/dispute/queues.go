@@ -2,9 +2,10 @@ package dispute
 
 import (
 	"bytes"
+	"sync"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"sync"
 
 	"github.com/pkg/errors"
 )

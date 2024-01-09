@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -142,7 +143,7 @@ func NewCompactStatementFromAttestation(
 	default:
 		return CompactStatementVDT{}, fmt.Errorf("invalid compact statement kind")
 	}
-	return compactStatementVDT, nil
+	return compactStatementVDT, err
 }
 
 // ExplicitDisputeStatement An explicit statement on a candidate issued as part of a dispute.
@@ -252,7 +253,12 @@ func NewCheckedSignedDisputeStatement(disputeStatement inherents.DisputeStatemen
 	validatorSignature parachainTypes.ValidatorSignature,
 	validatorID parachainTypes.ValidatorID,
 ) (*SignedDisputeStatement, error) {
-	if err := VerifyDisputeStatement(disputeStatement, candidateHash, sessionIndex, validatorSignature, validatorID); err != nil {
+	if err := VerifyDisputeStatement(disputeStatement,
+		candidateHash,
+		sessionIndex,
+		validatorSignature,
+		validatorID,
+	); err != nil {
 		return nil, fmt.Errorf("verify dispute statement: %w", err)
 	}
 

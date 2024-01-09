@@ -2,6 +2,7 @@ package scraping
 
 import (
 	"fmt"
+
 	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"

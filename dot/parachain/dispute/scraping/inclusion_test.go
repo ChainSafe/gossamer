@@ -1,8 +1,9 @@
 package scraping
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 
 	"github.com/stretchr/testify/require"
 

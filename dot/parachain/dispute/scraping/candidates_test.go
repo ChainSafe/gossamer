@@ -1,8 +1,9 @@
 package scraping
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"

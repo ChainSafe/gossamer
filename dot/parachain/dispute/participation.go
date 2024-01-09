@@ -2,15 +2,16 @@ package dispute
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	disputesCommon "github.com/ChainSafe/gossamer/dot/parachain/dispute/comm"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 // CandidateComparator comparator for ordering of disputes for candidate.
@@ -183,7 +184,10 @@ func (p *ParticipationHandler) dequeueUntilCapacity(sender chan<- any, recentHea
 	}
 }
 
-func (p *ParticipationHandler) forkParticipation(sender chan<- any, request types.ParticipationRequest, recentHead common.Hash) {
+func (p *ParticipationHandler) forkParticipation(sender chan<- any,
+	request types.ParticipationRequest,
+	recentHead common.Hash,
+) {
 	_, ok := p.runningParticipation.LoadOrStore(request.CandidateHash, nil)
 	if ok {
 		return
@@ -201,7 +205,10 @@ func (p *ParticipationHandler) forkParticipation(sender chan<- any, request type
 	}()
 }
 
-func (p *ParticipationHandler) participate(sender chan<- any, blockHash common.Hash, request types.ParticipationRequest) error {
+func (p *ParticipationHandler) participate(sender chan<- any,
+	blockHash common.Hash,
+	request types.ParticipationRequest,
+) error {
 	// TODO: determine if this has any effect on performance
 	// also look into how we can enable this only for tests. using ENVs maybe?
 	time.Sleep(100 * time.Millisecond)

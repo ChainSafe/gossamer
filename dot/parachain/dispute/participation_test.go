@@ -3,6 +3,10 @@ package dispute
 import (
 	"context"
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/dispute/overseer"
 	disputeTypes "github.com/ChainSafe/gossamer/dot/parachain/dispute/types"
 	parachainTypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -11,9 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"sync"
-	"testing"
-	"time"
 )
 
 func dummyCandidateCommitments() parachainTypes.CandidateCommitments {
@@ -172,33 +173,30 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						response := overseer.RecoveryErrorUnavailable
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							Error: &response,
-						}
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.UnAvailableOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						t.Errorf("unexpected message type: %T", msg)
-						return
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					response := overseer.RecoveryErrorUnavailable
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						Error: &response,
 					}
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.UnAvailableOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					t.Errorf("unexpected message type: %T", msg)
+					return
 				}
 			}
-
 		}()
 
 		err = participate(participationHandler, mockOverseer)
@@ -338,24 +336,21 @@ func TestParticipationHandler_Queue(t *testing.T) {
 		// Responds to messages from the test and verifies its behaviour
 		requestHandler := func() {
 			defer wg.Done()
-			select {
-			case msg := <-mockOverseer:
-				switch message := msg.(type) {
-				case overseer.ChainAPIMessage[overseer.BlockNumber]:
-					response := uint32(1)
-					message.ResponseChannel <- response
-					break
-				default:
-					panic("unknown message type")
-				}
+			msg := <-mockOverseer
+			switch message := msg.(type) {
+			case overseer.ChainAPIMessage[overseer.BlockNumber]:
+				response := uint32(1)
+				message.ResponseChannel <- response
+			default:
+				panic("unknown message type")
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			select {
-			case _ = <-mockOverseer:
-				panic("should not receive any messages")
+			case msg = <-mockOverseer:
+				panic(fmt.Sprintf("unexpected message: %T", msg))
 			case <-ctx.Done():
 				break
 			}
@@ -364,27 +359,25 @@ func TestParticipationHandler_Queue(t *testing.T) {
 			waitTx <- true
 
 			counter := 0
-			select {
-			case msg := <-mockOverseer:
-				counter++
-				switch message := msg.(type) {
-				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-					response := overseer.RecoveryErrorUnavailable
-					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-						Error: &response,
-					}
-				case disputeTypes.ParticipationStatement:
-					outcome, err := message.Outcome.Value()
-					require.NoError(t, err)
-					switch outcome.(type) {
-					case disputeTypes.UnAvailableOutcome:
-						return
-					default:
-						panic("unexpected outcome")
-					}
-				default:
-					panic("unknown message type")
+			msg = <-mockOverseer
+			counter++
+			switch message := msg.(type) {
+			case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+				response := overseer.RecoveryErrorUnavailable
+				message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+					Error: &response,
 				}
+			case disputeTypes.ParticipationStatement:
+				outcome, err := message.Outcome.Value()
+				require.NoError(t, err)
+				switch outcome.(type) {
+				case disputeTypes.UnAvailableOutcome:
+					return
+				default:
+					panic("unexpected outcome")
+				}
+			default:
+				panic("unknown message type")
 			}
 
 			if counter == 3 {
@@ -412,29 +405,27 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						response := overseer.RecoveryErrorUnavailable
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							Error: &response,
-						}
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.UnAvailableOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						panic("unknown message type")
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					response := overseer.RecoveryErrorUnavailable
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						Error: &response,
 					}
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.UnAvailableOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					panic("unknown message type")
 				}
 			}
 		}()
@@ -457,34 +448,32 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						availableData := overseer.AvailableData{
-							POV:            []byte{},
-							ValidationData: overseer.PersistedValidationData{},
-						}
-
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							AvailableData: &availableData,
-							Error:         nil,
-						}
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.ErrorOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						panic("unknown message type")
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					availableData := overseer.AvailableData{
+						POV:            []byte{},
+						ValidationData: overseer.PersistedValidationData{},
 					}
+
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						AvailableData: &availableData,
+						Error:         nil,
+					}
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.ErrorOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					panic("unknown message type")
 				}
 			}
 		}()
@@ -519,29 +508,27 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						response := overseer.RecoveryErrorInvalid
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							Error: &response,
-						}
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.InvalidOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						panic("unknown message type")
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					response := overseer.RecoveryErrorInvalid
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						Error: &response,
 					}
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.InvalidOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					panic("unknown message type")
 				}
 			}
 		}()
@@ -567,42 +554,40 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
-						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-							message.ResponseChannel <- overseer.ValidationResult{
-								IsValid: false,
-								Error:   nil,
-							}
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
+					if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+						message.ResponseChannel <- overseer.ValidationResult{
+							IsValid: false,
+							Error:   nil,
 						}
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						availableData := overseer.AvailableData{
-							POV:            []byte{},
-							ValidationData: overseer.PersistedValidationData{},
-						}
-
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							AvailableData: &availableData,
-							Error:         nil,
-						}
-
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.InvalidOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						panic("unknown message type")
 					}
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					availableData := overseer.AvailableData{
+						POV:            []byte{},
+						ValidationData: overseer.PersistedValidationData{},
+					}
+
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						AvailableData: &availableData,
+						Error:         nil,
+					}
+
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.InvalidOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					panic("unknown message type")
 				}
 			}
 		}()
@@ -632,46 +617,44 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						availableData := overseer.AvailableData{
-							POV:            []byte{},
-							ValidationData: overseer.PersistedValidationData{},
-						}
-
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							AvailableData: &availableData,
-							Error:         nil,
-						}
-					case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
-						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-							message.ResponseChannel <- overseer.ValidationResult{
-								IsValid: false,
-								Error:   nil,
-								InvalidResult: &overseer.InvalidValidationResult{
-									Reason: "commitments hash mismatch",
-								},
-							}
-						} else {
-							panic("unexpected message")
-						}
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.InvalidOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						panic("unknown message type")
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					availableData := overseer.AvailableData{
+						POV:            []byte{},
+						ValidationData: overseer.PersistedValidationData{},
 					}
+
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						AvailableData: &availableData,
+						Error:         nil,
+					}
+				case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
+					if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+						message.ResponseChannel <- overseer.ValidationResult{
+							IsValid: false,
+							Error:   nil,
+							InvalidResult: &overseer.InvalidValidationResult{
+								Reason: "commitments hash mismatch",
+							},
+						}
+					} else {
+						panic("unexpected message")
+					}
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.InvalidOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					panic("unknown message type")
 				}
 			}
 		}()
@@ -701,47 +684,45 @@ func TestParticipationHandler_Queue(t *testing.T) {
 
 		go func() {
 			for {
-				select {
-				case msg := <-mockOverseer:
-					switch message := msg.(type) {
-					case overseer.ChainAPIMessage[overseer.BlockNumber]:
-						response := uint32(1)
-						message.ResponseChannel <- response
-					case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
-						availableData := overseer.AvailableData{
-							POV:            []byte{},
-							ValidationData: overseer.PersistedValidationData{},
-						}
-
-						message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
-							AvailableData: &availableData,
-							Error:         nil,
-						}
-					case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
-						if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
-							message.ResponseChannel <- overseer.ValidationResult{
-								IsValid: true,
-								Error:   nil,
-								ValidResult: &overseer.ValidValidationResult{
-									CandidateCommitments:    parachainTypes.CandidateCommitments{},
-									PersistedValidationData: parachainTypes.PersistedValidationData{},
-								},
-							}
-						} else {
-							panic("unexpected message")
-						}
-					case disputeTypes.ParticipationStatement:
-						outcome, err := message.Outcome.Value()
-						require.NoError(t, err)
-						switch outcome.(type) {
-						case disputeTypes.ValidOutcome:
-							continue
-						default:
-							panic("unexpected outcome")
-						}
-					default:
-						panic("unknown message type")
+				msg := <-mockOverseer
+				switch message := msg.(type) {
+				case overseer.ChainAPIMessage[overseer.BlockNumber]:
+					response := uint32(1)
+					message.ResponseChannel <- response
+				case overseer.AvailabilityRecoveryMessage[overseer.RecoverAvailableData]:
+					availableData := overseer.AvailableData{
+						POV:            []byte{},
+						ValidationData: overseer.PersistedValidationData{},
 					}
+
+					message.ResponseChannel <- overseer.AvailabilityRecoveryResponse{
+						AvailableData: &availableData,
+						Error:         nil,
+					}
+				case overseer.CandidateValidationMessage[overseer.ValidateFromExhaustive]:
+					if message.Data.PvfExecTimeoutKind == overseer.PvfExecTimeoutKindApproval {
+						message.ResponseChannel <- overseer.ValidationResult{
+							IsValid: true,
+							Error:   nil,
+							ValidResult: &overseer.ValidValidationResult{
+								CandidateCommitments:    parachainTypes.CandidateCommitments{},
+								PersistedValidationData: parachainTypes.PersistedValidationData{},
+							},
+						}
+					} else {
+						panic("unexpected message")
+					}
+				case disputeTypes.ParticipationStatement:
+					outcome, err := message.Outcome.Value()
+					require.NoError(t, err)
+					switch outcome.(type) {
+					case disputeTypes.ValidOutcome:
+						continue
+					default:
+						panic("unexpected outcome")
+					}
+				default:
+					panic("unknown message type")
 				}
 			}
 		}()

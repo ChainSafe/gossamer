@@ -2,8 +2,9 @@ package comm
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSendMessage(t *testing.T) {
