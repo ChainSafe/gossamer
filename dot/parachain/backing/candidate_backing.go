@@ -78,7 +78,7 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 	// This would become more clear after we complete processMessages function. It would give us clarity
 	// if we need background_validation_rx or background_validation_tx, as done in rust.
 
-	cb.wg.Add(2)
+	cb.wg.Add(1)
 	go cb.processMessages()
 
 	return nil

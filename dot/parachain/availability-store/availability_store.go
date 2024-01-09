@@ -176,7 +176,7 @@ func uint32ToBytes(value uint32) []byte {
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
 	SubsystemToOverseer chan any) error {
 
-	av.wg.Add(2)
+	av.wg.Add(1)
 	go av.processMessages()
 
 	return nil
