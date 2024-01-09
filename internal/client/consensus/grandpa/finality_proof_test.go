@@ -164,7 +164,7 @@ func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
 func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
 	authorityList := pgrandpa.AuthorityList{
 		pgrandpa.AuthorityIDWeight{
-			AuthorityID:     newTestPublic(t, 1),
+			AuthorityID:     newTestPublic(t, 3),
 			AuthorityWeight: 1,
 		},
 	}
@@ -210,6 +210,14 @@ func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	setID := uint64(1)
 	round := uint64(8)
 
+	// TODO: setup keyring
+	// let alice = Ed25519Keyring::Alice;
+
+	// let set_id = 1;
+	// let round = 8;
+	// let commit = create_commit(blocks[7].clone(), round, set_id, &[alice]);
+
+	// TODO: change createCommit to use keyring
 	commit := createCommit(t, targetHash, targetNum, 1, 1)
 	// grandpaJust := GrandpaJustification[string, uint32]{
 	// 	Justification: pgrandpa.GrandpaJustification[string, uint32]{
