@@ -31,7 +31,7 @@ type BlockState interface {
 	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+	HandleRuntimeChanges(newState *rtstorage.TransactionalTrieState, in runtime.Instance, bHash common.Hash) error
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
 	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
@@ -39,8 +39,8 @@ type BlockState interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(*rtstorage.TrieState, *types.Header) error
+	TrieState(root *common.Hash) (*rtstorage.TransactionalTrieState, error)
+	StoreTrie(*rtstorage.TransactionalTrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker

@@ -552,7 +552,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
 }
 
-func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState *rtstorage.TrieState,
+func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState *rtstorage.TransactionalTrieState,
 	blockState BlockState) (blockHash common.Hash) {
 	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
@@ -583,7 +583,7 @@ func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieSta
 }
 
 func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRuntimePath string,
-	trieState *rtstorage.TrieState, blockState BlockState) (blockHash common.Hash) {
+	trieState *rtstorage.TransactionalTrieState, blockState BlockState) (blockHash common.Hash) {
 	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
@@ -638,7 +638,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	ts := rtstorage.NewTransactionalTrieState(trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.(*state.BaseState).LoadCodeSubstitutedBlockHash()
@@ -666,7 +666,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Body: *body,
 	}
 
-	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	ts := rtstorage.NewTransactionalTrieState(trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute

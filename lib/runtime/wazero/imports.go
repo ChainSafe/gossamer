@@ -2315,7 +2315,7 @@ func ext_storage_start_transaction_version_1(ctx context.Context, _ api.Module) 
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-	rtCtx.Storage.BeginStorageTransaction()
+	rtCtx.Storage.StartTransaction()
 }
 
 func ext_storage_rollback_transaction_version_1(ctx context.Context, _ api.Module) {
@@ -2323,7 +2323,7 @@ func ext_storage_rollback_transaction_version_1(ctx context.Context, _ api.Modul
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-	rtCtx.Storage.RollbackStorageTransaction()
+	rtCtx.Storage.Rollback()
 }
 
 func ext_storage_commit_transaction_version_1(ctx context.Context, _ api.Module) {
@@ -2331,7 +2331,7 @@ func ext_storage_commit_transaction_version_1(ctx context.Context, _ api.Module)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-	rtCtx.Storage.CommitStorageTransaction()
+	rtCtx.Storage.Commit()
 }
 
 func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {

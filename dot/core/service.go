@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -104,6 +105,26 @@ func NewService(cfg *Config) (*Service, error) {
 // Start starts the core service
 func (s *Service) Start() error {
 	go s.handleBlocksAsync()
+
+	go func() {
+		time.Sleep(30 * time.Second)
+
+		header, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			panic(err)
+		}
+
+		blockAnnounce, err := createBlockAnnounce(&types.Block{
+			Header: *header,
+			Body:   nil,
+		}, false)
+		if err != nil {
+			panic(err)
+		}
+
+		s.net.GossipMessage(blockAnnounce)
+	}()
+
 	return nil
 }
 
@@ -148,7 +169,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 }
 
 // HandleBlockImport handles a block that was imported via the network
-func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
+func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TransactionalTrieState, announce bool) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
@@ -173,7 +194,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // HandleBlockProduced handles a block that was produced by us
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
-func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TransactionalTrieState) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
@@ -212,7 +233,7 @@ func createBlockAnnounce(block *types.Block, isBestBlock bool) (
 	}, nil
 }
 
-func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
+func (s *Service) handleBlock(block *types.Block, state *rtstorage.TransactionalTrieState) error {
 	if block == nil || state == nil {
 		return ErrNilBlockHandlerParameter
 	}
@@ -282,7 +303,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 }
 
 func (s *Service) handleCodeSubstitution(hash common.Hash,
-	state *rtstorage.TrieState) (err error) {
+	state *rtstorage.TransactionalTrieState) (err error) {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil

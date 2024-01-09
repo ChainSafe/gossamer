@@ -151,7 +151,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 // CreateGenesisRuntime creates runtime instance form genesis
 func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie := rtstorage.NewTrieState(t)
+	genTrie := rtstorage.NewTransactionalTrieState(t)
 
 	// create genesis runtime
 	rtCfg := wazero_runtime.Config{
