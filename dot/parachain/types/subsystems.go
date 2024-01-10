@@ -16,6 +16,7 @@ const (
 	AvailabilityStore     SubSystemName = "AvailabilityStore"
 	NetworkBridgeSender   SubSystemName = "NetworkBridgeSender"
 	NetworkBridgeReceiver SubSystemName = "NetworkBridgeReceiver"
+	ChainAPI          SubSystemName = "ChainAPI"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
@@ -248,6 +249,10 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	require.NoError(t, err)
 
 	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+
+	chainApi, err := chainapi.Register(overseer.SubsystemsToOverseer)
+	require.NoError(t, err)
+	chainApi.OverseerToSubSystem = overseer.RegisterSubsystem(chainApi)
 
 	err = overseer.Start()
 	require.NoError(t, err)

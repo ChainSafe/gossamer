@@ -124,6 +124,9 @@ func (o *Overseer) processMessages() {
 
 				subsystem = o.nameToSubsystem[parachaintypes.AvailabilityStore]
 
+			case util.ChainAPIMessage[util.Ancestors]:
+				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
+
 			default:
 				logger.Error("unknown message type")
 			}
