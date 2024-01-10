@@ -3,7 +3,10 @@
 
 package memorydb
 
-import "github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+import (
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
+)
 
 type MemoryDBValue[T any] struct {
 	value T
@@ -40,5 +43,5 @@ func NewMemoryDB[Hash hashdb.HasherOut, Hasher hashdb.Hasher[Hash], KF KeyFuncti
 }
 
 type KeyFunction[Hash hashdb.HasherOut, H hashdb.Hasher[Hash]] interface {
-	Key(hash Hash, prefix hashdb.Prefix) Hash
+	Key(hash Hash, prefix nibble.Prefix) Hash
 }

@@ -121,7 +121,7 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 	}
 }
 
-func (l Lookup[H]) loadValue(value node.Value, prefix hashdb.Prefix) ([]byte, error) {
+func (l Lookup[H]) loadValue(value node.Value, prefix nibble.Prefix) ([]byte, error) {
 	switch v := value.(type) {
 	case node.InlineValue:
 		return v.Bytes, nil

@@ -3,8 +3,6 @@
 
 package nibble
 
-import "github.com/ChainSafe/gossamer/pkg/trie/hashdb"
-
 // NibbleSlice is a helper structure to store a slice of nibbles and a moving offset
 // this is helpful to use it for example while we are looking for a key, we can define the full key in the data and
 // moving the offset while we are going deep in the trie
@@ -17,12 +15,29 @@ func NewNibbleSlice(data []byte) *NibbleSlice {
 	return &NibbleSlice{data, 0}
 }
 
-func NewFromStored(i NodeKey) *NibbleSlice {
-	return NewNibbleSliceWithPadding(i.nibbles.data, i.offset)
-}
-
 func NewNibbleSliceWithPadding(data []byte, padding uint) *NibbleSlice {
 	return &NibbleSlice{data, padding}
+}
+
+func NewFromStored(i Prefix) *NibbleSlice {
+	return &NibbleSlice{i.PartialKey, uint(*i.PaddedByte)}
+}
+
+func (ns *NibbleSlice) Clone() *NibbleSlice {
+	data := make([]byte, len(ns.data))
+	copy(data, ns.data)
+	return &NibbleSlice{data, ns.offset}
+}
+
+func (ns *NibbleSlice) IsEmpty() bool {
+	return len(ns.Data()) == 0
+}
+
+func (ns *NibbleSlice) Advance(i uint) {
+	if ns.Len() < i {
+		panic("Cannot advance more than the length of the slice")
+	}
+	ns.offset += i
 }
 
 func (ns *NibbleSlice) Data() []byte {
@@ -88,26 +103,26 @@ func (ns *NibbleSlice) CommonPrefix(other *NibbleSlice) uint {
 	return i
 }
 
-func (ns *NibbleSlice) Left() hashdb.Prefix {
+func (ns *NibbleSlice) Left() Prefix {
 	split := ns.offset / NibblePerByte
 	ix := (ns.offset % NibblePerByte)
 	if ix == 0 {
-		return hashdb.Prefix{
+		return Prefix{
 			PartialKey: ns.data[:split],
 			PaddedByte: nil,
 		}
 	} else {
 		padded := padRight(ns.data[split])
 
-		return hashdb.Prefix{
+		return Prefix{
 			PartialKey: ns.data[:split],
 			PaddedByte: &padded,
 		}
 	}
 }
 
-func (ns *NibbleSlice) OriginalDataAsPrefix() hashdb.Prefix {
-	return hashdb.Prefix{
+func (ns *NibbleSlice) OriginalDataAsPrefix() Prefix {
+	return Prefix{
 		PartialKey: ns.data,
 		PaddedByte: nil,
 	}

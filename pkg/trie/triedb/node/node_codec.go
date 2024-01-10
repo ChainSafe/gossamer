@@ -51,7 +51,7 @@ func EncodeNodeOwned[H HashOut](node NodeOwned[H], codec NodeCodec[H]) []byte {
 		var value = n.Value.AsValue()
 
 		var children [16]ChildReference[H]
-		for i, c := range n.Children {
+		for i, c := range n.EncodedChildren {
 			if c != nil {
 				children[i] = c.AsChildReference(codec)
 			}

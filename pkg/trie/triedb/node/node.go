@@ -67,9 +67,9 @@ type (
 	}
 	// NodeNibbledBranch represents a branch node
 	NodeOwnedNibbledBranch[H HashOut] struct {
-		PartialKey nibble.NibbleSlice
-		Children   [nibble.NibbleLength]NodeHandleOwned[H]
-		Value      ValueOwned[H]
+		PartialKey      nibble.NibbleSlice
+		EncodedChildren [nibble.NibbleLength]NodeHandleOwned[H]
+		Value           ValueOwned[H]
 	}
 )
 
@@ -110,20 +110,20 @@ type NodeHandleOwned[H HashOut] interface {
 }
 type (
 	NodeHandleOwnedHash[H HashOut] struct {
-		ValueOwned H
+		Hash H
 	}
 	NodeHandleOwnedInline[H HashOut] struct {
-		node NodeOwned[H]
+		Node NodeOwned[H]
 	}
 )
 
 func (h NodeHandleOwnedHash[H]) Type() string { return "Hash" }
 func (h NodeHandleOwnedHash[H]) AsChildReference(codec NodeCodec[H]) ChildReference[H] {
-	return ChildReferenceHash[H]{hash: h.ValueOwned}
+	return ChildReferenceHash[H]{hash: h.Hash}
 }
 func (h NodeHandleOwnedInline[H]) Type() string { return "Inline" }
 func (h NodeHandleOwnedInline[H]) AsChildReference(codec NodeCodec[H]) ChildReference[H] {
-	encoded := EncodeNodeOwned(h.node, codec)
+	encoded := EncodeNodeOwned(h.Node, codec)
 	if len(encoded) > codec.Hasher().Length() {
 		panic("Invalid inline node handle")
 	}
