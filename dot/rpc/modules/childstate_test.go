@@ -22,7 +22,7 @@ func createTestTrieState(t *testing.T) (*trie.Trie, common.Hash) {
 	t.Helper()
 
 	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
-	tr := rtstorage.NewTransactionalTrieState(&genesisTrie)
+	tr := rtstorage.NewTrieState(&genesisTrie)
 
 	tr.Put([]byte(":first_key"), []byte(":value1"))
 	tr.Put([]byte(":second_key"), []byte(":second_value"))

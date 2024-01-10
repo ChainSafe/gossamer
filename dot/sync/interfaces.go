@@ -42,7 +42,7 @@ type BlockState interface {
 
 // StorageState is the interface for the storage state
 type StorageState interface {
-	TrieState(root *common.Hash) (*rtstorage.TransactionalTrieState, error)
+	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	sync.Locker
 }
 
@@ -63,7 +63,7 @@ type FinalityGadget interface {
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
-	HandleBlockImport(block *types.Block, state *rtstorage.TransactionalTrieState, announce bool) error
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
 }
 
 // Network is the interface for the network

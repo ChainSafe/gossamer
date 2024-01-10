@@ -110,7 +110,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = rtstorage.NewTransactionalTrieState(&genesisTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
@@ -208,7 +208,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	cfg.TransactionState = dbSrv.Transaction
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = rtstorage.NewTransactionalTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	storageState := cfg.StorageState.(*state.StorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
@@ -283,7 +283,7 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	})
 
 	rtCfg := wazero_runtime.Config{
-		Storage: rtstorage.NewTransactionalTrieState(&genesisTrie),
+		Storage: rtstorage.NewTrieState(&genesisTrie),
 	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)

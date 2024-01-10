@@ -58,7 +58,7 @@ func NewStorageState(db database.Database, blockState *BlockState,
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TransactionalTrieState, header *types.Header) error {
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot(trie.NoMaxInlineValueSize)
 
 	s.tries.softSet(root, ts.Trie())
@@ -88,7 +88,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TransactionalTrieState, header *t
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TransactionalTrieState, error) {
+func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -111,7 +111,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TransactionalTri
 	}
 
 	nextTrie := t.Snapshot()
-	next := rtstorage.NewTransactionalTrieState(nextTrie)
+	next := rtstorage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil

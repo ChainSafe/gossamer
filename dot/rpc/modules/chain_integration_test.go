@@ -361,7 +361,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTransactionalTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base

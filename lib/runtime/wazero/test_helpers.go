@@ -30,7 +30,7 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level, role common.NetworkRole) Config {
 	t.Helper()
 
-	s := storage.NewTransactionalTrieState(tt)
+	s := storage.NewTrieState(tt)
 
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),

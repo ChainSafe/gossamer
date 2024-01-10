@@ -469,7 +469,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTransactionalTrieState(&genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

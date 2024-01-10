@@ -73,7 +73,7 @@ func Test_Instance_Version(t *testing.T) {
 				require.NoError(t, err)
 
 				cfg := Config{
-					Storage: storage.NewTransactionalTrieState(&genesisTrie),
+					Storage: storage.NewTrieState(&genesisTrie),
 					LogLvl:  log.Critical,
 				}
 
@@ -195,7 +195,7 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTransactionalTrieState(&genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -420,7 +420,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				// set state to genesis state
-				genState := storage.NewTransactionalTrieState(&genTrie)
+				genState := storage.NewTrieState(&genTrie)
 
 				cfg := Config{
 					Storage: genState,
@@ -431,7 +431,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				// reset state back to parent state before executing
-				parentState := storage.NewTransactionalTrieState(&genTrie)
+				parentState := storage.NewTrieState(&genTrie)
 				rt.SetContextStorage(parentState)
 
 				genesisHeader := &types.Header{
@@ -457,7 +457,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0912)
-				parentState := storage.NewTransactionalTrieState(&genTrie)
+				parentState := storage.NewTrieState(&genTrie)
 				rt.SetContextStorage(parentState)
 
 				genesisHeader := &types.Header{
@@ -605,7 +605,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTransactionalTrieState(nil)
+	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -619,7 +619,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTransactionalTrieState(&genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -630,7 +630,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTransactionalTrieState(&genTrie)
+	parentState := storage.NewTrieState(&genTrie)
 	instance.SetContextStorage(parentState)
 
 	genesisHeader := &types.Header{
@@ -662,7 +662,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTransactionalTrieState(nil)
+	parentState := storage.NewTrieState(nil)
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -679,7 +679,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
-	genState := storage.NewTransactionalTrieState(&genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -729,7 +729,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
-	genState := storage.NewTransactionalTrieState(&genTrie)
+	genState := storage.NewTrieState(&genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -776,7 +776,7 @@ func TestInstance_ExecuteBlock_WestendRuntime_11759946(t *testing.T) {
 	require.Equal(t, expectedRoot, trie.V0.MustHash(*wndTrieState))
 
 	// set state to genesis state
-	trieState := storage.NewTransactionalTrieState(wndTrieState)
+	trieState := storage.NewTrieState(wndTrieState)
 
 	cfg := Config{
 		Storage: trieState,
@@ -805,7 +805,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	require.Equal(t, expectedRoot, trie.V0.MustHash(*gossTrie3783))
 
 	// set state to genesis state
-	state3783 := storage.NewTransactionalTrieState(gossTrie3783)
+	state3783 := storage.NewTrieState(gossTrie3783)
 
 	cfg := Config{
 		Storage: state3783,
@@ -851,7 +851,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie901441))
 
 	// set state to genesis state
-	state901441 := storage.NewTransactionalTrieState(ksmTrie901441)
+	state901441 := storage.NewTrieState(ksmTrie901441)
 
 	cfg := Config{
 		Storage: state901441,
@@ -897,7 +897,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie))
 
 	// set state to genesis state
-	state := storage.NewTransactionalTrieState(ksmTrie)
+	state := storage.NewTrieState(ksmTrie)
 
 	cfg := Config{
 		Storage: state,
@@ -943,7 +943,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie))
 
 	// set state to genesis state
-	state := storage.NewTransactionalTrieState(ksmTrie)
+	state := storage.NewTrieState(ksmTrie)
 
 	cfg := Config{
 		Storage: state,
@@ -990,7 +990,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	require.Equal(t, expectedRoot, trie.V0.MustHash(*dotTrie))
 
 	// set state to genesis state
-	state := storage.NewTransactionalTrieState(dotTrie)
+	state := storage.NewTrieState(dotTrie)
 
 	cfg := Config{
 		Storage: state,
