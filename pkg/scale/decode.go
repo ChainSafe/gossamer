@@ -348,7 +348,7 @@ func (ds *decodeState) decodeVaryingDataType(vdt VaryingDataType) (err error) {
 
 	val, err := vdt.ValueAt(uint(b))
 	if err != nil {
-		err = fmt.Errorf("%w: for key %d %v", errUnknownVaryingDataTypeValue, uint(b), err)
+		err = fmt.Errorf("%w: for key %d %v", ErrUnknownVaryingDataTypeValue, uint(b), err)
 		return
 	}
 

@@ -6,7 +6,6 @@ package scale
 import (
 	"fmt"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,12 +28,6 @@ type VDTValue struct {
 	N bool
 }
 
-func (VDTValue) Index() uint {
-	return 1
-}
-
-func (VDTValue) String() string { return "" }
-
 type VDTValue1 struct {
 	O  **big.Int
 	P  *int
@@ -51,12 +44,6 @@ type VDTValue1 struct {
 	AA *string
 	AB *bool
 }
-
-func (VDTValue1) Index() uint {
-	return 2
-}
-
-func (VDTValue1) String() string { return "" }
 
 type VDTValue2 struct {
 	A MyStruct
@@ -79,33 +66,16 @@ type VDTValue2 struct {
 	P [2][2]byte
 }
 
-func (VDTValue2) Index() uint {
-	return 3
-}
-
-func (VDTValue2) String() string { return "" }
-
 type VDTValue3 int16
-
-func (VDTValue3) Index() uint {
-	return 4
-}
-
-func (VDTValue3) String() string { return "" }
 
 type MyVaryingDataType struct {
 	inner any
 }
 
-type customAny any
+type CustomAny any
 
 type MyVaryingDataTypeValues interface {
-	VDTValue | VDTValue1 | VDTValue2 | VDTValue3 | customAny
-}
-
-func TestSomething(t *testing.T) {
-
-	reflect.TypeOf((*varyingDataTypeDecode)(nil)).Elem()
+	VDTValue | VDTValue1 | VDTValue2 | VDTValue3 | CustomAny
 }
 
 func NewMyVaringDataType[Value MyVaryingDataTypeValues](value ...Value) *MyVaryingDataType {
@@ -135,7 +105,7 @@ func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
 	case VDTValue3:
 		setMyVaryingDataType[VDTValue3](mvdt, value)
 		return
-	case customAny:
+	case CustomAny:
 		setMyVaryingDataType(mvdt, value)
 		return
 	default:
@@ -153,7 +123,7 @@ func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
 		return 3, any(mvdt.inner), nil
 	case VDTValue3:
 		return 4, any(mvdt.inner), nil
-	case customAny:
+	case CustomAny:
 		return 5, any(mvdt.inner), nil
 	}
 	return 0, nil, ErrUnsupportedVaryingDataTypeValue
@@ -175,9 +145,9 @@ func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
 	case 4:
 		return VDTValue3(0), nil
 	case 5:
-		return customAny(0), nil
+		return CustomAny(int16(0)), nil
 	}
-	return nil, errUnknownVaryingDataTypeValue
+	return nil, ErrUnknownVaryingDataTypeValue
 }
 
 var varyingDataTypeTests = tests{
@@ -358,9 +328,9 @@ var varyingDataTypeTests = tests{
 		),
 	},
 	{
-		name: "customAny",
+		name: "CustomAny",
 		in: NewMyVaringDataType(
-			customAny(int16(16383)),
+			CustomAny(int16(16383)),
 		),
 		want: newWant(
 			// index of VDTValue2
@@ -374,7 +344,7 @@ var varyingDataTypeTests = tests{
 func TestVaryingDataType_Encode(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			vdt := tt.in.(varyingDataTypeEncode)
+			vdt := tt.in.(EncodeVaryingDataType)
 			bytes, err := Marshal(vdt)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, bytes)

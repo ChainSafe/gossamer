@@ -67,7 +67,7 @@ func (mvdt ParentVDT) ValueAt(index uint) (value any, err error) {
 	case 2:
 		return ChildVDT1{}, nil
 	}
-	return nil, errUnknownVaryingDataTypeValue
+	return nil, ErrUnknownVaryingDataTypeValue
 }
 
 type ChildVDT struct {
@@ -216,7 +216,8 @@ var nestedVaryingDataTypeTests = []constructorTest{
 func TestVaryingDataType_EncodeNested(t *testing.T) {
 	for _, tt := range nestedVaryingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			b, err := Marshal(tt.newIn(t))
+			vdt := tt.newIn(t).(*ParentVDT)
+			b, err := Marshal(*vdt)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, b)
 		})
