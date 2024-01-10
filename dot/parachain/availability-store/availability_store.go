@@ -760,3 +760,8 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 	}
 	return nil
 }
+
+func (av *AvailabilityStoreSubsystem) Stop() {
+	av.cancel()
+	av.wg.Wait()
+}
