@@ -221,7 +221,16 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	case CanSecondMessage:
 		cb.handleCanSecondMessage(msg)
 	case SecondMessage:
-		cb.handleSecondMessage()
+		err := cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
+
+		if errors.Is(err, errWrongPVDForSecondingCandidate) ||
+			errors.Is(err, errUnknownRelayParentForSecondingCandidate) ||
+			errors.Is(err, errParaOutsideAssignmentForSeconding) ||
+			errors.Is(err, errAlreadySignedValidStatement) {
+			logger.Error(err.Error())
+			return nil
+		}
+		return err
 	case StatementMessage:
 		err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 
@@ -242,10 +251,6 @@ func (cb *CandidateBacking) handleActiveLeavesUpdate() {
 
 func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
 	// TODO: Implement this #3504
-}
-
-func (cb *CandidateBacking) handleSecondMessage() {
-	// TODO: Implement this #3506
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.
