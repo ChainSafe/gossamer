@@ -7,6 +7,8 @@ const NibblePerByte uint = 2
 const PaddingBitmask byte = 0x0F
 const BitPerNibble = 4
 const NibbleLength = 16
+const SplitLeftShift = 4
+const SplitRightShift = 4
 
 // / A trie node prefix, it is the nibble path from the trie root
 // / to the trie node.
@@ -33,6 +35,31 @@ func padRight(b byte) byte {
 
 func NumberPadding(i uint) uint {
 	return i % NibblePerByte
+}
+
+func ShiftKey(key *NibbleSlice, offset uint) bool {
+	oldOffset := key.offset
+	key.offset = offset
+
+	if oldOffset > offset {
+		// Shift left
+		kl := key.Len()
+		for i := uint(0); i < kl; i++ {
+			key.data[i] = key.data[i]<<2 | key.data[i+1]>>SplitLeftShift
+		}
+		key.data[kl-1] = key.data[kl-1] << SplitRightShift
+		return true
+	} else if oldOffset < offset {
+		// Shift right
+		key.data = append(key.data, 0)
+		for i := key.Len() - 1; i >= 1; i-- {
+			key.data[i] = key.data[i-1]<<SplitLeftShift | key.data[i]>>SplitRightShift
+		}
+		key.data[0] = key.data[0] >> SplitRightShift
+		return true
+	} else {
+		return false
+	}
 }
 
 // Count the biggest common depth between two left aligned packed nibble slice

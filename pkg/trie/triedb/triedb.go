@@ -8,25 +8,7 @@ import (
 )
 
 type HashOut = node_types.HashOut
-
-// Value
-type Value interface {
-	Type() string
-}
-
-type (
-	InlineValue struct {
-		Bytes []byte
-	}
-	NodeValue[H HashOut] struct {
-		Hash H
-	}
-
-	NewNode[H HashOut] struct {
-		Hash  *H
-		Bytes []byte
-	}
-)
+type Children = [nibble.NibbleLength]NodeHandle
 
 // Node types in the Trie
 type Node[H HashOut] interface {
@@ -39,13 +21,13 @@ type (
 	// NodeLeaf represents a leaf node
 	Leaf struct {
 		encoded nibble.NibbleSlice
-		value   Value
+		value   TrieValue
 	}
 	// NodeNibbledBranch represents a branch node
 	NibbledBranch struct {
 		encoded  nibble.NibbleSlice
-		children [nibble.NibbleLength]NodeHandle
-		value    Value
+		children Children
+		value    TrieValue
 	}
 )
 
@@ -61,12 +43,12 @@ type Stored[H HashOut] interface {
 }
 
 type (
-	StoredNew[Out HashOut] struct {
-		Node Node[Out]
+	StoredNew[H HashOut] struct {
+		Node Node[H]
 	}
-	StoredCached[Out HashOut] struct {
-		Node Node[Out]
-		Hash Out
+	StoredCached[H HashOut] struct {
+		Hash H
+		Node Node[H]
 	}
 )
 
@@ -117,11 +99,6 @@ func (ns *NodeStorage[H]) destroy(handle StorageHandle) Stored[H] {
 	ns.freeIndices.PushBack(idx)
 	ns.nodes[idx] = StoredNew[H]{Empty{}}
 	return ns.nodes[idx]
-}
-
-type deathRowValue struct {
-	backingByte [40]byte
-	b           *[]byte
 }
 
 type TrieDB[Out HashOut] struct {
@@ -240,7 +217,7 @@ func (tdb *TrieDB[H]) inspect(
 
 		switch action := execution.(type) {
 		case PostInspectActionRestore[H]:
-			result = InspectResult[H]{StoredCached[H]{action.node, s.Hash}, false}
+			result = InspectResult[H]{StoredCached[H]{s.Hash, action.node}, false}
 		case PostInspectActionReplace[H]:
 			tdb.deathRow[s.Hash] = key.Left()
 			result = InspectResult[H]{StoredNew[H]{action.node}, true}
@@ -262,7 +239,6 @@ func (tdb *TrieDB[H]) fix(node Node[H], key nibble.NibbleSlice) (Node[H], error)
 	panic("TODO: implement me")
 }
 
-// TODO: implement me
 func (tdb *TrieDB[H]) removeInspector(
 	node Node[H],
 	key NibbleFullKey,
@@ -273,7 +249,7 @@ func (tdb *TrieDB[H]) removeInspector(
 		return PostInspectActionDelete{}, nil
 	case Leaf:
 		existingKey := n.encoded
-		if key.Eq(&existingKey) {
+		if key.Eq(existingKey) {
 			// We found the node we want to delete, so we are going to remove it
 			keyVal := key.Clone()
 			keyVal.Advance(existingKey.Len())
@@ -297,7 +273,7 @@ func (tdb *TrieDB[H]) removeInspector(
 			}
 			return PostInspectActionReplace[H]{fixedNode}, nil
 		}
-		common := n.encoded.CommonPrefix(&key)
+		common := n.encoded.CommonPrefix(key)
 		existingLength := n.encoded.Len()
 
 		if common == existingLength && common == key.Len() {
@@ -350,23 +326,151 @@ func (tdb *TrieDB[H]) removeInspector(
 	}
 }
 
-// TODO: implement me
 func (tdb *TrieDB[H]) insertInspector(
 	node Node[H],
 	key NibbleFullKey,
 	value []byte,
 	oldVal *TrieValue,
 ) (PostInspectAction, error) {
-	panic("Implement me")
+	partial := key
+
+	switch n := node.(type) {
+	case Empty:
+		value := NewTrieValueFromBytes[H](value, tdb.layout.MaxInlineValue())
+		return PostInspectActionReplace[H]{Leaf{partial, value}}, nil
+	case Leaf:
+		existingKey := n.encoded
+		common := partial.CommonPrefix(existingKey)
+		if common == existingKey.Len() && common == partial.Len() {
+			// Equivalent leaf replace
+			value := NewTrieValueFromBytes[H](value, tdb.layout.MaxInlineValue())
+			unchanged := n.value == value
+			keyVal := key.Clone()
+			keyVal.Advance(existingKey.Len())
+			tdb.replaceOldValue(oldVal, n.value, keyVal.Left())
+			if unchanged {
+				return PostInspectActionRestore[H]{Leaf{n.encoded, n.value}}, nil
+			}
+			return PostInspectActionReplace[H]{Leaf{n.encoded, n.value}}, nil
+		} else if common < existingKey.Len() {
+			// one of us isn't empty: transmute to branch here
+			children := Children{}
+			idx := existingKey.At(common)
+			newLeaf := Leaf{*existingKey.Mid(common + 1), n.value}
+			children[idx] = InMemory{tdb.storage.alloc(StoredNew[H]{newLeaf})}
+			branch := NibbledBranch{partial.ToStoredRange(common), children, nil}
+
+			branchAction, err := tdb.insertInspector(branch, key, value, oldVal)
+			if err != nil {
+				return nil, err
+			}
+			return PostInspectActionReplace[H]{branchAction}, nil
+		} else {
+			branch := NibbledBranch{
+				existingKey.ToStored(),
+				Children{},
+				n.value,
+			}
+
+			branchAction, err := tdb.insertInspector(branch, key, value, oldVal)
+			if err != nil {
+				return nil, err
+			}
+			return PostInspectActionReplace[H]{branchAction}, nil
+		}
+	case NibbledBranch:
+		existingKey := n.encoded
+		common := partial.CommonPrefix(existingKey)
+		if common == existingKey.Len() && common == partial.Len() {
+			value := NewTrieValueFromBytes[H](value, tdb.layout.MaxInlineValue())
+			unchanged := n.value == value
+			branch := NibbledBranch{n.encoded, n.children, n.value}
+
+			keyVal := key.Clone()
+			keyVal.Advance(existingKey.Len())
+			tdb.replaceOldValue(oldVal, n.value, keyVal.Left())
+
+			if unchanged {
+				return PostInspectActionRestore[H]{branch}, nil
+			}
+			return PostInspectActionReplace[H]{branch}, nil
+		} else if common < existingKey.Len() {
+			nbranchPartial := existingKey.Mid(common + 1).ToStored()
+			low := NibbledBranch{nbranchPartial, n.children, n.value}
+			ix := existingKey.At(common)
+			children := Children{}
+			allocStorage := tdb.storage.alloc(StoredNew[H]{low})
+
+			children[ix] = InMemory{allocStorage}
+			value := NewTrieValueFromBytes[H](value, tdb.layout.MaxInlineValue())
+
+			if partial.Len()-common == 0 {
+				return PostInspectActionReplace[H]{
+					NibbledBranch{
+						existingKey.ToStoredRange(common),
+						children,
+						value,
+					},
+				}, nil
+			} else {
+				ix := partial.At(common)
+				storedLeaf := Leaf{partial.Mid(common + 1).ToStored(), value}
+				leaf := tdb.storage.alloc(StoredNew[H]{storedLeaf})
+
+				children[ix] = InMemory{leaf}
+				return PostInspectActionReplace[H]{
+					NibbledBranch{
+						existingKey.ToStoredRange(common),
+						children,
+						nil,
+					},
+				}, nil
+			}
+		} else {
+			// Append after common == existing_key and partial > common
+			idx := partial.At(common)
+			key.Advance(common + 1)
+			child := n.children[idx]
+			if child != nil {
+				// Original had something there. recurse down into it.
+				res, err := tdb.insertAt(child, key, value, oldVal)
+				if err != nil {
+					return nil, err
+				}
+				n.children[idx] = InMemory{res.handle}
+				if !res.changed {
+					// The new node we composed didn't change.
+					// It means our branch is untouched too.
+					nBranch := NibbledBranch{n.encoded.ToStored(), n.children, n.value}
+					return PostInspectActionRestore[H]{nBranch}, nil
+				}
+			} else {
+				// Original had nothing there. compose a leaf.
+				value := NewTrieValueFromBytes[H](value, tdb.layout.MaxInlineValue())
+				leaf := tdb.storage.alloc(StoredNew[H]{Leaf{key.ToStored(), value}})
+				n.children[idx] = InMemory{leaf}
+			}
+			return PostInspectActionReplace[H]{NibbledBranch{existingKey.ToStored(), n.children, n.value}}, nil
+		}
+	default:
+		panic("Invalid node type")
+	}
 }
 
-// TODO: implement me
 func (tdb *TrieDB[H]) replaceOldValue(
 	oldVal *TrieValue,
-	newVal Value,
-	key nibble.Prefix,
+	storedValue TrieValue,
+	prefix nibble.Prefix,
 ) {
-	panic("Implement me")
+	switch n := storedValue.(type) {
+	case NewNodeTrie[H]:
+		if n.Hash != nil {
+			tdb.deathRow[*n.Hash] = prefix
+		}
+	case NodeTrieValue[H]:
+		tdb.deathRow[n.Hash] = prefix
+	}
+	*oldVal = storedValue
 }
 
 // Removes a node from the trie based on key

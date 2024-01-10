@@ -77,7 +77,7 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 				return EmptyValue, nil
 			case node.Leaf:
 				// If leaf and matches return value
-				if partial.Eq(&node.PartialKey) {
+				if partial.Eq(node.PartialKey) {
 					return l.loadValue(node.Value, nibbleKey.OriginalDataAsPrefix())
 				}
 				return EmptyValue, nil
@@ -86,7 +86,7 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 				children := node.Children
 				value := node.Value
 				// Get next node
-				if !partial.StartsWith(&slice) {
+				if !partial.StartsWith(slice) {
 					return EmptyValue, nil
 				}
 

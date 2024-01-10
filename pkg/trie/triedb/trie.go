@@ -26,6 +26,14 @@ func (v InlineTrieValue) Type() string  { return "Inline" }
 func (v NodeTrieValue[H]) Type() string { return "Node" }
 func (v NewNodeTrie[H]) Type() string   { return "NewNode" }
 
+func NewTrieValueFromBytes[H HashOut](value []byte, threshold *uint) TrieValue {
+	if threshold != nil && uint(len(value)) >= *threshold {
+		return NewNodeTrie[H]{nil, value}
+	} else {
+		return InlineTrieValue{Bytes: value}
+	}
+}
+
 type Trie[Hash node.HashOut] interface {
 	Root() Hash
 	IsEmpty() bool

@@ -9,7 +9,6 @@ import (
 )
 
 type TrieLayout[Out node.HashOut] interface {
-	UseExtension() bool
 	AllowEmpty() bool
 	MaxInlineValue() *uint
 	Hasher() hashdb.Hasher[Out]
