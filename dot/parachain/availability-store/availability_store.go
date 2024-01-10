@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -58,7 +59,7 @@ func (sc *subsystemClock) Now() timestamp {
 // pruningConfig Struct holding pruning timing configuration.
 // The only purpose of this structure is to use different timing
 // configurations in production and in testing.
-type PruningConfig struct {
+type pruningConfig struct {
 	keepUnavailableFor time.Duration
 	keepFinalizedFor   time.Duration
 	pruningInterval    time.Duration
@@ -714,4 +715,9 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		return fmt.Errorf("store available data: %w", err)
 	}
 	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) Stop() {
+	av.cancel()
+	av.wg.Wait()
 }
