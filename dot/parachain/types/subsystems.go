@@ -14,6 +14,7 @@ const (
 	CandidateBacking  SubSystemName = "CandidateBacking"
 	CollationProtocol SubSystemName = "CollationProtocol"
 	AvailabilityStore SubSystemName = "AvailabilityStore"
+	ChainAPI          SubSystemName = "ChainAPI"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second

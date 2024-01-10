@@ -4,7 +4,9 @@
 package util
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -153,12 +155,28 @@ import (
 //
 //		Ok(ancestry)
 //	}
+
 type HashHeader struct {
 	hash   common.Hash
 	header types.Header
 }
+type ChainAPIMessage[message any] struct {
+	Message         message
+	ResponseChannel chan any
+}
 
-func DetermineNewBlocks(isKnown func(hash common.Hash) bool, head common.Hash, header types.Header,
+type AncestorsResponse struct {
+	Ancestors []common.Hash
+	Error     error
+}
+
+type Ancestors struct {
+	Hash common.Hash
+	K    uint32
+}
+
+func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common.Hash) bool, head common.Hash,
+	header types.Header,
 	lowerBoundNumber parachaintypes.BlockNumber) ([]HashHeader, error) {
 	fmt.Printf("determineNewBlocks\n")
 
@@ -182,9 +200,15 @@ func DetermineNewBlocks(isKnown func(hash common.Hash) bool, head common.Hash, h
 	ancestry = append(ancestry, HashHeader{hash: head, header: *headerClone})
 
 	// Early exit if the parent hash is in the DB or no further blocks are needed.
-	if isKnown(header.ParentHash) || header.Number == uint(minBlockNeeded) {
-		return ancestry, nil
+	//if isKnown(header.ParentHash) || header.Number == uint(minBlockNeeded) {
+	//	return ancestry, nil
+	//}
+
+	ancestors, err := GetBlockAncestors(subsystemToOverseer, head, 4)
+	if err != nil {
+		return nil, fmt.Errorf("getting block ancestors: %w", err)
 	}
+	fmt.Printf("ancestors: %v\n", ancestors)
 
 	// outer loop, build ancestry
 	//for {
@@ -196,4 +220,67 @@ func DetermineNewBlocks(isKnown func(hash common.Hash) bool, head common.Hash, h
 	//}
 
 	return ancestry, nil
+}
+
+// GetBlockAncestors sends a message to the overseer to get the ancestors of a block.
+func GetBlockAncestors(
+	overseerChannel chan<- any,
+	head common.Hash,
+	numAncestors uint32,
+) ([]common.Hash, error) {
+	respChan := make(chan any, 1)
+	message := ChainAPIMessage[Ancestors]{
+		Message: Ancestors{
+			Hash: head,
+			K:    numAncestors,
+		},
+		ResponseChannel: respChan,
+	}
+	res, err := Call(overseerChannel, message, message.ResponseChannel)
+	if err != nil {
+		return nil, fmt.Errorf("sending message to get block ancestors: %w", err)
+	}
+
+	response, ok := res.(AncestorsResponse)
+	if !ok {
+		return nil, fmt.Errorf("getting block ancestors: got unexpected response type %T", res)
+	}
+	if response.Error != nil {
+		return nil, fmt.Errorf("getting block ancestors: %w", response.Error)
+	}
+
+	return response.Ancestors, nil
+}
+
+// Call sends the given message to the given channel and waits for a response with a timeout
+func Call(channel chan<- any, message any, responseChan chan any) (any, error) {
+	if err := SendMessage(channel, message); err != nil {
+		return nil, fmt.Errorf("send message: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	select {
+	case response := <-responseChan:
+		return response, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+const timeout = 10 * time.Second
+
+// SendMessage sends the given message to the given channel with a timeout
+func SendMessage(channel chan<- any, message any) error {
+	// Send with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	select {
+	case channel <- message:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
