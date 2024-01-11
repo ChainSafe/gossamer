@@ -36,10 +36,10 @@ type NodeCodec[H HashOut] interface {
 	HashedNullNode() H
 	Hasher() hashdb.Hasher[H]
 	EmptyNode() []byte
-	LeafNode(partialKey nibble.NibbleSlice, numberNibble uint, value Value) []byte
+	LeafNode(partialKey nibble.NibbleSlice, numberNibble int, value Value) []byte
 	BranchNodeNibbled(
 		partialKey nibble.NibbleSlice,
-		numberNibble uint,
+		numberNibble int,
 		children [16]ChildReference[H],
 		value *Value,
 	) []byte

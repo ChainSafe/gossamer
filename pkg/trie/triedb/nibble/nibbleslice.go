@@ -29,27 +29,27 @@ package nibble
 // ```
 type NibbleSlice struct {
 	data   []byte
-	offset uint
+	offset int
 }
 
+// NewNibbleSlice creates a new nibble slice from a byte slice
 func NewNibbleSlice(data []byte) *NibbleSlice {
 	return &NibbleSlice{data, 0}
 }
 
-func NewNibbleSliceWithPadding(data []byte, padding uint) *NibbleSlice {
-	return &NibbleSlice{data, padding}
+// NewNibbleSliceWithOffset creates a new nibble slice from a byte slice with an offset
+func NewNibbleSliceWithOffset(data []byte, offset int) *NibbleSlice {
+	return &NibbleSlice{data, offset}
 }
 
-func NewFromStored(i Prefix) *NibbleSlice {
-	return &NibbleSlice{i.PartialKey, uint(*i.PaddedByte)}
-}
-
+// Clone creates a deep copy of the nibble slice
 func (ns *NibbleSlice) Clone() *NibbleSlice {
 	data := make([]byte, len(ns.data))
 	copy(data, ns.data)
 	return &NibbleSlice{data, ns.offset}
 }
 
+// ToStored is a helper function to create a node key from this nibble slice
 func (ns *NibbleSlice) ToStored() NibbleSlice {
 	split := ns.offset / NibblePerByte
 	offset := ns.offset % NibblePerByte
@@ -59,7 +59,8 @@ func (ns *NibbleSlice) ToStored() NibbleSlice {
 	}
 }
 
-func (ns *NibbleSlice) ToStoredRange(nb uint) NibbleSlice {
+// ToStoredRange is a helper function to create a node key from this `NibbleSlice` and for a given number of nibble
+func (ns *NibbleSlice) ToStoredRange(nb int) NibbleSlice {
 	if nb > ns.Len() {
 		ns.ToStored()
 	}
@@ -88,34 +89,41 @@ func (ns *NibbleSlice) ToStoredRange(nb uint) NibbleSlice {
 	}
 }
 
+// IsEmpty Return true if the slice contains no nibbles
 func (ns *NibbleSlice) IsEmpty() bool {
-	return len(ns.Data()) == 0
+	return ns.Len() == 0
 }
 
-func (ns *NibbleSlice) Advance(i uint) {
+// Advance the view on the slice by `i` nibbles
+func (ns *NibbleSlice) Advance(i int) {
 	if ns.Len() < i {
 		panic("Cannot advance more than the length of the slice")
 	}
 	ns.offset += i
 }
 
+// Data returns the underlying byte slice
 func (ns *NibbleSlice) Data() []byte {
 	return ns.data
 }
 
-func (ns *NibbleSlice) Offset() uint {
+// Offset returns the offset of the nibble slice
+func (ns *NibbleSlice) Offset() int {
 	return ns.offset
 }
 
-func (ns *NibbleSlice) Mid(i uint) *NibbleSlice {
+// Mid returns a new nibble slice object which represents a view on to this slice (further) offset by `i` nibbles
+func (ns *NibbleSlice) Mid(i int) *NibbleSlice {
 	return &NibbleSlice{ns.data, ns.offset + i}
 }
 
-func (ns *NibbleSlice) Len() uint {
-	return uint(len(ns.data))*NibblePerByte - ns.offset
+// Len returns the length of the nibble slice considering the offset
+func (ns *NibbleSlice) Len() int {
+	return len(ns.data)*NibblePerByte - ns.offset
 }
 
-func (ns *NibbleSlice) At(i uint) byte {
+// At returns the nibble at position `i`
+func (ns *NibbleSlice) At(i int) byte {
 	ix := (ns.offset + i) / NibblePerByte
 	pad := (ns.offset + i) % NibblePerByte
 	b := ns.data[ix]
@@ -125,21 +133,24 @@ func (ns *NibbleSlice) At(i uint) byte {
 	return b >> BitPerNibble
 }
 
+// StartsWith returns true if this nibble slice start with the same same nibbles contained in `other`
 func (ns *NibbleSlice) StartsWith(other NibbleSlice) bool {
 	return ns.CommonPrefix(other) == other.Len()
 }
 
+// Eq returns true if this nibble slice is equal to `other`
 func (ns *NibbleSlice) Eq(other NibbleSlice) bool {
 	return ns.Len() == other.Len() && ns.StartsWith(other)
 }
 
-func (ns *NibbleSlice) CommonPrefix(other NibbleSlice) uint {
+// CommonPrefix return the amount of same nibbles at the beggining do we match with other
+func (ns *NibbleSlice) CommonPrefix(other NibbleSlice) int {
 	selfAlign := ns.offset % NibblePerByte
 	otherAlign := other.offset % NibblePerByte
 	if selfAlign == otherAlign {
 		selfStart := ns.offset / NibblePerByte
 		otherStart := other.offset / NibblePerByte
-		first := uint(0)
+		first := 0
 		if selfAlign != 0 {
 			if padRight(ns.data[selfStart]) != padRight(other.data[otherStart]) {
 				return 0
@@ -152,7 +163,7 @@ func (ns *NibbleSlice) CommonPrefix(other NibbleSlice) uint {
 	}
 
 	s := minLength(ns.data, other.data)
-	i := uint(0)
+	i := 0
 	for i < s {
 		if ns.At(i) != other.At(i) {
 			break
@@ -162,46 +173,28 @@ func (ns *NibbleSlice) CommonPrefix(other NibbleSlice) uint {
 	return i
 }
 
+// Left returns left portion of `NibbleSlice`
+// if the slice originates from a full key it will be the `Prefix of the node`.
 func (ns *NibbleSlice) Left() Prefix {
 	split := ns.offset / NibblePerByte
 	ix := (ns.offset % NibblePerByte)
-	if ix == 0 {
-		return Prefix{
-			PartialKey: ns.data[:split],
-			PaddedByte: nil,
-		}
-	} else {
-		padded := padRight(ns.data[split])
-
-		return Prefix{
-			PartialKey: ns.data[:split],
-			PaddedByte: &padded,
-		}
+	prefix := Prefix{
+		PartialKey: ns.data[:split],
+		PaddedByte: nil,
 	}
+	if ix != 0 {
+		padded := padRight(ns.data[split])
+		prefix.PaddedByte = &padded
+	}
+
+	return prefix
 }
 
+// OriginalDataAsPrefix gets `Prefix` representation of the inner data.
+// This means the entire inner data will be returned as `Prefix`, ignoring any `offset`.
 func (ns *NibbleSlice) OriginalDataAsPrefix() Prefix {
 	return Prefix{
 		PartialKey: ns.data,
 		PaddedByte: nil,
-	}
-}
-
-func CombineKeys(start *NibbleSlice, end NibbleSlice) {
-	if start.offset >= NibblePerByte || end.offset >= NibblePerByte {
-		panic("Cannot combine keys")
-	}
-	finalOffset := (start.offset + end.offset) % NibblePerByte
-	ShiftKey(start, finalOffset)
-	var st uint
-	if end.offset > 0 {
-		startLen := start.Len()
-		start.data[startLen-1] = padRight(end.data[0])
-		st = 1
-	} else {
-		st = 0
-	}
-	for i := st; i < end.Len(); i++ {
-		start.data = append(start.data, end.data[i])
 	}
 }

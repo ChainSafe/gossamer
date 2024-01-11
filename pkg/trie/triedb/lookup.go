@@ -42,7 +42,7 @@ func (l Lookup[H]) record(access TrieAccess[H]) {
 func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, error) {
 	partial := nibbleKey
 	hash := l.hash
-	keyNibbles := uint(0)
+	keyNibbles := 0
 
 	depth := 0
 

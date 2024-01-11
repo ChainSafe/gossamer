@@ -3,7 +3,7 @@
 
 package nibble
 
-const NibblePerByte uint = 2
+const NibblePerByte int = 2
 const PaddingBitmask byte = 0x0F
 const BitPerNibble = 4
 const NibbleLength = 16
@@ -33,7 +33,7 @@ func padRight(b byte) byte {
 	return padded
 }
 
-func NumberPadding(i uint) uint {
+func NumberPadding(i int) int {
 	return i % NibblePerByte
 }
 
@@ -44,14 +44,14 @@ func PushAtLeft(ix, v, into byte) byte {
 	return into | v
 }
 
-func ShiftKey(key *NibbleSlice, offset uint) bool {
+func ShiftKey(key *NibbleSlice, offset int) bool {
 	oldOffset := key.offset
 	key.offset = offset
 
 	if oldOffset > offset {
 		// Shift left
 		kl := key.Len()
-		for i := uint(0); i < kl; i++ {
+		for i := 0; i < kl; i++ {
 			key.data[i] = key.data[i]<<2 | key.data[i+1]>>SplitLeftShift
 		}
 		key.data[kl-1] = key.data[kl-1] << SplitRightShift
@@ -70,10 +70,10 @@ func ShiftKey(key *NibbleSlice, offset uint) bool {
 }
 
 // Count the biggest common depth between two left aligned packed nibble slice
-func biggestDepth(v1, v2 []byte) uint {
+func biggestDepth(v1, v2 []byte) int {
 	upperBound := minLength(v1, v2)
 
-	for i := uint(0); i < upperBound; i++ {
+	for i := 0; i < upperBound; i++ {
 		if v1[i] != v2[i] {
 			return i*NibblePerByte + leftCommon(v1[i], v2[i])
 		}
@@ -82,7 +82,7 @@ func biggestDepth(v1, v2 []byte) uint {
 }
 
 // LeftCommon the number of common nibble between two left aligned bytes
-func leftCommon(a, b byte) uint {
+func leftCommon(a, b byte) int {
 	if a == b {
 		return 2
 	}
@@ -93,9 +93,29 @@ func leftCommon(a, b byte) uint {
 	}
 }
 
-func minLength(v1, v2 []byte) uint {
+func minLength(v1, v2 []byte) int {
 	if len(v1) < len(v2) {
-		return uint(len(v1))
+		return len(v1)
 	}
-	return uint(len(v2))
+	return len(v2)
+}
+
+// CombineKeys combines two node keys representd by nibble slices into the first one
+func CombineKeys(start *NibbleSlice, end NibbleSlice) {
+	if start.offset >= NibblePerByte || end.offset >= NibblePerByte {
+		panic("Cannot combine keys")
+	}
+	finalOffset := (start.offset + end.offset) % NibblePerByte
+	ShiftKey(start, finalOffset)
+	var st int
+	if end.offset > 0 {
+		startLen := start.Len()
+		start.data[startLen-1] = padRight(end.data[0])
+		st = 1
+	} else {
+		st = 0
+	}
+	for i := st; i < end.Len(); i++ {
+		start.data = append(start.data, end.data[i])
+	}
 }

@@ -258,7 +258,7 @@ func (tdb *TrieDB[H]) fix(node Node[H], key nibble.NibbleSlice) (Node[H], error)
 					return nil, errors.New("used_index only set if occupied")
 				}
 				key2 := key.Clone()
-				offset := uint(len(n.encoded.Data()))*nibble.NibblePerByte - n.encoded.Offset()
+				offset := len(n.encoded.Data())*nibble.NibblePerByte - n.encoded.Offset()
 				key2.Advance(offset)
 				prefix := key2.Left()
 
@@ -308,17 +308,17 @@ func (tdb *TrieDB[H]) fix(node Node[H], key nibble.NibbleSlice) (Node[H], error)
 				switch cn := childNode.(type) {
 				case Leaf:
 					encNibble := n.encoded.Clone()
-					end := nibble.NewNibbleSliceWithPadding([]byte{ix}, nibble.NibblePerByte-1)
+					end := nibble.NewNibbleSliceWithOffset([]byte{ix}, nibble.NibblePerByte-1)
 					nibble.CombineKeys(encNibble, *end)
 
-					end = nibble.NewNibbleSliceWithPadding(cn.encoded.Data(), cn.encoded.Offset())
+					end = nibble.NewNibbleSliceWithOffset(cn.encoded.Data(), cn.encoded.Offset())
 					nibble.CombineKeys(encNibble, *end)
 					return Leaf{*encNibble, cn.value}, nil
 				case NibbledBranch:
 					encNibble := n.encoded.Clone()
-					end := nibble.NewNibbleSliceWithPadding([]byte{ix}, nibble.NibblePerByte-1)
+					end := nibble.NewNibbleSliceWithOffset([]byte{ix}, nibble.NibblePerByte-1)
 					nibble.CombineKeys(encNibble, *end)
-					end = nibble.NewNibbleSliceWithPadding(cn.encoded.Data(), cn.encoded.Offset())
+					end = nibble.NewNibbleSliceWithOffset(cn.encoded.Data(), cn.encoded.Offset())
 					nibble.CombineKeys(encNibble, *end)
 					return NibbledBranch{*encNibble, cn.children, cn.value}, nil
 				default:
