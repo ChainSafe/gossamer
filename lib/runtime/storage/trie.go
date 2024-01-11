@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"container/list"
 	"encoding/binary"
 	"fmt"
 	"sort"
@@ -18,32 +19,23 @@ import (
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
 	mtx          sync.RWMutex
-	transactions []*trie.Trie
-	currentTrie  *trie.Trie
+	transactions *list.List
 }
 
 func NewTrieState(state *trie.Trie) *TrieState {
+	transactions := list.New()
+	transactions.PushBack(state)
 	return &TrieState{
-		transactions: make([]*trie.Trie, 0),
-		currentTrie:  state,
+		transactions: transactions,
 	}
 }
 
 func (t *TrieState) getCurrentTrie() *trie.Trie {
-	if len(t.transactions) < 1 {
-		return t.currentTrie
-	}
-	return t.transactions[len(t.transactions)-1]
+	return t.transactions.Back().Value.(*trie.Trie)
 }
 
 func (t *TrieState) updateCurrentTrie(new *trie.Trie) {
-	if len(t.transactions) < 1 {
-		t.currentTrie = new
-		return
-	}
-
-	// dont update the previous since the previous can be used to rollback
-	t.transactions[len(t.transactions)-1] = new
+	t.transactions.Back().Value = new
 }
 
 // StartTransaction begins a new nested storage transaction
@@ -52,8 +44,7 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	current := t.getCurrentTrie()
-	t.transactions = append(t.transactions, current.Snapshot())
+	t.transactions.PushBack(t.getCurrentTrie().Snapshot())
 }
 
 // Rollback rolls back all storage changes made since StartTransaction was called.
@@ -61,11 +52,11 @@ func (t *TrieState) Rollback() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if len(t.transactions) < 1 {
+	if t.transactions.Len() <= 1 {
 		panic("no transactions to rollback")
 	}
 
-	t.transactions = t.transactions[:len(t.transactions)-1]
+	t.transactions.Remove(t.transactions.Back())
 }
 
 // Commit commits all storage changes made since StartTransaction was called.
@@ -73,19 +64,11 @@ func (t *TrieState) Commit() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if len(t.transactions) < 1 {
-		panic("no transactions to commit")
+	if t.transactions.Len() <= 1 {
+		panic("no transactions to rollback")
 	}
 
-	current := t.getCurrentTrie()
-	if len(t.transactions) == 1 {
-		t.currentTrie = current
-	} else {
-		t.transactions[len(t.transactions)-2] = current
-	}
-
-	// remove the latest transaction
-	t.transactions = t.transactions[:len(t.transactions)-1]
+	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 }
 
 // Trie returns the TrieState's underlying trie
