@@ -121,6 +121,50 @@ func TestLargeStringTest(t *testing.T) {
 }
 ```
 
+
+## PR & Commit Standards
+The purpose of this section is to outline the standard naming conventions approved by the Gossamer team for Pull Requests and commit messages. The reasoning is to have improved understanding and auto generated changelogs for releases.
+
+### PR and final commit message should follow:
+
+`**TYPE:[SCOPE]: brief description**`
+
+**TYPEs**:
+
+- **fix** = patches a bug or a resolves a particular issue
+- **feat** = introduces new functionality
+- **chore** = regular code maintenance
+- **docs** = anything related to documentation
+- **style** = updates related to styling (e.g. logs)
+- **test** = anything related to tests
+- **refactor** = refactoring a section of the code base
+
+**[SCOPE]**
+
+- name of primary package that changes were introduced (e.g. lib/runtime)
+
+### Example PR names:
+
+- fix(dot/rpc): fixed return type for chain head
+
+- feat(dot/rpc): Add support for submit and watch extrinisic
+
+- docs: Updated usage section for running a gossamer node
+
+- tests(lib/runtime): Added additional test coverage for allocator
+
+- chore(lib/runtime): Bumped wasmer to 1.0
+
+- style(cmd/gossamer): Updated CLI arguments format
+
+- refactor(lib/trie): Refactored how trie is pruned
+
+
+> For improved Git commit messages refer to:  
+> https://www.freecodecamp.org/news/writing-good-commit-messages-a-practical-guide/
+
+
+
 ## Contributor Responsibilities
 
 We consider two types of contributions to our repo and categorize them as follows:
