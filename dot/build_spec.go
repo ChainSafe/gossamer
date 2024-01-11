@@ -95,7 +95,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Runtime = new(genesis.Runtime)
 
 	config := state.Config{
-		Path:      path,
+		DataDir:   path,
 		LogLevel:  log.Info,
 		Telemetry: telemetry.NewNoopMailer(),
 	}

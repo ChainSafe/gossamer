@@ -76,7 +76,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
+			DataDir:   testDatadirPath,
 			LogLevel:  log.Info,
 			Telemetry: telemetryMock,
 		}
@@ -178,7 +178,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:      testDatadirPath,
+		DataDir:   testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -265,7 +265,7 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:      testDatadirPath,
+		DataDir:   testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}

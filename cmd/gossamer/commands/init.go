@@ -43,7 +43,7 @@ func execInit(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get --force: %s", err)
 	}
 
-	isInitialised, err := dot.IsNodeInitialised(config.BasePath)
+	isInitialised, err := dot.IsNodeInitialised(config.DataDir)
 	if err != nil {
 		return fmt.Errorf("checking if node is initialised: %w", err)
 	}
@@ -51,15 +51,15 @@ func execInit(cmd *cobra.Command) error {
 	if isInitialised {
 		// prompt user to confirm reinitialization
 		if force || confirmMessage("Are you sure you want to reinitialise the node? [Y/n]") {
-			logger.Info("reinitialising node at base path " + config.BasePath + "...")
+			logger.Info("reinitialising node at base path " + config.DataDir + "...")
 		} else {
-			logger.Warn("exiting without reinitialising the node at base path " + config.BasePath + "...")
+			logger.Warn("exiting without reinitialising the node at data directory " + config.DataDir + "...")
 			return nil // exit if reinitialization is not confirmed
 		}
 	}
 
 	// Write the config to the base path
-	if err := cfg.WriteConfigFile(config.BasePath, config); err != nil {
+	if err := cfg.WriteConfigFile(config.ConfigDir, config); err != nil {
 		return fmt.Errorf("failed to ensure root: %s", err)
 	}
 
@@ -67,7 +67,7 @@ func execInit(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to initialise node: %s", err)
 	}
 
-	logger.Info("node initialised at: " + config.BasePath)
+	logger.Infof("node initialised. Data directory: %s, config directory: %s", config.DataDir, config.ConfigDir)
 	return nil
 }
 

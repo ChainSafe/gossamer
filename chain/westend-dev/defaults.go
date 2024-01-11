@@ -5,15 +5,18 @@ package westenddev
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
-const (
+var (
 	// defaultName is the default node name
 	defaultName = "Westend"
 	// defaultID is the default node ID
 	defaultID = "westend_dev"
-	// defaultBasePath is the default basepath for the westend dev node
-	defaultBasePath = "~/.gossamer/westend-dev"
+	// defaultConfigDir is the default config directory path
+	defaultConfigDir = xdg.ConfigHome + "/westend-dev/config"
+	// defaultDataPath is the default data directory path
+	defaultDataPath = xdg.DataHome + "/westend-dev/data"
 	// defaultChainSpec is the default chain spec for the westend dev node
 	defaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
 )
@@ -21,7 +24,8 @@ const (
 // DefaultConfig returns a westend dev node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.BasePath = defaultBasePath
+	config.ConfigDir = defaultConfigDir
+	config.DataDir = defaultDataPath
 	config.ID = defaultID
 	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec

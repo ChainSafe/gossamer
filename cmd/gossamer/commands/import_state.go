@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -39,14 +38,6 @@ Example:
 }
 
 func execImportState(cmd *cobra.Command) error {
-	if basePath == "" {
-		basePath = config.BasePath
-	}
-
-	if basePath == "" {
-		return fmt.Errorf("basepath must be specified")
-	}
-
 	firstSlot, err := cmd.Flags().GetUint64("first-slot")
 	if err != nil {
 		return fmt.Errorf("failed to get first-slot: %s", err)
@@ -77,7 +68,5 @@ func execImportState(cmd *cobra.Command) error {
 		return fmt.Errorf("header-file must be specified")
 	}
 
-	basePath = utils.ExpandDir(basePath)
-
-	return dot.ImportState(basePath, stateFile, headerFile, stateTrieVersion, firstSlot)
+	return dot.ImportState(config.DataDir, stateFile, headerFile, stateTrieVersion, firstSlot)
 }

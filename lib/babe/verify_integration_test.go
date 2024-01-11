@@ -577,7 +577,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	)
 
 	stateService := state.NewService(state.Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		Telemetry: telemetryMock,
 	})
 

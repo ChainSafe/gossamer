@@ -45,7 +45,7 @@ type Service struct {
 
 // Config is the default configuration used by state service.
 type Config struct {
-	Path      string
+	DataDir   string
 	LogLevel  log.Level
 	PrunerCfg pruner.Config
 	Telemetry Telemetry
@@ -57,7 +57,7 @@ func NewService(config Config) *Service {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
 	return &Service{
-		dbPath:    config.Path,
+		dbPath:    config.DataDir,
 		logLvl:    config.LogLevel,
 		db:        nil,
 		isMemDB:   false,

@@ -44,13 +44,8 @@ func execBuildSpec(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get genesis-spec value: %s", err)
 	}
 
-	basePath, err = cmd.Flags().GetString("base-path")
-	if err != nil {
-		return fmt.Errorf("failed to get base-path value: %s", err)
-	}
-
-	if chainSpec == "" && basePath == "" {
-		return fmt.Errorf("one of chain or base-path must be specified")
+	if chainSpec == "" {
+		return fmt.Errorf("chain must be specified")
 	}
 
 	outputPath, err := cmd.Flags().GetString("output-path")
@@ -66,7 +61,7 @@ func execBuildSpec(cmd *cobra.Command) error {
 			return err
 		}
 	} else {
-		bs, err = dot.BuildFromDB(basePath)
+		bs, err = dot.BuildFromDB(config.DataDir)
 		if err != nil {
 			return fmt.Errorf("error building spec from database, "+
 				"init must be run before build-spec or run build-spec "+

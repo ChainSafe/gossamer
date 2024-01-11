@@ -76,7 +76,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
-		Path:      testDatadirPath,
+		DataDir:   testDatadirPath,
 		LogLevel:  log.Critical,
 		Telemetry: telemetryMock,
 	}
@@ -181,7 +181,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
+			DataDir:   testDatadirPath,
 			LogLevel:  log.Info,
 			Telemetry: telemetryMock,
 		}

@@ -38,7 +38,7 @@ func newTestSyncer(t *testing.T) *Service {
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
-		Path:      testDatadirPath,
+		DataDir:   testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: mockTelemetryClient,
 	}

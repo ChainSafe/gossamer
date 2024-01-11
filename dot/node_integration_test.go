@@ -72,7 +72,7 @@ func TestNewNode(t *testing.T) {
 	logLevel, err := log.ParseLevel(initConfig.Log.State)
 	require.NoError(t, err)
 	stateConfig := state.Config{
-		Path:     initConfig.BasePath,
+		DataDir:  initConfig.BasePath,
 		LogLevel: logLevel,
 	}
 

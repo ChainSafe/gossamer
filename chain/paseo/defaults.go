@@ -5,6 +5,7 @@ package paseo
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
 var (
@@ -12,8 +13,10 @@ var (
 	defaultName = "Paseo"
 	// defaultID Default chain ID
 	defaultID = "paseo"
-	// defaultBasePath Default node base directory path
-	defaultBasePath = "~/.gossamer/paseo"
+	// defaultConfigDir is the default config directory path
+	defaultConfigDir = xdg.ConfigHome + "/paseo/config"
+	// defaultDataPath is the default data directory path
+	defaultDataPath = xdg.DataHome + "/paseo/data"
 	// defaultChainSpec is the default chain spec configuration path
 	defaultChainSpec = "./chain/paseo/chain-spec-raw.json"
 )
@@ -21,7 +24,8 @@ var (
 // DefaultConfig returns a paseo node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.BasePath = defaultBasePath
+	config.ConfigDir = defaultConfigDir
+	config.DataDir = defaultDataPath
 	config.ID = defaultID
 	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec

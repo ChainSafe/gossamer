@@ -31,7 +31,7 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
-		Path:      testDatadirPath,
+		DataDir:   testDatadirPath,
 		Telemetry: telemetryMock,
 	}
 	stateSrvc := state.NewService(config)

@@ -78,16 +78,16 @@ type nodeBuilder struct{}
 
 // IsNodeInitialised returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data can been loaded
-func IsNodeInitialised(basepath string) (bool, error) {
+func IsNodeInitialised(dataDir string) (bool, error) {
 	nodeInstance := nodeBuilder{}
-	return nodeInstance.isNodeInitialised(basepath)
+	return nodeInstance.isNodeInitialised(dataDir)
 }
 
 // isNodeInitialised returns nil if the node is successfully initialised
 // and an error otherwise.
-func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
+func (nodeBuilder) isNodeInitialised(dataDir string) (bool, error) {
 	// check if key registry exists
-	nodeDatabaseDir := filepath.Join(basepath, database.DefaultDatabaseDir)
+	nodeDatabaseDir := filepath.Join(dataDir, database.DefaultDatabaseDir)
 
 	_, err := os.Stat(nodeDatabaseDir)
 	if err != nil {
@@ -106,7 +106,7 @@ func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 		return false, nil
 	}
 
-	db, err := database.LoadDatabase(basepath, false)
+	db, err := database.LoadDatabase(dataDir, false)
 	if err != nil {
 		return false, fmt.Errorf("cannot setup database: %w", err)
 	}
@@ -141,8 +141,8 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 	}
 	logger.Patch(log.SetLevel(globalLogLevel))
 	logger.Infof(
-		"🕸️ initialising node with name %s, id %s, base path %s and chain-spec %s...",
-		config.Name, config.ID, config.BasePath, config.ChainSpec)
+		"🕸️ initialising node with name %s, id %s, config dir %s, data dir %s, and chain-spec %s...",
+		config.Name, config.ID, config.ConfigDir, config.DataDir, config.ChainSpec)
 
 	// create genesis from configuration file
 	gen, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
@@ -181,7 +181,7 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 	}
 
 	stateConfig := state.Config{
-		Path:     config.BasePath,
+		DataDir:  config.DataDir,
 		LogLevel: stateLogLevel,
 		PrunerCfg: pruner.Config{
 			Mode:           config.Pruning,
@@ -200,14 +200,14 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 		return fmt.Errorf("failed to initialise state service: %s", err)
 	}
 
-	err = storeGlobalNodeName(config.Name, config.BasePath)
+	err = storeGlobalNodeName(config.Name, config.DataDir)
 	if err != nil {
 		return fmt.Errorf("failed to store global node name: %s", err)
 	}
 
 	logger.Infof(
-		"node initialised with name %s, id %s, base path %s, chain-spec %s, block %v and genesis hash %s",
-		config.Name, config.ID, config.BasePath, config.ChainSpec, header.Number, header.Hash())
+		"node initialised with name %s, id %s, data %s, config %s, chain-spec %s, block %v and genesis hash %s",
+		config.Name, config.ID, config.DataDir, config.ConfigDir, config.ChainSpec, header.Number, header.Hash())
 
 	return nil
 }
@@ -253,7 +253,7 @@ func newNode(config *cfg.Config,
 		debug.SetGCPercent(prev)
 	}
 
-	isInitialised, err := builder.isNodeInitialised(config.BasePath)
+	isInitialised, err := builder.isNodeInitialised(config.DataDir)
 	if err != nil {
 		return nil, fmt.Errorf("checking if node is initialised: %w", err)
 	}
@@ -273,8 +273,8 @@ func newNode(config *cfg.Config,
 	logger.Patch(log.SetLevel(globalLogLevel))
 
 	logger.Infof(
-		"🕸️ initialising node services with global configuration name %s, id %s and base path %s...",
-		config.Name, config.ID, config.BasePath)
+		"🕸️ initialising node services with global configuration name %s, id %s and data directory %s...",
+		config.Name, config.ID, config.DataDir)
 
 	var (
 		nodeSrvcs   []service

@@ -30,7 +30,7 @@ func newTestService(t *testing.T) (state *Service) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -45,7 +45,7 @@ func newTestMemDBService(t *testing.T) *Service {
 
 	testDatadirPath := t.TempDir()
 	config := Config{
-		Path:      testDatadirPath,
+		DataDir:   testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -128,7 +128,7 @@ func TestService_BlockTree(t *testing.T) {
 		MaxTimes(2)
 
 	config := Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -177,7 +177,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 	const retainBlocks uint = 2
 	config := Config{
-		Path:     t.TempDir(),
+		DataDir:  t.TempDir(),
 		LogLevel: log.Info,
 		PrunerCfg: pruner.Config{
 			// Mode:           pruner.Full,
@@ -230,7 +230,7 @@ func TestService_PruneStorage(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 	config := Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -311,7 +311,7 @@ func TestService_Rewind(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(3)
 
 	config := Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}
@@ -369,7 +369,7 @@ func TestService_Import(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}

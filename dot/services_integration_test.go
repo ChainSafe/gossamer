@@ -440,7 +440,7 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	t.Helper()
 
 	stateConfig := state.Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Error,
 		Telemetry: telemetry.NoopClient{},
 	}

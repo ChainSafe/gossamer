@@ -106,7 +106,7 @@ func TestImportState_Integration(t *testing.T) {
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
-		Path:     config.BasePath,
+		DataDir:  config.BasePath,
 		LogLevel: log.Info,
 	}
 	srv := state.NewService(stateConfig)

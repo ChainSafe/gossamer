@@ -5,6 +5,7 @@ package westendlocal
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
 const (
@@ -14,13 +15,6 @@ const (
 	defaultID = "westend_local"
 	// defaultChainSpec is the default chain spec for the westend local node
 	defaultChainSpec = "./chain/westend-local/westend-local-spec-raw.json"
-
-	// DefaultBasePathAlice is the default basepath for the westend local alice node
-	DefaultBasePathAlice = "~/.gossamer/westend-local-alice"
-	// DefaultBasePathBob is the default basepath for the westend local bob node
-	DefaultBasePathBob = "~/.gossamer/westend-local-bob"
-	// DefaultBasePathCharlie is the default basepath for the westend local charlie node
-	DefaultBasePathCharlie = "~/.gossamer/westend-local-charlie"
 )
 
 // DefaultConfig returns a westend local node configuration
@@ -41,7 +35,8 @@ func DefaultConfig() *cfg.Config {
 // DefaultAliceConfig returns a westend local node configuration
 func DefaultAliceConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.BasePath = DefaultBasePathAlice
+	config.ConfigDir = xdg.ConfigHome + "/westend-local-alice/config"
+	config.DataDir = xdg.DataHome + "/westend-local-alice/data"
 	config.PrometheusPort = uint32(9856)
 	config.Network.Port = 7001
 	config.RPC.Port = 8545
@@ -54,7 +49,8 @@ func DefaultAliceConfig() *cfg.Config {
 // DefaultBobConfig returns a westend local node configuration with bob as the authority
 func DefaultBobConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.BasePath = DefaultBasePathBob
+	config.ConfigDir = xdg.ConfigHome + "/westend-local-bob/config"
+	config.DataDir = xdg.DataHome + "/westend-local-bob/data"
 	config.PrometheusPort = uint32(9866)
 	config.Network.Port = 7011
 	config.RPC.Port = 8555
@@ -67,7 +63,8 @@ func DefaultBobConfig() *cfg.Config {
 // DefaultCharlieConfig returns a westend local node configuration with charlie as the authority
 func DefaultCharlieConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.BasePath = DefaultBasePathCharlie
+	config.ConfigDir = xdg.ConfigHome + "/westend-local-charlie/config"
+	config.DataDir = xdg.DataHome + "/westend-local-charlie/data"
 	config.PrometheusPort = uint32(9876)
 	config.Network.Port = 7021
 	config.RPC.Port = 8565

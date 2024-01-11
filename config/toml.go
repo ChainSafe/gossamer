@@ -15,8 +15,6 @@ import (
 const (
 	// DefaultDirPerm is the default directory permission for gossamer files
 	DefaultDirPerm = 0o700
-	// defaultConfigDir is the default directory for gossamer config files
-	defaultConfigDir = "config"
 	// defaultConfigFileName is the default name of the config file
 	defaultConfigFileName = "config.toml"
 )
@@ -70,9 +68,9 @@ name = "{{ .BaseConfig.Name }}"
 # Defaults to a random value
 id = "{{ .BaseConfig.ID }}"
 
-# Path to the working directory of the node
-# Defaults to "$HOME/.gossamer/<CHAIN>"
-base-path = "{{ .BaseConfig.BasePath }}"
+# Path to the data directory
+# Defaults to "XDG_DATA_HOME/gossamer"
+data-dir = "{{ .BaseConfig.DataDir }}"
 
 # Path to the chain-spec raw JSON file
 chain-spec = "{{ .BaseConfig.ChainSpec }}"

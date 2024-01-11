@@ -34,7 +34,7 @@ func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieL
 	logger.Infof("ImportState with header: %v", header)
 
 	config := state.Config{
-		Path:     basepath,
+		DataDir:  basepath,
 		LogLevel: log.Info,
 	}
 	srv := state.NewService(config)

@@ -59,6 +59,8 @@ type Config struct {
 
 	// BasePath the data directory for the node
 	BasePath string
+	// DataDir the data directory for the node
+	DataDir string
 	// Roles a bitmap value that represents the different roles for the sender node (see Table D.2)
 	Roles common.NetworkRole
 

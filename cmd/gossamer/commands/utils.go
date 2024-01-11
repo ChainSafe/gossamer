@@ -33,8 +33,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/spf13/viper"
 )
 
@@ -292,31 +290,14 @@ func ParseConfig() error {
 	return nil
 }
 
-// parseBasePath parses the base path from the command line flags
-func parseBasePath() error {
-	var home string
-	// For the base path, prefer the environment variable over the flag
-	// If neither are set, use the default base path from the config
-	if os.Getenv(DefaultHomeEnv) != "" {
-		home = os.Getenv(DefaultHomeEnv)
-	} else {
-		home = basePath
+// ensureRoot ensures that the config and data directories exist
+func ensureRoot() error {
+	// Ensure that the path exists for both the config and data directories
+	if err := cfg.EnsureRoot(config.ConfigDir); err != nil {
+		return err
 	}
-	if config.BasePath == "" && home == "" {
-		return fmt.Errorf("--base-path cannot be empty")
-	}
-	// If the base path is set, use it
-	if home != "" {
-		config.BasePath = home
-	}
-	config.BasePath = utils.ExpandDir(config.BasePath)
-	// bind it to viper so that it can be used during the config parsing
-	viper.Set("base-path", config.BasePath)
-
-	// Ensure that the base path exists and is accessible
-	// Create the folders(config, data) in the base path if they don't exist
-	if err := cfg.EnsureRoot(config.BasePath); err != nil {
-		return fmt.Errorf("failed to ensure root: %s", err)
+	if err := cfg.EnsureRoot(config.DataDir); err != nil {
+		return err
 	}
 
 	return nil

@@ -55,8 +55,7 @@ var (
 	charlie bool
 
 	// Initialization flags for node
-	chain    string
-	basePath string
+	chain string
 )
 
 // Default values
@@ -90,8 +89,8 @@ Usage:
 				return fmt.Errorf("failed to parse chain-spec: %s", err)
 			}
 
-			if err := parseBasePath(); err != nil {
-				return fmt.Errorf("failed to parse base path: %s", err)
+			if err := ensureRoot(); err != nil {
+				return fmt.Errorf("failed to ensure root: %s", err)
 			}
 
 			parseAccount()
@@ -109,12 +108,12 @@ Usage:
 			// If no chain-spec is provided, it should already exist in the base-path
 			// If a chain-spec is provided, it should be copied to the base-path
 			if config.ChainSpec == "" {
-				if _, err := os.Stat(cfg.GetChainSpec(config.BasePath)); os.IsNotExist(err) {
+				if _, err := os.Stat(cfg.GetChainSpec(config.ConfigDir)); os.IsNotExist(err) {
 					return fmt.Errorf("chain-spec not found in base-path and no chain-spec provided")
 				}
 			} else {
 				// Copy chain-spec to base-path
-				if err := copyChainSpec(config.ChainSpec, cfg.GetChainSpec(config.BasePath)); err != nil {
+				if err := copyChainSpec(config.ChainSpec, cfg.GetChainSpec(config.ConfigDir)); err != nil {
 					return fmt.Errorf("failed to copy chain-spec: %s", err)
 				}
 			}
@@ -124,7 +123,7 @@ Usage:
 			}
 
 			if cmd.Name() == "gossamer" {
-				if err := configureViper(config.BasePath); err != nil {
+				if err := configureViper(config.ConfigDir); err != nil {
 					return fmt.Errorf("failed to configure viper: %s", err)
 				}
 
@@ -153,10 +152,6 @@ Usage:
 // addRootFlags adds the root flags to the command
 func addRootFlags(cmd *cobra.Command) error {
 	// global flags
-	cmd.PersistentFlags().StringVar(&basePath,
-		"base-path",
-		"",
-		"The base path for the node. Defaults to $GSSMRHOME if set")
 	cmd.PersistentFlags().StringVar(&chain,
 		"chain",
 		"",
@@ -581,15 +576,15 @@ func execRoot(cmd *cobra.Command) error {
 	}
 
 	// load user keys if specified
-	if err := unlockKeystore(ks.Acco, config.BasePath, config.Account.Unlock, password); err != nil {
+	if err := unlockKeystore(ks.Acco, config.DataDir, config.Account.Unlock, password); err != nil {
 		return fmt.Errorf("failed to unlock keystore: %s", err)
 	}
 
-	if err := unlockKeystore(ks.Babe, config.BasePath, config.Account.Unlock, password); err != nil {
+	if err := unlockKeystore(ks.Babe, config.DataDir, config.Account.Unlock, password); err != nil {
 		return fmt.Errorf("failed to unlock keystore: %s", err)
 	}
 
-	if err := unlockKeystore(ks.Gran, config.BasePath, config.Account.Unlock, password); err != nil {
+	if err := unlockKeystore(ks.Gran, config.DataDir, config.Account.Unlock, password); err != nil {
 		return fmt.Errorf("failed to unlock keystore: %s", err)
 	}
 
@@ -598,11 +593,11 @@ func execRoot(cmd *cobra.Command) error {
 	}
 
 	// Write the config to the base path
-	if err := cfg.WriteConfigFile(config.BasePath, config); err != nil {
+	if err := cfg.WriteConfigFile(config.ConfigDir, config); err != nil {
 		return fmt.Errorf("failed to ensure root: %s", err)
 	}
 
-	isInitialised, err := dot.IsNodeInitialised(config.BasePath)
+	isInitialised, err := dot.IsNodeInitialised(config.DataDir)
 	if err != nil {
 		return fmt.Errorf("failed to check is not is initialised: %w", err)
 	}

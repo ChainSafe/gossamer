@@ -35,16 +35,7 @@ func execPruneState(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get retain-blocks: %s", err)
 	}
 
-	if basePath == "" {
-		basePath = config.BasePath
-	}
-
-	if basePath == "" {
-		return fmt.Errorf("basepath must be specified")
-	}
-
-	dbPath := filepath.Join(basePath, "db")
-
+	dbPath := filepath.Join(config.DataDir, "db")
 	const uint32Max = ^uint32(0)
 	if uint32Max < retainBlocks {
 		return fmt.Errorf("retain blocks value overflows uint32 boundaries, must be less than or equal to: %d", uint32Max)

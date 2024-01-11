@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/adrg/xdg"
 	"path/filepath"
 	"time"
 
@@ -20,8 +21,6 @@ const (
 	uint32Max = ^uint32(0)
 	// defaultChainSpecFile is the default genesis file
 	defaultChainSpecFile = "chain-spec-raw.json"
-	// defaultBasePath is the default base path
-	defaultBasePath = "~/.gossamer/gssmr"
 	// DefaultLogLevel is the default log level
 	DefaultLogLevel = "info"
 	// DefaultPrometheusPort is the default prometheus port
@@ -62,6 +61,14 @@ const (
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
 	DefaultSystemVersion = "0.3.2"
+)
+
+var (
+	// defaultConfigDir is the default config directory
+	defaultConfigDir = xdg.ConfigHome + "/gossamer"
+
+	// defaultDataDir is the default data directory
+	defaultDataDir = xdg.DataHome + "/gossamer"
 )
 
 // DefaultRPCModules the default RPC modules
@@ -126,9 +133,11 @@ func (cfg *Config) ValidateBasic() error {
 
 // BaseConfig is to marshal/unmarshal toml global config vars
 type BaseConfig struct {
+	ConfigDir string
+
 	Name               string                      `mapstructure:"name,omitempty"`
 	ID                 string                      `mapstructure:"id,omitempty"`
-	BasePath           string                      `mapstructure:"base-path,omitempty"`
+	DataDir            string                      `mapstructure:"data-dir,omitempty"`
 	ChainSpec          string                      `mapstructure:"chain-spec,omitempty"`
 	LogLevel           string                      `mapstructure:"log-level,omitempty"`
 	PrometheusPort     uint32                      `mapstructure:"prometheus-port,omitempty"`
@@ -225,8 +234,11 @@ func (b *BaseConfig) ValidateBasic() error {
 	if b.ID == "" {
 		return fmt.Errorf("id cannot be empty")
 	}
-	if b.BasePath == "" {
-		return fmt.Errorf("base-path directory cannot be empty")
+	if b.ConfigDir == "" {
+		return fmt.Errorf("config directory cannot be empty")
+	}
+	if b.DataDir == "" {
+		return fmt.Errorf("data directory cannot be empty")
 	}
 	if b.ChainSpec == "" {
 		return fmt.Errorf("chain-spec cannot be empty")
@@ -332,7 +344,8 @@ func DefaultConfig() *Config {
 		BaseConfig: BaseConfig{
 			Name:               "Gossamer",
 			ID:                 "gssmr",
-			BasePath:           defaultBasePath,
+			ConfigDir:          defaultConfigDir,
+			DataDir:            defaultDataDir,
 			ChainSpec:          "",
 			LogLevel:           DefaultLogLevel,
 			PrometheusPort:     DefaultPrometheusPort,
@@ -413,7 +426,8 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 		BaseConfig: BaseConfig{
 			Name:               nodeSpec.Name,
 			ID:                 nodeSpec.ID,
-			BasePath:           defaultBasePath,
+			ConfigDir:          defaultConfigDir,
+			DataDir:            defaultDataDir,
 			ChainSpec:          "",
 			LogLevel:           DefaultLogLevel,
 			PrometheusPort:     uint32(9876),
@@ -494,7 +508,8 @@ func Copy(c *Config) Config {
 		BaseConfig: BaseConfig{
 			Name:               c.BaseConfig.Name,
 			ID:                 c.BaseConfig.ID,
-			BasePath:           c.BaseConfig.BasePath,
+			ConfigDir:          c.BaseConfig.ConfigDir,
+			DataDir:            c.BaseConfig.DataDir,
 			ChainSpec:          c.BaseConfig.ChainSpec,
 			LogLevel:           c.BaseConfig.LogLevel,
 			PrometheusPort:     c.PrometheusPort,

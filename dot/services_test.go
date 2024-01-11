@@ -129,7 +129,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
-		Path:      t.TempDir(),
+		DataDir:   t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
 	}

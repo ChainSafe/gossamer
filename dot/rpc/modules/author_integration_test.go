@@ -662,7 +662,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 
 	state2test := state.NewService(state.Config{
 		LogLevel:  log.DoNotChange,
-		Path:      basepath,
+		DataDir:   basepath,
 		Telemetry: telemetryMock,
 	})
 	state2test.UseMemDB()
@@ -722,7 +722,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test := state.NewService(state.Config{
 		LogLevel:  log.DoNotChange,
-		Path:      basepath,
+		DataDir:   basepath,
 		Telemetry: telemetryMock,
 	})
 	state2test.UseMemDB()
