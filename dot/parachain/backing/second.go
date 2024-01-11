@@ -18,7 +18,7 @@ var (
 	errUnknownRelayParentForSecondingCandidate = errors.New(
 		"we were asked to second a candidate outside of our view")
 	errParaOutsideAssignmentForSeconding = errors.New(
-		"subsystem asked to second for para outside of our assignment")
+		"subsystem asked to second for parachain outside of our assignment")
 	errAlreadySignedValidStatement = errors.New("we have already signed a valid statement for this candidate")
 )
 
@@ -28,7 +28,6 @@ func (cb *CandidateBacking) handleSecondMessage(
 	pov parachaintypes.PoV,
 	chRelayParentAndCommand chan RelayParentAndCommand,
 ) error {
-	// TODO: Implement this #3506
 	pvdBytes, err := scale.Marshal(pvd)
 	if err != nil {
 		return fmt.Errorf("marshalling persisted validation data: %w", err)
@@ -61,7 +60,7 @@ func (cb *CandidateBacking) handleSecondMessage(
 
 	// If the message is a `CandidateBackingMessage::Second`, sign and dispatch a
 	// Seconded statement only if we have not signed a Valid statement for the requested candidate.
-	if !rpState.issuedStatements[candidateHash] {
+	if rpState.issuedStatements[candidateHash] {
 		return errAlreadySignedValidStatement
 	}
 
