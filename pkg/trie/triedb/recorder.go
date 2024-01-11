@@ -118,7 +118,13 @@ func (r *Recorder[H]) record(access TrieAccess[H]) {
 	case TrieAccessEncodedNode[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: access.encodedNode})
 	case TrieAccessNodeOwned[H]:
-		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: node.EncodeNodeOwned(access.nodeOwned, r.layout.Codec())})
+		r.nodes = append(
+			r.nodes,
+			Record[H]{
+				Hash: access.hash,
+				Data: node.EncodeNodeOwned(access.nodeOwned, r.layout.Codec()),
+			},
+		)
 	case TrieAccessValue[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: access.hash, Data: access.value})
 		r.recorderKeys[string(access.fullKey)] = RecordedForKeyValue

@@ -23,7 +23,7 @@ type Prefix struct {
 	PaddedByte *byte
 }
 
-func padLeft(b byte) byte {
+func PadLeft(b byte) byte {
 	padded := (b & ^PaddingBitmask)
 	return padded
 }
@@ -35,6 +35,13 @@ func padRight(b byte) byte {
 
 func NumberPadding(i uint) uint {
 	return i % NibblePerByte
+}
+
+func PushAtLeft(ix, v, into byte) byte {
+	if ix != 1 {
+		v = v << BitPerNibble
+	}
+	return into | v
 }
 
 func ShiftKey(key *NibbleSlice, offset uint) bool {
@@ -79,7 +86,7 @@ func leftCommon(a, b byte) uint {
 	if a == b {
 		return 2
 	}
-	if padLeft(a) == padLeft(b) {
+	if PadLeft(a) == PadLeft(b) {
 		return 1
 	} else {
 		return 0

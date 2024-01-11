@@ -1,6 +1,8 @@
 package triedb
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 	node_types "github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
@@ -107,7 +109,6 @@ type TrieDB[Out HashOut] struct {
 	root       Out
 	rootHandle NodeHandle
 	deathRow   map[Out]nibble.Prefix
-	hashCount  uint
 	cache      TrieCache[Out]
 	recorder   TrieRecorder[Out]
 	layout     TrieLayout[Out]
@@ -236,7 +237,107 @@ func (tdb *TrieDB[H]) inspect(
 // invalid state means:
 // - Branch node where there is only a single entry;
 func (tdb *TrieDB[H]) fix(node Node[H], key nibble.NibbleSlice) (Node[H], error) {
-	panic("TODO: implement me")
+	switch n := node.(type) {
+	case NibbledBranch:
+		var ix byte
+		usedIndexes := 0
+		for i := 0; i < 16; i++ {
+			if n.children[i] != nil {
+				ix = byte(i)
+				usedIndexes += 1
+			}
+		}
+		if n.value == nil {
+			if usedIndexes == 0 {
+				panic("Branch with no subvalues. Something went wrong.")
+			}
+			if usedIndexes == 1 {
+				// only one onward node. use child instead
+				child := n.children[ix]
+				if child == nil {
+					return nil, errors.New("used_index only set if occupied")
+				}
+				key2 := key.Clone()
+				offset := uint(len(n.encoded.Data()))*nibble.NibblePerByte - n.encoded.Offset()
+				key2.Advance(offset)
+				prefix := key2.Left()
+
+				start := prefix.PartialKey
+				var allocStart *[]byte
+				var prefixEnd *byte
+				if prefix.PaddedByte == nil {
+					allocStart = nil
+					pEnd := nibble.PushAtLeft(0, ix, 0)
+					prefixEnd = &pEnd
+				} else {
+					so := prefix.PartialKey
+					so = append(so, nibble.PadLeft(*prefix.PaddedByte)|ix)
+					allocStart = &so
+					prefixEnd = nil
+				}
+				childPrefix := nibble.Prefix{}
+				if allocStart != nil {
+					childPrefix.PartialKey = *allocStart
+				} else {
+					childPrefix.PartialKey = start
+				}
+				childPrefix.PaddedByte = prefixEnd
+				var stored Stored[H]
+
+				switch c := child.(type) {
+				case InMemory:
+					stored = tdb.storage.destroy(c.Value)
+				case Hash[H]:
+					handle, err := tdb.lookupAndCache(c.Value, childPrefix)
+					if err != nil {
+						return nil, err
+					}
+					stored = tdb.storage.destroy(handle)
+				}
+
+				var childNode Node[H]
+
+				switch s := stored.(type) {
+				case StoredNew[H]:
+					childNode = s.Node
+				case StoredCached[H]:
+					tdb.deathRow[s.Hash] = childPrefix
+					childNode = s.Node
+				}
+
+				switch cn := childNode.(type) {
+				case Leaf:
+					encNibble := n.encoded.Clone()
+					end := nibble.NewNibbleSliceWithPadding([]byte{ix}, nibble.NibblePerByte-1)
+					nibble.CombineKeys(encNibble, *end)
+
+					end = nibble.NewNibbleSliceWithPadding(cn.encoded.Data(), cn.encoded.Offset())
+					nibble.CombineKeys(encNibble, *end)
+					return Leaf{*encNibble, cn.value}, nil
+				case NibbledBranch:
+					encNibble := n.encoded.Clone()
+					end := nibble.NewNibbleSliceWithPadding([]byte{ix}, nibble.NibblePerByte-1)
+					nibble.CombineKeys(encNibble, *end)
+					end = nibble.NewNibbleSliceWithPadding(cn.encoded.Data(), cn.encoded.Offset())
+					nibble.CombineKeys(encNibble, *end)
+					return NibbledBranch{*encNibble, cn.children, cn.value}, nil
+				default:
+					panic("Unreachable")
+				}
+			}
+		}
+		if n.value != nil {
+			if usedIndexes == 0 {
+				// Make a lift
+				// Fixing branch -> Leaf
+				return Leaf{n.encoded, n.value}, nil
+			}
+		}
+		// All is well, restoring branch
+		return NibbledBranch{n.encoded, n.children, n.value}, nil
+	default:
+		return node, nil
+	}
 }
 
 func (tdb *TrieDB[H]) removeInspector(

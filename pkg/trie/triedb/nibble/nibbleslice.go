@@ -186,3 +186,22 @@ func (ns *NibbleSlice) OriginalDataAsPrefix() Prefix {
 		PaddedByte: nil,
 	}
 }
+
+func CombineKeys(start *NibbleSlice, end NibbleSlice) {
+	if start.offset >= NibblePerByte || end.offset >= NibblePerByte {
+		panic("Cannot combine keys")
+	}
+	finalOffset := (start.offset + end.offset) % NibblePerByte
+	ShiftKey(start, finalOffset)
+	var st uint
+	if end.offset > 0 {
+		startLen := start.Len()
+		start.data[startLen-1] = padRight(end.data[0])
+		st = 1
+	} else {
+		st = 0
+	}
+	for i := st; i < end.Len(); i++ {
+		start.data = append(start.data, end.data[i])
+	}
+}

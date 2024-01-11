@@ -37,7 +37,12 @@ type NodeCodec[H HashOut] interface {
 	Hasher() hashdb.Hasher[H]
 	EmptyNode() []byte
 	LeafNode(partialKey nibble.NibbleSlice, numberNibble uint, value Value) []byte
-	BranchNodeNibbled(partialKey nibble.NibbleSlice, numberNibble uint, children [16]ChildReference[H], value *Value) []byte
+	BranchNodeNibbled(
+		partialKey nibble.NibbleSlice,
+		numberNibble uint,
+		children [16]ChildReference[H],
+		value *Value,
+	) []byte
 	Decode(data []byte) (Node[H], error)
 }
 

@@ -112,7 +112,6 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 					return nil, InvalidHash
 				}
 				hash = *nextHash
-				break
 			case node.Inline:
 				nodeData = &n.Value
 			}
