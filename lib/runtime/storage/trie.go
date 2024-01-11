@@ -62,7 +62,7 @@ func (t *TrieState) Rollback() {
 	defer t.mtx.Unlock()
 
 	if len(t.transactions) < 1 {
-		panic("no transactions to commit")
+		panic("no transactions to rollback")
 	}
 
 	t.transactions = t.transactions[:len(t.transactions)-1]
@@ -112,11 +112,6 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 func (t *TrieState) Get(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-
-	if t.getCurrentTrie() == nil {
-		panic("trie cannot be nil at trie state")
-	}
-
 	return t.getCurrentTrie().Get(key)
 }
 

@@ -223,6 +223,109 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 	require.Equal(t, []byte(testCases[0]), val)
 }
 
+func TestTrieState_NestedTransactions(t *testing.T) {
+	cases := map[string]struct {
+		createTrieState func() *TrieState
+		assert          func(*testing.T, *TrieState)
+	}{
+		"committing_and_rollback_on_nested_transactions": {
+			createTrieState: func() *TrieState {
+				ts := NewTrieState(trie.NewEmptyTrie())
+
+				ts.Put([]byte("key-1"), []byte("value-1"))
+				ts.Put([]byte("key-2"), []byte("value-2"))
+				ts.Put([]byte("key-3"), []byte("value-3"))
+
+				{
+					ts.StartTransaction()
+					ts.Put([]byte("key-4"), []byte("value-4"))
+
+					{
+						ts.StartTransaction()
+						ts.Delete([]byte("key-3"))
+						ts.Commit() // commit the most nested transaction
+					}
+
+					// rollback this transaction will discard the modifications
+					// made by the most nested transactions so this original trie
+					// should not be affected
+					ts.Rollback()
+				}
+				return ts
+			},
+			assert: func(t *testing.T, ts *TrieState) {
+				require.NotNil(t, ts.Get([]byte("key-1")))
+				require.NotNil(t, ts.Get([]byte("key-2")))
+				require.NotNil(t, ts.Get([]byte("key-3")))
+
+				require.Nil(t, ts.Get([]byte("key-4")))
+				require.Zero(t, len(ts.transactions))
+			},
+		},
+		"committing_all_nested_transactions": {
+			createTrieState: func() *TrieState {
+				ts := NewTrieState(trie.NewEmptyTrie())
+				{
+					ts.StartTransaction()
+					ts.Put([]byte("key-1"), []byte("value-1"))
+					{
+						ts.StartTransaction()
+						ts.Put([]byte("key-2"), []byte("value-2"))
+						{
+							ts.StartTransaction()
+							ts.Put([]byte("key-3"), []byte("value-3"))
+							{
+								ts.StartTransaction()
+								ts.Put([]byte("key-4"), []byte("value-4"))
+								{
+									ts.StartTransaction()
+									ts.Delete([]byte("key-3"))
+									ts.Commit()
+								}
+								ts.Commit()
+							}
+							ts.Commit()
+						}
+						ts.Commit()
+					}
+					ts.Commit()
+				}
+				return ts
+			},
+			assert: func(t *testing.T, ts *TrieState) {
+				require.NotNil(t, ts.Get([]byte("key-1")))
+				require.NotNil(t, ts.Get([]byte("key-2")))
+				require.NotNil(t, ts.Get([]byte("key-4")))
+				require.Zero(t, len(ts.transactions))
+			},
+		},
+		"rollback_without_transaction_should_panic": {
+			createTrieState: func() *TrieState {
+				return NewTrieState(trie.NewEmptyTrie())
+			},
+			assert: func(t *testing.T, ts *TrieState) {
+				require.PanicsWithValue(t, "no transactions to rollback", func() { ts.Rollback() })
+			},
+		},
+		"commit_without_transaction_should_panic": {
+			createTrieState: func() *TrieState {
+				return NewTrieState(trie.NewEmptyTrie())
+			},
+			assert: func(t *testing.T, ts *TrieState) {
+				require.PanicsWithValue(t, "no transactions to commit", func() { ts.Commit() })
+			},
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			ts := tt.createTrieState()
+			tt.assert(t, ts)
+		})
+	}
+}
+
 func TestTrieState_DeleteChildLimit(t *testing.T) {
 	ts := &TrieState{currentTrie: trie.NewEmptyTrie()}
 	child := trie.NewEmptyTrie()
