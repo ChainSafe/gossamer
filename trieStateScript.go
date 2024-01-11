@@ -82,13 +82,15 @@ func getResponse(ctx context.Context, method, params string, target interface{})
 //}
 
 func main() {
+	blockHash := os.Args[1]
+
 	// Goal, take hash as input and then write to file
 	ctx, _ := context.WithCancel(context.Background())
 
 	// Starting with just genesis info to get working
-	const westendDevGenesisHash = "0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8"
+	//const westendDevGenesisHash = "0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8"
 	const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
-	params := fmt.Sprintf(`["%s"]`, westendDevGenesisHash)
+	params := fmt.Sprintf(`["%s"]`, blockHash)
 
 	var response modules.StateTrieResponse
 	fetchWithTimeout(ctx, "state_trie", params, &response)
