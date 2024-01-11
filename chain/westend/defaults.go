@@ -15,7 +15,7 @@ var (
 	// defaultBasePath Default node base directory path
 	defaultBasePath = "~/.gossamer/westend"
 	// defaultChainSpec is the default chain specification path
-	defaultChainSpec = "./chain/westend/genesis.json"
+	defaultChainSpec = "./chain/westend/chain-spec-raw.json"
 )
 
 // DefaultConfig returns a westend node configuration
