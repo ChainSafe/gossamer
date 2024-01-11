@@ -52,6 +52,8 @@ EXPOSE 7001 8546 8540
 
 ENTRYPOINT [ "/gossamer/bin/gossamer" ]
 
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
 COPY chain /gossamer/chain
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/lib/erasure/rustlib/target/release/liberasure.so /usr/local/lib/liberasure.so
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer
