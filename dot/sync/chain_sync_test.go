@@ -64,7 +64,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 	const somePeer = peer.ID("abc")
 
 	errTest := errors.New("test error")
-	emptyTrieState := storage.NewTrieState(nil)
+	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
 		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
