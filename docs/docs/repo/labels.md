@@ -2,31 +2,31 @@
 
 Below is the list of labels and their descriptions used in Gossamer repository. 
 
-- **Epic** - Issue used to track development status of a complex feature, aggregates several issues.
-- **Feature-branch** - pull request from feature branch to origin.
-- **Release** - pull request with next release changes.
-- **`A-`**  Action needed label. Marks that there is a specific action needed for issue/PR
+- **Epic** - Issue used to track development status of a complex feature, aggregates several issues. **Colour: #3E4B9E**
+- **Feature-branch** - pull request from feature branch to origin. **Colour: #8ceac8**
+- **Release** - pull request with next release changes. **Colour: #5319E7**
+- **`A-`**  Action needed label. Marks that there is a specific action needed for issue/PR  **Colours: #FBCA04**
   - **A-tooBig** - issue or PR needs to be broken down to smaller parts.
   - **A-stale** - issue or PR is deprecated and needs to be closed. 
   - **A-blocked** - issue or PR is blocked  until something else changes.
   - **A-triage** - issue desrciption needs refactor and/or labeled. 
   - **A-debug** - issue requires detective debug work to figure out what's going wrong.
   - **A-design** - issue requires design work to think about how it would best be accomplished.
-- **`T-`** Describes the type of issue or pull request.
+- **`T-`** Describes the type of issue or pull request. **Colour: #FEF2C0**
   - **T-bug** - this issue covers unexpected and/or wrong behaviour. 
   - **T-feat** - this issue/pr is a new feature or functionality.
   - **T-enhancement** - this issue/pr covers improvement of existing functionality. 
   - **T-refactor** - this issue/pr covers refactoring of existing code.  
   - **T-security** - this issue/pr covers security sensitive problem. 
-- **`C-`** Complexity label. We operate only 3 complexity levels.
+- **`C-`** Complexity label. We operate only 3 complexity levels. **Colours: #006B75**
   - **C-simple** -  Minor changes changes, no additional research needed. Good first issue/review.
   - **C-complex** - Complex changes across multiple modules. Possibly will require additional research.
   - **C-chaotic** - Unpredictable nature of this task/changes makes its chaotic.
-- **`P-`** Priority level. We only have 3 priority levels, everything else is average by default.
-  - **P-critical** - this must be fixed immediately or contributors or users will be severely impacted.
-  - **P-high** - this should be addressed ASAP.
-  - **P-low** - this is mostly nice to have. 
-- **`S-`** Scope this work related to, could be multiple, but usually this means that task needs to be break down.
+- **`P-`** Priority level. We only have 3 priority levels, everything else is average by default. 
+  - **P-critical** - this must be fixed immediately or contributors or users will be severely impacted. **Colour #d93f0b**
+  - **P-high** - this should be addressed ASAP. **Colour #FBCA04**
+  - **P-low** - this is mostly nice to have. **Colour #0E8A16**
+- **`S-`** Scope this work related to, could be multiple, but usually this means that task needs to be break down. **Colours: #1D76DB**
   - **S-sync-[westend | kusama | polkadot | paseo]** -  related to particular network syncing.
   - **S-tests** - issue related to adding new tests.  
   - **S-doc** - documentation related.
