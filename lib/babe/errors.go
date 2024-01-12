@@ -179,8 +179,8 @@ func (ValidityCannotLookup) String() string { return "validity cannot lookup" }
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
 
-// Index returns VDT index
-func (NoUnsignedValidator) Index() uint { return 1 }
+// // Index returns VDT index
+// func (NoUnsignedValidator) Index() uint { return 1 }
 
 func (NoUnsignedValidator) String() string { return "no unsigned validator" }
 

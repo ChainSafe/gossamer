@@ -133,8 +133,8 @@ var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
 type PreRuntimeDigest digestItem
 
-// Index returns VDT index
-func (PreRuntimeDigest) Index() uint { return 6 }
+// // Index returns VDT index
+// func (PreRuntimeDigest) Index() uint { return 6 }
 
 // NewBABEPreRuntimeDigest returns a PreRuntimeDigest with the BABE consensus ID
 func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
@@ -152,8 +152,8 @@ func (d PreRuntimeDigest) String() string {
 // ConsensusDigest contains messages from the runtime to the consensus engine.
 type ConsensusDigest digestItem
 
-// Index returns VDT index
-func (ConsensusDigest) Index() uint { return 4 }
+// // Index returns VDT index
+// func (ConsensusDigest) Index() uint { return 4 }
 
 // String returns the digest as a string
 func (d ConsensusDigest) String() string {
@@ -163,8 +163,8 @@ func (d ConsensusDigest) String() string {
 // SealDigest contains the seal or signature. This is only used by native code.
 type SealDigest digestItem
 
-// Index returns VDT index
-func (SealDigest) Index() uint { return 5 }
+// // Index returns VDT index
+// func (SealDigest) Index() uint { return 5 }
 
 // String returns the digest as a string
 func (d SealDigest) String() string {
@@ -174,8 +174,8 @@ func (d SealDigest) String() string {
 // RuntimeEnvironmentUpdated contains is an indicator for the light clients that the runtime environment is updated
 type RuntimeEnvironmentUpdated struct{}
 
-// Index returns VDT index
-func (RuntimeEnvironmentUpdated) Index() uint { return 8 }
+// // Index returns VDT index
+// func (RuntimeEnvironmentUpdated) Index() uint { return 8 }
 
 // String returns the digest as a string
 func (RuntimeEnvironmentUpdated) String() string {
