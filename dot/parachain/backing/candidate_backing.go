@@ -112,11 +112,6 @@ type validator struct {
 	index parachaintypes.ValidatorIndex
 }
 
-// ActiveLeavesUpdate is a messages from overseer
-type ActiveLeavesUpdate struct {
-	// TODO: Complete this struct #3503
-}
-
 // GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
 type GetBackedCandidatesMessage []struct {
@@ -174,7 +169,8 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 }
 
 func (cb *CandidateBacking) runUtil() {
-	chRelayParentAndCommand := make(chan RelayParentAndCommand)
+	chRelayParentAndCommand := make(chan relayParentAndCommand)
+
 	for {
 		select {
 		case rpAndCmd := <-chRelayParentAndCommand:
@@ -182,13 +178,15 @@ func (cb *CandidateBacking) runUtil() {
 				logger.Error(err.Error())
 			}
 		case msg := <-cb.OverseerToSubSystem:
-			if err := cb.processOverseerMessage(msg, chRelayParentAndCommand); err != nil {
+			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Error(err.Error())
 			}
 		case <-cb.ctx.Done():
 			close(chRelayParentAndCommand)
-			if err := cb.ctx.Err(); err != nil {
+			if err := cb.ctx.Err(); err != nil && err != context.Canceled {
 				logger.Errorf("ctx error: %s\n", err)
+			} else {
+				logger.Info("Context canceled")
 			}
 			cb.wg.Done()
 			return
@@ -205,8 +203,8 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
 }
 
-// processOverseerMessage processes incoming messages from overseer
-func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndCommand chan RelayParentAndCommand) error {
+// processMessage processes incoming messages from overseer
+func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan relayParentAndCommand) error {
 	// process these received messages by referencing
 	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 	switch msg := msg.(type) {
@@ -258,7 +256,7 @@ func (cb *CandidateBacking) handleSecondMessage() {
 func (cb *CandidateBacking) handleStatementMessage(
 	relayParent common.Hash,
 	signedStatementWithPVD SignedFullStatementWithPVD,
-	chRelayParentAndCommand chan RelayParentAndCommand,
+	chRelayParentAndCommand chan relayParentAndCommand,
 ) error {
 	rpState, ok := cb.perRelayParent[relayParent]
 	if !ok {
@@ -548,7 +546,7 @@ func attestedToBackedCandidate(
 // Kick off validation work and distribute the result as a signed statement.
 func (rpState *perRelayParentState) kickOffValidationWork(
 	subSystemToOverseer chan<- any,
-	chRelayParentAndCommand chan RelayParentAndCommand,
+	chRelayParentAndCommand chan relayParentAndCommand,
 	pvd parachaintypes.PersistedValidationData,
 	attesting attestingData,
 ) error {
@@ -580,18 +578,18 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 }
 
 // this is temporary until we implement executorParamsAtRelayParent #3544
-type ExecutorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
+type executorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
 
 func (rpState *perRelayParentState) validateAndMakeAvailable(
-	executorParamsAtRelayParentFunc ExecutorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
+	executorParamsAtRelayParentFunc executorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
 	subSystemToOverseer chan<- any,
-	chRelayParentAndCommand chan RelayParentAndCommand,
+	chRelayParentAndCommand chan relayParentAndCommand,
 	candidateReceipt parachaintypes.CandidateReceipt,
 	relayParent common.Hash,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
 	numValidator uint32,
-	makeCommand ValidatedCandidateCommand,
+	makeCommand validatedCandidateCommand,
 	candidateHash parachaintypes.CandidateHash,
 ) error {
 	if rpState.awaitingValidation[candidateHash] {
@@ -643,7 +641,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("getting validation result: %w", ValidationResultRes.Err)
 	}
 
-	var backgroundValidationResult BackgroundValidationResult
+	var bgValidationResult backgroundValidationResult
 
 	if ValidationResultRes.Data.IsValid { // Valid
 		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
@@ -668,18 +666,18 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		storeAvailableDataError := <-chStoreAvailableDataError
 		switch {
 		case storeAvailableDataError == nil:
-			backgroundValidationResult = BackgroundValidationResult{
-				CandidateReceipt:        &candidateReceipt,
-				CandidateCommitments:    &ValidationResultRes.Data.CandidateCommitments,
-				PersistedValidationData: &ValidationResultRes.Data.PersistedValidationData,
-				Err:                     nil,
+			bgValidationResult = backgroundValidationResult{
+				candidateReceipt:        &candidateReceipt,
+				candidateCommitments:    &ValidationResultRes.Data.CandidateCommitments,
+				persistedValidationData: &ValidationResultRes.Data.PersistedValidationData,
+				err:                     nil,
 			}
 		case errors.Is(storeAvailableDataError, errInvalidErasureRoot):
 			logger.Debug(errInvalidErasureRoot.Error())
 
-			backgroundValidationResult = BackgroundValidationResult{
-				CandidateReceipt: &candidateReceipt,
-				Err:              errInvalidErasureRoot,
+			bgValidationResult = backgroundValidationResult{
+				candidateReceipt: &candidateReceipt,
+				err:              errInvalidErasureRoot,
 			}
 		default:
 			return fmt.Errorf("storing available data: %w", storeAvailableDataError)
@@ -687,17 +685,17 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 
 	} else { // Invalid
 		logger.Error(ValidationResultRes.Data.Err.Error())
-		backgroundValidationResult = BackgroundValidationResult{
-			CandidateReceipt: &candidateReceipt,
-			Err:              ValidationResultRes.Data.Err,
+		bgValidationResult = backgroundValidationResult{
+			candidateReceipt: &candidateReceipt,
+			err:              ValidationResultRes.Data.Err,
 		}
 	}
 
-	chRelayParentAndCommand <- RelayParentAndCommand{
-		RelayParent:   relayParent,
-		Command:       makeCommand,
-		ValidationRes: backgroundValidationResult,
-		CandidateHash: candidateHash,
+	chRelayParentAndCommand <- relayParentAndCommand{
+		relayParent:   relayParent,
+		command:       makeCommand,
+		validationRes: bgValidationResult,
+		candidateHash: candidateHash,
 	}
 	return nil
 }
@@ -716,33 +714,33 @@ func executorParamsAtRelayParent(
 	return parachaintypes.ExecutorParams{}, nil
 }
 
-func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd RelayParentAndCommand) error {
+func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd relayParentAndCommand) error {
 	// TODO: Implement this #3571
 	return nil
 }
 
-type BackgroundValidationResult struct {
-	CandidateReceipt        *parachaintypes.CandidateReceipt
-	CandidateCommitments    *parachaintypes.CandidateCommitments
-	PersistedValidationData *parachaintypes.PersistedValidationData
-	Err                     error
+type backgroundValidationResult struct {
+	candidateReceipt        *parachaintypes.CandidateReceipt
+	candidateCommitments    *parachaintypes.CandidateCommitments
+	persistedValidationData *parachaintypes.PersistedValidationData
+	err                     error
 }
 
-// RelayParentAndCommand contains the relay parent and the command to be executed on validated candidate,
+// relayParentAndCommand contains the relay parent and the command to be executed on validated candidate,
 // along with the result of the background validation.
-type RelayParentAndCommand struct {
-	RelayParent   common.Hash
-	Command       ValidatedCandidateCommand
-	ValidationRes BackgroundValidationResult
-	CandidateHash parachaintypes.CandidateHash
+type relayParentAndCommand struct {
+	relayParent   common.Hash
+	command       validatedCandidateCommand
+	validationRes backgroundValidationResult
+	candidateHash parachaintypes.CandidateHash
 }
 
-// ValidatedCandidateCommand represents commands for handling validated candidates.
-type ValidatedCandidateCommand byte
+// validatedCandidateCommand represents commands for handling validated candidates.
+type validatedCandidateCommand byte
 
 const (
 	// We were instructed to second the candidate that has been already validated.
-	Second = ValidatedCandidateCommand(iota)
+	Second = validatedCandidateCommand(iota)
 	// We were instructed to validate the candidate.
 	Attest
 	// We were not able to `Attest` because backing validator did not send us the PoV.

@@ -561,7 +561,7 @@ func TestKickOffValidationWork(t *testing.T) {
 			t.Parallel()
 
 			subSystemToOverseer := make(chan any)
-			chRelayParentAndCommand := make(chan RelayParentAndCommand)
+			chRelayParentAndCommand := make(chan relayParentAndCommand)
 			pvd := parachaintypes.PersistedValidationData{}
 
 			err := c.rpState.kickOffValidationWork(subSystemToOverseer, chRelayParentAndCommand, pvd, attesting)
@@ -587,7 +587,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 		rpState                  perRelayParentState
 		expectedErr              string
 		mockOverseer             func(ch chan any)
-		mockExecutorParamsGetter ExecutorParamsGetter
+		mockExecutorParamsGetter executorParamsGetter
 	}{
 		{
 			description: "validation_process_already_started_for_candidate",
@@ -738,10 +738,10 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			t.Parallel()
 
 			subSystemToOverseer := make(chan any)
-			chRelayParentAndCommand := make(chan RelayParentAndCommand)
+			chRelayParentAndCommand := make(chan relayParentAndCommand)
 
 			go c.mockOverseer(subSystemToOverseer)
-			go func(chRelayParentAndCommand chan RelayParentAndCommand) {
+			go func(chRelayParentAndCommand chan relayParentAndCommand) {
 				<-chRelayParentAndCommand
 			}(chRelayParentAndCommand)
 
@@ -771,7 +771,7 @@ func TestHandleStatementMessage(t *testing.T) {
 	t.Parallel()
 
 	relayParent := getDummyHash(t, 5)
-	chRelayParentAndCommand := make(chan RelayParentAndCommand)
+	chRelayParentAndCommand := make(chan relayParentAndCommand)
 
 	dummyCCR := getDummyCommittedCandidateReceipt(t)
 	seconded := parachaintypes.Seconded(dummyCCR)
