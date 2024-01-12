@@ -64,6 +64,8 @@ func parseIdent(ident *ast.Ident) (idents []string) {
 				idents = append(idents, ts.Name.Name)
 			case *ast.StructType:
 				idents = append(idents, ts.Name.Name)
+			case *ast.SelectorExpr:
+				idents = append(idents, ts.Name.Name)
 			case *ast.InterfaceType:
 				if len(t.Methods.List) != 1 {
 					break
@@ -131,7 +133,7 @@ func (mvdt *%s) SetValue(value any) (err error) {
 }
 `
 	code = code + fmt.Sprintf(`
-func (mvdt *%s) IndexValue() (index uint, value any, err error) {
+func (mvdt %s) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {`, vdtName)
 
 	for i, ident := range idents {
@@ -147,14 +149,14 @@ func (mvdt *%s) IndexValue() (index uint, value any, err error) {
 	}
 `
 	code = code + fmt.Sprintf(`
-func (mvdt *%s) Value() (value any, err error) {
+func (mvdt %s) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }`,
 		vdtName)
 
 	code = code + fmt.Sprintf(`
-func (mvdt *%s) ValueAt(index uint) (value any, err error) {
+func (mvdt %s) ValueAt(index uint) (value any, err error) {
 	switch index {`,
 		vdtName)
 
@@ -178,11 +180,9 @@ func (mvdt *%s) ValueAt(index uint) (value any, err error) {
 	return string(formatted)
 }
 
-func run() {
+func run(typeName string, src string) {
 	fset := token.NewFileSet()
 	f, _ := parser.ParseFile(fset, "dummy.go", src, parser.ParseComments)
-
-	typeName := "BabeDigestValues"
 
 	idents := make([]string, 0)
 

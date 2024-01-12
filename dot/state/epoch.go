@@ -197,7 +197,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, err
 	}
 
-	for _, d := range header.Digest.Types {
+	for _, d := range header.Digest {
 		digestValue, err := d.Value()
 		if err != nil {
 			continue
@@ -373,7 +373,7 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 	return info, nil
 }
 
-func (s *EpochState) HandleBABEDigest(header *types.Header, digest scale.VaryingDataType) error {
+func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeConsensusDigest) error {
 	headerHash := header.Hash()
 
 	digestValue, err := digest.Value()

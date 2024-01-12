@@ -821,7 +821,7 @@ func TestStress_SecondarySlotProduction(t *testing.T) {
 
 				header := block.Header
 
-				preDigestItem := header.Digest.Types[0]
+				preDigestItem := header.Digest[0]
 				preDigestItemValue, err := preDigestItem.Value()
 				require.NoError(t, err)
 				preDigest, ok := preDigestItemValue.(gosstypes.PreRuntimeDigest)

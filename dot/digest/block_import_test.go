@@ -35,7 +35,7 @@ func TestBlockImportHandle(t *testing.T) {
 	})
 
 	versionedNextConfigData := types.NewVersionedNextConfigData()
-	versionedNextConfigData.Set(types.NextConfigDataV1{
+	versionedNextConfigData.SetValue(types.NextConfigDataV1{
 		C1:             9,
 		C2:             10,
 		SecondarySlots: 1,
@@ -239,7 +239,7 @@ func TestBlockImportHandle(t *testing.T) {
 				}
 
 				versionedNextConfigData := types.NewVersionedNextConfigData()
-				versionedNextConfigData.Set(types.NextConfigDataV1{
+				versionedNextConfigData.SetValue(types.NextConfigDataV1{
 					C1:             9,
 					C2:             10,
 					SecondarySlots: 1,
@@ -288,11 +288,11 @@ func TestBlockImportHandle(t *testing.T) {
 	}
 }
 
-func createBABEConsensusDigest(t *testing.T, digestData scale.VaryingDataTypeValue) types.ConsensusDigest {
+func createBABEConsensusDigest(t *testing.T, digestData any) types.ConsensusDigest {
 	t.Helper()
 
 	babeConsensusDigest := types.NewBabeConsensusDigest()
-	require.NoError(t, babeConsensusDigest.Set(digestData))
+	require.NoError(t, babeConsensusDigest.SetValue(digestData))
 
 	marshaledData, err := scale.Marshal(babeConsensusDigest)
 	require.NoError(t, err)
@@ -303,11 +303,11 @@ func createBABEConsensusDigest(t *testing.T, digestData scale.VaryingDataTypeVal
 	}
 }
 
-func createGRANDPAConsensusDigest(t *testing.T, digestData scale.VaryingDataTypeValue) types.ConsensusDigest {
+func createGRANDPAConsensusDigest(t *testing.T, digestData any) types.ConsensusDigest {
 	t.Helper()
 
 	grandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-	require.NoError(t, grandpaConsensusDigest.Set(digestData))
+	require.NoError(t, grandpaConsensusDigest.SetValue(digestData))
 
 	marshaledData, err := scale.Marshal(grandpaConsensusDigest)
 	require.NoError(t, err)
@@ -323,7 +323,7 @@ func createBlockWithDigests(t *testing.T, genesisHeader *types.Header, digestsTo
 	t.Helper()
 
 	digest := types.NewDigest()
-	digestAddArgs := make([]scale.VaryingDataTypeValue, len(digestsToApply))
+	digestAddArgs := make([]any, len(digestsToApply))
 
 	for idx, consensusDigest := range digestsToApply {
 		digestAddArgs[idx] = consensusDigest

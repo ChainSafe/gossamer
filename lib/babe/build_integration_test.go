@@ -82,7 +82,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
-	require.Equal(t, 3, len(block.Header.Digest.Types))
+	require.Equal(t, 3, len(block.Header.Digest))
 
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)

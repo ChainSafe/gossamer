@@ -12,17 +12,17 @@ import (
 
 // Header is a state block header
 type Header struct {
-	ParentHash     common.Hash  `json:"parentHash"`
-	Number         uint         `json:"number"`
-	StateRoot      common.Hash  `json:"stateRoot"`
-	ExtrinsicsRoot common.Hash  `json:"extrinsicsRoot"`
-	Digest         []DigestItem `json:"digest"`
+	ParentHash     common.Hash `json:"parentHash"`
+	Number         uint        `json:"number"`
+	StateRoot      common.Hash `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
+	Digest         Digest      `json:"digest"`
 	hash           common.Hash
 }
 
 // NewHeader creates a new block header and sets its hash field
 func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash,
-	number uint, digest []DigestItem) (blockHeader *Header) {
+	number uint, digest Digest) (blockHeader *Header) {
 	blockHeader = &Header{
 		ParentHash:     parentHash,
 		Number:         number,

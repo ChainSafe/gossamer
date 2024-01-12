@@ -79,7 +79,7 @@ func Test_newHeaderFromFile(t *testing.T) {
 	}
 
 	preRuntimeDigestItem := types.NewDigestItem()
-	err := preRuntimeDigestItem.Set(preRuntimeDigest)
+	err := preRuntimeDigestItem.SetValue(preRuntimeDigest)
 	require.NoError(t, err)
 	preRuntimeDigestItemValue, err := preRuntimeDigestItem.Value()
 	require.NoError(t, err)
@@ -94,7 +94,7 @@ func Test_newHeaderFromFile(t *testing.T) {
 	}
 
 	sealDigestItem := types.NewDigestItem()
-	err = sealDigestItem.Set(sealDigest)
+	err = sealDigestItem.SetValue(sealDigest)
 	require.NoError(t, err)
 	sealDigestItemValue, err := sealDigestItem.Value()
 	require.NoError(t, err)

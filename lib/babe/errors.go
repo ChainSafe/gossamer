@@ -75,9 +75,9 @@ var (
 	errLaggingSlot                = errors.New("current slot is smaller than slot of best block")
 	errNoDigest                   = errors.New("no digest provided")
 
-	other         Other
-	invalidCustom InvalidCustom
-	unknownCustom UnknownCustom
+	// other         Other
+	// invalidCustom InvalidCustom
+	// unknownCustom UnknownCustom
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
@@ -113,7 +113,7 @@ var (
 	errBadSigner                = errors.New("invalid signing address")
 )
 
-func newUnknownError(data scale.VaryingDataTypeValue) error {
+func newUnknownError(data any) error {
 	return fmt.Errorf("unknown error: %d", data)
 }
 
@@ -129,24 +129,24 @@ func (e UnmarshalError) Error() string {
 // Other Some error occurred
 type Other string
 
-// Index returns VDT index
-func (Other) Index() uint { return 0 }
+// // Index returns VDT index
+// func (Other) Index() uint { return 0 }
 
 func (o Other) String() string { return string(o) }
 
 // CannotLookup Failed to lookup some data
 type CannotLookup struct{}
 
-// Index returns VDT index
-func (CannotLookup) Index() uint { return 1 }
+// // Index returns VDT index
+// func (CannotLookup) Index() uint { return 1 }
 
 func (CannotLookup) String() string { return "cannot lookup" }
 
 // BadOrigin A bad origin
 type BadOrigin struct{}
 
-// Index returns VDT index
-func (BadOrigin) Index() uint { return 2 }
+// // Index returns VDT index
+// func (BadOrigin) Index() uint { return 2 }
 
 func (BadOrigin) String() string { return "bad origin" }
 
@@ -157,8 +157,8 @@ type Module struct {
 	Message *string
 }
 
-// Index returns VDT index
-func (Module) Index() uint { return 3 }
+// // Index returns VDT index
+// func (Module) Index() uint { return 3 }
 
 func (err Module) String() string {
 	message := "nil"
@@ -171,8 +171,8 @@ func (err Module) String() string {
 // ValidityCannotLookup Could not lookup some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
 
-// Index returns VDT index
-func (ValidityCannotLookup) Index() uint { return 0 }
+// // Index returns VDT index
+// func (ValidityCannotLookup) Index() uint { return 0 }
 
 func (ValidityCannotLookup) String() string { return "validity cannot lookup" }
 
@@ -187,100 +187,100 @@ func (NoUnsignedValidator) String() string { return "no unsigned validator" }
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
-// Index returns VDT index
-func (UnknownCustom) Index() uint { return 2 }
+// // Index returns VDT index
+// func (UnknownCustom) Index() uint { return 2 }
 
 func (uc UnknownCustom) String() string { return fmt.Sprintf("UnknownCustom(%d)", uc) }
 
 // Call The call of the transaction is not expected
 type Call struct{}
 
-// Index returns VDT index
-func (Call) Index() uint { return 0 }
+// // Index returns VDT index
+// func (Call) Index() uint { return 0 }
 
 func (Call) String() string { return "call" }
 
 // Payment General error to do with the inability to pay some fees (e.g. account balance too low)
 type Payment struct{}
 
-// Index returns VDT index
-func (Payment) Index() uint { return 1 }
+// // Index returns VDT index
+// func (Payment) Index() uint { return 1 }
 
 func (Payment) String() string { return "payment" }
 
 // Future General error to do with the transaction not yet being valid (e.g. nonce too high)
 type Future struct{}
 
-// Index returns VDT index
-func (Future) Index() uint { return 2 }
+// // Index returns VDT index
+// func (Future) Index() uint { return 2 }
 
 func (Future) String() string { return "future" }
 
 // Stale General error to do with the transaction being outdated (e.g. nonce too low)
 type Stale struct{}
 
-// Index returns VDT index
-func (Stale) Index() uint { return 3 }
+// // Index returns VDT index
+// func (Stale) Index() uint { return 3 }
 
 func (Stale) String() string { return "stale" }
 
 // BadProof General error to do with the transaction’s proofs (e.g. signature)
 type BadProof struct{}
 
-// Index returns VDT index
-func (BadProof) Index() uint { return 4 }
+// // Index returns VDT index
+// func (BadProof) Index() uint { return 4 }
 
 func (BadProof) String() string { return "bad proof" }
 
 // AncientBirthBlock The transaction birth block is ancient
 type AncientBirthBlock struct{}
 
-// Index returns VDT index
-func (AncientBirthBlock) Index() uint { return 5 }
+// // Index returns VDT index
+// func (AncientBirthBlock) Index() uint { return 5 }
 
 func (AncientBirthBlock) String() string { return "ancient birth block" }
 
 // ExhaustsResources The transaction would exhaust the resources of current block
 type ExhaustsResources struct{}
 
-// Index returns VDT index
-func (ExhaustsResources) Index() uint { return 6 }
+// // Index returns VDT index
+// func (ExhaustsResources) Index() uint { return 6 }
 
 func (ExhaustsResources) String() string { return "exhausts resources" }
 
 // InvalidCustom Any other custom invalid validity that is not covered
 type InvalidCustom uint8
 
-// Index returns VDT index
-func (InvalidCustom) Index() uint { return 7 }
+// // Index returns VDT index
+// func (InvalidCustom) Index() uint { return 7 }
 
 func (ic InvalidCustom) String() string { return fmt.Sprintf("InvalidCustom(%d)", ic) }
 
 // BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
 type BadMandatory struct{}
 
-// Index returns VDT index
-func (BadMandatory) Index() uint { return 8 }
+// // Index returns VDT index
+// func (BadMandatory) Index() uint { return 8 }
 
 func (BadMandatory) String() string { return "bad mandatory" }
 
 // MandatoryDispatch A transaction with a mandatory dispatch
 type MandatoryDispatch struct{}
 
-// Index returns VDT index
-func (MandatoryDispatch) Index() uint { return 9 }
+// // Index returns VDT index
+// func (MandatoryDispatch) Index() uint { return 9 }
 
 func (MandatoryDispatch) String() string { return "mandatory dispatch" }
 
 // BadSigner A transaction with a mandatory dispatch
 type BadSigner struct{}
 
-// Index returns VDT index
-func (BadSigner) Index() uint { return 10 }
+// // Index returns VDT index
+// func (BadSigner) Index() uint { return 10 }
 
 func (BadSigner) String() string { return "invalid signing address" }
 
-func determineErrType(vdt scale.VaryingDataType) (err error) {
+func determineErrType(vdt scale.EncodeVaryingDataType) (err error) {
 	vdtVal, err := vdt.Value()
 	if err != nil {
 		return fmt.Errorf("getting vdt value: %w", err)
@@ -330,11 +330,246 @@ func determineErrType(vdt scale.VaryingDataType) (err error) {
 	return err
 }
 
+type dispatchErrorValues interface {
+	Other | CannotLookup | BadOrigin | Module
+}
+type dispatchError struct {
+	inner any
+}
+
+func setdispatchError[Value dispatchErrorValues](mvdt *dispatchError, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *dispatchError) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Other:
+		setdispatchError(mvdt, value)
+		return
+	case CannotLookup:
+		setdispatchError(mvdt, value)
+		return
+	case BadOrigin:
+		setdispatchError(mvdt, value)
+		return
+	case Module:
+		setdispatchError(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt dispatchError) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Other:
+		return 0, mvdt.inner, nil
+	case CannotLookup:
+		return 1, mvdt.inner, nil
+	case BadOrigin:
+		return 2, mvdt.inner, nil
+	case Module:
+		return 3, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt dispatchError) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt dispatchError) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(Other), nil
+	case 1:
+		return *new(CannotLookup), nil
+	case 2:
+		return *new(BadOrigin), nil
+	case 3:
+		return *new(Module), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+type invalidValues interface {
+	Call | Payment | Future | Stale | BadProof | AncientBirthBlock |
+		ExhaustsResources | InvalidCustom | BadMandatory | MandatoryDispatch | BadSigner
+}
+type invalid struct {
+	inner any
+}
+
+func setinvalid[Value invalidValues](mvdt *invalid, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *invalid) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Call:
+		setinvalid(mvdt, value)
+		return
+	case Payment:
+		setinvalid(mvdt, value)
+		return
+	case Future:
+		setinvalid(mvdt, value)
+		return
+	case Stale:
+		setinvalid(mvdt, value)
+		return
+	case BadProof:
+		setinvalid(mvdt, value)
+		return
+	case AncientBirthBlock:
+		setinvalid(mvdt, value)
+		return
+	case ExhaustsResources:
+		setinvalid(mvdt, value)
+		return
+	case InvalidCustom:
+		setinvalid(mvdt, value)
+		return
+	case BadMandatory:
+		setinvalid(mvdt, value)
+		return
+	case MandatoryDispatch:
+		setinvalid(mvdt, value)
+		return
+	case BadSigner:
+		setinvalid(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt invalid) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Call:
+		return 0, mvdt.inner, nil
+	case Payment:
+		return 1, mvdt.inner, nil
+	case Future:
+		return 2, mvdt.inner, nil
+	case Stale:
+		return 3, mvdt.inner, nil
+	case BadProof:
+		return 4, mvdt.inner, nil
+	case AncientBirthBlock:
+		return 5, mvdt.inner, nil
+	case ExhaustsResources:
+		return 6, mvdt.inner, nil
+	case InvalidCustom:
+		return 7, mvdt.inner, nil
+	case BadMandatory:
+		return 8, mvdt.inner, nil
+	case MandatoryDispatch:
+		return 9, mvdt.inner, nil
+	case BadSigner:
+		return 10, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt invalid) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+func (mvdt invalid) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(Call), nil
+	case 1:
+		return *new(Payment), nil
+	case 2:
+		return *new(Future), nil
+	case 3:
+		return *new(Stale), nil
+	case 4:
+		return *new(BadProof), nil
+	case 5:
+		return *new(AncientBirthBlock), nil
+	case 6:
+		return *new(ExhaustsResources), nil
+	case 7:
+		return *new(InvalidCustom), nil
+	case 8:
+		return *new(BadMandatory), nil
+	case 9:
+		return *new(MandatoryDispatch), nil
+	case 10:
+		return *new(BadSigner), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+type unknownValues interface {
+	ValidityCannotLookup | NoUnsignedValidator | UnknownCustom
+}
+type unknown struct {
+	inner any
+}
+
+func setunknown[Value unknownValues](mvdt *unknown, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *unknown) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case ValidityCannotLookup:
+		setunknown(mvdt, value)
+		return
+	case NoUnsignedValidator:
+		setunknown(mvdt, value)
+		return
+	case UnknownCustom:
+		setunknown(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt unknown) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case ValidityCannotLookup:
+		return 0, mvdt.inner, nil
+	case NoUnsignedValidator:
+		return 1, mvdt.inner, nil
+	case UnknownCustom:
+		return 2, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt unknown) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt unknown) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(ValidityCannotLookup), nil
+	case 1:
+		return *new(NoUnsignedValidator), nil
+	case 2:
+		return *new(UnknownCustom), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
 func determineErr(res []byte) error {
-	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
-	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{}, BadSigner{})
-	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+	// dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
+	// invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+	// 	ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{}, BadSigner{})
+	// unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+	dispatchError := dispatchError{}
+	invalid := invalid{}
+	unknown := unknown{}
 
 	okRes := scale.NewResult(nil, dispatchError)
 	errRes := scale.NewResult(invalid, unknown)
@@ -354,12 +589,12 @@ func determineErr(res []byte) error {
 			if err != nil {
 				switch err := err.(type) {
 				case scale.WrappedErr:
-					return determineErrType(err.Err.(scale.VaryingDataType))
+					return determineErrType(err.Err.(scale.EncodeVaryingDataType))
 				default:
 					return errInvalidResult
 				}
 			} else {
-				return determineErrType(ok.(scale.VaryingDataType))
+				return determineErrType(ok.(scale.EncodeVaryingDataType))
 			}
 		default:
 			return errInvalidResult
@@ -371,7 +606,7 @@ func determineErr(res []byte) error {
 			if err != nil {
 				switch err := err.(type) {
 				case scale.WrappedErr:
-					return determineErrType(err.Err.(scale.VaryingDataType))
+					return determineErrType(err.Err.(scale.EncodeVaryingDataType))
 				default:
 					return errInvalidResult
 				}

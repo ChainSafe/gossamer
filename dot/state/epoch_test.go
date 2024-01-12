@@ -134,7 +134,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	enc, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -151,7 +151,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	require.Equal(t, uint64(1), epoch)
 
 	babeHeader = types.NewBabeDigest()
-	err = babeHeader.Set(*types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{}))
+	err = babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	enc, err = scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -254,8 +254,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
 	require.NoError(t, err)
 
-	digest := scale.NewVaryingDataTypeSlice(scale.MustNewVaryingDataType(
-		types.PreRuntimeDigest{}))
+	digest := types.NewDigest()
 
 	require.NoError(t, digest.Add(*preRuntimeDigest))
 
@@ -424,8 +423,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
 	require.NoError(t, err)
 
-	digest := scale.NewVaryingDataTypeSlice(scale.MustNewVaryingDataType(
-		types.PreRuntimeDigest{}))
+	digest := types.NewDigest()
 
 	require.NoError(t, digest.Add(*preRuntimeDigest))
 
