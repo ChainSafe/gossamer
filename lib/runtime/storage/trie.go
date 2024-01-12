@@ -84,13 +84,13 @@ func (s *TrieState) Get(key []byte) []byte {
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (s *TrieState) MustRoot() common.Hash {
-	return s.t.MustHash()
+func (s *TrieState) MustRoot(maxInlineValue int) common.Hash {
+	return s.t.MustHash(maxInlineValue)
 }
 
 // Root returns the trie's root hash
-func (s *TrieState) Root() (common.Hash, error) {
-	return s.t.Hash()
+func (s *TrieState) Root(maxInlineValue int) (common.Hash, error) {
+	return s.t.Hash(maxInlineValue)
 }
 
 // Has returns whether or not a key exists

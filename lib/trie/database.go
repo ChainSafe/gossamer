@@ -11,17 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie/db"
 )
-
-// DBGetter gets a value corresponding to the given key.
-type DBGetter interface {
-	Get(key []byte) (value []byte, err error)
-}
-
-// DBPutter puts a value at the given key and returns an error.
-type DBPutter interface {
-	Put(key []byte, value []byte) error
-}
 
 // NewBatcher creates a new database batch.
 type NewBatcher interface {
@@ -30,7 +21,7 @@ type NewBatcher interface {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db DBGetter, rootHash common.Hash) error {
+func (t *Trie) Load(db db.DBGetter, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
@@ -54,7 +45,7 @@ func (t *Trie) Load(db DBGetter, rootHash common.Hash) error {
 	return t.loadNode(db, t.root)
 }
 
-func (t *Trie) loadNode(db DBGetter, n *Node) error {
+func (t *Trie) loadNode(db db.DBGetter, n *Node) error {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -70,7 +61,7 @@ func (t *Trie) loadNode(db DBGetter, n *Node) error {
 		if len(merkleValue) < 32 {
 			// node has already been loaded inline
 			// just set its encoding
-			_, err := child.CalculateMerkleValue()
+			_, err := child.CalculateMerkleValue(NoMaxInlineValueSize)
 			if err != nil {
 				return fmt.Errorf("merkle value: %w", err)
 			}
@@ -118,7 +109,7 @@ func (t *Trie) loadNode(db DBGetter, n *Node) error {
 			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
 		}
 
-		hash, err := childTrie.Hash()
+		hash, err := childTrie.Hash(NoMaxInlineValueSize)
 		if err != nil {
 			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
 		}
@@ -196,7 +187,7 @@ func recordAllDeleted(n *Node, recorder DeltaRecorder) {
 // It recursively descends into the trie using the database starting
 // from the root node until it reaches the node with the given key.
 // It then reads the value from the database.
-func GetFromDB(db DBGetter, rootHash common.Hash, key []byte) (
+func GetFromDB(db db.DBGetter, rootHash common.Hash, key []byte) (
 	value []byte, err error) {
 	if rootHash == EmptyHash {
 		return nil, nil
@@ -222,7 +213,7 @@ func GetFromDB(db DBGetter, rootHash common.Hash, key []byte) (
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDBAtNode(db DBGetter, n *Node, key []byte) (
+func getFromDBAtNode(db db.DBGetter, n *Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.PartialKey, key) {
@@ -289,16 +280,18 @@ func (t *Trie) WriteDirty(db NewBatcher) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirtyNode(db DBPutter, n *Node) (err error) {
+func (t *Trie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
 
 	var encoding, merkleValue []byte
+	// TODO: I'm sure we don't need to store the encoded now, we can try storing the (key,value) only but it needs
+	// some refactor and testing. In the meantime we can store the encoded node using the v0 encoding
 	if n == t.root {
-		encoding, merkleValue, err = n.EncodeAndHashRoot()
+		encoding, merkleValue, err = n.EncodeAndHashRoot(V0.MaxInlineValue())
 	} else {
-		encoding, merkleValue, err = n.EncodeAndHash()
+		encoding, merkleValue, err = n.EncodeAndHash(V0.MaxInlineValue())
 	}
 	if err != nil {
 		return fmt.Errorf(
@@ -373,9 +366,9 @@ func (t *Trie) getInsertedNodeHashesAtNode(n *Node, nodeHashes map[common.Hash]s
 
 	var merkleValue []byte
 	if n == t.root {
-		merkleValue, err = n.CalculateRootMerkleValue()
+		merkleValue, err = n.CalculateRootMerkleValue(NoMaxInlineValueSize)
 	} else {
-		merkleValue, err = n.CalculateMerkleValue()
+		merkleValue, err = n.CalculateMerkleValue(NoMaxInlineValueSize)
 	}
 	if err != nil {
 		return fmt.Errorf("calculating Merkle value: %w", err)

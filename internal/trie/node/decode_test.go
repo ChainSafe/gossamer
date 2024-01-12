@@ -109,9 +109,9 @@ func Test_Decode(t *testing.T) {
 				hashedValue.ToBytes(),
 			})),
 			n: &Node{
-				PartialKey:   []byte{9},
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
+				PartialKey:    []byte{9},
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
 			},
 		},
 		"leaf_with_hashed_value_fail_too_short": {
@@ -131,10 +131,10 @@ func Test_Decode(t *testing.T) {
 				hashedValue.ToBytes(),
 			})),
 			n: &Node{
-				PartialKey:   []byte{9},
-				Children:     make([]*Node, ChildrenCapacity),
-				StorageValue: hashedValue.ToBytes(),
-				HashedValue:  true,
+				PartialKey:    []byte{9},
+				Children:      make([]*Node, ChildrenCapacity),
+				StorageValue:  hashedValue.ToBytes(),
+				IsHashedValue: true,
 			},
 		},
 		"branch_with_hashed_value_fail_too_short": {

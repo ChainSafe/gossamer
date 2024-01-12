@@ -19,6 +19,7 @@ var (
 		"state_getPairs",
 		"state_getKeysPaged",
 		"state_queryStorage",
+		"state_trie",
 	}
 
 	// AliasesMethods is a map that links the original methods to their aliases

@@ -95,7 +95,7 @@ func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochDat
 		return epochData, nil
 	}
 
-	currEpochData, err := b.epochState.GetEpochData(epoch, bestBlock)
+	currEpochData, err := b.epochState.GetEpochDataRaw(epoch, bestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get epoch data for epoch %d: %w", epoch, err)
 	}
@@ -127,13 +127,13 @@ func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochDat
 func (b *Service) getLatestEpochData() (resEpochData *epochData, error error) {
 	resEpochData = &epochData{}
 
-	epochData, err := b.epochState.GetLatestEpochData()
+	epochDataRaw, err := b.epochState.GetLatestEpochDataRaw()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get latest epoch data: %w", err)
 	}
 
-	resEpochData.randomness = epochData.Randomness
-	resEpochData.authorities = epochData.Authorities
+	resEpochData.randomness = epochDataRaw.Randomness
+	resEpochData.authorities = epochDataRaw.Authorities
 
 	configData, err := b.epochState.GetLatestConfigData()
 	if err != nil {

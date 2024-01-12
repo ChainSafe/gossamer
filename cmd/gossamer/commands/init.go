@@ -26,10 +26,10 @@ func init() {
 // InitCmd is the command to initialise the node
 var InitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialise node databases and load genesis data to state",
-	Long: `The init command initialises the node databases and loads the genesis data from the genesis file to state.
+	Short: "Initialise node databases, load chain-spec and create default configuration",
+	Long: `The init command initialises the node databases, loads the chain-spec and creates default configuration.
 Examples: 
-	gossamer init --genesis genesis.json
+	gossamer init --chain chain-spec.json
 	gossamer init --chain westend`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return execInit(cmd)
