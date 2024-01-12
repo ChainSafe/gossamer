@@ -394,7 +394,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 			verifier: verifier{},
 			args:     args{&types.PreRuntimeDigest{Data: []byte{0}}},
 			expErr: errors.New(
-				"unable to find VaryingDataTypeValue with index: for key 0"),
+				"unable to find VaryingDataTypeValue with index: for key 0 unable to find VaryingDataTypeValue with index"),
 		},
 		{
 			name:     "Invalid BlockProducer Index",
