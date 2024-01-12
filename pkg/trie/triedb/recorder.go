@@ -6,6 +6,7 @@ package triedb
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
 )
 
@@ -17,25 +18,25 @@ const (
 	RecordedForKeyNone
 )
 
-type TrieRecorder[Out node.HashOut] interface {
+type TrieRecorder[Out hashdb.HashOut] interface {
 	record(access TrieAccess[Out])
 	trieNodesRecordedForKey(key []byte) RecordedForKey
 }
 
 // TrieAccess is used to report the trie access to the TrieRecorder
-type TrieAccess[Out node.HashOut] interface {
+type TrieAccess[Out hashdb.HashOut] interface {
 	Type() string
 }
 
 type (
 	// TrieAccessNode means that the given node was accessed using its hash
-	TrieAccessNodeOwned[H node.HashOut] struct {
+	TrieAccessNodeOwned[H hashdb.HashOut] struct {
 		hash      H
 		nodeOwned node.NodeOwned[H]
 	}
 
 	// TrieAccessEncodedNode means that the given encodedNode was accessed using its hash
-	TrieAccessEncodedNode[H node.HashOut] struct {
+	TrieAccessEncodedNode[H hashdb.HashOut] struct {
 		hash        H
 		encodedNode []byte
 	}
@@ -43,7 +44,7 @@ type (
 	// TrieAccessValue means that the given value was accessed using its hash
 	// fullKey is the key to access this value in the trie
 	// Should map to RecordedForKeyValue when checking the recorder
-	TrieAccessValue[H node.HashOut] struct {
+	TrieAccessValue[H hashdb.HashOut] struct {
 		hash    H
 		value   []byte
 		fullKey []byte
@@ -52,13 +53,13 @@ type (
 	// TrieAccessInlineValue means that a value stored in an inlined node was accessed
 	// The given fullKey is the key to access this value in the trie
 	// Should map to RecordedForKeyValue when checking the recorder
-	TrieAccessInlineValue[H node.HashOut] struct {
+	TrieAccessInlineValue[H hashdb.HashOut] struct {
 		fullKey []byte
 	}
 
 	// TrieAccessHash means that the hash of the value for a given fullKey was accessed
 	// Should map to RecordedForKeyHash when checking the recorder
-	TrieAccessHash[H node.HashOut] struct {
+	TrieAccessHash[H hashdb.HashOut] struct {
 		fullKey []byte
 	}
 
@@ -78,21 +79,21 @@ func (a TrieAccessNonExisting) Type() string    { return "NotExisting" }
 
 // Recorder implementation
 
-type Record[H node.HashOut] struct {
+type Record[H hashdb.HashOut] struct {
 	/// The hash of the node.
 	Hash H
 	/// The data representing the node.
 	Data []byte
 }
 
-type Recorder[H node.HashOut] struct {
+type Recorder[H hashdb.HashOut] struct {
 	nodes        []Record[H]
 	recorderKeys map[string]RecordedForKey // TODO: revisit this later, it should be a BTreeMap
 	layout       TrieLayout[H]
 }
 
 // NewRecorder creates a new Recorder which records all given nodes
-func NewRecorder[H node.HashOut]() *Recorder[H] {
+func NewRecorder[H hashdb.HashOut]() *Recorder[H] {
 	return &Recorder[H]{
 		nodes:        make([]Record[H], 0),
 		recorderKeys: make(map[string]RecordedForKey),

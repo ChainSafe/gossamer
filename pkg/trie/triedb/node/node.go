@@ -28,7 +28,7 @@ func (v InlineValue) Type() string { return "Inline" }
 func (v NodeValue) Type() string   { return "Node" }
 
 // Nodes
-type Node[H HashOut] interface {
+type Node[H hashdb.HashOut] interface {
 	Type() string
 }
 
@@ -53,7 +53,7 @@ func (n Leaf) Type() string          { return "Leaf" }
 func (n NibbledBranch) Type() string { return "NibbledBranch" }
 
 // NodeOwned is a trie node
-type NodeOwned[H HashOut] interface {
+type NodeOwned[H hashdb.HashOut] interface {
 	Type() string
 }
 
@@ -61,12 +61,12 @@ type (
 	// NodeEmptyNode represents an empty node
 	NodeOwnedEmpty struct{}
 	// NodeLeaf represents a leaf node
-	NodeOwnedLeaf[H HashOut] struct {
+	NodeOwnedLeaf[H hashdb.HashOut] struct {
 		PartialKey nibble.NibbleSlice
 		Value      ValueOwned[H]
 	}
 	// NodeNibbledBranch represents a branch node
-	NodeOwnedNibbledBranch[H HashOut] struct {
+	NodeOwnedNibbledBranch[H hashdb.HashOut] struct {
 		PartialKey      nibble.NibbleSlice
 		EncodedChildren [nibble.NibbleLength]NodeHandleOwned[H]
 		Value           ValueOwned[H]
@@ -78,18 +78,18 @@ func (n NodeOwnedLeaf[H]) Type() string          { return "Leaf" }
 func (n NodeOwnedNibbledBranch[H]) Type() string { return "NibbledBranch" }
 
 // Value is a trie node value
-type ValueOwned[H HashOut] interface {
+type ValueOwned[H hashdb.HashOut] interface {
 	Type() string
 	AsValue() Value
 }
 type (
 	// InlineNodeValue if the value is inlined we can get the bytes and the hash of the value
-	InlineValueOwned[H HashOut] struct {
+	InlineValueOwned[H hashdb.HashOut] struct {
 		bytes []byte
 		hash  H
 	}
 	// HashedNodeValue is a trie node pointer to a hashed node
-	NodeValueOwned[H HashOut] struct {
+	NodeValueOwned[H hashdb.HashOut] struct {
 		hash H
 	}
 )
@@ -100,19 +100,19 @@ func (v InlineValueOwned[H]) AsValue() Value {
 }
 func (v NodeValueOwned[H]) Type() string { return "Node" }
 func (v NodeValueOwned[H]) AsValue() Value {
-	return NodeValue{Bytes: v.hash.ToBytes()}
+	return NodeValue{Bytes: v.hash.Bytes()}
 }
 
 // NodeHandle is a reference to a trie node which may be stored within another trie node.
-type NodeHandleOwned[H HashOut] interface {
+type NodeHandleOwned[H hashdb.HashOut] interface {
 	Type() string
 	AsChildReference(codec NodeCodec[H]) ChildReference[H]
 }
 type (
-	NodeHandleOwnedHash[H HashOut] struct {
+	NodeHandleOwnedHash[H hashdb.HashOut] struct {
 		Hash H
 	}
-	NodeHandleOwnedInline[H HashOut] struct {
+	NodeHandleOwnedInline[H hashdb.HashOut] struct {
 		Node NodeOwned[H]
 	}
 )
@@ -146,7 +146,7 @@ type (
 func (h Hash) Type() string   { return "Hash" }
 func (h Inline) Type() string { return "Inline" }
 
-func DecodeHash[H HashOut](data []byte, hasher hashdb.Hasher[H]) *H {
+func DecodeHash[H hashdb.HashOut](data []byte, hasher hashdb.Hasher[H]) *H {
 	if len(data) != hasher.Length() {
 		return nil
 	}

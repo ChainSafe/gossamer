@@ -5,38 +5,59 @@ package memorydb
 
 import (
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
-type MemoryDBValue[T any] struct {
-	value T
+type MemoryDBValue struct {
+	value []byte
 	rc    int32
 }
 
-type MemoryDB[Hash hashdb.HasherOut, Hasher hashdb.Hasher[Hash], KF KeyFunction[Hash, Hasher], T any] struct {
-	data           map[Hash]MemoryDBValue[T]
-	hashedNullNode Hash
-	nullNodeData   T
-	keyFunction    KF
+type MemoryDB[H hashdb.HashOut] struct {
+	data           map[string]MemoryDBValue
+	hashedNullNode H
+	nullNodeData   []byte
+	keyFunction    KeyFunction[H]
 }
 
-func newFromNullNode[Hash hashdb.HasherOut, Hasher hashdb.Hasher[Hash], KF KeyFunction[Hash, Hasher], T any](
+func newFromNullNode[H hashdb.HashOut](
 	nullKey []byte,
-	nullNodeData T,
-	hasher Hasher,
-	keyFunction KF,
-) *MemoryDB[Hash, Hasher, KF, T] {
-	return &MemoryDB[Hash, Hasher, KF, T]{
-		data:           make(map[Hash]MemoryDBValue[T]),
+	nullNodeData []byte,
+	hasher hashdb.Hasher[H],
+	keyFunction KeyFunction[H],
+) *MemoryDB[H] {
+	return &MemoryDB[H]{
+		data:           make(map[string]MemoryDBValue),
 		hashedNullNode: hasher.Hash(nullKey),
 		nullNodeData:   nullNodeData,
 		keyFunction:    keyFunction,
 	}
 }
 
-func NewMemoryDB[Hash hashdb.HasherOut, Hasher hashdb.Hasher[Hash], KF KeyFunction[Hash, Hasher], T any](
-	data []byte,
-	hasher Hasher,
-	keyFunction KF,
-) *MemoryDB[Hash, Hasher, KF, []byte] {
-	return newFromNullNode[Hash](data, data, hasher, keyFunction)
+func (db *MemoryDB[H]) Get(key H, prefix nibble.Prefix) *[]byte {
+	panic("Implement me")
+}
+
+func (db *MemoryDB[H]) Contains(key H, prefix nibble.Prefix) bool {
+	panic("Implement me")
+}
+
+func (db *MemoryDB[H]) Insert(prefix nibble.Prefix, value []byte) H {
+	panic("Implement me")
+}
+
+func (db *MemoryDB[H]) Emplace(key H, prefix nibble.Prefix, value []byte) {
+	panic("Implement me")
+}
+
+func (db *MemoryDB[H]) Remove(key H, prefix nibble.Prefix) {
+	panic("Implement me")
+}
+
+func NewMemoryDB[Hash hashdb.HashOut](
+	hasher hashdb.Hasher[Hash],
+	keyFunction KeyFunction[Hash],
+) *MemoryDB[Hash] {
+	data := []byte{0x0}
+	return newFromNullNode(data, data, hasher, keyFunction)
 }

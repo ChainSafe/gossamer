@@ -17,23 +17,37 @@ func NewKeccakHash(bytes [KeccakHasherLength]byte) KeccakHash {
 	}
 }
 
-func (k KeccakHash) ToBytes() []byte {
+func (k KeccakHash) Bytes() []byte {
 	return k.bytes[:]
 }
 
-type KeccakHasher[H KeccakHash] struct{}
+func (k KeccakHash) ComparableKey() string {
+	return string(k.Bytes())
+}
 
-func (k *KeccakHasher[H]) Length() int {
+func KeccakHashFromBytes(b []byte) KeccakHash {
+	var newBytes [KeccakHasherLength]byte
+	copy(newBytes[:], b)
+	return KeccakHash{
+		bytes: newBytes,
+	}
+}
+
+var _ hashdb.HashOut = KeccakHash{}
+
+type KeccakHasher struct{}
+
+func (k KeccakHasher) Length() int {
 	return KeccakHasherLength
 }
 
-func (k *KeccakHasher[H]) FromBytes(in []byte) H {
+func (k KeccakHasher) FromBytes(in []byte) KeccakHash {
 	var buf = [KeccakHasherLength]byte{}
 	copy(buf[:], in)
-	return H(NewKeccakHash(buf))
+	return NewKeccakHash(buf)
 }
 
-func (k *KeccakHasher[H]) Hash(in []byte) H {
+func (k KeccakHasher) Hash(in []byte) KeccakHash {
 	h := sha3.NewLegacyKeccak256()
 
 	_, err := h.Write(in)
@@ -45,8 +59,8 @@ func (k *KeccakHasher[H]) Hash(in []byte) H {
 	return k.FromBytes(hash)
 }
 
-func NewKeccakHasher[H KeccakHash]() KeccakHasher[H] {
-	return KeccakHasher[H]{}
+func NewKeccakHasher() KeccakHasher {
+	return KeccakHasher{}
 }
 
-var _ hashdb.Hasher[KeccakHash] = (*KeccakHasher[KeccakHash])(nil)
+var _ hashdb.Hasher[KeccakHash] = (*KeccakHasher)(nil)

@@ -11,7 +11,7 @@ import (
 
 var EmptyValue = []byte{}
 
-type Lookup[Hash node.HashOut] struct {
+type Lookup[Hash hashdb.HashOut] struct {
 	db       hashdb.HashDB[Hash, DBValue]
 	hash     Hash
 	cache    TrieCache[Hash]
@@ -19,7 +19,7 @@ type Lookup[Hash node.HashOut] struct {
 	layout   TrieLayout[Hash]
 }
 
-func NewLookup[H node.HashOut](
+func NewLookup[H hashdb.HashOut](
 	db hashdb.HashDB[H, DBValue], hash H, cache TrieCache[H], recorder TrieRecorder[H]) *Lookup[H] {
 	return &Lookup[H]{
 		db:       db,
@@ -107,7 +107,7 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 
 			switch n := nextNode.(type) {
 			case node.Hash:
-				nextHash := node.DecodeHash(n.Value, l.layout.Hasher())
+				nextHash := node.DecodeHash(n.Value, l.layout.Codec().Hasher())
 				if nextHash == nil {
 					return nil, InvalidHash
 				}
@@ -125,7 +125,7 @@ func (l Lookup[H]) loadValue(value node.Value, prefix nibble.Prefix) ([]byte, er
 	case node.InlineValue:
 		return v.Bytes, nil
 	case node.NodeValue:
-		hash := l.layout.Hasher().FromBytes(v.Bytes)
+		hash := l.layout.Codec().Hasher().FromBytes(v.Bytes)
 		bytes := l.db.Get(hash, prefix)
 		if bytes == nil {
 			return nil, ErrIncompleteDB

@@ -3,7 +3,9 @@
 
 package triedb
 
-import "github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+import (
+	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
+)
 
 type TrieValue interface {
 	Type() string
@@ -13,10 +15,10 @@ type (
 	InlineTrieValue struct {
 		Bytes []byte
 	}
-	NodeTrieValue[H node.HashOut] struct {
+	NodeTrieValue[H hashdb.HashOut] struct {
 		Hash H
 	}
-	NewNodeTrie[H node.HashOut] struct {
+	NewNodeTrie[H hashdb.HashOut] struct {
 		Hash  *H
 		Bytes []byte
 	}
@@ -34,7 +36,7 @@ func NewTrieValueFromBytes[H HashOut](value []byte, threshold *uint) TrieValue {
 	}
 }
 
-type Trie[Hash node.HashOut] interface {
+type Trie[Hash hashdb.HashOut] interface {
 	Root() Hash
 	IsEmpty() bool
 	Contains(key []byte) (bool, error)
@@ -45,7 +47,7 @@ type Trie[Hash node.HashOut] interface {
 	//lookup_first_descendant
 }
 
-type MutableTrie[Hash node.HashOut] interface {
+type MutableTrie[Hash hashdb.HashOut] interface {
 	insert(key []byte, value []byte) (*TrieValue, error)
 	remove(key []byte) (*TrieValue, error)
 }

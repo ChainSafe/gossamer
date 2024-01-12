@@ -8,9 +8,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
 )
 
-type TrieLayout[Out node.HashOut] interface {
+type TrieLayout[Out hashdb.HashOut] interface {
 	AllowEmpty() bool
 	MaxInlineValue() *uint
-	Hasher() hashdb.Hasher[Out]
 	Codec() node.NodeCodec[Out]
 }

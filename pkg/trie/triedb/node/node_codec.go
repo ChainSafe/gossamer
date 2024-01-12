@@ -10,15 +10,15 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
-type ChildReference[H HashOut] interface {
+type ChildReference[H hashdb.HashOut] interface {
 	Type() string
 }
 
 type (
-	ChildReferenceHash[H HashOut] struct {
+	ChildReferenceHash[H hashdb.HashOut] struct {
 		hash H
 	}
-	ChildReferenceInline[H HashOut] struct {
+	ChildReferenceInline[H hashdb.HashOut] struct {
 		hash   H
 		length uint
 	}
@@ -27,12 +27,7 @@ type (
 func (c ChildReferenceHash[H]) Type() string   { return "Hash" }
 func (c ChildReferenceInline[H]) Type() string { return "Inline" }
 
-type HashOut interface {
-	comparable
-	ToBytes() []byte
-}
-
-type NodeCodec[H HashOut] interface {
+type NodeCodec[H hashdb.HashOut] interface {
 	HashedNullNode() H
 	Hasher() hashdb.Hasher[H]
 	EmptyNode() []byte
@@ -46,7 +41,7 @@ type NodeCodec[H HashOut] interface {
 	Decode(data []byte) (Node[H], error)
 }
 
-func EncodeNodeOwned[H HashOut](node NodeOwned[H], codec NodeCodec[H]) []byte {
+func EncodeNodeOwned[H hashdb.HashOut](node NodeOwned[H], codec NodeCodec[H]) []byte {
 	switch n := node.(type) {
 	case NodeOwnedEmpty:
 		return codec.EmptyNode()

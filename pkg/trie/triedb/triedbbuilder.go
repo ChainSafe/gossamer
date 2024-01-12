@@ -5,23 +5,25 @@ package triedb
 
 import (
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
 type DBValue = []byte
 
-type TrieDBBuilder[Out node.HashOut] struct {
-	db       hashdb.HashDB[Out, DBValue]
-	root     Out
-	cache    TrieCache[Out]
-	recorder TrieRecorder[Out]
+type TrieDBBuilder[H hashdb.HashOut] struct {
+	db       hashdb.HashDB[H, DBValue]
+	root     H
+	cache    TrieCache[H]
+	recorder TrieRecorder[H]
+	layout   TrieLayout[H]
 }
 
-func NewTrieDBBuilder[Out node.HashOut](
-	db hashdb.HashDB[Out, DBValue],
-	root Out,
-) *TrieDBBuilder[Out] {
-	return &TrieDBBuilder[Out]{
+func NewTrieDBBuilder[H hashdb.HashOut](
+	db hashdb.HashDB[H, DBValue],
+	root H,
+	layout TrieLayout[H],
+) *TrieDBBuilder[H] {
+	return &TrieDBBuilder[H]{
 		db:       db,
 		root:     root,
 		cache:    nil,
@@ -29,16 +31,27 @@ func NewTrieDBBuilder[Out node.HashOut](
 	}
 }
 
-func (tdbb *TrieDBBuilder[Out]) WithCache(cache TrieCache[Out]) *TrieDBBuilder[Out] {
-	tdbb.cache = cache
-	return tdbb
+func (self *TrieDBBuilder[H]) WithCache(cache TrieCache[H]) *TrieDBBuilder[H] {
+	self.cache = cache
+	return self
 }
 
-func (tdbb *TrieDBBuilder[Out]) WithRecorder(recorder TrieRecorder[Out]) *TrieDBBuilder[Out] {
-	tdbb.recorder = recorder
-	return tdbb
+func (self *TrieDBBuilder[H]) WithRecorder(recorder TrieRecorder[H]) *TrieDBBuilder[H] {
+	self.recorder = recorder
+	return self
 }
 
-func (tdbb *TrieDBBuilder[Out]) Build() *TrieDB[Out] {
-	return NewTrieDB(tdbb.db, tdbb.root, tdbb.cache, tdbb.recorder)
+func (self *TrieDBBuilder[H]) Build() *TrieDB[H] {
+	rootHandle := Hash[H]{self.root}
+
+	return &TrieDB[H]{
+		db:         self.db,
+		root:       self.root,
+		cache:      self.cache,
+		recorder:   self.recorder,
+		storage:    NewEmptyNodeStorage[H](),
+		deathRow:   make(map[string]nibble.Prefix),
+		rootHandle: &rootHandle,
+		layout:     self.layout,
+	}
 }

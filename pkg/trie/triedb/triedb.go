@@ -12,7 +12,7 @@ import (
 	"github.com/gammazero/deque"
 )
 
-type HashOut = node_types.HashOut
+type HashOut = hashdb.HashOut
 type Children = [nibble.NibbleLength]NodeHandle
 
 // Node types in the Trie
@@ -81,8 +81,8 @@ type NodeStorage[H HashOut] struct {
 	freeIndices deque.Deque[uint]
 }
 
-func NewEmptyNodeStorage[H HashOut]() *NodeStorage[H] {
-	return &NodeStorage[H]{
+func NewEmptyNodeStorage[H HashOut]() NodeStorage[H] {
+	return NodeStorage[H]{
 		nodes: make([]Stored[H], 0),
 	}
 }
@@ -111,24 +111,10 @@ type TrieDB[Out HashOut] struct {
 	db         hashdb.HashDB[Out, DBValue]
 	root       Out
 	rootHandle NodeHandle
-	deathRow   map[Out]nibble.Prefix
+	deathRow   map[string]nibble.Prefix
 	cache      TrieCache[Out]
 	recorder   TrieRecorder[Out]
 	layout     TrieLayout[Out]
-}
-
-func NewTrieDB[H HashOut](
-	db hashdb.HashDB[H, DBValue],
-	root H,
-	cache TrieCache[H],
-	recorder TrieRecorder[H],
-) *TrieDB[H] {
-	return &TrieDB[H]{
-		db:       db,
-		root:     root,
-		cache:    cache,
-		recorder: recorder,
-	}
 }
 
 type RemoveAtResult struct {
@@ -223,10 +209,10 @@ func (tdb *TrieDB[H]) inspect(
 		case PostInspectActionRestore[H]:
 			result = InspectResult[H]{StoredCached[H]{s.Hash, action.node}, false}
 		case PostInspectActionReplace[H]:
-			tdb.deathRow[s.Hash] = key.Left()
+			tdb.deathRow[s.Hash.ComparableKey()] = key.Left()
 			result = InspectResult[H]{StoredNew[H]{action.node}, true}
 		case PostInspectActionDelete:
-			tdb.deathRow[s.Hash] = key.Left()
+			tdb.deathRow[s.Hash.ComparableKey()] = key.Left()
 			return nil, nil
 		}
 	}
@@ -304,7 +290,7 @@ func (tdb *TrieDB[H]) fix(node Node[H], key nibble.NibbleSlice) (Node[H], error)
 				case StoredNew[H]:
 					childNode = s.Node
 				case StoredCached[H]:
-					tdb.deathRow[s.Hash] = childPrefix
+					tdb.deathRow[s.Hash.ComparableKey()] = childPrefix
 					childNode = s.Node
 				}
 
@@ -569,10 +555,10 @@ func (tdb *TrieDB[H]) replaceOldValue(
 	switch n := storedValue.(type) {
 	case NewNodeTrie[H]:
 		if n.Hash != nil {
-			tdb.deathRow[*n.Hash] = prefix
+			tdb.deathRow[(*n.Hash).ComparableKey()] = prefix
 		}
 	case NodeTrieValue[H]:
-		tdb.deathRow[n.Hash] = prefix
+		tdb.deathRow[n.Hash.ComparableKey()] = prefix
 	}
 	*oldVal = storedValue
 }

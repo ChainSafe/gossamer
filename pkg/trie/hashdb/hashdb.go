@@ -5,28 +5,21 @@ package hashdb
 
 import "github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 
-type HasherOut interface {
-	comparable
-	ToBytes() []byte
+type HashOut interface {
+	Bytes() []byte
+	ComparableKey() string
 }
 
-type Hasher[Hash HasherOut] interface {
+type Hasher[Hash HashOut] interface {
 	Length() int
 	Hash(value []byte) Hash
 	FromBytes(value []byte) Hash
 }
 
-type PlainDB[K any, V any] interface {
-	Get(key K) *V
-	Contains(key K) bool
-	Emplace(key K, value V)
-	Remove(key K)
-}
-
-type HashDB[Hash HasherOut, T any] interface {
+type HashDB[Hash HashOut, T any] interface {
 	Get(key Hash, prefix nibble.Prefix) *T
 	Contains(key Hash, prefix nibble.Prefix) bool
 	Insert(prefix nibble.Prefix, value []byte) Hash
 	Emplace(key Hash, prefix nibble.Prefix, value T)
-	remove(key Hash, prefix nibble.Prefix)
+	Remove(key Hash, prefix nibble.Prefix)
 }

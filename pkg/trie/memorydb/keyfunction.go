@@ -5,30 +5,21 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
 
-type KeyFunction[Hash hashdb.HasherOut, H hashdb.Hasher[Hash]] interface {
-	Key(hash Hash, prefix nibble.Prefix) Hash
-}
+type KeyFunction[H hashdb.HashOut] func(key H, prefix nibble.Prefix, hasher hashdb.Hasher[H]) H
 
-type (
-	HashKey[H hashdb.HasherOut] struct{}
-	PrefixKey[H []byte]         struct{}
-)
-
-func (h HashKey[H]) Key(key H, prefix nibble.Prefix) H {
+func HashKey[H hashdb.HashOut](key H, _ nibble.Prefix, _ hashdb.Hasher[H]) H {
 	return key
 }
 
-func (h PrefixKey[H]) Key(key H, prefix nibble.Prefix) H {
-	newLen := len(key) + len(prefix.PartialKey) + 1
-	prefixedKey := make([]byte, newLen)
+func PrefixKey[H hashdb.HashOut](key H, prefix nibble.Prefix, hasher hashdb.Hasher[H]) H {
+	newLen := len(key.Bytes()) + len(prefix.PartialKey) + 1
+	prefixedKey := make([]byte, 0, newLen)
 
 	prefixedKey = append(prefixedKey, prefix.PartialKey...)
 	if prefix.PaddedByte != nil {
 		prefixedKey = append(prefixedKey, *prefix.PaddedByte)
 	}
-	prefixedKey = append(prefixedKey, key...)
+	prefixedKey = append(prefixedKey, key.Bytes()...)
 
-	return H(prefixedKey)
+	return hasher.FromBytes(prefixedKey)
 }
-
-
