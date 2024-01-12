@@ -234,12 +234,8 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	return nil
 }
 
-// func (cb *CandidateBacking) handleActiveLeavesUpdate() {
-// 	// TODO: Implement this #3503
-// }
-
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
-	// TODO #3644 #3503
+	// TODO #3503
 }
 
 func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {

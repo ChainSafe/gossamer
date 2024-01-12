@@ -86,7 +86,6 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 			if err := cpvs.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
-			return nil
 		}
 	}
 }
