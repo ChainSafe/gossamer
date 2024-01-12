@@ -35,7 +35,7 @@ Below is the list of labels and their descriptions used in Gossamer repository.
   - **S-crypto** - issues related to the lib/crypto package.
   - **S-grandpa** - issues related to block finality.
   - **S-babe** - issues related to block production functionality. 
-  - **S-runtime**- issue related to continuous integration tasks or piplelines.
+  - **S-runtime**- issues related to the lib/runtime package
   - **S-telemetry** - issue related to node telemetry and metrics reports. 
   - **S-rpc** - issues related to the dot/rpc package.
   - **S-scale** - issues related to the pkg/scale package.
