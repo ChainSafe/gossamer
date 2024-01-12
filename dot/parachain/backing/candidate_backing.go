@@ -17,11 +17,11 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
 
 var (
-	ErrRejectedByProspectiveParachains = errors.New("candidate rejected by prospective parachains subsystem")
-	ErrInvalidErasureRoot              = errors.New("erasure root doesn't match the announced by the candidate receipt")
-	ErrStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
-	ErrCandidateStateNotFound          = errors.New("candidate state not found")
-	ErrAttestingDataNotFound           = errors.New("attesting data not found")
+	errRejectedByProspectiveParachains = errors.New("candidate rejected by prospective parachains subsystem")
+	errInvalidErasureRoot              = errors.New("erasure root doesn't match the announced by the candidate receipt")
+	errStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
+	errCandidateStateNotFound          = errors.New("candidate state not found")
+	errAttestingDataNotFound           = errors.New("attesting data not found")
 )
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
@@ -54,35 +54,35 @@ type CandidateBacking struct {
 // perCandidateState represents the state information for a candidate in the subsystem.
 type perCandidateState struct {
 	persistedValidationData parachaintypes.PersistedValidationData
-	SecondedLocally         bool
-	ParaID                  parachaintypes.ParaID
-	RelayParent             common.Hash
+	secondedLocally         bool
+	paraID                  parachaintypes.ParaID
+	relayParent             common.Hash
 }
 
 // PerRelayParentState represents the state information for a relay-parent in the subsystem.
 type perRelayParentState struct {
-	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
+	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	// The hash of the relay parent on top of which this job is doing it's work.
-	RelayParent common.Hash
+	relayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
-	Assignment parachaintypes.ParaID
+	assignment parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
-	Table Table
+	table Table
 	// The table context, including groups.
-	TableContext TableContext
+	tableContext TableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
-	fallbacks map[parachaintypes.CandidateHash]AttestingData
+	fallbacks map[parachaintypes.CandidateHash]attestingData
 	// These candidates are undergoing validation in the background.
-	AwaitingValidation map[parachaintypes.CandidateHash]bool
+	awaitingValidation map[parachaintypes.CandidateHash]bool
 	// We issued `Seconded` or `Valid` statements on about these candidates.
 	issuedStatements map[parachaintypes.CandidateHash]bool
 	// The candidates that are backed by enough validators in their group, by hash.
 	backed map[parachaintypes.CandidateHash]bool
 }
 
-// AttestingData contains the data needed to retry validation with other backing validators
+// attestingData contains the data needed to retry validation with other backing validators
 // in case a validator does not provide a PoV.
-type AttestingData struct {
+type attestingData struct {
 	// The candidate to attest.
 	candidate parachaintypes.CandidateReceipt
 	// Hash of the PoV we need to fetch.
@@ -96,24 +96,15 @@ type AttestingData struct {
 // TableContext represents the contextual information associated with a validator and groups
 // for a table under a relay-parent.
 type TableContext struct {
-	validator  *Validator
+	validator  *validator
 	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
 }
 
-// Validator represents local validator information.
+// validator represents local validator information.
 // It can be created if the local node is a validator in the context of a particular relay chain block.
-type Validator struct {
+type validator struct {
 	index parachaintypes.ValidatorIndex
-}
-
-// SigningContext represents a type returned by the runtime, including the current session index
-// and the hash of the parent.
-type SigningContext struct {
-	/// Current session index.
-	SessionIndex parachaintypes.SessionIndex
-	/// Hash of the parent.
-	ParentHash common.Hash
 }
 
 // ActiveLeavesUpdate is a messages from overseer
@@ -212,7 +203,7 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	case StatementMessage:
 		err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 
-		if errors.Is(err, ErrRejectedByProspectiveParachains) || errors.Is(err, ErrAttestingDataNotFound) {
+		if errors.Is(err, errRejectedByProspectiveParachains) || errors.Is(err, errAttestingDataNotFound) {
 			logger.Error(err.Error())
 			return nil
 		}
@@ -247,7 +238,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 ) error {
 	rpState, ok := cb.perRelayParent[relayParent]
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrStatementForUnknownRelayParent, relayParent)
+		return fmt.Errorf("%w: %s", errStatementForUnknownRelayParent, relayParent)
 	}
 
 	summary, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
@@ -262,7 +253,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	if summary.GroupID != rpState.Assignment {
+	if summary.GroupID != rpState.assignment {
 		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s",
 			summary.GroupID, relayParent)
 		return nil
@@ -272,15 +263,15 @@ func (cb *CandidateBacking) handleStatementMessage(
 	// that is why there is no chance we can get an error here.
 	statementVDT, _ := signedStatementWithPVD.SignedFullStatement.Payload.Value()
 
-	var attesting AttestingData
+	var attesting attestingData
 	switch statementVDT := statementVDT.(type) {
 	case parachaintypes.Seconded:
-		commitedCandidateReceipt, err := rpState.Table.getCandidate(summary.Candidate)
+		commitedCandidateReceipt, err := rpState.table.getCandidate(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}
 
-		attesting = AttestingData{
+		attesting = attestingData{
 			candidate:     commitedCandidateReceipt.ToPlain(),
 			povHash:       statementVDT.Descriptor.PovHash,
 			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
@@ -290,15 +281,15 @@ func (cb *CandidateBacking) handleStatementMessage(
 		candidateHash := parachaintypes.CandidateHash(statementVDT)
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
-			return ErrAttestingDataNotFound
+			return errAttestingDataNotFound
 		}
 
-		ourIndex := rpState.TableContext.validator.index
+		ourIndex := rpState.tableContext.validator.index
 		if signedStatementWithPVD.SignedFullStatement.ValidatorIndex == ourIndex {
 			return nil
 		}
 
-		if rpState.AwaitingValidation[candidateHash] {
+		if rpState.awaitingValidation[candidateHash] {
 			logger.Debug("Job already running")
 			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
 			return nil
@@ -313,7 +304,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
 	pc, ok := cb.perCandidate[summary.Candidate]
 	if !ok {
-		return ErrCandidateStateNotFound
+		return errCandidateStateNotFound
 	}
 
 	return rpState.kickOffValidationWork(
@@ -336,7 +327,7 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	if statementVDT.Index() == 2 { // Valid
-		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
 	}
 
 	// PersistedValidationData should not be nil if the statementVDT is Seconded.
@@ -353,10 +344,10 @@ func (rpState *perRelayParentState) importStatement(
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
-		return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
 	}
 
-	if rpState.ProspectiveParachainsMode.IsEnabled {
+	if rpState.prospectiveParachainsMode.IsEnabled {
 		chIntroduceCandidate := make(chan error)
 		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
 			IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
@@ -370,12 +361,12 @@ func (rpState *perRelayParentState) importStatement(
 		introduceCandidateErr, ok := <-chIntroduceCandidate
 		if !ok {
 			return nil, fmt.Errorf("%w: %s",
-				ErrRejectedByProspectiveParachains,
+				errRejectedByProspectiveParachains,
 				"Could not reach the Prospective Parachains subsystem.",
 			)
 		}
 		if introduceCandidateErr != nil {
-			return nil, fmt.Errorf("%w: %w", ErrRejectedByProspectiveParachains, introduceCandidateErr)
+			return nil, fmt.Errorf("%w: %w", errRejectedByProspectiveParachains, introduceCandidateErr)
 		}
 
 		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateSeconded{
@@ -387,12 +378,12 @@ func (rpState *perRelayParentState) importStatement(
 	// Only save the candidate if it was approved by prospective parachains.
 	perCandidate[candidateHash] = &perCandidateState{
 		persistedValidationData: *signedStatementWithPVD.PersistedValidationData,
-		SecondedLocally:         false, // This is set after importing when seconding locally.
-		ParaID:                  parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
-		RelayParent:             statementVDTSeconded.Descriptor.RelayParent,
+		secondedLocally:         false, // This is set after importing when seconding locally.
+		paraID:                  parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
+		relayParent:             statementVDTSeconded.Descriptor.RelayParent,
 	}
 
-	return rpState.Table.importStatement(&rpState.TableContext, signedStatementWithPVD)
+	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
 }
 
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
@@ -400,18 +391,18 @@ func (rpState *perRelayParentState) importStatement(
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
 	// If the summary is nil, issue new misbehaviors and return.
 	if summary == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
+		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
-	attested, err := rpState.Table.attestedCandidate(&summary.Candidate, &rpState.TableContext)
+	attested, err := rpState.table.attestedCandidate(&summary.Candidate, &rpState.tableContext)
 	if err != nil {
 		logger.Error(err.Error())
 	}
 
 	// If the candidate is not attested, issue new misbehaviors and return.
 	if attested == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
+		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -425,7 +416,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 
 	// If the candidate is already backed, issue new misbehaviors and return.
 	if rpState.backed[candidateHash] {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
+		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -433,15 +424,15 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	backedCandidate := attestedToBackedCandidate(*attested, &rpState.TableContext)
+	backedCandidate := attestedToBackedCandidate(*attested, &rpState.tableContext)
 	if backedCandidate == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
+		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
 	paraID := backedCandidate.Candidate.Descriptor.ParaID
 
-	if rpState.ProspectiveParachainsMode.IsEnabled {
+	if rpState.prospectiveParachainsMode.IsEnabled {
 
 		// Inform the prospective parachains subsystem that the candidate is now backed.
 		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
@@ -467,12 +458,12 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		// Backed candidates are bounded by the number of validators,
 		// parachains, and the block production rate of the relay chain.
 		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
-			RelayParent:       rpState.RelayParent,
+			RelayParent:       rpState.relayParent,
 			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
 
-	issueNewMisbehaviors(subSystemToOverseer, rpState.RelayParent, rpState.Table)
+	issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
@@ -535,7 +526,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan RelayParentAndCommand,
 	pvd parachaintypes.PersistedValidationData,
-	attesting AttestingData,
+	attesting attestingData,
 ) error {
 	hash, err := attesting.candidate.Hash()
 	if err != nil {
@@ -555,10 +546,10 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		subSystemToOverseer,
 		chRelayParentAndCommand,
 		attesting.candidate,
-		rpState.RelayParent,
+		rpState.relayParent,
 		pvd,
 		pov,
-		uint32(len(rpState.TableContext.validators)),
+		uint32(len(rpState.tableContext.validators)),
 		Attest,
 		candidateHash,
 	)
@@ -579,11 +570,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	makeCommand ValidatedCandidateCommand,
 	candidateHash parachaintypes.CandidateHash,
 ) error {
-	if rpState.AwaitingValidation[candidateHash] {
+	if rpState.awaitingValidation[candidateHash] {
 		return nil
 	}
 
-	rpState.AwaitingValidation[candidateHash] = true
+	rpState.awaitingValidation[candidateHash] = true
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 
 	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
@@ -659,12 +650,12 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 				PersistedValidationData: &ValidationResultRes.Data.PersistedValidationData,
 				Err:                     nil,
 			}
-		case errors.Is(storeAvailableDataError, ErrInvalidErasureRoot):
-			logger.Debug(ErrInvalidErasureRoot.Error())
+		case errors.Is(storeAvailableDataError, errInvalidErasureRoot):
+			logger.Debug(errInvalidErasureRoot.Error())
 
 			backgroundValidationResult = BackgroundValidationResult{
 				CandidateReceipt: &candidateReceipt,
-				Err:              ErrInvalidErasureRoot,
+				Err:              errInvalidErasureRoot,
 			}
 		default:
 			return fmt.Errorf("storing available data: %w", storeAvailableDataError)
