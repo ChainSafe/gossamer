@@ -260,23 +260,6 @@ func (mvdt GrandpaEquivocationEnum) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// // Set sets a VaryingDataTypeValue using the underlying VaryingDataType
-// func (ge *GrandpaEquivocationEnum) Set(value scale.VaryingDataTypeValue) (err error) {
-// 	vdt := scale.VaryingDataType(*ge)
-// 	err = vdt.Set(value)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	*ge = GrandpaEquivocationEnum(vdt)
-// 	return nil
-// }
-
-// // Value will return the value from the underlying VaryingDataType
-// func (ge *GrandpaEquivocationEnum) Value() (value scale.VaryingDataTypeValue, err error) {
-// 	vdt := scale.VaryingDataType(*ge)
-// 	return vdt.Value()
-// }
-
 // NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
 func NewGrandpaEquivocation() *GrandpaEquivocationEnum {
 	return &GrandpaEquivocationEnum{}

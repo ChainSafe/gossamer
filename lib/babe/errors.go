@@ -74,10 +74,6 @@ var (
 	errLastDigestItemNotSeal      = errors.New("last digest item is not seal")
 	errLaggingSlot                = errors.New("current slot is smaller than slot of best block")
 	errNoDigest                   = errors.New("no digest provided")
-
-	// other         Other
-	// invalidCustom InvalidCustom
-	// unknownCustom UnknownCustom
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
