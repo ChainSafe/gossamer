@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -26,6 +27,10 @@ var (
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
 type CandidateBacking struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	// State tracked for all relay-parents backing work is ongoing for. This includes
@@ -164,6 +169,11 @@ func New(overseerChan chan<- any) *CandidateBacking {
 }
 
 func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) {
+	cb.wg.Add(1)
+	go cb.runUtil()
+}
+
+func (cb *CandidateBacking) runUtil() {
 	chRelayParentAndCommand := make(chan RelayParentAndCommand)
 	for {
 		select {
@@ -175,12 +185,20 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 			if err := cb.processOverseerMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Error(err.Error())
 			}
-		case <-ctx.Done():
-			close(cb.SubSystemToOverseer)
+		case <-cb.ctx.Done():
 			close(chRelayParentAndCommand)
+			if err := cb.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			cb.wg.Done()
 			return
 		}
 	}
+}
+
+func (cb *CandidateBacking) Stop() {
+	cb.cancel()
+	cb.wg.Wait()
 }
 
 func (*CandidateBacking) Name() parachaintypes.SubSystemName {
@@ -192,8 +210,6 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 	// process these received messages by referencing
 	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 	switch msg := msg.(type) {
-	case ActiveLeavesUpdate:
-		cb.handleActiveLeavesUpdate()
 	case GetBackedCandidatesMessage:
 		cb.handleGetBackedCandidatesMessage()
 	case CanSecondMessage:
@@ -208,14 +224,26 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 			return nil
 		}
 		return err
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		cb.ProcessActiveLeavesUpdateSignal()
+	case parachaintypes.BlockFinalizedSignal:
+		cb.ProcessBlockFinalizedSignal()
 	default:
-		return fmt.Errorf("unknown message type: %T", msg)
+		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 	return nil
 }
 
-func (cb *CandidateBacking) handleActiveLeavesUpdate() {
-	// TODO: Implement this #3503
+// func (cb *CandidateBacking) handleActiveLeavesUpdate() {
+// 	// TODO: Implement this #3503
+// }
+
+func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
+	// TODO #3644 #3503
+}
+
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
+	// TODO #3644
 }
 
 func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {

@@ -12,6 +12,8 @@ import (
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -22,22 +24,41 @@ var (
 )
 
 type Overseer struct {
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	errChan              chan error // channel for overseer to send errors to service that started it
+	ctx     context.Context
+	cancel  context.CancelFunc
+	errChan chan error // channel for overseer to send errors to service that started it
+
+	blockState   BlockState
+	activeLeaves map[common.Hash]uint32
+
+	// block notification channels
+	imported  chan *types.Block
+	finalised chan *types.FinalisationInfo
+
 	SubsystemsToOverseer chan any
 	subsystems           map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
 	nameToSubsystem      map[parachaintypes.SubSystemName]Subsystem
 	wg                   sync.WaitGroup
 }
 
-func NewOverseer() *Overseer {
+// BlockState interface for block state methods
+type BlockState interface {
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
+}
+
+func NewOverseer(blockState BlockState) *Overseer {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
+
 	return &Overseer{
 		ctx:                  ctx,
 		cancel:               cancel,
 		errChan:              make(chan error),
+		blockState:           blockState,
+		activeLeaves:         make(map[common.Hash]uint32),
 		SubsystemsToOverseer: make(chan any),
 		subsystems:           make(map[Subsystem]chan any),
 		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
@@ -55,6 +76,13 @@ func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
 }
 
 func (o *Overseer) Start() error {
+
+	imported := o.blockState.GetImportedBlockNotifierChannel()
+	finalised := o.blockState.GetFinalisedNotifierChannel()
+
+	o.imported = imported
+	o.finalised = finalised
+
 	// start subsystems
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
@@ -65,10 +93,10 @@ func (o *Overseer) Start() error {
 		}(subsystem, overseerToSubSystem)
 	}
 
-	o.wg.Add(1)
+	o.wg.Add(2)
 	go o.processMessages()
+	go o.handleBlockEvents()
 
-	// TODO: add logic to start listening for Block Imported events and Finalisation events
 	return nil
 }
 
@@ -106,14 +134,100 @@ func (o *Overseer) processMessages() {
 			if err := o.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
-			logger.Info("overseer stopping")
+			o.wg.Done()
 			return
 		}
 	}
 }
 
+func (o *Overseer) handleBlockEvents() {
+	for {
+		select {
+		case <-o.ctx.Done():
+			if err := o.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
+			o.wg.Done()
+			return
+		case imported := <-o.imported:
+			blockNumber, ok := o.activeLeaves[imported.Header.Hash()]
+			if ok {
+				if blockNumber != uint32(imported.Header.Number) {
+					panic("block number mismatch")
+				}
+				return
+			}
+
+			o.activeLeaves[imported.Header.Hash()] = uint32(imported.Header.Number)
+			delete(o.activeLeaves, imported.Header.ParentHash)
+
+			// TODO:
+			/*
+				- Add active leaf only if given head supports parachain consensus.
+				- You do that by checking the parachain host runtime api version.
+				- If the parachain host runtime api version is at least 1, then the parachain consensus is supported.
+
+					#[async_trait::async_trait]
+					impl<Client> HeadSupportsParachains for Arc<Client>
+					where
+						Client: RuntimeApiSubsystemClient + Sync + Send,
+					{
+						async fn head_supports_parachains(&self, head: &Hash) -> bool {
+							// Check that the `ParachainHost` runtime api is at least with version 1 present on chain.
+							self.api_version_parachain_host(*head).await.ok().flatten().unwrap_or(0) >= 1
+						}
+					}
+
+			*/
+			activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
+				Activated: &parachaintypes.ActivatedLeaf{
+					Hash:   imported.Header.Hash(),
+					Number: uint32(imported.Header.Number),
+				},
+				Deactivated: []common.Hash{imported.Header.ParentHash},
+			}
+
+			o.broadcast(activeLeavesUpdate)
+
+		case finalised := <-o.finalised:
+			deactivated := make([]common.Hash, 0)
+
+			for hash, blockNumber := range o.activeLeaves {
+				if blockNumber <= uint32(finalised.Header.Number) && hash != finalised.Header.Hash() {
+					deactivated = append(deactivated, hash)
+					delete(o.activeLeaves, hash)
+				}
+			}
+
+			o.broadcast(parachaintypes.BlockFinalizedSignal{
+				Hash:        finalised.Header.Hash(),
+				BlockNumber: uint32(finalised.Header.Number),
+			})
+
+			// If there are no leaves being deactivated, we don't need to send an update.
+			//
+			// Our peers will be informed about our finalized block the next time we
+			// activating/deactivating some leaf.
+			if len(deactivated) > 0 {
+				o.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
+					Deactivated: deactivated,
+				})
+			}
+		}
+	}
+}
+
+func (o *Overseer) broadcast(msg any) {
+	for _, overseerToSubSystem := range o.subsystems {
+		overseerToSubSystem <- msg
+	}
+}
+
 func (o *Overseer) Stop() error {
 	o.cancel()
+
+	o.blockState.FreeImportedBlockNotifierChannel(o.imported)
+	o.blockState.FreeFinalisedNotifierChannel(o.finalised)
 
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
@@ -128,11 +242,6 @@ func (o *Overseer) Stop() error {
 	fmt.Printf("timedOut: %v\n", timedOut)
 
 	return nil
-}
-
-// sendActiveLeavesUpdate sends an ActiveLeavesUpdate to the subsystem
-func (o *Overseer) sendActiveLeavesUpdate(update ActiveLeavesUpdate, subsystem Subsystem) {
-	o.subsystems[subsystem] <- update
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) (timeouted bool) {

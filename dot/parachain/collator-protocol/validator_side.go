@@ -29,7 +29,6 @@ const (
 var (
 	ErrUnexpectedMessageOnCollationProtocol = errors.New("unexpected message on collation protocol")
 	ErrUnknownPeer                          = errors.New("unknown peer")
-	ErrUnknownOverseerMessage               = errors.New("unknown overseer message type")
 	ErrNotExpectedOnValidatorSide           = errors.New("message is not expected on the validator side of the protocol")
 	ErrCollationNotInView                   = errors.New("collation is not in our view")
 	ErrPeerIDNotFoundForCollator            = errors.New("peer id not found for collator")
@@ -83,12 +82,29 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
 
+		case <-cpvs.ctx.Done():
+			if err := cpvs.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
+			return nil
 		}
 	}
 }
 
 func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
+}
+
+func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
+	// NOTE: nothing to do here
+}
+
+func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal() {
+	// NOTE: nothing to do here
+}
+
+func (cpvs CollatorProtocolValidatorSide) Stop() {
+	cpvs.cancel()
 }
 
 // requestCollation requests a collation from the network.
@@ -291,6 +307,9 @@ type CollationEvent struct {
 }
 
 type CollatorProtocolValidatorSide struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	net Network
 
 	SubSystemToOverseer chan<- any
@@ -546,8 +565,14 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			Value:  peerset.ReportBadCollatorValue,
 			Reason: peerset.ReportBadCollatorReason,
 		}, peerID)
+
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		cpvs.ProcessActiveLeavesUpdateSignal()
+	case parachaintypes.BlockFinalizedSignal:
+		cpvs.ProcessBlockFinalizedSignal()
+
 	default:
-		return ErrUnknownOverseerMessage
+		return parachaintypes.ErrUnknownOverseerMessage
 	}
 
 	return nil
