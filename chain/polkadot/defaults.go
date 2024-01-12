@@ -8,10 +8,6 @@ import (
 )
 
 var (
-	// defaultName Default node name
-	defaultName = "Polkadot"
-	// defaultID Default chain ID
-	defaultID = "polkadot"
 	// defaultBasePath Default node base directory path
 	defaultBasePath = "~/.gossamer/polkadot"
 	// defaultChainSpec is the default chain spec configuration path
@@ -22,8 +18,6 @@ var (
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
 	config.BasePath = defaultBasePath
-	config.ID = defaultID
-	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
