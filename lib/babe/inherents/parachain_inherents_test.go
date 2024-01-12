@@ -82,12 +82,12 @@ func TestInvalidDisputeStatementKind(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			invalidDisputeStatementKind := invalidDisputeStatementKind{}
+			idsKind := invalidDisputeStatementKind{}
 
-			err := invalidDisputeStatementKind.SetValue(c.enumValue)
+			err := idsKind.SetValue(c.enumValue)
 			require.NoError(t, err)
 
-			bytes, err := scale.Marshal(invalidDisputeStatementKind)
+			bytes, err := scale.Marshal(idsKind)
 			require.NoError(t, err)
 
 			require.Equal(t, c.encodingValue, bytes)
@@ -112,7 +112,7 @@ func TestDisputeStatement(t *testing.T) {
 				require.NoError(t, err)
 
 				ds := newDisputeStatement()
-				err = ds.SetValue(validDisputeStatementKind(vdsKind))
+				err = ds.SetValue(vdsKind)
 				require.NoError(t, err)
 
 				return ds
@@ -129,7 +129,7 @@ func TestDisputeStatement(t *testing.T) {
 				require.NoError(t, err)
 
 				ds := newDisputeStatement()
-				err = ds.SetValue(validDisputeStatementKind(vdsKind))
+				err = ds.SetValue(vdsKind)
 				require.NoError(t, err)
 
 				return ds
@@ -145,7 +145,7 @@ func TestDisputeStatement(t *testing.T) {
 				require.NoError(t, err)
 
 				ds := newDisputeStatement()
-				err = ds.SetValue(validDisputeStatementKind(vdsKind))
+				err = ds.SetValue(vdsKind)
 				require.NoError(t, err)
 
 				return ds
@@ -162,7 +162,7 @@ func TestDisputeStatement(t *testing.T) {
 				require.NoError(t, err)
 
 				disputeStatement := newDisputeStatement()
-				err = disputeStatement.SetValue(invalidDisputeStatementKind(idsKind))
+				err = disputeStatement.SetValue(idsKind)
 				require.NoError(t, err)
 
 				return disputeStatement

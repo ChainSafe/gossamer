@@ -359,7 +359,9 @@ type invalidDisputeStatementKind struct {
 	inner any
 }
 
-func setinvalidDisputeStatementKind[Value invalidDisputeStatementKindValues](mvdt *invalidDisputeStatementKind, value Value) {
+func setinvalidDisputeStatementKind[Value invalidDisputeStatementKindValues](
+	mvdt *invalidDisputeStatementKind, value Value,
+) {
 	mvdt.inner = value
 }
 

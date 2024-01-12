@@ -563,16 +563,8 @@ func (mvdt unknown) ValueAt(index uint) (value any, err error) {
 }
 
 func determineErr(res []byte) error {
-	// dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
-	// invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-	// 	ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{}, BadSigner{})
-	// unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
-	dispatchError := dispatchError{}
-	invalid := invalid{}
-	unknown := unknown{}
-
-	okRes := scale.NewResult(nil, dispatchError)
-	errRes := scale.NewResult(invalid, unknown)
+	okRes := scale.NewResult(nil, dispatchError{})
+	errRes := scale.NewResult(invalid{}, unknown{})
 	result := scale.NewResult(okRes, errRes)
 
 	err := scale.Unmarshal(res, &result)

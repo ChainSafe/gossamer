@@ -116,15 +116,15 @@ func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
 func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case VDTValue:
-		return 1, any(mvdt.inner), nil
+		return 1, mvdt.inner, nil
 	case VDTValue1:
-		return 2, any(mvdt.inner), nil
+		return 2, mvdt.inner, nil
 	case VDTValue2:
-		return 3, any(mvdt.inner), nil
+		return 3, mvdt.inner, nil
 	case VDTValue3:
-		return 4, any(mvdt.inner), nil
+		return 4, mvdt.inner, nil
 	case CustomAny:
-		return 5, any(mvdt.inner), nil
+		return 5, mvdt.inner, nil
 	}
 	return 0, nil, ErrUnsupportedVaryingDataTypeValue
 }
