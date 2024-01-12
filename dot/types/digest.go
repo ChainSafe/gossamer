@@ -10,19 +10,83 @@ import (
 )
 
 // DigestItem is a varying date type that holds type identifier and a scaled encoded message payload.
-type DigestItem struct {
+type digestItem struct {
 	ConsensusEngineID ConsensusEngineID
 	Data              []byte
 }
 
+type DigestItem struct {
+	inner any
+}
+
+type DigestItemValues interface {
+	PreRuntimeDigest | ConsensusDigest | SealDigest | RuntimeEnvironmentUpdated
+}
+
+func setDigestItem[Value DigestItemValues](mvdt *DigestItem, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *DigestItem) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case PreRuntimeDigest:
+		setDigestItem(mvdt, value)
+		return
+	case ConsensusDigest:
+		setDigestItem(mvdt, value)
+		return
+	case SealDigest:
+		setDigestItem(mvdt, value)
+		return
+	case RuntimeEnvironmentUpdated:
+		setDigestItem(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt DigestItem) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case PreRuntimeDigest:
+		return 6, mvdt.inner, nil
+	case ConsensusDigest:
+		return 4, mvdt.inner, nil
+	case SealDigest:
+		return 5, mvdt.inner, nil
+	case RuntimeEnvironmentUpdated:
+		return 8, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt DigestItem) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 6:
+		return PreRuntimeDigest{}, nil
+	case 4:
+		return ConsensusDigest{}, nil
+	case 5:
+		return SealDigest{}, nil
+	case 8:
+		return RuntimeEnvironmentUpdated{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewDigestItem() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{}, RuntimeEnvironmentUpdated{})
+	return &DigestItem{}
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
-func NewDigest() scale.VaryingDataTypeSlice {
-	return scale.NewVaryingDataTypeSlice(NewDigestItem())
+func NewDigest() []DigestItem {
+	return []DigestItem{}
 }
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
@@ -45,7 +109,7 @@ var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
-type PreRuntimeDigest DigestItem
+type PreRuntimeDigest digestItem
 
 // Index returns VDT index
 func (PreRuntimeDigest) Index() uint { return 6 }
@@ -64,7 +128,7 @@ func (d PreRuntimeDigest) String() string {
 }
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.
-type ConsensusDigest DigestItem
+type ConsensusDigest digestItem
 
 // Index returns VDT index
 func (ConsensusDigest) Index() uint { return 4 }
@@ -75,7 +139,7 @@ func (d ConsensusDigest) String() string {
 }
 
 // SealDigest contains the seal or signature. This is only used by native code.
-type SealDigest DigestItem
+type SealDigest digestItem
 
 // Index returns VDT index
 func (SealDigest) Index() uint { return 5 }

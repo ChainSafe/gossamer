@@ -52,11 +52,11 @@ func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
 func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case MyStruct:
-		return 1, mvdt.inner, nil
+		return 0, mvdt.inner, nil
 	case MyOtherStruct:
-		return 2, mvdt.inner, nil
+		return 1, mvdt.inner, nil
 	case MyInt16:
-		return 3, mvdt.inner, nil
+		return 2, mvdt.inner, nil
 	}
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
@@ -68,12 +68,12 @@ func (mvdt MyVaryingDataType) Value() (value any, err error) {
 
 func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
 	switch index {
-	case 1:
+	case 0:
 		return MyStruct{}, nil
-	case 2:
+	case 1:
 		return MyOtherStruct{}, nil
-	case 3:
-		return MyInt16(0), nil
+	case 2:
+		return *new(MyInt16), nil
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }

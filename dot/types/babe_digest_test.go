@@ -14,7 +14,7 @@ import (
 
 func TestBabePrimaryPreDigest_EncodeAndDecode(t *testing.T) {
 	bh := NewBabeDigest()
-	err := bh.Set(BabePrimaryPreDigest{
+	err := bh.SetValue(BabePrimaryPreDigest{
 		VRFOutput: [sr25519.VRFOutputLength]byte{
 			0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33,
 			152, 85, 184, 34, 120, 61, 161, 164, 223, 76,
@@ -42,7 +42,7 @@ func TestBabePrimaryPreDigest_EncodeAndDecode(t *testing.T) {
 
 func TestBabeSecondaryPlainPreDigest_EncodeAndDecode(t *testing.T) {
 	bh := NewBabeDigest()
-	err := bh.Set(BabeSecondaryPlainPreDigest{
+	err := bh.SetValue(BabeSecondaryPlainPreDigest{
 		AuthorityIndex: 17,
 		SlotNumber:     420,
 	})
@@ -59,7 +59,7 @@ func TestBabeSecondaryPlainPreDigest_EncodeAndDecode(t *testing.T) {
 
 func TestBabeSecondaryVRFPreDigest_EncodeAndDecode(t *testing.T) {
 	bh := NewBabeDigest()
-	err := bh.Set(BabeSecondaryVRFPreDigest{
+	err := bh.SetValue(BabeSecondaryVRFPreDigest{
 		VrfOutput: [sr25519.VRFOutputLength]byte{
 			0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184,
 			34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235,
