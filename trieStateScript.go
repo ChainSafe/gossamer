@@ -28,8 +28,10 @@ func fetchWithTimeout(ctx context.Context,
 }
 
 func getResponse(ctx context.Context, method, params string, target interface{}) (err error) {
-	const rpcPort = "8545"
-	endpoint := rpc.NewEndpoint(rpcPort)
+	//const rpcPort = "8545"
+	//endpoint := rpc.NewEndpoint(rpcPort)
+	//"http://18.222.22.42:8545"
+	endpoint := "http://18.222.22.42:8545"
 	respBody, err := rpc.Post(ctx, endpoint, method, params)
 	if err != nil {
 		return fmt.Errorf("cannot RPC post: %w", err)
@@ -46,42 +48,10 @@ func getResponse(ctx context.Context, method, params string, target interface{})
 /*
 1)  ./bin/gossamer init --chain westend-dev --key alice
 1)  ./bin/gossamer --chain westend-dev --key alice --rpc-external=true --unsafe-rpc=true
+finalised block number 512 with hash 0x5895897f12e1a670609929433ac7a69dcae90e0cc2d9c32c0dce0e2a5e5e614e
 */
-//func main() {
-//	ctx, _ := context.WithCancel(context.Background())
-//
-//	// Starting with just genesis info to get working
-//	const westendDevGenesisHash = "0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8"
-//	const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
-//	params := fmt.Sprintf(`["%s"]`, westendDevGenesisHash)
-//
-//	var response modules.StateTrieResponse
-//	fetchWithTimeout(ctx, "state_trie", params, &response)
-//
-//	entries := make(map[string]string, len(response))
-//	for _, encodedEntry := range response {
-//		bytesEncodedEntry := common.MustHexToBytes(encodedEntry)
-//
-//		entry := trie.Entry{}
-//		err := scale.Unmarshal(bytesEncodedEntry, &entry)
-//		if err != nil {
-//			panic(fmt.Sprintf("error unmarshalling into trie entry %v", err))
-//		}
-//		entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
-//	}
-//
-//	newTrie, err := trie.LoadFromMap(entries)
-//	if err != nil {
-//		panic(fmt.Sprintf("loading trie from map %v", err))
-//	}
-//
-//	trieHash := newTrie.MustHash(trie.V0.MaxInlineValue())
-//	if westendDevStateRoot != trieHash.String() {
-//		panic(fmt.Sprintf("westendDevStateRoot does not match trieHash"))
-//	}
-//}
-
 func main() {
+	// Get block hash from cli
 	blockHash := os.Args[1]
 
 	// Goal, take hash as input and then write to file
@@ -89,7 +59,8 @@ func main() {
 
 	// Starting with just genesis info to get working
 	//const westendDevGenesisHash = "0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8"
-	const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
+	//const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
+	const westend512StateRoot = "0xe6e996b91f9ec0c2900099754777c13644bb742dd512530dc6230aeaee2c19f9"
 	params := fmt.Sprintf(`["%s"]`, blockHash)
 
 	var response modules.StateTrieResponse
@@ -125,7 +96,7 @@ func main() {
 	}
 
 	trieHash := newTrie.MustHash(trie.V0.MaxInlineValue())
-	if westendDevStateRoot != trieHash.String() {
+	if westend512StateRoot != trieHash.String() {
 		panic(fmt.Sprintf("westendDevStateRoot does not match trieHash"))
 	}
 }
