@@ -23,6 +23,12 @@ type DigestItemValues interface {
 	PreRuntimeDigest | ConsensusDigest | SealDigest | RuntimeEnvironmentUpdated
 }
 
+func newDigestItem[Value DigestItemValues](value Value) DigestItem {
+	item := DigestItem{}
+	setDigestItem[Value](&item, value)
+	return item
+}
+
 func setDigestItem[Value DigestItemValues](mvdt *DigestItem, value Value) {
 	mvdt.inner = value
 }
@@ -80,12 +86,28 @@ func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
 }
 
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
-func NewDigestItem() scale.VaryingDataType {
-	return &DigestItem{}
+func NewDigestItem() DigestItem {
+	return DigestItem{}
+}
+
+// Digest is slice of DigestItem
+type Digest []DigestItem
+
+func (d *Digest) Add(values ...any) (err error) {
+	for _, value := range values {
+		item := DigestItem{}
+		err := item.SetValue(value)
+		if err != nil {
+			return err
+		}
+		appended := append(*d, item)
+		*d = appended
+	}
+	return nil
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
-func NewDigest() []DigestItem {
+func NewDigest() Digest {
 	return []DigestItem{}
 }
 

@@ -40,7 +40,7 @@ func (mvdt *BabeConsensusDigest) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt *BabeConsensusDigest) IndexValue() (index uint, value any, err error) {
+func (mvdt BabeConsensusDigest) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case NextEpochData:
 		return 1, mvdt.inner, nil
@@ -55,11 +55,11 @@ func (mvdt *BabeConsensusDigest) IndexValue() (index uint, value any, err error)
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt *BabeConsensusDigest) Value() (value any, err error) {
+func (mvdt BabeConsensusDigest) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
-func (mvdt *BabeConsensusDigest) ValueAt(index uint) (value any, err error) {
+func (mvdt BabeConsensusDigest) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 1:
 		return *new(NextEpochData), nil

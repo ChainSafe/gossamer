@@ -42,7 +42,7 @@ func (mvdt *BabeDigest) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt *BabeDigest) IndexValue() (index uint, value any, err error) {
+func (mvdt BabeDigest) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case BabePrimaryPreDigest:
 		return 0, mvdt.inner, nil
@@ -57,12 +57,12 @@ func (mvdt *BabeDigest) IndexValue() (index uint, value any, err error) {
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt *BabeDigest) Value() (value any, err error) {
+func (mvdt BabeDigest) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func (mvdt *BabeDigest) ValueAt(index uint) (value any, err error) {
+func (mvdt BabeDigest) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return *new(BabePrimaryPreDigest), nil

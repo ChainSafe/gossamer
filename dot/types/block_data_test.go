@@ -12,24 +12,22 @@ import (
 )
 
 var (
-// digestItem = scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{},
-//
-//	SealDigest{}, RuntimeEnvironmentUpdated{})
-//
-// digest     = scale.NewVaryingDataTypeSlice(digestItem)
-// testDigest = digest
+	// digestItem = scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{},
+	//
+	//	SealDigest{}, RuntimeEnvironmentUpdated{})
+	//
+	// digest     = scale.NewVaryingDataTypeSlice(digestItem)
+	testDigest = []DigestItem{
+		newDigestItem(PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              []byte{1, 2, 3},
+		}),
+		newDigestItem(SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              []byte{4, 5, 6, 7},
+		}),
+	}
 )
-
-// var _ = testDigest.Add(
-// 	PreRuntimeDigest{
-// 		ConsensusEngineID: BabeEngineID,
-// 		Data:              []byte{1, 2, 3},
-// 	},
-// 	SealDigest{
-// 		ConsensusEngineID: BabeEngineID,
-// 		Data:              []byte{4, 5, 6, 7},
-// 	},
-// )
 
 func TestNumber(t *testing.T) {
 	testHash := common.NewHash([]byte{
