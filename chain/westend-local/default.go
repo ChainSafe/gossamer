@@ -8,10 +8,6 @@ import (
 )
 
 const (
-	// defaultName is the default node name
-	defaultName = "Westend"
-	// defaultID is the default node ID
-	defaultID = "westend_local"
 	// defaultChainSpec is the default chain spec for the westend local node
 	defaultChainSpec = "./chain/westend-local/westend-local-spec-raw.json"
 
@@ -26,8 +22,6 @@ const (
 // DefaultConfig returns a westend local node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.Name = defaultName
-	config.ID = defaultID
 	config.ChainSpec = defaultChainSpec
 	config.Network.NoMDNS = false
 	config.RPC.RPCExternal = true

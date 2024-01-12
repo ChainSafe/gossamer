@@ -8,10 +8,6 @@ import (
 )
 
 const (
-	// defaultName is the default node name
-	defaultName = "Westend"
-	// defaultID is the default node ID
-	defaultID = "westend_dev"
 	// defaultBasePath is the default basepath for the westend dev node
 	defaultBasePath = "~/.gossamer/westend-dev"
 	// defaultChainSpec is the default chain spec for the westend dev node
@@ -22,8 +18,6 @@ const (
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
 	config.BasePath = defaultBasePath
-	config.ID = defaultID
-	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec
 	config.RPC.RPCExternal = true
 	config.RPC.UnsafeRPC = true
