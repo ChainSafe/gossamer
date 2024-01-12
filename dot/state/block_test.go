@@ -54,7 +54,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    0,
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
+		Digest:    nil,
 	}
 
 	err := bs.SetHeader(header)
@@ -71,7 +71,7 @@ func TestHasHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    0,
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
+		Digest:    nil,
 	}
 
 	err := bs.SetHeader(header)

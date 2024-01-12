@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -85,6 +86,10 @@ func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
+func (mvdt DigestItem) String() string {
+	return fmt.Sprintf("%s", mvdt.inner)
+}
+
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewDigestItem() DigestItem {
 	return DigestItem{}
@@ -104,6 +109,14 @@ func (d *Digest) Add(values ...any) (err error) {
 		*d = appended
 	}
 	return nil
+}
+
+func (d *Digest) String() string {
+	stringTypes := make([]string, len(*d))
+	for i, vdt := range *d {
+		stringTypes[i] = vdt.String()
+	}
+	return "[" + strings.Join(stringTypes, ", ") + "]"
 }
 
 // NewDigest returns a new Digest as a varying data type slice.

@@ -128,11 +128,11 @@ func Test_UnknownTransactionValidity_EncodingAndDecoding(t *testing.T) {
 	err = transactionValidityErr.SetValue(unknownTransaction)
 	require.NoError(t, err)
 
-	enc, err := scale.Marshal(transactionValidityErr)
+	enc, err := scale.Marshal(*transactionValidityErr)
 	require.NoError(t, err)
 
 	decodedTransactionValidityErr := NewTransactionValidityError()
-	err = scale.Unmarshal(enc, &decodedTransactionValidityErr)
+	err = scale.Unmarshal(enc, decodedTransactionValidityErr)
 	require.NoError(t, err)
 	require.Equal(t, transactionValidityErr, decodedTransactionValidityErr)
 

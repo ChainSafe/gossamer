@@ -113,12 +113,12 @@ type ValidityCannotLookup struct{}
 // // Index returns the VDT index
 // func (ValidityCannotLookup) Index() uint { return 0 }
 
-// func (v ValidityCannotLookup) String() string { return v.Error() }
+func (v ValidityCannotLookup) String() string { return v.Error() }
 
-// // Error returns the error message associated with the ValidityCannotLookup
-// func (ValidityCannotLookup) Error() string {
-// 	return "lookup failed"
-// }
+// Error returns the error message associated with the ValidityCannotLookup
+func (ValidityCannotLookup) Error() string {
+	return "lookup failed"
+}
 
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
@@ -126,12 +126,12 @@ type NoUnsignedValidator struct{}
 // // Index returns the VDT index
 // func (NoUnsignedValidator) Index() uint { return 1 }
 
-// func (n NoUnsignedValidator) String() string { return n.Error() }
+func (n NoUnsignedValidator) String() string { return n.Error() }
 
-// // Error returns the error message associated with the NoUnsignedValidator
-// func (NoUnsignedValidator) Error() string {
-// 	return "validator not found"
-// }
+// Error returns the error message associated with the NoUnsignedValidator
+func (NoUnsignedValidator) Error() string {
+	return "validator not found"
+}
 
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
@@ -141,11 +141,11 @@ type UnknownCustom uint8
 
 // func (m UnknownCustom) String() string { return m.Error() }
 
-// // Error returns the error message associated with the UnknownCustom
-// func (m UnknownCustom) Error() string {
-// 	return newUnknownError(m).Error()
-// }
+// Error returns the error message associated with the UnknownCustom
+func (m UnknownCustom) Error() string {
+	return newUnknownError(m).Error()
+}
 
-// func newUnknownError(data scale.VaryingDataTypeValue) error {
-// 	return fmt.Errorf("unknown error: %v", data)
-// }
+func newUnknownError(data any) error {
+	return fmt.Errorf("unknown error: %v", data)
+}

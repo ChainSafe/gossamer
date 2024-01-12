@@ -36,9 +36,7 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash,
 
 // NewEmptyHeader returns a new header with all zero values
 func NewEmptyHeader() *Header {
-	return &Header{
-		Digest: NewDigest(),
-	}
+	return &Header{}
 }
 
 // Exists returns a boolean indicating if the header exists
