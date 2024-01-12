@@ -200,7 +200,7 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 	ts.StartTransaction()
 	testValue := []byte("noot")
 	ts.Put([]byte(testCases[0]), testValue)
-	ts.Commit()
+	ts.CommitTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
 	require.Equal(t, testValue, val)
@@ -216,7 +216,7 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 	ts.StartTransaction()
 	testValue := []byte("noot")
 	ts.Put([]byte(testCases[0]), testValue)
-	ts.Rollback()
+	ts.RollbackTransaction()
 
 	val := ts.Get([]byte(testCases[0]))
 	require.Equal(t, []byte(testCases[0]), val)
@@ -242,13 +242,13 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 					{
 						ts.StartTransaction()
 						ts.Delete([]byte("key-3"))
-						ts.Commit() // commit the most nested transaction
+						ts.CommitTransaction() // commit the most nested transaction
 					}
 
 					// rollback this transaction will discard the modifications
 					// made by the most nested transactions so this original trie
 					// should not be affected
-					ts.Rollback()
+					ts.RollbackTransaction()
 				}
 				return ts
 			},
@@ -279,15 +279,15 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 								{
 									ts.StartTransaction()
 									ts.Delete([]byte("key-3"))
-									ts.Commit()
+									ts.CommitTransaction()
 								}
-								ts.Commit()
+								ts.CommitTransaction()
 							}
-							ts.Commit()
+							ts.CommitTransaction()
 						}
-						ts.Commit()
+						ts.CommitTransaction()
 					}
-					ts.Commit()
+					ts.CommitTransaction()
 				}
 				return ts
 			},
@@ -303,7 +303,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				return NewTrieState(trie.NewEmptyTrie())
 			},
 			assert: func(t *testing.T, ts *TrieState) {
-				require.PanicsWithValue(t, "no transactions to rollback", func() { ts.Rollback() })
+				require.PanicsWithValue(t, "no transactions to rollback", func() { ts.RollbackTransaction() })
 			},
 		},
 		"commit_without_transaction_should_panic": {
@@ -311,7 +311,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				return NewTrieState(trie.NewEmptyTrie())
 			},
 			assert: func(t *testing.T, ts *TrieState) {
-				require.PanicsWithValue(t, "no transactions to commit", func() { ts.Commit() })
+				require.PanicsWithValue(t, "no transactions to commit", func() { ts.CommitTransaction() })
 			},
 		},
 	}
