@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_babe_test.go -package modules github.com/ChainSafe/gossamer/lib/babe BlockImportHandler
 //
-
 // Package modules is a generated GoMock package.
 package modules
 

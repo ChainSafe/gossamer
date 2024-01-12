@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_telemetry_test.go -package grandpa . Telemetry
 //
-
 // Package grandpa is a generated GoMock package.
 package grandpa
 

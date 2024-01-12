@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_gauge_test.go -package state github.com/prometheus/client_golang/prometheus Gauge
 //
-
 // Package state is a generated GoMock package.
 package state
 

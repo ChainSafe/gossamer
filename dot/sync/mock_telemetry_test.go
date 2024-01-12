@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_telemetry_test.go -package sync . Telemetry
 //
-
 // Package sync is a generated GoMock package.
 package sync
 

@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_test.go -package grandpa . BlockState,GrandpaState,Network
 //
-
 // Package grandpa is a generated GoMock package.
 package grandpa
 

@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_runtime_test.go -package state github.com/ChainSafe/gossamer/lib/runtime Instance
 //
-
 // Package state is a generated GoMock package.
 package state
 

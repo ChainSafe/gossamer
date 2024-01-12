@@ -5,7 +5,6 @@
 //
 //	mockgen -source=node.go -destination=mock_node_builder_test.go -package=dot
 //
-
 // Package dot is a generated GoMock package.
 package dot
 

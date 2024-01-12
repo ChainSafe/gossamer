@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks/mocks.go -package mocks . StorageAPI,BlockAPI,NetworkAPI,BlockProducerAPI,TransactionStateAPI,CoreAPI,SystemAPI,BlockFinalityAPI,RuntimeStorageAPI,SyncStateAPI
 //
-
 // Package mocks is a generated GoMock package.
 package mocks
 

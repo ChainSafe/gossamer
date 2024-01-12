@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_sync_api_test.go -package modules . SyncAPI
 //
-
 // Package modules is a generated GoMock package.
 package modules
 

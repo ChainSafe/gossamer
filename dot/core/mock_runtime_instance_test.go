@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_runtime_instance_test.go -package core github.com/ChainSafe/gossamer/lib/runtime Instance
 //
-
 // Package core is a generated GoMock package.
 package core
 

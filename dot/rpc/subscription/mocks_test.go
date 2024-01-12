@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_test.go -package=subscription . TransactionStateAPI
 //
-
 // Package subscription is a generated GoMock package.
 package subscription
 

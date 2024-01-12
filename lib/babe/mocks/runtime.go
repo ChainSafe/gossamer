@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks/runtime.go -package mocks github.com/ChainSafe/gossamer/lib/runtime Instance
 //
-
 // Package mocks is a generated GoMock package.
 package mocks
 

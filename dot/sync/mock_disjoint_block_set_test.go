@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_disjoint_block_set_test.go -package=sync . DisjointBlockSet
 //
-
 // Package sync is a generated GoMock package.
 package sync
 

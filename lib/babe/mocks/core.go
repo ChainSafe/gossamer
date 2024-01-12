@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks/core.go -package mocks github.com/ChainSafe/gossamer/dot/core Network,BlockImportDigestHandler
 //
-
 // Package mocks is a generated GoMock package.
 package mocks
 

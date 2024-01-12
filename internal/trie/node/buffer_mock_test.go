@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=buffer_mock_test.go -package node . Buffer
 //
-
 // Package node is a generated GoMock package.
 package node
 

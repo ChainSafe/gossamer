@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_test.go -package state . Telemetry,BlockStateDatabase,Observer
 //
-
 // Package state is a generated GoMock package.
 package state
 

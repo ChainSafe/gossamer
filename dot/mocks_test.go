@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_test.go -package=dot . ServiceRegisterer
 //
-
 // Package dot is a generated GoMock package.
 package dot
 

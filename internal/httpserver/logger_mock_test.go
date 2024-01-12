@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=logger_mock_test.go -package httpserver . Logger
 //
-
 // Package httpserver is a generated GoMock package.
 package httpserver
 
