@@ -285,14 +285,8 @@ func NewGrandpaEquivocation() *GrandpaEquivocationEnum {
 // PreVote equivocation type for a prevote
 type PreVote GrandpaEquivocation
 
-// // Index returns VDT index
-// func (PreVote) Index() uint { return 0 }
-
 // PreCommit equivocation type for a precommit
 type PreCommit GrandpaEquivocation
-
-// // Index returns VDT index
-// func (PreCommit) Index() uint { return 1 }
 
 // GrandpaOpaqueKeyOwnershipProof contains a key ownership proof for reporting equivocations
 // https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L533 //nolint:lll

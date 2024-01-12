@@ -175,9 +175,6 @@ type GrandpaScheduledChange struct {
 	Delay uint32
 }
 
-// Index returns VDT index
-// func (GrandpaScheduledChange) Index() uint { return 1 }
-
 func (g GrandpaScheduledChange) String() string {
 	return fmt.Sprintf("GrandpaScheduledChange{Auths=%v, Delay=%d", g.Auths, g.Delay)
 }
@@ -192,9 +189,6 @@ type GrandpaForcedChange struct {
 	Delay              uint32
 }
 
-// Index returns VDT index
-// func (GrandpaForcedChange) Index() uint { return 2 }
-
 func (g GrandpaForcedChange) String() string {
 	return fmt.Sprintf("GrandpaForcedChange{BestFinalizedBlock=%d, Auths=%v, Delay=%d",
 		g.BestFinalizedBlock, g.Auths, g.Delay)
@@ -205,9 +199,6 @@ type GrandpaOnDisabled struct {
 	ID uint64
 }
 
-// Index returns VDT index
-// func (GrandpaOnDisabled) Index() uint { return 3 }
-
 func (g GrandpaOnDisabled) String() string {
 	return fmt.Sprintf("GrandpaOnDisabled{ID=%d}", g.ID)
 }
@@ -217,9 +208,6 @@ type GrandpaPause struct {
 	Delay uint32
 }
 
-// Index returns VDT index
-// func (GrandpaPause) Index() uint { return 4 }
-
 func (g GrandpaPause) String() string {
 	return fmt.Sprintf("GrandpaPause{Delay=%d}", g.Delay)
 }
@@ -228,9 +216,6 @@ func (g GrandpaPause) String() string {
 type GrandpaResume struct {
 	Delay uint32
 }
-
-// Index returns VDT index
-// func (GrandpaResume) Index() uint { return 5 }
 
 func (g GrandpaResume) String() string {
 	return fmt.Sprintf("GrandpaResume{Delay=%d}", g.Delay)
@@ -242,9 +227,6 @@ type NextEpochData struct {
 	Authorities []AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
-
-// Index returns VDT index
-// func (NextEpochData) Index() uint { return 1 } //skipcq: GO-W1029
 
 func (d NextEpochData) String() string { //skipcq: GO-W1029
 	return fmt.Sprintf("NextEpochData Authorities=%v Randomness=%v", d.Authorities, d.Randomness)
@@ -263,9 +245,6 @@ type BABEOnDisabled struct {
 	ID uint32
 }
 
-// Index returns VDT index
-// func (BABEOnDisabled) Index() uint { return 2 }
-
 func (b BABEOnDisabled) String() string {
 	return fmt.Sprintf("BABEOnDisabled{ID=%d}", b.ID)
 }
@@ -277,9 +256,6 @@ type NextConfigDataV1 struct {
 	C2             uint64
 	SecondarySlots byte
 }
-
-// // Index returns VDT index
-// func (NextConfigDataV1) Index() uint { return 1 } //skipcq: GO-W1029
 
 func (d NextConfigDataV1) String() string { //skipcq: GO-W1029
 	return fmt.Sprintf("NextConfigData{C1=%d, C2=%d, SecondarySlots=%d}",
@@ -340,26 +316,6 @@ func (mvdt VersionedNextConfigData) ValueAt(index uint) (value any, err error) {
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
-
-// // Index returns VDT index
-// func (VersionedNextConfigData) Index() uint { return 3 }
-
-// // Value returns the current VDT value
-// func (vncd *VersionedNextConfigData) Value() (val scale.VaryingDataTypeValue, err error) {
-// 	vdt := scale.VaryingDataType(*vncd)
-// 	return vdt.Value()
-// }
-
-// // Set updates the current VDT value to be `val`
-// func (vncd *VersionedNextConfigData) Set(val scale.VaryingDataTypeValue) (err error) {
-// 	vdt := scale.VaryingDataType(*vncd)
-// 	err = vdt.Set(val)
-// 	if err != nil {
-// 		return fmt.Errorf("setting varying data type value: %w", err)
-// 	}
-// 	*vncd = VersionedNextConfigData(vdt)
-// 	return nil
-// }
 
 // String returns the string representation for the current VDT value
 func (vncd VersionedNextConfigData) String() string {

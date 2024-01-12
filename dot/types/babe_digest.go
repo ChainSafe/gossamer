@@ -127,9 +127,6 @@ func (d BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	return toPreRuntimeDigest(d)
 }
 
-// // Index returns VDT index
-// func (BabePrimaryPreDigest) Index() uint { return 1 }
-
 func (d BabePrimaryPreDigest) String() string {
 	return fmt.Sprintf("BabePrimaryPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
 		"VRFOutput=0x%x, VRFProof=0x%x}",
@@ -154,9 +151,6 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 func (d BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	return toPreRuntimeDigest(d)
 }
-
-// // Index returns VDT index
-// func (BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
 func (d BabeSecondaryPlainPreDigest) String() string {
 	return fmt.Sprintf("BabeSecondaryPlainPreDigest{AuthorityIndex=%d, SlotNumber: %d}",
@@ -187,9 +181,6 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex uint32,
 func (d BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	return toPreRuntimeDigest(d)
 }
-
-// // Index returns VDT index
-// func (BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
 func (d BabeSecondaryVRFPreDigest) String() string {
 	return fmt.Sprintf("BabeSecondaryVRFPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+

@@ -146,9 +146,6 @@ func (v VoteMessage) String() string {
 	return fmt.Sprintf("round=%d, setID=%d, message={%s}", v.Round, v.SetID, v.Message)
 }
 
-// // Index returns VDT index
-// func (VoteMessage) Index() uint { return 0 }
-
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	msg := newGrandpaMessage()
@@ -211,41 +208,6 @@ func (mvdt VersionedNeighbourPacket) ValueAt(index uint) (value any, err error) 
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// // Index returns VDT index
-// func (VersionedNeighbourPacket) Index() uint { return 2 }
-
-// func (vnp VersionedNeighbourPacket) String() string {
-// 	val, err := vnp.Value()
-// 	if err != nil {
-// 		return "VersionedNeighbourPacket()"
-// 	}
-
-// 	return fmt.Sprintf("VersionedNeighbourPacket(%s)", val)
-// }
-
-// func newVersionedNeighbourPacket() VersionedNeighbourPacket {
-// 	vdt := scale.MustNewVaryingDataType(NeighbourPacketV1{})
-
-// 	return VersionedNeighbourPacket(vdt)
-// }
-
-// // Set updates the current VDT value to be `val`
-// func (vnp *VersionedNeighbourPacket) Set(val scale.VaryingDataTypeValue) (err error) {
-// 	vdt := scale.VaryingDataType(*vnp)
-// 	err = vdt.Set(val)
-// 	if err != nil {
-// 		return fmt.Errorf("setting varying data type value: %w", err)
-// 	}
-// 	*vnp = VersionedNeighbourPacket(vdt)
-// 	return nil
-// }
-
-// // Value returns the current VDT value
-// func (vnp *VersionedNeighbourPacket) Value() (val scale.VaryingDataTypeValue, err error) {
-// 	vdt := scale.VaryingDataType(*vnp)
-// 	return vdt.Value()
-// }
-
 // NeighbourPacketV1 represents a network-level neighbour message
 // currently, round and setID represents a struct containing an u64
 // https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/mod.rs#L660
@@ -254,9 +216,6 @@ type NeighbourPacketV1 struct {
 	SetID  uint64
 	Number uint32
 }
-
-// // Index returns VDT index
-// func (NeighbourPacketV1) Index() uint { return 1 }
 
 func (m NeighbourPacketV1) String() string {
 	return fmt.Sprintf("NeighbourPacketV1{Round=%d, SetID=%d, Number=%d}", m.Round, m.SetID, m.Number)
@@ -319,9 +278,6 @@ func (s *Service) newCommitMessage(header *types.Header, round, setID uint64) (*
 		AuthData:   authData,
 	}, nil
 }
-
-// // Index returns VDT index
-// func (CommitMessage) Index() uint { return 1 }
 
 func (m CommitMessage) String() string {
 	return fmt.Sprintf("CommitMessage{Round=%d, SetID=%d, Vote={%s}, Precommits=%v, AuthData=%v}",
@@ -391,9 +347,6 @@ func newCatchUpRequest(round, setID uint64) *CatchUpRequest {
 	}
 }
 
-// // Index returns VDT index
-// func (CatchUpRequest) Index() uint { return 3 }
-
 func (r CatchUpRequest) String() string {
 	return fmt.Sprintf("CatchUpRequest{Round=%d, SetID=%d}", r.Round, r.SetID)
 }
@@ -451,9 +404,6 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*CatchUpResponse, err
 		Number:                 uint32(header.Number),
 	}, nil
 }
-
-// // Index returns VDT index
-// func (CatchUpResponse) Index() uint { return 4 }
 
 func (r CatchUpResponse) String() string {
 	return fmt.Sprintf("CatchUpResponse{SetID=%d, Round=%d, PreVoteJustification=%v, "+

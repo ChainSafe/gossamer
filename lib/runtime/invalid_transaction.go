@@ -299,9 +299,6 @@ func (MandatoryDispatch) Error() string {
 // BadSigner A transaction with a mandatory dispatch
 type BadSigner struct{}
 
-// // Index returns VDT index
-// func (BadSigner) Index() uint { return 10 }
-
 func (b BadSigner) String() string { return b.Error() }
 
 // Error returns the error message associated with the MandatoryDispatch

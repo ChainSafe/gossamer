@@ -129,24 +129,15 @@ func (e UnmarshalError) Error() string {
 // Other Some error occurred
 type Other string
 
-// // Index returns VDT index
-// func (Other) Index() uint { return 0 }
-
 func (o Other) String() string { return string(o) }
 
 // CannotLookup Failed to lookup some data
 type CannotLookup struct{}
 
-// // Index returns VDT index
-// func (CannotLookup) Index() uint { return 1 }
-
 func (CannotLookup) String() string { return "cannot lookup" }
 
 // BadOrigin A bad origin
 type BadOrigin struct{}
-
-// // Index returns VDT index
-// func (BadOrigin) Index() uint { return 2 }
 
 func (BadOrigin) String() string { return "bad origin" }
 
@@ -156,9 +147,6 @@ type Module struct {
 	Err     uint8
 	Message *string
 }
-
-// // Index returns VDT index
-// func (Module) Index() uint { return 3 }
 
 func (err Module) String() string {
 	message := "nil"
@@ -171,112 +159,70 @@ func (err Module) String() string {
 // ValidityCannotLookup Could not lookup some information that is required to validate the transaction
 type ValidityCannotLookup struct{}
 
-// // Index returns VDT index
-// func (ValidityCannotLookup) Index() uint { return 0 }
-
 func (ValidityCannotLookup) String() string { return "validity cannot lookup" }
 
 // NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct{}
-
-// // Index returns VDT index
-// func (NoUnsignedValidator) Index() uint { return 1 }
 
 func (NoUnsignedValidator) String() string { return "no unsigned validator" }
 
 // UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
-// // Index returns VDT index
-// func (UnknownCustom) Index() uint { return 2 }
-
 func (uc UnknownCustom) String() string { return fmt.Sprintf("UnknownCustom(%d)", uc) }
 
 // Call The call of the transaction is not expected
 type Call struct{}
-
-// // Index returns VDT index
-// func (Call) Index() uint { return 0 }
 
 func (Call) String() string { return "call" }
 
 // Payment General error to do with the inability to pay some fees (e.g. account balance too low)
 type Payment struct{}
 
-// // Index returns VDT index
-// func (Payment) Index() uint { return 1 }
-
 func (Payment) String() string { return "payment" }
 
 // Future General error to do with the transaction not yet being valid (e.g. nonce too high)
 type Future struct{}
-
-// // Index returns VDT index
-// func (Future) Index() uint { return 2 }
 
 func (Future) String() string { return "future" }
 
 // Stale General error to do with the transaction being outdated (e.g. nonce too low)
 type Stale struct{}
 
-// // Index returns VDT index
-// func (Stale) Index() uint { return 3 }
-
 func (Stale) String() string { return "stale" }
 
 // BadProof General error to do with the transaction’s proofs (e.g. signature)
 type BadProof struct{}
-
-// // Index returns VDT index
-// func (BadProof) Index() uint { return 4 }
 
 func (BadProof) String() string { return "bad proof" }
 
 // AncientBirthBlock The transaction birth block is ancient
 type AncientBirthBlock struct{}
 
-// // Index returns VDT index
-// func (AncientBirthBlock) Index() uint { return 5 }
-
 func (AncientBirthBlock) String() string { return "ancient birth block" }
 
 // ExhaustsResources The transaction would exhaust the resources of current block
 type ExhaustsResources struct{}
-
-// // Index returns VDT index
-// func (ExhaustsResources) Index() uint { return 6 }
 
 func (ExhaustsResources) String() string { return "exhausts resources" }
 
 // InvalidCustom Any other custom invalid validity that is not covered
 type InvalidCustom uint8
 
-// // Index returns VDT index
-// func (InvalidCustom) Index() uint { return 7 }
-
 func (ic InvalidCustom) String() string { return fmt.Sprintf("InvalidCustom(%d)", ic) }
 
 // BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
 type BadMandatory struct{}
-
-// // Index returns VDT index
-// func (BadMandatory) Index() uint { return 8 }
 
 func (BadMandatory) String() string { return "bad mandatory" }
 
 // MandatoryDispatch A transaction with a mandatory dispatch
 type MandatoryDispatch struct{}
 
-// // Index returns VDT index
-// func (MandatoryDispatch) Index() uint { return 9 }
-
 func (MandatoryDispatch) String() string { return "mandatory dispatch" }
 
 // BadSigner A transaction with a mandatory dispatch
 type BadSigner struct{}
-
-// // Index returns VDT index
-// func (BadSigner) Index() uint { return 10 }
 
 func (BadSigner) String() string { return "invalid signing address" }
 
