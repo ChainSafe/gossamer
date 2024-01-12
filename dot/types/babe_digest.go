@@ -45,13 +45,13 @@ func (mvdt *BabeDigest) SetValue(value any) (err error) {
 func (mvdt BabeDigest) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case BabePrimaryPreDigest:
-		return 0, mvdt.inner, nil
-
-	case BabeSecondaryPlainPreDigest:
 		return 1, mvdt.inner, nil
 
-	case BabeSecondaryVRFPreDigest:
+	case BabeSecondaryPlainPreDigest:
 		return 2, mvdt.inner, nil
+
+	case BabeSecondaryVRFPreDigest:
+		return 3, mvdt.inner, nil
 
 	}
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
@@ -64,13 +64,13 @@ func (mvdt BabeDigest) Value() (value any, err error) {
 
 func (mvdt BabeDigest) ValueAt(index uint) (value any, err error) {
 	switch index {
-	case 0:
+	case 1:
 		return *new(BabePrimaryPreDigest), nil
 
-	case 1:
+	case 2:
 		return *new(BabeSecondaryPlainPreDigest), nil
 
-	case 2:
+	case 3:
 		return *new(BabeSecondaryVRFPreDigest), nil
 
 	}
@@ -127,8 +127,8 @@ func (d BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	return toPreRuntimeDigest(d)
 }
 
-// Index returns VDT index
-func (BabePrimaryPreDigest) Index() uint { return 1 }
+// // Index returns VDT index
+// func (BabePrimaryPreDigest) Index() uint { return 1 }
 
 func (d BabePrimaryPreDigest) String() string {
 	return fmt.Sprintf("BabePrimaryPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
@@ -155,8 +155,8 @@ func (d BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, er
 	return toPreRuntimeDigest(d)
 }
 
-// Index returns VDT index
-func (BabeSecondaryPlainPreDigest) Index() uint { return 2 }
+// // Index returns VDT index
+// func (BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
 func (d BabeSecondaryPlainPreDigest) String() string {
 	return fmt.Sprintf("BabeSecondaryPlainPreDigest{AuthorityIndex=%d, SlotNumber: %d}",
@@ -188,8 +188,8 @@ func (d BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, erro
 	return toPreRuntimeDigest(d)
 }
 
-// Index returns VDT index
-func (BabeSecondaryVRFPreDigest) Index() uint { return 3 }
+// // Index returns VDT index
+// func (BabeSecondaryVRFPreDigest) Index() uint { return 3 }
 
 func (d BabeSecondaryVRFPreDigest) String() string {
 	return fmt.Sprintf("BabeSecondaryVRFPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
