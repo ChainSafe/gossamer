@@ -38,7 +38,7 @@ Below is the list of labels and their descriptions used in Gossamer repository.
   - **S-runtime**- issue related to continuous integration tasks or piplelines.
   - **S-telemetry** - issue related to node telemetry and metrics reports. 
   - **S-rpc** - issues related to the dot/rpc package.
-  - **S-scale** - issues related to the lib/scale package.
+  - **S-scale** - issues related to the pkg/scale package.
   - **S-utils** - issues related to all other lib packages.
   - **S-network** - issues related to the dot/network package.
   - **S-state** - issues related to dot/state package.
