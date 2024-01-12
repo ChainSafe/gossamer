@@ -118,7 +118,7 @@ func (mvdt *GrandpaConsensusDigest) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt *GrandpaConsensusDigest) IndexValue() (index uint, value any, err error) {
+func (mvdt GrandpaConsensusDigest) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case GrandpaScheduledChange:
 		return 1, mvdt.inner, nil
@@ -139,11 +139,11 @@ func (mvdt *GrandpaConsensusDigest) IndexValue() (index uint, value any, err err
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt *GrandpaConsensusDigest) Value() (value any, err error) {
+func (mvdt GrandpaConsensusDigest) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
-func (mvdt *GrandpaConsensusDigest) ValueAt(index uint) (value any, err error) {
+func (mvdt GrandpaConsensusDigest) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 1:
 		return *new(GrandpaScheduledChange), nil
@@ -319,7 +319,7 @@ func (mvdt *VersionedNextConfigData) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt *VersionedNextConfigData) IndexValue() (index uint, value any, err error) {
+func (mvdt VersionedNextConfigData) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case NextConfigDataV1:
 		return 1, mvdt.inner, nil
@@ -328,11 +328,11 @@ func (mvdt *VersionedNextConfigData) IndexValue() (index uint, value any, err er
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt *VersionedNextConfigData) Value() (value any, err error) {
+func (mvdt VersionedNextConfigData) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
-func (mvdt *VersionedNextConfigData) ValueAt(index uint) (value any, err error) {
+func (mvdt VersionedNextConfigData) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 1:
 		return *new(NextConfigDataV1), nil

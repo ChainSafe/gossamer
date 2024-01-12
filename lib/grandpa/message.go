@@ -57,7 +57,7 @@ func (mvdt *grandpaMessage) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt *grandpaMessage) IndexValue() (index uint, value any, err error) {
+func (mvdt grandpaMessage) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case VoteMessage:
 		return 0, mvdt.inner, nil
@@ -78,11 +78,11 @@ func (mvdt *grandpaMessage) IndexValue() (index uint, value any, err error) {
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt *grandpaMessage) Value() (value any, err error) {
+func (mvdt grandpaMessage) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
-func (mvdt *grandpaMessage) ValueAt(index uint) (value any, err error) {
+func (mvdt grandpaMessage) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return *new(VoteMessage), nil
@@ -190,7 +190,7 @@ func (mvdt *VersionedNeighbourPacket) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt *VersionedNeighbourPacket) IndexValue() (index uint, value any, err error) {
+func (mvdt VersionedNeighbourPacket) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case NeighbourPacketV1:
 		return 1, mvdt.inner, nil
@@ -198,12 +198,12 @@ func (mvdt *VersionedNeighbourPacket) IndexValue() (index uint, value any, err e
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt *VersionedNeighbourPacket) Value() (value any, err error) {
+func (mvdt VersionedNeighbourPacket) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func (mvdt *VersionedNeighbourPacket) ValueAt(index uint) (value any, err error) {
+func (mvdt VersionedNeighbourPacket) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 1:
 		return *new(NeighbourPacketV1), nil
