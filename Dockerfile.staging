@@ -1,6 +1,6 @@
 FROM golang:1.21
 
-ARG chain="westend"
+ARG chain="polkadot"
 ARG basepath="~/.gossamer"
 ARG DD_API_KEY
 
