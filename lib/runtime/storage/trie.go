@@ -65,7 +65,7 @@ func (t *TrieState) CommitTransaction() {
 	defer t.mtx.Unlock()
 
 	if t.transactions.Len() <= 1 {
-		panic("no transactions to rollback")
+		panic("no transactions to commit")
 	}
 
 	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
