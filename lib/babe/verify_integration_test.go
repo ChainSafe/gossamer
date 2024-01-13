@@ -145,7 +145,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
 		0, uint64(0), uint64(0), Randomness{})
 	babeDigest := types.NewBabeDigest()
-	err = babeDigest.SetValue(secondaryDigest)
+	err = babeDigest.SetValue(*secondaryDigest)
 	require.NoError(t, err)
 
 	encodedBabeDigest, err := scale.Marshal(babeDigest)
