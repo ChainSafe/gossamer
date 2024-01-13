@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks/mocks.go -package mocks . Instance,TransactionState
 //
-
 // Package mocks is a generated GoMock package.
 package mocks
 

@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_grandpa_test.go -package digest . GrandpaState
 //
-
 // Package digest is a generated GoMock package.
 package digest
 

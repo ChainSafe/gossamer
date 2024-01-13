@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mock_telemetry_test.go -package digest . Telemetry
 //
-
 // Package digest is a generated GoMock package.
 package digest
 
