@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -64,9 +64,9 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
 
-	authData := []types.Authority{
-		{Key: pubA, Weight: 1},
-		{Key: pubB, Weight: 1},
+	authData := []types.AuthorityRaw{
+		{Key: pubA.AsBytes(), Weight: 1},
+		{Key: pubB.AsBytes(), Weight: 1},
 	}
 
 	bs := &Service{

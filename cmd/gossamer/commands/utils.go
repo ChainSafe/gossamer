@@ -212,6 +212,19 @@ func getPassword(msg string) []byte {
 	}
 }
 
+// parseIdentity parses the node identity from the command line flags
+func parseIdentity() {
+	if name != "" {
+		config.Name = name
+		viper.Set("name", name)
+	}
+
+	if id != "" {
+		config.ID = id
+		viper.Set("id", id)
+	}
+}
+
 // parseChainSpec parses the chain spec from the given chain
 // and sets the default config
 func parseChainSpec(chain string) error {
@@ -254,9 +267,9 @@ func parseChainSpec(chain string) error {
 		return fmt.Errorf("failed to load chain spec: %s", err)
 	}
 
-	config.ID = spec.ID
 	config.Network.Bootnodes = spec.Bootnodes
 	config.Network.ProtocolID = spec.ProtocolID
+	parseIdentity()
 
 	return nil
 }

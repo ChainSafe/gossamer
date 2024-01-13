@@ -3,9 +3,6 @@
 
 package runtime
 
-// PageSize is 65kb
-const PageSize = 65536
-
 // Memory is the interface for WASM memory
 type Memory interface {
 	// Size returns the size in bytes available. e.g. If the underlying memory

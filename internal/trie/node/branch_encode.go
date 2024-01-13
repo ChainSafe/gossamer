@@ -18,10 +18,10 @@ type encodingAsyncResult struct {
 	err    error
 }
 
-func runEncodeChild(child *Node, index int,
+func runEncodeChild(child *Node, index, maxInlineValue int,
 	results chan<- encodingAsyncResult, rateLimit <-chan struct{}) {
 	buffer := bytes.NewBuffer(nil)
-	err := encodeChild(child, buffer)
+	err := encodeChild(child, maxInlineValue, buffer)
 
 	results <- encodingAsyncResult{
 		index:  index,
@@ -44,7 +44,7 @@ var parallelEncodingRateLimit = make(chan struct{}, parallelLimit)
 // goroutines IF they are less than the parallelLimit number of goroutines already
 // running. This is designed to limit the total number of goroutines in order to
 // avoid using too much memory on the stack.
-func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (err error) {
+func encodeChildrenOpportunisticParallel(children []*Node, maxInlineValue int, buffer io.Writer) (err error) {
 	// Buffered channels since children might be encoded in this
 	// goroutine or another one.
 	resultsCh := make(chan encodingAsyncResult, ChildrenCapacity)
@@ -56,7 +56,7 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 		}
 
 		if child.Kind() == Leaf {
-			runEncodeChild(child, i, resultsCh, nil)
+			runEncodeChild(child, i, maxInlineValue, resultsCh, nil)
 			continue
 		}
 
@@ -65,11 +65,11 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 		case parallelEncodingRateLimit <- struct{}{}:
 			// We have a goroutine available to encode
 			// the branch in parallel.
-			go runEncodeChild(child, i, resultsCh, parallelEncodingRateLimit)
+			go runEncodeChild(child, i, maxInlineValue, resultsCh, parallelEncodingRateLimit)
 		default:
 			// we reached the maximum parallel goroutines
 			// so encode this branch in this goroutine
-			runEncodeChild(child, i, resultsCh, nil)
+			runEncodeChild(child, i, maxInlineValue, resultsCh, nil)
 		}
 	}
 
@@ -116,24 +116,10 @@ func encodeChildrenOpportunisticParallel(children []*Node, buffer io.Writer) (er
 	return err
 }
 
-func encodeChildrenSequentially(children []*Node, buffer io.Writer) (err error) {
-	for i, child := range children {
-		if child == nil {
-			continue
-		}
-
-		err = encodeChild(child, buffer)
-		if err != nil {
-			return fmt.Errorf("encoding child at index %d: %w", i, err)
-		}
-	}
-	return nil
-}
-
 // encodeChild computes the Merkle value of the node
 // and then SCALE encodes it to the given buffer.
-func encodeChild(child *Node, buffer io.Writer) (err error) {
-	merkleValue, err := child.CalculateMerkleValue()
+func encodeChild(child *Node, maxInlineValue int, buffer io.Writer) (err error) {
+	merkleValue, err := child.CalculateMerkleValue(maxInlineValue)
 	if err != nil {
 		return fmt.Errorf("computing %s Merkle value: %w", child.Kind(), err)
 	}

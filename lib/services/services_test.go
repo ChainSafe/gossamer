@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestServiceRegistry_RegisterService(t *testing.T) {

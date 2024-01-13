@@ -8,7 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 // NewMockAnyStorageAPI creates and return an rpc StorageAPI interface mock

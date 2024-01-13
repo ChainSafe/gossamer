@@ -18,6 +18,8 @@ const (
 	HashLength = 32
 )
 
+var EmptyHash = Hash{}
+
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
@@ -40,7 +42,7 @@ func HashValidator(field reflect.Value) interface{} {
 	// Try to convert to hash type.
 	if valuer, ok := field.Interface().(Hash); ok {
 		// Check if the hash is empty.
-		if valuer == (Hash{}) {
+		if valuer == (EmptyHash) {
 			return ""
 		}
 		return valuer.ToBytes()
@@ -50,7 +52,7 @@ func HashValidator(field reflect.Value) interface{} {
 
 // IsEmpty returns true if the hash is empty, false otherwise.
 func (h Hash) IsEmpty() bool { //skipcq: GO-W1029
-	return h == Hash{}
+	return h == EmptyHash
 }
 
 // String returns the hex string for the hash
@@ -79,7 +81,7 @@ func ReadHash(r io.Reader) (Hash, error) {
 	buf := make([]byte, 32)
 	_, err := r.Read(buf)
 	if err != nil {
-		return Hash{}, err
+		return EmptyHash, err
 	}
 	h := [32]byte{}
 	copy(h[:], buf)
