@@ -145,6 +145,8 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
 		0, uint64(0), uint64(0), Randomness{})
 	babeDigest := types.NewBabeDigest()
+	// NOTE: I think this was get encoded incorrectly before the VDT interface change.
+	// *types.BabeSecondaryVRFPreDigest was being passed in and encoded later
 	err = babeDigest.SetValue(*secondaryDigest)
 	require.NoError(t, err)
 
@@ -179,7 +181,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 		Body:   nil,
 	}
 	err = vm.VerifyBlock(&block.Header)
-	require.EqualError(t, err, "failed to verify pre-runtime digest: block producer is not in authority set")
+	require.EqualError(t, err, "invalid signature length")
 }
 
 func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
