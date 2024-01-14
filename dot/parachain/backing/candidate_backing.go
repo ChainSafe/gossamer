@@ -222,15 +222,15 @@ func (cb *CandidateBacking) processOverseerMessage(msg any, chRelayParentAndComm
 		cb.handleCanSecondMessage(msg)
 	case SecondMessage:
 		err := cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
-
-		if errors.Is(err, errWrongPVDForSecondingCandidate) ||
-			errors.Is(err, errUnknownRelayParentForSecondingCandidate) ||
-			errors.Is(err, errParaOutsideAssignmentForSeconding) ||
-			errors.Is(err, errAlreadySignedValidStatement) {
+		switch err {
+		case errWrongPVDForSecondingCandidate, errUnknownRelayParentForSecondingCandidate,
+			errParaOutsideAssignmentForSeconding, errAlreadySignedValidStatement:
 			logger.Error(err.Error())
 			return nil
+		default:
+			return err
 		}
-		return err
+
 	case StatementMessage:
 		err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 
