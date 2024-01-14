@@ -740,9 +740,9 @@ type validatedCandidateCommand byte
 
 const (
 	// We were instructed to second the candidate that has been already validated.
-	second = validatedCandidateCommand(iota)
+	second = validatedCandidateCommand(iota) //nolint:unused
 	// We were instructed to validate the candidate.
 	attest
 	// We were not able to `Attest` because backing validator did not send us the PoV.
-	attestNoPoV
+	attestNoPoV //nolint:unused
 )
