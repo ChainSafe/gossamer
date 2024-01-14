@@ -754,7 +754,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 				pvd,
 				parachaintypes.PoV{},
 				2,
-				Attest,
+				attest,
 				candidateHash,
 			)
 

@@ -572,7 +572,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		pvd,
 		pov,
 		uint32(len(rpState.tableContext.validators)),
-		Attest,
+		attest,
 		candidateHash,
 	)
 }
@@ -636,14 +636,14 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		Ch:                      chValidationResultRes,
 	}
 
-	ValidationResultRes := <-chValidationResultRes
-	if ValidationResultRes.Err != nil {
-		return fmt.Errorf("getting validation result: %w", ValidationResultRes.Err)
+	validationResultRes := <-chValidationResultRes
+	if validationResultRes.Err != nil {
+		return fmt.Errorf("getting validation result: %w", validationResultRes.Err)
 	}
 
 	var bgValidationResult backgroundValidationResult
 
-	if ValidationResultRes.Data.IsValid { // Valid
+	if validationResultRes.Data.IsValid { // Valid
 		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
 		// matches `expected_erasure_root` which was provided by the collator in the `CandidateReceipt`.
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
@@ -668,8 +668,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		case storeAvailableDataError == nil:
 			bgValidationResult = backgroundValidationResult{
 				candidateReceipt:        &candidateReceipt,
-				candidateCommitments:    &ValidationResultRes.Data.CandidateCommitments,
-				persistedValidationData: &ValidationResultRes.Data.PersistedValidationData,
+				candidateCommitments:    &validationResultRes.Data.CandidateCommitments,
+				persistedValidationData: &validationResultRes.Data.PersistedValidationData,
 				err:                     nil,
 			}
 		case errors.Is(storeAvailableDataError, errInvalidErasureRoot):
@@ -684,10 +684,10 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(ValidationResultRes.Data.Err.Error())
+		logger.Error(validationResultRes.Data.Err.Error())
 		bgValidationResult = backgroundValidationResult{
 			candidateReceipt: &candidateReceipt,
-			err:              ValidationResultRes.Data.Err,
+			err:              validationResultRes.Data.Err,
 		}
 	}
 
@@ -740,9 +740,9 @@ type validatedCandidateCommand byte
 
 const (
 	// We were instructed to second the candidate that has been already validated.
-	Second = validatedCandidateCommand(iota)
+	second = validatedCandidateCommand(iota)
 	// We were instructed to validate the candidate.
-	Attest
+	attest
 	// We were not able to `Attest` because backing validator did not send us the PoV.
-	AttestNoPoV
+	attestNoPoV
 )
