@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=runner_mock_test.go -package pprof . Runner
 //
+
 // Package pprof is a generated GoMock package.
 package pprof
 

@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package core . BlockState,StorageState,TransactionState,Network,CodeSubstitutedState,Telemetry,BlockImportDigestHandler,GrandpaState
 //
+
 // Package core is a generated GoMock package.
 package core
 
