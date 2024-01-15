@@ -33,10 +33,10 @@ func (va *ValidityAttestation) Value() (scale.VaryingDataTypeValue, error) {
 }
 
 // Implicit is for Implicit attestation.
-type Implicit ValidatorSignature //skipcq
+type Implicit ValidatorSignature
 
 // Index returns VDT index
-func (Implicit) Index() uint { //skipcq
+func (Implicit) Index() uint {
 	return 1
 }
 
