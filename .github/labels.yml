@@ -28,7 +28,7 @@
   description: issue or PR is deprecated and needs to be closed.
 
 - name: A-blocked
-  color: "#F9D0C4"
+  color: "#F38160"
   aliases: []
   description: issue or PR is blocked until something else changes.
 
