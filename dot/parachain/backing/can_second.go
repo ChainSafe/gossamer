@@ -9,16 +9,16 @@ import (
 // handleCanSecondMessage Performs seconding sanity check for an advertisement.
 func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 	rpState, ok := cb.perRelayParent[msg.CandidateRelayParent]
-	if !ok {
-		// Relay parent is unknown
-		msg.resCh <- false
+	if !ok || rpState == nil {
+		// relay parent is unknown or relay parent state is nil.
+		msg.ResCh <- false
 		return
 	}
 
-	ppMode := rpState.ProspectiveParachainsMode
+	ppMode := rpState.prospectiveParachainsMode
 	if !ppMode.IsEnabled {
 		// async backing is disabled.
-		msg.resCh <- false
+		msg.ResCh <- false
 		return
 	}
 
@@ -32,14 +32,14 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 	isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
 
 	if !isSecondingAllowed {
-		msg.resCh <- false
+		msg.ResCh <- false
 		return
 	}
 
 	for _, v := range membership {
 		// candidate should be recognised by at least some fragment tree.
 		if v != nil {
-			msg.resCh <- true
+			msg.ResCh <- true
 			return
 		}
 	}
@@ -59,7 +59,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 	type response struct {
 		depths          []uint
 		head            common.Hash
-		activeLeafState ActiveLeafState
+		activeLeafState activeLeafState
 	}
 
 	var (
@@ -79,7 +79,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 	}
 
 	for head, leafState := range cb.perLeaf {
-		if leafState.ProspectiveParachainsMode.IsEnabled {
+		if leafState.prospectiveParachainsMode.IsEnabled {
 			allowedParentsForPara := cb.implicitView.knownAllowedRelayParentsUnder(head, candidateParaID)
 
 			if !slices.Contains(allowedParentsForPara, candidateRelayParent) {
@@ -107,7 +107,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 				responses = append(responses, response{depths, head, leafState})
 			}
 		} else if head == candidateRelayParent {
-			if bTreeMap, ok := leafState.SecondedAtDepth[candidateParaID]; ok {
+			if bTreeMap, ok := leafState.secondedAtDepth[candidateParaID]; ok {
 				if _, ok := bTreeMap.Get(0); ok {
 					logger.Debug("Refusing to second candidate because leaf is already occupied.")
 					return false, nil
@@ -123,7 +123,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 
 	for _, res := range responses {
 		for _, depth := range res.depths {
-			if bTreeMap, ok := res.activeLeafState.SecondedAtDepth[candidateParaID]; ok {
+			if bTreeMap, ok := res.activeLeafState.secondedAtDepth[candidateParaID]; ok {
 				if _, ok := bTreeMap.Get(depth); ok {
 					logger.Debugf("Refusing to second candidate at depth %d - already occupied.", depth)
 					return false, nil

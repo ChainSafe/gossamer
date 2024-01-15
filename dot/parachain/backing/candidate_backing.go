@@ -56,15 +56,15 @@ type CandidateBacking struct {
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]ActiveLeafState
+	perLeaf map[common.Hash]activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	implicitView ImplicitView
 }
 
-type ActiveLeafState struct {
-	ProspectiveParachainsMode parachaintypes.ProspectiveParachainsMode
-	SecondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
+type activeLeafState struct {
+	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
+	secondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
 	perCandidate              map[parachaintypes.CandidateHash]*perCandidateState //nolint:unused
 }
 
@@ -140,7 +140,7 @@ type CanSecondMessage struct {
 	CandidateRelayParent common.Hash
 	CandidateHash        parachaintypes.CandidateHash
 	ParentHeadDataHash   common.Hash
-	resCh                chan bool
+	ResCh                chan bool
 }
 
 // SecondMessage is a message received from overseer. Candidate Backing subsystem should second the given

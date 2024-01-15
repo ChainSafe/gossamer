@@ -28,13 +28,13 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		CandidateRelayParent: getDummyHash(t, 5),
 		CandidateHash:        candidateHash,
 		ParentHeadDataHash:   getDummyHash(t, 4),
-		resCh:                make(chan bool),
+		ResCh:                make(chan bool),
 	}
 
 	t.Run("relay_parent_is_unknown", func(t *testing.T) {
 		cb := CandidateBacking{}
 
-		go ignoreChanVal(t, msg.resCh)
+		go ignoreChanVal(t, msg.ResCh)
 		cb.handleCanSecondMessage(msg)
 	})
 
@@ -42,12 +42,12 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		cb := CandidateBacking{
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{IsEnabled: false},
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{IsEnabled: false},
 				},
 			},
 		}
 
-		go ignoreChanVal(t, msg.resCh)
+		go ignoreChanVal(t, msg.ResCh)
 		cb.handleCanSecondMessage(msg)
 	})
 
@@ -55,7 +55,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		cb := CandidateBacking{
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
@@ -64,7 +64,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			},
 		}
 
-		go ignoreChanVal(t, msg.resCh)
+		go ignoreChanVal(t, msg.ResCh)
 		cb.handleCanSecondMessage(msg)
 	})
 
@@ -77,27 +77,27 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
 		).Return([]common.Hash{msg.CandidateRelayParent})
 
-		SubSystemToOverseer := make(chan any)
+		subSystemToOverseer := make(chan any)
 
 		cb := CandidateBacking{
-			SubSystemToOverseer: SubSystemToOverseer,
+			SubSystemToOverseer: subSystemToOverseer,
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
 				},
 			},
-			perLeaf: map[common.Hash]ActiveLeafState{
+			perLeaf: map[common.Hash]activeLeafState{
 				getDummyHash(t, 1): {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
-					SecondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
 						msg.CandidateParaID: {},
 					},
 				},
@@ -105,8 +105,8 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			implicitView: mockImplicitView,
 		}
 
-		go func(SubSystemToOverseer chan any) {
-			in := <-SubSystemToOverseer
+		go func(subSystemToOverseer chan any) {
+			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
 				Ch <- parachaintypes.HypotheticalFrontierResponse{
 				{
@@ -122,9 +122,9 @@ func TestHandleCanSecondMessage(t *testing.T) {
 					}},
 				},
 			}
-		}(SubSystemToOverseer)
+		}(subSystemToOverseer)
 
-		go ignoreChanVal(t, msg.resCh)
+		go ignoreChanVal(t, msg.ResCh)
 		cb.handleCanSecondMessage(msg)
 	})
 }
@@ -164,9 +164,9 @@ func TestSecondingSanityCheck1(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]ActiveLeafState{
+			perLeaf: map[common.Hash]activeLeafState{
 				getDummyHash(t, 1): {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
@@ -190,21 +190,21 @@ func TestSecondingSanityCheck1(t *testing.T) {
 			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
 
-		SubSystemToOverseer := make(chan any)
+		subSystemToOverseer := make(chan any)
 
 		cb := CandidateBacking{
-			SubSystemToOverseer: SubSystemToOverseer,
+			SubSystemToOverseer: subSystemToOverseer,
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]ActiveLeafState{
+			perLeaf: map[common.Hash]activeLeafState{
 				getDummyHash(t, 1): {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
-					SecondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
 						hypotheticalCandidate.CandidateParaID: func() btree.Map[uint, parachaintypes.CandidateHash] {
 							var btm btree.Map[uint, parachaintypes.CandidateHash]
 							btm.Set(1, hypotheticalCandidate.CandidateHash)
@@ -216,8 +216,8 @@ func TestSecondingSanityCheck1(t *testing.T) {
 			implicitView: mockImplicitView,
 		}
 
-		go func(SubSystemToOverseer chan any) {
-			in := <-SubSystemToOverseer
+		go func(subSystemToOverseer chan any) {
+			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
 				Ch <- parachaintypes.HypotheticalFrontierResponse{
 				{
@@ -228,7 +228,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 					}},
 				},
 			}
-		}(SubSystemToOverseer)
+		}(subSystemToOverseer)
 
 		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
 		require.False(t, isSecondingAllowed)
@@ -244,21 +244,21 @@ func TestSecondingSanityCheck1(t *testing.T) {
 			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
 
-		SubSystemToOverseer := make(chan any)
+		subSystemToOverseer := make(chan any)
 
 		cb := CandidateBacking{
-			SubSystemToOverseer: SubSystemToOverseer,
+			SubSystemToOverseer: subSystemToOverseer,
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]ActiveLeafState{
+			perLeaf: map[common.Hash]activeLeafState{
 				getDummyHash(t, 1): {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
-					SecondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
 						hypotheticalCandidate.CandidateParaID: {},
 					},
 				},
@@ -266,8 +266,8 @@ func TestSecondingSanityCheck1(t *testing.T) {
 			implicitView: mockImplicitView,
 		}
 
-		go func(SubSystemToOverseer chan any) {
-			in := <-SubSystemToOverseer
+		go func(subSystemToOverseer chan any) {
+			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
 				Ch <- parachaintypes.HypotheticalFrontierResponse{
 				{
@@ -278,7 +278,7 @@ func TestSecondingSanityCheck1(t *testing.T) {
 					}},
 				},
 			}
-		}(SubSystemToOverseer)
+		}(subSystemToOverseer)
 
 		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
 		require.True(t, isSecondingAllowed)
@@ -294,12 +294,12 @@ func TestSecondingSanityCheck1(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]ActiveLeafState{
+			perLeaf: map[common.Hash]activeLeafState{
 				hypotheticalCandidate.RelayParent: {
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled: false,
 					},
-					SecondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
 						hypotheticalCandidate.CandidateParaID: func() btree.Map[uint, parachaintypes.CandidateHash] {
 							var btm btree.Map[uint, parachaintypes.CandidateHash]
 							btm.Set(0, hypotheticalCandidate.CandidateHash)
