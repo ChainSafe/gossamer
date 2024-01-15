@@ -7,7 +7,10 @@ import (
 	"errors"
 	"fmt"
 
+	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -159,7 +162,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		}
 
 		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
-		subSystemToOverseer <- parachaintypes.CollatorProtocolMessageBacked{
+		subSystemToOverseer <- collatorprotocolmessages.Backed{
 			ParaID:   parachaintypes.ParaID(paraID),
 			ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
 		}
@@ -348,15 +351,15 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		logger.Debugf("validation successful! candidateHash=%s", candidateHash)
 
 		chStoreAvailableDataError := make(chan error)
-		subSystemToOverseer <- parachaintypes.AvailabilityStoreMessageStoreAvailableData{
+		subSystemToOverseer <- availabilitystore.StoreAvailableData{
 			CandidateHash: candidateHash,
 			NumValidators: numValidator,
-			AvailableData: parachaintypes.AvailableData{
+			AvailableData: availabilitystore.AvailableData{
 				PoV:            pov,
 				ValidationData: pvd,
 			},
 			ExpectedErasureRoot: candidateReceipt.Descriptor.ErasureRoot,
-			Ch:                  chStoreAvailableDataError,
+			Sender:              chStoreAvailableDataError,
 		}
 
 		storeAvailableDataError := <-chStoreAvailableDataError
