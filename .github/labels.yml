@@ -21,16 +21,16 @@
   description: Action needed label. Marks that there is a specific action needed for
     issue/PR
 
-# Action needed label. Marks that there is a specific action needed for issue/PR
+# Action/attention needed label. Marks that there is a specific action needed for issue/PR
 - name: A-stale
   color: "#FBCA04"
   aliases: []
   description: issue or PR is deprecated and needs to be closed.
 
 - name: A-blocked
-  color: "#FBCA04"
+  color: "#F9D0C4"
   aliases: []
-  description: issue or PR is blocked  until something else changes.
+  description: issue or PR is blocked until something else changes.
 
 - name: A-triage
   color: "#FBCA04"
