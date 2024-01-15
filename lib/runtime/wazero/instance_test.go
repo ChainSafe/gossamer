@@ -604,7 +604,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(nil)
+	parentState := storage.NewTrieState(trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -661,7 +661,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(nil)
+	parentState := storage.NewTrieState(trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)

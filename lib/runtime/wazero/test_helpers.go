@@ -24,7 +24,7 @@ import (
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	t.Helper()
-	return NewTestInstanceWithTrie(t, targetRuntime, nil)
+	return NewTestInstanceWithTrie(t, targetRuntime, trie.NewEmptyTrie())
 }
 
 func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level, role common.NetworkRole) Config {
