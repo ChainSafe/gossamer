@@ -1,0 +1,20 @@
+name: Sync labels
+on:
+  # You can run this with every type of event, but it's better to run it only when you actually need it.
+  pull_request:
+
+permissions:
+  issues: write
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: EndBug/label-sync@v2
+        with:
+          config-file: .github/labels.yml
+          # If you want to delete any additional label, set this to true
+          delete-other-labels: false
+          # Test
+          dry-run: true
+          token: ${{ secrets.GITHUB_TOKEN }}

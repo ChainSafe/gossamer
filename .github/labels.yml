@@ -1,0 +1,224 @@
+---
+- name: Epic
+  color: "#3E4B9E"
+  aliases: []
+  description: Issue used to track development status of a complex feature, aggregates
+    several issues
+
+- name: Feature-branch
+  color: "#8ceac8"
+  aliases: []
+  description: pull request from feature branch to origin.
+
+- name: Release
+  color: "#5319E7"
+  aliases: []
+  description: pull request with next release changes.
+
+- name: A-tooBig
+  color: "#FBCA04"
+  aliases: []
+  description: Action needed label. Marks that there is a specific action needed for
+    issue/PR
+
+# Action needed label. Marks that there is a specific action needed for issue/PR
+- name: A-stale
+  color: "#FBCA04"
+  aliases: []
+  description: issue or PR is deprecated and needs to be closed.
+
+- name: A-blocked
+  color: "#FBCA04"
+  aliases: []
+  description: issue or PR is blocked  until something else changes.
+
+- name: A-triage
+  color: "#FBCA04"
+  aliases: []
+  description: issue description needs refactor and/or labeled.
+
+- name: A-debug
+  color: "#FBCA04"
+  aliases: []
+  description: issue requires detective debug work to figure out what's going wrong.
+
+- name: A-design
+  color: "#FBCA04"
+  aliases: []
+  description: issue requires design work to think about how it would best be accomplished.
+
+# Describes the type of issue or pull request.
+- name: T-bug
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue covers unexpected and/or wrong behaviour.
+
+- name: T-feat
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr is a new feature or functionality.
+
+- name: T-enhancement
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr covers improvement of existing functionality.
+
+- name: T-refactor
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr covers refactoring of existing code.
+
+- name: T-security
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr covers security sensitive problem.
+
+# Complexity label. We operate only 3 complexity levels.
+- name: C-simple
+  color: "#006B75"
+  aliases: []
+  description: Minor changes changes, no additional research needed. Good first issue/review.
+
+- name: C-complex
+  color: "#006B75"
+  aliases: []
+  description: Complex changes across multiple modules. Possibly will require additional
+    research.
+
+- name: C-chaotic
+  color: "#006B75"
+  aliases: []
+  description: Unpredictable nature of this task/changes makes its chaotic.
+
+# Priority level. We only have 3 priority levels, everything else is average by default.
+- name: P-critical
+  color: "#d93f0b"
+  aliases: []
+  description: this must be fixed immediately or contributors or users will be severely
+    impacted.
+
+- name: P-high
+  color: "#FBCA04"
+  aliases: []
+  description: this should be addressed ASAP.
+
+- name: P-low
+  color: "#0E8A16"
+  aliases: []
+  description: this is mostly nice to have.
+
+# Scope this work related to, could be multiple, but usually this means that task needs to be break down.
+- name: S-sync-westend
+  color: "#1D76DB"
+  aliases: []
+  description: related to particular network syncing.
+
+- name: S-sync-kusama
+  color: "#1D76DB"
+  aliases: []
+  description: related to particular network syncing.
+
+- name: S-sync-polkadot
+  color: "#1D76DB"
+  aliases: []
+  description: related to particular network syncing.
+
+- name: S-sync-paseo
+  color: "#1D76DB"
+  aliases: []
+  description: related to particular network syncing.
+
+- name: S-tests
+  color: "#1D76DB"
+  aliases: []
+  description: issue related to adding new tests.
+
+- name: S-doc
+  color: "#1D76DB"
+  aliases: []
+  description: documentation related.
+
+- name: S-cli
+  color: "#1D76DB"
+  aliases: []
+  description: issue related to Gossamer CLI.
+
+- name: S-ci
+  color: "#1D76DB"
+  aliases: []
+  description: issue related to continuous integration tasks or piplelines.
+
+- name: S-crypto
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to the lib/crypto package.
+
+- name: S-grandpa
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to block finality.
+
+- name: S-babe
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to block production functionality.
+
+- name: S-runtime
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to the lib/runtime package.
+
+- name: S-telemetry
+  color: "#1D76DB"
+  aliases: []
+  description: issue related to node telemetry and metrics reports.
+
+- name: S-rpc
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to the dot/rpc package.
+
+- name: S-scale
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to the pkg/scale package.
+
+- name: S-utils
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to all other lib packages.
+
+- name: S-network
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to the dot/network package.
+
+- name: S-state
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to dot/state package.
+
+- name: S-subsystems-overseer
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to polkadot host overseer functionality.
+
+- name: S-subsystems-collator
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to polkadot host collator subsystem functionality.
+
+- name: S-subsystems-backing
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to polkadot host backing subsystem functionality.
+
+- name: S-subsystems-availability
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to polkadot host availability subsystem functionality.
+
+- name: S-subsystems-disputes
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to polkadot host disputes subsystem functionality.
