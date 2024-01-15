@@ -1,6 +1,9 @@
 ## Labels
 
-Below is the list of labels and their descriptions used in Gossamer repository. 
+
+
+Below is the list of labels and their descriptions used in Gossamer repository.
+
 
 - **Epic** - Issue used to track development status of a complex feature, aggregates several issues.
 - **Feature-branch** - pull request from feature branch to origin.

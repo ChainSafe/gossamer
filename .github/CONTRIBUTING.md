@@ -164,6 +164,33 @@ The purpose of this section is to outline the standard naming conventions approv
 > https://www.freecodecamp.org/news/writing-good-commit-messages-a-practical-guide/
 
 
+## Merge Process
+
+### In General
+
+A Pull Request (PR) needs to be reviewed and approved by project maintainers.
+If a change does not alter any logic (e.g. comments, dependencies, docs), then it may be tagged
+`C-simple` and merged faster.
+
+###  Labels
+
+The set of labels and their description can be found [here](../docs/docs/repo/labels.md).
+
+### Process
+
+1. Please use our [Pull Request Template](./PULL_REQUEST_TEMPLATE.md) and make sure all relevant
+   information is reflected in your PR.
+2. Please tag each PR with minimum one `S-*` (scope) label. The respective `S-*` labels should signal the
+   component that was changed, they are also used by downstream users to track changes and to
+   include these changes properly into their own releases.
+3. If you’re still working on your PR, please submit as “Draft”. Once a PR is ready for review change
+   the status to “Open”, so that the maintainers get to review your PR. Generally PRs should sit for
+   48 hours in order to garner feedback. It may be merged before if all relevant parties had a look at it.
+4. PRs will be able to be merged once all reviewers' comments are addressed and CI is successful.
+
+**Noting breaking changes:**
+When breaking APIs, the PR description should mention what was changed alongside some examples on how
+to change the code to make it work/compile.
 
 ## Contributor Responsibilities
 
