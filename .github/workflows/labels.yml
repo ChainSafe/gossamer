@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: EndBug/label-sync@v2
       - name: sync labels
+        uses: EndBug/label-sync@v2
         with:
           config-file: .github/labels.yml
           # If you want to delete any additional label, set this to true
