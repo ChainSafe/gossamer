@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=reader_mock_test.go -package node io Reader
 //
+
 // Package node is a generated GoMock package.
 package node
 

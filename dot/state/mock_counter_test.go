@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_counter_test.go -package state github.com/prometheus/client_golang/prometheus Counter
 //
+
 // Package state is a generated GoMock package.
 package state
 
