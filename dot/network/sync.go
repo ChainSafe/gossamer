@@ -32,7 +32,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 	defer func() {
 		err := stream.Close()
-		if err != nil {
+		if err != nil && err.Error() != "stream reset" {
 			logger.Warnf("failed to close stream: %s", err)
 		}
 	}()

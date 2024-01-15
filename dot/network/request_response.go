@@ -43,7 +43,7 @@ func (rrp *RequestResponseProtocol) Do(to peer.ID, req Message, res ResponseMess
 
 	defer func() {
 		err := stream.Close()
-		if err != nil {
+		if err != nil && err.Error() != "stream reset" {
 			logger.Warnf("failed to close stream: %s", err)
 		}
 	}()

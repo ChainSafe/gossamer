@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -99,6 +100,54 @@ type announcedBlock struct {
 	header *types.Header
 }
 
+type peerViewSet struct {
+	mtx  sync.RWMutex
+	view map[peer.ID]peerView
+}
+
+func (p *peerViewSet) size() int {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
+
+	return len(p.view)
+}
+
+func (p *peerViewSet) values() []peerView {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
+
+	return maps.Values(p.view)
+}
+
+func (p *peerViewSet) update(peerID peer.ID, hash common.Hash, number uint) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	newView := peerView{
+		who:    peerID,
+		hash:   hash,
+		number: number,
+	}
+
+	view, ok := p.view[peerID]
+	if !ok {
+		p.view[peerID] = newView
+		return
+	}
+
+	if view.number >= newView.number {
+		return
+	}
+
+	p.view[peerID] = newView
+}
+
+func newPeerViewSet(cap int) *peerViewSet {
+	return &peerViewSet{
+		view: make(map[peer.ID]peerView, cap),
+	}
+}
+
 type chainSync struct {
 	wg     sync.WaitGroup
 	stopCh chan struct{}
@@ -110,8 +159,7 @@ type chainSync struct {
 
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
-	peerViewLock sync.RWMutex
-	peerView     map[peer.ID]peerView
+	peerViewSet *peerViewSet
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -166,7 +214,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		telemetry:          cfg.telemetry,
 		blockState:         cfg.bs,
 		network:            cfg.net,
-		peerView:           make(map[peer.ID]peerView),
+		peerViewSet:        newPeerViewSet(cfg.maxPeers),
 		pendingBlocks:      cfg.pendingBlocks,
 		syncMode:           atomicState,
 		finalisedCh:        cfg.bs.GetFinalisedNotifierChannel(),
@@ -194,6 +242,17 @@ func (cs *chainSync) waitEnoughPeersAndTarget() {
 		select {
 		case <-waitPeersTimer.C:
 			waitPeersTimer.Reset(cs.waitPeersDuration)
+			bestBlockHeader, err := cs.blockState.BestBlockHeader()
+			if err != nil {
+				logger.Errorf("failed to get best block header: %v", err)
+				continue
+			}
+
+			err = cs.network.BlockAnnounceHandshake(bestBlockHeader)
+			if err != nil {
+				logger.Errorf("failed to get handshake peer data: %v", err)
+				continue
+			}
 		case <-cs.stopCh:
 			return
 		}
@@ -310,13 +369,7 @@ func (cs *chainSync) getSyncMode() chainSyncState {
 func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash, bestNumber uint) error {
 	cs.workerPool.fromBlockAnnounce(who)
 
-	cs.peerViewLock.Lock()
-	cs.peerView[who] = peerView{
-		who:    who,
-		hash:   bestHash,
-		number: bestNumber,
-	}
-	cs.peerViewLock.Unlock()
+	cs.peerViewSet.update(who, bestHash, bestNumber)
 
 	if cs.getSyncMode() == bootstrap {
 		return nil
@@ -587,21 +640,19 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 // head block number, it would leave us in bootstrap mode forever
 // it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
 func (cs *chainSync) getTarget() (uint, error) {
-	cs.peerViewLock.RLock()
-	defer cs.peerViewLock.RUnlock()
-
+	peerSetLen := cs.peerViewSet.size()
 	// in practice, this shouldn't happen, as we only start the module once we have some peer states
-	if len(cs.peerView) == 0 {
+	if peerSetLen == 0 {
 		return 0, errNoPeerViews
 	}
 
+	numbers := make([]uint, 0, peerSetLen)
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	uintArr := make([]uint, 0, len(cs.peerView))
-	for _, ps := range cs.peerView {
-		uintArr = append(uintArr, ps.number)
+	for _, view := range cs.peerViewSet.values() {
+		numbers = append(numbers, view.number)
 	}
 
-	sum, count := nonOutliersSumCount(uintArr)
+	sum, count := nonOutliersSumCount(numbers)
 	quotientBigInt := big.NewInt(0).Div(sum, big.NewInt(int64(count)))
 	return uint(quotientBigInt.Uint64()), nil
 }
@@ -655,10 +706,10 @@ taskResultLoop:
 				taskResult.who, taskResult.err != nil, taskResult.response != nil)
 
 			if taskResult.err != nil {
-				logger.Errorf("task result: peer(%s) error: %s",
-					taskResult.who, taskResult.err)
-
 				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+					logger.Errorf("task result: peer(%s) error: %s",
+						taskResult.who, taskResult.err)
+
 					if strings.Contains(taskResult.err.Error(), "protocols not supported") {
 						cs.network.ReportPeer(peerset.ReputationChange{
 							Value:  peerset.BadProtocolValue,
@@ -1049,14 +1100,11 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 }
 
 func (cs *chainSync) getHighestBlock() (highestBlock uint, err error) {
-	cs.peerViewLock.RLock()
-	defer cs.peerViewLock.RUnlock()
-
-	if len(cs.peerView) == 0 {
+	if cs.peerViewSet.size() == 0 {
 		return 0, errNoPeers
 	}
 
-	for _, ps := range cs.peerView {
+	for _, ps := range cs.peerViewSet.values() {
 		if ps.number < highestBlock {
 			continue
 		}
