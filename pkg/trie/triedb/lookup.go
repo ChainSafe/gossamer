@@ -115,8 +115,8 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 			case node.Inline:
 				nodeData = &n.Value
 			}
+			depth++
 		}
-		depth++
 	}
 }
 
