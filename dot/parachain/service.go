@@ -34,7 +34,7 @@ type Service struct {
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, st *state.Service) (*Service, error) {
-	overseer := overseer.NewOverseer()
+	overseer := overseer.NewOverseer(st.Block)
 	genesisHash := st.Block.GenesisHash()
 
 	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st)
@@ -109,7 +109,7 @@ func (Service) Stop() error {
 
 // main loop of parachain service
 func (s Service) run() {
-	overseer := overseer.NewOverseer()
+	overseer := s.overseer
 
 	candidateBacking := backing.New(overseer.SubsystemsToOverseer)
 	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)

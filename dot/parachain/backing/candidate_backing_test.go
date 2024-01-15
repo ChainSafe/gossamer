@@ -149,7 +149,7 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					Table: mockTable,
+					table: mockTable,
 				}
 			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{
@@ -185,7 +185,7 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					Table: mockTable,
+					table: mockTable,
 				}
 			},
 			perCandidate: map[parachaintypes.CandidateHash]*perCandidateState{
@@ -195,9 +195,9 @@ func TestImportStatement(t *testing.T) {
 							Data: []byte{1, 2, 3},
 						},
 					},
-					SecondedLocally: false,
-					ParaID:          1,
-					RelayParent:     getDummyHash(t, 5),
+					secondedLocally: false,
+					paraID:          1,
+					relayParent:     getDummyHash(t, 5),
 				},
 			},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
@@ -216,7 +216,7 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					Table: mockTable,
+					table: mockTable,
 				}
 			},
 			perCandidate:           map[parachaintypes.CandidateHash]*perCandidateState{},
@@ -236,8 +236,8 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					Table: mockTable,
-					ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+					table: mockTable,
+					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
@@ -260,7 +260,7 @@ func TestImportStatement(t *testing.T) {
 			defer close(subSystemToOverseer)
 
 			rpState := c.rpState()
-			if rpState.ProspectiveParachainsMode.IsEnabled {
+			if rpState.prospectiveParachainsMode.IsEnabled {
 				go mockOverseer(t, subSystemToOverseer)
 			}
 
@@ -322,7 +322,7 @@ func dummyTableContext(t *testing.T) TableContext {
 	t.Helper()
 
 	return TableContext{
-		validator: &Validator{
+		validator: &validator{
 			index: 1,
 		},
 		groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
@@ -372,11 +372,11 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 	).Return(&attestedToReturn, nil)
 
 	return perRelayParentState{
-		ProspectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
+		prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 			IsEnabled: false,
 		},
-		Table:        mockTable,
-		TableContext: dummyTableContext(t),
+		table:        mockTable,
+		tableContext: dummyTableContext(t),
 		backed:       map[parachaintypes.CandidateHash]bool{},
 	}
 }
@@ -403,7 +403,7 @@ func TestPostImportStatement(t *testing.T) {
 				})
 
 				return perRelayParentState{
-					Table: mockTable,
+					table: mockTable,
 				}
 			},
 			summary: nil,
@@ -422,7 +422,7 @@ func TestPostImportStatement(t *testing.T) {
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
 				return perRelayParentState{
-					Table: mockTable,
+					table: mockTable,
 				}
 			},
 			summary: dummySummary(t),
@@ -450,7 +450,7 @@ func TestPostImportStatement(t *testing.T) {
 				}, nil)
 
 				return perRelayParentState{
-					Table: mockTable,
+					table: mockTable,
 					backed: map[parachaintypes.CandidateHash]bool{
 						candidateHash: true,
 					},
@@ -475,9 +475,9 @@ func TestPostImportStatement(t *testing.T) {
 				}, nil)
 
 				return perRelayParentState{
-					Table:        mockTable,
+					table:        mockTable,
 					backed:       map[parachaintypes.CandidateHash]bool{},
-					TableContext: dummyTableContext(t),
+					tableContext: dummyTableContext(t),
 				}
 			},
 			summary: dummySummary(t),
@@ -493,7 +493,7 @@ func TestPostImportStatement(t *testing.T) {
 			description: "prospective_parachain_mode_is_enabled",
 			rpState: func() perRelayParentState {
 				state := rpStateWhenPpmDisabled(t)
-				state.ProspectiveParachainsMode = parachaintypes.ProspectiveParachainsMode{
+				state.prospectiveParachainsMode = parachaintypes.ProspectiveParachainsMode{
 					IsEnabled:          true,
 					MaxCandidateDepth:  4,
 					AllowedAncestryLen: 2,
@@ -523,7 +523,7 @@ func TestPostImportStatement(t *testing.T) {
 func TestKickOffValidationWork(t *testing.T) {
 	t.Parallel()
 
-	attesting := AttestingData{
+	attesting := attestingData{
 		candidate: getDummyCommittedCandidateReceipt(t).ToPlain(),
 	}
 
@@ -548,7 +548,7 @@ func TestKickOffValidationWork(t *testing.T) {
 			description: "not_issued_statement_but_waiting_for_validation",
 			rpState: perRelayParentState{
 				issuedStatements: map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
 				},
 			},
@@ -561,7 +561,7 @@ func TestKickOffValidationWork(t *testing.T) {
 			t.Parallel()
 
 			subSystemToOverseer := make(chan any)
-			chRelayParentAndCommand := make(chan RelayParentAndCommand)
+			chRelayParentAndCommand := make(chan relayParentAndCommand)
 			pvd := parachaintypes.PersistedValidationData{}
 
 			err := c.rpState.kickOffValidationWork(subSystemToOverseer, chRelayParentAndCommand, pvd, attesting)
@@ -587,13 +587,13 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 		rpState                  perRelayParentState
 		expectedErr              string
 		mockOverseer             func(ch chan any)
-		mockExecutorParamsGetter ExecutorParamsGetter
+		mockExecutorParamsGetter executorParamsGetter
 	}{
 		{
 			description: "validation_process_already_started_for_candidate",
 			rpState: perRelayParentState{
 				issuedStatements: map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
 				},
 			},
@@ -605,7 +605,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			description: "unable_to_get_validation_code",
 			rpState: perRelayParentState{
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
 			expectedErr: "getting validation code by hash: ",
 			mockOverseer: func(ch chan any) {
@@ -626,7 +626,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			description: "unable_to_get_executor_params",
 			rpState: perRelayParentState{
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
 			expectedErr: "getting executor params at relay parent: ",
 			mockOverseer: func(ch chan any) {
@@ -649,7 +649,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			description: "unable_to_get_validation_result",
 			rpState: perRelayParentState{
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
 			expectedErr: "getting validation result: ",
 			mockOverseer: func(ch chan any) {
@@ -675,7 +675,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			description: "validation_result_is_invalid",
 			rpState: perRelayParentState{
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
 			expectedErr: "",
 			mockOverseer: func(ch chan any) {
@@ -704,7 +704,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			description: "validation_result_is_valid",
 			rpState: perRelayParentState{
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
 			expectedErr: "",
 			mockOverseer: func(ch chan any) {
@@ -722,7 +722,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 							},
 						}
 					case parachaintypes.AvailabilityStoreMessageStoreAvailableData:
-						data.Ch <- ErrInvalidErasureRoot
+						data.Ch <- errInvalidErasureRoot
 					default:
 						t.Errorf("invalid overseer message type: %T\n", data)
 					}
@@ -738,10 +738,10 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			t.Parallel()
 
 			subSystemToOverseer := make(chan any)
-			chRelayParentAndCommand := make(chan RelayParentAndCommand)
+			chRelayParentAndCommand := make(chan relayParentAndCommand)
 
 			go c.mockOverseer(subSystemToOverseer)
-			go func(chRelayParentAndCommand chan RelayParentAndCommand) {
+			go func(chRelayParentAndCommand chan relayParentAndCommand) {
 				<-chRelayParentAndCommand
 			}(chRelayParentAndCommand)
 
@@ -754,7 +754,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 				pvd,
 				parachaintypes.PoV{},
 				2,
-				Attest,
+				attest,
 				candidateHash,
 			)
 
@@ -771,7 +771,7 @@ func TestHandleStatementMessage(t *testing.T) {
 	t.Parallel()
 
 	relayParent := getDummyHash(t, 5)
-	chRelayParentAndCommand := make(chan RelayParentAndCommand)
+	chRelayParentAndCommand := make(chan relayParentAndCommand)
 
 	dummyCCR := getDummyCommittedCandidateReceipt(t)
 	seconded := parachaintypes.Seconded(dummyCCR)
@@ -803,7 +803,17 @@ func TestHandleStatementMessage(t *testing.T) {
 				return map[common.Hash]*perRelayParentState{}
 			},
 			signedStatementWithPVD: SignedFullStatementWithPVD{},
-			err:                    ErrStatementForUnknownRelayParent.Error(),
+			err:                    errStatementForUnknownRelayParent.Error(),
+		},
+		{
+			description: "nil_relay_parent",
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
+				return map[common.Hash]*perRelayParentState{
+					relayParent: nil,
+				}
+			},
+			signedStatementWithPVD: SignedFullStatementWithPVD{},
+			err:                    errNilRelayParentState.Error(),
 		},
 		{
 			description: "getting_error_importing_statement",
@@ -830,7 +840,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table: mockTable,
+						table: mockTable,
 					},
 				}
 			},
@@ -863,8 +873,8 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:      mockTable,
-						Assignment: 5,
+						table:      mockTable,
+						assignment: 5,
 					},
 				}
 			},
@@ -898,10 +908,10 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:      mockTable,
-						Assignment: 4,
+						table:      mockTable,
+						assignment: 4,
 						backed:     map[parachaintypes.CandidateHash]bool{},
-						fallbacks:  map[parachaintypes.CandidateHash]AttestingData{},
+						fallbacks:  map[parachaintypes.CandidateHash]attestingData{},
 					},
 				}
 			},
@@ -910,7 +920,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Payload: statementVDTValid,
 				},
 			},
-			err: ErrAttestingDataNotFound.Error(),
+			err: errAttestingDataNotFound.Error(),
 		},
 
 		{
@@ -935,11 +945,11 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:        mockTable,
-						TableContext: dummyTableContext(t),
-						Assignment:   4,
+						table:        mockTable,
+						tableContext: dummyTableContext(t),
+						assignment:   4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
-						fallbacks: map[parachaintypes.CandidateHash]AttestingData{
+						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
 						},
 					},
@@ -975,14 +985,14 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:        mockTable,
-						TableContext: dummyTableContext(t),
-						Assignment:   4,
+						table:        mockTable,
+						tableContext: dummyTableContext(t),
+						assignment:   4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
-						fallbacks: map[parachaintypes.CandidateHash]AttestingData{
+						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
 						},
-						AwaitingValidation: map[parachaintypes.CandidateHash]bool{
+						awaitingValidation: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
 					},
@@ -1018,16 +1028,16 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:        mockTable,
-						TableContext: dummyTableContext(t),
-						Assignment:   4,
+						table:        mockTable,
+						tableContext: dummyTableContext(t),
+						assignment:   4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
-						fallbacks: map[parachaintypes.CandidateHash]AttestingData{
+						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {
 								candidate: getDummyCommittedCandidateReceipt(t).ToPlain(),
 							},
 						},
-						AwaitingValidation: map[parachaintypes.CandidateHash]bool{},
+						awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
@@ -1074,12 +1084,12 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:      mockTable,
-						Assignment: 4,
+						table:      mockTable,
+						assignment: 4,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
-						fallbacks: map[parachaintypes.CandidateHash]AttestingData{},
+						fallbacks: map[parachaintypes.CandidateHash]attestingData{},
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
@@ -1114,12 +1124,12 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						Table:      mockTable,
-						Assignment: 4,
+						table:      mockTable,
+						assignment: 4,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
-						fallbacks: map[parachaintypes.CandidateHash]AttestingData{},
+						fallbacks: map[parachaintypes.CandidateHash]attestingData{},
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
