@@ -38,6 +38,7 @@ var (
 	errRejectedByProspectiveParachains = errors.New("candidate rejected by prospective parachains subsystem")
 	errInvalidErasureRoot              = errors.New("erasure root doesn't match the announced by the candidate receipt")
 	errStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
+	errNilRelayParentState             = errors.New("relay parent state is nil")
 	errCandidateStateNotFound          = errors.New("candidate state not found")
 	errAttestingDataNotFound           = errors.New("attesting data not found")
 )
@@ -254,6 +255,10 @@ func (cb *CandidateBacking) handleStatementMessage(
 	rpState, ok := cb.perRelayParent[relayParent]
 	if !ok {
 		return fmt.Errorf("%w: %s", errStatementForUnknownRelayParent, relayParent)
+	}
+
+	if rpState == nil {
+		return errNilRelayParentState
 	}
 
 	summary, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)

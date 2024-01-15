@@ -808,6 +808,16 @@ func TestHandleStatementMessage(t *testing.T) {
 			err:                    errStatementForUnknownRelayParent.Error(),
 		},
 		{
+			description: "nil_relay_parent",
+			perRelayParent: func() map[common.Hash]*perRelayParentState {
+				return map[common.Hash]*perRelayParentState{
+					relayParent: nil,
+				}
+			},
+			signedStatementWithPVD: SignedFullStatementWithPVD{},
+			err:                    errNilRelayParentState.Error(),
+		},
+		{
 			description: "getting_error_importing_statement",
 			perRelayParent: func() map[common.Hash]*perRelayParentState {
 				return map[common.Hash]*perRelayParentState{
