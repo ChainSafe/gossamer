@@ -10,8 +10,8 @@ jobs:
   labels:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: checkout repo
+      - uses: actions/checkout@v4
+
       - uses: EndBug/label-sync@v2
       - name: sync labels
         with:
