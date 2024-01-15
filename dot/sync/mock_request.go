@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_request.go -package sync github.com/ChainSafe/gossamer/dot/network RequestMaker
 //
+
 // Package sync is a generated GoMock package.
 package sync
 

@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=database_mocks_test.go -package=proof github.com/ChainSafe/gossamer/lib/trie/db DBGetter
 //
+
 // Package proof is a generated GoMock package.
 package proof
 

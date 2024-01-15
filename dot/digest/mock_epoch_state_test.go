@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_epoch_state_test.go -package digest . EpochState
 //
+
 // Package digest is a generated GoMock package.
 package digest
 

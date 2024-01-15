@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_syncer_test.go -package network . Syncer
 //
+
 // Package network is a generated GoMock package.
 package network
 
