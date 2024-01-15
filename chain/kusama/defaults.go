@@ -8,10 +8,6 @@ import (
 )
 
 var (
-	// defaultName Default node name
-	defaultName = "Kusama"
-	// defaultID Default chain ID
-	defaultID = "ksmcc3"
 	// defaultBasePath Default node base directory path
 	defaultBasePath = "~/.gossamer/kusama"
 	// defaultChainSpec is the default chain-spec json path
@@ -22,8 +18,6 @@ var (
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
 	config.BasePath = defaultBasePath
-	config.ID = defaultID
-	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false

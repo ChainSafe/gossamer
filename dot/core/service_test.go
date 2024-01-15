@@ -126,7 +126,7 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
 
-	ts := rtstorage.NewTrieState(nil)
+	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 	tests := []struct {
 		name          string
@@ -378,7 +378,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -394,7 +394,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_quit_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -415,7 +415,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_parent_not_found_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -436,7 +436,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_error_continue", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -465,7 +465,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("handle_runtime_changes_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -497,7 +497,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("code_substitution_ok", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -544,7 +544,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		digest := types.NewDigest()
 		err := digest.Add(
