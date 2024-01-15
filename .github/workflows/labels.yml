@@ -1,7 +1,8 @@
-name: Sync labels
 on:
   # You can run this with every type of event, but it's better to run it only when you actually need it.
   pull_request:
+
+name: sync-labels
 
 permissions:
   issues: write
