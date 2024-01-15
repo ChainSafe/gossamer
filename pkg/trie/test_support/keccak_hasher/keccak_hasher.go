@@ -1,36 +1,22 @@
 package keccak_hasher
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"golang.org/x/crypto/sha3"
 )
 
 const KeccakHasherLength = 32
 
-type KeccakHash struct {
-	bytes [KeccakHasherLength]byte
-}
-
-func NewKeccakHash(bytes [KeccakHasherLength]byte) KeccakHash {
-	return KeccakHash{
-		bytes: bytes,
-	}
-}
+type KeccakHash [KeccakHasherLength]byte
 
 func (k KeccakHash) Bytes() []byte {
-	return k.bytes[:]
+	return k[:]
 }
 
 func (k KeccakHash) ComparableKey() string {
-	return string(k.Bytes())
-}
-
-func KeccakHashFromBytes(b []byte) KeccakHash {
-	var newBytes [KeccakHasherLength]byte
-	copy(newBytes[:], b)
-	return KeccakHash{
-		bytes: newBytes,
-	}
+	return fmt.Sprintf("%x", k)
 }
 
 var _ hashdb.HashOut = KeccakHash{}
@@ -44,7 +30,7 @@ func (k KeccakHasher) Length() int {
 func (k KeccakHasher) FromBytes(in []byte) KeccakHash {
 	var buf = [KeccakHasherLength]byte{}
 	copy(buf[:], in)
-	return NewKeccakHash(buf)
+	return KeccakHash(buf)
 }
 
 func (k KeccakHasher) Hash(in []byte) KeccakHash {
