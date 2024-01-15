@@ -1,9 +1,6 @@
 on:
-  # You can run this with every type of event, but it's better to run it only when you actually need it.
-  pull_request:
-#    branches: [development]
-#    paths:
-#      - .github/labels.yml
+  push:
+    branches: [development]
 
 name: sync-labels
 
@@ -20,7 +17,7 @@ jobs:
         uses: EndBug/label-sync@v2
         with:
           config-file: .github/labels.yml
-          # If you want to delete any additional label, set this to true
+          # If you want to delete any additional labels not mentioned in config file, set this to true
           delete-other-labels: false
           dry-run: false
           token: ${{ secrets.GITHUB_TOKEN }}
