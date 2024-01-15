@@ -28,6 +28,7 @@ func NewTrieDBBuilder[H hashdb.HashOut](
 		root:     root,
 		cache:    nil,
 		recorder: nil,
+		layout:   layout,
 	}
 }
 

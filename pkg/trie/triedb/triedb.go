@@ -95,7 +95,7 @@ func (ns *NodeStorage[H]) alloc(stored Stored[H]) StorageHandle {
 	}
 
 	ns.nodes = append(ns.nodes, stored)
-	return uint(len(ns.nodes) - 1)
+	return StorageHandle(len(ns.nodes) - 1)
 }
 
 func (ns *NodeStorage[H]) destroy(handle StorageHandle) Stored[H] {
