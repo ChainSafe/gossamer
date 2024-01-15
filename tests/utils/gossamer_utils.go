@@ -29,7 +29,7 @@ func GenerateGenesisAuths(t *testing.T, numAuths int) (genesisPath string) {
 	buildSpecJSON, err := buildSpec.ToJSONRaw()
 	require.NoError(t, err)
 
-	genesisPath = filepath.Join(t.TempDir(), "genesis.json")
+	genesisPath = filepath.Join(t.TempDir(), "chain-spec.json")
 	err = os.WriteFile(genesisPath, buildSpecJSON, os.ModePerm)
 	require.NoError(t, err)
 

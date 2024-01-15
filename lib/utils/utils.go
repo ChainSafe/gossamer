@@ -156,13 +156,13 @@ func GetWestendLocalRawGenesisPath(t *testing.T) string {
 // GetKusamaGenesisPath gets the Kusama genesis path
 func GetKusamaGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/genesis.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/chain-spec-raw.json")
 }
 
 // GetPolkadotGenesisPath gets the Polkadot genesis path
 func GetPolkadotGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/polkadot/genesis.json")
+	return filepath.Join(GetProjectRootPathTest(t), "./chain/polkadot/chain-spec-raw.json")
 }
 
 // GetProjectRootPathTest finds the root of the project where `go.mod` is
