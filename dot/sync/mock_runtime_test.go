@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_runtime_test.go -package sync github.com/ChainSafe/gossamer/lib/runtime Instance
 //
+
 // Package sync is a generated GoMock package.
 package sync
 
