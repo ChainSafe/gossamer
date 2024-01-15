@@ -30,9 +30,9 @@ type Storage interface {
 	ClearPrefix(prefix []byte) (err error)
 	ClearPrefixLimit(prefix []byte, limit uint32) (
 		deleted uint32, allDeleted bool, err error)
-	BeginStorageTransaction()
-	CommitStorageTransaction()
-	RollbackStorageTransaction()
+	StartTransaction()
+	CommitTransaction()
+	RollbackTransaction()
 	LoadCode() []byte
 }
 
