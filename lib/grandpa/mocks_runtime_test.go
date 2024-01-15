@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_runtime_test.go -package grandpa github.com/ChainSafe/gossamer/lib/runtime Instance
 //
+
 // Package grandpa is a generated GoMock package.
 package grandpa
 

@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_state_test.go -package babe . BlockState,ImportedBlockNotifierManager,StorageState,TransactionState,EpochState,BlockImportHandler,SlotState
 //
+
 // Package babe is a generated GoMock package.
 package babe
 

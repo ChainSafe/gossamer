@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_chain_sync_test.go -package sync -source chain_sync.go . ChainSync
 //
+
 // Package sync is a generated GoMock package.
 package sync
 
