@@ -73,6 +73,11 @@
   aliases: []
   description: this issue/pr covers security sensitive problem.
 
+- name: T-question
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/PR is a discussion/question. Further information is requested
+
 # Complexity label. We operate only 3 complexity levels.
 - name: C-simple
   color: "#006B75"
@@ -219,6 +224,11 @@
   description: issues related to polkadot host availability subsystem functionality.
 
 - name: S-subsystems-disputes
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to polkadot host disputes subsystem functionality.
+
+- name: S-dependencies
   color: "#1D76DB"
   aliases: []
   description: issues related to polkadot host disputes subsystem functionality.
