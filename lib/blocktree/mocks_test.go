@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package blocktree github.com/ChainSafe/gossamer/lib/runtime Instance
 //
+
 // Package blocktree is a generated GoMock package.
 package blocktree
 

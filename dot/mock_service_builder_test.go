@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_service_builder_test.go -package dot . ServiceBuilder
 //
+
 // Package dot is a generated GoMock package.
 package dot
 

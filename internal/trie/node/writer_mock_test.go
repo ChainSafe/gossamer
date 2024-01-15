@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=writer_mock_test.go -package node io Writer
 //
+
 // Package node is a generated GoMock package.
 package node
 

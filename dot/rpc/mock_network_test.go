@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_network_test.go -package rpc github.com/ChainSafe/gossamer/dot/core Network
 //
+
 // Package rpc is a generated GoMock package.
 package rpc
 

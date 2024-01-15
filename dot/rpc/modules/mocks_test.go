@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package=modules . StorageAPI,BlockAPI,Telemetry
 //
+
 // Package modules is a generated GoMock package.
 package modules
 

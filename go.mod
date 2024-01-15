@@ -12,7 +12,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
-	github.com/ethereum/go-ethereum v1.13.8
+	github.com/ethereum/go-ethereum v1.13.10
 	github.com/fatih/color v1.16.0
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/google/go-cmp v0.6.0
@@ -37,7 +37,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
-	go.uber.org/mock v0.3.0
+	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.18.0
 	golang.org/x/exp v0.0.0-20240110193028-0dcbfd608b1e
 	golang.org/x/term v0.16.0

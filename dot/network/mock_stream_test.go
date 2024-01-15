@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_stream_test.go -package network github.com/libp2p/go-libp2p/core/network Stream
 //
+
 // Package network is a generated GoMock package.
 package network
 
