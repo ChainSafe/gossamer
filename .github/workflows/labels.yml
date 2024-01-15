@@ -2,8 +2,8 @@ on:
   # You can run this with every type of event, but it's better to run it only when you actually need it.
   pull_request:
 #    branches: [development]
-    paths:
-      - .github/labels.yml
+#    paths:
+#      - .github/labels.yml
 
 name: sync-labels
 
