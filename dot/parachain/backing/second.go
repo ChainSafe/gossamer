@@ -26,7 +26,7 @@ func (cb *CandidateBacking) handleSecondMessage(
 	candidateReceipt parachaintypes.CandidateReceipt,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
-	chRelayParentAndCommand chan RelayParentAndCommand,
+	chRelayParentAndCommand chan relayParentAndCommand,
 ) error {
 	pvdBytes, err := scale.Marshal(pvd)
 	if err != nil {
@@ -48,7 +48,7 @@ func (cb *CandidateBacking) handleSecondMessage(
 	}
 
 	// Sanity check that candidate is from our assignment.
-	if candidateReceipt.Descriptor.ParaID != uint32(rpState.Assignment) {
+	if candidateReceipt.Descriptor.ParaID != uint32(rpState.assignment) {
 		return errParaOutsideAssignmentForSeconding
 	}
 
@@ -71,11 +71,11 @@ func (cb *CandidateBacking) handleSecondMessage(
 		cb.SubSystemToOverseer,
 		chRelayParentAndCommand,
 		candidateReceipt,
-		rpState.RelayParent,
+		rpState.relayParent,
 		pvd,
 		pov,
-		uint32(len(rpState.TableContext.validators)),
-		Second,
+		uint32(len(rpState.tableContext.validators)),
+		second,
 		candidateHash,
 	)
 }

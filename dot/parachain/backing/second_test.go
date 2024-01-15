@@ -40,7 +40,7 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						Assignment: 10,
+						assignment: 10,
 					},
 				},
 			},
@@ -53,7 +53,7 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						Assignment: 1,
+						assignment: 1,
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							dummyCandidateHash(t): true,
 						},
@@ -69,8 +69,8 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						Assignment: 1,
-						AwaitingValidation: map[parachaintypes.CandidateHash]bool{
+						assignment: 1,
+						awaitingValidation: map[parachaintypes.CandidateHash]bool{
 							dummyCandidateHash(t): true,
 						},
 					},
