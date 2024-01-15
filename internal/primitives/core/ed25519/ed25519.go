@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"strings"
 
+	"github.com/ChainSafe/go-schnorrkel"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
-	"github.com/tyler-smith/go-bip39"
 )
 
 // / A public key.
@@ -58,10 +58,22 @@ func NewPairFromSeed(seedSlice []byte) Pair {
 //		Self::from_seed_slice(seed_slice).map(|x| (x, seed))
 //	}
 func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed []byte, err error) {
-	entropy, err := bip39.EntropyFromMnemonic(phrase)
+	pass := ""
+	if password != nil {
+		pass = *password
+	}
+	bigSeed, err := schnorrkel.SeedFromMnemonic(phrase, pass)
 	if err != nil {
 		return Pair{}, nil, err
 	}
+
+	if !(32 <= len(bigSeed)) {
+		panic("huh?")
+	}
+	var seedSlice []byte
+	copy(seedSlice[:], bigSeed[:32])
+
+	return NewPairFromSeed(seedSlice), seedSlice, nil
 }
 
 // /// Interprets the string `s` in order to generate a key Pair. Returns both the pair and an
@@ -157,7 +169,7 @@ func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair Pair, s
 		root = NewPairFromSeed(seedBytes)
 		seed = seedBytes
 	} else {
-		NewPairFromPhrase()
+		return NewPairFromPhrase(sURI.Phrase, password)
 	}
 
 	return Pair{}, nil, nil
