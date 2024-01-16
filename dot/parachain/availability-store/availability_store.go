@@ -511,12 +511,10 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
-	SubsystemToOverseer chan any) error {
+	SubsystemToOverseer chan any) {
 
 	av.wg.Add(1)
 	go av.processMessages()
-
-	return nil
 }
 
 // Name returns the name of the availability store subsystem
