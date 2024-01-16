@@ -12,6 +12,13 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+// peerView tracks our peers's best reported blocks
+type peerView struct {
+	who    peer.ID
+	hash   common.Hash
+	number uint
+}
+
 type peerViewSet struct {
 	mtx    sync.RWMutex
 	view   map[peer.ID]peerView

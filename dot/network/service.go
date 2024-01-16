@@ -745,6 +745,11 @@ func (s *Service) startProcessingMsg() {
 }
 
 func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
+	peers := s.host.peers()
+	if len(peers) < 1 {
+		return ErrNoPeersConnected
+	}
+
 	protocol, ok := s.notificationsProtocols[blockAnnounceMsgType]
 	if !ok {
 		panic("block announce message type not found")
@@ -754,8 +759,6 @@ func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
 	if err != nil {
 		return fmt.Errorf("getting handshake: %w", err)
 	}
-
-	peers := s.host.peers()
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(peers))

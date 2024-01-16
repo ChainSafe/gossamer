@@ -69,13 +69,6 @@ var (
 	})
 )
 
-// peerView tracks our peers's best reported blocks
-type peerView struct {
-	who    peer.ID
-	hash   common.Hash
-	number uint
-}
-
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
 	start()
@@ -176,32 +169,31 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	}
 }
 
-func (cs *chainSync) waitEnoughPeersAndTarget() {
+func (cs *chainSync) retrieveTargetFromBootnodes() error {
+	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return err
+	}
+
+	return cs.network.BlockAnnounceHandshake(highestFinalizedHeader)
+}
+
+func (cs *chainSync) waitWorkersAndTarget() {
 	waitPeersTimer := time.NewTimer(cs.waitPeersDuration)
 
 	for {
 		cs.workerPool.useConnectedPeers()
-		target := cs.peerViewSet.getTarget()
-
 		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) && target > 0 {
+
+		if totalAvailable >= uint(cs.minPeers) &&
+			cs.peerViewSet.getTarget() > 0 {
 			return
 		}
 
 		select {
 		case <-waitPeersTimer.C:
 			waitPeersTimer.Reset(cs.waitPeersDuration)
-			bestBlockHeader, err := cs.blockState.BestBlockHeader()
-			if err != nil {
-				logger.Errorf("failed to get best block header: %v", err)
-				continue
-			}
 
-			err = cs.network.BlockAnnounceHandshake(bestBlockHeader)
-			if err != nil {
-				logger.Errorf("failed to get handshake peer data: %v", err)
-				continue
-			}
 		case <-cs.stopCh:
 			return
 		}
@@ -215,8 +207,13 @@ func (cs *chainSync) start() {
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
+	err := cs.retrieveTargetFromBootnodes()
+	if err != nil {
+		logger.Errorf("failed retrieve target from bootnodes: %v", err)
+	}
+
 	// wait until we have a minimal workers in the sync worker pool
-	cs.waitEnoughPeersAndTarget()
+	cs.waitWorkersAndTarget()
 }
 
 func (cs *chainSync) stop() error {
