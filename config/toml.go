@@ -55,8 +55,8 @@ const defaultConfigTemplate = `# This is a TOML config file.
 
 # NOTE: Any path below can be absolute (e.g. "/var/gossamer/data") or
 # relative to the home directory (e.g. "data"). The home directory is
-# "$HOME/.gossamer" by default, but could be changed via $GSSMRHOME env variable
-# or --home cmd flag.
+# "$HOME/.local/share/gossamer" by default, but could be changed via
+# $GSSMRHOME env variable or --home cmd flag.
 
 #######################################################################
 ###                   Main Base Config Options                      ###
@@ -71,7 +71,7 @@ name = "{{ .BaseConfig.Name }}"
 id = "{{ .BaseConfig.ID }}"
 
 # Path to the working directory of the node
-# Defaults to "$HOME/.gossamer/<CHAIN>"
+# Defaults to "$HOME/.local/share/gossamer/<CHAIN>"
 base-path = "{{ .BaseConfig.BasePath }}"
 
 # Path to the chain-spec raw JSON file
@@ -103,7 +103,7 @@ no-telemetry = {{ .BaseConfig.NoTelemetry }}
 # [[telemetry-urls]]
 # endpoint = "wss://telemetry.polkadot.io/submit/"
 # verbosity = 0
-{{range .BaseConfig.TelemetryURLs}} 
+{{range .BaseConfig.TelemetryURLs}}
 [[telemetry-urls]]
 endpoint = "{{ .Endpoint }}"
 verbosity = {{ .Verbosity }}
