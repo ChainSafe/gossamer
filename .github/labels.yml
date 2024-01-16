@@ -188,6 +188,11 @@
   aliases: []
   description: issues related to the pkg/scale package.
 
+- name: S-trie
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to the pkg/trie package.
+
 - name: S-utils
   color: "#1D76DB"
   aliases: []
