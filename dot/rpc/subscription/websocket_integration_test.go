@@ -296,7 +296,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 						"params": ["4"],
 						"id": 7}`),
 			respErr: nil,
-			resp:    []byte(`{"jsonrpc":"2.0","result":true,"id":7}` + "\n"),
+			resp:    []byte(`{"jsonrpc":"2.0","result":false,"id":7}` + "\n"),
 		},
 		"state_unsubscribeStorage_request_#3_int_param": {
 			request: []byte(`{
@@ -314,17 +314,17 @@ func TestWSCon_WriteMessage(t *testing.T) {
 						"params": [4],
 						"id": 7}`),
 			respErr: nil,
-			resp:    []byte(`{"jsonrpc":"2.0","result":true,"id":7}` + "\n"),
+			resp:    []byte(`{"jsonrpc":"2.0","result":false,"id":7}` + "\n"),
 		},
 		"chain_subscribeNewHeads_request": {
 			request: []byte(`{
 							"jsonrpc": "2.0",
 							"method": "chain_subscribeNewHeads",
-							"params": [],
+							"params": [4],
 							"id": 8
 						}`),
 			respErr: nil,
-			resp:    []byte(`{"jsonrpc":"2.0","result":6,"id":8}` + "\n"),
+			resp:    []byte(`{"jsonrpc":"2.0","result":1,"id":8}` + "\n"),
 		},
 	}
 	for name, testCase := range testCases {
@@ -335,6 +335,7 @@ func TestWSCon_WriteMessage(t *testing.T) {
 
 			wsconn, c, cancel := setupWSConn(t)
 			defer cancel()
+			wsconn.BlockAPI = modules.NewMockAnyBlockAPI(ctrl)
 
 			wsconn.Subscriptions = make(map[uint32]Listener)
 			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
