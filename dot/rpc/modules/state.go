@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -82,6 +83,10 @@ type StateStorageQueryAtRequest struct {
 	At   common.Hash `json:"at"`
 }
 
+type StateTrieAtRequest struct {
+	At *common.Hash `json:"at"`
+}
+
 // StateStorageKeysQuery field to store storage keys
 type StateStorageKeysQuery [][]byte
 
@@ -111,6 +116,8 @@ type StateStorageResponse string
 
 // StatePairResponse is a key values
 type StatePairResponse []interface{}
+
+type StateTrieResponse []string
 
 // StateStorageKeysResponse field for storage keys
 type StateStorageKeysResponse []string
@@ -242,6 +249,46 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 		(*res)[i] = []string{common.BytesToHex(key), common.BytesToHex(val)}
 	}
 
+	return nil
+}
+
+// Trie RPC method returns a list of scale encoded trie.Entry{Key byte, Value byte} representing
+// all the entries in a trie for a block hash, if no block hash is given then it uses the best block hash
+func (sm *StateModule) Trie(_ *http.Request, req *StateTrieAtRequest, res *StateTrieResponse) error {
+	var blockHash common.Hash
+
+	if req.At != nil {
+		blockHash = *req.At
+	} else {
+		blockHash = sm.blockAPI.BestBlockHash()
+	}
+
+	blockHeader, err := sm.blockAPI.GetHeader(blockHash)
+	if err != nil {
+		return fmt.Errorf("getting header: %w", err)
+	}
+
+	entries, err := sm.storageAPI.Entries(&blockHeader.StateRoot)
+	if err != nil {
+		return fmt.Errorf("getting entries: %w", err)
+	}
+
+	entriesArr := make([]string, 0, len(entries))
+	for key, value := range entries {
+		entry := trie.Entry{
+			Key:   []byte(key),
+			Value: value,
+		}
+
+		encodedEntry, err := scale.Marshal(entry)
+		if err != nil {
+			return fmt.Errorf("scale encoding entry: %w", err)
+		}
+
+		entriesArr = append(entriesArr, common.BytesToHex(encodedEntry))
+	}
+
+	*res = entriesArr
 	return nil
 }
 

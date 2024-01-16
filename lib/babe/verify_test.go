@@ -15,9 +15,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 const testSlotDuration = time.Second
@@ -75,7 +75,7 @@ func newTestVerifier(kp *sr25519.Keypair, blockState BlockState, slotState SlotS
 	threshold *scale.Uint128, secSlots bool) *verifier {
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
+		authorities:    []types.AuthorityRaw{*authority.ToRaw(), *authority.ToRaw()},
 		randomness:     Randomness{},
 		threshold:      threshold,
 		secondarySlots: secSlots,
@@ -221,18 +221,16 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 
 	auth := types.NewAuthority(kp.Public(), uint64(1))
 	vi := &verifierInfo{
-		authorities: []types.Authority{*auth},
+		authorities: []types.AuthorityRaw{*auth.ToRaw()},
 		threshold:   &scale.Uint128{},
 	}
 
 	vi1 := &verifierInfo{
-		authorities: []types.Authority{*auth},
+		authorities: []types.AuthorityRaw{*auth.ToRaw()},
 		threshold:   scale.MaxUint128,
 	}
 
 	mockSlotState := NewMockSlotState(nil)
-	v := newVerifier(mockBlockState, mockSlotState, 1, vi, time.Second)
-	v1 := newVerifier(mockBlockState, mockSlotState, 1, vi1, time.Second)
 
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
@@ -252,7 +250,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 	}{
 		{
 			name:     "Over threshold",
-			verifier: *v,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, vi, time.Second),
 			args: args{
 				slot:      1,
 				vrfOutput: [32]byte{},
@@ -262,7 +260,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 		},
 		{
 			name:     "VRF not verified",
-			verifier: *v1,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, vi1, time.Second),
 			args: args{
 				slot:      1,
 				vrfOutput: [32]byte{},
@@ -271,7 +269,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 		},
 		{
 			name:     "VRF verified",
-			verifier: *v1,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, vi1, time.Second),
 			args: args{
 				slot:      1,
 				vrfOutput: output,
@@ -281,9 +279,10 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			res, err := b.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot, tt.args.vrfOutput, tt.args.vrfProof)
+			res, err := tt.verifier.verifyPrimarySlotWinner(tt.args.authorityIndex, tt.args.slot,
+				tt.args.vrfOutput, tt.args.vrfProof)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -316,7 +315,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	auth := types.NewAuthority(kp.Public(), uint64(1))
 	vi := &verifierInfo{
-		authorities: []types.Authority{*auth, *auth},
+		authorities: []types.AuthorityRaw{*auth.ToRaw(), *auth.ToRaw()},
 		threshold:   scale.MaxUint128,
 	}
 
@@ -329,7 +328,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	// Above threshold case
 	vi1 := &verifierInfo{
-		authorities: []types.Authority{*auth, *auth},
+		authorities: []types.AuthorityRaw{*auth.ToRaw(), *auth.ToRaw()},
 		threshold:   &scale.Uint128{},
 	}
 
@@ -353,18 +352,15 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	authVRFSec := types.NewAuthority(kp.Public(), uint64(1))
 	viVRFSec := &verifierInfo{
-		authorities: []types.Authority{*authVRFSec, *authVRFSec},
+		authorities: []types.AuthorityRaw{*authVRFSec.ToRaw(), *authVRFSec.ToRaw()},
 		threshold:   scale.MaxUint128,
 	}
 
 	viVRFSec2 := &verifierInfo{
-		authorities:    []types.Authority{*authVRFSec, *authVRFSec},
+		authorities:    []types.AuthorityRaw{*authVRFSec.ToRaw(), *authVRFSec.ToRaw()},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
-
-	vVRFSec := newVerifier(mockBlockState, mockSlotState, 1, viVRFSec, testSlotDuration)
-	vVRFSec2 := newVerifier(mockBlockState, mockSlotState, 1, viVRFSec2, testSlotDuration)
 
 	//BabeSecondaryPlainPreDigest case
 	secDigest := types.BabeSecondaryPlainPreDigest{AuthorityIndex: 0, SlotNumber: uint64(1)}
@@ -373,18 +369,15 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	authSec := types.NewAuthority(kp.Public(), uint64(1))
 	viSec := &verifierInfo{
-		authorities: []types.Authority{*authSec, *authSec},
+		authorities: []types.AuthorityRaw{*authSec.ToRaw(), *authSec.ToRaw()},
 		threshold:   scale.MaxUint128,
 	}
 
 	viSec2 := &verifierInfo{
-		authorities:    []types.Authority{*authSec, *authSec},
+		authorities:    []types.AuthorityRaw{*authSec.ToRaw(), *authSec.ToRaw()},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
-
-	vSec := newVerifier(mockBlockState, mockSlotState, 1, viSec, testSlotDuration)
-	vSec2 := newVerifier(mockBlockState, mockSlotState, 1, viSec2, testSlotDuration)
 
 	type args struct {
 		digest *types.PreRuntimeDigest
@@ -433,33 +426,33 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 		},
 		{
 			name:     "BabeSecondaryPlainPreDigest SecondarySlot false",
-			verifier: *vSec,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viSec, testSlotDuration),
 			args:     args{prd},
 			expErr:   ErrBadSlotClaim,
 		},
 		{
 			name:     "BabeSecondaryPlainPreDigest invalid claim",
-			verifier: *vSec2,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viSec2, testSlotDuration),
 			args:     args{prd},
 			expErr:   errors.New("invalid secondary slot claim"),
 		},
 		{
 			name:     "BabeSecondaryVRFPreDigest SecondarySlot false",
-			verifier: *vVRFSec,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viVRFSec, testSlotDuration),
 			args:     args{babePRD},
 			expErr:   ErrBadSlotClaim,
 		},
 		{
 			name:     "BabeSecondaryVRFPreDigest invalid claim",
-			verifier: *vVRFSec2,
+			verifier: *newVerifier(mockBlockState, mockSlotState, 1, viVRFSec2, testSlotDuration),
 			args:     args{babePRD},
 			expErr:   errors.New("invalid secondary slot claim"),
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			res, err := b.verifyPreRuntimeDigest(tt.args.digest)
+			res, err := tt.verifier.verifyPreRuntimeDigest(tt.args.digest)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -668,9 +661,9 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &tt.verifier
-			err := b.verifyAuthorshipRight(tt.header)
+			err := tt.verifier.verifyAuthorshipRight(tt.header)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
 			} else {
@@ -737,7 +730,7 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 			wantErr:   types.ErrNoFirstPreDigest,
 			buildVerifier: func(t *testing.T) *verifier {
 				return &verifier{
-					authorities: []types.Authority{},
+					authorities: []types.AuthorityRaw{},
 				}
 			},
 		},
@@ -747,7 +740,7 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 			wantErr:   ErrAuthIndexOutOfBound,
 			buildVerifier: func(t *testing.T) *verifier {
 				return &verifier{
-					authorities: []types.Authority{},
+					authorities: []types.AuthorityRaw{},
 				}
 			},
 		},
@@ -770,9 +763,9 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 					Return(nil, slotStateMockErr)
 
 				return &verifier{
-					authorities: []types.Authority{
+					authorities: []types.AuthorityRaw{
 						{
-							Key:    kp.Public(),
+							Key:    [32]byte(kp.Public().Encode()),
 							Weight: 1,
 						},
 					},
@@ -799,9 +792,9 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 					Return(nil, nil)
 
 				return &verifier{
-					authorities: []types.Authority{
+					authorities: []types.AuthorityRaw{
 						{
-							Key:    kp.Public(),
+							Key:    [32]byte(kp.Public().Encode()),
 							Weight: 1,
 						},
 					},
@@ -855,9 +848,9 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 				mockBlockState.EXPECT().GetRuntime(defaultHeader.Hash()).Return(mockRuntimeInstance, nil)
 
 				return &verifier{
-					authorities: []types.Authority{
+					authorities: []types.AuthorityRaw{
 						{
-							Key:    kp.Public(),
+							Key:    [32]byte(kp.Public().Encode()),
 							Weight: 1,
 						},
 					},
@@ -900,9 +893,9 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 				mockBlockState.EXPECT().GetRuntime(defaultHeader.Hash()).Return(nil, getRuntimeErr)
 
 				return &verifier{
-					authorities: []types.Authority{
+					authorities: []types.AuthorityRaw{
 						{
-							Key:    kp.Public(),
+							Key:    [32]byte(kp.Public().Encode()),
 							Weight: 1,
 						},
 					},
@@ -940,7 +933,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 
 	auth := types.NewAuthority(keyPair.Public(), uint64(1))
 	vi := &verifierInfo{
-		authorities: []types.Authority{*auth, *auth},
+		authorities: []types.AuthorityRaw{*auth.ToRaw(), *auth.ToRaw()},
 		threshold:   scale.MaxUint128,
 	}
 
@@ -983,7 +976,7 @@ func Test_verifier_submitAndReportEquivocation(t *testing.T) {
 
 	secondHeader := newTestHeader(t, *preRuntimeDigest2)
 
-	offenderPublicKey := verifier.authorities[authorityIndex].ToRaw().Key
+	offenderPublicKey := verifier.authorities[authorityIndex].Key
 	keyOwnershipProof := testKeyOwnershipProof
 	mockRuntime := mocks.NewMockInstance(ctrl)
 
@@ -1078,7 +1071,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 				mockBlockState.EXPECT().GetRuntime(header.Hash()).Return(mockRuntime, nil)
 				auth := types.NewAuthority(kp.Public(), uint64(1))
 				info := &verifierInfo{
-					authorities: []types.Authority{*auth, *auth},
+					authorities: []types.AuthorityRaw{*auth.ToRaw(), *auth.ToRaw()},
 					threshold:   scale.MaxUint128,
 				}
 
@@ -1139,7 +1132,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 				mockBlockState.EXPECT().GetRuntime(header.Hash()).Return(mockRuntime, nil)
 				auth := types.NewAuthority(kp.Public(), uint64(1))
 				info := &verifierInfo{
-					authorities:    []types.Authority{*auth, *auth},
+					authorities:    []types.AuthorityRaw{*auth.ToRaw(), *auth.ToRaw()},
 					threshold:      scale.MaxUint128,
 					secondarySlots: true,
 					randomness:     Randomness{},
@@ -1210,7 +1203,7 @@ func Test_verifier_verifyAuthorshipRightEquivocatory(t *testing.T) {
 
 				auth := types.NewAuthority(kp.Public(), uint64(1))
 				info := &verifierInfo{
-					authorities:    []types.Authority{*auth, *auth},
+					authorities:    []types.AuthorityRaw{*auth.ToRaw(), *auth.ToRaw()},
 					threshold:      scale.MaxUint128,
 					secondarySlots: true,
 					randomness:     Randomness{},
@@ -1243,19 +1236,19 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 
 	testHeader := types.NewEmptyHeader()
 
-	mockEpochStateGetErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(nil, state.ErrEpochNotInMemory)
+	mockEpochStateGetErr.EXPECT().GetEpochDataRaw(uint64(0), testHeader).Return(nil, state.ErrEpochNotInMemory)
 
-	mockEpochStateHasErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
+	mockEpochStateHasErr.EXPECT().GetEpochDataRaw(uint64(0), testHeader).Return(&types.EpochDataRaw{}, nil)
 	mockEpochStateHasErr.EXPECT().GetConfigData(uint64(0), testHeader).Return(&types.ConfigData{}, state.ErrConfigNotFound)
 
-	mockEpochStateThresholdErr.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
+	mockEpochStateThresholdErr.EXPECT().GetEpochDataRaw(uint64(0), testHeader).Return(&types.EpochDataRaw{}, nil)
 	mockEpochStateThresholdErr.EXPECT().GetConfigData(uint64(0), testHeader).
 		Return(&types.ConfigData{
 			C1: 3,
 			C2: 1,
 		}, nil)
 
-	mockEpochStateOk.EXPECT().GetEpochData(uint64(0), testHeader).Return(&types.EpochData{}, nil)
+	mockEpochStateOk.EXPECT().GetEpochDataRaw(uint64(0), testHeader).Return(&types.EpochDataRaw{}, nil)
 	mockEpochStateOk.EXPECT().GetConfigData(uint64(0), testHeader).
 		Return(&types.ConfigData{
 			C1: 1,
@@ -1352,16 +1345,16 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
 	errTestGetEpochData := errors.New("test get epoch data error")
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochData(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
+	mockEpochStateSkipVerifyErr.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
 	errTestSkipVerify := errors.New("test skip verify error")
 	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, errTestSkipVerify)
 
 	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochData(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
+	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
 	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(true, nil)
 
 	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochData(uint64(1), testBlockHeaderEmpty).
+	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).
 		Return(nil, errTestGetEpochData)
 	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, nil)
 
@@ -1383,7 +1376,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
+		authorities:    []types.AuthorityRaw{*authority.ToRaw(), *authority.ToRaw()},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}
@@ -1495,7 +1488,9 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 
 	mockEpochStateGetEpochDataErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(0), nil)
 	errTestGetEpochData := errors.New("test get epoch data error")
-	mockEpochStateGetEpochDataErr.EXPECT().GetEpochData(uint64(0), types.NewEmptyHeader()).Return(nil, errTestGetEpochData)
+	mockEpochStateGetEpochDataErr.EXPECT().
+		GetEpochDataRaw(uint64(0), types.NewEmptyHeader()).
+		Return(nil, errTestGetEpochData)
 
 	mockEpochStateIndexLenErr.EXPECT().GetEpochForBlock(types.NewEmptyHeader()).Return(uint64(2), nil)
 
@@ -1515,7 +1510,7 @@ func TestVerificationManager_SetOnDisabled(t *testing.T) {
 
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
-		authorities:    []types.Authority{*authority, *authority},
+		authorities:    []types.AuthorityRaw{*authority.ToRaw(), *authority.ToRaw()},
 		threshold:      scale.MaxUint128,
 		secondarySlots: true,
 	}

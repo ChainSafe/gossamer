@@ -61,7 +61,7 @@ const (
 	// DefaultSystemName is the default system name
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
-	DefaultSystemVersion = "0.3.2"
+	DefaultSystemVersion = "0.9.0"
 )
 
 // DefaultRPCModules the default RPC modules
@@ -596,6 +596,8 @@ const (
 	WestendDevChain Chain = "westend-dev"
 	// WestendLocalChain is the Westend local chain
 	WestendLocalChain Chain = "westend-local"
+	// PaseoChain is the Paseo chain
+	PaseoChain Chain = "paseo"
 )
 
 // String returns the string representation of the chain
