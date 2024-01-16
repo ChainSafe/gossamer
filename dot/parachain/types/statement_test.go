@@ -5,7 +5,6 @@ package parachaintypes
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"math"
 	"testing"
@@ -28,8 +27,6 @@ func init() {
 		return
 	}
 }
-
-var ErrInvalidVayingDataTypeValue = errors.New("unsupported type")
 
 type invalidVayingDataTypeValue struct{}
 
@@ -102,7 +99,7 @@ func TestStatementVDT(t *testing.T) {
 		{
 			name:        "invalid struct",
 			enumValue:   invalidVayingDataTypeValue{},
-			expectedErr: ErrInvalidVayingDataTypeValue,
+			expectedErr: fmt.Errorf("unsupported type"),
 		},
 	}
 
@@ -117,7 +114,7 @@ func TestStatementVDT(t *testing.T) {
 				err := vdt.SetValue(c.enumValue)
 
 				if c.expectedErr != nil {
-					require.EqualError(t, err, c.expectedErr.Error())
+					require.ErrorContains(t, err, c.expectedErr.Error())
 					return
 				}
 

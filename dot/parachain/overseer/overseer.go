@@ -11,7 +11,7 @@ import (
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
-	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -87,10 +87,7 @@ func (o *Overseer) Start() error {
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
 		go func(sub Subsystem, overseerToSubSystem chan any) {
-			err := sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
-			if err != nil {
-				logger.Errorf("running subsystem %v failed: %v", sub, err)
-			}
+			sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
 		}(subsystem, overseerToSubSystem)
@@ -110,12 +107,12 @@ func (o *Overseer) processMessages() {
 			var subsystem Subsystem
 
 			switch msg.(type) {
-			case backing.GetBackedCandidates, backing.CanSecond, backing.Second, backing.Statement:
+			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
-			case collatorprotocol.CollateOn, collatorprotocol.DistributeCollation, collatorprotocol.ReportCollator,
-				collatorprotocol.Backed, collatorprotocol.AdvertiseCollation, collatorprotocol.InvalidOverseerMsg,
-				collatorprotocol.SecondedOverseerMsg:
+			case collatorprotocolmessages.CollateOn, collatorprotocolmessages.DistributeCollation,
+				collatorprotocolmessages.ReportCollator, collatorprotocolmessages.Backed,
+				collatorprotocolmessages.Invalid, collatorprotocolmessages.Seconded:
 
 				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
 
