@@ -14,9 +14,9 @@ var (
 	// defaultID Default chain ID
 	defaultID = "polkadot"
 	// defaultConfigDir is the default config directory path
-	defaultConfigDir = xdg.ConfigHome + "/polkadot/config"
+	defaultConfigDir = xdg.ConfigHome + "/gossamer/polkadot"
 	// defaultDataPath is the default data directory path
-	defaultDataPath = xdg.DataHome + "/polkadot/data"
+	defaultDataPath = xdg.DataHome + "/gossamer/polkadot"
 	// defaultChainSpec is the default chain spec configuration path
 	defaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
 )

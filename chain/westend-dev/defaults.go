@@ -14,9 +14,9 @@ var (
 	// defaultID is the default node ID
 	defaultID = "westend_dev"
 	// defaultConfigDir is the default config directory path
-	defaultConfigDir = xdg.ConfigHome + "/westend-dev/config"
+	defaultConfigDir = xdg.ConfigHome + "/gossamer/westend-dev"
 	// defaultDataPath is the default data directory path
-	defaultDataPath = xdg.DataHome + "/westend-dev/data"
+	defaultDataPath = xdg.DataHome + "/gossamer/westend-dev"
 	// defaultChainSpec is the default chain spec for the westend dev node
 	defaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
 )

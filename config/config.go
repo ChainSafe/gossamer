@@ -60,7 +60,7 @@ const (
 	// DefaultSystemName is the default system name
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
-	DefaultSystemVersion = "0.3.2"
+	DefaultSystemVersion = "0.9.0"
 )
 
 var (

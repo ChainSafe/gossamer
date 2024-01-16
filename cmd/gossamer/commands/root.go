@@ -29,6 +29,8 @@ var (
 	logLevel string
 
 	// Base Config
+	name          string
+	id            string
 	pruning       string
 	telemetryURLs string
 
@@ -205,19 +207,9 @@ func addRootFlags(cmd *cobra.Command) error {
 
 // addBaseConfigFlags adds the base config flags to the command
 func addBaseConfigFlags(cmd *cobra.Command) error {
-	if err := addStringFlagBindViper(cmd,
-		"name",
-		config.BaseConfig.Name,
-		"Name of the node",
-		"Name of the node"); err != nil {
-		return fmt.Errorf("failed to add --name flag: %s", err)
-	}
-	if err := addStringFlagBindViper(cmd,
-		"id", config.BaseConfig.ID,
-		"Identifier for the node",
-		"id"); err != nil {
-		return fmt.Errorf("failed to add --id flag: %s", err)
-	}
+	cmd.Flags().StringVar(&name, "name", "Gossamer", "Name of the node")
+	cmd.Flags().StringVar(&id, "id", "gssmr", "Identifier for the node")
+
 	if err := addBoolFlagBindViper(cmd,
 		"no-telemetry",
 		config.BaseConfig.NoTelemetry,

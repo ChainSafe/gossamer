@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_block_state_test.go -package network . BlockState
 //
+
 // Package network is a generated GoMock package.
 package network
 

@@ -1,4 +1,4 @@
-// Copyright 2021 ChainSafe Systems (ON)
+// Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package paseo
@@ -14,9 +14,9 @@ var (
 	// defaultID Default chain ID
 	defaultID = "paseo"
 	// defaultConfigDir is the default config directory path
-	defaultConfigDir = xdg.ConfigHome + "/paseo/config"
+	defaultConfigDir = xdg.ConfigHome + "/gossamer/paseo"
 	// defaultDataPath is the default data directory path
-	defaultDataPath = xdg.DataHome + "/paseo/data"
+	defaultDataPath = xdg.DataHome + "/gossamer/paseo"
 	// defaultChainSpec is the default chain spec configuration path
 	defaultChainSpec = "./chain/paseo/chain-spec-raw.json"
 )

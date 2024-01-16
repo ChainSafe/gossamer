@@ -14,9 +14,9 @@ var (
 	// defaultID Default chain ID
 	defaultID = "ksmcc3"
 	// defaultConfigDir is the default config directory path
-	defaultConfigDir = xdg.ConfigHome + "/kusama/config"
+	defaultConfigDir = xdg.ConfigHome + "/gossamer/kusama"
 	// defaultDataPath is the default data directory path
-	defaultDataPath = xdg.DataHome + "/kusama/data"
+	defaultDataPath = xdg.DataHome + "/gossamer/kusama"
 	// defaultChainSpec is the default chain-spec json path
 	defaultChainSpec = "./chain/kusama/chain-spec-raw.json"
 )
