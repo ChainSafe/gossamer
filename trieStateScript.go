@@ -19,7 +19,7 @@ import (
 func fetchWithTimeout(ctx context.Context,
 	method, params string, target interface{}) {
 
-	getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
+	getResponseCtx, getResponseCancel := context.WithTimeout(ctx, 1000000*time.Second)
 	defer getResponseCancel()
 	err := getResponse(getResponseCtx, method, params, target)
 	if err != nil {
@@ -28,10 +28,10 @@ func fetchWithTimeout(ctx context.Context,
 }
 
 func getResponse(ctx context.Context, method, params string, target interface{}) (err error) {
-	//const rpcPort = "8545"
-	//endpoint := rpc.NewEndpoint(rpcPort)
+	const rpcPort = "8545"
+	endpoint := rpc.NewEndpoint(rpcPort)
 	//"http://18.222.22.42:8545"
-	endpoint := "http://18.222.22.42:8545"
+	//endpoint := "http://18.222.22.42:8545"
 	respBody, err := rpc.Post(ctx, endpoint, method, params)
 	if err != nil {
 		return fmt.Errorf("cannot RPC post: %w", err)
