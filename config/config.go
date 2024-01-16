@@ -402,7 +402,7 @@ func DefaultConfig() *Config {
 		},
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
-			SystemVersion: getFullVersion(),
+			SystemVersion: GetFullVersion(),
 		},
 	}
 }
@@ -483,7 +483,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 		},
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
-			SystemVersion: getFullVersion(),
+			SystemVersion: GetFullVersion(),
 		},
 	}
 }

@@ -16,7 +16,7 @@ const (
 	VersionMeta  = "unstable"
 )
 
-// Attempts to get a Git commit hash
+// GitCommit attempts to get a Git commit hash; empty string otherwise
 var GitCommit = func() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
@@ -28,25 +28,25 @@ var GitCommit = func() string {
 	return ""
 }()
 
-// Holds a text representation of the Gossamer version
+// Version holds a text representation of the Gossamer version
 var Version = func() string {
 	if VersionMeta != "stable" {
-		return getFullVersion()
+		return GetFullVersion()
 	} else {
-		return getStableVersion()
+		return GetStableVersion()
 	}
 }()
 
-// Gets a verbose, long version string, e.g., 0.9.0-unstable-e41617ba
-func getFullVersion() string {
-	version := getStableVersion() + "-" + VersionMeta
+// GetFullVersion gets a verbose, long version string, e.g., 0.9.0-unstable-e41617ba
+func GetFullVersion() string {
+	version := GetStableVersion() + "-" + VersionMeta
 	if len(GitCommit) >= 8 {
 		version += "-" + GitCommit[:8]
 	}
 	return version
 }
 
-// Gets a short, stable version string, e.g., 0.9.0
-func getStableVersion() string {
+// GetStableVersion gets a short, stable version string, e.g., 0.9.0
+func GetStableVersion() string {
 	return fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
 }

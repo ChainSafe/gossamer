@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// VersionCmd returns the gossamer version
+// VersionCmd returns the Gossamer version
 var VersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "gossamer version",
