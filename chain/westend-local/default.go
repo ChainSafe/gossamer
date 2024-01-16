@@ -29,8 +29,8 @@ func DefaultConfig() *cfg.Config {
 // DefaultAliceConfig returns a westend local node configuration
 func DefaultAliceConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.ConfigDir = xdg.ConfigHome + "/westend-local-alice/config"
-	config.DataDir = xdg.DataHome + "/westend-local-alice/data"
+	config.ConfigDir = xdg.ConfigHome + "/gossamer/westend-local/alice"
+	config.DataDir = xdg.DataHome + "/gossamer/westend-local/alice"
 	config.PrometheusPort = uint32(9856)
 	config.Network.Port = 7001
 	config.RPC.Port = 8545
@@ -43,8 +43,8 @@ func DefaultAliceConfig() *cfg.Config {
 // DefaultBobConfig returns a westend local node configuration with bob as the authority
 func DefaultBobConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.ConfigDir = xdg.ConfigHome + "/westend-local-bob/config"
-	config.DataDir = xdg.DataHome + "/westend-local-bob/data"
+	config.ConfigDir = xdg.ConfigHome + "/gossamer/westend-local/bob"
+	config.DataDir = xdg.DataHome + "/gossamer/westend-local/bob"
 	config.PrometheusPort = uint32(9866)
 	config.Network.Port = 7011
 	config.RPC.Port = 8555
@@ -57,8 +57,8 @@ func DefaultBobConfig() *cfg.Config {
 // DefaultCharlieConfig returns a westend local node configuration with charlie as the authority
 func DefaultCharlieConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.ConfigDir = xdg.ConfigHome + "/westend-local-charlie/config"
-	config.DataDir = xdg.DataHome + "/westend-local-charlie/data"
+	config.ConfigDir = xdg.ConfigHome + "/gossamer/westend-local-charlie"
+	config.DataDir = xdg.DataHome + "/gossamer/westend-local/charlie"
 	config.PrometheusPort = uint32(9876)
 	config.Network.Port = 7021
 	config.RPC.Port = 8565
