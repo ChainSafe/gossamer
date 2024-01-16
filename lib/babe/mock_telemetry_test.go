@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_telemetry_test.go -package babe . Telemetry
 //
+
 // Package babe is a generated GoMock package.
 package babe
 
