@@ -4,8 +4,8 @@
 package commands
 
 import (
-	"testing"
 	"regexp"
+	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
@@ -15,10 +15,10 @@ import (
 const RegExVersion = "^([0-9]+).([0-9]+).([0-9]+)(?:-([0-9A-Za-z-]+(?:-[0-9A-Za-z-]+)*))?$"
 
 func TestVersionCommand(t *testing.T) {
-	rootCmd, err := NewRootCommand()
+	rootCmd, _ := NewRootCommand()
 	rootCmd.AddCommand(VersionCmd)
 	rootCmd.SetArgs([]string{VersionCmd.Name()})
-	err = rootCmd.Execute()
+	err := rootCmd.Execute()
 	require.NoError(t, err)
 }
 
