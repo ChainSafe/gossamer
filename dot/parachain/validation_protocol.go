@@ -15,23 +15,10 @@ import (
 
 const MaxValidationMessageSize uint64 = 100 * 1024
 
-// UncheckedSignedAvailabilityBitfield a signed bitfield with signature not yet checked
-type UncheckedSignedAvailabilityBitfield struct {
-	// The payload is part of the signed data. The rest is the signing context,
-	// which is known both at signing and at validation.
-	Payload scale.BitVec `scale:"1"`
-
-	// The index of the validator signing this statement.
-	ValidatorIndex parachaintypes.ValidatorIndex `scale:"2"`
-
-	// The signature by the validator of the signed payload.
-	Signature parachaintypes.ValidatorSignature `scale:"3"`
-}
-
 // Bitfield avalibility bitfield for given relay-parent hash
 type Bitfield struct {
-	Hash                                common.Hash                         `scale:"1"`
-	UncheckedSignedAvailabilityBitfield UncheckedSignedAvailabilityBitfield `scale:"2"`
+	Hash                                common.Hash                                        `scale:"1"`
+	UncheckedSignedAvailabilityBitfield parachaintypes.UncheckedSignedAvailabilityBitfield `scale:"2"`
 }
 
 type BitfieldDistributionMessageValues interface {

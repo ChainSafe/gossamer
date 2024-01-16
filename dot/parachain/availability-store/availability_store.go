@@ -174,12 +174,10 @@ func uint32ToBytes(value uint32) []byte {
 
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
-	SubsystemToOverseer chan any) error {
+	SubsystemToOverseer chan any) {
 
 	av.wg.Add(1)
 	go av.processMessages()
-
-	return nil
 }
 
 // Name returns the name of the availability store subsystem
@@ -361,7 +359,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
-	err := av.availabilityStore.storeAvailableData(msg.CandidateHash, msg.AvailableData)
+	err := av.availabilityStore.storeAvailableData(msg.CandidateHash.Value, msg.AvailableData)
 	if err != nil {
 		msg.Sender <- err
 		return fmt.Errorf("store available data: %w", err)
