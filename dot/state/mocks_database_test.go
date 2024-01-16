@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_database_test.go -package=state github.com/ChainSafe/gossamer/lib/trie/db Database
 //
+
 // Package state is a generated GoMock package.
 package state
 

@@ -77,6 +77,7 @@ Usage:
 	gossamer --chain westend-local --alice
 	gossamer --chain westend-dev --key alice --port 7002
 	gossamer --chain westend --key bob --port 7003
+	gossamer --chain paseo --key bob --port 7003
 	gossamer --chain kusama --key charlie --port 7004
 	gossamer --chain polkadot --key dave --port 7005`,
 		RunE: func(cmd *cobra.Command, args []string) error {

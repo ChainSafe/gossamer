@@ -596,6 +596,8 @@ const (
 	WestendDevChain Chain = "westend-dev"
 	// WestendLocalChain is the Westend local chain
 	WestendLocalChain Chain = "westend-local"
+	// PaseoChain is the Paseo chain
+	PaseoChain Chain = "paseo"
 )
 
 // String returns the string representation of the chain

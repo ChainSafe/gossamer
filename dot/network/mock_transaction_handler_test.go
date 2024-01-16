@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_transaction_handler_test.go -package network . TransactionHandler
 //
+
 // Package network is a generated GoMock package.
 package network
 

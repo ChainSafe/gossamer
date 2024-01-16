@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ChainSafe/gossamer/chain/paseo"
+
 	"github.com/spf13/cobra"
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
@@ -246,6 +248,8 @@ func parseChainSpec(chain string) error {
 			config = westend.DefaultConfig()
 		case cfg.WestendDevChain:
 			config = westenddev.DefaultConfig()
+		case cfg.PaseoChain:
+			config = paseo.DefaultConfig()
 		case cfg.WestendLocalChain:
 			if alice || key == "alice" {
 				config = westendlocal.DefaultAliceConfig()
