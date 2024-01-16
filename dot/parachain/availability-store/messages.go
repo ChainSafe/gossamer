@@ -14,6 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+var errInvalidErasureRoot = errors.New("Invalid erasure root")
+
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
 	CandidateHash parachaintypes.CandidateHash
@@ -123,7 +125,7 @@ func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
 
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
-	Timestamp timestamp
+	Timestamp BETimestamp
 }
 
 // Index returns the index of the varying data type
@@ -162,9 +164,7 @@ type BlockNumberHash struct {
 	blockHash   common.Hash                //nolint:unused,structcheck
 }
 
-var ErrInvalidErasureRoot = errors.New("Invalid erasure root")
-
-type Branches struct {
+type branches struct {
 	trieStorage *trie.Trie
 	root        common.Hash
 	chunks      [][]byte

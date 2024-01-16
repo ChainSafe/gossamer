@@ -36,7 +36,7 @@ var (
 func setupTestDB(t *testing.T) database.Database {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 	metaState := NewStateVDT()
 	err := metaState.Set(Unavailable{})
 	require.NoError(t, err)
@@ -47,7 +47,7 @@ func setupTestDB(t *testing.T) database.Database {
 	}
 	err = as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, meta)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	stored, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
@@ -57,10 +57,10 @@ func setupTestDB(t *testing.T) database.Database {
 	require.NoError(t, err)
 	require.Equal(t, true, stored)
 
-	batch = NewAvailabilityStoreBatch(as)
+	batch = newAvailabilityStoreBatch(as)
 	err = as.writeAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testavailableData1)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	return inmemoryDB
@@ -69,11 +69,11 @@ func setupTestDB(t *testing.T) database.Database {
 func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 
 	err := as.writeAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testavailableData1)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	got, err := as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
@@ -85,10 +85,10 @@ func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 		" from available table: pebble: not found")
 	require.Equal(t, (*AvailableData)(nil), got)
 
-	batch = NewAvailabilityStoreBatch(as)
+	batch = newAvailabilityStoreBatch(as)
 	err = as.deleteAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}})
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	got, err = as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
@@ -100,7 +100,7 @@ func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 	metaState := NewStateVDT()
 	err := metaState.Set(Unavailable{})
 	require.NoError(t, err)
@@ -111,7 +111,7 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	}
 	err = as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, meta)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	got, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
@@ -129,10 +129,10 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, &testChunk2, resultChunk)
 
-	batch = NewAvailabilityStoreBatch(as)
+	batch = newAvailabilityStoreBatch(as)
 	err = as.deleteChunk(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
@@ -144,7 +144,7 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 	metaState := NewStateVDT()
 	err := metaState.Set(Unavailable{})
 	require.NoError(t, err)
@@ -153,17 +153,17 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	}
 	err = as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, *meta)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	got, err := as.loadMeta(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
 	require.NoError(t, err)
 	require.Equal(t, meta, got)
 
-	batch = NewAvailabilityStoreBatch(as)
+	batch = newAvailabilityStoreBatch(as)
 	err = as.deleteMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}})
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	got, err = as.loadMeta(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
@@ -175,7 +175,7 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 	blockNumber := parachaintypes.BlockNumber(1)
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
@@ -189,7 +189,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(2), hash, candidateHash)
 	require.NoError(t, err)
 
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	// check that the key is written
@@ -208,10 +208,10 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.Equal(t, []byte{}, got)
 
 	// delete height, (block 1)
-	batch = NewAvailabilityStoreBatch(as)
+	batch = newAvailabilityStoreBatch(as)
 	err = as.deleteUnfinalizedHeight(batch, blockNumber)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	// check that the key is deleted
@@ -234,7 +234,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 	blockNumber := parachaintypes.BlockNumber(1)
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
@@ -248,7 +248,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(2), hash, candidateHash)
 	require.NoError(t, err)
 
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	// check that the key is written
@@ -267,10 +267,10 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	require.Equal(t, []byte{}, got)
 
 	// delete inclusion, (block 1, hash 2)
-	batch = NewAvailabilityStoreBatch(as)
+	batch = newAvailabilityStoreBatch(as)
 	err = as.deleteUnfinalizedInclusion(batch, blockNumber, hash, candidateHash)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	// check that the key is deleted
@@ -293,34 +293,34 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
-	batch := NewAvailabilityStoreBatch(as)
+	batch := newAvailabilityStoreBatch(as)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
 
-	err := as.writePruningKey(batch, timestamp(1), candidateHash)
+	err := as.writePruningKey(batch, BETimestamp(1), candidateHash)
 	require.NoError(t, err)
-	err = as.writePruningKey(batch, timestamp(2), candidateHash)
+	err = as.writePruningKey(batch, BETimestamp(2), candidateHash)
 	require.NoError(t, err)
 
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	// check that the key is written
-	key1 := append(timestamp(1).ToBigEndianBytes(), candidateHash.Value[:]...)
+	key1 := append(BETimestamp(1).ToBigEndianBytes(), candidateHash.Value[:]...)
 
 	got, err := as.pruneByTime.Get(key1)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key2 := append(timestamp(2).ToBigEndianBytes(), candidateHash.Value[:]...)
+	key2 := append(BETimestamp(2).ToBigEndianBytes(), candidateHash.Value[:]...)
 	got, err = as.pruneByTime.Get(key2)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
 	// delete pruning key, timestamp 1
-	batch = NewAvailabilityStoreBatch(as)
-	err = as.deletePruningKey(batch, timestamp(1), candidateHash)
+	batch = newAvailabilityStoreBatch(as)
+	err = as.deletePruningKey(batch, BETimestamp(1), candidateHash)
 	require.NoError(t, err)
-	err = batch.Flush()
+	err = batch.flush()
 	require.NoError(t, err)
 
 	// check that the key is deleted
@@ -699,7 +699,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 				expectedErasureRoot: common.Hash{},
 			},
 			want: false,
-			err:  ErrInvalidErasureRoot,
+			err:  errInvalidErasureRoot,
 		},
 	}
 	for name, tt := range tests {
