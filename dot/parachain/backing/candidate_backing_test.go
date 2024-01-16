@@ -7,6 +7,8 @@ import (
 	"errors"
 	"testing"
 
+	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -72,7 +74,7 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 		case parachaintypes.ProspectiveParachainsMessageCandidateSeconded,
 			parachaintypes.ProvisionerMessageProvisionableData,
 			parachaintypes.ProspectiveParachainsMessageCandidateBacked,
-			parachaintypes.CollatorProtocolMessageBacked,
+			collatorprotocolmessages.Backed,
 			parachaintypes.StatementDistributionMessageBacked:
 			continue
 		default:
@@ -721,8 +723,8 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 								IsValid: true,
 							},
 						}
-					case parachaintypes.AvailabilityStoreMessageStoreAvailableData:
-						data.Ch <- errInvalidErasureRoot
+					case availabilitystore.StoreAvailableData:
+						data.Sender <- errInvalidErasureRoot
 					default:
 						t.Errorf("invalid overseer message type: %T\n", data)
 					}
