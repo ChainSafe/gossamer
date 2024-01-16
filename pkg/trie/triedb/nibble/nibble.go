@@ -23,6 +23,8 @@ type Prefix struct {
 	PaddedByte *byte
 }
 
+var EmptyPrefix = Prefix{PartialKey: []byte{}, PaddedByte: nil}
+
 func PadLeft(b byte) byte {
 	padded := (b & ^PaddingBitmask)
 	return padded
