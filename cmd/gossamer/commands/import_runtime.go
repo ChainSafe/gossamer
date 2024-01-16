@@ -21,10 +21,10 @@ func init() {
 // ImportRuntimeCmd is the command to import a runtime binary into a genesis file
 var ImportRuntimeCmd = &cobra.Command{
 	Use:   "import-runtime",
-	Short: "Appends the given .wasm runtime binary to a genesis file",
-	Long: `The import-runtime command appends the given .wasm runtime binary to a genesis file.
+	Short: "Appends the given .wasm runtime binary to a chain-spec",
+	Long: `The import-runtime command appends the given .wasm runtime binary to a chain-spec.
 Example: 
-	gossamer import-runtime --wasm-file runtime.wasm --genesis-file genesis.json > updated_genesis.json`,
+	gossamer import-runtime --wasm-file runtime.wasm --chain chain-spec.json > chain-spec-new.json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return execImportRuntime(cmd)
 	},
