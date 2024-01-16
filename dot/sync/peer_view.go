@@ -30,6 +30,10 @@ func (p *peerViewSet) getTarget() uint {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()
 
+	if len(p.view) == 0 {
+		return p.target
+	}
+
 	numbers := make([]uint, 0, len(p.view))
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
 	for _, view := range maps.Values(p.view) {

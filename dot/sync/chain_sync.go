@@ -242,7 +242,7 @@ func (cs *chainSync) stop() error {
 	}
 }
 
-func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget uint,
+func (cs *chainSync) currentSyncInformations() (bestBlockHeader *types.Header, syncTarget uint,
 	isBootstrap bool, err error) {
 	bestBlockHeader, err = cs.blockState.BestBlockHeader()
 	if err != nil {
@@ -266,9 +266,9 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, syncTarget, isFarFromTarget, err := cs.isBootstrap()
-		if err != nil && !errors.Is(err, errNoPeerViews) {
-			logger.Criticalf("ending bootstrap sync, checking target distance: %s", err)
+		bestBlockHeader, syncTarget, isBootstrap, err := cs.currentSyncInformations()
+		if err != nil {
+			logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
 			return
 		}
 
@@ -287,7 +287,7 @@ func (cs *chainSync) bootstrapSync() {
 			cs.workerPool.totalWorkers(),
 			syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
 
-		if isFarFromTarget {
+		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
 			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
 			if err != nil {
@@ -316,12 +316,12 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 		return nil
 	}
 
-	_, _, isFarFromTarget, err := cs.isBootstrap()
-	if err != nil && !errors.Is(err, errNoPeerViews) {
-		return fmt.Errorf("checking target distance: %w", err)
+	_, _, isBootstrap, err := cs.currentSyncInformations()
+	if err != nil {
+		return fmt.Errorf("getting current sync info: %w", err)
 	}
 
-	if !isFarFromTarget {
+	if !isBootstrap {
 		return nil
 	}
 
@@ -338,7 +338,6 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	// TODO: https://github.com/ChainSafe/gossamer/issues/3432
 	cs.workerPool.fromBlockAnnounce(announced.who)
-
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
 		return fmt.Errorf("%w: block %s (#%d)",
 			errAlreadyInDisjointSet, announced.header.Hash(), announced.header.Number)
@@ -353,19 +352,19 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	_, _, isFarFromTarget, err := cs.isBootstrap()
-	if err != nil && !errors.Is(err, errNoPeerViews) {
-		return fmt.Errorf("checking target distance: %w", err)
+	bestBlockHeader, _, isFarFromTarget, err := cs.currentSyncInformations()
+	if err != nil {
+		return fmt.Errorf("getting current sync info: %w", err)
 	}
 
 	if !isFarFromTarget {
-		return cs.requestAnnouncedBlock(announced)
+		return cs.requestAnnouncedBlock(bestBlockHeader, announced)
 	}
 
 	return nil
 }
 
-func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
+func (cs *chainSync) requestAnnouncedBlock(bestBlockHeader *types.Header, announce announcedBlock) error {
 	peerWhoAnnounced := announce.who
 	announcedHash := announce.header.Hash()
 	announcedNumber := announce.header.Number
@@ -377,11 +376,6 @@ func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 
 	if has {
 		return nil
-	}
-
-	bestBlockHeader, err := cs.blockState.BestBlockHeader()
-	if err != nil {
-		return fmt.Errorf("getting best block header: %w", err)
 	}
 
 	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
