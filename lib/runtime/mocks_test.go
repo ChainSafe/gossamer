@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package runtime . Memory
 //
+
 // Package runtime is a generated GoMock package.
 package runtime
 
