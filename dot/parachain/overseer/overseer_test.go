@@ -25,7 +25,7 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
-func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	fmt.Printf("%s run\n", s.name)
 	counter := 0
 	for {
@@ -35,7 +35,7 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 				fmt.Printf("%s ctx error: %v\n", s.name, err)
 			}
 			fmt.Printf("%s overseer stopping\n", s.name)
-			return nil
+			return
 		case overseerSignal := <-OverseerToSubSystem:
 			fmt.Printf("%s received from overseer %v\n", s.name, overseerSignal)
 		default:
