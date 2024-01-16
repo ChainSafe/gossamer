@@ -546,8 +546,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 		mockedBlockState, mockedNetwork, mockedRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(128), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -555,7 +554,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	// the worker pool executes the workers management
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -631,8 +630,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -641,7 +639,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("noot2"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -725,8 +723,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -735,7 +732,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -825,8 +822,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -835,7 +831,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -927,8 +923,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -937,7 +932,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -1025,8 +1020,8 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
+
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -1035,7 +1030,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -1139,8 +1134,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 
 	cs.badBlocks = []string{fakeBadBlockHash.String()}
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -1149,7 +1143,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -1225,13 +1219,12 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.NoError(t, err)
 
 	err = cs.workerPool.stop()
@@ -1749,8 +1742,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *t
 
 	cs.finalityGadget = mockFinalityGadget
 
-	target, err := cs.getTarget()
-	require.NoError(t, err)
+	target := cs.peerViewSet.getTarget()
 	require.Equal(t, uint(blocksAhead), target)
 
 	// include a new worker in the worker pool set, this worker
@@ -1759,7 +1751,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *t
 	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
 	//cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
 
-	err = cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
 	require.ErrorIs(t, err, errVerifyBlockJustification)
 
 	err = cs.workerPool.stop()

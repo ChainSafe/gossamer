@@ -22,4 +22,5 @@ var (
 	ErrNilStream                     = errors.New("nil stream")
 	ErrInvalidLEB128EncodedData      = errors.New("invalid LEB128 encoded data")
 	ErrGreaterThanMaxSize            = errors.New("greater than maximum size")
+	ErrStreamReset                   = errors.New("stream reset")
 )

@@ -244,7 +244,7 @@ func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream net
 	info.peersData.deleteOutboundHandshakeData(peerID)
 
 	err := stream.Close()
-	if err != nil && err.Error() != "stream reset" {
+	if err != nil && err.Error() != ErrStreamReset.Error() {
 		logger.Warnf("failed to close outbound stream: %s", err)
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -16,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -99,63 +97,6 @@ type announcedBlock struct {
 	who    peer.ID
 	header *types.Header
 }
-
-type peerViewSet struct {
-	mtx  sync.RWMutex
-	view map[peer.ID]peerView
-}
-
-func (p *peerViewSet) find(pID peer.ID) (view peerView, ok bool) {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-
-	view, ok = p.view[pID]
-	return view, ok
-}
-
-func (p *peerViewSet) size() int {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-
-	return len(p.view)
-}
-
-func (p *peerViewSet) values() []peerView {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-
-	return maps.Values(p.view)
-}
-
-func (p *peerViewSet) update(peerID peer.ID, hash common.Hash, number uint) {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
-
-	newView := peerView{
-		who:    peerID,
-		hash:   hash,
-		number: number,
-	}
-
-	view, ok := p.view[peerID]
-	if !ok {
-		p.view[peerID] = newView
-		return
-	}
-
-	if view.number >= newView.number {
-		return
-	}
-
-	p.view[peerID] = newView
-}
-
-func newPeerViewSet(cap int) *peerViewSet {
-	return &peerViewSet{
-		view: make(map[peer.ID]peerView, cap),
-	}
-}
-
 type chainSync struct {
 	wg     sync.WaitGroup
 	stopCh chan struct{}
@@ -240,10 +181,10 @@ func (cs *chainSync) waitEnoughPeersAndTarget() {
 
 	for {
 		cs.workerPool.useConnectedPeers()
-		_, err := cs.getTarget()
+		target := cs.peerViewSet.getTarget()
 
 		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) && err == nil {
+		if totalAvailable >= uint(cs.minPeers) && target > 0 {
 			return
 		}
 
@@ -306,11 +247,6 @@ func (cs *chainSync) stop() error {
 
 func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget uint,
 	isBootstrap bool, err error) {
-	syncTarget, err = cs.getTarget()
-	if err != nil {
-		return nil, syncTarget, false, fmt.Errorf("getting target: %w", err)
-	}
-
 	bestBlockHeader, err = cs.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, syncTarget, false, fmt.Errorf("getting best block header: %w", err)
@@ -318,7 +254,7 @@ func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget ui
 
 	bestBlockNumber := bestBlockHeader.Number
 	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, syncTarget, isBootstrap, nil
+	return bestBlockHeader, cs.peerViewSet.getTarget(), isBootstrap, nil
 }
 
 func (cs *chainSync) bootstrapSync() {
@@ -615,10 +551,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	// we should bound it to the real target which is collected through
 	// block announces received from other peers
 	targetBlockNumber := startRequestAt + maxRequestsAllowed*128
-	realTarget, err := cs.getTarget()
-	if err != nil {
-		return fmt.Errorf("while getting target: %w", err)
-	}
+	realTarget := cs.peerViewSet.getTarget()
 
 	if targetBlockNumber > realTarget {
 		targetBlockNumber = realTarget
@@ -635,34 +568,12 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	}
 
 	resultsQueue := cs.workerPool.submitRequests(requests)
-	err = cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
+	err := cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
 
 	return nil
-}
-
-// getTarget takes the average of all peer heads
-// TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
-// head block number, it would leave us in bootstrap mode forever
-// it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
-func (cs *chainSync) getTarget() (uint, error) {
-	peerSetLen := cs.peerViewSet.size()
-	// in practice, this shouldn't happen, as we only start the module once we have some peer states
-	if peerSetLen == 0 {
-		return 0, errNoPeerViews
-	}
-
-	numbers := make([]uint, 0, peerSetLen)
-	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	for _, view := range cs.peerViewSet.values() {
-		numbers = append(numbers, view.number)
-	}
-
-	sum, count := nonOutliersSumCount(numbers)
-	quotientBigInt := big.NewInt(0).Div(sum, big.NewInt(int64(count)))
-	return uint(quotientBigInt.Uint64()), nil
 }
 
 // handleWorkersResults, every time we submit requests to workers they results should be computed here
