@@ -231,7 +231,7 @@ func TestBindToViper(t *testing.T) {
 			result:   viper.Get("id"),
 		},
 		{
-			expected: config.BasePath,
+			expected: config.DataDir,
 			result:   viper.Get("base-path"),
 		},
 		{

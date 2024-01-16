@@ -135,7 +135,7 @@ func TestBuildFromDB(t *testing.T) {
 		want *BuildSpec
 		err  error
 	}{
-		{name: "normal_conditions", path: config.BasePath,
+		{name: "normal_conditions", path: config.DataDir,
 			want: &BuildSpec{genesis: &genesis.Genesis{
 				Name:       "Development",
 				ID:         "westend_dev",

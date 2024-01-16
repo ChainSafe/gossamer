@@ -102,11 +102,11 @@ func TestImportState_Integration(t *testing.T) {
 	headerFP := setupHeaderFile(t)
 
 	const firstSlot = uint64(262493679)
-	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, firstSlot)
+	err = ImportState(config.DataDir, stateFP, headerFP, trie.V0, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
-		DataDir:  config.BasePath,
+		DataDir:  config.DataDir,
 		LogLevel: log.Info,
 	}
 	srv := state.NewService(stateConfig)
@@ -151,7 +151,7 @@ func TestImportState(t *testing.T) {
 		{
 			name: "working_example",
 			args: args{
-				basepath:     config.BasePath,
+				basepath:     config.DataDir,
 				stateFP:      stateFP,
 				headerFP:     headerFP,
 				stateVersion: trie.V0,

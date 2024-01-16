@@ -67,7 +67,7 @@ func TestBuildFromDB_Integration(t *testing.T) {
 	err = InitNode(config)
 	require.NoError(t, err)
 
-	bs, err := BuildFromDB(config.BasePath)
+	bs, err := BuildFromDB(config.DataDir)
 	require.NoError(t, err)
 	res, err := bs.ToJSON()
 	require.NoError(t, err)

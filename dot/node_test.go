@@ -29,7 +29,8 @@ import (
 
 func DefaultTestWestendDevConfig(t *testing.T) *cfg.Config {
 	config := westenddev.DefaultConfig()
-	config.BasePath = t.TempDir()
+	config.DataDir = t.TempDir()
+	config.ConfigDir = config.DataDir + "/config"
 
 	return config
 }
@@ -52,7 +53,7 @@ func TestInitNode(t *testing.T) {
 			err := InitNode(tt.config)
 			assert.ErrorIs(t, err, tt.err)
 			// confirm InitNode has created database dir
-			nodeDatabaseDir := filepath.Join(tt.config.BasePath, database.DefaultDatabaseDir)
+			nodeDatabaseDir := filepath.Join(tt.config.DataDir, database.DefaultDatabaseDir)
 			_, err = os.Stat(nodeDatabaseDir)
 			require.NoError(t, err)
 
@@ -159,7 +160,7 @@ func TestNodeInitialized(t *testing.T) {
 		},
 		{
 			name:     "working example",
-			basepath: config.BasePath,
+			basepath: config.DataDir,
 			want:     true,
 		},
 	}

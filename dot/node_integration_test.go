@@ -52,7 +52,8 @@ func TestNewNode(t *testing.T) {
 	genFile := NewTestGenesisRawFile(t, initConfig)
 
 	initConfig.Name = "TestNode"
-	initConfig.BasePath = basepath
+	initConfig.DataDir = basepath
+	initConfig.ConfigDir = basepath + "/config"
 	initConfig.ChainSpec = genFile
 	initConfig.Account.Key = "alice"
 	initConfig.Core.Role = common.FullNodeRole
@@ -72,8 +73,9 @@ func TestNewNode(t *testing.T) {
 	logLevel, err := log.ParseLevel(initConfig.Log.State)
 	require.NoError(t, err)
 	stateConfig := state.Config{
-		DataDir:  initConfig.BasePath,
-		LogLevel: logLevel,
+		DataDir:   initConfig.DataDir,
+		ConfigDir: initConfig.ConfigDir,
+		LogLevel:  logLevel,
 	}
 
 	systemInfo := &types.SystemInfo{
@@ -88,7 +90,7 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(true, nil)
+	m.EXPECT().isNodeInitialised(initConfig.DataDir).Return(true, nil)
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
 		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
@@ -215,7 +217,7 @@ func TestInitNode_Integration(t *testing.T) {
 
 	// confirm database was setup
 
-	db, err := database.LoadDatabase(config.BasePath, false)
+	db, err := database.LoadDatabase(config.DataDir, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 	err = db.Close()
@@ -232,7 +234,7 @@ func TestInitNode_GenesisSpec(t *testing.T) {
 	err := InitNode(config)
 	require.NoError(t, err)
 	// confirm database was setup
-	db, err := database.LoadDatabase(config.BasePath, false)
+	db, err := database.LoadDatabase(config.DataDir, false)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 
@@ -247,14 +249,14 @@ func TestNodeInitializedIntegration(t *testing.T) {
 
 	config.ChainSpec = genFile
 
-	result, err := IsNodeInitialised(config.BasePath)
+	result, err := IsNodeInitialised(config.DataDir)
 	require.NoError(t, err)
 	require.False(t, result)
 
 	err = InitNode(config)
 	require.NoError(t, err)
 
-	result, err = IsNodeInitialised(config.BasePath)
+	result, err = IsNodeInitialised(config.DataDir)
 	require.NoError(t, err)
 	require.True(t, result)
 }
@@ -461,7 +463,7 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	err := InitNode(config)
 	require.NoError(t, err)
 
-	storedName, err := LoadGlobalNodeName(config.BasePath)
+	storedName, err := LoadGlobalNodeName(config.DataDir)
 	require.NoError(t, err)
 	require.Equal(t, globalName, storedName)
 }

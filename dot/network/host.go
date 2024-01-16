@@ -171,7 +171,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
-	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
+	ds, err := badger.NewDatastore(path.Join(cfg.DataDir, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
 	}

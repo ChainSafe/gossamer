@@ -66,8 +66,12 @@ func (n *Node) setDefaults(t *testing.T) {
 		n.index = intPtr(0)
 	}
 
-	if n.tomlConfig.BasePath == "" {
-		n.tomlConfig.BasePath = t.TempDir()
+	if n.tomlConfig.DataDir == "" {
+		n.tomlConfig.DataDir = t.TempDir()
+	}
+
+	if n.tomlConfig.ConfigDir == "" {
+		n.tomlConfig.ConfigDir = n.tomlConfig.DataDir + "/config"
 	}
 
 	if n.tomlConfig.ChainSpec == "" {
@@ -125,7 +129,7 @@ func (n *Node) setDefaults(t *testing.T) {
 // Init initialises the Gossamer node.
 func (n *Node) Init() (err error) {
 	// Ensure the base path exists.
-	if err := cfg.EnsureRoot(n.tomlConfig.BasePath); err != nil {
+	if err := cfg.EnsureRoot(n.tomlConfig.DataDir); err != nil {
 		return fmt.Errorf("cannot ensure root: %w", err)
 	}
 
@@ -134,7 +138,7 @@ func (n *Node) Init() (err error) {
 	}
 
 	// Write the configuration to a file.
-	return cfg.WriteConfigFile(n.tomlConfig.BasePath, &n.tomlConfig)
+	return cfg.WriteConfigFile(n.tomlConfig.ConfigDir, &n.tomlConfig)
 }
 
 // Start starts a Gossamer node using the node configuration of
@@ -144,7 +148,7 @@ func (n *Node) Init() (err error) {
 // in the waitErrCh.
 func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
 	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
-		"--base-path", n.tomlConfig.BasePath,
+		"--data-dir", n.tomlConfig.DataDir,
 		"--chain", n.tomlConfig.ChainSpec,
 		"--role", config.ParseNetworkRole(n.tomlConfig.Core.Role),
 		"--no-telemetry")
@@ -284,5 +288,5 @@ func (n *Node) wrapRuntimeError(ctx context.Context, cmd *exec.Cmd,
 	}
 
 	return fmt.Errorf("%s encountered a runtime error: %w\ncommand: %s\n\n%s\n\n%s",
-		n, waitErr, cmd, n.tomlConfig.BasePath, logInformation)
+		n, waitErr, cmd, n.tomlConfig.DataDir, logInformation)
 }

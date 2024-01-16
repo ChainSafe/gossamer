@@ -80,9 +80,9 @@ func newNetworkService(t *testing.T) *network.Service {
 	t.Cleanup(func() {
 		_ = srv.Stop()
 		time.Sleep(time.Second)
-		err = os.RemoveAll(cfg.BasePath)
+		err = os.RemoveAll(cfg.DataDir)
 		if err != nil {
-			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
+			fmt.Printf("failed to remove path %s : %s\n", cfg.DataDir, err)
 		}
 	})
 

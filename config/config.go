@@ -5,9 +5,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/adrg/xdg"
 	"path/filepath"
 	"time"
+
+	"github.com/adrg/xdg"
 
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"

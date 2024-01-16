@@ -47,7 +47,7 @@ func TestBuildSpecFromDB(t *testing.T) {
 	err = rootCmd.Execute()
 	require.NoError(t, err)
 
-	rootCmd.SetArgs([]string{BuildSpecCmd.Name(), "--base-path", basePath})
+	rootCmd.SetArgs([]string{BuildSpecCmd.Name(), "--base-path", basepath})
 	err = rootCmd.Execute()
 	require.NoError(t, err)
 }

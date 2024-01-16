@@ -552,7 +552,7 @@ func TestCreateSyncService(t *testing.T) {
 
 	networkService, err := network.NewService(&network.Config{
 		BlockState: stateSrvc.Block,
-		BasePath:   config.BasePath,
+		BasePath:   config.ConfigDir,
 	})
 	require.NoError(t, err)
 
