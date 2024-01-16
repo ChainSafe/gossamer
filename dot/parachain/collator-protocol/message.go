@@ -242,7 +242,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	candidateHash parachaintypes.CandidateHash,
 	parentHeadDataHash common.Hash,
 ) bool {
-	canSecondRequest := backing.CanSecond{
+	canSecondRequest := backing.CanSecondMessage{
 		CandidateParaID:      candidateParaID,
 		CandidateRelayParent: candidateRelayParent,
 		CandidateHash:        candidateHash,
@@ -253,7 +253,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 
 	cpvs.SubSystemToOverseer <- struct {
 		responseChan     chan bool
-		canSecondRequest backing.CanSecond
+		canSecondRequest backing.CanSecondMessage
 	}{
 		responseChan:     responseChan,
 		canSecondRequest: canSecondRequest,
@@ -303,7 +303,7 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 			logger.Error("candidate relay parent went out of view for valid advertisement")
 			return ErrRelayParentUnknown
 		}
-		if perRelayParent.prospectiveParachainMode.isEnabled {
+		if perRelayParent.prospectiveParachainMode.IsEnabled {
 			return cpvs.fetchCollation(pendingCollation)
 		} else {
 			logger.Debug("a collation has already been seconded")
@@ -381,7 +381,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	// Note: Prospective Parachain mode would be set or edited when the view gets updated.
-	if perRelayParent.prospectiveParachainMode.isEnabled && prospectiveCandidate == nil {
+	if perRelayParent.prospectiveParachainMode.IsEnabled && prospectiveCandidate == nil {
 		// Expected v2 advertisement.
 		return ErrProtocolMismatch
 	}
@@ -413,7 +413,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	/*NOTE:---------------------------------------Matters only in V2----------------------------------------------*/
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
+	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.IsEnabled || cpvs.canSecond(
 		collatorParaID,
 		relayParent,
 		prospectiveCandidate.CandidateHash,

@@ -72,13 +72,19 @@ type StoreChunk struct {
 	Sender        chan any
 }
 
-// StoreAvailableData store an `AvailableData` in the AV store
+// StoreAvailableData computes and checks the erasure root of `AvailableData`
+// before storing its chunks in the AV store.
 type StoreAvailableData struct {
-	CandidateHash       common.Hash
-	NValidators         uint32
-	AvailableData       AvailableData
+	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
+	CandidateHash parachaintypes.CandidateHash
+	// The number of validators in the session.
+	NumValidators uint32
+	// The `AvailableData` itself.
+	AvailableData AvailableData
+	// Erasure root we expect to get after chunking.
 	ExpectedErasureRoot common.Hash
-	Sender              chan any
+	// channel to send result to.
+	Sender chan error
 }
 
 // AvailableData is the data we keep available for each candidate included in the relay chain
