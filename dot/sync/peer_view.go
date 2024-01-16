@@ -73,12 +73,7 @@ func (p *peerViewSet) update(peerID peer.ID, hash common.Hash, number uint) {
 	}
 
 	view, ok := p.view[peerID]
-	if !ok {
-		p.view[peerID] = newView
-		return
-	}
-
-	if view.number >= newView.number {
+	if ok && view.number >= newView.number {
 		return
 	}
 
