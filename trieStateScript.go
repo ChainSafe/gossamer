@@ -62,7 +62,7 @@ func main() {
 	//const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
 	//	const westend512StateRoot = "0xe6e996b91f9ec0c2900099754777c13644bb742dd512530dc6230aeaee2c19f9"
 	//const westend5MillionStateRoot = "0x26640792719e73a00872616a3006041ccc2ecbb2d60f5dfa15afbbeee495fc34"
-	const westend11MilStateRoot = "0x59e30962227e13a2978a837df9fd585f4e64a93849cc664c90c2a6a1bc9ad1c8"
+	const westend11MilStateRoot = "0xd3d88852c309d948a5689c5860d483817a9c26670cde6030091377bc973669cb"
 	params := fmt.Sprintf(`["%s"]`, blockHash)
 
 	var response modules.StateTrieResponse
