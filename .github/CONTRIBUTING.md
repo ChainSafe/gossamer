@@ -175,6 +175,7 @@ If a change does not alter any logic (e.g. comments, dependencies, docs), then i
 ###  Labels
 
 The set of labels and their description can be found [here](../docs/docs/repo/labels.md).
+To change labels update [labels.yml](./labels.yml) file
 
 ### Process
 
