@@ -31,7 +31,7 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 		badRequest             bool
 		msg                    []byte
 		subscriptions          int
-		readErr, initErr       error
+		initErr                error
 		readErrMsg, initErrMsg string
 		storageAPIset          bool
 		reqID                  float64
@@ -107,14 +107,19 @@ func TestWSConn_HandleConnParallel(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			wsconn, c, cancel := setupWSConn(t)
+			defer cancel()
+
 			wsconn.Subscriptions = make(map[uint32]Listener)
+
 			if testCase.storageAPIset {
 				wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
 			}
-			defer cancel()
+
 			go wsconn.HandleConn()
 			time.Sleep(time.Second * 2)
+
 			res, initErr := wsconn.initStorageChangeListener(testCase.reqID, testCase.params)
+
 			if testCase.badRequest {
 				require.Nil(t, res)
 			} else {
@@ -212,8 +217,10 @@ func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
 			wsconn.Subscriptions = make(map[uint32]Listener)
 			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
 			defer cancel()
+
 			go wsconn.HandleConn()
 			time.Sleep(time.Second * 2)
+
 			for _, v := range testCase.requests {
 				res, err := wsconn.initStorageChangeListener(v.reqID, v.params)
 				// bad request
@@ -327,13 +334,16 @@ func TestWSCon_WriteMessage(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			wsconn, c, cancel := setupWSConn(t)
+			defer cancel()
+
 			wsconn.Subscriptions = make(map[uint32]Listener)
 			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
-			defer cancel()
+
 			go wsconn.HandleConn()
 			time.Sleep(time.Second * 2)
 
-			c.WriteMessage(websocket.TextMessage, testCase.request)
+			err := c.WriteMessage(websocket.TextMessage, testCase.request)
+			require.NoError(t, err)
 
 			_, msg, err := c.ReadMessage()
 			require.NoError(t, err)
@@ -357,7 +367,7 @@ func TestWSConn_InitBlockListener(t *testing.T) {
 		},
 		"blockAPI_set": {
 			setBlocAPI: true,
-			resp:       []byte(`{"jsonrpc":"2.0","result":5,"id":1}` + "\n"),
+			resp:       []byte(`{"jsonrpc":"2.0","result":1,"id":1}` + "\n"),
 			respErr:    nil,
 		},
 	}
@@ -369,9 +379,11 @@ func TestWSConn_InitBlockListener(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			wsconn, c, cancel := setupWSConn(t)
+			defer cancel()
+
 			wsconn.Subscriptions = make(map[uint32]Listener)
 			wsconn.StorageAPI = modules.NewMockAnyStorageAPI(ctrl)
-			defer cancel()
+
 			go wsconn.HandleConn()
 			time.Sleep(time.Second * 2)
 
@@ -380,8 +392,14 @@ func TestWSConn_InitBlockListener(t *testing.T) {
 			}
 
 			res, err := wsconn.initBlockListener(1, nil)
-			require.EqualError(t, err, testCase.respErr.Error())
-			require.Nil(t, res)
+
+			if testCase.respErr != nil {
+				require.EqualError(t, err, testCase.respErr.Error())
+				require.Nil(t, res)
+			} else {
+				require.NoError(t, err)
+			}
+
 			_, msg, err := c.ReadMessage()
 			require.NoError(t, err)
 			require.Equal(t, testCase.resp, msg)
@@ -517,7 +535,6 @@ func TestWSConn_InitExtrinsicWatch(t *testing.T) {
 	require.Nil(t, listner)
 
 	_, msg, err := c.ReadMessage()
-	fmt.Println("HEHRHEHRHE")
 
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate",`+
@@ -633,6 +650,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 500)
+
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, expected+"\n", string(msg))
@@ -648,6 +666,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 		},
 	}
 	time.Sleep(time.Millisecond * 500)
+
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(expected+"\n"), msg)
