@@ -9,10 +9,6 @@ import (
 )
 
 var (
-	// DefaultName default node name
-	DefaultName = "Paseo"
-	// DefaultID default chain ID
-	DefaultID = "paseo"
 	// DefaultBasePath default node base directory path
 	DefaultBasePath = xdg.DataHome + "/gossamer/paseo"
 	// DefaultChainSpec is the default chain spec configuration path
@@ -23,8 +19,6 @@ var (
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
 	config.BasePath = DefaultBasePath
-	config.ID = DefaultID
-	config.Name = DefaultName
 	config.ChainSpec = DefaultChainSpec
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
