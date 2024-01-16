@@ -116,7 +116,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		return
 	}
 
-	attested, err := rpState.table.attestedCandidate(&summary.Candidate, &rpState.tableContext)
+	attested, err := rpState.table.attestedCandidate(summary.Candidate, &rpState.tableContext)
 	if err != nil {
 		logger.Error(err.Error())
 	}

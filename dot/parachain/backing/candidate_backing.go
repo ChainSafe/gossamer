@@ -123,9 +123,12 @@ type validator struct {
 
 // GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
-type GetBackedCandidatesMessage []struct {
-	CandidateHash        parachaintypes.CandidateHash
-	CandidateRelayParent common.Hash
+type GetBackedCandidatesMessage struct {
+	Candidates []struct {
+		CandidateHash        parachaintypes.CandidateHash
+		CandidateRelayParent common.Hash
+	}
+	ResCh chan []*parachaintypes.BackedCandidate
 }
 
 // CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
@@ -217,7 +220,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 	switch msg := msg.(type) {
 	case GetBackedCandidatesMessage:
-		cb.handleGetBackedCandidatesMessage()
+		cb.handleGetBackedCandidatesMessage(msg)
 	case CanSecondMessage:
 		cb.handleCanSecondMessage(msg)
 	case SecondMessage:
@@ -240,10 +243,6 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
 
 func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
 	// TODO #3644
-}
-
-func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
-	// TODO: Implement this #3504
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.
