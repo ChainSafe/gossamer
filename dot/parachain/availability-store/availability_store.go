@@ -359,7 +359,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
-	err := av.availabilityStore.storeAvailableData(msg.CandidateHash, msg.AvailableData)
+	err := av.availabilityStore.storeAvailableData(msg.CandidateHash.Value, msg.AvailableData)
 	if err != nil {
 		msg.Sender <- err
 		return fmt.Errorf("store available data: %w", err)

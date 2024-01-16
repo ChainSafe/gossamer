@@ -6,29 +6,11 @@ package parachaintypes
 import "github.com/ChainSafe/gossamer/lib/common"
 
 var (
-	_ ProvisionerMessage           = (*ProvisionerMessageProvisionableData)(nil)
-	_ ProvisionableData            = (*ProvisionableDataBackedCandidate)(nil)
-	_ ProvisionableData            = (*ProvisionableDataMisbehaviorReport)(nil)
-	_ Misbehaviour                 = (*MultipleCandidates)(nil)
-	_ Misbehaviour                 = (*UnauthorizedStatement)(nil)
-	_ Misbehaviour                 = (*IssuedAndValidity)(nil)
-	_ Misbehaviour                 = (*OnSeconded)(nil)
-	_ Misbehaviour                 = (*OnValidity)(nil)
-	_ DoubleSign                   = (*OnSeconded)(nil)
-	_ DoubleSign                   = (*OnValidity)(nil)
-	_ StatementDistributionMessage = (*StatementDistributionMessageBacked)(nil)
-	_ CollatorProtocolMessage      = (*CollatorProtocolMessageBacked)(nil)
-	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateBacked)(nil)
-	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageIntroduceCandidate)(nil)
-	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateSeconded)(nil)
-	_ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageGetHypotheticalFrontier)(nil)
-	_ HypotheticalCandidate        = (*HypotheticalCandidateIncomplete)(nil)
-	_ HypotheticalCandidate        = (*HypotheticalCandidateComplete)(nil)
-	_ RuntimeApiMessage            = (*RuntimeApiMessageRequest)(nil)
-	_ RuntimeApiRequest            = (*RuntimeApiRequestValidationCodeByHash)(nil)
-	_ CandidateValidationMessage   = (*CandidateValidationMessageValidateFromExhaustive)(nil)
-	_ AvailabilityStoreMessage     = (*AvailabilityStoreMessageStoreAvailableData)(nil)
-	_ ValidityDoubleVote           = (*IssuedAndValidity)(nil)
+	_ ProvisionableData     = (*ProvisionableDataBackedCandidate)(nil)
+	_ ProvisionableData     = (*ProvisionableDataMisbehaviorReport)(nil)
+	_ RuntimeApiRequest     = (*RuntimeApiRequestValidationCodeByHash)(nil)
+	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
+	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
 )
 
 // OverseerFuncRes is a result of an overseer function
@@ -37,19 +19,12 @@ type OverseerFuncRes[T any] struct {
 	Data T
 }
 
-// ProvisionerMessage is a message to the Provisioner.
-type ProvisionerMessage interface {
-	IsProvisionerMessage()
-}
-
 // ProvisionerMessageProvisionableData is a provisioner message.
 // This data should become part of a relay chain block.
 type ProvisionerMessageProvisionableData struct {
 	RelayParent       common.Hash
 	ProvisionableData ProvisionableData
 }
-
-func (ProvisionerMessageProvisionableData) IsProvisionerMessage() {}
 
 // ProvisionableData becomes intrinsics or extrinsics which should be included in a future relay chain block.
 type ProvisionableData interface {
@@ -70,120 +45,12 @@ type ProvisionableDataMisbehaviorReport struct {
 
 func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
 
-// Misbehaviour is intended to represent different kinds of misbehaviour along with supporting proofs.
-type Misbehaviour interface {
-	IsMisbehaviour()
-}
-
-// ValidityDoubleVote misbehaviour: voting more than one way on candidate validity.
-// Since there are three possible ways to vote, a double vote is possible in
-// three possible combinations (unordered)
-type ValidityDoubleVote interface {
-	Misbehaviour
-	IsValidityDoubleVote()
-}
-
-// IssuedAndValidity represents an implicit vote by issuing and explicit voting for validity.
-type IssuedAndValidity struct {
-	CommittedCandidateReceiptAndSign CommittedCandidateReceiptAndSign
-	CandidateHashAndSign             struct {
-		CandidateHash CandidateHash
-		Signature     ValidatorSignature
-	}
-}
-
-func (IssuedAndValidity) IsMisbehaviour()       {}
-func (IssuedAndValidity) IsValidityDoubleVote() {}
-
-// CommittedCandidateReceiptAndSign combines a committed candidate receipt and its associated signature.
-type CommittedCandidateReceiptAndSign struct {
-	CommittedCandidateReceipt CommittedCandidateReceipt
-	Signature                 ValidatorSignature
-}
-
-// MultipleCandidates misbehaviour: declaring multiple candidates.
-type MultipleCandidates struct {
-	First  CommittedCandidateReceiptAndSign
-	Second CommittedCandidateReceiptAndSign
-}
-
-func (MultipleCandidates) IsMisbehaviour() {}
-
-// SignedStatement represents signed statements about candidates.
-type SignedStatement struct {
-	Statement StatementVDT       `scale:"1"`
-	Signature ValidatorSignature `scale:"2"`
-	Sender    ValidatorIndex     `scale:"3"`
-}
-
-// UnauthorizedStatement misbehaviour: submitted statement for wrong group.
-type UnauthorizedStatement struct {
-	// A signed statement which was submitted without proper authority.
-	Statement SignedStatement
-}
-
-func (UnauthorizedStatement) IsMisbehaviour() {}
-
-// DoubleSign misbehaviour: multiple signatures on same statement.
-type DoubleSign interface {
-	Misbehaviour
-	IsDoubleSign()
-}
-
-// OnSeconded represents a double sign on a candidate.
-type OnSeconded struct {
-	Candidate CommittedCandidateReceipt
-	Sign1     ValidatorSignature
-	Sign2     ValidatorSignature
-}
-
-func (OnSeconded) IsMisbehaviour() {}
-func (OnSeconded) IsDoubleSign()   {}
-
-// OnValidity represents a double sign on validity.
-type OnValidity struct {
-	CandidateHash CandidateHash
-	Sign1         ValidatorSignature
-	Sign2         ValidatorSignature
-}
-
-func (OnValidity) IsMisbehaviour() {}
-func (OnValidity) IsDoubleSign()   {}
-
-// StatementDistributionMessage is a message to the Statement Distribution subsystem.
-type StatementDistributionMessage interface {
-	IsStatementDistributionMessage()
-}
-
 // StatementDistributionMessageBacked is a statement distribution message.
 // it represents a message indicating that a candidate has received sufficient
 // validity votes from the backing group. If backed as a result of a local statement,
 // it must be preceded by a `Share` message for that statement to ensure awareness of
 // full candidates before the `Backed` notification, even in groups of size 1.
 type StatementDistributionMessageBacked CandidateHash
-
-func (StatementDistributionMessageBacked) IsStatementDistributionMessage() {}
-
-// CollatorProtocolMessage represents messages that are received by the Collator Protocol subsystem.
-type CollatorProtocolMessage interface {
-	IsCollatorProtocolMessage()
-}
-
-// CollatorProtocolMessageBacked is a collator protocol message.
-// The candidate received enough validity votes from the backing group.
-type CollatorProtocolMessageBacked struct {
-	// Candidate's para id.
-	ParaID ParaID
-	// Hash of the para head generated by candidate.
-	ParaHead common.Hash
-}
-
-func (CollatorProtocolMessageBacked) IsCollatorProtocolMessage() {}
-
-// ProspectiveParachainsMessage represents messages that are sent to the Prospective Parachains subsystem.
-type ProspectiveParachainsMessage interface {
-	IsProspectiveParachainsMessage()
-}
 
 // ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
@@ -193,16 +60,12 @@ type ProspectiveParachainsMessageCandidateBacked struct {
 	CandidateHash CandidateHash
 }
 
-func (ProspectiveParachainsMessageCandidateBacked) IsProspectiveParachainsMessage() {}
-
 // ProspectiveParachainsMessageIntroduceCandidate is a prospective parachains message.
 // it inform the Prospective Parachains Subsystem about a new candidate.
 type ProspectiveParachainsMessageIntroduceCandidate struct {
 	IntroduceCandidateRequest IntroduceCandidateRequest
 	Ch                        chan error
 }
-
-func (ProspectiveParachainsMessageIntroduceCandidate) IsProspectiveParachainsMessage() {}
 
 // IntroduceCandidateRequest is a request to introduce a candidate into the Prospective Parachains Subsystem.
 type IntroduceCandidateRequest struct {
@@ -223,8 +86,6 @@ type ProspectiveParachainsMessageCandidateSeconded struct {
 	CandidateHash CandidateHash
 }
 
-func (ProspectiveParachainsMessageCandidateSeconded) IsProspectiveParachainsMessage() {}
-
 // Get the hypothetical frontier membership of candidates with the given properties
 // under the specified active leaves' fragment trees.
 //
@@ -234,8 +95,6 @@ type ProspectiveParachainsMessageGetHypotheticalFrontier struct {
 	HypotheticalFrontierRequest HypotheticalFrontierRequest
 	Ch                          chan HypotheticalFrontierResponse
 }
-
-func (ProspectiveParachainsMessageGetHypotheticalFrontier) IsProspectiveParachainsMessage() {}
 
 // Request specifying which candidates are either already included
 // or might be included in the hypothetical frontier of fragment trees
@@ -300,18 +159,11 @@ type HypotheticalCandidateComplete struct {
 
 func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
 
-// RuntimeApiMessage is a message to the Runtime API subsystem.
-type RuntimeApiMessage interface {
-	IsRuntimeApiMessage()
-}
-
 type RuntimeApiMessageRequest struct {
 	RelayParent common.Hash
 	// Make a request of the runtime API against the post-state of the given relay-parent.
 	RuntimeApiRequest RuntimeApiRequest
 }
-
-func (RuntimeApiMessageRequest) IsRuntimeApiMessage() {}
 
 type RuntimeApiRequest interface {
 	IsRuntimeApiRequest()
@@ -325,12 +177,6 @@ type RuntimeApiRequestValidationCodeByHash struct {
 }
 
 func (RuntimeApiRequestValidationCodeByHash) IsRuntimeApiRequest() {}
-
-// CandidateValidationMessage represents messages received by the Validation subsystem.
-// Validation requests should return an error only in case of internal errors.
-type CandidateValidationMessage interface {
-	IsCandidateValidationMessage()
-}
 
 // CandidateValidationMessageValidateFromExhaustive performs full validation of a candidate with provided parameters,
 // including `PersistedValidationData` and `ValidationCode`. It doesn't involve acceptance
@@ -346,43 +192,10 @@ type CandidateValidationMessageValidateFromExhaustive struct {
 	Ch                      chan OverseerFuncRes[ValidationResult]
 }
 
-func (CandidateValidationMessageValidateFromExhaustive) IsCandidateValidationMessage() {}
-
 // ValidationResult represents the result coming from the candidate validation subsystem.
 type ValidationResult struct {
 	IsValid                 bool
 	CandidateCommitments    CandidateCommitments
 	PersistedValidationData PersistedValidationData
 	Err                     error
-}
-
-// AvailabilityStoreMessage represents messages received by the Availability Store subsystem.
-type AvailabilityStoreMessage interface {
-	IsAvailabilityStoreMessage()
-}
-
-// AvailabilityStoreMessageStoreAvailableData computes and checks the erasure root of `AvailableData`
-// before storing its chunks in the AV store.
-type AvailabilityStoreMessageStoreAvailableData struct {
-	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
-	CandidateHash CandidateHash
-	// The number of validators in the session.
-	NumValidators uint32
-	// The `AvailableData` itself.
-	AvailableData AvailableData
-	// Erasure root we expect to get after chunking.
-	ExpectedErasureRoot common.Hash
-	// channel to send result to.
-	Ch chan error
-}
-
-func (AvailabilityStoreMessageStoreAvailableData) IsAvailabilityStoreMessage() {}
-
-// AvailableData represents the data that is kept available for each candidate included in the relay chain.
-type AvailableData struct {
-	// The Proof-of-Validation (PoV) of the candidate
-	PoV PoV `scale:"1"`
-
-	// The persisted validation data needed for approval checks
-	ValidationData PersistedValidationData `scale:"2"`
 }
