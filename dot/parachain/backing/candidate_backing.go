@@ -221,16 +221,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case CanSecondMessage:
 		cb.handleCanSecondMessage(msg)
 	case SecondMessage:
-		err := cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
-		switch err {
-		case errWrongPVDForSecondingCandidate, errUnknownRelayParentForSecondingCandidate,
-			errParaOutsideAssignmentForSeconding, errAlreadySignedValidStatement:
-			logger.Error(err.Error())
-			return nil
-		default:
-			return err
-		}
-
+		return cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
