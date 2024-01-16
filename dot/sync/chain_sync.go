@@ -105,6 +105,14 @@ type peerViewSet struct {
 	view map[peer.ID]peerView
 }
 
+func (p *peerViewSet) find(pID peer.ID) (view peerView, ok bool) {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
+
+	view, ok = p.view[pID]
+	return view, ok
+}
+
 func (p *peerViewSet) size() int {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()

@@ -597,6 +597,20 @@ func (mr *MockNetworkMockRecorder) AllConnectedPeersIDs() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllConnectedPeersIDs", reflect.TypeOf((*MockNetwork)(nil).AllConnectedPeersIDs))
 }
 
+// BlockAnnounceHandshake mocks base method.
+func (m *MockNetwork) BlockAnnounceHandshake(arg0 *types.Header) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BlockAnnounceHandshake", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BlockAnnounceHandshake indicates an expected call of BlockAnnounceHandshake.
+func (mr *MockNetworkMockRecorder) BlockAnnounceHandshake(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockAnnounceHandshake", reflect.TypeOf((*MockNetwork)(nil).BlockAnnounceHandshake), arg0)
+}
+
 // Peers mocks base method.
 func (m *MockNetwork) Peers() []common.PeerInfo {
 	m.ctrl.T.Helper()

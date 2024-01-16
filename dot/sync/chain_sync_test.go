@@ -319,7 +319,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 
 	chainSync := &chainSync{
 		stopCh:             stopCh,
-		peerView:           make(map[peer.ID]peerView),
+		peerViewSet:        newPeerViewSet(10),
 		syncMode:           state,
 		pendingBlocks:      newDisjointBlockSet(0),
 		workerPool:         newSyncWorkerPool(networkMock, requestMaker),
@@ -417,7 +417,7 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 			cs := tt.newChainSync(t, ctrl)
 			cs.onBlockAnnounceHandshake(tt.peerID, tt.bestHash, tt.bestNumber)
 
-			view, exists := cs.peerView[tt.peerID]
+			view, exists := cs.peerViewSet.find(tt.peerID)
 			require.True(t, exists)
 			require.Equal(t, tt.peerID, view.who)
 			require.Equal(t, tt.bestHash, view.hash)
@@ -486,7 +486,7 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 	}
 
 	chainSync := newChainSync(cfg)
-	chainSync.peerView = peerViewMap
+	chainSync.peerViewSet = &peerViewSet{view: peerViewMap}
 	chainSync.syncMode.Store(bootstrap)
 
 	return chainSync
@@ -1641,21 +1641,23 @@ func TestChainSync_getHighestBlock(t *testing.T) {
 	cases := map[string]struct {
 		expectedHighestBlock uint
 		wantErr              error
-		chainSyncPeerView    map[peer.ID]peerView
+		chainSyncPeerViewSet *peerViewSet
 	}{
 		"no_peer_view": {
 			wantErr:              errNoPeers,
 			expectedHighestBlock: 0,
-			chainSyncPeerView:    make(map[peer.ID]peerView),
+			chainSyncPeerViewSet: newPeerViewSet(10),
 		},
 		"highest_block": {
 			expectedHighestBlock: 500,
-			chainSyncPeerView: map[peer.ID]peerView{
-				peer.ID("peer-A"): {
-					number: 100,
-				},
-				peer.ID("peer-B"): {
-					number: 500,
+			chainSyncPeerViewSet: &peerViewSet{
+				view: map[peer.ID]peerView{
+					peer.ID("peer-A"): {
+						number: 100,
+					},
+					peer.ID("peer-B"): {
+						number: 500,
+					},
 				},
 			},
 		},
@@ -1667,7 +1669,7 @@ func TestChainSync_getHighestBlock(t *testing.T) {
 			t.Parallel()
 
 			chainSync := &chainSync{
-				peerView: tt.chainSyncPeerView,
+				peerViewSet: tt.chainSyncPeerViewSet,
 			}
 
 			highestBlock, err := chainSync.getHighestBlock()
