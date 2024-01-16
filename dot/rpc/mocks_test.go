@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package=rpc . API,TransactionStateAPI
 //
+
 // Package rpc is a generated GoMock package.
 package rpc
 

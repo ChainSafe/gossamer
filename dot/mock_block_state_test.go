@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_block_state_test.go -package dot github.com/ChainSafe/gossamer/dot/network BlockState
 //
+
 // Package dot is a generated GoMock package.
 package dot
 
