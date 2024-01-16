@@ -210,12 +210,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case SecondMessage:
 		cb.handleSecondMessage()
 	case StatementMessage:
-		err := cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
-		if errors.Is(err, errRejectedByProspectiveParachains) || errors.Is(err, errAttestingDataNotFound) {
-			logger.Error(err.Error())
-			return nil
-		}
-		return err
+		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		cb.ProcessActiveLeavesUpdateSignal()
 	case parachaintypes.BlockFinalizedSignal:
@@ -301,6 +296,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		candidateHash := parachaintypes.CandidateHash(statementVDT)
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
+			// polkadot-sdk returs nil error here
 			return errAttestingDataNotFound
 		}
 

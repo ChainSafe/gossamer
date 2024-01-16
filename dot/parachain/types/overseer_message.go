@@ -6,16 +6,9 @@ package parachaintypes
 import "github.com/ChainSafe/gossamer/lib/common"
 
 var (
-	_ ProvisionerMessage = (*ProvisionerMessageProvisionableData)(nil)
-	_ ProvisionableData  = (*ProvisionableDataBackedCandidate)(nil)
-	_ ProvisionableData  = (*ProvisionableDataMisbehaviorReport)(nil)
-	// _ StatementDistributionMessage = (*StatementDistributionMessageBacked)(nil)
-	// _ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateBacked)(nil)
-	// _ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageIntroduceCandidate)(nil)
-	// _ ProspectiveParachainsMessage = (*ProspectiveParachainsMessageCandidateSeconded)(nil)
-	// _ RuntimeApiMessage = (*RuntimeApiMessageRequest)(nil)
+	_ ProvisionableData = (*ProvisionableDataBackedCandidate)(nil)
+	_ ProvisionableData = (*ProvisionableDataMisbehaviorReport)(nil)
 	_ RuntimeApiRequest = (*RuntimeApiRequestValidationCodeByHash)(nil)
-	// _ CandidateValidationMessage   = (*CandidateValidationMessageValidateFromExhaustive)(nil)
 )
 
 // OverseerFuncRes is a result of an overseer function
@@ -24,19 +17,12 @@ type OverseerFuncRes[T any] struct {
 	Data T
 }
 
-// ProvisionerMessage is a message to the Provisioner.
-type ProvisionerMessage interface {
-	IsProvisionerMessage()
-}
-
 // ProvisionerMessageProvisionableData is a provisioner message.
 // This data should become part of a relay chain block.
 type ProvisionerMessageProvisionableData struct {
 	RelayParent       common.Hash
 	ProvisionableData ProvisionableData
 }
-
-func (ProvisionerMessageProvisionableData) IsProvisionerMessage() {}
 
 // ProvisionableData becomes intrinsics or extrinsics which should be included in a future relay chain block.
 type ProvisionableData interface {
