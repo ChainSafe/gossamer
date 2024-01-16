@@ -5,20 +5,21 @@ package westend
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
 var (
-	// defaultBasePath Default node base directory path
-	defaultBasePath = "~/.gossamer/westend"
-	// defaultChainSpec is the default chain specification path
-	defaultChainSpec = "./chain/westend/chain-spec-raw.json"
+	// DefaultBasePath default node base directory path
+	DefaultBasePath = xdg.DataHome + "/gossamer/westend"
+	// DefaultChainSpec is the default chain specification path
+	DefaultChainSpec = "./chain/westend/chain-spec-raw.json"
 )
 
 // DefaultConfig returns a westend node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.BasePath = defaultBasePath
-	config.ChainSpec = defaultChainSpec
+	config.BasePath = DefaultBasePath
+	config.ChainSpec = DefaultChainSpec
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.Core.Role = 1

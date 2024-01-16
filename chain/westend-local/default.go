@@ -5,24 +5,25 @@ package westendlocal
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
-const (
-	// defaultChainSpec is the default chain spec for the westend local node
-	defaultChainSpec = "./chain/westend-local/westend-local-spec-raw.json"
+var (
+	// DefaultChainSpec is the default chain spec for the westend local node
+	DefaultChainSpec = "./chain/westend-local/westend-local-spec-raw.json"
 
 	// DefaultBasePathAlice is the default basepath for the westend local alice node
-	DefaultBasePathAlice = "~/.gossamer/westend-local-alice"
+	DefaultBasePathAlice = xdg.DataHome + "/gossamer/westend-dev/alice"
 	// DefaultBasePathBob is the default basepath for the westend local bob node
-	DefaultBasePathBob = "~/.gossamer/westend-local-bob"
+	DefaultBasePathBob = xdg.DataHome + "/gossamer/westend-dev/bob"
 	// DefaultBasePathCharlie is the default basepath for the westend local charlie node
-	DefaultBasePathCharlie = "~/.gossamer/westend-local-charlie"
+	DefaultBasePathCharlie = xdg.DataHome + "/gossamer/westend-dev/charlie"
 )
 
 // DefaultConfig returns a westend local node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.ChainSpec = defaultChainSpec
+	config.ChainSpec = DefaultChainSpec
 	config.Network.NoMDNS = false
 	config.RPC.RPCExternal = true
 	config.RPC.UnsafeRPC = true

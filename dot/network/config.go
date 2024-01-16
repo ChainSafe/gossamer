@@ -10,6 +10,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/libp2p/go-libp2p/core/crypto"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -17,12 +18,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const (
+var (
 	// DefaultKeyFile the default value for KeyFile
 	DefaultKeyFile = "node.key"
 
 	// DefaultBasePath the default value for Config.BasePath
-	DefaultBasePath = "~/.gossamer/gssmr"
+	DefaultBasePath = xdg.DataHome + "/gossamer"
 
 	// DefaultPort the default value for Config.Port
 	DefaultPort = uint16(7000)
