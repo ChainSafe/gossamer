@@ -211,7 +211,7 @@
 - name: S-subsystems-overseer
   color: "#1D76DB"
   aliases: []
-  description: issues related to polkadot host overseer functionality.
+  description: issues related to Polkadot host overseer functionality.
 
 - name: S-subsystems-collator
   color: "#1D76DB"
