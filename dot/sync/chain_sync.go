@@ -249,9 +249,10 @@ func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget ui
 		return nil, syncTarget, false, fmt.Errorf("getting best block header: %w", err)
 	}
 
+	syncTarget = cs.peerViewSet.getTarget()
 	bestBlockNumber := bestBlockHeader.Number
 	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, cs.peerViewSet.getTarget(), isBootstrap, nil
+	return bestBlockHeader, syncTarget, isBootstrap, nil
 }
 
 func (cs *chainSync) bootstrapSync() {
@@ -309,7 +310,6 @@ func (cs *chainSync) getSyncMode() chainSyncState {
 // onBlockAnnounceHandshake sets a peer's best known block
 func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash, bestNumber uint) error {
 	cs.workerPool.fromBlockAnnounce(who)
-
 	cs.peerViewSet.update(who, bestHash, bestNumber)
 
 	if cs.getSyncMode() == bootstrap {
