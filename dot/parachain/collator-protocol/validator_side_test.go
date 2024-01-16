@@ -6,6 +6,7 @@ package collatorprotocol
 import (
 	"testing"
 
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -58,22 +59,22 @@ func TestProcessOverseerMessage(t *testing.T) {
 	}{
 		{
 			description: "CollateOn message fails with message not expected",
-			msg:         CollateOn(2),
+			msg:         collatorprotocolmessages.CollateOn(2),
 			errString:   ErrNotExpectedOnValidatorSide.Error(),
 		},
 		{
 			description: "DistributeCollation message fails with message not expected",
-			msg:         DistributeCollation{},
+			msg:         collatorprotocolmessages.DistributeCollation{},
 			errString:   ErrNotExpectedOnValidatorSide.Error(),
 		},
 		{
 			description: "ReportCollator message fails with peer not found for collator",
-			msg:         ReportCollator(testCollatorID),
+			msg:         collatorprotocolmessages.ReportCollator(testCollatorID),
 			errString:   ErrPeerIDNotFoundForCollator.Error(),
 		},
 		{
 			description: "ReportCollator message succeeds and reports a bad collator",
-			msg:         ReportCollator(testCollatorID),
+			msg:         collatorprotocolmessages.ReportCollator(testCollatorID),
 			net: func() Network {
 				ctrl := gomock.NewController(t)
 				net := NewMockNetwork(ctrl)
@@ -100,7 +101,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 		},
 		{
 			description: "InvalidOverseerMsg message fails with peer not found for collator",
-			msg: InvalidOverseerMsg{
+			msg: collatorprotocolmessages.Invalid{
 				Parent:           testRelayParent,
 				CandidateReceipt: testCandidateReceipt,
 			},
@@ -122,7 +123,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 		},
 		{
 			description: "InvalidOverseerMsg message succeeds, reports a bad collator and removes fetchedCandidate",
-			msg: InvalidOverseerMsg{
+			msg: collatorprotocolmessages.Invalid{
 				Parent:           testRelayParent,
 				CandidateReceipt: testCandidateReceipt,
 			},
@@ -166,7 +167,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 		},
 		{
 			description: "SecondedOverseerMsg message fails with peer not found for collator and removes fetchedCandidate",
-			msg: SecondedOverseerMsg{
+			msg: collatorprotocolmessages.Seconded{
 				Parent: testRelayParent,
 				Stmt: func() parachaintypes.UncheckedSignedFullStatement {
 					vdt := parachaintypes.NewStatementVDT()
@@ -198,7 +199,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 		},
 		{
 			description: "SecondedOverseerMsg message succceds, reports a good collator and removes fetchedCandidate",
-			msg: SecondedOverseerMsg{
+			msg: collatorprotocolmessages.Seconded{
 				Parent: testRelayParent,
 				Stmt: func() parachaintypes.UncheckedSignedFullStatement {
 					vdt := parachaintypes.NewStatementVDT()

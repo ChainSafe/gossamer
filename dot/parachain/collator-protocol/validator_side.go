@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -47,7 +48,7 @@ var (
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
@@ -55,7 +56,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 		// TODO: polkadot-rust changes reputation in batches, so we do the same?
 		case msg, ok := <-cpvs.OverseerToSubSystem:
 			if !ok {
-				return nil
+				return
 			}
 
 			err := cpvs.processMessage(msg)
@@ -86,7 +87,6 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 			if err := cpvs.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
-			return nil
 		}
 	}
 }
@@ -189,19 +189,19 @@ func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, par
 
 func IsRelayParentInImplicitView(
 	relayParent common.Hash,
-	relayParentMode ProspectiveParachainsMode,
+	relayParentMode parachaintypes.ProspectiveParachainsMode,
 	implicitView ImplicitView,
-	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode,
 	paraID parachaintypes.ParaID,
 ) bool {
-	if !relayParentMode.isEnabled {
+	if !relayParentMode.IsEnabled {
 		_, ok := activeLeaves[relayParent]
 		return ok
 	}
 
 	for hash, mode := range activeLeaves {
 		knownAllowedRelayParent := implicitView.KnownAllowedRelayParentsUnder(hash, paraID)
-		if mode.isEnabled && knownAllowedRelayParent.String() == relayParent.String() {
+		if mode.IsEnabled && knownAllowedRelayParent.String() == relayParent.String() {
 			return true
 		}
 	}
@@ -214,10 +214,10 @@ func IsRelayParentInImplicitView(
 // declared itself a collator.
 func (peerData *PeerData) InsertAdvertisement(
 	onRelayParent common.Hash,
-	relayParentMode ProspectiveParachainsMode,
+	relayParentMode parachaintypes.ProspectiveParachainsMode,
 	candidateHash *parachaintypes.CandidateHash,
 	implicitView ImplicitView,
-	activeLeaves map[common.Hash]ProspectiveParachainsMode,
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode,
 ) (isAdvertisementInvalid bool, err error) {
 	switch peerData.state.PeerState {
 	case Connected:
@@ -228,14 +228,14 @@ func (peerData *PeerData) InsertAdvertisement(
 			return false, ErrOutOfView
 		}
 
-		if relayParentMode.isEnabled {
+		if relayParentMode.IsEnabled {
 			// relayParentMode.maxCandidateDepth
 			candidates, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
 			if ok && slices.Contains[[]parachaintypes.CandidateHash](candidates, *candidateHash) {
 				return false, ErrDuplicateAdvertisement
 			}
 
-			if len(candidates) > int(relayParentMode.maxCandidateDepth) {
+			if len(candidates) > int(relayParentMode.MaxCandidateDepth) {
 				return false, ErrPeerLimitReached
 			}
 			candidates = append(candidates, *candidateHash)
@@ -350,7 +350,7 @@ type CollatorProtocolValidatorSide struct {
 	/// support prospective parachains. This mapping works as a replacement for
 	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
 	/// to asynchronous backing is done.
-	activeLeaves map[common.Hash]ProspectiveParachainsMode
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode
 
 	// Collations that we have successfully requested from peers and waiting
 	// on validation.
@@ -372,23 +372,8 @@ func (f fetchedCollationInfo) String() string {
 		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
 }
 
-// Prospective parachains mode of a relay parent. Defined by
-// the Runtime API version.
-//
-// Needed for the period of transition to asynchronous backing.
-type ProspectiveParachainsMode struct {
-	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
-	isEnabled bool
-
-	// these values would be present only if `isEnabled` is true
-
-	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
-	// Restricts nodes from building arbitrary long chains and spamming other validators.
-	maxCandidateDepth uint
-}
-
 type PerRelayParent struct {
-	prospectiveParachainMode ProspectiveParachainsMode
+	prospectiveParachainMode parachaintypes.ProspectiveParachainsMode
 	assignment               *parachaintypes.ParaID
 	collations               Collations
 }
@@ -403,10 +388,10 @@ type Collations struct {
 }
 
 // IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
-func (collations Collations) IsSecondedLimitReached(relayParentMode ProspectiveParachainsMode) bool {
+func (collations Collations) IsSecondedLimitReached(relayParentMode parachaintypes.ProspectiveParachainsMode) bool {
 	var secondedLimit uint
-	if relayParentMode.isEnabled {
-		secondedLimit = relayParentMode.maxCandidateDepth + 1
+	if relayParentMode.IsEnabled {
+		secondedLimit = relayParentMode.MaxCandidateDepth + 1
 	} else {
 		secondedLimit = 1
 	}
@@ -425,47 +410,15 @@ func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID par
 	return "", false
 }
 
-type CollateOn parachaintypes.ParaID
-
-type DistributeCollation struct {
-	CandidateReceipt parachaintypes.CandidateReceipt
-	PoV              parachaintypes.PoV
-}
-
-type ReportCollator parachaintypes.CollatorID
-
-type NetworkBridgeUpdate struct {
-	// TODO: not quite sure if we would need this or something similar to this
-}
-
-// SecondedOverseerMsg represents that the candidate we recommended to be seconded was validated successfully.
-type SecondedOverseerMsg struct {
-	Parent common.Hash
-	Stmt   parachaintypes.UncheckedSignedFullStatement
-}
-
-type Backed struct {
-	ParaID parachaintypes.ParaID
-	// Hash of the para head generated by candidate
-	ParaHead common.Hash
-}
-
-// InvalidOverseerMsg represents an invalid candidata.
-// We recommended a particular candidate to be seconded, but it was invalid; penalise the collator.
-type InvalidOverseerMsg struct {
-	Parent           common.Hash
-	CandidateReceipt parachaintypes.CandidateReceipt
-}
-
 func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
-	case CollateOn:
+	case collatorprotocolmessages.CollateOn:
 		return fmt.Errorf("CollateOn %w", ErrNotExpectedOnValidatorSide)
-	case DistributeCollation:
+	case collatorprotocolmessages.DistributeCollation:
 		return fmt.Errorf("DistributeCollation %w", ErrNotExpectedOnValidatorSide)
-	case ReportCollator:
+	case collatorprotocolmessages.ReportCollator:
 		peerID, ok := cpvs.getPeerIDFromCollatorID(parachaintypes.CollatorID(msg))
 		if !ok {
 			return ErrPeerIDNotFoundForCollator
@@ -474,10 +427,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			Value:  peerset.ReportBadCollatorValue,
 			Reason: peerset.ReportBadCollatorReason,
 		}, peerID)
-	case NetworkBridgeUpdate:
+	case collatorprotocolmessages.NetworkBridgeUpdate:
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
-	case SecondedOverseerMsg:
+	case collatorprotocolmessages.Seconded:
 		statementV, err := msg.Stmt.Payload.Value()
 		if err != nil {
 			return fmt.Errorf("getting value of statement: %w", err)
@@ -550,9 +503,9 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			// TODO: Few more things for async backing, but we don't have async backing yet
 			// https://github.com/paritytech/polkadot-sdk/blob/7035034710ecb9c6a786284e5f771364c520598d/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1531-L1532
 		}
-	case Backed:
+	case collatorprotocolmessages.Backed:
 		// TODO: handle backed message https://github.com/ChainSafe/gossamer/issues/3517
-	case InvalidOverseerMsg:
+	case collatorprotocolmessages.Invalid:
 		invalidOverseerMsg := msg
 
 		fetchedCollation, err := newFetchedCollationInfo(msg.CandidateReceipt)

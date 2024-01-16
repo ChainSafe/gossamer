@@ -382,10 +382,12 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
 	}
-	msgSenderChan := make(chan any)
+	msgSenderChan := make(chan error)
 	msg := StoreAvailableData{
-		CandidateHash:       common.Hash{0x01},
-		NValidators:         0,
+		CandidateHash: parachaintypes.CandidateHash{
+			Value: common.Hash{0x01},
+		},
+		NumValidators:       0,
 		AvailableData:       AvailableData{},
 		ExpectedErasureRoot: common.Hash{},
 		Sender:              msgSenderChan,
