@@ -18,9 +18,9 @@ type NetworkBridgeUpdate struct {
 	// TODO: not quite sure if we would need this or something similar to this
 }
 
-// SecondedOverseerMsg represents that the candidate we recommended to be seconded was validated
+// Seconded represents that the candidate we recommended to be seconded was validated
 // successfully.
-type SecondedOverseerMsg struct {
+type Seconded struct {
 	Parent common.Hash
 	Stmt   parachaintypes.UncheckedSignedFullStatement
 }
@@ -32,9 +32,9 @@ type Backed struct {
 	ParaHead common.Hash
 }
 
-// InvalidOverseerMsg represents an invalid candidata.
+// Invalid represents an invalid candidata.
 // We recommended a particular candidate to be seconded, but it was invalid; penalise the collator.
-type InvalidOverseerMsg struct {
+type Invalid struct {
 	Parent           common.Hash
 	CandidateReceipt parachaintypes.CandidateReceipt
 }

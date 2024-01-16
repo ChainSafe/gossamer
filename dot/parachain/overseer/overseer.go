@@ -11,7 +11,7 @@ import (
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
-	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -110,9 +110,9 @@ func (o *Overseer) processMessages() {
 			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
-			case collatorprotocol.CollateOn, collatorprotocol.DistributeCollation, collatorprotocol.ReportCollator,
-				collatorprotocol.Backed, collatorprotocol.AdvertiseCollation, collatorprotocol.InvalidOverseerMsg,
-				collatorprotocol.SecondedOverseerMsg:
+			case collatorprotocolmessages.CollateOn, collatorprotocolmessages.DistributeCollation,
+				collatorprotocolmessages.ReportCollator, collatorprotocolmessages.Backed,
+				collatorprotocolmessages.Invalid, collatorprotocolmessages.Seconded:
 
 				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
 
