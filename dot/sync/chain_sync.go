@@ -169,17 +169,13 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	}
 }
 
-func (cs *chainSync) retrieveTargetFromBootnodes() error {
-	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return err
-	}
-
-	return cs.network.BlockAnnounceHandshake(highestFinalizedHeader)
-}
-
 func (cs *chainSync) waitWorkersAndTarget() {
 	waitPeersTimer := time.NewTimer(cs.waitPeersDuration)
+
+	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get highest finalised header: %v", err))
+	}
 
 	for {
 		cs.workerPool.useConnectedPeers()
@@ -188,6 +184,11 @@ func (cs *chainSync) waitWorkersAndTarget() {
 		if totalAvailable >= uint(cs.minPeers) &&
 			cs.peerViewSet.getTarget() > 0 {
 			return
+		}
+
+		err := cs.network.BlockAnnounceHandshake(highestFinalizedHeader)
+		if err != nil && !errors.Is(err, network.ErrNoPeersConnected) {
+			logger.Errorf("retrieving target info from peers: %v", err)
 		}
 
 		select {
@@ -206,11 +207,6 @@ func (cs *chainSync) start() {
 
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
-
-	err := cs.retrieveTargetFromBootnodes()
-	if err != nil {
-		logger.Errorf("failed retrieve target from bootnodes: %v", err)
-	}
 
 	// wait until we have a minimal workers in the sync worker pool
 	cs.waitWorkersAndTarget()
