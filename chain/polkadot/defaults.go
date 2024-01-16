@@ -11,7 +11,7 @@ var (
 	// defaultBasePath Default node base directory path
 	defaultBasePath = "~/.gossamer/polkadot"
 	// defaultChainSpec is the default chain spec configuration path
-	defaultChainSpec = "./chain/polkadot/genesis.json"
+	defaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
 )
 
 // DefaultConfig returns a polkadot node configuration
