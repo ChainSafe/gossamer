@@ -4,6 +4,8 @@
 package node
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
 )
@@ -136,20 +138,19 @@ type NodeHandle interface {
 }
 type (
 	Hash struct {
-		Value []byte
+		Data []byte
 	}
 	Inline struct {
-		Value []byte
+		Data []byte
 	}
 )
 
 func (h Hash) Type() string   { return "Hash" }
 func (h Inline) Type() string { return "Inline" }
 
-func DecodeHash[H hashdb.HashOut](data []byte, hasher hashdb.Hasher[H]) *H {
+func DecodeHash[H hashdb.HashOut](hasher hashdb.Hasher[H], data []byte) (H, error) {
 	if len(data) != hasher.Length() {
-		return nil
+		return hasher.FromBytes([]byte{}), errors.New("decoding hash")
 	}
-	hash := hasher.FromBytes(data)
-	return &hash
+	return hasher.FromBytes(data), nil
 }

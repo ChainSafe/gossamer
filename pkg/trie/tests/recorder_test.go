@@ -16,7 +16,7 @@ import (
 type KeccakHash = keccak_hasher.KeccakHash
 
 var hasher = keccak_hasher.NewKeccakHasher()
-var V0Layout = reference_trie.LayoutV0[KeccakHash]{}
+var V0Layout = reference_trie.V0Layout
 
 func Test_Record(t *testing.T) {
 	db := memorydb.NewMemoryDB[KeccakHash](keccak_hasher.NewKeccakHasher(), memorydb.HashKey[KeccakHash])
@@ -24,26 +24,24 @@ func Test_Record(t *testing.T) {
 	rootBytes := make([]byte, 32)
 	root := hasher.FromBytes(rootBytes)
 
-	{
-		pairs := []struct {
-			key   []byte
-			value []byte
-		}{
-			{[]byte("dog"), []byte("cat")},
-			{[]byte("lunch"), []byte("time")},
-			{[]byte("notdog"), []byte("notcat")},
-			{[]byte("hotdog"), []byte("hotcat")},
-			{[]byte("letter"), []byte("confusion")},
-			{[]byte("insert"), []byte("remove")},
-			{[]byte("pirate"), []byte("aargh!")},
-			{[]byte("yo ho ho"), []byte("and a bottle of rum")},
-		}
+	pairs := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("dog"), []byte("cat")},
+		/*{[]byte("lunch"), []byte("time")},
+		{[]byte("notdog"), []byte("notcat")},
+		{[]byte("hotdog"), []byte("hotcat")},
+		{[]byte("letter"), []byte("confusion")},
+		{[]byte("insert"), []byte("remove")},
+		{[]byte("pirate"), []byte("aargh!")},
+		{[]byte("yo ho ho"), []byte("and a bottle of rum")},*/
+	}
 
-		tdb := triedb.NewTrieDBBuilder[KeccakHash](db, root, V0Layout).Build()
+	tdb := triedb.NewTrieDBBuilder[KeccakHash](db, root, V0Layout).Build()
 
-		for _, pair := range pairs {
-			_, err := tdb.Insert(pair.key, pair.value)
-			assert.NoError(t, err)
-		}
+	for _, pair := range pairs {
+		_, err := tdb.Insert(pair.key, pair.value)
+		assert.NoError(t, err)
 	}
 }

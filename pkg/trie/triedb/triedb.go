@@ -8,7 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/pkg/trie/hashdb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibble"
-	node_types "github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
+	encoded_nodes "github.com/ChainSafe/gossamer/pkg/trie/triedb/node"
 	"github.com/gammazero/deque"
 )
 
@@ -130,23 +130,38 @@ func (tdb *TrieDB[H]) record(
 	}
 }
 
-func (tdb *TrieDB[H]) lookupAndCache(
+func (tdb *TrieDB[H]) getAndCache(
 	hash H,
 	key nibble.Prefix,
 ) (StorageHandle, error) {
+	// We only check the `cache` for a node with `get_node` and don't insert
+	// the node if it wasn't there, because in substrate we only access the node while computing
+	// a new trie (aka some branch). We assume that this node isn't that important to have it being cached.
 	var node Node[H]
 
-	nodeFromCache := tdb.cache.GetNode(hash)
-	if nodeFromCache != nil {
-		tdb.record(TrieAccessNodeOwned[H]{hash: hash, nodeOwned: *nodeFromCache})
-		node = NodeFromNodeOwned(*nodeFromCache, tdb.storage)
-	} else {
+	hasCache := tdb.cache != nil
+
+	if hasCache {
+		nodeFromCache := tdb.cache.GetNode(hash)
+		if nodeFromCache != nil {
+			tdb.record(TrieAccessNodeOwned[H]{hash: hash, nodeOwned: *nodeFromCache})
+			node = NodeFromNodeOwned(*nodeFromCache, tdb.storage)
+		}
+	}
+
+	if node == nil {
 		nodeEncoded := tdb.db.Get(hash, key)
 		if nodeEncoded == nil {
 			return 0, ErrIncompleteDB
 		}
 
 		tdb.record(TrieAccessEncodedNode[H]{hash: hash, encodedNode: *nodeEncoded})
+
+		var err error
+		node, err = NodeFromEncoded(hash, *nodeEncoded, tdb.storage, tdb.layout)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return tdb.storage.alloc(StoredCached[H]{Node: node, Hash: hash}), nil
@@ -277,7 +292,7 @@ func (tdb *TrieDB[H]) fix(node Node[H], key nibble.NibbleSlice) (Node[H], error)
 				case InMemory:
 					stored = tdb.storage.destroy(c.Value)
 				case Hash[H]:
-					handle, err := tdb.lookupAndCache(c.Value, childPrefix)
+					handle, err := tdb.getAndCache(c.Value, childPrefix)
 					if err != nil {
 						return nil, err
 					}
@@ -575,7 +590,7 @@ func (tdb *TrieDB[H]) removeAt(
 	case InMemory:
 		stored = tdb.storage.destroy(h.Value)
 	case Hash[H]:
-		fromCache, err := tdb.lookupAndCache(h.Value, key.Left())
+		fromCache, err := tdb.getAndCache(h.Value, key.Left())
 		if err != nil {
 			return nil, err
 		}
@@ -636,7 +651,7 @@ func (tdb *TrieDB[H]) insertAt(
 	case InMemory:
 		storageHandle = h.Value
 	case Hash[H]:
-		storageHandle, err = tdb.lookupAndCache(h.Value, key.Left())
+		storageHandle, err = tdb.getAndCache(h.Value, key.Left())
 		if err != nil {
 			return InsertAtResult{}, err
 		}
@@ -676,28 +691,47 @@ func (tdb *TrieDB[H]) Insert(key []byte, value []byte) (*TrieValue, error) {
 	return oldVal, nil
 }
 
-func inlineOrHashOwned[H HashOut](child node_types.NodeHandleOwned[H], storage NodeStorage[H]) NodeHandle {
+func inlineOrHashOwned[H HashOut](child encoded_nodes.NodeHandleOwned[H], storage NodeStorage[H]) NodeHandle {
 	switch n := child.(type) {
-	case node_types.NodeHandleOwnedHash[H]:
+	case encoded_nodes.NodeHandleOwnedHash[H]:
 		return Hash[H]{n.Hash}
-	case node_types.NodeHandleOwnedInline[H]:
-		child := NodeFromNodeOwned[H](n.Node, storage)
+	case encoded_nodes.NodeHandleOwnedInline[H]:
+		child := NodeFromNodeOwned(n.Node, storage)
 		return InMemory{storage.alloc(StoredNew[H]{child})}
 	default:
 		panic("Invalid child")
 	}
 }
 
-func NodeFromNodeOwned[H HashOut](nodeOwned node_types.NodeOwned[H], storage NodeStorage[H]) Node[H] {
+func inlineOrHash[H HashOut](parentHash H, child encoded_nodes.NodeHandle, storage NodeStorage[H], layout TrieLayout[H]) (NodeHandle, error) {
+	switch n := child.(type) {
+	case encoded_nodes.Hash:
+		hash, err := encoded_nodes.DecodeHash[H](layout.Codec().Hasher(), n.Data)
+		if err != nil {
+			return nil, errors.New("invalid hash")
+		}
+		return Hash[H]{hash}, nil
+	case encoded_nodes.Inline:
+		child, err := NodeFromEncoded(parentHash, n.Data, storage, layout)
+		if err != nil {
+			return nil, err
+		}
+		return InMemory{storage.alloc(StoredNew[H]{child})}, nil
+	default:
+		panic("Invalid child")
+	}
+}
+
+func NodeFromNodeOwned[H HashOut](nodeOwned encoded_nodes.NodeOwned[H], storage NodeStorage[H]) Node[H] {
 	switch node := nodeOwned.(type) {
-	case node_types.NodeOwnedEmpty:
+	case encoded_nodes.NodeOwnedEmpty:
 		return Empty{}
-	case node_types.NodeOwnedLeaf[H]:
+	case encoded_nodes.NodeOwnedLeaf[H]:
 		return Leaf{
 			encoded: node.PartialKey,
 			value:   node.Value,
 		}
-	case node_types.NodeOwnedNibbledBranch[H]:
+	case encoded_nodes.NodeOwnedNibbledBranch[H]:
 		child := func(i uint) NodeHandle {
 			if node.EncodedChildren[i] != nil {
 				return inlineOrHashOwned(node.EncodedChildren[i], storage)
@@ -715,6 +749,45 @@ func NodeFromNodeOwned[H HashOut](nodeOwned node_types.NodeOwned[H], storage Nod
 			children: children,
 			value:    node.Value,
 		}
+	default:
+		panic("Invalid node")
+	}
+}
+
+func NodeFromEncoded[H HashOut](nodeHash H, data []byte, storage NodeStorage[H], layout TrieLayout[H]) (Node[H], error) {
+	decodedNode, err := layout.Codec().Decode(data)
+	if err != nil {
+		return nil, errors.New("decoding node")
+	}
+	switch node := decodedNode.(type) {
+	case encoded_nodes.Empty:
+		return Empty{}, nil
+	case encoded_nodes.Leaf:
+		return Leaf{
+			encoded: node.PartialKey,
+			value:   node.Value,
+		}, nil
+	case encoded_nodes.NibbledBranch:
+		child := func(i uint) (NodeHandle, error) {
+			if node.Children[i] != nil {
+				return inlineOrHash[H](nodeHash, node.Children[i], storage, layout)
+			}
+			return nil, nil
+		}
+
+		var children [16]NodeHandle
+		for i := uint(0); i < 16; i++ {
+			children[i], err = child(i)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return NibbledBranch{
+			encoded:  node.PartialKey,
+			children: children,
+			value:    node.Value,
+		}, nil
 	default:
 		panic("Invalid node")
 	}

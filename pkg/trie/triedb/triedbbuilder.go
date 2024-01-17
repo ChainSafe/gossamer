@@ -23,6 +23,8 @@ func NewTrieDBBuilder[H hashdb.HashOut](
 	root H,
 	layout TrieLayout[H],
 ) *TrieDBBuilder[H] {
+	root = layout.Codec().HashedNullNode()
+
 	return &TrieDBBuilder[H]{
 		db:       db,
 		root:     root,
@@ -52,7 +54,7 @@ func (self *TrieDBBuilder[H]) Build() *TrieDB[H] {
 		recorder:   self.recorder,
 		storage:    NewEmptyNodeStorage[H](),
 		deathRow:   make(map[string]nibble.Prefix),
-		rootHandle: &rootHandle,
+		rootHandle: rootHandle,
 		layout:     self.layout,
 	}
 }

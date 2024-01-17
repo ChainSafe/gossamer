@@ -24,8 +24,8 @@ func (self NodeCodec[H]) HashedNullNode() H {
 	return self.hasher.Hash(self.EmptyNode())
 }
 
-func (self NodeCodec[H]) Hasher() hashdb.Hasher[keccak_hasher.KeccakHash] {
-	return hasher
+func (self NodeCodec[H]) Hasher() hashdb.Hasher[H] {
+	return self.hasher
 }
 
 func (self NodeCodec[H]) EmptyNode() []byte {
@@ -49,9 +49,15 @@ func (self NodeCodec[H]) Decode(data []byte) (node.Node[H], error) {
 	panic("Implement me")
 }
 
+func NewNodeCodecForKeccak() NodeCodec[keccak_hasher.KeccakHash] {
+	return NodeCodec[keccak_hasher.KeccakHash]{hasher}
+}
+
 var _ node.NodeCodec[keccak_hasher.KeccakHash] = NodeCodec[keccak_hasher.KeccakHash]{}
 
-type LayoutV0[H hashdb.HashOut] struct{}
+type LayoutV0[H hashdb.HashOut] struct {
+	codec node.NodeCodec[H]
+}
 
 func (l LayoutV0[H]) AllowEmpty() bool {
 	return true
@@ -62,7 +68,7 @@ func (l LayoutV0[H]) MaxInlineValue() *uint {
 }
 
 func (l LayoutV0[H]) Codec() node.NodeCodec[H] {
-	panic("Implement me")
+	return l.codec
 }
 
-var V0Layout triedb.TrieLayout[hashdb.HashOut] = LayoutV0[hashdb.HashOut]{}
+var V0Layout triedb.TrieLayout[keccak_hasher.KeccakHash] = LayoutV0[keccak_hasher.KeccakHash]{NewNodeCodecForKeccak()}
