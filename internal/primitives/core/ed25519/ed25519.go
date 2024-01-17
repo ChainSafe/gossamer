@@ -23,6 +23,20 @@ type seed [32]byte
 // / A public key.
 type Public [32]byte
 
+func (p Public) ToRawVec() []byte {
+	return p[:]
+}
+
+// / A new instance from the given 32-byte `data`.
+// /
+// / NOTE: No checking goes on to ensure this is a real public key. Only use it if
+// / you are certain that the array actually is a pubkey. GIGO!
+func NewPublic(data [32]byte) Public {
+	return Public(data)
+}
+
+var _ crypto.Public = Public{}
+
 // / Derive a single hard junction.
 // #[cfg(feature = "full_crypto")]
 //
@@ -58,7 +72,7 @@ type Pair struct {
 //	seed: Option<Self::Seed>,
 //
 // ) -> Result<(Self, Option<Self::Seed>), DeriveError>;
-func (p Pair) Derive(path []crypto.DeriveJunction, seed *[32]byte) (crypto.Pair[[32]byte], [32]byte, error) {
+func (p Pair) Derive(path []crypto.DeriveJunction, seed *[32]byte) (crypto.Pair[[32]byte, Signature], [32]byte, error) {
 	var acc [32]byte
 	copy(acc[:], p.secret.Seed())
 	for _, j := range path {
@@ -82,6 +96,35 @@ func (p Pair) Seed() [32]byte {
 	var seed [32]byte
 	copy(seed[:], p.secret.Seed())
 	return seed
+}
+
+// / Get the public key.
+//
+//	fn public(&self) -> Public {
+//		Public(self.public.into())
+//	}
+func (p Pair) Public() crypto.Public {
+	pubKey, ok := p.public.(ed25519.PublicKey)
+	if !ok {
+		panic("huh?")
+	}
+	if len(pubKey) != 32 {
+		panic("huh?")
+	}
+	var pub Public
+	copy(pub[:], pubKey)
+	return pub
+}
+
+// / Sign a message.
+func (p Pair) Sign(message []byte) Signature {
+	signed := ed25519.Sign(p.secret, message)
+	if len(signed) != 64 {
+		panic("huh?")
+	}
+	var sig Signature
+	copy(sig[:], signed)
+	return sig
 }
 
 // / Generate new key pair from the provided `seed`.
@@ -217,7 +260,7 @@ func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed [32]byt
 // 	Self::from_string_with_seed(s, password_override).map(|x| x.0)
 // }
 
-func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair crypto.Pair[[32]byte], seed [32]byte, err error) {
+func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair crypto.Pair[[32]byte, Signature], seed [32]byte, err error) {
 	sURI, err := crypto.NewSecretURI(s)
 	if err != nil {
 		return Pair{}, [32]byte{}, err
@@ -253,12 +296,24 @@ func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair crypto.
 // / Interprets the string `s` in order to generate a key pair.
 // /
 // / See [`from_string_with_seed`](Pair::from_string_with_seed) for more extensive documentation.
-func NewPairFromString(s string, passwordOverride *string) (crypto.Pair[[32]byte], error) {
+func NewPairFromString(s string, passwordOverride *string) (crypto.Pair[[32]byte, Signature], error) {
 	pair, _, err := NewPairFromStringWithSeed(s, passwordOverride)
 	return pair, err
 }
 
-var _ crypto.Pair[[32]byte] = Pair{}
+var _ crypto.Pair[[32]byte, Signature] = Pair{}
 
 // / A signature (a 512-bit value).
 type Signature [64]byte
+
+// / A new instance from the given 64-byte `data`.
+// /
+// / NOTE: No checking goes on to ensure this is a real signature. Only use it if
+// / you are certain that the array actually is a signature. GIGO!
+//
+//	pub fn from_raw(data: [u8; 64]) -> Signature {
+//		Signature(data)
+//	}
+func NewSignature(data [64]byte) Signature {
+	return Signature(data)
+}
