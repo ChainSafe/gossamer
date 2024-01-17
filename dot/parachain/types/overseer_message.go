@@ -109,8 +109,8 @@ type HypotheticalFrontierRequest struct {
 }
 
 type HypotheticalFrontierResponse []struct {
-	HypotheticalCandidate  HypotheticalCandidate
-	FragmentTreeMembership []FragmentTreeMembership
+	HypotheticalCandidate HypotheticalCandidate
+	Memberships           []FragmentTreeMembership
 }
 
 // Indicates the relay-parents whose fragment tree a candidate
