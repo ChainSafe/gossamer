@@ -76,7 +76,7 @@ func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
 	case 1:
 		return MyOtherStruct{}, nil
 	case 2:
-		return *new(MyInt16), nil
+		return MyInt16(0), nil
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
