@@ -21,8 +21,6 @@ var (
 	uint32Max = ^uint32(0)
 	// defaultChainSpecFile is the default genesis file
 	defaultChainSpecFile = "chain-spec-raw.json"
-	// defaultBasePath is the default base path
-	defaultBasePath = xdg.DataHome + "/gossamer"
 	// DefaultLogLevel is the default log level
 	DefaultLogLevel = "info"
 	// DefaultPrometheusPort is the default prometheus port
