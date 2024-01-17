@@ -1,6 +1,8 @@
 package hashing
 
-import "golang.org/x/crypto/blake2b"
+import (
+	"golang.org/x/crypto/blake2b"
+)
 
 // / Do a Blake2 256-bit hash and return result.
 //
@@ -12,8 +14,12 @@ func Blake2_256(data []byte) [32]byte {
 	if err != nil {
 		panic(err)
 	}
-
-	arr := [32]byte{}
-	copy(arr[:], h.Sum(data))
+	_, err = h.Write(data)
+	if err != nil {
+		panic(err)
+	}
+	encoded := h.Sum(nil)
+	var arr [32]byte
+	copy(arr[:], encoded)
 	return arr
 }

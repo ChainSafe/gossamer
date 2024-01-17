@@ -29,6 +29,13 @@ type DeriveJunctions interface {
 	DeriveJunctionSoft | DeriveJunctionHard
 }
 
+func (dj DeriveJunction) Value() any {
+	if dj.inner == nil {
+		panic("nil inner for DeriveJunction")
+	}
+	return dj.inner
+}
+
 // /// Soft (vanilla) derivation. Public keys have a correspondent derivation.
 // Soft([u8; JUNCTION_ID_LEN]),
 type DeriveJunctionSoft [32]byte
@@ -51,7 +58,10 @@ type DeriveJunctionHard [32]byte
 //		DeriveJunction::Hard(self.unwrap_inner())
 //	}
 func (dj *DeriveJunction) Harden() DeriveJunction {
-	dj.inner = DeriveJunctionHard(dj.inner.([32]byte))
+	switch inner := dj.inner.(type) {
+	case DeriveJunctionSoft:
+		dj.inner = DeriveJunctionHard(inner)
+	}
 	return *dj
 }
 
@@ -139,7 +149,7 @@ func NewDeriveJunctionSoft(index any) (DeriveJunctionSoft, error) {
 //			}
 //		}
 //	}
-func NewDeriveJunction(j string) DeriveJunction {
+func NewDeriveJunctionFromString(j string) DeriveJunction {
 	hard := false
 	trimmed := strings.TrimPrefix(j, "/")
 	if trimmed != j {
@@ -171,6 +181,12 @@ func NewDeriveJunction(j string) DeriveJunction {
 		return res.Harden()
 	} else {
 		return res
+	}
+}
+
+func NewDeriveJunction[V DeriveJunctions](value V) DeriveJunction {
+	return DeriveJunction{
+		inner: value,
 	}
 }
 
@@ -315,7 +331,7 @@ type SecretURI struct {
 func NewSecretURI(s string) (SecretURI, error) {
 	matches := secretPhraseRegex.FindStringSubmatch(s)
 	if matches == nil {
-		return SecretURI{}, fmt.Errorf("Invalid format")
+		return SecretURI{}, fmt.Errorf("invalid format")
 	}
 
 	var (
@@ -329,16 +345,19 @@ func NewSecretURI(s string) (SecretURI, error) {
 		}
 		switch name {
 		case "path":
-
 			junctionMatches := junctionRegex.FindAllString(matches[i], -1)
 			for _, jm := range junctionMatches {
-				junctions = append(junctions, NewDeriveJunction(jm))
+				junctions = append(junctions, NewDeriveJunctionFromString(jm))
 			}
 		case "phrase":
-			phrase = matches[i]
+			if matches[i] != "" {
+				phrase = matches[i]
+			}
 		case "password":
-			pw := matches[i]
-			password = &pw
+			if matches[i] != "" {
+				pw := matches[i]
+				password = &pw
+			}
 		}
 	}
 	return SecretURI{
@@ -348,10 +367,14 @@ func NewSecretURI(s string) (SecretURI, error) {
 	}, nil
 }
 
+type seeds interface {
+	[32]byte
+}
+
 // / Trait suitable for typical cryptographic PKI key pair type.
 // /
 // / For now it just specifies how to create a key from a phrase and derivation path.
-type Pair interface {
+type Pair[Seed seeds] interface {
 	// /// The type which is used to encode a public key.
 	// type Public: Public + Hash;
 
@@ -414,6 +437,7 @@ type Pair interface {
 	// 	path: Iter,
 	// 	seed: Option<Self::Seed>,
 	// ) -> Result<(Self, Option<Self::Seed>), DeriveError>;
+	Derive(path []DeriveJunction, seed *Seed) (Pair[Seed], Seed, error)
 
 	// /// Generate new key pair from the provided `seed`.
 	// ///
