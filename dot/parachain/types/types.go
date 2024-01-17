@@ -263,6 +263,10 @@ func (ccr CommittedCandidateReceipt) ToPlain() CandidateReceipt {
 	}
 }
 
+func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
+	return c.ToPlain().Hash()
+}
+
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte
@@ -337,7 +341,7 @@ type CandidateReceipt struct {
 func (cr CandidateReceipt) Hash() (common.Hash, error) {
 	bytes, err := scale.Marshal(cr)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to marshal CommittedCandidateReceipt: %w", err)
+		return common.Hash{}, fmt.Errorf("marshalling CommittedCandidateReceipt: %w", err)
 	}
 
 	return common.Blake2bHash(bytes)
@@ -554,5 +558,46 @@ type Collation struct {
 // ValidatorSignature represents the signature with which parachain validators sign blocks.
 type ValidatorSignature Signature
 
+func (v ValidatorSignature) String() string { return Signature(v).String() }
+
 // Signature represents a cryptographic signature.
 type Signature [64]byte
+
+func (s Signature) String() string { return fmt.Sprintf("0x%x", s[:]) }
+
+// BackedCandidate is a backed (or backable, depending on context) candidate.
+type BackedCandidate struct {
+	// The candidate referred to.
+	Candidate CommittedCandidateReceipt `scale:"1"`
+	// The validity votes themselves, expressed as signatures.
+	ValidityVotes []ValidityAttestation `scale:"2"`
+	// The indices of the validators within the group, expressed as a bitfield.
+	ValidatorIndices scale.BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
+}
+
+type ProspectiveParachainsMode struct {
+	// Runtime API without support of `async_backing_params`: no prospective parachains.
+	// v6 runtime API: prospective parachains.
+	// NOTE: MaxCandidateDepth and AllowedAncestryLen need to be set if this is enabled.
+	IsEnabled bool
+
+	// The maximum number of para blocks between the para head in a relay parent
+	// and a new candidate. Restricts nodes from building arbitrary long chains
+	// and spamming other validators.
+	MaxCandidateDepth uint
+	// How many ancestors of a relay parent are allowed to build candidates on top of.
+	AllowedAncestryLen uint
+}
+
+// UncheckedSignedAvailabilityBitfield a signed bitfield with signature not yet checked
+type UncheckedSignedAvailabilityBitfield struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload scale.BitVec `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}

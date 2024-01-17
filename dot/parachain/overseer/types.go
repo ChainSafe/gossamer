@@ -7,25 +7,14 @@ import (
 	"context"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-// ActivatedLeaf is a parachain head which we care to work on.
-type ActivatedLeaf struct {
-	Hash   common.Hash
-	Number uint32
-}
-
-// ActiveLeavesUpdate changes in the set of active leaves:  the parachain heads which we care to work on.
-//
-// note: activated field indicates deltas, not complete sets.
-type ActiveLeavesUpdate struct {
-	Activated ActivatedLeaf
-}
 
 // Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
-	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error
+	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any)
 	Name() parachaintypes.SubSystemName
+	ProcessActiveLeavesUpdateSignal()
+	ProcessBlockFinalizedSignal()
+	Stop()
 }

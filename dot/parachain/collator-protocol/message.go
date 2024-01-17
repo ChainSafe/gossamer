@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -195,7 +196,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	candidateHash parachaintypes.CandidateHash,
 	parentHeadDataHash common.Hash,
 ) bool {
-	canSecondRequest := backing.CanSecond{
+	canSecondRequest := backing.CanSecondMessage{
 		CandidateParaID:      candidateParaID,
 		CandidateRelayParent: candidateRelayParent,
 		CandidateHash:        candidateHash,
@@ -206,7 +207,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 
 	cpvs.SubSystemToOverseer <- struct {
 		responseChan     chan bool
-		canSecondRequest backing.CanSecond
+		canSecondRequest backing.CanSecondMessage
 	}{
 		responseChan:     responseChan,
 		canSecondRequest: canSecondRequest,
@@ -251,8 +252,12 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 		// limit is not reached, it's allowed to second another collation
 		return cpvs.fetchCollation(pendingCollation)
 	case Seconded:
-		perRelayParent := cpvs.perRelayParent[relayParent]
-		if perRelayParent.prospectiveParachainMode.isEnabled {
+		perRelayParent, ok := cpvs.perRelayParent[relayParent]
+		if !ok {
+			logger.Error("candidate relay parent went out of view for valid advertisement")
+			return ErrRelayParentUnknown
+		}
+		if perRelayParent.prospectiveParachainMode.IsEnabled {
 			return cpvs.fetchCollation(pendingCollation)
 		} else {
 			logger.Debug("a collation has already been seconded")
@@ -263,7 +268,6 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 }
 
 func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation PendingCollation) error {
-
 	var candidateHash *parachaintypes.CandidateHash
 	if pendingCollation.ProspectiveCandidate != nil {
 		candidateHash = &pendingCollation.ProspectiveCandidate.CandidateHash
@@ -296,7 +300,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	prospectiveCandidate *ProspectiveCandidate) error {
 	// TODO:
 	// - tracks advertisements received and the source (peer id) of the advertisement
-
 	// - accept one advertisement per collator per source per relay-parent
 
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
@@ -332,7 +335,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	// Note: Prospective Parachain mode would be set or edited when the view gets updated.
-	if perRelayParent.prospectiveParachainMode.isEnabled && prospectiveCandidate == nil {
+	if perRelayParent.prospectiveParachainMode.IsEnabled && prospectiveCandidate == nil {
 		// Expected v2 advertisement.
 		return ErrProtocolMismatch
 	}
@@ -364,7 +367,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	/*NOTE:---------------------------------------Matters only in V2----------------------------------------------*/
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.isEnabled || cpvs.canSecond(
+	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.IsEnabled || cpvs.canSecond(
 		collatorParaID,
 		relayParent,
 		prospectiveCandidate.CandidateHash,
@@ -376,7 +379,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 			" relay parent: %s, para id: %d, candidate hash: %s",
 			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
-		backed := Backed{
+		backed := collatorprotocolmessages.Backed{
 			ParaID:   collatorParaID,
 			ParaHead: prospectiveCandidate.ParentHeadDataHash,
 		}
@@ -387,8 +390,8 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 			candidateRelayParent: relayParent,
 			candidateHash:        prospectiveCandidate.CandidateHash,
 		}
-
 		cpvs.BlockedAdvertisements[backed.String()] = []BlockedAdvertisement{blockedAdvertisement}
+
 		return nil
 	}
 	/*--------------------------------------------END----------------------------------------------------------*/
@@ -527,7 +530,6 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		}
 		// TODO:
 		// - tracks advertisements received and the source (peer id) of the advertisement
-
 		// - accept one advertisement per collator per source per relay-parent
 
 	case 2: // CollationSeconded

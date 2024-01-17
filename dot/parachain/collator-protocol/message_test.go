@@ -415,7 +415,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 		peerData           map[peer.ID]PeerData
 		perRelayParent     map[common.Hash]PerRelayParent
 		net                Network
-		activeLeaves       map[common.Hash]ProspectiveParachainsMode
+		activeLeaves       map[common.Hash]parachaintypes.ProspectiveParachainsMode
 		errString          string
 	}{
 		{
@@ -509,8 +509,8 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			perRelayParent: map[common.Hash]PerRelayParent{
 				testRelayParent: {
 					assignment: &testParaID,
-					prospectiveParachainMode: ProspectiveParachainsMode{
-						isEnabled: true,
+					prospectiveParachainMode: parachaintypes.ProspectiveParachainsMode{
+						IsEnabled: true,
 					},
 				},
 			},
@@ -561,7 +561,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 				}, peerID)
 				return net
 			}(),
-			activeLeaves: map[common.Hash]ProspectiveParachainsMode{},
+			activeLeaves: map[common.Hash]parachaintypes.ProspectiveParachainsMode{},
 			errString:    ErrSecondedLimitReached.Error(),
 		},
 	}
@@ -608,10 +608,10 @@ func TestInsertAdvertisement(t *testing.T) {
 	testCases := []struct {
 		description     string
 		peerData        PeerData
-		relayParentMode ProspectiveParachainsMode
+		relayParentMode parachaintypes.ProspectiveParachainsMode
 		candidateHash   *parachaintypes.CandidateHash
 		implicitView    ImplicitView
-		activeLeaves    map[common.Hash]ProspectiveParachainsMode
+		activeLeaves    map[common.Hash]parachaintypes.ProspectiveParachainsMode
 		err             error
 	}{
 		{
@@ -632,9 +632,9 @@ func TestInsertAdvertisement(t *testing.T) {
 					PeerState: Collating,
 				},
 			},
-			relayParentMode: ProspectiveParachainsMode{},
+			relayParentMode: parachaintypes.ProspectiveParachainsMode{},
 			candidateHash:   nil,
-			activeLeaves:    map[common.Hash]ProspectiveParachainsMode{},
+			activeLeaves:    map[common.Hash]parachaintypes.ProspectiveParachainsMode{},
 			err:             ErrOutOfView,
 		},
 		{
@@ -651,11 +651,11 @@ func TestInsertAdvertisement(t *testing.T) {
 					},
 				},
 			},
-			relayParentMode: ProspectiveParachainsMode{},
+			relayParentMode: parachaintypes.ProspectiveParachainsMode{},
 			candidateHash:   nil,
-			activeLeaves: map[common.Hash]ProspectiveParachainsMode{
+			activeLeaves: map[common.Hash]parachaintypes.ProspectiveParachainsMode{
 				relayParent: {
-					isEnabled: false,
+					IsEnabled: false,
 				},
 			},
 			err: ErrDuplicateAdvertisement,
@@ -672,11 +672,11 @@ func TestInsertAdvertisement(t *testing.T) {
 					},
 				},
 			},
-			relayParentMode: ProspectiveParachainsMode{},
+			relayParentMode: parachaintypes.ProspectiveParachainsMode{},
 			candidateHash:   &candidateHash,
-			activeLeaves: map[common.Hash]ProspectiveParachainsMode{
+			activeLeaves: map[common.Hash]parachaintypes.ProspectiveParachainsMode{
 				relayParent: {
-					isEnabled: false,
+					IsEnabled: false,
 				},
 			},
 		},
