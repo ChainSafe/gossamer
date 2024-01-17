@@ -124,11 +124,13 @@ type validator struct {
 // GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
 type GetBackedCandidatesMessage struct {
-	Candidates []struct {
-		CandidateHash        parachaintypes.CandidateHash
-		CandidateRelayParent common.Hash
-	}
-	ResCh chan []*parachaintypes.BackedCandidate
+	Candidates []*CandidateHashAndRelayParent
+	ResCh      chan []*parachaintypes.BackedCandidate
+}
+
+type CandidateHashAndRelayParent struct {
+	CandidateHash        parachaintypes.CandidateHash
+	CandidateRelayParent common.Hash
 }
 
 // CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
