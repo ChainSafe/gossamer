@@ -640,7 +640,7 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	msgSenderChan := make(chan error)
 	msg := StoreAvailableData{
 		CandidateHash:       parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-		NValidators:         2,
+		NumValidators:       2,
 		AvailableData:       AvailableData{},
 		ExpectedErasureRoot: common.MustHexToHash("0xc3d486f444a752cbf49857ceb2fce0a235268fb8b63e9e019eab619d192650bc"),
 		Sender:              msgSenderChan,

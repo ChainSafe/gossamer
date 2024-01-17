@@ -80,7 +80,7 @@ type StoreChunk struct {
 // before storing its chunks in the AV store.
 type StoreAvailableData struct {
 	CandidateHash       parachaintypes.CandidateHash
-	NValidators         uint
+	NumValidators       uint32
 	AvailableData       AvailableData
 	ExpectedErasureRoot common.Hash
 	// channel to send result to.

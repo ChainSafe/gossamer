@@ -698,10 +698,11 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
 	// TODO: add to metric on_chunks_received
 
-	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.NValidators, msg.AvailableData,
+	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, uint(msg.NumValidators),
+		msg.AvailableData,
 		msg.ExpectedErasureRoot)
 	if res {
-		msg.Sender <- true
+		// TODO(ed): determine if we need to send a message to overseer
 		return nil
 	}
 	if err != nil && errors.Is(err, errInvalidErasureRoot) {
