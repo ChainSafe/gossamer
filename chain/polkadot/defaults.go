@@ -9,17 +9,17 @@ import (
 )
 
 var (
-	// DefaultBasePath default node base directory path
-	DefaultBasePath = xdg.DataHome + "/gossamer/polkadot"
-	// DefaultChainSpec is the default chain spec configuration path
-	DefaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
+	// defaultBasePath default node base directory path
+	defaultBasePath = xdg.DataHome + "/gossamer/polkadot"
+	// defaultChainSpec is the default chain spec configuration path
+	defaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
 )
 
 // DefaultConfig returns a polkadot node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.BasePath = DefaultBasePath
-	config.ChainSpec = DefaultChainSpec
+	config.BasePath = defaultBasePath
+	config.ChainSpec = defaultChainSpec
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false
 	config.Core.Role = 1

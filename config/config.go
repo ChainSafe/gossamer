@@ -19,10 +19,10 @@ import (
 var (
 	// uint32Max is the maximum value of a uint32
 	uint32Max = ^uint32(0)
-	// DefaultChainSpecFile is the default genesis file
-	DefaultChainSpecFile = "chain-spec-raw.json"
-	// DefaultBasePath is the default base path
-	DefaultBasePath = xdg.DataHome + "/gossamer"
+	// defaultChainSpecFile is the default genesis file
+	defaultChainSpecFile = "chain-spec-raw.json"
+	// defaultBasePath is the default base path
+	defaultBasePath = xdg.DataHome + "/gossamer"
 	// DefaultLogLevel is the default log level
 	DefaultLogLevel = "info"
 	// DefaultPrometheusPort is the default prometheus port
@@ -32,8 +32,8 @@ var (
 	// DefaultPruning is the default pruning strategy
 	DefaultPruning = pruner.Archive
 
-	// DefaultAccount is the default account key
-	DefaultAccount = "alice"
+	// defaultAccount is the default account key
+	defaultAccount = "alice"
 
 	// DefaultRole is the default node role
 	DefaultRole = common.AuthorityRole
@@ -356,7 +356,7 @@ func DefaultConfig() *Config {
 			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
-			Key:    DefaultAccount,
+			Key:    defaultAccount,
 			Unlock: "",
 		},
 		Core: &CoreConfig{
@@ -437,7 +437,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
-			Key:    DefaultAccount,
+			Key:    defaultAccount,
 			Unlock: "",
 		},
 		Core: &CoreConfig{
@@ -630,5 +630,5 @@ func (n NetworkRole) String() string {
 
 // GetChainSpec returns the path to the chain-spec file.
 func GetChainSpec(basePath string) string {
-	return filepath.Join(basePath, DefaultChainSpecFile)
+	return filepath.Join(basePath, defaultChainSpecFile)
 }

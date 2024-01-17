@@ -9,17 +9,17 @@ import (
 )
 
 var (
-	// DefaultBasePath is the default basepath for the westend dev node
-	DefaultBasePath = xdg.DataHome + "/gossamer/westend-dev"
-	// DefaultChainSpec is the default chain spec for the westend dev node
-	DefaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
+	// defaultBasePath is the default basepath for the westend dev node
+	defaultBasePath = xdg.DataHome + "/gossamer/westend-dev"
+	// defaultChainSpec is the default chain spec for the westend dev node
+	defaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
 )
 
 // DefaultConfig returns a westend dev node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
-	config.BasePath = DefaultBasePath
-	config.ChainSpec = DefaultChainSpec
+	config.BasePath = defaultBasePath
+	config.ChainSpec = defaultChainSpec
 	config.RPC.RPCExternal = true
 	config.RPC.UnsafeRPC = true
 	config.RPC.WSExternal = true
