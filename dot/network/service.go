@@ -746,7 +746,7 @@ func (s *Service) startProcessingMsg() {
 
 func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
 	peers := s.host.peers()
-	if len(peers) < 1 {
+	if len(peers) == 0 {
 		return ErrNoPeersConnected
 	}
 
@@ -769,7 +769,7 @@ func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
 			defer wg.Done()
 			stream, err := s.sendHandshake(p, handshake, protocol)
 			if err != nil {
-				logger.Tracef("while sending block announce handshake: %v", err)
+				logger.Tracef("sending block announce handshake: %s", err)
 				return
 			}
 
