@@ -298,10 +298,6 @@ func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation Pendi
 
 func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
 	prospectiveCandidate *ProspectiveCandidate) error {
-	// TODO:
-	// - tracks advertisements received and the source (peer id) of the advertisement
-	// - accept one advertisement per collator per source per relay-parent
-
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
 	if !ok {
 		cpvs.net.ReportPeer(peerset.ReputationChange{
@@ -391,7 +387,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 			candidateHash:        prospectiveCandidate.CandidateHash,
 		}
 		cpvs.BlockedAdvertisements[backed.String()] = []BlockedAdvertisement{blockedAdvertisement}
-
 		return nil
 	}
 	/*--------------------------------------------END----------------------------------------------------------*/
