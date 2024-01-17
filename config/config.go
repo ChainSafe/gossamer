@@ -61,7 +61,7 @@ const (
 	// DefaultSystemName is the default system name
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
-	DefaultSystemVersion = "0.9.0"
+	DefaultSystemVersion = "0.0.0"
 )
 
 // DefaultRPCModules the default RPC modules
@@ -402,7 +402,7 @@ func DefaultConfig() *Config {
 		},
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
-			SystemVersion: DefaultSystemVersion,
+			SystemVersion: GetFullVersion(),
 		},
 	}
 }
@@ -483,7 +483,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 		},
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
-			SystemVersion: DefaultSystemVersion,
+			SystemVersion: GetFullVersion(),
 		},
 	}
 }
