@@ -62,7 +62,8 @@ func main() {
 	//const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
 	//	const westend512StateRoot = "0xe6e996b91f9ec0c2900099754777c13644bb742dd512530dc6230aeaee2c19f9"
 	//const westend5MillionStateRoot = "0x26640792719e73a00872616a3006041ccc2ecbb2d60f5dfa15afbbeee495fc34"
-	const westend11MilStateRoot = "0xd3d88852c309d948a5689c5860d483817a9c26670cde6030091377bc973669cb"
+	const westend7MillionStateRoot = "0x08eae817e3f4fbd43157193e97f6dd51d7b4f3be3c7a584317bf68a8367654dd"
+	//const westend11MilStateRoot = "0xd3d88852c309d948a5689c5860d483817a9c26670cde6030091377bc973669cb"
 	params := fmt.Sprintf(`["%s"]`, blockHash)
 
 	var response modules.StateTrieResponse
@@ -98,7 +99,7 @@ func main() {
 	}
 
 	trieHash := newTrie.MustHash(trie.V0.MaxInlineValue())
-	if westend11MilStateRoot != trieHash.String() {
+	if westend7MillionStateRoot != trieHash.String() {
 		panic(fmt.Sprintf("westendDevStateRoot does not match trieHash"))
 	}
 }
