@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/mdns"
 	"github.com/ChainSafe/gossamer/internal/metrics"
@@ -741,4 +742,44 @@ func (s *Service) startProcessingMsg() {
 			s.processMessage(msg)
 		}
 	}
+}
+
+func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
+	peers := s.host.peers()
+	if len(peers) == 0 {
+		return ErrNoPeersConnected
+	}
+
+	protocol, ok := s.notificationsProtocols[blockAnnounceMsgType]
+	if !ok {
+		panic("block announce message type not found")
+	}
+
+	handshake, err := protocol.getHandshake()
+	if err != nil {
+		return fmt.Errorf("getting handshake: %w", err)
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(peers))
+	for _, p := range peers {
+		protocol.peersData.setMutex(p)
+
+		go func(p peer.ID) {
+			defer wg.Done()
+			stream, err := s.sendHandshake(p, handshake, protocol)
+			if err != nil {
+				logger.Tracef("sending block announce handshake: %s", err)
+				return
+			}
+
+			response := protocol.peersData.getOutboundHandshakeData(p)
+			if response.received && response.validated {
+				closeOutboundStream(protocol, p, stream)
+			}
+		}(p)
+	}
+
+	wg.Wait()
+	return nil
 }
