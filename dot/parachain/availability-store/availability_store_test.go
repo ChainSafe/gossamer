@@ -4,6 +4,7 @@
 package availabilitystore
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,6 +33,8 @@ var (
 			ParentHead: parachaintypes.HeadData{Data: []byte("parentHead")},
 		},
 	}
+
+	testCandidateHash = parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 )
 
 func setupTestDB(t *testing.T) database.Database {
@@ -45,8 +49,12 @@ func setupTestDB(t *testing.T) database.Database {
 		DataAvailable: false,
 		ChunksStored:  []bool{false, false, false},
 	}
-	err = as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, meta)
+
+	dataBytes, err := scale.Marshal(meta)
 	require.NoError(t, err)
+	err = batch.meta.Put(testCandidateHash.Value[:], dataBytes)
+	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -58,8 +66,11 @@ func setupTestDB(t *testing.T) database.Database {
 	require.Equal(t, true, stored)
 
 	batch = newAvailabilityStoreBatch(as)
-	err = as.writeAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testavailableData1)
+	dataBytes, err = scale.Marshal(testavailableData1)
 	require.NoError(t, err)
+	err = batch.available.Put(testCandidateHash.Value[:], dataBytes)
+	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -71,8 +82,11 @@ func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
 
-	err := as.writeAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testavailableData1)
+	dataBytes, err := scale.Marshal(testavailableData1)
 	require.NoError(t, err)
+	err = batch.available.Put(testCandidateHash.Value[:], dataBytes)
+	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -86,8 +100,10 @@ func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 	require.Equal(t, (*AvailableData)(nil), got)
 
 	batch = newAvailabilityStoreBatch(as)
-	err = as.deleteAvailableData(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}})
+
+	err = batch.available.Del(testCandidateHash.Value[:])
 	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -109,8 +125,11 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 		DataAvailable: false,
 		ChunksStored:  []bool{false, false},
 	}
-	err = as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, meta)
+	dataBytes, err := scale.Marshal(meta)
 	require.NoError(t, err)
+	err = batch.meta.Put(parachaintypes.CandidateHash{Value: common.Hash{0x01}}.Value.ToBytes(), dataBytes)
+	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -130,8 +149,9 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	require.Equal(t, &testChunk2, resultChunk)
 
 	batch = newAvailabilityStoreBatch(as)
-	err = as.deleteChunk(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
+	err = batch.chunk.Del(append(testCandidateHash.Value[:], uint32ToBytes(0)...))
 	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -151,8 +171,12 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	meta := &CandidateMeta{
 		State: metaState,
 	}
-	err = as.writeMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}}, *meta)
+
+	dataBytes, err := scale.Marshal(*meta)
 	require.NoError(t, err)
+	err = batch.meta.Put(testCandidateHash.Value[:], dataBytes)
+	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -161,8 +185,10 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	require.Equal(t, meta, got)
 
 	batch = newAvailabilityStoreBatch(as)
-	err = as.deleteMeta(batch, parachaintypes.CandidateHash{Value: common.Hash{0x01}})
+
+	err = batch.meta.Del(testCandidateHash.Value[:])
 	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -180,13 +206,24 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
-	err := as.writeUnfinalizedBlockContains(batch, blockNumber, hash, candidateHash)
+
+	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err := batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	err = as.writeUnfinalizedBlockContains(batch, blockNumber, hash6, candidateHash)
+
+	key = append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(0), hash, candidateHash)
+	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(2), hash, candidateHash)
+	key = append(uint32ToBytesBigEndian(uint32(2)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Put(key, nil)
+
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -209,8 +246,20 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 
 	// delete height, (block 1)
 	batch = newAvailabilityStoreBatch(as)
-	err = as.deleteUnfinalizedHeight(batch, blockNumber)
-	require.NoError(t, err)
+	keyPrefix := append([]byte(unfinalizedPrefix), uint32ToBytesBigEndian(uint32(blockNumber))...)
+	itr := as.unfinalized.NewIterator()
+	defer itr.Release()
+
+	for itr.First(); itr.Valid(); itr.Next() {
+		comp := bytes.Compare(itr.Key()[0:len(keyPrefix)], keyPrefix)
+		if comp < 0 {
+			continue
+		} else if comp > 0 {
+			break
+		}
+		err := batch.unfinalized.Del(itr.Key()[len(unfinalizedPrefix):])
+		require.NoError(t, err)
+	}
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -224,7 +273,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
-	key := append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
@@ -239,13 +288,21 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
-	err := as.writeUnfinalizedBlockContains(batch, blockNumber, hash, candidateHash)
+	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err := batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	err = as.writeUnfinalizedBlockContains(batch, blockNumber, hash6, candidateHash)
+	key = append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(0), hash, candidateHash)
+	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(2), hash, candidateHash)
+	key = append(uint32ToBytesBigEndian(uint32(2)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -268,8 +325,11 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 
 	// delete inclusion, (block 1, hash 2)
 	batch = newAvailabilityStoreBatch(as)
-	err = as.deleteUnfinalizedInclusion(batch, blockNumber, hash, candidateHash)
+	key = append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = batch.unfinalized.Del(key)
 	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -283,7 +343,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key := append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
@@ -296,9 +356,12 @@ func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 	batch := newAvailabilityStoreBatch(as)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
 
-	err := as.writePruningKey(batch, BETimestamp(1), candidateHash)
+	pruneKey := append(BETimestamp(1).ToBigEndianBytes(), candidateHash.Value[:]...)
+	err := batch.pruneByTime.Put(pruneKey, nil)
 	require.NoError(t, err)
-	err = as.writePruningKey(batch, BETimestamp(2), candidateHash)
+
+	pruneKey = append(BETimestamp(2).ToBigEndianBytes(), candidateHash.Value[:]...)
+	err = batch.pruneByTime.Put(pruneKey, nil)
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -318,8 +381,10 @@ func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 
 	// delete pruning key, timestamp 1
 	batch = newAvailabilityStoreBatch(as)
-	err = as.deletePruningKey(batch, BETimestamp(1), candidateHash)
+	pruneKey = append(BETimestamp(1).ToBigEndianBytes(), candidateHash.Value[:]...)
+	err = batch.pruneByTime.Del(pruneKey)
 	require.NoError(t, err)
+
 	err = batch.flush()
 	require.NoError(t, err)
 
@@ -651,7 +716,7 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 		require.NoError(t, err)
 	}()
 	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, true, msgSenderChanResult)
+	require.Equal(t, nil, msgSenderChanResult)
 }
 
 func TestAvailabilityStore_storeAvailableData(t *testing.T) {
