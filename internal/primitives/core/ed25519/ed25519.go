@@ -4,14 +4,40 @@ import (
 	gocrypto "crypto"
 	"crypto/ed25519"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/ChainSafe/go-schnorrkel"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+// / A secret seed (which is bytewise essentially equivalent to a SecretKey).
+// /
+// / We need it as a different type because `Seed` is expected to be AsRef<[u8]>.
+// #[cfg(feature = "full_crypto")]
+// type Seed = [u8; 32];
+type seed [32]byte
 
 // / A public key.
 type Public [32]byte
+
+// / Derive a single hard junction.
+// #[cfg(feature = "full_crypto")]
+//
+//	fn derive_hard_junction(secret_seed: &Seed, cc: &[u8; 32]) -> Seed {
+//		("Ed25519HDKD", secret_seed, cc).using_encoded(sp_core_hashing::blake2_256)
+//	}
+func deriveHardJunction(secretSeed seed, cc [32]byte) seed {
+	tuple := struct {
+		ID         string
+		SecretSeed seed
+		CC         [32]byte
+	}{"Ed25519HDKD", secretSeed, cc}
+	encoded := scale.MustMarshal(tuple)
+	return hashing.Blake2_256(encoded)
+}
 
 // / A key pair.
 // #[cfg(feature = "full_crypto")]
@@ -24,11 +50,58 @@ type Pair struct {
 	secret ed25519.PrivateKey
 }
 
+// / Derive a child key from a series of given junctions.
+// fn derive<Iter: Iterator<Item = DeriveJunction>>(
+//
+//	&self,
+//	path: Iter,
+//	seed: Option<Self::Seed>,
+//
+// ) -> Result<(Self, Option<Self::Seed>), DeriveError>;
+func (p Pair) Derive(path []crypto.DeriveJunction, seed *[32]byte) (crypto.Pair[[32]byte], [32]byte, error) {
+	var acc [32]byte
+	copy(acc[:], p.secret.Seed())
+	for _, j := range path {
+		switch cc := j.Value().(type) {
+		case crypto.DeriveJunctionSoft:
+			return Pair{}, [32]byte{}, fmt.Errorf("soft key in path")
+		case crypto.DeriveJunctionHard:
+			acc = deriveHardJunction(acc, cc)
+		}
+	}
+	pair := NewPairFromSeed(acc)
+	return pair, acc, nil
+}
+
+// / Get the seed for this key.
+//
+//	pub fn seed(&self) -> Seed {
+//		self.secret.into()
+//	}
+func (p Pair) Seed() [32]byte {
+	var seed [32]byte
+	copy(seed[:], p.secret.Seed())
+	return seed
+}
+
 // / Generate new key pair from the provided `seed`.
 // /
 // / @WARNING: THIS WILL ONLY BE SECURE IF THE `seed` IS SECURE. If it can be guessed
 // / by an attacker then they can also derive your key.
-func NewPairFromSeed(seedSlice []byte) Pair {
+//
+//	fn from_seed(seed: &Self::Seed) -> Self {
+//		Self::from_seed_slice(seed.as_ref()).expect("seed has valid length; qed")
+//	}
+func NewPairFromSeed(seed [32]byte) Pair {
+	return NewPairFromSeedSlice(seed[:])
+}
+
+// / Make a new key pair from secret seed material. The slice must be the correct size or
+// / it will return `None`.
+// /
+// / @WARNING: THIS WILL ONLY BE SECURE IF THE `seed` IS SECURE. If it can be guessed
+// / by an attacker then they can also derive your key.
+func NewPairFromSeedSlice(seedSlice []byte) Pair {
 	secret := ed25519.NewKeyFromSeed(seedSlice)
 	public := secret.Public()
 	return Pair{
@@ -57,23 +130,23 @@ func NewPairFromSeed(seedSlice []byte) Pair {
 //		seed_slice[..seed_len].copy_from_slice(&big_seed[..seed_len]);
 //		Self::from_seed_slice(seed_slice).map(|x| (x, seed))
 //	}
-func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed []byte, err error) {
+func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed [32]byte, err error) {
 	pass := ""
 	if password != nil {
 		pass = *password
 	}
 	bigSeed, err := schnorrkel.SeedFromMnemonic(phrase, pass)
 	if err != nil {
-		return Pair{}, nil, err
+		return Pair{}, [32]byte{}, err
 	}
 
 	if !(32 <= len(bigSeed)) {
 		panic("huh?")
 	}
-	var seedSlice []byte
-	copy(seedSlice[:], bigSeed[:32])
 
-	return NewPairFromSeed(seedSlice), seedSlice, nil
+	seedSlice := bigSeed[:][0:32]
+	copy(seed[:], seedSlice)
+	return NewPairFromSeedSlice(seedSlice), seed, nil
 }
 
 // /// Interprets the string `s` in order to generate a key Pair. Returns both the pair and an
@@ -144,10 +217,10 @@ func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed []byte,
 // 	Self::from_string_with_seed(s, password_override).map(|x| x.0)
 // }
 
-func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair Pair, seed []byte, err error) {
+func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair crypto.Pair[[32]byte], seed [32]byte, err error) {
 	sURI, err := crypto.NewSecretURI(s)
 	if err != nil {
-		return Pair{}, nil, err
+		return Pair{}, [32]byte{}, err
 	}
 	var password *string
 	if passwordOverride != nil {
@@ -158,22 +231,34 @@ func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair Pair, s
 
 	var (
 		root Pair
-		seed []byte
+		// seed []byte
 	)
 	trimmedPhrase := strings.TrimPrefix(sURI.Phrase, "0x")
 	if trimmedPhrase != sURI.Phrase {
 		seedBytes, err := hex.DecodeString(trimmedPhrase)
 		if err != nil {
-			return Pair{}, nil, err
+			return Pair{}, [32]byte{}, err
 		}
-		root = NewPairFromSeed(seedBytes)
-		seed = seedBytes
+		root = NewPairFromSeedSlice(seedBytes)
+		copy(seed[:], seedBytes)
 	} else {
-		return NewPairFromPhrase(sURI.Phrase, password)
+		root, seed, err = NewPairFromPhrase(sURI.Phrase, password)
+		if err != nil {
+			return Pair{}, [32]byte{}, err
+		}
 	}
-
-	return Pair{}, nil, nil
+	return root.Derive(sURI.Junctions, &seed)
 }
+
+// / Interprets the string `s` in order to generate a key pair.
+// /
+// / See [`from_string_with_seed`](Pair::from_string_with_seed) for more extensive documentation.
+func NewPairFromString(s string, passwordOverride *string) (crypto.Pair[[32]byte], error) {
+	pair, _, err := NewPairFromStringWithSeed(s, passwordOverride)
+	return pair, err
+}
+
+var _ crypto.Pair[[32]byte] = Pair{}
 
 // / A signature (a 512-bit value).
 type Signature [64]byte
