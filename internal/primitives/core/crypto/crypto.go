@@ -368,7 +368,7 @@ func NewSecretURI(s string) (SecretURI, error) {
 }
 
 type seeds interface {
-	[32]byte
+	~[32]byte
 }
 
 // / Trait suitable for typical cryptographic PKI key pair type.
