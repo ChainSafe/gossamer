@@ -367,14 +367,10 @@ func NewSecretURI(s string) (SecretURI, error) {
 	}, nil
 }
 
-type seeds interface {
-	~[32]byte
-}
-
 // / Trait suitable for typical cryptographic PKI key pair type.
 // /
 // / For now it just specifies how to create a key from a phrase and derivation path.
-type Pair[Seed seeds] interface {
+type Pair[Seed, Signature any] interface {
 	// /// The type which is used to encode a public key.
 	// type Public: Public + Hash;
 
@@ -437,7 +433,7 @@ type Pair[Seed seeds] interface {
 	// 	path: Iter,
 	// 	seed: Option<Self::Seed>,
 	// ) -> Result<(Self, Option<Self::Seed>), DeriveError>;
-	Derive(path []DeriveJunction, seed *Seed) (Pair[Seed], Seed, error)
+	Derive(path []DeriveJunction, seed *Seed) (Pair[Seed, Signature], Seed, error)
 
 	// /// Generate new key pair from the provided `seed`.
 	// ///
@@ -454,14 +450,16 @@ type Pair[Seed seeds] interface {
 	// /// by an attacker then they can also derive your key.
 	// fn from_seed_slice(seed: &[u8]) -> Result<Self, SecretStringError>;
 
-	// /// Sign a message.
+	/// Sign a message.
 	// fn sign(&self, message: &[u8]) -> Self::Signature;
+	Sign(message []byte) Signature
 
 	// /// Verify a signature on a message. Returns true if the signature is good.
 	// fn verify<M: AsRef<[u8]>>(sig: &Self::Signature, message: M, pubkey: &Self::Public) -> bool;
 
-	// /// Get the public key.
+	/// Get the public key.
 	// fn public(&self) -> Self::Public;
+	Public() Public
 
 	// /// Return a vec filled with raw data.
 	// fn to_raw_vec(&self) -> Vec<u8>;
