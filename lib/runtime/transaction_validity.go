@@ -66,23 +66,6 @@ func (mvdt TransactionValidityError) ValueAt(index uint) (value any, err error) 
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// // Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-// func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
-// 	vdt := scale.VaryingDataType(*tve)
-// 	err = vdt.Set(val)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	*tve = TransactionValidityError(vdt)
-// 	return nil
-// }
-
-// // Value will return the value from the underlying VaryingDataType
-// func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
-// 	vdt := scale.VaryingDataType(*tve)
-// 	return vdt.Value()
-// }
-
 // Error will return the error underlying TransactionValidityError
 func (tve TransactionValidityError) Error() string { //skipcq: GO-W1029
 	value, err := tve.Value()
