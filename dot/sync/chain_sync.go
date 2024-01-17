@@ -896,7 +896,6 @@ func (cs *chainSync) handleJustification(header *types.Header, justification []b
 		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 	}
 
-	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
 	return nil
 }
 
