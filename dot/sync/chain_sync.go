@@ -238,17 +238,17 @@ func (cs *chainSync) stop() error {
 	}
 }
 
-func (cs *chainSync) currentSyncInformations() (bestBlockHeader *types.Header, syncTarget uint,
+func (cs *chainSync) currentSyncInformations() (bestBlockHeader *types.Header,
 	isBootstrap bool, err error) {
 	bestBlockHeader, err = cs.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, syncTarget, false, fmt.Errorf("getting best block header: %w", err)
+		return nil, false, fmt.Errorf("getting best block header: %w", err)
 	}
 
-	syncTarget = cs.peerViewSet.getTarget()
+	syncTarget := cs.peerViewSet.getTarget()
 	bestBlockNumber := bestBlockHeader.Number
 	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, syncTarget, isBootstrap, nil
+	return bestBlockHeader, isBootstrap, nil
 }
 
 func (cs *chainSync) bootstrapSync() {
@@ -262,26 +262,11 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, syncTarget, isBootstrap, err := cs.currentSyncInformations()
+		bestBlockHeader, isBootstrap, err := cs.currentSyncInformations()
 		if err != nil {
 			logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
 			return
 		}
-
-		finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			logger.Criticalf("getting highest finalized header: %w", err)
-			return
-		}
-
-		logger.Infof(
-			"🚣 currently syncing, %d peers connected, "+
-				"%d available workers, "+
-				"target block number %d, "+
-				"finalised block number %d with hash %s",
-			len(cs.network.Peers()),
-			cs.workerPool.totalWorkers(),
-			syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
 
 		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
@@ -312,7 +297,7 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 		return nil
 	}
 
-	_, _, isBootstrap, err := cs.currentSyncInformations()
+	_, isBootstrap, err := cs.currentSyncInformations()
 	if err != nil {
 		return fmt.Errorf("getting current sync info: %w", err)
 	}
@@ -348,7 +333,7 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	bestBlockHeader, _, isFarFromTarget, err := cs.currentSyncInformations()
+	bestBlockHeader, isFarFromTarget, err := cs.currentSyncInformations()
 	if err != nil {
 		return fmt.Errorf("getting current sync info: %w", err)
 	}
@@ -563,6 +548,29 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	return nil
 }
 
+func (cs *chainSync) showWorkersStats(syncBegin time.Time, expectedSyncedBlocks uint32) {
+	finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		logger.Criticalf("getting highest finalized header: %w", err)
+		return
+	}
+
+	totalSyncAndImportSeconds := time.Since(syncBegin).Seconds()
+	bps := float64(expectedSyncedBlocks) / totalSyncAndImportSeconds
+	logger.Infof("⛓️ synced %d blocks, "+
+		"took: %.2f seconds, bps: %.2f blocks/second",
+		expectedSyncedBlocks, totalSyncAndImportSeconds, bps)
+
+	logger.Infof(
+		"🚣 currently syncing, %d peers connected, "+
+			"%d available workers, "+
+			"target block number %d, "+
+			"finalised block number %d with hash %s",
+		len(cs.network.Peers()),
+		cs.workerPool.totalWorkers(),
+		cs.peerViewSet.getTarget(), finalisedHeader.Number, finalisedHeader.Hash())
+}
+
 // handleWorkersResults, every time we submit requests to workers they results should be computed here
 // and every cicle we should endup with a complete chain, whenever we identify
 // any error from a worker we should evaluate the error and re-insert the request
@@ -572,13 +580,7 @@ func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
 
 	startTime := time.Now()
-	defer func() {
-		totalSyncAndImportSeconds := time.Since(startTime).Seconds()
-		bps := float64(expectedSyncedBlocks) / totalSyncAndImportSeconds
-		logger.Debugf("⛓️ synced %d blocks, "+
-			"took: %.2f seconds, bps: %.2f blocks/second",
-			expectedSyncedBlocks, totalSyncAndImportSeconds, bps)
-	}()
+	defer cs.showWorkersStats(startTime, expectedSyncedBlocks)
 
 	syncingChain := make([]*types.BlockData, expectedSyncedBlocks)
 	// the total numbers of blocks is missing in the syncing chain
@@ -713,7 +715,7 @@ taskResultLoop:
 	}
 
 	retreiveBlocksSeconds := time.Since(startTime).Seconds()
-	logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
+	logger.Infof("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
 		expectedSyncedBlocks, retreiveBlocksSeconds)
 
 	// response was validated! place into ready block queue
