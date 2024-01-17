@@ -69,6 +69,10 @@ func createGenesisWithRuntime(fp string, genesisSpecFilePath string) (string, er
 		return "", err
 	}
 
+	chainSpec.Genesis.Runtime = &genesis.Runtime{
+		System: &genesis.System{},
+	}
+
 	chainSpec.Genesis.Runtime.System.Code = fmt.Sprintf("0x%x", runtime)
 	jsonSpec, err := json.MarshalIndent(chainSpec, "", "\t")
 	if err != nil {
