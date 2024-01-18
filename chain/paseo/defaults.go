@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// defaultBasePath default node base directory path
+	// defaultBasePath is the default directory base path for paseo node
 	defaultBasePath = xdg.DataHome + "/gossamer/paseo"
 	// defaultChainSpec is the default chain spec configuration path
 	defaultChainSpec = "./chain/paseo/chain-spec-raw.json"

@@ -16,7 +16,7 @@ import (
 	"github.com/adrg/xdg"
 )
 
-var (
+const (
 	// uint32Max is the maximum value of a uint32
 	uint32Max = ^uint32(0)
 	// defaultChainSpecFile is the default genesis file

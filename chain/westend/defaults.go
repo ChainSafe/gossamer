@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// defaultBasePath default node base directory path
+	// defaultBasePath is the default base directory path for westend node
 	defaultBasePath = xdg.DataHome + "/gossamer/westend"
 	// defaultChainSpec is the default chain specification path
 	defaultChainSpec = "./chain/westend/chain-spec-raw.json"

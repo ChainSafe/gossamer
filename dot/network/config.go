@@ -18,12 +18,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var (
+// DefaultBasePath the default value for Config.BasePath
+var DefaultBasePath = xdg.DataHome + "/gossamer"
+
+const (
 	// DefaultKeyFile the default value for KeyFile
 	DefaultKeyFile = "node.key"
-
-	// DefaultBasePath the default value for Config.BasePath
-	DefaultBasePath = xdg.DataHome + "/gossamer"
 
 	// DefaultPort the default value for Config.Port
 	DefaultPort = uint16(7000)

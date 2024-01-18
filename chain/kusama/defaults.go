@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	// defaultBasePath default node base directory path
+	// defaultBasePath is the default base directory path for kusama node
 	defaultBasePath = xdg.DataHome + "/gossamer/kusama"
 	// defaultChainSpec is the default chain-spec json path
 	defaultChainSpec = "./chain/kusama/chain-spec-raw.json"

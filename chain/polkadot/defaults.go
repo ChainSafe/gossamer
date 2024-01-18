@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// defaultBasePath default node base directory path
+	// defaultBasePath is default base directory path for polkadot node
 	defaultBasePath = xdg.DataHome + "/gossamer/polkadot"
 	// defaultChainSpec is the default chain spec configuration path
 	defaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
