@@ -13,11 +13,11 @@ var (
 	defaultChainSpec = "./chain/westend-local/westend-local-spec-raw.json"
 
 	// defaultBasePathAlice is the default basepath for the westend local alice node
-	defaultBasePathAlice = xdg.DataHome + "/gossamer/westend-dev/alice"
+	defaultBasePathAlice = xdg.DataHome + "/gossamer/westend-local/alice"
 	// defaultBasePathBob is the default basepath for the westend local bob node
-	defaultBasePathBob = xdg.DataHome + "/gossamer/westend-dev/bob"
+	defaultBasePathBob = xdg.DataHome + "/gossamer/westend-local/bob"
 	// defaultBasePathCharlie is the default basepath for the westend local charlie node
-	defaultBasePathCharlie = xdg.DataHome + "/gossamer/westend-dev/charlie"
+	defaultBasePathCharlie = xdg.DataHome + "/gossamer/westend-local/charlie"
 )
 
 // DefaultConfig returns a westend local node configuration
