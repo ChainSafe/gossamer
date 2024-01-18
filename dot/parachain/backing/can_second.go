@@ -39,9 +39,9 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) {
 		return
 	}
 
-	for _, v := range membership {
+	for _, fragmentTree := range membership {
 		// candidate should be recognised by at least some fragment tree.
-		if v != nil {
+		if len(fragmentTree) != 0 {
 			msg.ResCh <- true
 			return
 		}
@@ -103,7 +103,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 			if ok {
 				var depths []uint
 				for _, val := range res {
-					for _, membership := range val.FragmentTreeMembership {
+					for _, membership := range val.Memberships {
 						depths = append(depths, membership.Depths...)
 					}
 				}

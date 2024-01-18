@@ -14,12 +14,12 @@ import (
 
 var (
 	errWrongPVDForSecondingCandidate = errors.New(
-		"candidate backing was asked to second candidate with wrong persisted validation data")
+		"incorrect persisted validation data provided for seconding candidate")
 	errUnknownRelayParentForSecondingCandidate = errors.New(
-		"we were asked to second a candidate outside of our view")
+		"attempted to second a candidate outside of our view")
 	errParaOutsideAssignmentForSeconding = errors.New(
-		"subsystem asked to second for parachain outside of our assignment")
-	errAlreadySignedValidStatement = errors.New("we have already signed a valid statement for this candidate")
+		"subsystem requested to second for parachain beyond our assignment scope")
+	errAlreadySignedValidStatement = errors.New("already signed a valid statement for this candidate")
 )
 
 func (cb *CandidateBacking) handleSecondMessage(
