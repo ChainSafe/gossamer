@@ -320,7 +320,7 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	// TODO: https://github.com/ChainSafe/gossamer/issues/3432
 	cs.workerPool.fromBlockAnnounce(announced.who)
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
-		return fmt.Errorf("%w: block #%d  (%s)",
+		return fmt.Errorf("%w: block #%d (%s)",
 			errAlreadyInDisjointSet, announced.header.Number, announced.header.Hash())
 	}
 
