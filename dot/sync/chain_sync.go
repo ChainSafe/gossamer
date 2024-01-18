@@ -566,10 +566,15 @@ func (cs *chainSync) showWorkersStats(syncBegin time.Time, expectedSyncedBlocks 
 		"🚣 currently syncing, %d peers connected, "+
 			"%d available workers, "+
 			"target block number %d, "+
-			"finalised block number %d with hash %s",
+			"finalised #%d (%s) "+
+			"sync mode: %s",
 		len(cs.network.Peers()),
 		cs.workerPool.totalWorkers(),
-		cs.peerViewSet.getTarget(), finalisedHeader.Number, finalisedHeader.Hash())
+		cs.peerViewSet.getTarget(),
+		finalisedHeader.Number,
+		finalisedHeader.Hash().Short(),
+		cs.getSyncMode().String(),
+	)
 }
 
 // handleWorkersResults, every time we submit requests to workers they results should be computed here
