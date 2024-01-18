@@ -92,36 +92,10 @@ func TestHandleBlockEvents(t *testing.T) {
 		for {
 			select {
 			case msg := <-overseerToSubSystem1:
-				if msg == nil {
-					continue
-				}
-
-				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
-				if ok {
-					finalizedCounter.Add(1)
-				}
-
-				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
-				if ok {
-					importedCounter.Add(1)
-				}
-
+				incrementCounters(t, msg, &finalizedCounter, &importedCounter)
 			case msg := <-overseerToSubSystem2:
-				if msg == nil {
-					continue
-				}
-
-				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
-				if ok {
-					finalizedCounter.Add(1)
-				}
-
-				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
-				if ok {
-					importedCounter.Add(1)
-				}
+				incrementCounters(t, msg, &finalizedCounter, &importedCounter)
 			}
-
 		}
 	}()
 
@@ -137,4 +111,19 @@ func TestHandleBlockEvents(t *testing.T) {
 
 	require.Equal(t, int32(2), finalizedCounter.Load())
 	require.Equal(t, int32(2), importedCounter.Load())
+}
+
+func incrementCounters(t *testing.T, msg any, finalizedCounter *atomic.Int32, importedCounter *atomic.Int32) {
+	t.Helper()
+
+	if msg == nil {
+		return
+	}
+
+	switch msg.(type) {
+	case parachaintypes.BlockFinalizedSignal:
+		finalizedCounter.Add(1)
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		importedCounter.Add(1)
+	}
 }
