@@ -23,8 +23,14 @@ type seed [32]byte
 // / A public key.
 type Public [32]byte
 
+// / Return a `Vec<u8>` filled with raw data.
 func (p Public) ToRawVec() []byte {
 	return p[:]
+}
+
+// / Verify a signature on a message. Returns true if the signature is good.
+func (p Public) Verify(sig Signature, message []byte) bool {
+	return ed25519.Verify(p[:], message, sig[:])
 }
 
 // / A new instance from the given 32-byte `data`.
@@ -35,7 +41,7 @@ func NewPublic(data [32]byte) Public {
 	return Public(data)
 }
 
-var _ crypto.Public = Public{}
+var _ crypto.Public[Signature] = Public{}
 
 // / Derive a single hard junction.
 // #[cfg(feature = "full_crypto")]
@@ -103,7 +109,7 @@ func (p Pair) Seed() [32]byte {
 //	fn public(&self) -> Public {
 //		Public(self.public.into())
 //	}
-func (p Pair) Public() crypto.Public {
+func (p Pair) Public() crypto.Public[Signature] {
 	pubKey, ok := p.public.(ed25519.PublicKey)
 	if !ok {
 		panic("huh?")
