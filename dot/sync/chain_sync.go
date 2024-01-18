@@ -309,7 +309,7 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 	// we are more than 128 blocks behind the head, switch to bootstrap
 	cs.syncMode.Store(bootstrap)
 	isSyncedGauge.Set(0)
-	logger.Debugf("switched sync mode to %s", bootstrap.String())
+	logger.Infof("🔁 switched sync mode to %s", bootstrap.String())
 
 	cs.wg.Add(1)
 	go cs.bootstrapSync()
@@ -406,11 +406,11 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 
-		logger.Infof("received a block announce from %s, requesting %d blocks, descending request from #%d (%s)",
+		logger.Infof("requesting %d blocks, descending request from #%d (%s)",
 			peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHeader.Hash().Short())
 	} else {
 		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
-		logger.Infof("received a block announce from %s, requesting a single block #%d (%s)",
+		logger.Infof("requesting a single block #%d (%s)",
 			peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	}
 
@@ -790,7 +790,6 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 		}
 
 		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			logger.Infof("handling justification for block %s (#%d)", blockData.Hash.Short(), blockData.Number())
 			err := cs.handleJustification(blockData.Header, *blockData.Justification)
 			if err != nil {
 				return fmt.Errorf("handling justification: %w", err)
@@ -843,8 +842,6 @@ func (cs *chainSync) handleBody(body *types.Body) {
 }
 
 func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
-	logger.Debugf("handling justification for block %d...", header.Number)
-
 	headerHash := header.Hash()
 	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
