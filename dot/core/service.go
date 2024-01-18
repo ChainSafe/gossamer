@@ -8,9 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -22,6 +19,7 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"sync"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -105,14 +103,6 @@ func NewService(cfg *Config) (*Service, error) {
 // Start starts the core service
 func (s *Service) Start() error {
 	go s.handleBlocksAsync()
-	go func() {
-		time.Sleep(20 * time.Second)
-		header, _ := s.blockState.BestBlockHeader()
-		blockAnnounce, _ := createBlockAnnounce(&types.Block{Header: *header}, true)
-
-		s.net.GossipMessage(blockAnnounce)
-		return
-	}()
 	return nil
 }
 
