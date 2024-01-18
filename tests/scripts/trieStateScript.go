@@ -7,13 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
-	"os"
-	"time"
 )
 
 func fetchWithTimeout(ctx context.Context,
@@ -57,7 +58,7 @@ func main() {
 	// Get block hash from cli (i.e. 0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8)
 	blockHash := os.Args[1]
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, _ := context.WithCancel(context.Background()) //nolint
 
 	// Plug in the expected state root if you wish to assert the calculated state root
 	const expectedStateRoot = ""
@@ -96,6 +97,6 @@ func main() {
 
 	trieHash := newTrie.MustHash(trie.V0.MaxInlineValue())
 	if expectedStateRoot != trieHash.String() {
-		panic(fmt.Sprintf("westendDevStateRoot does not match trieHash"))
+		panic("westendDevStateRoot does not match trieHash")
 	}
 }
