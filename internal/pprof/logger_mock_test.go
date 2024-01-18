@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=logger_mock_test.go -package pprof github.com/ChainSafe/gossamer/internal/httpserver Logger
 //
+
 // Package pprof is a generated GoMock package.
 package pprof
 

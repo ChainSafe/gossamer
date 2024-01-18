@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package=sync . BlockState,StorageState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network
 //
+
 // Package sync is a generated GoMock package.
 package sync
 
