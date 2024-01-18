@@ -16,8 +16,8 @@ Gossamer consumes a `.toml` file containing predefined settings for the node fro
 
 # NOTE: Any path below can be absolute (e.g. "/var/gossamer/data") or
 # relative to the home directory (e.g. "data"). The home directory is
-# "$HOME/.gossamer" by default, but could be changed via $GSSMRHOME env variable
-# or --home cmd flag.
+# "$HOME/.local/share/gossamer" by default, but could be changed via
+# $GSSMRHOME env variable or --home cmd flag.
 
 #######################################################################
 ###                   Main Base Config Options                      ###
@@ -32,11 +32,11 @@ name = "Westend"
 id = "westend_dev"
 
 # Path to the working directory of the node
-# Defaults to "$HOME/.gossamer/<CHAIN>"
-base-path = "/Users/k/.gossamer/alice"
+# Defaults to "$HOME/.local/share/gossamer/<CHAIN>"
+base-path = "/Users/user/.local/share/gossamer/alice"
 
 # Path to the chain-spec raw JSON file
-chain-spec = "/Users/k/.gossamer/alice/chain-spec.json"
+chain-spec = "/Users/user/.local/share/gossamer/alice/chain-spec.json"
 
 # Global log level
 # One of: crit, error, warn, info, debug, trace

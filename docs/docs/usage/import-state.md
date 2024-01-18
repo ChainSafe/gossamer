@@ -17,7 +17,7 @@ Since we will be using the RPC method `state_getPairs` which is marked `unsafe`,
 
 Once the node has synced to the height you wish to export, you can export the state by first finding the block hash of the block you wish to export (can use polkascan.io) or RPC. For example, for block 1000:
 ```
-curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "chain_getBlockHash", "params":[1000]}' http://localhost:8545 
+curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "chain_getBlockHash", "params":[1000]}' http://localhost:8545
 {"jsonrpc":"2.0","result":"0xcf36a1e4a16fc579136137b8388f35490f09c5bdd7b9133835eba907a8b76c30","id":1}
 ```
 
@@ -39,7 +39,7 @@ Now you have all the required info to import the state into gossamer.
 
 In the `gossamer` directory:
 ```
-make gossamer 
+make gossamer
 ./bin/gossamer --chain <chain-name> init --force
 ./bin/gossamer import-state --chain <chain-name> --state state.json  --header header.json --first-slot <first-slot>
 ```
@@ -48,5 +48,5 @@ If you don't want to use a specific chain, but instead a custom data directory, 
 
 If it is successful, you will see a `finished state import` log. Now, you can start the node as usual, and the node should begin from the imported state:
 ```
-./bin/gossamer --chain <chain-name> --base-path ~/.gossamer/kusama
+./bin/gossamer --chain <chain-name> --base-path ~/.local/share/gossamer/kusama
 ```
