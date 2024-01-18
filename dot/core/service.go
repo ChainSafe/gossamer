@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
