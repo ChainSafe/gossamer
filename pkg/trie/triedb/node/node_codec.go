@@ -38,7 +38,7 @@ type NodeCodec[H hashdb.HashOut] interface {
 		children [16]ChildReference[H],
 		value *Value,
 	) []byte
-	Decode(data []byte) (Node[H], error)
+	Decode(data []byte) (Node, error)
 }
 
 func EncodeNodeOwned[H hashdb.HashOut](node NodeOwned[H], codec NodeCodec[H]) []byte {

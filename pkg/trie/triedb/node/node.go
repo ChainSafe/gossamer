@@ -28,7 +28,7 @@ func (v InlineValue) Type() string { return "Inline" }
 func (v NodeValue) Type() string   { return "Node" }
 
 // Nodes
-type Node[H hashdb.HashOut] interface {
+type Node interface {
 	Type() string
 }
 
