@@ -103,7 +103,6 @@ func decodeSize(first byte, input io.Reader, prefixMask int) (int, error) {
 }
 
 // DecodeHeader decodes a node header from a stream input
-// TODO: revisit this code, I think we can improve it
 func DecodeHeader(input io.Reader) (NodeHeader, error) {
 	b := make([]byte, 1)
 	_, err := input.Read(b)
@@ -117,44 +116,40 @@ func DecodeHeader(input io.Reader) (NodeHeader, error) {
 	}
 
 	mask := i & (0b11 << 6)
+
+	var (
+		size int
+		node NodeHeader
+	)
+
 	switch mask {
 	case leafPrefixMask:
-		size, err := decodeSize(i, input, 2)
-		if err != nil {
-			return nil, err
-		}
-		return LeafNodeHeader{size}, nil
+		size, err = decodeSize(i, input, 2)
+		node = LeafNodeHeader{size}
 	case branchWithValueMask:
-		size, err := decodeSize(i, input, 2)
-		if err != nil {
-			return nil, err
-		}
-		return BranchNodeHeader{true, size}, nil
+		size, err = decodeSize(i, input, 2)
+		node = BranchNodeHeader{true, size}
 	case branchWithoutValueMask:
-		size, err := decodeSize(i, input, 2)
-		if err != nil {
-			return nil, err
-		}
-		return BranchNodeHeader{false, size}, nil
+		size, err = decodeSize(i, input, 2)
+		node = BranchNodeHeader{false, size}
 	case emptyTrie:
 		if i&(0b111<<5) == leafWithHashedValuePrefixMask {
-			size, err := decodeSize(i, input, 3)
-			if err != nil {
-				return nil, err
-			}
-			return HashedValueLeaf{size}, nil
+			size, err = decodeSize(i, input, 3)
+			node = HashedValueLeaf{size}
 		} else if i&(0b1111<<4) == branchWithHashedValuePrefixMask {
-			size, err := decodeSize(i, input, 4)
-			if err != nil {
-				return nil, err
-			}
-			return HashedValueBranchNodeHeader{size}, nil
+			size, err = decodeSize(i, input, 4)
+			node = HashedValueBranchNodeHeader{size}
 		} else {
-			return nil, errors.New("invalid header")
+			err = errors.New("invalid header")
 		}
 	default:
 		panic("unreachable")
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	return node, err
 }
 
 // NodeCodec is the node codec configuration used in substrate
