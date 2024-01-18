@@ -226,8 +226,12 @@ type ByteArray interface {
 
 // / Trait suitable for typical cryptographic key public type.
 // pub trait Public: ByteArray + Derive + CryptoType + PartialEq + Eq + Clone + Send + Sync {}
-type Public interface {
+type Public[Signature any] interface {
 	ByteArray
+
+	/// Verify a signature on a message. Returns true if the signature is good.
+	// fn verify<M: AsRef<[u8]>>(sig: &Self::Signature, message: M, pubkey: &Self::Public) -> bool;
+	Verify(sig Signature, message []byte) bool
 }
 
 // / A secret uri (`SURI`) that can be used to generate a key pair.
@@ -459,7 +463,7 @@ type Pair[Seed, Signature any] interface {
 
 	/// Get the public key.
 	// fn public(&self) -> Self::Public;
-	Public() Public
+	Public() Public[Signature]
 
 	// /// Return a vec filled with raw data.
 	// fn to_raw_vec(&self) -> Vec<u8>;
