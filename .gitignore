@@ -29,6 +29,5 @@ tests/polkadotjs_test/node_modules
 
 # Ignore rust target dir
 lib/erasure/rustlib/target
-lib/erasure/rustlib
 
 *.so
