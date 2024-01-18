@@ -105,7 +105,7 @@ func TestHandleBlockEvents(t *testing.T) {
 				if ok {
 					importedCounter.Add(1)
 				}
-				
+
 			case msg := <-overseerToSubSystem2:
 				if msg == nil {
 					continue
