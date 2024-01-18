@@ -11,7 +11,7 @@ var (
 	// defaultBasePath Default node base directory path
 	defaultBasePath = "~/.gossamer/kusama"
 	// defaultChainSpec is the default chain-spec json path
-	defaultChainSpec = "./chain/kusama/genesis.json"
+	defaultChainSpec = "./chain/kusama/chain-spec-raw.json"
 )
 
 // DefaultConfig returns a kusama node configuration

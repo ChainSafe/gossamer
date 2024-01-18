@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_telemetry_test.go -package network . Telemetry
 //
+
 // Package network is a generated GoMock package.
 package network
 
