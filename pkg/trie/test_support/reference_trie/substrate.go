@@ -45,8 +45,16 @@ func (self NodeCodec[H]) BranchNodeNibbled(
 	panic("Implement me")
 }
 
-func (self NodeCodec[H]) Decode(data []byte) (node.Node[H], error) {
+func (self NodeCodec[H]) decodePlan(data []byte) (node.NodePlan, error) {
 	panic("Implement me")
+}
+
+func (self NodeCodec[H]) Decode(data []byte) (node.Node, error) {
+	plan, err := self.decodePlan(data)
+	if err != nil {
+		return nil, err
+	}
+	return plan.Build(data), nil
 }
 
 func NewNodeCodecForKeccak() NodeCodec[keccak_hasher.KeccakHash] {
