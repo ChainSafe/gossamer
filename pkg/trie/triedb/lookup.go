@@ -107,11 +107,10 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 
 			switch n := nextNode.(type) {
 			case node.Hash:
-				nextHash := node.DecodeHash(n.Data, l.layout.Codec().Hasher())
-				if nextHash == nil {
+				hash, err = node.DecodeHash(l.layout.Codec().Hasher(), n.Data)
+				if err != nil {
 					return nil, InvalidHash
 				}
-				hash = *nextHash
 			case node.Inline:
 				nodeData = &n.Data
 			}
