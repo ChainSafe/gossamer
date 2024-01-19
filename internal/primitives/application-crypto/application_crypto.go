@@ -27,7 +27,7 @@ type RuntimePublic[Signature any] interface {
 
 	/// Verify that the given signature matches the given message using this public key.
 	// fn verify<M: AsRef<[u8]>>(&self, msg: &M, signature: &Self::Signature) -> bool;
-	Verify(msg []byte, signature Signature) bool
+	// Verify(msg []byte, signature Signature) bool
 
 	/// Returns `Self` as raw vec.
 	// fn to_raw_vec(&self) -> Vec<u8>;

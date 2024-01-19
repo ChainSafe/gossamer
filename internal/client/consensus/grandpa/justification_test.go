@@ -21,7 +21,7 @@ func makePrecommit(t *testing.T,
 			TargetHash:   targetHash,
 			TargetNumber: targetNumber,
 		},
-		ID: id.String(),
+		ID: string(id.ToRawVec()),
 	}
 }
 

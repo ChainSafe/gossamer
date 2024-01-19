@@ -197,7 +197,7 @@ func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
 
 func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	targetHash := "target"
-	targetNum := uint(21)
+	targetNum := uint32(21)
 
 	authorityList := pgrandpa.AuthorityList{
 		pgrandpa.AuthorityIDWeight{
