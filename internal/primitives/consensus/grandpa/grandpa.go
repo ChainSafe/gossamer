@@ -15,6 +15,10 @@ var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 // pub type AuthorityId = app::Public;
 type AuthorityID = app.Public
 
+func NewAuthorityIDFromSlice(data []byte) (AuthorityID, error) {
+	return app.NewPublicFromSlice(data)
+}
+
 // / Signature for a Grandpa authority.
 // pub type AuthoritySignature = app::Signature;
 type AuthoritySignature = app.Signature
@@ -90,7 +94,7 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	setID SetID) bool {
 
 	buf := LocalizedPayload(round, setID, message)
-	valid := id.Verify(buf, signature)
+	valid := id.Verify(signature, buf)
 
 	if !valid {
 		// if !valid {

@@ -68,7 +68,7 @@ func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[strin
 	idWeights := make([]grandpa.IDWeight[string], len(sas.inner.CurrentAuthorities))
 	for i, auth := range sas.inner.CurrentAuthorities {
 		idWeights[i] = grandpa.IDWeight[string]{
-			ID:     auth.AuthorityID.String(),
+			ID:     string(auth.AuthorityID.ToRawVec()),
 			Weight: uint64(auth.AuthorityWeight),
 		}
 	}
