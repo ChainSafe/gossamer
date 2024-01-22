@@ -38,7 +38,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go ignoreChanVal(t, msg.ResponseCh)
 		err := cb.handleCanSecondMessage(msg)
-		require.ErrorContains(t, err, errUnknwnRelayParent.Error())
+		require.ErrorIs(t, err, errUnknwnRelayParent)
 	})
 	t.Run("async_backing_is_disabled", func(t *testing.T) {
 		cb := CandidateBacking{
@@ -51,7 +51,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go ignoreChanVal(t, msg.ResponseCh)
 		err := cb.handleCanSecondMessage(msg)
-		require.ErrorContains(t, err, errprospectiveParachainsModeDisabled.Error())
+		require.ErrorIs(t, err, errprospectiveParachainsModeDisabled)
 	})
 
 	t.Run("candidate_can_not_be_seconded", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go ignoreChanVal(t, msg.ResponseCh)
 		err := cb.handleCanSecondMessage(msg)
-		require.Error(t, err)
+		require.ErrorIs(t, err, errNoActiveLeaves)
 	})
 
 	t.Run("candidate_recognised_by_at_least_one_fragment_tree", func(t *testing.T) {
@@ -111,8 +111,8 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go func(subSystemToOverseer chan any) {
 			in := <-subSystemToOverseer
-			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				Ch <- parachaintypes.HypotheticalFrontierResponses{
+			responseCh := in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).ResponseCh
+			responseCh <- parachaintypes.HypotheticalFrontierResponses{
 				{
 					HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
 						CandidateHash:      candidateHash,
@@ -151,7 +151,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		cb := CandidateBacking{}
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorContains(t, err, errNoActiveLeaves.Error())
+		require.ErrorIs(t, err, errNoActiveLeaves)
 		require.Nil(t, membership)
 	})
 
@@ -181,7 +181,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		}
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorContains(t, err, errNoActiveLeaves.Error())
+		require.ErrorIs(t, err, errNoActiveLeaves)
 		require.Nil(t, membership)
 	})
 
@@ -223,7 +223,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		go func(subSystemToOverseer chan any) {
 			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				Ch <- parachaintypes.HypotheticalFrontierResponses{
+				ResponseCh <- parachaintypes.HypotheticalFrontierResponses{
 				{
 					HypotheticalCandidate: hypotheticalCandidate,
 					Memberships: []parachaintypes.FragmentTreeMembership{{
@@ -235,7 +235,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		}(subSystemToOverseer)
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorContains(t, err, errDepthOccupied.Error())
+		require.ErrorIs(t, err, errDepthOccupied)
 		require.Nil(t, membership)
 	})
 
@@ -273,7 +273,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		go func(subSystemToOverseer chan any) {
 			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				Ch <- parachaintypes.HypotheticalFrontierResponses{
+				ResponseCh <- parachaintypes.HypotheticalFrontierResponses{
 				{
 					HypotheticalCandidate: hypotheticalCandidate,
 					Memberships: []parachaintypes.FragmentTreeMembership{{
@@ -315,7 +315,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		}
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorContains(t, err, errLeafOccupied.Error())
+		require.ErrorIs(t, err, errLeafOccupied)
 		require.Nil(t, membership)
 	})
 

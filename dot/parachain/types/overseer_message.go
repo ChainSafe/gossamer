@@ -93,7 +93,7 @@ type ProspectiveParachainsMessageCandidateSeconded struct {
 // occupies.
 type ProspectiveParachainsMessageGetHypotheticalFrontier struct {
 	HypotheticalFrontierRequest HypotheticalFrontierRequest
-	Ch                          chan HypotheticalFrontierResponses
+	ResponseCh                  chan HypotheticalFrontierResponses
 }
 
 // Request specifying which candidates are either already included

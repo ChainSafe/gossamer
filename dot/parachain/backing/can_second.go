@@ -67,7 +67,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 // hypothetical frontiers in the fragment tree and what we've already seconded in
 // all active leaves.
 //
-// if the candidate can be seconded, returns nil error and a map of the heads of active leaves to the depths,
+// If the candidate can be seconded, returns nil error and a map of the heads of active leaves to the depths,
 // where the candidate is a member of the fragment tree.
 // Returns error if the candidate cannot be seconded.
 func (cb *CandidateBacking) secondingSanityCheck(
@@ -108,7 +108,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 					FragmentTreeRelayParent: &head,
 					BackedInPathOnly:        backedInPathOnly,
 				},
-				Ch: responseCh,
+				ResponseCh: responseCh,
 			}
 
 			res, ok := <-responseCh
