@@ -37,7 +37,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 	ppMode := rpState.prospectiveParachainsMode
 	if !ppMode.IsEnabled {
 		msg.ResponseCh <- false
-		return fmt.Errorf("%w; relay parent: %s", errprospectiveParachainsModeDisabled, msg.CandidateRelayParent.String())
+		return fmt.Errorf("%w; relay parent: %s", errProspectiveParachainsModeDisabled, msg.CandidateRelayParent.String())
 	}
 
 	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{

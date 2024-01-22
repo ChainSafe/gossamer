@@ -51,7 +51,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go ignoreChanVal(t, msg.ResponseCh)
 		err := cb.handleCanSecondMessage(msg)
-		require.ErrorIs(t, err, errprospectiveParachainsModeDisabled)
+		require.ErrorIs(t, err, errProspectiveParachainsModeDisabled)
 	})
 
 	t.Run("candidate_can_not_be_seconded", func(t *testing.T) {
