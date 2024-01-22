@@ -706,11 +706,8 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 
 	lastPosition := blocksInRange - 1
 
-	hashes[0] = startHash
-	hashes[lastPosition] = endHeader.Hash()
-
-	inLoopHash := endHeader.ParentHash
-	for currentPosition := lastPosition - 1; currentPosition > 0; currentPosition-- {
+	inLoopHash := endHeader.Hash()
+	for currentPosition := int(lastPosition); currentPosition >= 0; currentPosition-- {
 		hashes[currentPosition] = inLoopHash
 
 		inLoopHeader, err := bs.loadHeaderFromDatabase(inLoopHash)
@@ -721,9 +718,9 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 		inLoopHash = inLoopHeader.ParentHash
 	}
 
-	// here we ensure that we finished up the loop
+	// here we ensure that we finished up the loop with the hash we used as start
 	// with the same hash as the startHash
-	if inLoopHash != startHash {
+	if hashes[0] != startHash {
 		return nil, fmt.Errorf("%w: expecting %s, found: %s", ErrStartHashMismatch, startHash.Short(), inLoopHash.Short())
 	}
 
