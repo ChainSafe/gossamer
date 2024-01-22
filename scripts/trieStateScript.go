@@ -1,4 +1,4 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package main
@@ -46,11 +46,7 @@ func getResponse(ctx context.Context, method, params string, target interface{})
 	return nil
 }
 
-func fetchAndWriteTrieState(ctx context.Context, blockHash common.Hash, destination string) modules.StateTrieResponse {
-	params := fmt.Sprintf(`["%s"]`, blockHash)
-	var response modules.StateTrieResponse
-	fetchWithTimeout(ctx, "state_trie", params, &response)
-
+func writeTrieState(response modules.StateTrieResponse, destination string) {
 	encResponse, err := json.Marshal(response)
 	if err != nil {
 		panic(fmt.Sprintf("json marshalling response %v", err))
@@ -60,7 +56,14 @@ func fetchAndWriteTrieState(ctx context.Context, blockHash common.Hash, destinat
 	if err != nil {
 		panic(fmt.Sprintf("writing to file %v", err))
 	}
+}
 
+func fetchTrieState(ctx context.Context, blockHash common.Hash, destination string) modules.StateTrieResponse {
+	params := fmt.Sprintf(`["%s"]`, blockHash)
+	var response modules.StateTrieResponse
+	fetchWithTimeout(ctx, "state_trie", params, &response)
+
+	writeTrieState(response, destination)
 	return response
 }
 
@@ -136,7 +139,7 @@ func main() {
 	}
 
 	ctx, _ := context.WithCancel(context.Background()) //nolint
-	response := fetchAndWriteTrieState(ctx, blockHash, destinationFile)
+	response := fetchTrieState(ctx, blockHash, destinationFile)
 
 	if !expectedStateRoot.IsEmpty() {
 		compareStateRoots(response, expectedStateRoot, trieVersion)
