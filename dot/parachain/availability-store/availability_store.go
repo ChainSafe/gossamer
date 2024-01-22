@@ -78,7 +78,7 @@ type AvailabilityStoreSubsystem struct {
 
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
-	availabilityStore   AvailabilityStore
+	availabilityStore   availabilityStore
 	pruningConfig       pruningConfig
 	clock               subsystemClock
 	//TODO: pruningConfig PruningConfig
@@ -86,8 +86,8 @@ type AvailabilityStoreSubsystem struct {
 	//TODO: metrics       Metrics
 }
 
-// AvailabilityStore is the struct that holds data for the availability store
-type AvailabilityStore struct {
+// availabilityStore is the struct that holds data for the availability store
+type availabilityStore struct {
 	available   database.Table
 	chunk       database.Table
 	meta        database.Table
@@ -103,7 +103,7 @@ type availabilityStoreBatch struct {
 	pruneByTime database.Batch
 }
 
-func newAvailabilityStoreBatch(as *AvailabilityStore) *availabilityStoreBatch {
+func newAvailabilityStoreBatch(as *availabilityStore) *availabilityStoreBatch {
 	return &availabilityStoreBatch{
 		available:   as.available.NewBatch(),
 		chunk:       as.chunk.NewBatch(),
@@ -157,8 +157,8 @@ func (asb *availabilityStoreBatch) reset() {
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
-func NewAvailabilityStore(db database.Database) *AvailabilityStore {
-	return &AvailabilityStore{
+func NewAvailabilityStore(db database.Database) *availabilityStore {
+	return &availabilityStore{
 		available:   database.NewTable(db, availableDataPrefix),
 		chunk:       database.NewTable(db, chunkPrefix),
 		meta:        database.NewTable(db, metaPrefix),
@@ -168,7 +168,7 @@ func NewAvailabilityStore(db database.Database) *AvailabilityStore {
 }
 
 // loadAvailableData loads available data from the availability store
-func (as *AvailabilityStore) loadAvailableData(candidate parachaintypes.CandidateHash) (*AvailableData, error) {
+func (as *availabilityStore) loadAvailableData(candidate parachaintypes.CandidateHash) (*AvailableData, error) {
 	resultBytes, err := as.available.Get(candidate.Value[:])
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate %v from available table: %w", candidate.Value, err)
@@ -182,7 +182,7 @@ func (as *AvailabilityStore) loadAvailableData(candidate parachaintypes.Candidat
 }
 
 // loadMeta loads meta data from the availability store
-func (as *AvailabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*CandidateMeta, error) {
+func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*CandidateMeta, error) {
 	resultBytes, err := as.meta.Get(candidate.Value[:])
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate %v from meta table: %w", candidate.Value, err)
@@ -196,7 +196,7 @@ func (as *AvailabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*
 }
 
 // loadChunk loads a chunk from the availability store
-func (as *AvailabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
+func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
 	error) {
 	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(validatorIndex)...))
 	if err != nil {
@@ -212,7 +212,7 @@ func (as *AvailabilityStore) loadChunk(candidate parachaintypes.CandidateHash, v
 
 // storeChunk stores a chunk in the availability store, returns true on success, false on failure,
 // and error on internal error.
-func (as *AvailabilityStore) storeChunk(candidate parachaintypes.CandidateHash, chunk ErasureChunk) (bool,
+func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, chunk ErasureChunk) (bool,
 	error) {
 	batch := newAvailabilityStoreBatch(as)
 
@@ -260,7 +260,7 @@ func (as *AvailabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 	return true, nil
 }
 
-func (as *AvailabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
+func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
 	candidate parachaintypes.CandidateHash, nValidators uint, data AvailableData,
 	expectedErasureRoot common.Hash) (bool, error) {
 	batch := newAvailabilityStoreBatch(as)
