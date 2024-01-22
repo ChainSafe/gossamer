@@ -14,7 +14,7 @@ import (
 
 var (
 	errUnknwnRelayParent                 = errors.New("unknown relay parent")
-	errprospectiveParachainsModeDisabled = errors.New("async backing is disabled")
+	errProspectiveParachainsModeDisabled = errors.New("async backing is disabled")
 	errCandidateNotRecognised            = errors.New("candidate not recognised by any fragment tree")
 	errLeafOccupied                      = errors.New("can't second the candidate, leaf is already occupied")
 	errNoActiveLeaves                    = errors.New("no active leaves found for the candidate relay parent")
