@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package main
 
 import (
@@ -38,7 +41,7 @@ func Test_compareStateRoots(t *testing.T) {
 		shouldPanic bool
 	}{
 		{
-			name: "happy path",
+			name: "happy_path",
 			args: args{
 				response:          testStateData,
 				expectedStateRoot: common.MustHexToHash("0x3b1863ff981a31864be76037e4cf5c927b937dd8a8e1e25494128da7a95b5cdf"),
@@ -46,7 +49,7 @@ func Test_compareStateRoots(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid trie version",
+			name: "invalid_trie_version",
 			args: args{
 				response:          testStateData,
 				expectedStateRoot: common.MustHexToHash("0x6120d3afde6c139305bd7c0dcf50bdff5b620203e00c7491b2c30f95dccacc32"),
@@ -55,7 +58,7 @@ func Test_compareStateRoots(t *testing.T) {
 			shouldPanic: true,
 		},
 		{
-			name: "hashes do not match",
+			name: "hashes_do_not_match",
 			args: args{
 				response:          testStateData,
 				expectedStateRoot: common.MustHexToHash("0x01"),
@@ -85,30 +88,30 @@ func Test_cli(t *testing.T) {
 		args []string
 	}{
 		{
-			name: "no arguments",
+			name: "no_arguments",
 		},
 		{
-			name: "to few arguments",
+			name: "to_few_arguments",
 			args: []string{"0x01"},
 		},
 		{
-			name: "invalid formatting for block hash",
+			name: "invalid_formatting_for_block_hash",
 			args: []string{"hello", "output.json"},
 		},
 		{
-			name: "no trie version",
+			name: "no_trie_version",
 			args: []string{"0x01", "output.json", "0x01"},
 		},
 		{
-			name: "invalid formatting for root hash",
+			name: "invalid_formatting_for_root_hash",
 			args: []string{"0x01", "output.json", "hello", "1"},
 		},
 		{
-			name: "invalid trie version",
+			name: "invalid_trie_version",
 			args: []string{"0x01", "output.json", "0x01", "hello"},
 		},
 		{
-			name: "to many arguments",
+			name: "to_many_arguments",
 			args: []string{"0x01", "output.json", "0x01", "1", "0x01"},
 		},
 	}
