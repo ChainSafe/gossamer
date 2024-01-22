@@ -1116,6 +1116,7 @@ func Test_retrieveRangeFromDatabaseWithOneBlock(t *testing.T) {
 		Digest:    types.NewDigest(),
 	}
 	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
 
 	headerBytes, err := common.HexToBytes(headerHex)
 	require.NoError(t, err)

@@ -71,7 +71,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 			t.Logf("starting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-			t.Logf("Reponse: %+v", response)
+			t.Logf("Response: %+v", response)
 			if response.Peers != len(nodes)-1 {
 				return false, nil
 			}
