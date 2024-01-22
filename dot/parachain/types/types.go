@@ -526,6 +526,10 @@ type CandidateHash struct {
 	Value common.Hash `scale:"1"`
 }
 
+func (ch CandidateHash) String() string {
+	return ch.Value.String()
+}
+
 // PoV represents a Proof-of-Validity block (PoV block) or a parachain block.
 // It contains the necessary data for the parachain specific state transition logic.
 type PoV struct {

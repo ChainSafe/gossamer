@@ -16,7 +16,7 @@ var (
 	errWrongPVDForSecondingCandidate = errors.New(
 		"incorrect persisted validation data provided for seconding candidate")
 	errUnknownRelayParentForSecondingCandidate = errors.New(
-		"attempted to second a candidate outside of our view")
+		"attempted to second a candidate with an unknown relay parent")
 	errParaOutsideAssignmentForSeconding = errors.New(
 		"subsystem requested to second for parachain beyond our assignment scope")
 	errAlreadySignedValidStatement = errors.New("already signed a valid statement for this candidate")
@@ -28,6 +28,12 @@ func (cb *CandidateBacking) handleSecondMessage(
 	pov parachaintypes.PoV,
 	chRelayParentAndCommand chan relayParentAndCommand,
 ) error {
+	hash, err := candidateReceipt.Hash()
+	if err != nil {
+		return fmt.Errorf("hashing candidate receipt: %w", err)
+	}
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
+
 	pvdBytes, err := scale.Marshal(pvd)
 	if err != nil {
 		return fmt.Errorf("marshalling persisted validation data: %w", err)
@@ -39,29 +45,36 @@ func (cb *CandidateBacking) handleSecondMessage(
 	}
 
 	if candidateReceipt.Descriptor.PersistedValidationDataHash != pvdHash {
-		return errWrongPVDForSecondingCandidate
+		return fmt.Errorf("%w: mismatch between %s and %s",
+			errWrongPVDForSecondingCandidate,
+			candidateReceipt.Descriptor.PersistedValidationDataHash,
+			pvdHash,
+		)
 	}
 
 	rpState, ok := cb.perRelayParent[candidateReceipt.Descriptor.RelayParent]
 	if !ok {
-		return errUnknownRelayParentForSecondingCandidate
+		return fmt.Errorf("%w; candidate hash: %s; relay parent: %s",
+			errUnknownRelayParentForSecondingCandidate,
+			candidateHash,
+			candidateReceipt.Descriptor.RelayParent,
+		)
 	}
 
 	// Sanity check that candidate is from our assignment.
 	if candidateReceipt.Descriptor.ParaID != uint32(rpState.assignment) {
-		return errParaOutsideAssignmentForSeconding
+		return fmt.Errorf("%w: candidate hash: %s; candidate paraID: %d; assignment: %d",
+			errParaOutsideAssignmentForSeconding,
+			candidateHash,
+			candidateReceipt.Descriptor.ParaID,
+			rpState.assignment,
+		)
 	}
-
-	hash, err := candidateReceipt.Hash()
-	if err != nil {
-		return fmt.Errorf("hashing candidate receipt: %w", err)
-	}
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	// If the message is a `CandidateBackingMessage::Second`, sign and dispatch a
 	// Seconded statement only if we have not signed a Valid statement for the requested candidate.
 	if rpState.issuedStatements[candidateHash] {
-		return errAlreadySignedValidStatement
+		return fmt.Errorf("%w: candidate hash: %s", errAlreadySignedValidStatement, candidateHash)
 	}
 
 	// Kick off background validation with intent to second.
