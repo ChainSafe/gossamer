@@ -20,7 +20,6 @@ func ignoreChanVal(t *testing.T, ch chan bool) {
 }
 
 func TestHandleCanSecondMessage(t *testing.T) {
-
 	hash, err := getDummyCommittedCandidateReceipt(t).ToPlain().Hash()
 	require.NoError(t, err)
 
@@ -31,16 +30,16 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		CandidateRelayParent: getDummyHash(t, 5),
 		CandidateHash:        candidateHash,
 		ParentHeadDataHash:   getDummyHash(t, 4),
-		ResCh:                make(chan bool),
+		ResponseCh:           make(chan bool),
 	}
 
 	t.Run("relay_parent_is_unknown", func(t *testing.T) {
 		cb := CandidateBacking{}
 
-		go ignoreChanVal(t, msg.ResCh)
-		cb.handleCanSecondMessage(msg)
+		go ignoreChanVal(t, msg.ResponseCh)
+		err := cb.handleCanSecondMessage(msg)
+		require.ErrorContains(t, err, errUnknwnRelayParent.Error())
 	})
-
 	t.Run("async_backing_is_disabled", func(t *testing.T) {
 		cb := CandidateBacking{
 			perRelayParent: map[common.Hash]*perRelayParentState{
@@ -50,11 +49,12 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			},
 		}
 
-		go ignoreChanVal(t, msg.ResCh)
-		cb.handleCanSecondMessage(msg)
+		go ignoreChanVal(t, msg.ResponseCh)
+		err := cb.handleCanSecondMessage(msg)
+		require.ErrorContains(t, err, errprospectiveParachainsModeDisabled.Error())
 	})
 
-	t.Run("seconding_is_not_allowed", func(t *testing.T) {
+	t.Run("candidate_can_not_be_seconded", func(t *testing.T) {
 		cb := CandidateBacking{
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				msg.CandidateRelayParent: {
@@ -67,8 +67,9 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			},
 		}
 
-		go ignoreChanVal(t, msg.ResCh)
-		cb.handleCanSecondMessage(msg)
+		go ignoreChanVal(t, msg.ResponseCh)
+		err := cb.handleCanSecondMessage(msg)
+		require.Error(t, err)
 	})
 
 	t.Run("candidate_recognised_by_at_least_one_fragment_tree", func(t *testing.T) {
@@ -111,7 +112,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		go func(subSystemToOverseer chan any) {
 			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				Ch <- parachaintypes.HypotheticalFrontierResponse{
+				Ch <- parachaintypes.HypotheticalFrontierResponses{
 				{
 					HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
 						CandidateHash:      candidateHash,
@@ -127,13 +128,13 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			}
 		}(subSystemToOverseer)
 
-		go ignoreChanVal(t, msg.ResCh)
-		cb.handleCanSecondMessage(msg)
+		go ignoreChanVal(t, msg.ResponseCh)
+		err := cb.handleCanSecondMessage(msg)
+		require.NoError(t, err)
 	})
 }
 
 func TestSecondingSanityCheck(t *testing.T) {
-
 	hash, err := getDummyCommittedCandidateReceipt(t).ToPlain().Hash()
 	require.NoError(t, err)
 
@@ -149,8 +150,8 @@ func TestSecondingSanityCheck(t *testing.T) {
 	t.Run("empty_active_leaves", func(t *testing.T) {
 		cb := CandidateBacking{}
 
-		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.False(t, isSecondingAllowed)
+		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
+		require.ErrorContains(t, err, errNoActiveLeaves.Error())
 		require.Nil(t, membership)
 	})
 
@@ -179,8 +180,8 @@ func TestSecondingSanityCheck(t *testing.T) {
 			implicitView: mockImplicitView,
 		}
 
-		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.False(t, isSecondingAllowed)
+		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
+		require.ErrorContains(t, err, errNoActiveLeaves.Error())
 		require.Nil(t, membership)
 	})
 
@@ -222,7 +223,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		go func(subSystemToOverseer chan any) {
 			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				Ch <- parachaintypes.HypotheticalFrontierResponse{
+				Ch <- parachaintypes.HypotheticalFrontierResponses{
 				{
 					HypotheticalCandidate: hypotheticalCandidate,
 					Memberships: []parachaintypes.FragmentTreeMembership{{
@@ -233,8 +234,8 @@ func TestSecondingSanityCheck(t *testing.T) {
 			}
 		}(subSystemToOverseer)
 
-		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.False(t, isSecondingAllowed)
+		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
+		require.ErrorContains(t, err, errDepthOccupied.Error())
 		require.Nil(t, membership)
 	})
 
@@ -272,7 +273,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		go func(subSystemToOverseer chan any) {
 			in := <-subSystemToOverseer
 			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				Ch <- parachaintypes.HypotheticalFrontierResponse{
+				Ch <- parachaintypes.HypotheticalFrontierResponses{
 				{
 					HypotheticalCandidate: hypotheticalCandidate,
 					Memberships: []parachaintypes.FragmentTreeMembership{{
@@ -283,8 +284,8 @@ func TestSecondingSanityCheck(t *testing.T) {
 			}
 		}(subSystemToOverseer)
 
-		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.True(t, isSecondingAllowed)
+		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
+		require.NoError(t, err)
 		require.Equal(
 			t,
 			map[common.Hash][]uint{getDummyHash(t, 1): {1, 2, 3}},
@@ -313,8 +314,8 @@ func TestSecondingSanityCheck(t *testing.T) {
 			},
 		}
 
-		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.False(t, isSecondingAllowed)
+		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
+		require.ErrorContains(t, err, errLeafOccupied.Error())
 		require.Nil(t, membership)
 	})
 
@@ -335,8 +336,8 @@ func TestSecondingSanityCheck(t *testing.T) {
 			},
 		}
 
-		isSecondingAllowed, membership := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.True(t, isSecondingAllowed)
+		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
+		require.NoError(t, err)
 		require.Equal(
 			t,
 			map[common.Hash][]uint{hypotheticalCandidate.RelayParent: {0}},
