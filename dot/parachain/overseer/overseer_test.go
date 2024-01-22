@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -88,13 +89,19 @@ func TestHandleBlockEvents(t *testing.T) {
 	var finalizedCounter atomic.Int32
 	var importedCounter atomic.Int32
 
+	var wg sync.WaitGroup
+	wg.Add(4) // number of subsystems * 2
+
+	// mocked subsystems
 	go func() {
 		for {
 			select {
 			case msg := <-overseerToSubSystem1:
-				incrementCounters(t, msg, &finalizedCounter, &importedCounter)
+				go incrementCounters(t, msg, &finalizedCounter, &importedCounter)
+				wg.Done()
 			case msg := <-overseerToSubSystem2:
-				incrementCounters(t, msg, &finalizedCounter, &importedCounter)
+				go incrementCounters(t, msg, &finalizedCounter, &importedCounter)
+				wg.Done()
 			}
 		}
 	}()
@@ -104,7 +111,7 @@ func TestHandleBlockEvents(t *testing.T) {
 	finalizedNotifierChan <- &types.FinalisationInfo{}
 	importedBlockNotiferChan <- &types.Block{}
 
-	time.Sleep(1000 * time.Millisecond)
+	wg.Wait()
 
 	err = overseer.Stop()
 	require.NoError(t, err)
