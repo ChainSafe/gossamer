@@ -75,6 +75,8 @@ type Network interface {
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 
 	AllConnectedPeersIDs() []peer.ID
+
+	BlockAnnounceHandshake(*types.Header) error
 }
 
 // Telemetry is the telemetry client to send telemetry messages.
