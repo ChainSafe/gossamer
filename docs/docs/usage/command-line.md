@@ -6,7 +6,7 @@ permalink: /usage/command-line/
 
 ## Gossamer Command
 
-The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initialises the node if the node has not already been initialised). 
+The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initialises the node if the node has not already been initialised).
 
 ### Flags
 
@@ -17,7 +17,7 @@ These are the flags that can be used with the `gossamer` command
 --base-path       Working directory for the node
 --bootnodes       Comma separated enode URLs for network discovery bootstrap
 --chain           chain-spec-raw.json used to load node configuration. It can also be a chain name (eg. kusama, polkadot, westend, westend-dev and westend-local)
---discovery-interval Interval between network discovery lookups (in duration format) 
+--discovery-interval Interval between network discovery lookups (in duration format)
 --grandpa-authority Runs as a GRANDPA authority node
 --grandpa-interval GRANDPA voting period in duration (default 10s)
 --help help for gossamer
@@ -120,22 +120,22 @@ Two options for running another node at the same time...
 
 (1) run `gossamer init` with two different `base-path` and manually update `port` in `base-path/config/config.toml`:
 ```
-gossamer init --base-path ~/.gossamer/gssmr-alice --chain westend-local
-gossamer init --base-path ~/.gossamer/gssmr-bob --chain westend-local
-# open ~/.gossamer/gssmr-bob/config/config.toml, set port=7002
+gossamer init --base-path ~/.local/share/gossamer/alice --chain westend-local
+gossamer init --base-path ~/.local/share/gossamer/bob --chain westend-local
+# open ~/.local/share/gossamer/bob/config/config.toml, set port=7002
 # set role=4 to also make bob an authority node, or role=1 to make bob a non-authority node
 ```
 
 (2) run with `--base-path` flag:
 ```
-./bin/gossamer --base-path ~/.gossamer/gssmr-alice --key alice --roles 4
-./bin/gossamer --base-path ~/.gossamer/gssmr-bob --key bob --roles 4
+./bin/gossamer --base-path ~/.local/share/gossamer/alice --key alice --roles 4
+./bin/gossamer --base-path ~/.local/share/gossamer/bob --key bob --roles 4
 ```
 
 or run with port, base-path flags:
 ```
-./bin/gossamer --base-path ~/.gossamer/gssmr-alice --key alice --role 4 --port 7001
-./bin/gossamer --base-path ~/.gossamer/gssmr-bob --key bob --role 4 --port 7002
+./bin/gossamer --base-path ~/.local/share/gossamer/alice --key alice --role 4 --port 7001
+./bin/gossamer --base-path ~/.local/share/gossamer/bob --key bob --role 4 --port 7002
 ```
 
 To run more than two nodes, repeat steps for bob with a new `port` and `base-path` replacing `bob`.
@@ -156,11 +156,11 @@ Available built-in keys:
 
 To initialise or re-initialise a node, use the init subcommand `init`:
 ```
-./bin/gossamer init --base-path ~/.gossamer/gssmr-alice --chain westend-local
-./bin/gossamer --base-path ~/.gossamer/gssmr-alice --key alice --roles 4
+./bin/gossamer init --base-path ~/.local/share/gossamer/alice --chain westend-local
+./bin/gossamer --base-path ~/.local/share/gossamer/alice --key alice --roles 4
 ```
 
 `init` can be used with the `--base-path` or `--chain` flag to re-initialise a custom node (ie, `bob` from the example above):
 ```
-./bin/gossamer init --base-path ~/.gossamer/gssmr-bob --chain westend-local
+./bin/gossamer init --base-path ~/.local/share/gossamer/bob --chain westend-local
 ```

@@ -5,11 +5,12 @@ package westend
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
 var (
-	// defaultBasePath Default node base directory path
-	defaultBasePath = "~/.gossamer/westend"
+	// defaultBasePath is the default base directory path for westend node
+	defaultBasePath = xdg.DataHome + "/gossamer/westend"
 	// defaultChainSpec is the default chain specification path
 	defaultChainSpec = "./chain/westend/chain-spec-raw.json"
 )
