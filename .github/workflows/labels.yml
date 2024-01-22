@@ -1,0 +1,23 @@
+on:
+  push:
+    branches: [development]
+
+name: sync-labels
+
+permissions:
+  issues: write
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: sync labels
+        uses: EndBug/label-sync@v2
+        with:
+          config-file: .github/labels.yml
+          # If you want to delete any additional labels not mentioned in config file, set this to true
+          delete-other-labels: false
+          dry-run: false
+          token: ${{ secrets.GITHUB_TOKEN }}
