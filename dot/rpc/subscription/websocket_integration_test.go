@@ -232,9 +232,11 @@ func TestWSConn_HandleConnSubscriptionsIncrement(t *testing.T) {
 					require.NoError(t, err)
 				}
 				require.Len(t, wsconn.Subscriptions, v.subscriptions)
-				_, msg, err := c.ReadMessage()
-				require.NoError(t, err)
-				require.Equal(t, v.response, msg)
+				if v.response != nil {
+					_, msg, err := c.ReadMessage()
+					require.NoError(t, err)
+					require.Equal(t, v.response, msg)
+				}
 			}
 		})
 	}
