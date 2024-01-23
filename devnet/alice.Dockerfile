@@ -22,10 +22,10 @@ RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
 # use the 3 node westend local network
 RUN cp -f chain/$CHAIN/$CHAIN-spec-raw.json chain/$CHAIN/$CHAIN-spec.json
 
-RUN gossamer init --key=alice --chain chain/$CHAIN/$CHAIN-spec.json --base-path ~/.gossamer/gssmr
+RUN gossamer init --key=alice --chain chain/$CHAIN/$CHAIN-spec.json --base-path ~/.local/share/gossamer
 
 # use a hardcoded key for alice, so we can determine what the peerID is for subsequent nodes
-RUN cp devnet/alice.node.key ~/.gossamer/gssmr/node.key
+RUN cp devnet/alice.node.key ~/.local/share/gossamer/node.key
 
 ARG METRICS_NAMESPACE=gossamer.local.devnet
 
@@ -35,6 +35,6 @@ RUN go run cmd/update-dd-agent-confd/main.go -n=${METRICS_NAMESPACE} -t=key:alic
 
 WORKDIR /gossamer
 
-ENTRYPOINT service datadog-agent start && gossamer --base-path ~/.gossamer/gssmr --key=alice --prometheus-external  --prometheus-port=9876 --rpc-external=true --public-dns=alice --port 7001
+ENTRYPOINT service datadog-agent start && gossamer --base-path ~/.local/share/gossamer --key=alice --prometheus-external  --prometheus-port=9876 --rpc-external=true --public-dns=alice --port 7001
 
 EXPOSE 7001/tcp 8545/tcp 8546/tcp 8540/tcp 9876/tcp 6060/tcp
