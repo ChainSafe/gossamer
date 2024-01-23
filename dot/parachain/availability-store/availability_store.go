@@ -616,7 +616,11 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 				av.ProcessBlockFinalizedSignal(msg)
 
 			default:
-				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+				// TODO(ed): handle unknown message type (if necessary)
+				if msg != nil {
+					logger.Infof("unknown message type %T", msg)
+					logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+				}
 			}
 		case <-av.ctx.Done():
 			if err := av.ctx.Err(); err != nil {
@@ -663,14 +667,109 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 
 	for i, v := range newBlocks {
 		// start db batch
+		tx := newAvailabilityStoreBatch(&av.availabilityStore)
 		logger.Infof("newBlock %v %v", i, v)
 		// process new head
 
+		processNewHead(*tx, v.Hash)
 		// add to known blocks
 		//av.knownBlocks.
 
 		// end db batch
+		err := tx.flush()
+		if err != nil {
+			logger.Errorf("failed to flush tx: %w", err)
+		}
 	}
+}
+
+func processNewHead(tx availabilityStoreBatch, hash common.Hash) {
+	logger.Infof("processNewHead")
+	// listen for candidateEvents
+
+	// We need to request the number of validators based on the parent state,
+	// as that is the number of validators used to create this block.
+	//nValidators  := util.request_validators(header.parent_hash, ctx.sender()).await.await??.len();
+
+}
+
+func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch, now time.Duration, nValidators uint,
+	candidate parachaintypes.CandidateReceipt) {
+	candidateHash, err := candidate.Hash()
+	if err != nil {
+		logger.Errorf("failed to hash candidate: %w", err)
+		return
+	}
+	logger.Infof("Candidate backed %x", candidateHash)
+	meta, err := av.availabilityStore.loadMeta(parachaintypes.CandidateHash{Value: candidateHash})
+	if err != nil {
+		logger.Errorf("failed to load meta for candidate %x: %w", candidateHash, err)
+	}
+
+	if meta == nil {
+		state := State{}.New()
+		state.Set(Unavailable{})
+		meta = &CandidateMeta{
+			State:         state,
+			DataAvailable: false,
+			ChunksStored:  make([]bool, nValidators),
+		}
+	}
+
+	dataBytes, err := scale.Marshal(meta)
+	if err != nil {
+		logger.Errorf("marshalling meta for candidate: %w", err)
+	}
+	err = tx.meta.Put(candidateHash[:], dataBytes)
+	if err != nil {
+		logger.Errorf("storing metadata for candidate %v: %w", candidate, err)
+	}
+
+	// TODO(ed): look at storeAvailableData to conrifm that this is the correct way to store pruning data
+	tx.pruneByTime.Put(candidateHash[:], nil)
+}
+
+func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBatch,
+	blockNumber parachaintypes.BlockNumber, blockHash common.Hash,
+	candidate parachaintypes.CandidateReceipt) {
+	candidateHash, err := candidate.Hash()
+	if err != nil {
+		logger.Errorf("failed to hash candidate: %w", err)
+		return
+	}
+	logger.Infof("noteBlockIncluded")
+	meta, err := av.availabilityStore.loadMeta(parachaintypes.CandidateHash{Value: candidateHash})
+	if err != nil {
+		logger.Errorf("failed to load meta for candidate %x: %w", candidateHash, err)
+	}
+
+	if meta == nil {
+		logger.Warnf("Candidate included without being backed %x", candidateHash)
+	}
+	switch meta.State.(type) {
+	// TODO: determine how to switch on State VDT type
+	case Unavailable:
+	// deletePruningKey
+	case Unfinalized:
+
+	case Finalized:
+		// This should never happen as a candidate would have to be included after
+		// finality.
+		return
+	}
+	//write unfialized block contains
+
+	//let key = (UNFINALIZED_PREFIX, BEBlockNumber(n), h, ch).encode();
+	//tx.put(config.col_meta, &key, TOMBSTONE_VALUE);
+
+	key := append([]byte(unfinalizedPrefix), uint32ToBytes(uint32(blockNumber))...)
+	key = append(key, blockHash[:]...)
+	key = append(key, candidateHash[:]...)
+
+	tx.unfinalized.Put(key, nil)
+
+	metaKey := append([]byte(metaPrefix), candidateHash[:]...)
+	tx.meta.Put(metaKey, nil)
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
