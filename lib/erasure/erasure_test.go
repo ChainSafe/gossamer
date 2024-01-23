@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
+
 	"github.com/stretchr/testify/require"
 )
 
