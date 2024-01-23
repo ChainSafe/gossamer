@@ -24,7 +24,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestWSConn_HandleConnParallel(t *testing.T) {
+func TestWSConn_initStorageChangeListener(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
