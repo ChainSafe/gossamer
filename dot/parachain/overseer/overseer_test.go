@@ -15,7 +15,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 type TestSubsystem struct {
