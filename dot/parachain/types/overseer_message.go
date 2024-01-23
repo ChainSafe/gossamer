@@ -6,9 +6,11 @@ package parachaintypes
 import "github.com/ChainSafe/gossamer/lib/common"
 
 var (
-	_ ProvisionableData = (*ProvisionableDataBackedCandidate)(nil)
-	_ ProvisionableData = (*ProvisionableDataMisbehaviorReport)(nil)
-	_ RuntimeApiRequest = (*RuntimeApiRequestValidationCodeByHash)(nil)
+	_ ProvisionableData     = (*ProvisionableDataBackedCandidate)(nil)
+	_ ProvisionableData     = (*ProvisionableDataMisbehaviorReport)(nil)
+	_ RuntimeApiRequest     = (*RuntimeApiRequestValidationCodeByHash)(nil)
+	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
+	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
 )
 
 // OverseerFuncRes is a result of an overseer function
@@ -65,15 +67,6 @@ type ProspectiveParachainsMessageIntroduceCandidate struct {
 	Ch                        chan error
 }
 
-// ProspectiveParachainsMessageCandidateSeconded is a prospective parachains message.
-// it informs the Prospective Parachains Subsystem that a previously introduced candidate
-// has been seconded. This requires that the candidate was successfully introduced in
-// the past.
-type ProspectiveParachainsMessageCandidateSeconded struct {
-	ParaID        ParaID
-	CandidateHash CandidateHash
-}
-
 // IntroduceCandidateRequest is a request to introduce a candidate into the Prospective Parachains Subsystem.
 type IntroduceCandidateRequest struct {
 	// The para-id of the candidate.
@@ -83,6 +76,90 @@ type IntroduceCandidateRequest struct {
 	// The persisted validation data of the candidate.
 	PersistedValidationData PersistedValidationData
 }
+
+// ProspectiveParachainsMessageCandidateSeconded is a prospective parachains message.
+// it informs the Prospective Parachains Subsystem that a previously introduced candidate
+// has been seconded. This requires that the candidate was successfully introduced in
+// the past.
+type ProspectiveParachainsMessageCandidateSeconded struct {
+	ParaID        ParaID
+	CandidateHash CandidateHash
+}
+
+// Get the hypothetical frontier membership of candidates with the given properties
+// under the specified active leaves' fragment trees.
+//
+// For any candidate which is already known, this returns the depths the candidate
+// occupies.
+type ProspectiveParachainsMessageGetHypotheticalFrontier struct {
+	HypotheticalFrontierRequest HypotheticalFrontierRequest
+	ResponseCh                  chan HypotheticalFrontierResponses
+}
+
+// Request specifying which candidates are either already included
+// or might be included in the hypothetical frontier of fragment trees
+// under a given active leaf
+type HypotheticalFrontierRequest struct {
+	// Candidates, in arbitrary order, which should be checked for possible membership in fragment trees
+	Candidates []HypotheticalCandidate
+	// Either a specific fragment tree to check, otherwise all.
+	FragmentTreeRelayParent *common.Hash
+	// Only return membership if all candidates in the path from the root are backed.
+	BackedInPathOnly bool
+}
+
+type HypotheticalFrontierResponses []HypotheticalFrontierResponse
+
+type HypotheticalFrontierResponse struct {
+	HypotheticalCandidate HypotheticalCandidate
+	Memberships           []FragmentTreeMembership
+}
+
+// Indicates the relay-parents whose fragment tree a candidate
+// is present in and the depths of that tree the candidate is present in.
+type FragmentTreeMembership struct {
+	RelayParent common.Hash
+	Depths      []uint
+}
+
+// HypotheticalCandidate represents a candidate to be evaluated for membership
+// in the prospective parachains subsystem.
+//
+// Hypothetical candidates can be categorised into two types: complete and incomplete.
+//
+//   - Complete candidates have already had their potentially heavy candidate receipt
+//     fetched, making them suitable for stricter evaluation.
+//
+//   - Incomplete candidates are simply claims about properties that a fetched candidate
+//     would have and are evaluated less strictly.
+type HypotheticalCandidate interface {
+	isHypotheticalCandidate()
+}
+
+// HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
+// this
+type HypotheticalCandidateIncomplete struct {
+	// CandidateHash is the claimed hash of the candidate.
+	CandidateHash CandidateHash
+	// ParaID is the claimed para-ID of the candidate.
+	CandidateParaID ParaID
+	// ParentHeadDataHash is the claimed head-data hash of the candidate.
+	ParentHeadDataHash common.Hash
+	// RelayParent is the claimed relay parent of the candidate.
+	RelayParent common.Hash
+}
+
+func (HypotheticalCandidateIncomplete) isHypotheticalCandidate() {}
+
+// HypotheticalCandidateComplete represents a complete candidate, including its hash, committed candidate receipt,
+// and persisted validation data.
+type HypotheticalCandidateComplete struct {
+	CandidateHash             CandidateHash
+	CommittedCandidateReceipt CommittedCandidateReceipt
+	PersistedValidationData   PersistedValidationData
+}
+
+func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
 
 type RuntimeApiMessageRequest struct {
 	RelayParent common.Hash

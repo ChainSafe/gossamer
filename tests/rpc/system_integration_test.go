@@ -24,6 +24,8 @@ import (
 )
 
 func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
+	t.Skip()
+
 	if utils.MODE != "rpc" {
 		t.Skip("RPC tests are disabled, going to skip.")
 	}

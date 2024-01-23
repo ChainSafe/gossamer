@@ -27,7 +27,6 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.5
 	github.com/klauspost/compress v1.17.8
-	github.com/klauspost/reedsolomon v1.11.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
@@ -40,6 +39,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tetratelabs/wazero v1.1.0
+	github.com/tidwall/btree v1.7.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.24.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
