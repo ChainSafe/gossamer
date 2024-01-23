@@ -5,11 +5,12 @@ package polkadot
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
 var (
-	// defaultBasePath Default node base directory path
-	defaultBasePath = "~/.gossamer/polkadot"
+	// defaultBasePath is default base directory path for polkadot node
+	defaultBasePath = xdg.DataHome + "/gossamer/polkadot"
 	// defaultChainSpec is the default chain spec configuration path
 	defaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
 )

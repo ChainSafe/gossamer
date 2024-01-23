@@ -1,7 +1,7 @@
 FROM golang:1.21
 
 ARG chain="polkadot"
-ARG basepath="~/.gossamer"
+ARG basepath="~/.local/share/gossamer"
 ARG DD_API_KEY
 
 ENV chain=${chain}
