@@ -25,7 +25,6 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.17.4
-	github.com/klauspost/reedsolomon v1.11.8
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
@@ -38,6 +37,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	github.com/tetratelabs/wazero v1.1.0
+	github.com/tidwall/btree v1.7.0
 	github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.18.0
