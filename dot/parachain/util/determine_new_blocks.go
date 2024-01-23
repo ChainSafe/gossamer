@@ -157,7 +157,7 @@ import (
 //	}
 
 type HashHeader struct {
-	hash   common.Hash
+	Hash   common.Hash
 	header types.Header
 }
 type ChainAPIMessage[message any] struct {
@@ -197,7 +197,7 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 		return nil, fmt.Errorf("failed to deep copy header: %w", err)
 	}
 
-	ancestry = append(ancestry, HashHeader{hash: head, header: *headerClone})
+	ancestry = append(ancestry, HashHeader{Hash: head, header: *headerClone})
 
 	// Early exit if the parent hash is in the DB or no further blocks are needed.
 	//if isKnown(header.ParentHash) || header.Number == uint(minBlockNeeded) {
