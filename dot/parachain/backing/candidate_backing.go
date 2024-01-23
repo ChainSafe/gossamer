@@ -221,7 +221,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case CanSecondMessage:
 		err := cb.handleCanSecondMessage(msg)
 		if err != nil {
-			logger.Debug(err.Error())
+			logger.Debug(fmt.Sprintf("can't second the candidate: %s", err))
 		}
 	case SecondMessage:
 		cb.handleSecondMessage()
