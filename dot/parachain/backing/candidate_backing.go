@@ -30,6 +30,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/tidwall/btree"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
@@ -72,6 +73,17 @@ type CandidateBacking struct {
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
+	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
+	perLeaf map[common.Hash]activeLeafState
+	// The utility for managing the implicit and explicit views in a consistent way.
+	// We only feed leaves which have prospective parachains enabled to this view.
+	implicitView ImplicitView
+}
+
+type activeLeafState struct {
+	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
+	secondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
+	perCandidate              map[parachaintypes.CandidateHash]*perCandidateState //nolint:unused
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -125,6 +137,7 @@ type CanSecondMessage struct {
 	CandidateRelayParent common.Hash
 	CandidateHash        parachaintypes.CandidateHash
 	ParentHeadDataHash   common.Hash
+	ResponseCh           chan bool
 }
 
 // SecondMessage is a message received from overseer. Candidate Backing subsystem should second the given
@@ -206,7 +219,10 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case GetBackedCandidatesMessage:
 		cb.handleGetBackedCandidatesMessage()
 	case CanSecondMessage:
-		cb.handleCanSecondMessage()
+		err := cb.handleCanSecondMessage(msg)
+		if err != nil {
+			logger.Debug(fmt.Sprintf("can't second the candidate: %s", err))
+		}
 	case SecondMessage:
 		cb.handleSecondMessage()
 	case StatementMessage:
@@ -231,10 +247,6 @@ func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
 
 func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
 	// TODO: Implement this #3504
-}
-
-func (cb *CandidateBacking) handleCanSecondMessage() {
-	// TODO: Implement this #3505
 }
 
 func (cb *CandidateBacking) handleSecondMessage() {
