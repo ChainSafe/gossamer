@@ -575,17 +575,24 @@ type BackedCandidate struct {
 	ValidatorIndices scale.BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
 }
 
+// ProspectiveParachainsMode represents the mode of a relay parent in the context
+// of prospective parachains, as defined by the Runtime API version.
 type ProspectiveParachainsMode struct {
-	// Runtime API without support of `async_backing_params`: no prospective parachains.
-	// v6 runtime API: prospective parachains.
-	// NOTE: MaxCandidateDepth and AllowedAncestryLen need to be set if this is enabled.
+	// IsEnabled indicates whether prospective parachains are enabled or disabled.
+	// - Disabled: When the Runtime API lacks support for `async_backing_params`,
+	//   there are no prospective parachains.
+	// - Enabled: For v6 runtime API, prospective parachains are enabled.
+	// NOTE: MaxCandidateDepth and AllowedAncestryLen should be set only if this is enabled.
 	IsEnabled bool
 
-	// The maximum number of para blocks between the para head in a relay parent
-	// and a new candidate. Restricts nodes from building arbitrary long chains
-	// and spamming other validators.
+	// MaxCandidateDepth specifies the maximum number of para blocks that can exist
+	// between the para head in a relay parent and a new candidate. This limitation
+	// helps prevent the construction of arbitrarily long chains and spamming by
+	// other validators.
 	MaxCandidateDepth uint
-	// How many ancestors of a relay parent are allowed to build candidates on top of.
+
+	// AllowedAncestryLen determines how many ancestors of a relay parent are allowed
+	// to build candidates on top of it.
 	AllowedAncestryLen uint
 }
 
