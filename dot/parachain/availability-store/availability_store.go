@@ -6,26 +6,69 @@ package availabilitystore
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/erasure"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
 
 const (
-	avaliableDataPrefix = "available"
+	availableDataPrefix = "available"
 	chunkPrefix         = "chunk"
 	metaPrefix          = "meta"
 	unfinalizedPrefix   = "unfinalized"
 	pruneByTimePrefix   = "prune_by_time"
+
+	// Unavailable blocks are kept for 1 hour.
+	keepUnavilableFor = time.Hour
+
+	// Finalized data is kept for 25 hours.
+	keepFinalizedFor = time.Hour * 25
+
+	// The pruning interval.
+	pruningInterval = time.Minute * 5
 )
+
+// BETimestamp is a unix time wrapper with big-endian encoding
+type BETimestamp uint64
+
+// ToBigEndianBytes returns the big-endian encoding of the timestamp
+func (b BETimestamp) ToBigEndianBytes() []byte {
+	res := make([]byte, 8)
+	binary.BigEndian.PutUint64(res, uint64(b))
+	return res
+}
+
+type subsystemClock struct{}
+
+func (sc *subsystemClock) Now() BETimestamp {
+	return BETimestamp(time.Now().Unix())
+}
+
+// pruningConfig Struct holding pruning timing configuration.
+// The only purpose of this structure is to use different timing
+// configurations in production and in testing.
+type pruningConfig struct {
+	keepUnavailableFor time.Duration
+	keepFinalizedFor   time.Duration
+	pruningInterval    time.Duration
+}
+
+var defaultPruningConfig = pruningConfig{
+	keepUnavailableFor: keepUnavilableFor,
+	keepFinalizedFor:   keepFinalizedFor,
+	pruningInterval:    pruningInterval,
+}
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
@@ -35,141 +78,317 @@ type AvailabilityStoreSubsystem struct {
 
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
-	availabilityStore   AvailabilityStore
+	availabilityStore   availabilityStore
+	pruningConfig       pruningConfig
+	clock               subsystemClock
 	//TODO: pruningConfig PruningConfig
 	//TODO: clock         Clock
 	//TODO: metrics       Metrics
 }
 
-// AvailabilityStore is the struct that holds data for the availability store
-type AvailabilityStore struct {
-	availableTable database.Table
-	chunkTable     database.Table
-	metaTable      database.Table
-	//TODO: unfinalizedTable database.Table
-	//TODO: pruneByTimeTable database.Table
+// availabilityStore is the struct that holds data for the availability store
+type availabilityStore struct {
+	available   database.Table
+	chunk       database.Table
+	meta        database.Table
+	unfinalized database.Table
+	pruneByTime database.Table
+}
+
+type availabilityStoreBatch struct {
+	available   database.Batch
+	chunk       database.Batch
+	meta        database.Batch
+	unfinalized database.Batch
+	pruneByTime database.Batch
+}
+
+func newAvailabilityStoreBatch(as *availabilityStore) *availabilityStoreBatch {
+	return &availabilityStoreBatch{
+		available:   as.available.NewBatch(),
+		chunk:       as.chunk.NewBatch(),
+		meta:        as.meta.NewBatch(),
+		unfinalized: as.unfinalized.NewBatch(),
+		pruneByTime: as.pruneByTime.NewBatch(),
+	}
+}
+
+// flush flushes the batch and resets the batch if error during flushing
+func (asb *availabilityStoreBatch) flush() error {
+	err := asb.flushAll()
+	if err != nil {
+		asb.reset()
+	}
+	return err
+}
+
+// flushAll flushes all the batches and returns the error
+func (asb *availabilityStoreBatch) flushAll() error {
+	err := asb.available.Flush()
+	if err != nil {
+		return fmt.Errorf("writing available batch: %w", err)
+	}
+	err = asb.chunk.Flush()
+	if err != nil {
+		return fmt.Errorf("writing chunk batch: %w", err)
+	}
+	err = asb.meta.Flush()
+	if err != nil {
+		return fmt.Errorf("writing meta batch: %w", err)
+	}
+	err = asb.unfinalized.Flush()
+	if err != nil {
+		return fmt.Errorf("writing unfinalized batch: %w", err)
+	}
+	err = asb.pruneByTime.Flush()
+	if err != nil {
+		return fmt.Errorf("writing prune by time batch: %w", err)
+	}
+	return nil
+}
+
+// reset resets the batch and returns the error
+func (asb *availabilityStoreBatch) reset() {
+	asb.available.Reset()
+	asb.chunk.Reset()
+	asb.meta.Reset()
+	asb.unfinalized.Reset()
+	asb.pruneByTime.Reset()
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
-func NewAvailabilityStore(db database.Database) *AvailabilityStore {
-	return &AvailabilityStore{
-		availableTable: database.NewTable(db, avaliableDataPrefix),
-		chunkTable:     database.NewTable(db, chunkPrefix),
-		metaTable:      database.NewTable(db, metaPrefix),
+func NewAvailabilityStore(db database.Database) *availabilityStore {
+	return &availabilityStore{
+		available:   database.NewTable(db, availableDataPrefix),
+		chunk:       database.NewTable(db, chunkPrefix),
+		meta:        database.NewTable(db, metaPrefix),
+		unfinalized: database.NewTable(db, unfinalizedPrefix),
+		pruneByTime: database.NewTable(db, pruneByTimePrefix),
 	}
 }
 
 // loadAvailableData loads available data from the availability store
-func (as *AvailabilityStore) loadAvailableData(candidate common.Hash) (*AvailableData, error) {
-	resultBytes, err := as.availableTable.Get(candidate[:])
+func (as *availabilityStore) loadAvailableData(candidate parachaintypes.CandidateHash) (*AvailableData, error) {
+	resultBytes, err := as.available.Get(candidate.Value[:])
 	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v from available table: %w", candidate, err)
+		return nil, fmt.Errorf("getting candidate %v from available table: %w", candidate.Value, err)
 	}
 	result := AvailableData{}
-	err = json.Unmarshal(resultBytes, &result)
+	err = scale.Unmarshal(resultBytes, &result)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling available data: %w", err)
 	}
 	return &result, nil
 }
 
-// loadMetaData loads metadata from the availability store
-func (as *AvailabilityStore) loadMetaData(candidate common.Hash) (*CandidateMeta, error) {
-	resultBytes, err := as.metaTable.Get(candidate[:])
+// loadMeta loads meta data from the availability store
+func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*CandidateMeta, error) {
+	resultBytes, err := as.meta.Get(candidate.Value[:])
 	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v from available table: %w", candidate, err)
+		return nil, fmt.Errorf("getting candidate %v from meta table: %w", candidate.Value, err)
 	}
 	result := CandidateMeta{}
-	err = json.Unmarshal(resultBytes, &result)
+	err = scale.Unmarshal(resultBytes, &result)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling candidate meta: %w", err)
 	}
 	return &result, nil
 }
 
-// storeMetaData stores metadata in the availability store
-func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
-	dataBytes, err := json.Marshal(meta)
-	if err != nil {
-		return fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = as.metaTable.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
-	}
-	return nil
-}
-
 // loadChunk loads a chunk from the availability store
-func (as *AvailabilityStore) loadChunk(candidate common.Hash, validatorIndex uint32) (*ErasureChunk, error) {
-	resultBytes, err := as.chunkTable.Get(append(candidate[:], uint32ToBytes(validatorIndex)...))
+func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
+	error) {
+	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(validatorIndex)...))
 	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate, validatorIndex, err)
+		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate.Value, validatorIndex, err)
 	}
 	result := ErasureChunk{}
-	err = json.Unmarshal(resultBytes, &result)
+	err = scale.Unmarshal(resultBytes, &result)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling chunk: %w", err)
 	}
 	return &result, nil
 }
 
-// storeChunk stores a chunk in the availability store
-func (as *AvailabilityStore) storeChunk(candidate common.Hash, chunk ErasureChunk) error {
-	meta, err := as.loadMetaData(candidate)
-	if err != nil {
+// storeChunk stores a chunk in the availability store, returns true on success, false on failure,
+// and error on internal error.
+func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, chunk ErasureChunk) (bool,
+	error) {
+	batch := newAvailabilityStoreBatch(as)
 
+	meta, err := as.loadMeta(candidate)
+	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			// TODO: were creating metadata here, but we should be doing it in the parachain block import?
-			// TODO: also we need to determine how many chunks we need to store
-			meta = &CandidateMeta{
-				ChunksStored: make([]bool, 16),
-			}
+			// we weren't informed of this candidate by import events
+			return false, nil
 		} else {
-			return fmt.Errorf("load metadata: %w", err)
+			return false, fmt.Errorf("load metadata: %w", err)
 		}
 	}
 
 	if meta.ChunksStored[chunk.Index] {
 		logger.Debugf("Chunk %d already stored", chunk.Index)
-		return nil // already stored
-	} else {
-		dataBytes, err := json.Marshal(chunk)
-		if err != nil {
-			return fmt.Errorf("marshalling chunk: %w", err)
-		}
-		err = as.chunkTable.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
-		if err != nil {
-			return fmt.Errorf("storing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
-		}
-
-		meta.ChunksStored[chunk.Index] = true
-		err = as.storeMetaData(candidate, *meta)
-		if err != nil {
-			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
-		}
+		return true, nil // already stored
 	}
+
+	dataBytes, err := scale.Marshal(chunk)
+	if err != nil {
+		return false, fmt.Errorf("marshalling chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
+	}
+	err = batch.chunk.Put(append(candidate.Value[:], uint32ToBytes(chunk.Index)...), dataBytes)
+	if err != nil {
+		return false, fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
+	}
+
+	meta.ChunksStored[chunk.Index] = true
+
+	dataBytes, err = scale.Marshal(*meta)
+	if err != nil {
+		return false, fmt.Errorf("marshalling meta for candidate: %w", err)
+	}
+	err = batch.meta.Put(candidate.Value[:], dataBytes)
+	if err != nil {
+		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+	}
+
+	err = batch.flush()
+	if err != nil {
+		return false, fmt.Errorf("writing batch: %w", err)
+	}
+
 	logger.Debugf("stored chuck %d for %v", chunk.Index, candidate)
-	return nil
+	return true, nil
 }
 
-// storeAvailableData stores available data in the availability store
-func (as *AvailabilityStore) storeAvailableData(candidate common.Hash, data AvailableData) error {
-	dataBytes, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("marshalling available data: %w", err)
+func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
+	candidate parachaintypes.CandidateHash, nValidators uint, data AvailableData,
+	expectedErasureRoot common.Hash) (bool, error) {
+	batch := newAvailabilityStoreBatch(as)
+	meta, err := as.loadMeta(candidate)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return false, fmt.Errorf("load metadata: %w", err)
 	}
-	err = as.availableTable.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
+	if meta != nil && meta.DataAvailable {
+		return true, nil // already stored
 	}
-	return nil
+
+	meta = &CandidateMeta{}
+
+	now := subsystem.clock.Now()
+	pruneAt := now + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
+
+	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
+	err = batch.pruneByTime.Put(pruneKey, nil)
+	if err != nil {
+		return false, fmt.Errorf("writing pruning key: %w", err)
+	}
+
+	meta.State = NewStateVDT()
+	err = meta.State.SetValue(Unavailable{Timestamp: now})
+	if err != nil {
+		return false, fmt.Errorf("setting state to unavailable: %w", err)
+	}
+	meta.DataAvailable = false
+	meta.ChunksStored = make([]bool, nValidators)
+
+	dataEncoded, err := scale.Marshal(data)
+	if err != nil {
+		return false, fmt.Errorf("encoding data: %w", err)
+	}
+
+	chunks, err := erasure.ObtainChunks(nValidators, dataEncoded)
+	if err != nil {
+		return false, fmt.Errorf("obtaining chunks: %w", err)
+	}
+
+	branches, err := branchesFromChunks(chunks)
+	if err != nil {
+		return false, fmt.Errorf("creating branches from chunks: %w", err)
+	}
+	if branches.root != expectedErasureRoot {
+		return false, errInvalidErasureRoot
+	}
+
+	for i, chunk := range chunks {
+		erasureChunk := ErasureChunk{
+			Index: uint32(i),
+			Chunk: chunk,
+		}
+
+		dataBytes, err := scale.Marshal(erasureChunk)
+		if err != nil {
+			return false, fmt.Errorf("marshalling chunk for candidate %v, index %d: %w", candidate, erasureChunk.Index, err)
+		}
+		err = batch.chunk.Put(append(candidate.Value[:], uint32ToBytes(erasureChunk.Index)...), dataBytes)
+		if err != nil {
+			return false, fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, erasureChunk.Index, err)
+		}
+
+		meta.ChunksStored[i] = true
+	}
+
+	meta.DataAvailable = true
+	meta.ChunksStored = make([]bool, nValidators)
+	for i := range meta.ChunksStored {
+		meta.ChunksStored[i] = true
+	}
+
+	dataBytes, err := scale.Marshal(meta)
+	if err != nil {
+		return false, fmt.Errorf("marshalling meta for candidate: %w", err)
+	}
+	err = batch.meta.Put(candidate.Value[:], dataBytes)
+	if err != nil {
+		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+	}
+
+	dataBytes, err = scale.Marshal(data)
+	if err != nil {
+		return false, fmt.Errorf("marshalling available data: %w", err)
+	}
+	err = batch.available.Put(candidate.Value[:], dataBytes)
+	if err != nil {
+		return false, fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
+	}
+
+	err = batch.flush()
+	if err != nil {
+		return false, fmt.Errorf("writing batch: %w", err)
+	}
+
+	logger.Debugf("stored data and chunks for %v", candidate.Value)
+	return true, nil
 }
 
+// todo(ed) determine if this should be LittleEndian or BigEndian
 func uint32ToBytes(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.LittleEndian.PutUint32(result, value)
 	return result
+}
+
+func uint32ToBytesBigEndian(value uint32) []byte {
+	result := make([]byte, 4)
+	binary.BigEndian.PutUint32(result, value)
+	return result
+}
+
+func branchesFromChunks(chunks [][]byte) (branches, error) {
+	tr := inmemory.NewEmptyTrie()
+
+	for i, chunk := range chunks {
+		err := tr.Put(uint32ToBytes(uint32(i)), common.MustBlake2bHash(chunk).ToBytes())
+		if err != nil {
+			return branches{}, fmt.Errorf("putting chunk %d in trie: %w", i, err)
+		}
+	}
+	b := branches{
+		trieStorage: tr,
+		root:        tr.MustHash(),
+		chunks:      chunks,
+		currentPos:  0,
+	}
+	return b, nil
 }
 
 // Run runs the availability store subsystem
@@ -272,7 +491,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailabl
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryDataAvailability(msg QueryDataAvailability) error {
-	_, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
+	_, err := av.availabilityStore.loadMeta(msg.CandidateHash)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			msg.Sender <- false
@@ -296,7 +515,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunk(msg QueryChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) error {
-	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.loadMeta(msg.CandidateHash)
 	if err != nil {
 		return fmt.Errorf("load metadata: %w", err)
 	}
@@ -317,7 +536,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) e
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) error {
-	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.loadMeta(msg.CandidateHash)
 	if err != nil {
 		msg.Sender <- []ErasureChunk{}
 		return fmt.Errorf("load metadata: %w", err)
@@ -339,7 +558,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) e
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChunkAvailability) error {
-	meta, err := av.availabilityStore.loadMetaData(msg.CandidateHash)
+	meta, err := av.availabilityStore.loadMeta(msg.CandidateHash)
 	if err != nil {
 		msg.Sender <- false
 		return fmt.Errorf("load metadata: %w", err)
@@ -349,7 +568,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkAvailability(msg QueryChun
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
-	err := av.availabilityStore.storeChunk(msg.CandidateHash, msg.Chunk)
+	_, err := av.availabilityStore.storeChunk(msg.CandidateHash, msg.Chunk)
 	if err != nil {
 		msg.Sender <- err
 		return fmt.Errorf("store chunk: %w", err)
@@ -359,12 +578,27 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 }
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
-	err := av.availabilityStore.storeAvailableData(msg.CandidateHash.Value, msg.AvailableData)
-	if err != nil {
+	// TODO: add to metric on_chunks_received
+
+	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, uint(msg.NumValidators),
+		msg.AvailableData,
+		msg.ExpectedErasureRoot)
+	if res {
+		msg.Sender <- nil
+		return nil
+	}
+	if err != nil && errors.Is(err, errInvalidErasureRoot) {
 		msg.Sender <- err
 		return fmt.Errorf("store available data: %w", err)
 	}
-	msg.Sender <- err // TODO: determine how to replicate Rust's Result type
+	if err != nil {
+		// We do not bubble up internal errors to caller subsystems, instead the
+		// tx channel is dropped and that error is caught by the caller subsystem.
+		//
+		// We bubble up the specific error here so `av-store` logs still tell what
+		// happened.
+		return fmt.Errorf("store available data: %w", err)
+	}
 	return nil
 }
 

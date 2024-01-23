@@ -79,7 +79,7 @@ deps:
 	go mod download
 
 ## build: Builds application binary and stores it in `./bin/gossamer`
-build:
+build: compile-erasure
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	go build -trimpath -o ./bin/gossamer -ldflags="-s -w" ./cmd/gossamer
 
