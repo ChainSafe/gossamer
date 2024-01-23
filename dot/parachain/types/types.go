@@ -451,6 +451,15 @@ type PersistedValidationData struct {
 	MaxPovSize             uint32      `scale:"4"`
 }
 
+func (pvd PersistedValidationData) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(pvd)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling PersistedValidationData: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
+}
+
 // OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
 type OccupiedCoreAssumption scale.VaryingDataType
 

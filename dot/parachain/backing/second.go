@@ -8,8 +8,6 @@ import (
 	"fmt"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
@@ -34,18 +32,14 @@ func (cb *CandidateBacking) handleSecondMessage(
 	}
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
-	pvdBytes, err := scale.Marshal(pvd)
-	if err != nil {
-		return fmt.Errorf("marshalling persisted validation data: %w", err)
-	}
-
-	pvdHash, err := common.Blake2bHash(pvdBytes)
+	pvdHash, err := pvd.Hash()
 	if err != nil {
 		return fmt.Errorf("hashing persisted validation data: %w", err)
 	}
 
 	if candidateReceipt.Descriptor.PersistedValidationDataHash != pvdHash {
-		return fmt.Errorf("%w: mismatch between %s and %s",
+		return fmt.Errorf("%w; mismatch between persisted validation data hash in candidate descriptor: %s "+
+			"and calculated hash of given persisted validation data: %s",
 			errWrongPVDForSecondingCandidate,
 			candidateReceipt.Descriptor.PersistedValidationDataHash,
 			pvdHash,
