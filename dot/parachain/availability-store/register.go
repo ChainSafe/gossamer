@@ -9,6 +9,7 @@ func Register(overseerChan chan<- any, st *state.Service) (*AvailabilityStoreSub
 	availabilityStore := NewAvailabilityStore(st.DB())
 
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		pruningConfig:       defaultPruningConfig,
 		SubSystemToOverseer: overseerChan,
 		availabilityStore:   *availabilityStore,
 	}

@@ -71,5 +71,8 @@ jobs:
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-mod
 
+      - name: generate a shared library file for erasure
+        run: make compile-erasure
+
       - name: Run integration tests
         run: CI=buildjet go test -timeout=45m -tags integration ${{ matrix.packages }}
