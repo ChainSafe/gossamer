@@ -4,15 +4,17 @@
 package backing
 
 import (
+	"errors"
+	"fmt"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly..
-func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd relayParentAndCommand) error {
-	// TODO: Implement this #3571
-	return nil
-}
+var (
+	errNilBackgroundValidationResult = errors.New("background validation result is nil")
+	errRelayParentNoLongerRelevent   = errors.New("relay parent is no longer relevant")
+)
 
 type backgroundValidationResult struct {
 	candidateReceipt        *parachaintypes.CandidateReceipt
@@ -26,7 +28,7 @@ type backgroundValidationResult struct {
 type relayParentAndCommand struct {
 	relayParent   common.Hash
 	command       validatedCandidateCommand
-	validationRes backgroundValidationResult
+	validationRes *backgroundValidationResult
 	candidateHash parachaintypes.CandidateHash
 }
 
@@ -36,9 +38,45 @@ type validatedCandidateCommand byte
 
 const (
 	// We were instructed to second the candidate that has been already validated.
-	second = validatedCandidateCommand(iota) //nolint:unused
+	second = validatedCandidateCommand(iota)
 	// We were instructed to validate the candidate.
 	attest
 	// We were not able to `Attest` because backing validator did not send us the PoV.
-	attestNoPoV //nolint:unused
+	attestNoPoV
 )
+
+// processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly..
+func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd relayParentAndCommand) error {
+	rpState, ok := cb.perRelayParent[rpAndCmd.relayParent]
+	if !ok {
+		return fmt.Errorf("%w: %s", errRelayParentNoLongerRelevent, rpAndCmd.relayParent)
+	}
+	if rpState == nil {
+		return fmt.Errorf("%w; relay parent: %s", errNilRelayParentState, rpAndCmd.relayParent)
+	}
+
+	delete(rpState.awaitingValidation, rpAndCmd.candidateHash)
+
+	switch rpAndCmd.command {
+	case second:
+		if rpAndCmd.validationRes == nil {
+			return fmt.Errorf("unable to second the candidate, %w; relay Parent: %s; candidate hash: %s",
+				errNilBackgroundValidationResult, rpAndCmd.relayParent, rpAndCmd.candidateHash.Value)
+		}
+		handleCommandSecond(*rpAndCmd.validationRes)
+	case attest:
+		if rpAndCmd.validationRes == nil {
+			return fmt.Errorf("unable to attest the candidate, %w; relay Parent: %s; candidate hash: %s",
+				errNilBackgroundValidationResult, rpAndCmd.relayParent, rpAndCmd.candidateHash.Value)
+		}
+		handleCommandAttest(*rpAndCmd.validationRes)
+	case attestNoPoV:
+		handleCommandAttestNoPoV(rpAndCmd.candidateHash)
+	}
+
+	return nil
+}
+
+func handleCommandSecond(bgValidationResult backgroundValidationResult)   {}
+func handleCommandAttest(bgValidationResult backgroundValidationResult)   {}
+func handleCommandAttestNoPoV(candidateHash parachaintypes.CandidateHash) {}

@@ -185,11 +185,11 @@ func (cb *CandidateBacking) runUtil() {
 		select {
 		case rpAndCmd := <-chRelayParentAndCommand:
 			if err := cb.processValidatedCandidateCommand(rpAndCmd); err != nil {
-				logger.Error(err.Error())
+				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
 		case msg := <-cb.OverseerToSubSystem:
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
-				logger.Errorf("processing message %s", err.Error())
+				logger.Errorf("processing message: %s", err.Error())
 			}
 		case <-cb.ctx.Done():
 			close(chRelayParentAndCommand)

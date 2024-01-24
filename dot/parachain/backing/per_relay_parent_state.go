@@ -393,7 +393,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	chRelayParentAndCommand <- relayParentAndCommand{
 		relayParent:   relayParent,
 		command:       makeCommand,
-		validationRes: bgValidationResult,
+		validationRes: &bgValidationResult,
 		candidateHash: candidateHash,
 	}
 	return nil
