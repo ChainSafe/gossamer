@@ -527,7 +527,11 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		_, ok := cpvs.BlockedAdvertisements[backed.String()]
 		if ok {
 			delete(cpvs.BlockedAdvertisements, backed.String())
-			cpvs.requestUnblockedCollations(backed)
+
+			err := cpvs.requestUnblockedCollations(backed)
+			if err != nil {
+				return fmt.Errorf("requesting unblocked collations: %w", err)
+			}
 		}
 	case collatorprotocolmessages.Invalid:
 		invalidOverseerMsg := msg
@@ -572,24 +576,28 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 
 // requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
 func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed collatorprotocolmessages.Backed) error {
+	fmt.Println("78")
 
 	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
-
+		fmt.Println("580")
 		newBlockedAdvertisements := []BlockedAdvertisement{}
 
 		for _, blockedAdvertisement := range blockedAdvertisements {
 			isSecondingAllowed := cpvs.canSecond(
 				backed.ParaID, blockedAdvertisement.candidateRelayParent, blockedAdvertisement.candidateHash, backed.ParaHead)
+			fmt.Println("586")
 
 			if !isSecondingAllowed {
 				newBlockedAdvertisements = append(newBlockedAdvertisements, blockedAdvertisement)
 				continue
 			}
+			fmt.Println("591")
 
 			perRelayParent, ok := cpvs.perRelayParent[blockedAdvertisement.candidateRelayParent]
 			if !ok {
 				return ErrRelayParentUnknown
 			}
+			fmt.Println("597")
 
 			err := cpvs.enqueueCollation(
 				perRelayParent.collations,

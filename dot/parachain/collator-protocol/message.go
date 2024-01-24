@@ -227,6 +227,8 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	collatorID parachaintypes.CollatorID,
 	prospectiveCandidate *ProspectiveCandidate) error {
 
+	fmt.Println("230")
+
 	// TODO: return errors
 	pendingCollation := PendingCollation{
 		RelayParent:          relayParent,

@@ -55,6 +55,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 		net                   Network
 		fetchedCandidates     map[string]CollationEvent
 		deletesFetchCandidate bool
+		blockedAdvertisements map[string][]BlockedAdvertisement
 		errString             string
 	}{
 		{
@@ -253,6 +254,25 @@ func TestProcessOverseerMessage(t *testing.T) {
 			deletesFetchCandidate: true,
 			errString:             "",
 		},
+		{
+			description: "Backed message fails with unknown relay parent",
+			msg: collatorprotocolmessages.Backed{
+				ParaID:   parachaintypes.ParaID(6),
+				ParaHead: common.Hash{},
+			},
+
+			blockedAdvertisements: map[string][]BlockedAdvertisement{
+				"para id: 6, para head: 0x0000000000000000000000000000000000000000000000000000000000000000": {
+					{
+						peerID:               peerID,
+						collatorID:           testCollatorID,
+						candidateRelayParent: testRelayParent,
+						candidateHash:        parachaintypes.CandidateHash{},
+					},
+				},
+			},
+			errString: ErrRelayParentUnknown.Error(),
+		},
 	}
 	for _, c := range testCases {
 		c := c
@@ -261,8 +281,9 @@ func TestProcessOverseerMessage(t *testing.T) {
 			cpvs := CollatorProtocolValidatorSide{
 				net: c.net,
 				// perRelayParent: c.perRelayParent,
-				fetchedCandidates: c.fetchedCandidates,
-				peerData:          c.peerData,
+				fetchedCandidates:     c.fetchedCandidates,
+				peerData:              c.peerData,
+				BlockedAdvertisements: c.blockedAdvertisements,
 				// activeLeaves:   c.activeLeaves,
 			}
 
