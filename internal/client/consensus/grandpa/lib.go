@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/constraints"
@@ -112,7 +111,7 @@ type SharedVoterState[AuthorityID comparable] struct {
 //	Block: BlockT,
 //
 // {}
-type ClientForGrandpa[R any, N runtime.Number, H statemachine.HasherOut] interface {
+type ClientForGrandpa[R any, N runtime.Number, H runtime.Hash] interface {
 	api.LockImportRun[R, N, H]
 	api.Finalizer[N, H]
 	api.AuxStore
@@ -165,7 +164,7 @@ func (c Config) name() string {
 }
 
 // / Future that powers the voter.
-type voterWork[Hash constraints.Ordered, Number runtime.Number, R any] struct {
+type voterWork[Hash runtime.Hash, Number runtime.Number, R any] struct {
 	// use string for AuthorityID and AuthoritySignature
 	voter            *grandpa.Voter[Hash, Number, string, string]
 	sharedVoterState SharedVoterState[string]
@@ -176,7 +175,7 @@ type voterWork[Hash constraints.Ordered, Number runtime.Number, R any] struct {
 	metrics          *metrics
 }
 
-func newVoterWork[Hash constraints.Ordered, Number runtime.Number, R any](
+func newVoterWork[Hash runtime.Hash, Number runtime.Number, R any](
 	client ClientForGrandpa[R, Number, Hash],
 	config Config,
 	network communication.NetworkBridge[Hash, Number],

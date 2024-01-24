@@ -524,7 +524,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 				if err != nil {
 					return err
 				}
-				message := newMessage(primary)
+				message := NewMessage(primary)
 				vr.outgoing.Push(message)
 				setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateProposed[Timer]{prevoteTimer, precommitTimer})
 
@@ -616,7 +616,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 				return err
 			}
 			vr.votes.SetPrevotedIdx()
-			message := newMessage(prevote)
+			message := NewMessage(prevote)
 			vr.outgoing.Push(message)
 			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
 		} else {
@@ -691,7 +691,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 					return err
 				}
 				vr.votes.SetPrecommittedIdx()
-				message := newMessage(precommit)
+				message := NewMessage(precommit)
 				vr.outgoing.Push(message)
 			}
 			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrecommitted{})

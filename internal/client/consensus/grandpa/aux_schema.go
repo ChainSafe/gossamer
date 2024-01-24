@@ -195,7 +195,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID pgrandpa.Author
 // as we finalize new blocks, this makes sure that we don't store useless justifications
 // but can always prove finality of the latest block.
 func updateBestJustification[
-	Hash constraints.Ordered,
+	Hash runtime.Hash,
 	N runtime.Number,
 	S comparable,
 	ID pgrandpa.AuthorityID,
@@ -219,7 +219,7 @@ func updateBestJustification[
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
 func BestJustification[
-	Hash constraints.Ordered,
+	Hash runtime.Hash,
 	N runtime.Number,
 ](store api.AuxStore) (*GrandpaJustification[Hash, N], error) {
 	justification := decodeGrandpaJustification[Hash, N]{}

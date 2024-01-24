@@ -7,6 +7,7 @@ import (
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"golang.org/x/exp/constraints"
 )
 
 // / Describes which block import notification stream should be notified.
@@ -27,7 +28,7 @@ const (
 // /
 // / Contains information about the block that just got imported,
 // / including storage changes, reorged blocks, etc.
-type ImportSummary[N runtime.Number, H statemachine.HasherOut] struct {
+type ImportSummary[N runtime.Number, H runtime.Hash] struct {
 	/// Block hash of the imported block.
 	// pub hash: Block::Hash,
 	Hash H
@@ -60,7 +61,7 @@ type ImportSummary[N runtime.Number, H statemachine.HasherOut] struct {
 // /
 // / Contains information about the block that just got finalized,
 // / including tree heads that became stale at the moment of finalization.
-type FinalizeSummary[N runtime.Number, H statemachine.HasherOut] struct {
+type FinalizeSummary[N runtime.Number, H runtime.Hash] struct {
 	/// Last finalized block header.
 	// pub header: Block::Header,
 	Header runtime.Header[N, H]
@@ -74,7 +75,7 @@ type FinalizeSummary[N runtime.Number, H statemachine.HasherOut] struct {
 }
 
 // / Import operation wrapper.
-type ClientImportOperation[N runtime.Number, H statemachine.HasherOut] struct {
+type ClientImportOperation[N runtime.Number, H runtime.Hash] struct {
 	/// DB Operation.
 	// pub op: B::BlockImportOperation,
 	Op BlockImportOperation[N, H]
@@ -101,7 +102,7 @@ const (
 // / Block insertion operation.
 // /
 // / Keeps hold if the inserted block state and data.
-type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface {
+type BlockImportOperation[N runtime.Number, H runtime.Hash] interface {
 	/// Returns pending state.
 	///
 	/// Returns None for backends with locally-unavailable state data.
@@ -195,7 +196,7 @@ type BlockImportOperation[N runtime.Number, H statemachine.HasherOut] interface 
 // / Interface for performing operations on the backend.
 //
 //	pub trait LockImportRun<Block: BlockT, B: Backend<Block>> {
-type LockImportRun[R any, N runtime.Number, H statemachine.HasherOut] interface {
+type LockImportRun[R any, N runtime.Number, H runtime.Hash] interface {
 	/// Lock the import lock, and run operations inside.
 	// fn lock_import_and_run<R, Err, F>(&self, f: F) -> Result<R, Err>
 	// where
@@ -206,7 +207,7 @@ type LockImportRun[R any, N runtime.Number, H statemachine.HasherOut] interface 
 
 // / Finalize Facilities
 // pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
-type Finalizer[N runtime.Number, H statemachine.HasherOut] interface {
+type Finalizer[N runtime.Number, H runtime.Hash] interface {
 	/// Mark all blocks up to given as finalized in operation.
 	///
 	/// If `justification` is provided it is stored with the given finalized
@@ -318,7 +319,7 @@ type PairsIter[N runtime.Number, H statemachine.HasherOut] struct {
 
 // / Provides access to storage primitives
 // pub trait StorageProvider<Block: BlockT, B: Backend<Block>> {
-type StorageProvider[H runtime.Hash, N runtime.Number] interface {
+type StorageProvider[H constraints.Ordered, N runtime.Number] interface {
 	/// Given a block's `Hash` and a key, return the value under the key in that block.
 	// fn storage(
 	// 	&self,

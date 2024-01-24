@@ -6,6 +6,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/network/sync"
 	"github.com/ChainSafe/gossamer/internal/client/telemetry"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"golang.org/x/exp/constraints"
 )
 
 // / A handle to the network.
@@ -25,7 +26,7 @@ type Syncing[H, N any] interface {
 }
 
 // / Bridge between the underlying network service, gossiping consensus messages and Grandpa
-type NetworkBridge[H runtime.Hash, N runtime.Number] struct {
+type NetworkBridge[H constraints.Ordered, N runtime.Number] struct {
 	service      Network
 	sync         Syncing[H, N]
 	gossipEngine gossip.GossipEngine[H, N]

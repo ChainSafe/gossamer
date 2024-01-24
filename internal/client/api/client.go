@@ -2,20 +2,19 @@ package api
 
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 )
 
 // / Type that implements `futures::Stream` of block import events.
 // pub type ImportNotifications<Block> = TracingUnboundedReceiver<BlockImportNotification<Block>>;
-type ImportNofications[H statemachine.HasherOut, N runtime.Number] chan<- BlockImportOperation[N, H]
+type ImportNofications[H runtime.Hash, N runtime.Number] chan<- BlockImportOperation[N, H]
 
 // / A stream of block finality notifications.
 // pub type FinalityNotifications<Block> = TracingUnboundedReceiver<FinalityNotification<Block>>;
-type FinalityNotifiactions[H statemachine.HasherOut, N runtime.Number] chan<- FinalityNotification[H, N]
+type FinalityNotifiactions[H runtime.Hash, N runtime.Number] chan<- FinalityNotification[H, N]
 
 // / A source of blockchain events.
 // pub trait BlockchainEvents<Block: BlockT> {
-type BlockchainEvents[H statemachine.HasherOut, N runtime.Number] interface {
+type BlockchainEvents[H runtime.Hash, N runtime.Number] interface {
 	/// Get block import event stream.
 	///
 	/// Not guaranteed to be fired for every imported block, only fired when the node
@@ -49,7 +48,7 @@ type BlockchainEvents[H statemachine.HasherOut, N runtime.Number] interface {
 
 // / Summary of a finalized block.
 // pub struct FinalityNotification<Block: BlockT> {
-type FinalityNotification[H statemachine.HasherOut, N runtime.Number] struct {
+type FinalityNotification[H runtime.Hash, N runtime.Number] struct {
 	/// Finalized block header hash.
 	// pub hash: Block::Hash,
 	Hash H

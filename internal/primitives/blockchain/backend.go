@@ -7,29 +7,29 @@ import (
 
 // / Blockchain database header backend. Does not perform any validation.
 // pub trait HeaderBackend<Block: BlockT>: Send + Sync {
-type HeaderBackend[H runtime.Hash, N runtime.Number] interface {
+type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
 	/// Get block header. Returns `None` if block is not found.
 	// fn header(&self, hash: Block::Hash) -> Result<Option<Block::Header>>;
-	Header(hash H) (*runtime.Header[N, H], error)
+	Header(hash Hash) (*runtime.Header[N, Hash], error)
 
 	/// Get blockchain info.
 	// fn info(&self) -> Info<Block>;
-	Info() Info[H, N]
+	Info() Info[Hash, N]
 
 	/// Get block status.
 	// fn status(&self, hash: Block::Hash) -> Result<BlockStatus>;
-	Status(hash H) (BlockStatus, error)
+	Status(hash Hash) (BlockStatus, error)
 
 	/// Get block number by hash. Returns `None` if the header is not in the chain.
 	// fn number(
 	// 	&self,
 	// 	hash: Block::Hash,
 	// ) -> Result<Option<<<Block as BlockT>::Header as HeaderT>::Number>>;
-	Number(hash H) (N, error)
+	Number(hash Hash) (N, error)
 
 	/// Get block hash by number. Returns `None` if the header is not in the chain.
 	// fn hash(&self, number: NumberFor<Block>) -> Result<Option<Block::Hash>>;
-	Hash(number N) (H, error)
+	Hash(number N) (Hash, error)
 
 	/// Convert an arbitrary block ID into a block hash.
 	// fn block_hash_from_id(&self, id: &BlockId<Block>) -> Result<Option<Block::Hash>> {
@@ -38,7 +38,7 @@ type HeaderBackend[H runtime.Hash, N runtime.Number] interface {
 	// 		BlockId::Number(n) => self.hash(n),
 	// 	}
 	// }
-	BlockHashFromID(id generic.BlockID) (*H, error)
+	BlockHashFromID(id generic.BlockID) (*Hash, error)
 
 	/// Convert an arbitrary block ID into a block hash.
 	// fn block_number_from_id(&self, id: &BlockId<Block>) -> Result<Option<NumberFor<Block>>> {
@@ -54,7 +54,7 @@ type HeaderBackend[H runtime.Hash, N runtime.Number] interface {
 	// 	self.header(hash)?
 	// 		.ok_or_else(|| Error::UnknownBlock(format!("Expect header: {}", hash)))
 	// }
-	ExpectHeader(hash H) (runtime.Header[N, H], error)
+	ExpectHeader(hash Hash) (runtime.Header[N, Hash], error)
 
 	/// Convert an arbitrary block ID into a block number. Returns `UnknownBlock` error if block is
 	/// not found.
@@ -72,21 +72,21 @@ type HeaderBackend[H runtime.Hash, N runtime.Number] interface {
 	// 		h.ok_or_else(|| Error::UnknownBlock(format!("Expect block hash from id: {}", id)))
 	// 	})
 	// }
-	ExpectBlockHashFromID(id generic.BlockID) (H, error)
+	ExpectBlockHashFromID(id generic.BlockID) (Hash, error)
 }
 
 // / Blockchain database backend. Does not perform any validation.
 // pub trait Backend<Block: BlockT>:
-type Backend[H runtime.Hash, N runtime.Number] interface {
+type Backend[Hash runtime.Hash, N runtime.Number] interface {
 	//	HeaderBackend<Block> + HeaderMetadata<Block, Error = Error>
-	HeaderBackend[H, N]
-	HeaderMetaData[H, N]
+	HeaderBackend[Hash, N]
+	HeaderMetaData[Hash, N]
 
 	// /// Get block body. Returns `None` if block is not found.
 	// fn body(&self, hash: Block::Hash) -> Result<Option<Vec<<Block as BlockT>::Extrinsic>>>;
 	// /// Get block justifications. Returns `None` if no justification exists.
 	// fn justifications(&self, hash: Block::Hash) -> Result<Option<Justifications>>;
-	Justifications(hash H) (*runtime.Justifications, error)
+	Justifications(hash Hash) (*runtime.Justifications, error)
 	// /// Get last finalized block hash.
 	// fn last_finalized(&self) -> Result<Block::Hash>;
 
