@@ -56,7 +56,7 @@ const (
 //		Pair::from(self).sign(msg)
 //	}
 func (k Keyring) Sign(msg []byte) ed25519.Signature {
-	return [64]byte{}
+	return k.Pair().Sign(msg)
 }
 
 //	pub fn pair(self) -> Pair {

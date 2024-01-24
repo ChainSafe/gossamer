@@ -1,6 +1,8 @@
 package consensus
 
-import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
+import (
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+)
 
 // / The SelectChain trait defines the strategy upon which the head is chosen
 // / if multiple forks are present for an opaque definition of "best" in the

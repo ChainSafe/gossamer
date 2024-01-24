@@ -10,7 +10,6 @@ import (
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"golang.org/x/exp/constraints"
 )
 
 // GRANDPA block finality proof generation and check.
@@ -45,7 +44,7 @@ const maxUnknownHeaders = 100_000
 
 // FinalityProofProvider Finality proof provider for serving network requests.
 type FinalityProofProvider[
-	Hash constraints.Ordered,
+	Hash runtime.Hash,
 	N runtime.Number,
 ] struct {
 	backend            api.Backend[Hash, N]
@@ -58,7 +57,7 @@ type FinalityProofProvider[
 // - authorityProvider for calling and proving runtime methods.
 // - sharedAuthoritySet for accessing authority set data
 func NewFinalityProofProvider[
-	Hash constraints.Ordered,
+	Hash runtime.Hash,
 	N runtime.Number,
 ](
 	backend api.Backend[Hash, N],
@@ -112,7 +111,7 @@ func (provider FinalityProofProvider[Hash, N]) proveFinalityProof(
 // FinalityProof Finality for block B is proved by providing:
 // 1) the justification for the descendant block F;
 // 2) headers sub-chain (B; F] if B != F;
-type FinalityProof[Hash constraints.Ordered, N runtime.Number] struct {
+type FinalityProof[Hash runtime.Hash, N runtime.Number] struct {
 	// The hash of block F for which justification is provided
 	Block Hash
 	// Justification of the block F
@@ -128,7 +127,7 @@ type FinalityProof[Hash constraints.Ordered, N runtime.Number] struct {
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
 func proveFinality[
-	Hash constraints.Ordered,
+	Hash runtime.Hash,
 	N runtime.Number,
 ](
 	backend api.Backend[Hash, N],

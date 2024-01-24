@@ -61,6 +61,26 @@ type AuthorityList []AuthorityIDWeight
 // >;
 type SignedMessage[H, N any] grandpa.SignedMessage[H, N, AuthoritySignature, AuthorityID]
 
+// / A primary propose message for this chain's block type.
+// pub type PrimaryPropose<Header> =
+//
+//	grandpa::PrimaryPropose<<Header as HeaderT>::Hash, <Header as HeaderT>::Number>;
+//
+// /// A prevote message for this chain's block type.
+// pub type Prevote<Header> = grandpa::Prevote<<Header as HeaderT>::Hash, <Header as HeaderT>::Number>;
+// /// A precommit message for this chain's block type.
+// pub type Precommit<Header> =
+// type Precommit[H, N any] grandpa.Precommit[H, N, AuthoritySignature, AuthorityID]
+
+// 	grandpa::Precommit<<Header as HeaderT>::Hash, <Header as HeaderT>::Number>;
+// /// A catch up message for this chain's block type.
+// pub type CatchUp<Header> = grandpa::CatchUp<
+// 	<Header as HeaderT>::Hash,
+// 	<Header as HeaderT>::Number,
+// 	AuthoritySignature,
+// 	AuthorityId,
+// >;
+
 // / A commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 
@@ -75,13 +95,13 @@ type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 // #[derive(Clone, Encode, Decode, PartialEq, Eq, TypeInfo)]
 // #[cfg_attr(feature = "std", derive(Debug))]
 // pub struct GrandpaJustification<Header: HeaderT> {
-type GrandpaJustification[H runtime.Hash, N runtime.Number] struct {
+type GrandpaJustification[Ordered runtime.Hash, N runtime.Number] struct {
 	// 	pub round: u64,
 	Round uint64
 	// 	pub commit: Commit<Header>,
-	Commit Commit[H, N]
+	Commit Commit[Ordered, N]
 	// 	pub votes_ancestries: Vec<Header>,
-	VoteAncestries []runtime.Header[N, H]
+	VoteAncestries []runtime.Header[N, Ordered]
 }
 
 // / Check a message signature by encoding the message as a localized payload and

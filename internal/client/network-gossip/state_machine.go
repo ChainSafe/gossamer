@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/network"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	libp2p "github.com/libp2p/go-libp2p/core"
+	"golang.org/x/exp/constraints"
 )
 
 type peerConsensus[H comparable] struct {
@@ -26,7 +26,7 @@ type TopicNotification struct {
 //		message: Vec<u8>,
 //		sender: Option<PeerId>,
 //	}
-type MessageEntry[H runtime.Hash] struct {
+type MessageEntry[H constraints.Ordered] struct {
 	messageHash H
 	topic       H
 	message     []byte
@@ -34,7 +34,7 @@ type MessageEntry[H runtime.Hash] struct {
 }
 
 // / Consensus network protocol handler. Manages statements and candidate requests.
-type ConsensusGossip[H runtime.Hash] struct {
+type ConsensusGossip[H constraints.Ordered] struct {
 	peers    map[libp2p.PeerID]peerConsensus[H]
 	messages []MessageEntry[H]
 	// TODO: known_messages: LruCache<B::Hash, ()>,

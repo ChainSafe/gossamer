@@ -2,12 +2,12 @@ package gossip
 
 import (
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	libp2p "github.com/libp2p/go-libp2p/core"
+	"golang.org/x/exp/constraints"
 )
 
 // / Validates consensus messages.
-type Validator[H runtime.Hash] interface {
+type Validator[H constraints.Ordered] interface {
 	/// New peer is connected.
 	NewPeer(context ValidatorContext[H], who libp2p.PeerID, role role.ObservedRole)
 	/// New connection is dropped.
@@ -21,7 +21,7 @@ type Validator[H runtime.Hash] interface {
 }
 
 // / Validation context. Allows reacting to incoming messages by sending out further messages.
-type ValidatorContext[H runtime.Hash] interface {
+type ValidatorContext[H constraints.Ordered] interface {
 	// 	/// Broadcast all messages with given topic to peers that do not have it yet.
 	BroadcastTopic(topic H, force bool)
 	// /// Broadcast a message to all peers that have not received it previously.
@@ -48,12 +48,12 @@ type MessageIntents interface {
 type MessageIntent any
 
 // / Message should be stored and propagated under given topic.
-type ValidationResultProcessAndKeep[H runtime.Hash] struct {
+type ValidationResultProcessAndKeep[H constraints.Ordered] struct {
 	Hash H
 }
 
 // / Message should be processed, but not propagated.
-type ValidationResultProcessAndDiscard[H runtime.Hash] struct {
+type ValidationResultProcessAndDiscard[H constraints.Ordered] struct {
 	Hash H
 }
 
@@ -61,7 +61,7 @@ type ValidationResultProcessAndDiscard[H runtime.Hash] struct {
 type ValidationResultDiscard struct{}
 
 // / Message validation result.
-type ValidationResults[H runtime.Hash] interface {
+type ValidationResults[H constraints.Ordered] interface {
 	ValidationResultProcessAndKeep[H] | ValidationResultProcessAndDiscard[H] | ValidationResultDiscard
 }
 type ValidationResult any

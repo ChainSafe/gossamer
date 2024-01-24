@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/telemetry"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -607,7 +606,7 @@ type metrics struct {
 }
 
 // / The environment we run GRANDPA in.
-type environment[R any, N runtime.Number, H statemachine.HasherOut] struct {
+type environment[R any, N runtime.Number, H runtime.Hash] struct {
 	Client              ClientForGrandpa[R, N, H]
 	SelectChain         consensus.SelectChain[H, N]
 	Voters              grandpa.VoterSet[string]
