@@ -71,6 +71,52 @@ func (_c *Backend_Blockchain_Call[H, N]) RunAndReturn(run func() blockchain.Back
 	return _c
 }
 
+// CommitOperation provides a mock function with given fields: transaction
+func (_m *Backend[H, N]) CommitOperation(transaction api.BlockImportOperation[N, H]) error {
+	ret := _m.Called(transaction)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CommitOperation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(api.BlockImportOperation[N, H]) error); ok {
+		r0 = rf(transaction)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Backend_CommitOperation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CommitOperation'
+type Backend_CommitOperation_Call[H runtime.Hash, N runtime.Number] struct {
+	*mock.Call
+}
+
+// CommitOperation is a helper method to define mock.On call
+//   - transaction api.BlockImportOperation[N,H]
+func (_e *Backend_Expecter[H, N]) CommitOperation(transaction interface{}) *Backend_CommitOperation_Call[H, N] {
+	return &Backend_CommitOperation_Call[H, N]{Call: _e.mock.On("CommitOperation", transaction)}
+}
+
+func (_c *Backend_CommitOperation_Call[H, N]) Run(run func(transaction api.BlockImportOperation[N, H])) *Backend_CommitOperation_Call[H, N] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(api.BlockImportOperation[N, H]))
+	})
+	return _c
+}
+
+func (_c *Backend_CommitOperation_Call[H, N]) Return(_a0 error) *Backend_CommitOperation_Call[H, N] {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Backend_CommitOperation_Call[H, N]) RunAndReturn(run func(api.BlockImportOperation[N, H]) error) *Backend_CommitOperation_Call[H, N] {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAux provides a mock function with given fields: key
 func (_m *Backend[H, N]) GetAux(key []byte) (*[]byte, error) {
 	ret := _m.Called(key)

@@ -118,7 +118,7 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash] interface {
 	// 		justifications: Option<Justifications>,
 	// 		state: NewBlockState,
 	// 	) -> sp_blockchain::Result<()>;
-	SetBlockData(header runtime.Header[N, H], body runtime.Extrinsic, indexedBody *[][]byte, justifications *runtime.Justifications, state NewBlockState) error
+	SetBlockData(header runtime.Header[N, H], body []runtime.Extrinsic, indexedBody [][]byte, justifications *runtime.Justifications, state NewBlockState) error
 
 	/// Inject storage data into the database.
 	// 	fn update_db_storage(
@@ -444,6 +444,7 @@ type Backend[H runtime.Hash, N runtime.Number] interface {
 	// 	&self,
 	// 	transaction: Self::BlockImportOperation,
 	// ) -> sp_blockchain::Result<()>;
+	CommitOperation(transaction BlockImportOperation[N, H]) error
 
 	// /// Finalize block with given `hash`.
 	// ///
