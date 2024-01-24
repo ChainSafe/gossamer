@@ -4,16 +4,21 @@
 package availabilitystore
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+var errInvalidErasureRoot = errors.New("Invalid erasure root")
+
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan AvailableData
 }
 
@@ -23,7 +28,7 @@ type QueryAvailableData struct {
 // matters, but we don't want to necessarily pass around multiple
 // megabytes of data to get a single bit of information.
 type QueryDataAvailability struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan bool
 }
 
@@ -36,20 +41,20 @@ type ErasureChunk struct {
 
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
 type QueryChunk struct {
-	CandidateHash  common.Hash
+	CandidateHash  parachaintypes.CandidateHash
 	ValidatorIndex uint32
 	Sender         chan ErasureChunk
 }
 
 // QueryChunkSize get the size of an `ErasureChunk` from the AV store by candidate hash
 type QueryChunkSize struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan uint32
 }
 
 // QueryAllChunks query all chunks that we have for the given candidate hash
 type QueryAllChunks struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Sender        chan []ErasureChunk
 }
 
@@ -59,14 +64,14 @@ type QueryAllChunks struct {
 // matters, but we don't want to necessarily pass around multiple
 // megabytes of data to get a single bit of information.
 type QueryChunkAvailability struct {
-	CandidateHash  common.Hash
+	CandidateHash  parachaintypes.CandidateHash
 	ValidatorIndex uint32
 	Sender         chan bool
 }
 
 // StoreChunk store an `ErasureChunk` in the AV store
 type StoreChunk struct {
-	CandidateHash common.Hash
+	CandidateHash parachaintypes.CandidateHash
 	Chunk         ErasureChunk
 	Sender        chan any
 }
@@ -74,13 +79,9 @@ type StoreChunk struct {
 // StoreAvailableData computes and checks the erasure root of `AvailableData`
 // before storing its chunks in the AV store.
 type StoreAvailableData struct {
-	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
-	CandidateHash parachaintypes.CandidateHash
-	// The number of validators in the session.
-	NumValidators uint32
-	// The `AvailableData` itself.
-	AvailableData AvailableData
-	// Erasure root we expect to get after chunking.
+	CandidateHash       parachaintypes.CandidateHash
+	NumValidators       uint32
+	AvailableData       AvailableData
 	ExpectedErasureRoot common.Hash
 	// channel to send result to.
 	Sender chan error
@@ -102,15 +103,31 @@ type CandidateMeta struct {
 // State is the state of candidate data
 type State scale.VaryingDataType
 
+// New will enable scale to create new instance when needed
+func (State) New() State {
+	return NewStateVDT()
+}
+
 // NewState creates a new State
-func NewState() State {
+func NewStateVDT() State {
 	vdt := scale.MustNewVaryingDataType(Unavailable{}, Unfinalized{}, Finalized{})
 	return State(vdt)
 }
 
+// Set will set VaryingDataTypeValue using underlying VaryingDataType
+func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
+	vdt := scale.VaryingDataType(*s)
+	err = vdt.Set(val)
+	if err != nil {
+		return fmt.Errorf("setting value te varying data type: %w", err)
+	}
+	*s = State(vdt)
+	return nil
+}
+
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
-	Timestamp time.Time
+	Timestamp BETimestamp
 }
 
 // Index returns the index of the varying data type
@@ -147,4 +164,11 @@ func (Finalized) Index() uint {
 type BlockNumberHash struct {
 	blockNumber parachaintypes.BlockNumber //nolint:unused,structcheck
 	blockHash   common.Hash                //nolint:unused,structcheck
+}
+
+type branches struct {
+	trieStorage *trie.Trie
+	root        common.Hash
+	chunks      [][]byte
+	currentPos  uint
 }

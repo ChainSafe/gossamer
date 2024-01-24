@@ -137,7 +137,7 @@ type CanSecondMessage struct {
 	CandidateRelayParent common.Hash
 	CandidateHash        parachaintypes.CandidateHash
 	ParentHeadDataHash   common.Hash
-	ResCh                chan bool
+	ResponseCh           chan bool
 }
 
 // SecondMessage is a message received from overseer. Candidate Backing subsystem should second the given
@@ -219,7 +219,10 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case GetBackedCandidatesMessage:
 		cb.handleGetBackedCandidatesMessage()
 	case CanSecondMessage:
-		cb.handleCanSecondMessage(msg)
+		err := cb.handleCanSecondMessage(msg)
+		if err != nil {
+			logger.Debug(fmt.Sprintf("can't second the candidate: %s", err))
+		}
 	case SecondMessage:
 		return cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
 	case StatementMessage:
