@@ -24,7 +24,11 @@ require (
 	github.com/gtank/merlin v0.1.1
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/ipfilter v1.2.9
+<<<<<<< HEAD
 	github.com/klauspost/compress v1.17.4
+=======
+	github.com/klauspost/compress v1.16.7
+>>>>>>> 38c0c49e (feat(lib/erasure): construct a trie of chunks of erasure coded values (#3417))
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
