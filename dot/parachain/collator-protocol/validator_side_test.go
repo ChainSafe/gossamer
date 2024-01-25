@@ -270,6 +270,14 @@ func TestProcessOverseerMessage(t *testing.T) {
 						candidateHash:        parachaintypes.CandidateHash{},
 					},
 				},
+				"para id: 7, para head: 0x0000000000000000000000000000000000000000000000000000000000000001": {
+					{
+						peerID:               peerID,
+						collatorID:           testCollatorID,
+						candidateRelayParent: testRelayParent,
+						candidateHash:        parachaintypes.CandidateHash{},
+					},
+				},
 			},
 			errString: ErrRelayParentUnknown.Error(),
 		},
