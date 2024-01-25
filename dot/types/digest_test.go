@@ -40,12 +40,14 @@ func Test_Digest_String(t *testing.T) {
 					ConsensusEngineID: ConsensusEngineID{'x', 'y', 'w', 'z'},
 					Data:              []byte{7, 8},
 				})
+				digest.Add(RuntimeEnvironmentUpdated{})
 				return digest
 			},
 			s: "[" +
 				"PreRuntimeDigest ConsensusEngineID=abcd Data=0x01020304, " +
 				"ConsensusDigest ConsensusEngineID=ffgg Data=0x0506, " +
-				"SealDigest ConsensusEngineID=xywz Data=0x0708" +
+				"SealDigest ConsensusEngineID=xywz Data=0x0708, " +
+				"RuntimeEnvironmentUpdated" +
 				"]",
 		},
 	}
@@ -170,6 +172,30 @@ func TestConsensusDigest(t *testing.T) {
 		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{1, 3, 5, 7},
 	}
+
+	di := NewDigestItem()
+	err := di.Set(d)
+	require.NoError(t, err)
+
+	enc, err := scale.Marshal(di)
+	require.NoError(t, err)
+
+	require.Equal(t, exp, enc)
+
+	v := NewDigestItem()
+	err = scale.Unmarshal(enc, &v)
+	require.NoError(t, err)
+
+	diValue, err := di.Value()
+	require.NoError(t, err)
+	vValue, err := v.Value()
+	require.NoError(t, err)
+	require.Equal(t, diValue, vValue)
+}
+
+func TestRuntimeEnvironmentUpdatedDigest(t *testing.T) {
+	exp := common.MustHexToBytes("0x08")
+	d := RuntimeEnvironmentUpdated{}
 
 	di := NewDigestItem()
 	err := di.Set(d)

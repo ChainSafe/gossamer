@@ -247,7 +247,7 @@ func (nodeBuilder) createBABEServiceWithBuilder(config *cfg.Config, st *state.Se
 
 // createCoreService creates the core service from the provided core configuration
 func (nodeBuilder) createCoreService(config *cfg.Config, ks *keystore.GlobalKeystore,
-	st *state.Service, net *network.Service, dh *digest.Handler) (
+	st *state.Service, net *network.Service) (
 	*core.Service, error) {
 	logger.Debug("creating core service" +
 		asAuthority(config.Core.Role == common.AuthorityRole) +

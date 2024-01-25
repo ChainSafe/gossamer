@@ -5,6 +5,7 @@ package scale
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -1303,4 +1304,26 @@ var byteArray = func(length int) []byte {
 		b[i] = 0xff
 	}
 	return b
+}
+
+type myMarshalerType uint64
+
+func (mmt myMarshalerType) MarshalSCALE() ([]byte, error) {
+	return []byte{9, 9, 9}, nil
+}
+
+type myMarshalerTypeError uint64
+
+func (mmt myMarshalerTypeError) MarshalSCALE() ([]byte, error) {
+	return nil, fmt.Errorf("eh?")
+}
+
+func Test_encodeState_Mashaler(t *testing.T) {
+	bytes := MustMarshal(myMarshalerType(888))
+	assert.Equal(t, []byte{9, 9, 9}, bytes)
+}
+
+func Test_encodeState_Mashaler_Error(t *testing.T) {
+	_, err := Marshal(myMarshalerTypeError(888))
+	assert.Error(t, err, "eh?")
 }

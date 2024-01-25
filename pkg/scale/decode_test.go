@@ -5,6 +5,9 @@ package scale
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
+	"io"
 	"math/big"
 	"reflect"
 	"testing"
@@ -558,4 +561,86 @@ func Test_decodeState_decodeUint(t *testing.T) {
 			assert.Equal(t, tt.in, dst)
 		})
 	}
+}
+
+type myStruct struct {
+	First  uint32
+	Middle any
+	Last   uint32
+}
+
+func (ms *myStruct) UnmarshalSCALE(reader io.Reader) (err error) {
+	buf := make([]byte, 4)
+	_, err = reader.Read(buf)
+	if err != nil {
+		return
+	}
+	ms.First = binary.LittleEndian.Uint32(buf)
+
+	buf = make([]byte, 4)
+	_, err = reader.Read(buf)
+	if err != nil {
+		return
+	}
+	ms.Middle = binary.LittleEndian.Uint32(buf)
+
+	buf = make([]byte, 4)
+	_, err = reader.Read(buf)
+	if err != nil {
+		return
+	}
+	ms.Last = binary.LittleEndian.Uint32(buf)
+	return nil
+}
+
+type myStructError struct {
+	First  uint32
+	Middle any
+	Last   uint32
+}
+
+func (mse *myStructError) UnmarshalSCALE(reader io.Reader) (err error) {
+	err = fmt.Errorf("eh?")
+	return err
+}
+
+var _ Unmarshaler = &myStruct{}
+
+func Test_decodeState_Unmarshaller(t *testing.T) {
+	expected := myStruct{
+		First:  1,
+		Middle: uint32(2),
+		Last:   3,
+	}
+	bytes := MustMarshal(expected)
+	ms := myStruct{}
+	Unmarshal(bytes, &ms)
+	assert.Equal(t, expected, ms)
+
+	type myParentStruct struct {
+		First  uint
+		Middle myStruct
+		Last   uint
+	}
+	expectedParent := myParentStruct{
+		First:  1,
+		Middle: expected,
+		Last:   3,
+	}
+	bytes = MustMarshal(expectedParent)
+	mps := myParentStruct{}
+	Unmarshal(bytes, &mps)
+	assert.Equal(t, expectedParent, mps)
+}
+
+func Test_decodeState_Unmarshaller_Error(t *testing.T) {
+	expected := myStruct{
+		First:  1,
+		Middle: uint32(2),
+		Last:   3,
+	}
+	bytes := MustMarshal(expected)
+	mse := myStructError{}
+	err := Unmarshal(bytes, &mse)
+	assert.Error(t, err, "eh?")
 }

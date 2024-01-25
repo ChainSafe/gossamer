@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockBlockState is a mock of BlockState interface.

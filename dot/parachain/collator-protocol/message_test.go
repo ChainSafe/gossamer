@@ -12,9 +12,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	gomock "go.uber.org/mock/gomock"
 	"gopkg.in/yaml.v3"
 
 	"github.com/ChainSafe/gossamer/dot/network"

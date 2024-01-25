@@ -20,7 +20,7 @@ var errEmptyKeyOwnershipProof = errors.New("key ownership proof is nil")
 // verifierInfo contains the information needed to verify blocks
 // it remains the same for an epoch
 type verifierInfo struct {
-	authorities    []types.Authority
+	authorities    []types.AuthorityRaw
 	randomness     Randomness
 	threshold      *scale.Uint128
 	secondarySlots bool
@@ -195,7 +195,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 }
 
 func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header) (*verifierInfo, error) {
-	epochData, err := v.epochState.GetEpochData(epoch, header)
+	epochData, err := v.epochState.GetEpochDataRaw(epoch, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
@@ -223,7 +223,7 @@ type verifier struct {
 	blockState     BlockState
 	slotState      SlotState
 	epoch          uint64
-	authorities    []types.Authority
+	authorities    []types.AuthorityRaw
 	randomness     Randomness
 	threshold      *scale.Uint128
 	secondarySlots bool
@@ -294,7 +294,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		authIdx = d.AuthorityIndex
 	}
 
-	authorPub := b.authorities[authIdx].Key
+	authority := new(types.Authority)
+	err = authority.FromRawSr25519(&b.authorities[authIdx])
+	if err != nil {
+		return fmt.Errorf("from raw sr25519: %w", err)
+	}
 
 	// remove seal before verifying signature
 	h := types.NewDigest()
@@ -331,7 +335,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return err
 	}
 
-	ok, err = authorPub.Verify(hash[:], seal.Data)
+	ok, err = authority.Key.Verify(hash[:], seal.Data)
 	if err != nil {
 		return err
 	}
@@ -396,7 +400,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	}
 
 	slotNow := getCurrentSlot(b.slotDuration)
-	signer := types.AuthorityID(b.authorities[authorityIndex].ToRaw().Key)
+	signer := b.authorities[authorityIndex].Key
 	equivocationProof, err := b.slotState.CheckEquivocation(slotNow, slotNumber,
 		header, signer)
 	if err != nil {
@@ -449,9 +453,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 			ok = false
 			break
 		}
-		pub := b.authorities[d.AuthorityIndex].Key
-
-		pk, err := sr25519.NewPublicKey(pub.Encode())
+		authority := b.authorities[d.AuthorityIndex]
+		pk, err := sr25519.NewPublicKey(authority.Key[:])
 		if err != nil {
 			return nil, err
 		}
@@ -487,9 +490,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale
 func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 	slot uint64, vrfOutput [sr25519.VRFOutputLength]byte,
 	vrfProof [sr25519.VRFProofLength]byte) (bool, error) {
-	pub := b.authorities[authorityIndex].Key
-
-	pk, err := sr25519.NewPublicKey(pub.Encode())
+	authority := b.authorities[authorityIndex]
+	pk, err := sr25519.NewPublicKey(authority.Key[:])
 	if err != nil {
 		return false, err
 	}
@@ -511,10 +513,10 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 
 	// validate VRF proof
 	logger.Tracef("verifyPrimarySlotWinner authority index %d, "+
-		"public key %s, randomness 0x%x, slot %d, epoch %d, "+
+		"public key 0x%x, randomness 0x%x, slot %d, epoch %d, "+
 		"output 0x%x and proof 0x%x",
 		authorityIndex,
-		pub.Hex(), b.randomness, slot, b.epoch,
+		authority.Key[:], b.randomness, slot, b.epoch,
 		vrfOutput, vrfProof[:])
 
 	t := makeTranscript(b.randomness, slot, b.epoch)

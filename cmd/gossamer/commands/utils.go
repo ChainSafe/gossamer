@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ChainSafe/gossamer/chain/paseo"
+
 	"github.com/spf13/cobra"
 
 	"github.com/ChainSafe/gossamer/chain/kusama"
@@ -211,6 +213,19 @@ func getPassword(msg string) []byte {
 	}
 }
 
+// parseIdentity parses the node identity from the command line flags
+func parseIdentity() {
+	if name != "" {
+		config.Name = name
+		viper.Set("name", name)
+	}
+
+	if id != "" {
+		config.ID = id
+		viper.Set("id", id)
+	}
+}
+
 // parseChainSpec parses the chain spec from the given chain
 // and sets the default config
 func parseChainSpec(chain string) error {
@@ -232,6 +247,8 @@ func parseChainSpec(chain string) error {
 			config = westend.DefaultConfig()
 		case cfg.WestendDevChain:
 			config = westenddev.DefaultConfig()
+		case cfg.PaseoChain:
+			config = paseo.DefaultConfig()
 		case cfg.WestendLocalChain:
 			if alice || key == "alice" {
 				config = westendlocal.DefaultAliceConfig()
@@ -253,9 +270,9 @@ func parseChainSpec(chain string) error {
 		return fmt.Errorf("failed to load chain spec: %s", err)
 	}
 
-	config.ID = spec.ID
 	config.Network.Bootnodes = spec.Bootnodes
 	config.Network.ProtocolID = spec.ProtocolID
+	parseIdentity()
 
 	return nil
 }

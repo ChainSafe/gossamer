@@ -119,16 +119,18 @@ func (p *PebbleDB) NewBatch() Batch {
 
 // NewIterator returns an implementation of Iterator interface using the
 // internal database
-func (p *PebbleDB) NewIterator() Iterator {
+func (p *PebbleDB) NewIterator() (Iterator, error) {
+	iter := p.db.NewIter(nil)
+
 	return &pebbleIterator{
-		p.db.NewIter(nil),
-	}
+		iter,
+	}, nil
 }
 
 // NewPrefixIterator returns an implementation of Iterator over a specific
 // keys that contains the prefix
 // more info: https://github.com/ChainSafe/gossamer/pull/3434#discussion_r1291503323
-func (p *PebbleDB) NewPrefixIterator(prefix []byte) Iterator {
+func (p *PebbleDB) NewPrefixIterator(prefix []byte) (Iterator, error) {
 	keyUpperBound := func(b []byte) []byte {
 		end := make([]byte, len(b))
 		copy(end, b)
@@ -148,7 +150,9 @@ func (p *PebbleDB) NewPrefixIterator(prefix []byte) Iterator {
 		UpperBound: keyUpperBound(prefix),
 	}
 
+	iter := p.db.NewIter(prefixIterOptions)
+
 	return &pebbleIterator{
-		p.db.NewIter(prefixIterOptions),
-	}
+		iter,
+	}, nil
 }

@@ -19,7 +19,7 @@ var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key
 // associated to the child trie, and V is the root hash of the child trie.
 func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
-	childHash, err := child.Hash()
+	childHash, err := child.Hash(NoMaxInlineValueSize)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 		}
 	}
 
-	origChildHash, err := child.Hash()
+	origChildHash, err := child.Hash(NoMaxInlineValueSize)
 	if err != nil {
 		return err
 	}
@@ -111,8 +111,14 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 	if err != nil {
 		return err
 	}
+
 	if child == nil {
 		return fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+	}
+
+	origChildHash, err := child.Hash(NoMaxInlineValueSize)
+	if err != nil {
+		return err
 	}
 
 	err = child.Delete(key)
@@ -120,5 +126,10 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return fmt.Errorf("deleting from child trie located at key 0x%x: %w", keyToChild, err)
 	}
 
-	return nil
+	delete(t.childTries, origChildHash)
+	if child.root == nil {
+		return t.DeleteChild(keyToChild)
+	}
+
+	return t.SetChild(keyToChild, child)
 }

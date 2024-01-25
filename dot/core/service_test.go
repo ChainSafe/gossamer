@@ -30,9 +30,9 @@ import (
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 var errTestDummyError = errors.New("test dummy error")
@@ -126,7 +126,7 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
 
-	ts := rtstorage.NewTrieState(nil)
+	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 	tests := []struct {
 		name          string
@@ -137,6 +137,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 		retErr        error
 		expErr        error
 		expErrMsg     string
+		stateVersion  uint32
 	}{
 		{
 			name:          "storage trie state error",
@@ -147,12 +148,22 @@ func Test_Service_StorageRoot(t *testing.T) {
 			trieStateCall: true,
 		},
 		{
-			name:    "storage trie state ok",
+			name:    "storage trie state ok v0",
 			service: &Service{},
 			exp: common.Hash{0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7, 0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
 				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
 			retTrieState:  ts,
 			trieStateCall: true,
+			stateVersion:  0,
+		},
+		{
+			name:    "storage trie state ok v1",
+			service: &Service{},
+			exp: common.Hash{0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7, 0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
+				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
+			retTrieState:  ts,
+			trieStateCall: true,
+			stateVersion:  1,
 		},
 	}
 	for _, tt := range tests {
@@ -164,7 +175,23 @@ func Test_Service_StorageRoot(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				mockStorageState := NewMockStorageState(ctrl)
 				mockStorageState.EXPECT().TrieState(nil).Return(tt.retTrieState, tt.retErr)
+
 				service.storageState = mockStorageState
+
+				if tt.retErr == nil {
+					mockRuntimeVersion := runtime.Version{
+						StateVersion: tt.stateVersion,
+					}
+
+					mockRuntime := NewMockInstance(ctrl)
+					mockRuntime.EXPECT().Version().Return(mockRuntimeVersion, nil)
+
+					mockBlockState := NewMockBlockState(ctrl)
+					mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
+					mockBlockState.EXPECT().GetRuntime(gomock.Any()).Return(mockRuntime, nil)
+
+					service.blockState = mockBlockState
+				}
 			}
 
 			res, err := service.StorageRoot()
@@ -351,7 +378,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -367,7 +394,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_quit_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -388,7 +415,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_parent_not_found_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -409,7 +436,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_error_continue", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -438,7 +465,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("handle_runtime_changes_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -470,7 +497,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("code_substitution_ok", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -517,7 +544,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
-		trieState := rtstorage.NewTrieState(nil)
+		trieState := rtstorage.NewTrieState(trie.NewEmptyTrie())
 
 		digest := types.NewDigest()
 		err := digest.Add(

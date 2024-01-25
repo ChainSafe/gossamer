@@ -258,12 +258,8 @@ func (b *Service) Stop() error {
 }
 
 // Authorities returns the current BABE authorities
-func (b *Service) Authorities() []types.Authority {
-	auths := make([]types.Authority, len(b.epochHandler.epochData.authorities))
-	for i, auth := range b.epochHandler.epochData.authorities {
-		auths[i] = *auth.DeepCopy()
-	}
-	return auths
+func (b *Service) AuthoritiesRaw() []types.AuthorityRaw {
+	return b.epochHandler.epochData.authorities
 }
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
@@ -271,7 +267,7 @@ func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
 
-func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, error) {
+func (b *Service) getAuthorityIndex(Authorities []types.AuthorityRaw) (uint32, error) {
 	if !b.authority {
 		return 0, ErrNotAuthority
 	}
@@ -279,7 +275,7 @@ func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, erro
 	pub := b.keypair.Public()
 
 	for i, auth := range Authorities {
-		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
+		if bytes.Equal(pub.Encode(), auth.Key[:]) {
 			return uint32(i), nil
 		}
 	}

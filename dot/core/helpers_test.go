@@ -24,8 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func balanceKey(t *testing.T, pub []byte) (bKey []byte) {
@@ -57,7 +57,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	require.NoError(t, err)
 
 	genesisHeader := &types.Header{
-		StateRoot: genesisTrie.MustHash(),
+		StateRoot: trie.V0.MustHash(genesisTrie),
 		Number:    0,
 	}
 
@@ -271,7 +271,7 @@ func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
+	stateRoot := trie.V0.MustHash(genesisTrie)
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

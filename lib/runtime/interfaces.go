@@ -13,7 +13,7 @@ import (
 type Storage interface {
 	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
-	Root() (common.Hash, error)
+	Root(maxInlineValueSize int) (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
@@ -30,9 +30,9 @@ type Storage interface {
 	ClearPrefix(prefix []byte) (err error)
 	ClearPrefixLimit(prefix []byte, limit uint32) (
 		deleted uint32, allDeleted bool, err error)
-	BeginStorageTransaction()
-	CommitStorageTransaction()
-	RollbackStorageTransaction()
+	StartTransaction()
+	CommitTransaction()
+	RollbackTransaction()
 	LoadCode() []byte
 }
 

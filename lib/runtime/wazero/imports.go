@@ -4,6 +4,7 @@
 package wazero_runtime
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -32,7 +33,9 @@ var (
 		log.AddContext("module", "wazero"),
 	)
 
-	noneEncoded []byte = []byte{0x00}
+	emptyByteVectorEncoded []byte = scale.MustMarshal([]byte{})
+	noneEncoded            []byte = []byte{0x00}
+	allZeroesBytes                = [32]byte{}
 )
 
 const (
@@ -63,9 +66,9 @@ func read(m api.Module, pointerSize uint64) (data []byte) {
 
 // copies a Go byte slice to wasm memory and returns the corresponding
 // 64 bit pointer size.
-func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointerSize uint64, err error) {
+func write(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize uint64, err error) {
 	size := uint32(len(data))
-	pointer, err := allocator.Allocate(size)
+	pointer, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
 		return 0, fmt.Errorf("allocating: %w", err)
 	}
@@ -77,7 +80,7 @@ func write(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byt
 	return newPointerSize(pointer, size), nil
 }
 
-func mustWrite(m api.Module, allocator *runtime.FreeingBumpHeapAllocator, data []byte) (pointerSize uint64) {
+func mustWrite(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize uint64) {
 	pointerSize, err := write(m, allocator, data)
 	if err != nil {
 		panic(err)
@@ -89,17 +92,19 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
+	line := fmt.Sprintf("target=%s message=%s", target, msg)
+
 	switch int(level) {
 	case 0:
-		logger.Critical("target=" + target + " message=" + msg)
+		logger.Critical(line)
 	case 1:
-		logger.Warn("target=" + target + " message=" + msg)
+		logger.Warn(line)
 	case 2:
-		logger.Info("target=" + target + " message=" + msg)
+		logger.Info(line)
 	case 3:
-		logger.Debug("target=" + target + " message=" + msg)
+		logger.Debug(line)
 	case 4:
-		logger.Trace("target=" + target + " message=" + msg)
+		logger.Trace(line)
 	default:
 		logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
 	}
@@ -710,6 +715,18 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("nil runtime context")
 	}
 
+	pubKeyBytes, ok := m.Memory().Read(key, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	// prevents Polkadot zero-address crash using
+	// ext_crypto_sr25519_verify_version_1
+	// https://pacna.org/dot-zero-addr/
+	if bytes.Equal(pubKeyBytes, allZeroesBytes[:]) {
+		return ext_crypto_sr25519_verify_version_1(ctx, m, sig, msg, key)
+	}
+
 	sigVerifier := rtCtx.SigVerifier
 
 	message := read(m, msg)
@@ -718,10 +735,6 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 		panic("read overflow")
 	}
 
-	pubKeyBytes, ok := m.Memory().Read(key, 32)
-	if !ok {
-		panic("read overflow")
-	}
 	pub, err := sr25519.NewPublicKey(pubKeyBytes)
 	if err != nil {
 		logger.Error("invalid sr25519 public key")
@@ -769,45 +782,40 @@ func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module)
 }
 
 func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
+	return ext_trie_blake2_256_root_version_2(ctx, m, dataSpan, 0)
+}
+
+func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
 
-	data := read(m, dataSpan)
-
-	t := trie.NewEmptyTrie()
-
-	type kv struct {
-		Key, Value []byte
+	stateVersion, err := trie.ParseVersion(version)
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
 	}
 
+	data := read(m, dataSpan)
+
 	// this function is expecting an array of (key, value) tuples
-	var kvs []kv
-	if err := scale.Unmarshal(data, &kvs); err != nil {
+	var entries trie.Entries
+	if err := scale.Unmarshal(data, &entries); err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
 	}
 
-	for _, kv := range kvs {
-		err := t.Put(kv.Key, kv.Value)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				kv.Key, kv.Value, err)
-			return 0
-		}
-	}
-
-	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
+	hash, err := stateVersion.Root(entries)
 	if err != nil {
-		logger.Errorf("failed allocating: %s", err)
+		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
 	}
 
-	hash, err := t.Hash()
+	// allocate memory for value and copy value to memory
+	ptr, err := rtCtx.Allocator.Allocate(m.Memory(), 32)
 	if err != nil {
-		logger.Errorf("failed computing trie Merkle root hash: %s", err)
+		logger.Errorf("failed allocating: %s", err)
 		return 0
 	}
 
@@ -817,6 +825,11 @@ func ext_trie_blake2_256_root_version_1(ctx context.Context, m api.Module, dataS
 }
 
 func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
+	return ext_trie_blake2_256_ordered_root_version_2(ctx, m, dataSpan, 0)
+}
+
+func ext_trie_blake2_256_ordered_root_version_2(
+	ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -824,13 +837,20 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 
 	data := read(m, dataSpan)
 
-	t := trie.NewEmptyTrie()
+	stateVersion, err := trie.ParseVersion(version)
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
+
 	var values [][]byte
-	err := scale.Unmarshal(data, &values)
+	err = scale.Unmarshal(data, &values)
 	if err != nil {
 		logger.Errorf("failed scale decoding data: %s", err)
 		return 0
 	}
+
+	var entries trie.Entries
 
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
@@ -838,26 +858,18 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 			logger.Errorf("failed scale encoding value index %d: %s", i, err)
 			return 0
 		}
-		logger.Tracef(
-			"put key=0x%x and value=0x%x",
-			key, value)
 
-		err = t.Put(key, value)
-		if err != nil {
-			logger.Errorf("failed putting key 0x%x and value 0x%x into trie: %s",
-				key, value, err)
-			return 0
-		}
+		entries = append(entries, trie.Entry{Key: key, Value: value})
 	}
 
 	// allocate memory for value and copy value to memory
-	ptr, err := rtCtx.Allocator.Allocate(32)
+	ptr, err := rtCtx.Allocator.Allocate(m.Memory(), 32)
 	if err != nil {
 		logger.Errorf("failed allocating: %s", err)
 		return 0
 	}
 
-	hash, err := t.Hash()
+	hash, err := stateVersion.Root(entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -866,12 +878,6 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 	logger.Debugf("root hash is %s", hash)
 	m.Memory().Write(ptr, hash[:])
 	return ptr
-}
-
-func ext_trie_blake2_256_ordered_root_version_2(
-	ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
-	// TODO: update to use state trie version 1 (#2418)
-	return ext_trie_blake2_256_ordered_root_version_1(ctx, m, dataSpan)
 }
 
 func ext_trie_blake2_256_verify_proof_version_1(
@@ -886,7 +892,45 @@ func ext_trie_blake2_256_verify_proof_version_1(
 	err := scale.Unmarshal(toDecProofs, &encodedProofNodes)
 	if err != nil {
 		logger.Errorf("failed scale decoding proof data: %s", err)
-		return uint32(0)
+		return 0
+	}
+
+	key := read(m, keySpan)
+	value := read(m, valueSpan)
+
+	trieRoot, ok := m.Memory().Read(rootSpan, 32)
+	if !ok {
+		panic("read overflow")
+	}
+
+	err = proof.Verify(encodedProofNodes, trieRoot, key, value)
+	if err != nil {
+		logger.Errorf("failed proof verification: %s", err)
+		return 0
+	}
+
+	return 1
+}
+
+func ext_trie_blake2_256_verify_proof_version_2(
+	ctx context.Context, m api.Module, rootSpan uint32, proofSpan, keySpan, valueSpan uint64, version uint32) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	_, err := trie.ParseVersion(version)
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
+
+	toDecProofs := read(m, proofSpan)
+	var encodedProofNodes [][]byte
+	err = scale.Unmarshal(toDecProofs, &encodedProofNodes)
+	if err != nil {
+		logger.Errorf("failed scale decoding proof data: %s", err)
+		return 0
 	}
 
 	key := read(m, keySpan)
@@ -1198,7 +1242,7 @@ func ext_default_child_storage_root_version_1(
 		return 0
 	}
 
-	childRoot, err := child.Hash()
+	childRoot, err := trie.V0.Hash(child)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
@@ -1214,9 +1258,37 @@ func ext_default_child_storage_root_version_1(
 
 //export ext_default_child_storage_root_version_2
 func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module, childStorageKey uint64,
-	stateVersion uint32) (ptrSize uint64) {
-	// TODO: Implement this after we have storage trie version 1 implemented #2418
-	return ext_default_child_storage_root_version_1(ctx, m, childStorageKey)
+	version uint32) (ptrSize uint64) { //skipcq: RVV-B0012
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
+	key := read(m, childStorageKey)
+	child, err := storage.GetChild(key)
+	if err != nil {
+		logger.Errorf("failed to retrieve child: %s", err)
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
+	}
+
+	stateVersion, err := trie.ParseVersion(version)
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return 0
+	}
+
+	childRoot, err := stateVersion.Hash(child)
+	if err != nil {
+		logger.Errorf("failed to encode child root: %s", err)
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
+	}
+	childRootSlice := childRoot[:]
+
+	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&childRootSlice))
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }
 
 func ext_default_child_storage_storage_kill_version_1(ctx context.Context, m api.Module, childStorageKeySpan uint64) {
@@ -2171,7 +2243,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	}
 	storage := rtCtx.Storage
 
-	root, err := storage.Root()
+	root, err := storage.Root(trie.V0.MaxInlineValue())
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
@@ -2188,8 +2260,32 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 }
 
 func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 { //skipcq: RVV-B0012
-	// TODO: update to use state trie version 1 (#2418)
-	return ext_storage_root_version_1(ctx, m)
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+	storage := rtCtx.Storage
+
+	stateVersion, err := trie.ParseVersion(version)
+	if err != nil {
+		logger.Errorf("failed parsing state version: %s", err)
+		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
+	}
+
+	root, err := storage.Root(stateVersion.MaxInlineValue())
+	if err != nil {
+		logger.Errorf("failed to get storage root: %s", err)
+		panic(err)
+	}
+
+	logger.Debugf("root hash is: %s", root)
+
+	rootSpan, err := write(m, rtCtx.Allocator, root[:])
+	if err != nil {
+		logger.Errorf("failed to allocate: %s", err)
+		panic(err)
+	}
+	return rootSpan
 }
 
 func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
@@ -2219,7 +2315,7 @@ func ext_storage_start_transaction_version_1(ctx context.Context, _ api.Module) 
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-	rtCtx.Storage.BeginStorageTransaction()
+	rtCtx.Storage.StartTransaction()
 }
 
 func ext_storage_rollback_transaction_version_1(ctx context.Context, _ api.Module) {
@@ -2227,7 +2323,7 @@ func ext_storage_rollback_transaction_version_1(ctx context.Context, _ api.Modul
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-	rtCtx.Storage.RollbackStorageTransaction()
+	rtCtx.Storage.RollbackTransaction()
 }
 
 func ext_storage_commit_transaction_version_1(ctx context.Context, _ api.Module) {
@@ -2235,24 +2331,24 @@ func ext_storage_commit_transaction_version_1(ctx context.Context, _ api.Module)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-	rtCtx.Storage.CommitStorageTransaction()
+	rtCtx.Storage.CommitTransaction()
 }
 
-func ext_allocator_free_version_1(ctx context.Context, _ api.Module, addr uint32) {
+func ext_allocator_free_version_1(ctx context.Context, m api.Module, addr uint32) {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Deallocate memory
-	err := allocator.Deallocate(addr)
+	err := allocator.Deallocate(m.Memory(), addr)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ext_allocator_malloc_version_1(ctx context.Context, _ api.Module, size uint32) uint32 {
+func ext_allocator_malloc_version_1(ctx context.Context, m api.Module, size uint32) uint32 {
 	allocator := ctx.Value(runtimeContextKey).(*runtime.Context).Allocator
 
 	// Allocate memory
-	res, err := allocator.Allocate(size)
+	res, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
 		panic(err)
 	}
