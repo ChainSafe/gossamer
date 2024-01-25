@@ -20,10 +20,11 @@ var EmptyHash = common.MustBlake2bHash([]byte{0})
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
-	generation uint64
-	root       *Node
-	childTries map[common.Hash]*Trie
-	db         db.Database
+	childTriePartialKey []byte
+	generation          uint64
+	root                *Node
+	childTries          map[common.Hash]*Trie
+	db                  db.Database
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -69,34 +70,36 @@ func (t *Trie) Equal(other *Trie) bool {
 // the set of deleted hashes.
 func (t *Trie) Snapshot() (newTrie *Trie) {
 	childTries := make(map[common.Hash]*Trie, len(t.childTries))
+
 	rootCopySettings := node.DefaultCopySettings
 	rootCopySettings.CopyMerkleValue = true
+
 	for rootHash, childTrie := range t.childTries {
 		childTries[rootHash] = &Trie{
 			generation: childTrie.generation + 1,
 			root:       childTrie.root.Copy(rootCopySettings),
-			deltas:     tracking.New(),
+			deltas:     childTrie.deltas.DeepCopy(),
 		}
 	}
+
+	fmt.Printf("len of deltas updated: %d\n", len(t.deltas.Updated()))
 
 	return &Trie{
 		generation: t.generation + 1,
 		root:       t.root,
 		db:         t.db,
 		childTries: childTries,
-		deltas:     tracking.New(),
+		deltas:     t.deltas.DeepCopy(),
 	}
 }
 
 // handleTrackedDeltas sets the pending deleted node hashes in
 // the trie deltas tracker if and only if success is true.
-func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas DeltaDeletedGetter) {
+func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas tracking.Getter) {
 	if !success || t.generation == 0 {
 		// Do not persist tracked deleted node hashes if the operation failed or
 		// if the trie generation is zero (first block, no trie snapshot done yet).
-		return
 	}
-
 	t.deltas.MergeWith(pendingDeltas)
 }
 
@@ -162,7 +165,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 	if t.deltas != nil {
 		// Because DeepCopy() is only used in tests (in this and other packages),
 		// it's fine to type assert deltas to access its DeepCopy method.
-		trieCopy.deltas = t.deltas.(*tracking.Deltas).DeepCopy()
+		trieCopy.deltas = t.deltas.DeepCopy()
 	}
 
 	if t.childTries != nil {
@@ -198,11 +201,40 @@ func (t *Trie) MustHash(maxInlineValue int) common.Hash {
 	return h
 }
 
+func (t *Trie) HashOnlyDeltas(maxInlineValue int) {
+	fmt.Println("hashing only deltas...")
+	updatedDeltas := t.deltas.Updated()
+
+	fmt.Println("len of updated:", len(updatedDeltas))
+
+	for _, entries := range updatedDeltas {
+		t.MarkAsV1HashedNode(entries.Key)
+	}
+
+	newTrieHash, _ := t.Hash(maxInlineValue)
+	fmt.Println("NEW TRIE V1 HASH:", newTrieHash.String())
+}
+
 // Hash returns the hashed root of the trie.
 func (t *Trie) Hash(maxInlineValue int) (rootHash common.Hash, err error) {
 	if t.root == nil {
 		return EmptyHash, nil
 	}
+
+	// TODO: Critical changing the child trie root hash in the state
+	// needs to reflect also in the childTries map
+	// or we can use a snapshot to perform the hash encoding
+	// if maxInlineValue == V1MaxInlineValueSize {
+	// 	fmt.Printf("child tries len: %d\n", len(t.childTries))
+	// 	for _, childTrie := range t.childTries {
+	// 		v1Hash, err := childTrie.Hash(maxInlineValue)
+	// 		if err != nil {
+	// 			return rootHash, err
+	// 		}
+
+	// 		t.Put(childTrie.childTriePartialKey, v1Hash[:])
+	// 	}
+	// }
 
 	merkleValue, err := t.root.CalculateRootMerkleValue(maxInlineValue)
 	if err != nil {
@@ -341,13 +373,75 @@ func findNextKeyChild(children []*Node, startIndex byte,
 
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
+func (t *Trie) MarkAsV1HashedNode(keyLE []byte) {
+	t.markAsHashed(keyLE)
+}
+
+func (t *Trie) markAsHashed(keyLE []byte) {
+	nibblesKey := codec.KeyLEToNibbles(keyLE)
+	t.findAndMarkNode(t.root, nibblesKey)
+}
+
+func (t *Trie) findAndMarkNode(parent *Node, key []byte) {
+	if parent == nil {
+		return
+	}
+
+	if parent.Kind() == node.Branch {
+		t.findAndMarkInBranch(parent, key)
+		return
+	}
+
+	t.findAndMarkInLeaf(parent, key)
+}
+
+func (t *Trie) findAndMarkInLeaf(parentLeaf *Node, key []byte) {
+	if bytes.Equal(parentLeaf.PartialKey, key) {
+		parentLeaf.IsHashedValue = true
+	}
+}
+
+func (t *Trie) findAndMarkInBranch(parentBranch *Node, key []byte) {
+	if bytes.Equal(parentBranch.PartialKey, key) {
+		parentBranch.IsHashedValue = true
+		return
+	}
+
+	if bytes.HasPrefix(key, parentBranch.PartialKey) {
+		// key is included in parent branch key
+		commonPrefixLength := lenCommonPrefix(key, parentBranch.PartialKey)
+		childIndex := key[commonPrefixLength]
+		remainingKey := key[commonPrefixLength+1:]
+		child := parentBranch.Children[childIndex]
+
+		if child == nil {
+			return
+		}
+
+		//parentBranch.IsHashedValue = true
+		t.findAndMarkNode(child, remainingKey)
+		return
+	}
+}
+
+// Put inserts a value into the trie at the
+// key specified in little Endian format.
 func (t *Trie) Put(keyLE, value []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
-	return t.insertKeyLE(keyLE, value, pendingDeltas)
+
+	//fmt.Printf("recording key: 0x%x\n", keyLE)
+	t.deltas.RecordUpdated(keyLE, value)
+
+	err = t.insertKeyLE(keyLE, value, pendingDeltas)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *Trie) insertKeyLE(keyLE, value []byte,
@@ -405,8 +499,10 @@ func (t *Trie) insert(parent *Node, key, value []byte, pendingDeltas DeltaRecord
 func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, mutated bool, nodesCreated uint32, err error) {
+
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
+
 		if parentLeaf.StorageValueEqual(value) {
 			mutated = false
 			return parentLeaf, mutated, nodesCreated, nil
@@ -439,7 +535,6 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
 		newBranchParent.StorageValue = value
-
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
 			copySettings := node.DefaultCopySettings
@@ -481,12 +576,13 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		nodesCreated++
 	}
 	childIndex := key[commonPrefixLength]
-	newBranchParent.Children[childIndex] = &Node{
+	newLeaf := &Node{
 		PartialKey:   key[commonPrefixLength+1:],
 		StorageValue: value,
 		Generation:   t.generation,
 		Dirty:        true,
 	}
+	newBranchParent.Children[childIndex] = newLeaf
 	newBranchParent.Descendants++
 	nodesCreated++
 

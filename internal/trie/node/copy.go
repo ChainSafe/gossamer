@@ -55,9 +55,10 @@ type CopySettings struct {
 // children as well.
 func (n *Node) Copy(settings CopySettings) *Node {
 	cpy := &Node{
-		Dirty:       n.Dirty,
-		Generation:  n.Generation,
-		Descendants: n.Descendants,
+		Dirty:         n.Dirty,
+		Generation:    n.Generation,
+		Descendants:   n.Descendants,
+		IsHashedValue: n.IsHashedValue,
 	}
 
 	if n.Kind() == Branch {

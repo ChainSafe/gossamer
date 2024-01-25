@@ -44,6 +44,8 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Println("STARTING A TRANSACTION")
+
 	t.transactions.PushBack(t.getCurrentTrie().Snapshot())
 }
 
@@ -55,6 +57,8 @@ func (t *TrieState) RollbackTransaction() {
 	if t.transactions.Len() <= 1 {
 		panic("no transactions to rollback")
 	}
+
+	fmt.Println("ROLLBACK A TRANSACTION")
 
 	t.transactions.Remove(t.transactions.Back())
 }
@@ -68,6 +72,7 @@ func (t *TrieState) CommitTransaction() {
 		panic("no transactions to commit")
 	}
 
+	fmt.Println("COMMITING A TRANSACTION")
 	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 }
 
@@ -100,12 +105,21 @@ func (t *TrieState) Get(key []byte) []byte {
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
 func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().MustHash(maxInlineValue)
 }
 
 // Root returns the trie's root hash
 func (t *TrieState) Root(maxInlineValue int) (common.Hash, error) {
-	return t.getCurrentTrie().Hash(maxInlineValue)
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	currentTrie := t.getCurrentTrie()
+	currentTrie.HashOnlyDeltas(maxInlineValue)
+
+	return currentTrie.Hash(maxInlineValue)
 }
 
 // Has returns whether or not a key exists

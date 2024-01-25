@@ -71,9 +71,9 @@ func (n *Node) CalculateMerkleValue(maxInlineValue int) (merkleValue []byte, err
 // CalculateRootMerkleValue returns the Merkle value of the root node.
 func (n *Node) CalculateRootMerkleValue(maxInlineValue int) (merkleValue []byte, err error) {
 	const rootMerkleValueLength = 32
-	if !n.Dirty && len(n.MerkleValue) == rootMerkleValueLength {
-		return n.MerkleValue, nil
-	}
+	// if !n.Dirty && len(n.MerkleValue) == rootMerkleValueLength {
+	// 	return n.MerkleValue, nil
+	// }
 
 	_, merkleValue, err = n.EncodeAndHashRoot(maxInlineValue)
 	if err != nil {
@@ -130,6 +130,7 @@ func (n *Node) EncodeAndHashRoot(maxInlineValue int) (encoding, merkleValue []by
 		return nil, nil, fmt.Errorf("merkle value: %w", err)
 	}
 	merkleValue = merkleValueBuffer.Bytes()
+	fmt.Printf("caching merkle value using %v\n", maxInlineValue)
 	n.MerkleValue = merkleValue // no need to copy
 
 	return encoding, merkleValue, nil

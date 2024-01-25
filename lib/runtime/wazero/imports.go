@@ -92,22 +92,23 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
-	line := fmt.Sprintf("target=%s message=%s", target, msg)
+	line := fmt.Sprintf("target=%s message=%s\n", target, msg)
+	fmt.Print(line)
 
-	switch int(level) {
-	case 0:
-		logger.Critical(line)
-	case 1:
-		logger.Warn(line)
-	case 2:
-		logger.Info(line)
-	case 3:
-		logger.Debug(line)
-	case 4:
-		logger.Trace(line)
-	default:
-		logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
-	}
+	// switch int(level) {
+	// case 0:
+	// 	logger.Critical(line)
+	// case 1:
+	// 	logger.Warn(line)
+	// case 2:
+	// 	logger.Info(line)
+	// case 3:
+	// 	logger.Debug(line)
+	// case 4:
+	// 	logger.Trace(line)
+	// default:
+	// 	logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
+	// }
 }
 
 func ext_crypto_ed25519_generate_version_1(
@@ -837,11 +838,15 @@ func ext_trie_blake2_256_ordered_root_version_2(
 
 	data := read(m, dataSpan)
 
+	fmt.Printf("ext_trie_blake2_256_ordered_root_version_2 with pre parse: %v\n", version)
+
 	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
 	}
+
+	fmt.Printf("ext_trie_blake2_256_ordered_root_version_2 with pos parse: %s\n", stateVersion.String())
 
 	var values [][]byte
 	err = scale.Unmarshal(data, &values)
@@ -875,7 +880,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	logger.Debugf("root hash is %s", hash)
+	fmt.Printf("root hash is %s\n", hash)
 	m.Memory().Write(ptr, hash[:])
 	return ptr
 }
@@ -2053,7 +2058,7 @@ func ext_storage_clear_prefix_version_1(ctx context.Context, m api.Module, prefi
 	storage := rtCtx.Storage
 
 	prefix := read(m, prefixSpan)
-	logger.Debugf("prefix: 0x%x", prefix)
+	fmt.Printf("[ext_storage_clear_prefix_version_1] prefix: 0x%x\n", prefix)
 
 	err := storage.ClearPrefix(prefix)
 	if err != nil {
@@ -2091,8 +2096,6 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 	storage := rtCtx.Storage
 
 	prefix := read(m, prefixSpan)
-	logger.Debugf("prefix: 0x%x", prefix)
-
 	limitBytes := read(m, lim)
 
 	var limit []byte
@@ -2108,11 +2111,15 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 	}
 
 	limitUint := binary.LittleEndian.Uint32(limit)
+
 	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
 		panic(err)
 	}
+
+	fmt.Printf("[ext_storage_clear_prefix_version_2] prefix: 0x%x, lim: %d, removed: %d, all: %v\n",
+		prefix, limitUint, numRemoved, all)
 
 	encBytes, err := toKillStorageResultEnum(all, numRemoved)
 	if err != nil {
@@ -2180,8 +2187,8 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 	key := read(m, keySpan)
 
 	next := storage.NextKey(key)
-	logger.Debugf(
-		"key: 0x%x; next key 0x%x",
+	fmt.Printf(
+		"[ext_storage_next_key_version_1] key: 0x%x; next key 0x%x\n",
 		key, next)
 
 	var encodedOption []byte
@@ -2266,11 +2273,15 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	}
 	storage := rtCtx.Storage
 
+	fmt.Printf("ext_storage_root_version_2 with pre parsed: %v\n", version)
+
 	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
+
+	fmt.Printf("ext_storage_root_version_2 with pos parsed: %s\n", stateVersion.String())
 
 	root, err := storage.Root(stateVersion.MaxInlineValue())
 	if err != nil {
@@ -2278,7 +2289,7 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 		panic(err)
 	}
 
-	logger.Debugf("root hash is: %s", root)
+	fmt.Printf("root v1 hash is: %s\n", root.String())
 
 	rootSpan, err := write(m, rtCtx.Allocator, root[:])
 	if err != nil {

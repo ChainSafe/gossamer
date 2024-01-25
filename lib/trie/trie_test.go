@@ -6,6 +6,7 @@ package trie
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -110,7 +111,7 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 	testCases := map[string]struct {
 		trie          Trie
 		success       bool
-		pendingDeltas DeltaDeletedGetter
+		pendingDeltas tracking.Getter
 		expectedTrie  Trie
 	}{
 		"no_success_and_generation_1": {
@@ -4370,4 +4371,13 @@ func Benchmark_concatSlices(b *testing.B) {
 			concatenated[0] = 1
 		}
 	})
+}
+
+func TestTrieDeltaRegisterUpdates(t *testing.T) {
+	trie := NewEmptyTrie()
+	trie.Put([]byte("alpha"), make([]byte, 40))
+	trie.Put([]byte("al"), make([]byte, 40))
+
+	fmt.Println("tries deltas updated", trie.deltas.Updated())
+	fmt.Println("tries deltas deleted", trie.deltas.Deleted())
 }

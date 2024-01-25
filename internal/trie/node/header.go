@@ -21,7 +21,7 @@ func encodeHeader(node *Node, maxInlineValueSize int, writer io.Writer) (err err
 		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))
 	}
 
-	isHashedValue := len(node.StorageValue) > maxInlineValueSize
+	isHashedValue := len(node.StorageValue) > maxInlineValueSize && node.IsHashedValue
 
 	// Merge variant byte and partial key length together
 	var nodeVariant variant

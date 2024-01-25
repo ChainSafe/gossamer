@@ -4,6 +4,7 @@
 package node
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -46,14 +47,17 @@ func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
 	// even if it is empty. Do not encode if the branch is without value.
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
-		if len(n.StorageValue) > maxInlineValue {
+		if len(n.StorageValue) > maxInlineValue && n.IsHashedValue {
 			hashedValue, err := common.Blake2bHash(n.StorageValue)
 			if err != nil {
 				return fmt.Errorf("hashing storage value: %w", err)
 			}
-			_, err = buffer.Write(hashedValue.ToBytes())
+
+			prefixedValueKey := bytes.Join([][]byte{n.PartialKey, hashedValue.ToBytes()}, nil)
+			encoder := scale.NewEncoder(buffer)
+			err = encoder.Encode(prefixedValueKey)
 			if err != nil {
-				return fmt.Errorf("encoding hashed storage value: %w", err)
+				return fmt.Errorf("scale encoding storage value: %w", err)
 			}
 		} else {
 			encoder := scale.NewEncoder(buffer)

@@ -18,8 +18,7 @@ type encodingAsyncResult struct {
 	err    error
 }
 
-func runEncodeChild(child *Node, index, maxInlineValue int,
-	results chan<- encodingAsyncResult, rateLimit <-chan struct{}) {
+func runEncodeChild(child *Node, index, maxInlineValue int, results chan<- encodingAsyncResult, rateLimit <-chan struct{}) {
 	buffer := bytes.NewBuffer(nil)
 	err := encodeChild(child, maxInlineValue, buffer)
 
