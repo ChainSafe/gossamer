@@ -14,7 +14,11 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
+<<<<<<< HEAD
 	gomock "go.uber.org/mock/gomock"
+=======
+	gomock "github.com/golang/mock/gomock"
+>>>>>>> 19a437a1 (feat(dot/parachain/backing): handle CanSecond incoming overseer message (#3600))
 )
 
 // MockTable is a mock of Table interface.
