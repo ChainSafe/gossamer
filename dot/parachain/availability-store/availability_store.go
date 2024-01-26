@@ -156,6 +156,44 @@ func (asb *availabilityStoreBatch) reset() {
 	asb.pruneByTime.Reset()
 }
 
+type AvailabilityStoreBatch struct {
+	availableBatch database.Batch
+	chunkBatch     database.Batch
+	metaBatch      database.Batch
+}
+
+func NewAvailabilityStoreBatch(as *AvailabilityStore) *AvailabilityStoreBatch {
+	return &AvailabilityStoreBatch{
+		availableBatch: as.availableTable.NewBatch(),
+		chunkBatch:     as.chunkTable.NewBatch(),
+		metaBatch:      as.metaTable.NewBatch(),
+	}
+}
+
+func (asb *AvailabilityStoreBatch) Write() error {
+	err := asb.availableBatch.Flush()
+	if err != nil {
+		return asb.Reset(fmt.Errorf("writing available batch: %w", err))
+	}
+	err = asb.chunkBatch.Flush()
+	if err != nil {
+		return asb.Reset(fmt.Errorf("writing chunk batch: %w", err))
+	}
+	err = asb.metaBatch.Flush()
+	if err != nil {
+		return asb.Reset(fmt.Errorf("writing meta batch: %w", err))
+	}
+	return nil
+}
+
+// Reset resets the batch and returns the error
+func (asb *AvailabilityStoreBatch) Reset(err error) error {
+	asb.availableBatch.Reset()
+	asb.chunkBatch.Reset()
+	asb.metaBatch.Reset()
+	return err
+}
+
 // NewAvailabilityStore creates a new instance of AvailabilityStore
 func NewAvailabilityStore(db database.Database) *availabilityStore {
 	return &availabilityStore{
