@@ -4,7 +4,6 @@
 package availabilitystore
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -175,6 +174,7 @@ func newAvailabilityStoreBatch(as *AvailabilityStore) *availabilityStoreBatch {
 	}
 }
 
+// flush flushes the batch and resets the batch if error during flushing
 func (asb *availabilityStoreBatch) flush() error {
 	err := asb.flushAll()
 	if err != nil {
@@ -183,6 +183,7 @@ func (asb *availabilityStoreBatch) flush() error {
 	return err
 }
 
+// flushAll flushes all the batches and returns the error
 func (asb *availabilityStoreBatch) flushAll() error {
 	err := asb.available.Flush()
 	if err != nil {
@@ -207,7 +208,7 @@ func (asb *availabilityStoreBatch) flushAll() error {
 	return nil
 }
 
-// Reset resets the batch and returns the error
+// reset resets the batch and returns the error
 func (asb *availabilityStoreBatch) reset() {
 	asb.available.Reset()
 	asb.chunk.Reset()
