@@ -175,17 +175,21 @@ type Ancestors struct {
 	K    uint32
 }
 
+type BlockHeader struct {
+	Hash common.Hash
+}
+
 func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common.Hash) bool, head common.Hash,
 	header types.Header,
 	lowerBoundNumber parachaintypes.BlockNumber) ([]HashHeader, error) {
 	fmt.Printf("determineNewBlocks\n")
 
-	minBlockNeeded := lowerBoundNumber + 1
+	minBlockNeeded := uint(lowerBoundNumber + 1)
 
 	// Early exit if the block is in the DB or too early.
 	alreadyKnown := isKnown(head)
 
-	beforeRelevant := header.Number < uint(minBlockNeeded)
+	beforeRelevant := header.Number < minBlockNeeded
 	fmt.Printf("beforeRelevant: %v\n", beforeRelevant)
 	if alreadyKnown || beforeRelevant {
 		return make([]HashHeader, 0), nil
@@ -200,11 +204,17 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 	ancestry = append(ancestry, HashHeader{hash: head, header: *headerClone})
 
 	// Early exit if the parent hash is in the DB or no further blocks are needed.
-	//if isKnown(header.ParentHash) || header.Number == uint(minBlockNeeded) {
-	//	return ancestry, nil
-	//}
+	if isKnown(header.ParentHash) || header.Number == minBlockNeeded {
+		return ancestry, nil
+	}
 
-	ancestors, err := GetBlockAncestors(subsystemToOverseer, head, 4)
+	lastHeader := ancestry[len(ancestry)-1].header
+	// This is always non-zero as determined by the loop invariant above.
+	ancestryStep := min(4, (lastHeader.Number - minBlockNeeded))
+
+	fmt.Printf("ancestryStep: %v\n", ancestryStep)
+
+	ancestors, err := GetBlockAncestors(subsystemToOverseer, head, uint32(ancestryStep))
 	if err != nil {
 		return nil, fmt.Errorf("getting block ancestors: %w", err)
 	}

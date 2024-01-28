@@ -124,7 +124,7 @@ func (o *Overseer) processMessages() {
 
 				subsystem = o.nameToSubsystem[parachaintypes.AvailabilityStore]
 
-			case util.ChainAPIMessage[util.Ancestors]:
+			case util.ChainAPIMessage[util.Ancestors], util.ChainAPIMessage[util.BlockHeader]:
 				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
 
 			default:
