@@ -79,9 +79,6 @@ type StoreChunk struct {
 // StoreAvailableData computes and checks the erasure root of `AvailableData`
 // before storing its chunks in the AV store.
 type StoreAvailableData struct {
-	CandidateHash parachaintypes.CandidateHash
-	NumValidators uint32
-	AvailableData AvailableData
 	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
 	CandidateHash parachaintypes.CandidateHash
 	// The number of validators in the session.
