@@ -139,3 +139,127 @@ func incrementCounters(t *testing.T, msg any, finalizedCounter *atomic.Int32, im
 		importedCounter.Add(1)
 	}
 }
+
+func TestHandleBlockEvents(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	blockState := NewMockBlockState(ctrl)
+
+	finalizedNotifierChan := make(chan *types.FinalisationInfo)
+	importedBlockNotiferChan := make(chan *types.Block)
+
+	blockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
+	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
+	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
+	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
+
+	overseer := NewOverseer(blockState)
+
+	require.NotNil(t, overseer)
+
+	subSystem1 := &TestSubsystem{name: "subSystem1"}
+	subSystem2 := &TestSubsystem{name: "subSystem2"}
+
+	overseerToSubSystem1 := overseer.RegisterSubsystem(subSystem1)
+	overseerToSubSystem2 := overseer.RegisterSubsystem(subSystem2)
+
+	var finalizedCounter atomic.Int32
+	var importedCounter atomic.Int32
+
+	go func() {
+		for {
+			select {
+			case msg := <-overseerToSubSystem1:
+				if msg == nil {
+					continue
+				}
+
+				_, ok := msg.(BlockFinalizedSignal)
+				if ok {
+					finalizedCounter.Add(1)
+				}
+
+				_, ok = msg.(ActiveLeavesUpdateSignal)
+				if ok {
+					importedCounter.Add(1)
+				}
+			case msg := <-overseerToSubSystem2:
+				if msg == nil {
+					continue
+				}
+
+				_, ok := msg.(BlockFinalizedSignal)
+				if ok {
+					finalizedCounter.Add(1)
+				}
+
+				_, ok = msg.(ActiveLeavesUpdateSignal)
+				if ok {
+					importedCounter.Add(1)
+				}
+			}
+
+		}
+	}()
+
+	err := overseer.Start()
+	require.NoError(t, err)
+	finalizedNotifierChan <- &types.FinalisationInfo{}
+	importedBlockNotiferChan <- &types.Block{}
+
+	time.Sleep(1000 * time.Millisecond)
+
+	err = overseer.Stop()
+	require.NoError(t, err)
+
+	require.Equal(t, int32(2), finalizedCounter.Load())
+	require.Equal(t, int32(2), importedCounter.Load())
+}
+
+func TestSignalAvailabilityStore(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	blockState := NewMockBlockState(ctrl)
+
+	finalizedNotifierChan := make(chan *types.FinalisationInfo)
+	importedBlockNotiferChan := make(chan *types.Block)
+
+	blockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
+	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
+	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
+	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
+
+	overseer := NewOverseer(blockState)
+
+	require.NotNil(t, overseer)
+
+	stateService := state.NewService(state.Config{})
+	stateService.UseMemDB()
+
+	inmemoryDB := setupTestDB(t)
+
+	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, inmemoryDB)
+	require.NoError(t, err)
+
+	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+
+	chainApi, err := chainapi.Register(overseer.SubsystemsToOverseer)
+	require.NoError(t, err)
+	chainApi.OverseerToSubSystem = overseer.RegisterSubsystem(chainApi)
+
+	err = overseer.Start()
+	require.NoError(t, err)
+
+	finalizedNotifierChan <- &types.FinalisationInfo{}
+	importedBlockNotiferChan <- &types.Block{}
+
+	time.Sleep(1000 * time.Millisecond)
+
+	err = overseer.Stop()
+	require.NoError(t, err)
+}
+
+func setupTestDB(t *testing.T) database.Database {
+	inmemoryDB := state.NewInMemoryDB(t)
+	return inmemoryDB
+}
