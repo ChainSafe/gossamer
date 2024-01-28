@@ -152,10 +152,14 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	err = batch.chunk.Del(append(testCandidateHash.Value[:], uint32ToBytes(0)...))
 	require.NoError(t, err)
 
+<<<<<<< HEAD
 	err = batch.flush()
 	require.NoError(t, err)
 
 	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
+=======
+	resultChunk, err = as.loadChunk(common.Hash{0x01}, 0)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000,"+
 		" index 0 from chunk table: pebble: not found")
 	require.Equal(t, (*ErasureChunk)(nil), resultChunk)
@@ -164,6 +168,7 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
+<<<<<<< HEAD
 	batch := newAvailabilityStoreBatch(as)
 	metaState := NewStateVDT()
 	err := metaState.Set(Unavailable{})
@@ -193,6 +198,26 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	require.NoError(t, err)
 
 	got, err = as.loadMeta(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
+=======
+	batch := NewAvailabilityStoreBatch(as)
+	meta := &CandidateMeta{}
+	err := as.writeMeta(batch, common.Hash{0x01}, *meta)
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	got, err := as.loadMeta(common.Hash{0x01})
+	require.NoError(t, err)
+	require.Equal(t, meta, got)
+
+	batch = NewAvailabilityStoreBatch(as)
+	err = as.deleteMeta(batch, common.Hash{0x01})
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	got, err = as.loadMeta(common.Hash{0x01})
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000"+
 		" from meta table: pebble: not found")
 	require.Equal(t, (*CandidateMeta)(nil), got)
@@ -201,11 +226,16 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
+<<<<<<< HEAD
 	batch := newAvailabilityStoreBatch(as)
+=======
+	batch := NewAvailabilityStoreBatch(as)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	blockNumber := parachaintypes.BlockNumber(1)
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
+<<<<<<< HEAD
 
 	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
@@ -227,19 +257,38 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.NoError(t, err)
 
 	err = batch.flush()
+=======
+	err := as.writeUnfinalizedBlockContains(batch, blockNumber, hash, candidateHash)
+	require.NoError(t, err)
+	err = as.writeUnfinalizedBlockContains(batch, blockNumber, hash6, candidateHash)
+	require.NoError(t, err)
+	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(0), hash, candidateHash)
+	require.NoError(t, err)
+	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(2), hash, candidateHash)
+	require.NoError(t, err)
+
+	err = batch.Write()
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.NoError(t, err)
 
 	// check that the key is written
 	key12 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
 	key12 = append(key12, candidateHash.Value[:]...)
 
+<<<<<<< HEAD
 	got, err := as.unfinalized.Get(key12)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
+=======
+	got, err := as.unfinalizedTable.Get(key12)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 
 	key16 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
 	key16 = append(key16, candidateHash.Value[:]...)
 
+<<<<<<< HEAD
 	got, err = as.unfinalized.Get(key16)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
@@ -270,25 +319,57 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.Equal(t, []byte(nil), got)
 
 	got, err = as.unfinalized.Get(key16)
+=======
+	got, err = as.unfinalizedTable.Get(key16)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+
+	// delete height, (block 1)
+	batch = NewAvailabilityStoreBatch(as)
+	err = as.deleteUnfinalizedHeight(batch, blockNumber)
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	// check that the key is deleted
+	got, err = as.unfinalizedTable.Get(key12)
+	require.EqualError(t, err, "pebble: not found")
+	require.Equal(t, []byte(nil), got)
+
+	got, err = as.unfinalizedTable.Get(key16)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
+<<<<<<< HEAD
 	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
+=======
+	key := append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	got, err = as.unfinalizedTable.Get(key)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 }
 
 func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
+<<<<<<< HEAD
 	batch := newAvailabilityStoreBatch(as)
+=======
+	batch := NewAvailabilityStoreBatch(as)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	blockNumber := parachaintypes.BlockNumber(1)
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
+<<<<<<< HEAD
 	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err := batch.unfinalized.Put(key, nil)
@@ -307,19 +388,38 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	require.NoError(t, err)
 
 	err = batch.flush()
+=======
+	err := as.writeUnfinalizedBlockContains(batch, blockNumber, hash, candidateHash)
+	require.NoError(t, err)
+	err = as.writeUnfinalizedBlockContains(batch, blockNumber, hash6, candidateHash)
+	require.NoError(t, err)
+	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(0), hash, candidateHash)
+	require.NoError(t, err)
+	err = as.writeUnfinalizedBlockContains(batch, parachaintypes.BlockNumber(2), hash, candidateHash)
+	require.NoError(t, err)
+
+	err = batch.Write()
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.NoError(t, err)
 
 	// check that the key is written
 	key12 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
 	key12 = append(key12, candidateHash.Value[:]...)
 
+<<<<<<< HEAD
 	got, err := as.unfinalized.Get(key12)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
+=======
+	got, err := as.unfinalizedTable.Get(key12)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 
 	key16 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
 	key16 = append(key16, candidateHash.Value[:]...)
 
+<<<<<<< HEAD
 	got, err = as.unfinalized.Get(key16)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
@@ -336,10 +436,26 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 
 	// check that the key is deleted
 	got, err = as.unfinalized.Get(key12)
+=======
+	got, err = as.unfinalizedTable.Get(key16)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+
+	// delete inclusion, (block 1, hash 2)
+	batch = NewAvailabilityStoreBatch(as)
+	err = as.deleteUnfinalizedInclusion(batch, blockNumber, hash, candidateHash)
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	// check that the key is deleted
+	got, err = as.unfinalizedTable.Get(key12)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
+<<<<<<< HEAD
 	got, err = as.unfinalized.Get(key16)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
@@ -349,11 +465,23 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
+=======
+	got, err = as.unfinalizedTable.Get(key16)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+
+	key := append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	got, err = as.unfinalizedTable.Get(key)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 }
 
 func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
+<<<<<<< HEAD
 	batch := newAvailabilityStoreBatch(as)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
 
@@ -391,13 +519,53 @@ func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 
 	// check that the key is deleted
 	got, err = as.pruneByTime.Get(key1)
+=======
+	batch := NewAvailabilityStoreBatch(as)
+	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
+
+	err := as.writePruningKey(batch, BETimestamp(1), candidateHash)
+	require.NoError(t, err)
+	err = as.writePruningKey(batch, BETimestamp(2), candidateHash)
+	require.NoError(t, err)
+
+	err = batch.Write()
+	require.NoError(t, err)
+
+	// check that the key is written
+	key1 := append(BETimestamp(1).ToBytes(), candidateHash.Value[:]...)
+
+	got, err := as.pruneByTimeTable.Get(key1)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+
+	key2 := append(BETimestamp(2).ToBytes(), candidateHash.Value[:]...)
+	got, err = as.pruneByTimeTable.Get(key2)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+
+	// delete pruning key, timestamp 1
+	batch = NewAvailabilityStoreBatch(as)
+	err = as.deletePruningKey(batch, BETimestamp(1), candidateHash)
+	require.NoError(t, err)
+	err = batch.Write()
+	require.NoError(t, err)
+
+	// check that the key is deleted
+	got, err = as.pruneByTimeTable.Get(key1)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	require.EqualError(t, err, "pebble: not found")
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
+<<<<<<< HEAD
 	got, err = as.pruneByTime.Get(key2)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
+=======
+	got, err = as.pruneByTimeTable.Get(key2)
+	require.NoError(t, err)
+	require.Equal(t, []byte(tombstoneValue), got)
+>>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 }
 
 func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
