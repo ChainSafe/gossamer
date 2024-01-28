@@ -30,7 +30,6 @@ const (
 	unfinalizedPrefix   = "unfinalized"
 	pruneByTimePrefix   = "prune_by_time"
 
-<<<<<<< HEAD
 	// Unavailable blocks are kept for 1 hour.
 	keepUnavilableFor = time.Hour
 
@@ -72,19 +71,6 @@ var defaultPruningConfig = pruningConfig{
 	pruningInterval:    pruningInterval,
 }
 
-=======
-	tombstoneValue = " "
-)
-
-type BETimestamp uint64
-
-func (b BETimestamp) ToBytes() []byte {
-	res := make([]byte, 8)
-	binary.LittleEndian.PutUint64(res, uint64(b))
-	return res
-}
-
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
 	ctx    context.Context
@@ -101,7 +87,6 @@ type AvailabilityStoreSubsystem struct {
 	//TODO: metrics       Metrics
 }
 
-<<<<<<< HEAD
 // availabilityStore is the struct that holds data for the availability store
 type availabilityStore struct {
 	available   database.Table
@@ -170,15 +155,6 @@ func (asb *availabilityStoreBatch) reset() {
 	asb.meta.Reset()
 	asb.unfinalized.Reset()
 	asb.pruneByTime.Reset()
-=======
-// AvailabilityStore is the struct that holds data for the availability store
-type AvailabilityStore struct {
-	availableTable   database.Table
-	chunkTable       database.Table
-	metaTable        database.Table
-	unfinalizedTable database.Table
-	pruneByTimeTable database.Table
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 }
 
 type AvailabilityStoreBatch struct {
@@ -234,7 +210,6 @@ func (asb *AvailabilityStoreBatch) Reset(err error) error {
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
-<<<<<<< HEAD
 func NewAvailabilityStore(db database.Database) *availabilityStore {
 	return &availabilityStore{
 		available:   database.NewTable(db, availableDataPrefix),
@@ -242,15 +217,6 @@ func NewAvailabilityStore(db database.Database) *availabilityStore {
 		meta:        database.NewTable(db, metaPrefix),
 		unfinalized: database.NewTable(db, unfinalizedPrefix),
 		pruneByTime: database.NewTable(db, pruneByTimePrefix),
-=======
-func NewAvailabilityStore(db database.Database) *AvailabilityStore {
-	return &AvailabilityStore{
-		availableTable:   database.NewTable(db, avaliableDataPrefix),
-		chunkTable:       database.NewTable(db, chunkPrefix),
-		metaTable:        database.NewTable(db, metaPrefix),
-		unfinalizedTable: database.NewTable(db, unfinalizedPrefix),
-		pruneByTimeTable: database.NewTable(db, pruneByTimePrefix),
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	}
 }
 
@@ -272,32 +238,7 @@ func (as *availabilityStore) loadAvailableData(candidate parachaintypes.Candidat
 func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*CandidateMeta, error) {
 	resultBytes, err := as.meta.Get(candidate.Value[:])
 	if err != nil {
-<<<<<<< HEAD
 		return nil, fmt.Errorf("getting candidate %v from meta table: %w", candidate.Value, err)
-=======
-		return fmt.Errorf("marshalling available data: %w", err)
-	}
-	err = batch.availableBatch.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing available data for candidate %v: %w", candidate, err)
-	}
-	return nil
-}
-
-func (as *AvailabilityStore) deleteAvailableData(batch *AvailabilityStoreBatch, candidate common.Hash) error {
-	err := batch.availableBatch.Del(candidate[:])
-	if err != nil {
-		return fmt.Errorf("deleting available data for candidate %v: %w", candidate, err)
-	}
-	return nil
-}
-
-// loadMetaData loads metadata from the availability store
-func (as *AvailabilityStore) loadMeta(candidate common.Hash) (*CandidateMeta, error) {
-	resultBytes, err := as.metaTable.Get(candidate[:])
-	if err != nil {
-		return nil, fmt.Errorf("getting candidate %v from meta table: %w", candidate, err)
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 	}
 	result := CandidateMeta{}
 	err = scale.Unmarshal(resultBytes, &result)
@@ -307,30 +248,6 @@ func (as *AvailabilityStore) loadMeta(candidate common.Hash) (*CandidateMeta, er
 	return &result, nil
 }
 
-<<<<<<< HEAD
-=======
-// storeMetaData stores metadata in the availability store
-func (as *AvailabilityStore) writeMeta(batch *AvailabilityStoreBatch, candidate common.Hash, meta CandidateMeta) error {
-	dataBytes, err := json.Marshal(meta)
-	if err != nil {
-		return fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = batch.metaBatch.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
-	}
-	return nil
-}
-
-func (as *AvailabilityStore) deleteMeta(batch *AvailabilityStoreBatch, candidate common.Hash) error {
-	err := batch.metaBatch.Del(candidate[:])
-	if err != nil {
-		return fmt.Errorf("deleting meta for candidate %v: %w", candidate, err)
-	}
-	return nil
-}
-
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 // loadChunk loads a chunk from the availability store
 func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
 	error) {
@@ -346,24 +263,22 @@ func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, v
 	return &result, nil
 }
 
-<<<<<<< HEAD
-=======
 func (as *AvailabilityStore) writeChunk(batch *AvailabilityStoreBatch, candidate common.Hash,
 	chunk ErasureChunk) error {
 	dataBytes, err := json.Marshal(chunk)
 	if err != nil {
 		return fmt.Errorf("marshalling chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 	}
-	err = batch.chunkBatch.Put(append(candidate[:], uint32ToBytes(chunk.Index)...), dataBytes)
+	err = batch.chunkBatch.Put(append(candidate.Value[:], uint32ToBytes(chunk.Index)...), dataBytes)
 	if err != nil {
 		return fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 	}
 	return nil
 }
 
-func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidate common.Hash,
+func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidate parachaintypes.CandidateHash,
 	chunkIndex uint32) error {
-	err := batch.chunkBatch.Del(append(candidate[:], uint32ToBytes(chunkIndex)...))
+	err := batch.chunkBatch.Del(append(candidate.Value[:], uint32ToBytes(chunkIndex)...))
 	if err != nil {
 		return fmt.Errorf("deleting chunk for candidate %v, index %d: %w", candidate, chunkIndex, err)
 	}
@@ -437,7 +352,6 @@ func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pru
 	return nil
 }
 
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 // storeChunk stores a chunk in the availability store, returns true on success, false on failure,
 // and error on internal error.
 func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, chunk ErasureChunk) (bool,
@@ -488,7 +402,6 @@ func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 	return true, nil
 }
 
-<<<<<<< HEAD
 func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
 	candidate parachaintypes.CandidateHash, nValidators uint, data AvailableData,
 	expectedErasureRoot common.Hash) (bool, error) {
@@ -590,9 +503,6 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 }
 
 // todo(ed) determine if this should be LittleEndian or BigEndian
-=======
-// todo(ed) determin if this should be LittleEndian or BigEndian
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 func uint32ToBytes(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.LittleEndian.PutUint32(result, value)
@@ -605,7 +515,6 @@ func uint32ToBytesBigEndian(value uint32) []byte {
 	return result
 }
 
-<<<<<<< HEAD
 func branchesFromChunks(chunks [][]byte) (branches, error) {
 	tr := trie.NewEmptyTrie()
 
@@ -628,8 +537,6 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 	return b, nil
 }
 
-=======
->>>>>>> 6cb7610d (added functions for unfinalized and prune_by_time db tables)
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
 	SubsystemToOverseer chan any) {
