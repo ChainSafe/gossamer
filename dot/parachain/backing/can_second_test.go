@@ -8,15 +8,9 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-<<<<<<< HEAD
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/btree"
 	gomock "go.uber.org/mock/gomock"
-=======
-	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
->>>>>>> 19a437a1 (feat(dot/parachain/backing): handle CanSecond incoming overseer message (#3600))
 )
 
 func ignoreChanVal(t *testing.T, ch chan bool) {
