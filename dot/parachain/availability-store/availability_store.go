@@ -41,7 +41,7 @@ const (
 )
 
 // BETimestamp is a unix time wrapper with big-endian encoding
-type BETimestamp uint64
+type Timestamp uint64
 
 // ToBigEndianBytes returns the big-endian encoding of the timestamp
 func (b BETimestamp) ToBigEndianBytes() []byte {
@@ -158,20 +158,20 @@ func (asb *availabilityStoreBatch) reset() {
 }
 
 type AvailabilityStoreBatch struct {
-	availableBatch   database.Batch
-	chunkBatch       database.Batch
-	metaBatch        database.Batch
-	unfinalizedBatch database.Batch
-	pruneByTimeBatch database.Batch
+	available   database.Batch
+	chunk       database.Batch
+	meta        database.Batch
+	unfinalized database.Batch
+	pruneByTime database.Batch
 }
 
 func NewAvailabilityStoreBatch(as *AvailabilityStore) *AvailabilityStoreBatch {
 	return &AvailabilityStoreBatch{
-		availableBatch:   as.availableTable.NewBatch(),
-		chunkBatch:       as.chunkTable.NewBatch(),
-		metaBatch:        as.metaTable.NewBatch(),
-		unfinalizedBatch: as.unfinalizedTable.NewBatch(),
-		pruneByTimeBatch: as.pruneByTimeTable.NewBatch(),
+		available:   as.available.NewBatch(),
+		chunk:       as.chunk.NewBatch(),
+		meta:        as.meta.NewBatch(),
+		unfinalized: as.unfinalized.NewBatch(),
+		pruneByTime: as.pruneByTime.NewBatch(),
 	}
 }
 
@@ -184,23 +184,23 @@ func (asb *AvailabilityStoreBatch) Flush() error {
 }
 
 func (asb *AvailabilityStoreBatch) flushAll() error {
-	err := asb.availableBatch.Flush()
+	err := asb.available.Flush()
 	if err != nil {
 		return fmt.Errorf("writing available batch: %w", err)
 	}
-	err = asb.chunkBatch.Flush()
+	err = asb.chunk.Flush()
 	if err != nil {
 		return fmt.Errorf("writing chunk batch: %w", err)
 	}
-	err = asb.metaBatch.Flush()
+	err = asb.meta.Flush()
 	if err != nil {
 		return fmt.Errorf("writing meta batch: %w", err)
 	}
-	err = asb.unfinalizedBatch.Flush()
+	err = asb.unfinalized.Flush()
 	if err != nil {
 		return fmt.Errorf("writing unfinalized batch: %w", err)
 	}
-	err = asb.pruneByTimeBatch.Flush()
+	err = asb.pruneByTime.Flush()
 	if err != nil {
 		return fmt.Errorf("writing prune by time batch: %w", err)
 	}
@@ -209,11 +209,11 @@ func (asb *AvailabilityStoreBatch) flushAll() error {
 
 // Reset resets the batch and returns the error
 func (asb *AvailabilityStoreBatch) Reset() {
-	asb.availableBatch.Reset()
-	asb.chunkBatch.Reset()
-	asb.metaBatch.Reset()
-	asb.unfinalizedBatch.Reset()
-	asb.pruneByTimeBatch.Reset()
+	asb.available.Reset()
+	asb.chunk.Reset()
+	asb.meta.Reset()
+	asb.unfinalized.Reset()
+	asb.pruneByTime.Reset()
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
@@ -276,7 +276,7 @@ func (as *AvailabilityStore) writeChunk(batch *AvailabilityStoreBatch, candidate
 	if err != nil {
 		return fmt.Errorf("marshalling chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 	}
-	err = batch.chunkBatch.Put(append(candidate.Value[:], uint32ToBytes(chunk.Index)...), dataBytes)
+	err = batch.chunk.Put(append(candidate.Value[:], uint32ToBytes(chunk.Index)...), dataBytes)
 	if err != nil {
 		return fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, chunk.Index, err)
 	}
@@ -286,7 +286,7 @@ func (as *AvailabilityStore) writeChunk(batch *AvailabilityStoreBatch, candidate
 // deleteChunk deletes a chunk from the availability store of the given batch
 func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidate parachaintypes.CandidateHash,
 	chunkIndex uint32) error {
-	err := batch.chunkBatch.Del(append(candidate.Value[:], uint32ToBytes(chunkIndex)...))
+	err := batch.chunk.Del(append(candidate.Value[:], uint32ToBytes(chunkIndex)...))
 	if err != nil {
 		return fmt.Errorf("deleting chunk for candidate %v, index %d: %w", candidate, chunkIndex, err)
 	}
@@ -295,28 +295,28 @@ func (as *AvailabilityStore) deleteChunk(batch *AvailabilityStoreBatch, candidat
 
 // writeUnfinalized writes an unfinalized block to the availability store of the given batch
 func (as *AvailabilityStore) writeUnfinalizedBlockContains(batch *AvailabilityStoreBatch,
-	blockNumber parachaintypes.BlockNumber, hash common.Hash, candidateHash parachaintypes.CandidateHash) error {
-	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	blockNumber parachaintypes.BlockNumber, blockHash common.Hash, candidateHash parachaintypes.CandidateHash) error {
+	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), blockHash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 
-	err := batch.unfinalizedBatch.Put(key, nil)
+	err := batch.unfinalized.Put(key, nil)
 	if err != nil {
-		return fmt.Errorf("writing unfinalized block contains, block: %v hash: %v candidate hash: %v: %w",
-			blockNumber, hash, candidateHash, err)
+		return fmt.Errorf("writing unfinalized block contains, block: %v blockHash: %v candidate blockHash: %v: %w",
+			blockNumber, blockHash, candidateHash, err)
 	}
 	return nil
 }
 
 // deleteUnfinalized writes an unfinalized block to the availability store of the given batch
 func (as *AvailabilityStore) deleteUnfinalizedInclusion(batch *AvailabilityStoreBatch,
-	blockNumber parachaintypes.BlockNumber, hash common.Hash, candidateHash parachaintypes.CandidateHash) error {
-	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	blockNumber parachaintypes.BlockNumber, blockHash common.Hash, candidateHash parachaintypes.CandidateHash) error {
+	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), blockHash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 
-	err := batch.unfinalizedBatch.Del(key)
+	err := batch.unfinalized.Del(key)
 	if err != nil {
-		return fmt.Errorf("deleting unfinalized inclusion, block: %v hash: %v: candidate hash: %v: %w", blockNumber,
-			hash, candidateHash, err)
+		return fmt.Errorf("deleting unfinalized inclusion, block: %v blockHash: %v: candidate blockHash: %v: %w", blockNumber,
+			blockHash, candidateHash, err)
 	}
 	return nil
 }
@@ -325,7 +325,7 @@ func (as *AvailabilityStore) deleteUnfinalizedInclusion(batch *AvailabilityStore
 func (as *AvailabilityStore) deleteUnfinalizedHeight(batch *AvailabilityStoreBatch,
 	blockNumber parachaintypes.BlockNumber) error {
 	keyPrefix := append([]byte(unfinalizedPrefix), uint32ToBytesBigEndian(uint32(blockNumber))...)
-	itr := as.unfinalizedTable.NewIterator()
+	itr := as.unfinalized.NewIterator()
 	for itr.First(); itr.Valid(); itr.Next() {
 		comp := bytes.Compare(itr.Key()[0:len(keyPrefix)], keyPrefix)
 		if comp < 0 {
@@ -333,7 +333,7 @@ func (as *AvailabilityStore) deleteUnfinalizedHeight(batch *AvailabilityStoreBat
 		} else if comp > 0 {
 			break
 		}
-		err := batch.unfinalizedBatch.Del(itr.Key()[len(unfinalizedPrefix):])
+		err := batch.unfinalized.Del(itr.Key()[len(unfinalizedPrefix):])
 		if err != nil {
 			return fmt.Errorf("deleting unfinalized height %v: %w", blockNumber, err)
 		}
@@ -344,10 +344,10 @@ func (as *AvailabilityStore) deleteUnfinalizedHeight(batch *AvailabilityStoreBat
 }
 
 // writePruningKey writes a pruning key to the availability store of the given batch
-func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, pruneAt BETimestamp,
+func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, pruneAt Timestamp,
 	candidate parachaintypes.CandidateHash) error {
-	pruneKey := append(pruneAt.ToBytes(), candidate.Value[:]...)
-	err := batch.pruneByTimeBatch.Put(pruneKey, nil)
+	pruneKey := append(pruneAt.ToBEBytes(), candidate.Value[:]...)
+	err := batch.pruneByTime.Put(pruneKey, nil)
 	if err != nil {
 		return fmt.Errorf("writing pruning key: %w", err)
 	}
@@ -355,10 +355,10 @@ func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, prun
 }
 
 // deletePruningKey deletes a pruning key from the availability store of the given batch
-func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pruneAt BETimestamp,
+func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pruneAt Timestamp,
 	candidate parachaintypes.CandidateHash) error {
-	pruneKey := append(pruneAt.ToBytes(), candidate.Value[:]...)
-	err := batch.pruneByTimeBatch.Del(pruneKey)
+	pruneKey := append(pruneAt.ToBEBytes(), candidate.Value[:]...)
+	err := batch.pruneByTime.Del(pruneKey)
 	if err != nil {
 		return fmt.Errorf("deleting pruning key: %w", err)
 	}
