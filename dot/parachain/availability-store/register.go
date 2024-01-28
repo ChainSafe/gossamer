@@ -5,14 +5,18 @@ package availabilitystore
 
 import (
 	"context"
-
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/internal/database"
 )
 
-func Register(overseerChan chan<- any, st *state.Service) (*AvailabilityStoreSubsystem, error) {
-	availabilityStore := NewAvailabilityStore(st.DB())
+func Register(overseerChan chan<- any, db database.Database) (*AvailabilityStoreSubsystem, error) {
+	availabilityStore := NewAvailabilityStore(db)
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		ctx:                 ctx,
+		cancel:              cancel,
 		pruningConfig:       defaultPruningConfig,
 		SubSystemToOverseer: overseerChan,
 		availabilityStore:   *availabilityStore,
