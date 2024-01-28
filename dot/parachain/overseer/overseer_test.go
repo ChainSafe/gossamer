@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -260,8 +262,17 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	err = overseer.Start()
 	require.NoError(t, err)
 
-	finalizedNotifierChan <- &types.FinalisationInfo{}
-	importedBlockNotiferChan <- &types.Block{}
+	//finalizedNotifierChan <- &types.FinalisationInfo{}
+	importedBlockNotiferChan <- &types.Block{
+		Header: types.Header{
+			ParentHash:     common.Hash{},
+			Number:         2,
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         scale.VaryingDataTypeSlice{},
+		},
+		Body: nil,
+	}
 
 	time.Sleep(1000 * time.Millisecond)
 

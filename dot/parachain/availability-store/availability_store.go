@@ -632,28 +632,53 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 	logger.Infof("ProcessActiveLeavesUpdateSignal %s", av.currentMessage)
 	activeLeave := av.currentMessage.(parachaintypes.ActiveLeavesUpdateSignal)
 	// TODO: get block header from activated number
+
+	respChan := make(chan any)
+	message := util.ChainAPIMessage[util.BlockHeader]{
+		Message: util.BlockHeader{
+			Hash: activeLeave.Activated.Hash,
+		},
+		ResponseChannel: respChan,
+	}
+	res, err := util.Call(av.SubSystemToOverseer, message, message.ResponseChannel)
+	if err != nil {
+		logger.Errorf("sending message to get block header: %w", err)
+	}
+	logger.Infof("block header res %s", res)
+
 	blockNumber := activeLeave.Activated.Number
 
-	logger.Infof("ProcessBlockFinalizedSignal %s", blockNumber)
-	isKnownFunc := func(hash common.Hash) bool {
-		return false
-	}
+	logger.Infof("ProcessActiveLeavesUpdateSignal blocknumber %s", blockNumber)
 
 	// todo: confirm these params are correct (last param should be finalized block number or block_number -1,
 	// not sure which)
-	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, isKnownFunc, activeLeave.Activated.Hash,
-		types.Header{},
-		parachaintypes.BlockNumber(blockNumber)-1)
+	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, av.knownBlocks.isKnown, activeLeave.Activated.Hash,
+		res.(types.Header),
+		av.finalizedNumber)
 	if err != nil {
 		logger.Errorf("failed to determine new blocks: %w", err)
 	}
 
-	logger.Infof("newBlocks %s", newBlocks)
+	logger.Infof("newBlocks %v", newBlocks)
+
+	for i, v := range newBlocks {
+		// start db batch
+		logger.Infof("newBlock %v %v", i, v)
+		// process new head
+
+		// add to known blocks
+		//av.knownBlocks.
+
+		// end db batch
+	}
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 	logger.Infof("ProcessBlockFinalizedSignal %s", av.currentMessage)
 	// TODO: determine batch number and finalized hash
+	startPrefix, endPrefix := finalizedBlockRange(av.currentMessage.(parachaintypes.BlockFinalizedSignal).BlockNumber)
+	logger.Infof("startPrefix %v", startPrefix)
+	logger.Infof("endPrefix %v", endPrefix)
 	batchNum := 0
 	finalizedHash := common.Hash{}
 	// load all of finalized height
@@ -793,6 +818,12 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 func (av *AvailabilityStoreSubsystem) Stop() {
 	av.cancel()
 	av.wg.Wait()
+}
+
+func finalizedBlockRange(finalized parachaintypes.BlockNumber) (start, end []byte) {
+	start = []byte(unfinalizedPrefix)
+	end = append([]byte(unfinalizedPrefix), uint32ToBytes(uint32(finalized+1))...)
+	return
 }
 
 func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(batchNum int,

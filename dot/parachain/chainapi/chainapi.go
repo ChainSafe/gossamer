@@ -2,6 +2,8 @@ package chainapi
 
 import (
 	"context"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -40,7 +42,19 @@ func (c *ChainAPI) processMessages() {
 	for {
 		select {
 		case msg := <-c.OverseerToSubSystem:
-			logger.Infof("received message %v", msg)
+			if msg != nil {
+				logger.Infof("received message %T", msg)
+			}
+			switch msg := msg.(type) {
+			case util.ChainAPIMessage[util.Ancestors]:
+				logger.Infof("received ancestors %v", msg)
+			case util.ChainAPIMessage[util.BlockHeader]:
+				// TODO(ed): implement
+				logger.Infof("received block header %v", msg)
+				msg.ResponseChannel <- types.Header{
+					Number: 1,
+				}
+			}
 
 		case <-c.ctx.Done():
 			if err := c.ctx.Err(); err != nil {

@@ -5,6 +5,7 @@ package availabilitystore
 
 import (
 	"context"
+
 	"github.com/ChainSafe/gossamer/internal/database"
 )
 
