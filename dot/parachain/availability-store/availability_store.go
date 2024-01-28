@@ -41,7 +41,7 @@ const (
 )
 
 // BETimestamp is a unix time wrapper with big-endian encoding
-type Timestamp uint64
+type timestamp uint64
 
 // ToBigEndianBytes returns the big-endian encoding of the timestamp
 func (b BETimestamp) ToBigEndianBytes() []byte {
@@ -344,9 +344,9 @@ func (as *AvailabilityStore) deleteUnfinalizedHeight(batch *AvailabilityStoreBat
 }
 
 // writePruningKey writes a pruning key to the availability store of the given batch
-func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, pruneAt Timestamp,
+func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, pruneAt timestamp,
 	candidate parachaintypes.CandidateHash) error {
-	pruneKey := append(pruneAt.ToBEBytes(), candidate.Value[:]...)
+	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
 	err := batch.pruneByTime.Put(pruneKey, nil)
 	if err != nil {
 		return fmt.Errorf("writing pruning key: %w", err)
@@ -355,9 +355,9 @@ func (as *AvailabilityStore) writePruningKey(batch *AvailabilityStoreBatch, prun
 }
 
 // deletePruningKey deletes a pruning key from the availability store of the given batch
-func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pruneAt Timestamp,
+func (as *AvailabilityStore) deletePruningKey(batch *AvailabilityStoreBatch, pruneAt timestamp,
 	candidate parachaintypes.CandidateHash) error {
-	pruneKey := append(pruneAt.ToBEBytes(), candidate.Value[:]...)
+	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
 	err := batch.pruneByTime.Del(pruneKey)
 	if err != nil {
 		return fmt.Errorf("deleting pruning key: %w", err)
@@ -762,9 +762,4 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		return fmt.Errorf("store available data: %w", err)
 	}
 	return nil
-}
-
-func (av *AvailabilityStoreSubsystem) Stop() {
-	av.cancel()
-	av.wg.Wait()
 }

@@ -134,7 +134,7 @@ func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
 
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
-	Timestamp Timestamp
+	Timestamp timestamp
 }
 
 // Index returns the index of the varying data type
