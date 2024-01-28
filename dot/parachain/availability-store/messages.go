@@ -79,13 +79,9 @@ type StoreChunk struct {
 // StoreAvailableData computes and checks the erasure root of `AvailableData`
 // before storing its chunks in the AV store.
 type StoreAvailableData struct {
-	CandidateHash       parachaintypes.CandidateHash
-<<<<<<< HEAD
-	NumValidators       uint32
-	AvailableData       AvailableData
-=======
-	NValidators         uint32
-	AvailableData       AvailableData
+	CandidateHash parachaintypes.CandidateHash
+	NumValidators uint32
+	AvailableData AvailableData
 	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
 	CandidateHash parachaintypes.CandidateHash
 	// The number of validators in the session.
@@ -93,7 +89,6 @@ type StoreAvailableData struct {
 	// The `AvailableData` itself.
 	AvailableData AvailableData
 	// Erasure root we expect to get after chunking.
->>>>>>> a5790146 (WIP - save commit, working on store available data)
 	ExpectedErasureRoot common.Hash
 	// channel to send result to.
 	Sender chan error
@@ -178,13 +173,9 @@ type BlockNumberHash struct {
 	blockHash   common.Hash                //nolint:unused,structcheck
 }
 
-<<<<<<< HEAD
 type branches struct {
 	trieStorage *trie.Trie
 	root        common.Hash
 	chunks      [][]byte
 	currentPos  uint
 }
-=======
-var InvalidErasureRoot = errors.New("Invalid erasure root")
->>>>>>> a5790146 (WIP - save commit, working on store available data)

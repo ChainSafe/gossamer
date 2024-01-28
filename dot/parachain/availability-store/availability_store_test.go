@@ -717,7 +717,76 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 		require.NoError(t, err)
 	}()
 	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, nil, msgSenderChanResult)
+	require.Equal(t, true, msgSenderChanResult)
+}
+
+func TestAvailabilityStore_storeAvailableData(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		candidate           parachaintypes.CandidateHash
+		nValidators         uint
+		data                AvailableData
+		expectedErasureRoot common.Hash
+	}
+	tests := map[string]struct {
+		args args
+		want bool
+		err  error
+	}{
+		"empty_availableData": {
+			args: args{
+				candidate:           parachaintypes.CandidateHash{},
+				nValidators:         0,
+				data:                AvailableData{},
+				expectedErasureRoot: common.Hash{},
+			},
+			want: false,
+			err:  errors.New("obtaining chunks: expected at least 2 validators"),
+		},
+		"2_validators": {
+			args: args{
+				candidate:   parachaintypes.CandidateHash{},
+				nValidators: 2,
+				data: AvailableData{
+					PoV: parachaintypes.PoV{BlockData: []byte{2}},
+				},
+				expectedErasureRoot: common.MustHexToHash("0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991"),
+			},
+			want: true,
+			err:  nil,
+		},
+		"2_validators_error_erasure_root": {
+			args: args{
+				candidate:   parachaintypes.CandidateHash{},
+				nValidators: 2,
+				data: AvailableData{
+					PoV: parachaintypes.PoV{BlockData: []byte{2}},
+				},
+				expectedErasureRoot: common.Hash{},
+			},
+			want: false,
+			err:  InvalidErasureRoot,
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			inmemoryDB := setupTestDB(t)
+			as := NewAvailabilityStore(inmemoryDB)
+			asSub := &AvailabilityStoreSubsystem{
+				availabilityStore: *as,
+			}
+			got, err := as.storeAvailableData(asSub, tt.args.candidate, tt.args.nValidators,
+				tt.args.data, tt.args.expectedErasureRoot)
+			if tt.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tt.err.Error())
+			}
+			require.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestAvailabilityStore_storeAvailableData(t *testing.T) {
