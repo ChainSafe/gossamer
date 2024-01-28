@@ -19,9 +19,8 @@ type ChainAPI struct {
 	SubSystemToOverseer chan<- any
 }
 
-func (c *ChainAPI) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) error {
+func (c *ChainAPI) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	go c.processMessages()
-	return nil
 }
 
 func (c *ChainAPI) Name() parachaintypes.SubSystemName {

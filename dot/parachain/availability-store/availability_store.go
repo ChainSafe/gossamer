@@ -6,9 +6,10 @@ package availabilitystore
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
 	"time"
 
@@ -82,8 +83,6 @@ type AvailabilityStoreSubsystem struct {
 	availabilityStore   availabilityStore
 	pruningConfig       pruningConfig
 	clock               subsystemClock
-	//TODO: pruningConfig PruningConfig
-	//TODO: clock         Clock
 	//TODO: metrics       Metrics
 }
 
@@ -255,19 +254,6 @@ func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*
 		return nil, fmt.Errorf("unmarshalling candidate meta: %w", err)
 	}
 	return &result, nil
-}
-
-// storeMetaData stores metadata in the availability store
-func (as *AvailabilityStore) storeMetaData(candidate common.Hash, meta CandidateMeta) error {
-	dataBytes, err := json.Marshal(meta)
-	if err != nil {
-		return fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = as.metaTable.Put(candidate[:], dataBytes)
-	if err != nil {
-		return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
-	}
-	return nil
 }
 
 // loadChunk loads a chunk from the availability store
@@ -534,14 +520,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	return true, nil
 }
 
-// todo(ed) determine if this should be LittleEndian or BigEndian
 func uint32ToBytes(value uint32) []byte {
-	result := make([]byte, 4)
-	binary.LittleEndian.PutUint32(result, value)
-	return result
-}
-
-func uint32ToBytesBigEndian(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.BigEndian.PutUint32(result, value)
 	return result
@@ -649,41 +628,46 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessOverseerSignals() {
-	for {
-		select {
-		case signal := <-av.OverseerToSubSystem:
-			logger.Debugf("received signal %v", signal)
-			switch signal := signal.(type) {
-			case overseer.ActiveLeavesUpdateSignal:
-				// handle active leaves update
-				logger.Debugf("active leaves update: %v", signal)
-			case overseer.BlockFinalizedSignal:
-				// handle finalized signal
-				logger.Debugf("block finalized: %v", signal)
-			}
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
+	logger.Infof("ProcessActiveLeavesUpdateSignal %s", av.currentMessage)
+	activeLeave := av.currentMessage.(parachaintypes.ActiveLeavesUpdateSignal)
+	// TODO: get block header from activated number
+	blockNumber := activeLeave.Activated.Number
 
-		case <-av.ctx.Done():
-			if err := av.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v", err)
-			}
-			av.wg.Done()
-			return
-		}
+	logger.Infof("ProcessBlockFinalizedSignal %s", blockNumber)
+	isKnownFunc := func(hash common.Hash) bool {
+		return false
+	}
+
+	// todo: confirm these params are correct (last param should be finalized block number or block_number -1,
+	// not sure which)
+	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, isKnownFunc, activeLeave.Activated.Hash,
+		types.Header{},
+		parachaintypes.BlockNumber(blockNumber)-1)
+	if err != nil {
+		logger.Errorf("failed to determine new blocks: %w", err)
+	}
+
+	logger.Infof("newBlocks %s", newBlocks)
+}
+
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
+	logger.Infof("ProcessBlockFinalizedSignal %s", av.currentMessage)
+	// TODO: determine batch number and finalized hash
+	batchNum := 0
+	finalizedHash := common.Hash{}
+	// load all of finalized height
+	batch, err := av.loadAllAtFinalizedHeight(batchNum, finalizedHash)
+	if err != nil {
+		logger.Errorf("failed to load all at finalized height: %w", err)
 
 	}
+	logger.Infof("batch %s", batch)
+	// delete unfinalized height
+
+	// update blocks at finalized height
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(
-	update parachaintypes.ActiveLeavesUpdateSignal) error {
-	// TODO: #3630
-	return nil
-}
-func (av *AvailabilityStoreSubsystem) processBlockActivated() {
-
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
-	// TODO: #3630
-}
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {
 	result, err := av.availabilityStore.loadAvailableData(msg.CandidateHash)
 	if err != nil {
@@ -809,4 +793,27 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 func (av *AvailabilityStoreSubsystem) Stop() {
 	av.cancel()
 	av.wg.Wait()
+}
+
+func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(batchNum int,
+	batchFinalizedHash common.Hash) (map[parachaintypes.CandidateHash]bool, error) {
+	result := make(map[parachaintypes.CandidateHash]bool)
+	iter := av.availabilityStore.meta.NewIterator()
+	defer iter.Release()
+
+	for iter.Next() {
+		key := iter.Key()
+		logger.Infof("key %s", key)
+		//if len(key) != 36 {
+		//	return nil, fmt.Errorf("invalid key length %d", len(key))
+		//}
+		//height := binary.BigEndian.Uint64(key[:8])
+		//if height != uint64(finalized) {
+		//	continue
+		//}
+		//hash := parachaintypes.CandidateHash{}
+		//copy(hash.Value[:], key[8:])
+		//result = append(result, hash)
+	}
+	return result, nil
 }

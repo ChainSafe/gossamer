@@ -12,11 +12,11 @@ import (
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var (
@@ -205,7 +205,7 @@ func (o *Overseer) handleBlockEvents() {
 
 			o.broadcast(parachaintypes.BlockFinalizedSignal{
 				Hash:        finalised.Header.Hash(),
-				BlockNumber: uint32(finalised.Header.Number),
+				BlockNumber: parachaintypes.BlockNumber(finalised.Header.Number),
 			})
 
 			// If there are no leaves being deactivated, we don't need to send an update.

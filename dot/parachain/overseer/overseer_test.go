@@ -6,6 +6,7 @@ package overseer
 import (
 	"context"
 	"fmt"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -245,7 +246,9 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	stateService := state.NewService(state.Config{})
 	stateService.UseMemDB()
 
-	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, stateService)
+	inmemoryDB := setupTestDB(t)
+
+	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, inmemoryDB)
 	require.NoError(t, err)
 
 	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
@@ -264,5 +267,9 @@ func TestSignalAvailabilityStore(t *testing.T) {
 
 	err = overseer.Stop()
 	require.NoError(t, err)
+}
 
+func setupTestDB(t *testing.T) database.Database {
+	inmemoryDB := state.NewInMemoryDB(t)
+	return inmemoryDB
 }
