@@ -717,7 +717,7 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 		require.NoError(t, err)
 	}()
 	msgSenderChanResult := <-msg.Sender
-	require.Equal(t, true, msgSenderChanResult)
+	require.Equal(t, nil, msgSenderChanResult)
 }
 
 func TestAvailabilityStore_storeAvailableData(t *testing.T) {
