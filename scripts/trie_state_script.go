@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -67,7 +66,7 @@ func fetchTrieState(ctx context.Context, blockHash common.Hash, destination stri
 	return response
 }
 
-func compareStateRoots(response modules.StateTrieResponse, expectedStateRoot common.Hash, trieVersion int) {
+func compareStateRoots(response modules.StateTrieResponse, expectedStateRoot common.Hash, trieVersion trie.TrieLayout) {
 	entries := make(map[string]string, len(response))
 	for _, encodedEntry := range response {
 		bytesEncodedEntry := common.MustHexToBytes(encodedEntry)
@@ -85,15 +84,7 @@ func compareStateRoots(response modules.StateTrieResponse, expectedStateRoot com
 		panic(fmt.Sprintf("loading trie from map %v", err))
 	}
 
-	trieHash := common.Hash{} //nolint
-	if trieVersion == 0 {
-		trieHash = trie.V0.MustHash(newTrie)
-	} else if trieVersion == 1 {
-		trieHash = trie.V1.MustHash(newTrie)
-	} else {
-		panic("invalid trie version")
-	}
-
+	trieHash := trieVersion.MustHash(newTrie)
 	if expectedStateRoot != trieHash {
 		panic("westendDevStateRoot does not match trieHash")
 	}
@@ -123,14 +114,14 @@ func main() {
 
 	destinationFile := os.Args[2]
 	expectedStateRoot := common.Hash{}
-	var trieVersion int
+	var trieVersion trie.TrieLayout
 	if len(os.Args) == 5 {
 		expectedStateRoot, err = common.HexToHash(os.Args[3])
 		if err != nil {
 			panic("expected state root must be in hex format")
 		}
 
-		trieVersion, err = strconv.Atoi(os.Args[4])
+		trieVersion, err = trie.ParseVersion(os.Args[4])
 		if err != nil {
 			panic("trie version must be an integer")
 		}

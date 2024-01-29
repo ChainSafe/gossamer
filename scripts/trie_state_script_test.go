@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +34,7 @@ func Test_compareStateRoots(t *testing.T) {
 	type args struct {
 		response          modules.StateTrieResponse
 		expectedStateRoot common.Hash
-		trieVersion       int
+		trieVersion       trie.TrieLayout
 	}
 	tests := []struct {
 		name        string
