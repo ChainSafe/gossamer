@@ -120,12 +120,6 @@ func TestHandleBlockEvents(t *testing.T) {
 	importedBlockNotiferChan <- &types.Block{}
 
 	wg.Wait()
-	time.Sleep(1000 * time.Millisecond)
-	activedLeaf := ActivatedLeaf{
-		Hash:   [32]byte{1},
-		Number: 1,
-	}
-	overseer.sendActiveLeavesUpdate(ActiveLeavesUpdate{Activated: activedLeaf}, subSystem1)
 
 	// let subsystems run for a bit
 	time.Sleep(4000 * time.Millisecond)
@@ -150,82 +144,6 @@ func incrementCounters(t *testing.T, msg any, finalizedCounter *atomic.Int32, im
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		importedCounter.Add(1)
 	}
-}
-
-func TestHandleBlockEvents(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	blockState := NewMockBlockState(ctrl)
-
-	finalizedNotifierChan := make(chan *types.FinalisationInfo)
-	importedBlockNotiferChan := make(chan *types.Block)
-
-	blockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
-	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
-	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
-	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
-
-	overseer := NewOverseer(blockState)
-
-	require.NotNil(t, overseer)
-
-	subSystem1 := &TestSubsystem{name: "subSystem1"}
-	subSystem2 := &TestSubsystem{name: "subSystem2"}
-
-	overseerToSubSystem1 := overseer.RegisterSubsystem(subSystem1)
-	overseerToSubSystem2 := overseer.RegisterSubsystem(subSystem2)
-
-	var finalizedCounter atomic.Int32
-	var importedCounter atomic.Int32
-
-	go func() {
-		for {
-			select {
-			case msg := <-overseerToSubSystem1:
-				if msg == nil {
-					continue
-				}
-
-				_, ok := msg.(BlockFinalizedSignal)
-				if ok {
-					finalizedCounter.Add(1)
-				}
-
-				_, ok = msg.(ActiveLeavesUpdateSignal)
-				if ok {
-					importedCounter.Add(1)
-				}
-			case msg := <-overseerToSubSystem2:
-				if msg == nil {
-					continue
-				}
-
-				_, ok := msg.(BlockFinalizedSignal)
-				if ok {
-					finalizedCounter.Add(1)
-				}
-
-				_, ok = msg.(ActiveLeavesUpdateSignal)
-				if ok {
-					importedCounter.Add(1)
-				}
-			}
-
-		}
-	}()
-
-	err := overseer.Start()
-	require.NoError(t, err)
-	finalizedNotifierChan <- &types.FinalisationInfo{}
-	importedBlockNotiferChan <- &types.Block{}
-
-	time.Sleep(1000 * time.Millisecond)
-
-	err = overseer.Stop()
-	require.NoError(t, err)
-
-	require.Equal(t, int32(2), finalizedCounter.Load())
-	require.Equal(t, int32(2), importedCounter.Load())
 }
 
 func TestSignalAvailabilityStore(t *testing.T) {

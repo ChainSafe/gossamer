@@ -294,3 +294,7 @@ func SendMessage(channel chan<- any, message any) error {
 		return ctx.Err()
 	}
 }
+
+func RequestCandidateEvents(hash common.Hash) []parachaintypes.CandidateEvent {
+	return nil
+}
