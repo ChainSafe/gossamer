@@ -4,7 +4,6 @@
 package node
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -53,9 +52,7 @@ func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
 				return fmt.Errorf("hashing storage value: %w", err)
 			}
 
-			prefixedValueKey := bytes.Join([][]byte{n.PartialKey, hashedValue.ToBytes()}, nil)
-			encoder := scale.NewEncoder(buffer)
-			err = encoder.Encode(prefixedValueKey)
+			_, err = buffer.Write(hashedValue.ToBytes())
 			if err != nil {
 				return fmt.Errorf("scale encoding storage value: %w", err)
 			}

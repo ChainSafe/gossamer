@@ -6,7 +6,6 @@ package wazero_runtime
 import (
 	_ "embed"
 	"fmt"
-	"strings"
 
 	"bytes"
 	"encoding/json"
@@ -1378,8 +1377,6 @@ func newTrieFromRPC(t *testing.T, filename string) *trie.Trie {
 	err = json.Unmarshal(data, &encodedTrieEntries)
 	require.NoError(t, err)
 
-	expectedPrefix := "0x3a6368696c645f73746f726167653a64656661756c743a"
-
 	entries := make(map[string]string, len(encodedTrieEntries))
 	for _, encodedEntry := range encodedTrieEntries {
 		bytesEncodedEntry := common.MustHexToBytes(encodedEntry)
@@ -1387,13 +1384,7 @@ func newTrieFromRPC(t *testing.T, filename string) *trie.Trie {
 		err := scale.Unmarshal(bytesEncodedEntry, &entry)
 		require.NoError(t, err)
 
-		key := common.BytesToHex(entry.Key)
-		if strings.HasPrefix(strings.ToLower(key), strings.ToLower(expectedPrefix)) {
-			fmt.Printf("%s\n", key)
-			panic("GOTCHA!")
-		}
-
-		entries[key] = common.BytesToHex(entry.Value)
+		entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
 	}
 
 	tr, err := trie.LoadFromMap(entries)

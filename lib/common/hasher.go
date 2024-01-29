@@ -68,7 +68,7 @@ func Blake2bHash(in []byte) (Hash, error) {
 
 	hash := h.Sum(nil)
 	var buf = [32]byte{}
-	copy(buf[:], hash)
+	copy(buf[:], hash[:])
 	return buf, nil
 }
 

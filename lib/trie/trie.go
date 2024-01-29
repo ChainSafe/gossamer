@@ -210,9 +210,6 @@ func (t *Trie) HashOnlyDeltas(maxInlineValue int) {
 	for _, entries := range updatedDeltas {
 		t.MarkAsV1HashedNode(entries.Key)
 	}
-
-	newTrieHash, _ := t.Hash(maxInlineValue)
-	fmt.Println("NEW TRIE V1 HASH:", newTrieHash.String())
 }
 
 // Hash returns the hashed root of the trie.
