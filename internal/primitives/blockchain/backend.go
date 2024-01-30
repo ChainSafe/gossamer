@@ -25,11 +25,11 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
 	// 	&self,
 	// 	hash: Block::Hash,
 	// ) -> Result<Option<<<Block as BlockT>::Header as HeaderT>::Number>>;
-	Number(hash Hash) (N, error)
+	Number(hash Hash) (*N, error)
 
 	/// Get block hash by number. Returns `None` if the header is not in the chain.
 	// fn hash(&self, number: NumberFor<Block>) -> Result<Option<Block::Hash>>;
-	Hash(number N) (Hash, error)
+	Hash(number N) (*Hash, error)
 
 	/// Convert an arbitrary block ID into a block hash.
 	// fn block_hash_from_id(&self, id: &BlockId<Block>) -> Result<Option<Block::Hash>> {

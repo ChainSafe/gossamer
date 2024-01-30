@@ -118,8 +118,8 @@ type ClientForGrandpa[R any, N runtime.Number, H runtime.Hash] interface {
 	blockchain.HeaderMetaData[H, N]
 	blockchain.HeaderBackend[H, N]
 	api.BlockchainEvents[H, N]
-	papi.ProvideRuntimeAPI
-	api.ExecutorProvider
+	papi.ProvideRuntimeAPI[H, N]
+	api.ExecutorProvider[H, N]
 	consensus.BlockImport[H, N]
 	api.StorageProvider[H, N]
 }

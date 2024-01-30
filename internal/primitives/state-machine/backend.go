@@ -124,20 +124,20 @@ type IterArgs struct {
 }
 
 // / A trait for a raw storage iterator.
-type StorageIterator[H HasherOut] interface {
+type StorageIterator[H HasherOut, T Transaction] interface {
 	// 	/// Fetches the next key from the storage.
 	// 	fn next_key(
 	// 		&mut self,
 	// 		backend: &Self::Backend,
 	// 	) -> Option<core::result::Result<StorageKey, Self::Error>>;
-	NextKey(backend Backend[H]) (StorageKey, error)
+	NextKey(backend Backend[H, T]) (StorageKey, error)
 
 	// 	/// Fetches the next key and value from the storage.
 	// 	fn next_pair(
 	// 		&mut self,
 	// 		backend: &Self::Backend,
 	// 	) -> Option<core::result::Result<(StorageKey, StorageValue), Self::Error>>;
-	NextPair(backend Backend[H]) (struct {
+	NextPair(backend Backend[H, T]) (struct {
 		StorageKey
 		StorageValue
 	}, error)
@@ -159,9 +159,9 @@ type StorageIterator[H HasherOut] interface {
 //		raw_iter: I,
 //		_phantom: PhantomData<H>,
 //	}
-type PairsIter[H HasherOut] struct {
-	backend *Backend[H]
-	rawIter StorageIterator[H]
+type PairsIter[H HasherOut, T Transaction] struct {
+	backend *Backend[H, T]
+	rawIter StorageIterator[H, T]
 }
 
 // / An iterator over storage keys.
@@ -176,16 +176,16 @@ type PairsIter[H HasherOut] struct {
 //		raw_iter: I,
 //		_phantom: PhantomData<H>,
 //	}
-type KeysIter[H HasherOut] struct {
-	backend *Backend[H]
-	rawIter StorageIterator[H]
+type KeysIter[H HasherOut, T Transaction] struct {
+	backend *Backend[H, T]
+	rawIter StorageIterator[H, T]
 }
 
 // / A state backend is used to read state data and can have changes committed
 // / to it.
 // /
 // / The clone operation (if implemented) should be cheap.
-type Backend[H HasherOut] interface {
+type Backend[H HasherOut, T Transaction] interface {
 	/// Get keyed storage or None if there is nothing associated.
 	// fn storage(&self, key: &[u8]) -> Result<Option<StorageValue>, Self::Error>;
 	Storage(key []byte) (*StorageValue, error)
@@ -271,7 +271,7 @@ type Backend[H HasherOut] interface {
 
 	// /// Returns a lifetimeless raw storage iterator.
 	// fn raw_iter(&self, args: IterArgs) -> Result<Self::RawIter, Self::Error>;
-	RawIter(args IterArgs) (StorageIterator[H], error)
+	RawIter(args IterArgs) (StorageIterator[H, T], error)
 
 	// /// Get an iterator over key/value pairs.
 	// fn pairs<'a>(&'a self, args: IterArgs) -> Result<PairsIter<'a, H, Self::RawIter>, Self::Error> {
@@ -281,7 +281,7 @@ type Backend[H HasherOut] interface {
 	// 		_phantom: Default::default(),
 	// 	})
 	// }
-	Pairs(args IterArgs) (PairsIter[H], error)
+	Pairs(args IterArgs) (PairsIter[H, T], error)
 
 	// /// Get an iterator over keys.
 	// fn keys<'a>(&'a self, args: IterArgs) -> Result<KeysIter<'a, H, Self::RawIter>, Self::Error> {
@@ -291,7 +291,7 @@ type Backend[H HasherOut] interface {
 	// 		_phantom: Default::default(),
 	// 	})
 	// }
-	Keys(args IterArgs) (KeysIter[H], error)
+	Keys(args IterArgs) (KeysIter[H, T], error)
 
 	// /// Calculate the storage root, with given delta over what is already stored
 	// /// in the backend, and produce a "transaction" that can be used to commit.
@@ -411,6 +411,6 @@ type ChildStorageCollection []struct {
 // / In memory array of storage values.
 // pub type OffchainChangesCollection = Vec<((Vec<u8>, Vec<u8>), OffchainOverlayedChange)>;
 type OffchainChangesCollection []struct {
-	Bleh [2][]byte
+	KeyValue [2][]byte
 	offchain.OffchainOverlayedChange
 }
