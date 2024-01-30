@@ -1,6 +1,8 @@
 package api
 
 import (
+	"sync"
+
 	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -17,11 +19,11 @@ const (
 	/// Notify only when the node has synced to the tip or there is a re-org.
 	ImportNotificationActionRecentBlock ImportNotificationAction = iota
 	/// Notify for every single block no matter what the sync state is.
-	EveryBlock
+	ImportNotificationActionEveryBlock
 	/// Both block import notifications above should be fired.
-	Both
+	ImportNotificationActionBoth
 	/// No block import notification should be fired.
-	None
+	ImportNotificationActionNone
 )
 
 // / Import operation summary.
@@ -75,10 +77,10 @@ type FinalizeSummary[N runtime.Number, H runtime.Hash] struct {
 }
 
 // / Import operation wrapper.
-type ClientImportOperation[N runtime.Number, H runtime.Hash] struct {
+type ClientImportOperation[N runtime.Number, H runtime.Hash, T statemachine.Transaction] struct {
 	/// DB Operation.
 	// pub op: B::BlockImportOperation,
-	Op BlockImportOperation[N, H]
+	Op BlockImportOperation[N, H, T]
 	/// Summary of imported block.
 	// pub notify_imported: Option<ImportSummary<Block>>,
 	NotifyImported *ImportSummary[N, H]
@@ -102,12 +104,12 @@ const (
 // / Block insertion operation.
 // /
 // / Keeps hold if the inserted block state and data.
-type BlockImportOperation[N runtime.Number, H runtime.Hash] interface {
+type BlockImportOperation[N runtime.Number, H runtime.Hash, T statemachine.Transaction] interface {
 	/// Returns pending state.
 	///
 	/// Returns None for backends with locally-unavailable state data.
 	// 	fn state(&self) -> sp_blockchain::Result<Option<&Self::State>>;
-	State() *statemachine.Backend[H]
+	State() *statemachine.Backend[H, T]
 
 	/// Append block data to the transaction.
 	// 	fn set_block_data(
@@ -168,10 +170,7 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash] interface {
 	// 	fn insert_aux<I>(&mut self, ops: I) -> sp_blockchain::Result<()>
 	// 	where
 	// 		I: IntoIterator<Item = (Vec<u8>, Option<Vec<u8>>)>;
-	InsertAux(ops []struct {
-		Key   []byte
-		Value *[]byte
-	}) error
+	InsertAux(ops AuxDataOperations) error
 
 	/// Mark a block as finalized.
 	// 	fn mark_finalized(
@@ -196,18 +195,18 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash] interface {
 // / Interface for performing operations on the backend.
 //
 //	pub trait LockImportRun<Block: BlockT, B: Backend<Block>> {
-type LockImportRun[R any, N runtime.Number, H runtime.Hash] interface {
+type LockImportRun[N runtime.Number, H runtime.Hash, T statemachine.Transaction] interface {
 	/// Lock the import lock, and run operations inside.
 	// fn lock_import_and_run<R, Err, F>(&self, f: F) -> Result<R, Err>
 	// where
 	// 	F: FnOnce(&mut ClientImportOperation<Block, B>) -> Result<R, Err>,
 	// 	Err: From<sp_blockchain::Error>;
-	LockImportAndRun(func(ClientImportOperation[N, H]) (R, error)) (R, error)
+	LockImportAndRun(func(ClientImportOperation[N, H, T]) error) error
 }
 
 // / Finalize Facilities
 // pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
-type Finalizer[N runtime.Number, H runtime.Hash] interface {
+type Finalizer[N runtime.Number, H runtime.Hash, T statemachine.Transaction] interface {
 	/// Mark all blocks up to given as finalized in operation.
 	///
 	/// If `justification` is provided it is stored with the given finalized
@@ -225,7 +224,7 @@ type Finalizer[N runtime.Number, H runtime.Hash] interface {
 	// 	notify: bool,
 	// ) -> sp_blockchain::Result<()>;
 	ApplyFinality(
-		operation ClientImportOperation[N, H],
+		operation ClientImportOperation[N, H, T],
 		block H,
 		justifcation *runtime.Justification,
 		notify bool) error
@@ -296,9 +295,9 @@ type AuxStore interface {
 //		inner: <State as StateBackend<HashFor<Block>>>::RawIter,
 //		state: State,
 //	}
-type KeysIter[N runtime.Number, H statemachine.HasherOut] struct {
-	inner statemachine.StorageIterator[H]
-	state statemachine.Backend[H]
+type KeysIter[N runtime.Number, H statemachine.HasherOut, T statemachine.Transaction] struct {
+	inner statemachine.StorageIterator[H, T]
+	state statemachine.Backend[H, T]
 }
 
 // / An `Iterator` that iterates keys and values in a given block under a prefix.
@@ -312,14 +311,14 @@ type KeysIter[N runtime.Number, H statemachine.HasherOut] struct {
 //		inner: <State as StateBackend<HashFor<Block>>>::RawIter,
 //		state: State,
 //	}
-type PairsIter[N runtime.Number, H statemachine.HasherOut] struct {
-	inner statemachine.StorageIterator[H]
-	state statemachine.Backend[H]
+type PairsIter[N runtime.Number, H statemachine.HasherOut, T statemachine.Transaction] struct {
+	inner statemachine.StorageIterator[H, T]
+	state statemachine.Backend[H, T]
 }
 
 // / Provides access to storage primitives
 // pub trait StorageProvider<Block: BlockT, B: Backend<Block>> {
-type StorageProvider[H constraints.Ordered, N runtime.Number] interface {
+type StorageProvider[H constraints.Ordered, N runtime.Number, T statemachine.Transaction] interface {
 	/// Given a block's `Hash` and a key, return the value under the key in that block.
 	// fn storage(
 	// 	&self,
@@ -344,7 +343,7 @@ type StorageProvider[H constraints.Ordered, N runtime.Number] interface {
 	// 	prefix: Option<&StorageKey>,
 	// 	start_key: Option<&StorageKey>,
 	// ) -> sp_blockchain::Result<KeysIter<B::State, Block>>;
-	StorageKeys(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[N, H], error)
+	StorageKeys(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[N, H, T], error)
 
 	/// Given a block's `Hash` and a key prefix, returns an iterator over the storage keys and
 	/// values in that block.
@@ -354,7 +353,7 @@ type StorageProvider[H constraints.Ordered, N runtime.Number] interface {
 	// 	prefix: Option<&StorageKey>,
 	// 	start_key: Option<&StorageKey>,
 	// ) -> sp_blockchain::Result<PairsIter<B::State, Block>>;
-	StoragePairs(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (PairsIter[N, H], error)
+	StoragePairs(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (PairsIter[N, H, T], error)
 
 	/// Given a block's `Hash`, a key and a child storage key, return the value under the key in
 	/// that block.
@@ -375,7 +374,7 @@ type StorageProvider[H constraints.Ordered, N runtime.Number] interface {
 	// 	prefix: Option<&StorageKey>,
 	// 	start_key: Option<&StorageKey>,
 	// ) -> sp_blockchain::Result<KeysIter<B::State, Block>>;
-	ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[N, H], error)
+	ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[N, H, T], error)
 
 	// /// Given a block's `Hash`, a key and a child storage key, return the hash under the key in that
 	// /// block.
@@ -411,7 +410,7 @@ type StorageProvider[H constraints.Ordered, N runtime.Number] interface {
 // /
 // / The backend should internally reference count the number of pin / unpin calls.
 // pub trait Backend<Block: BlockT>: AuxStore + Send + Sync {
-type Backend[H runtime.Hash, N runtime.Number] interface {
+type Backend[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
 	AuxStore
 	// /// Associated block insertion operation type.
 	// type BlockImportOperation: BlockImportOperation<Block, State = Self::State>;
@@ -431,6 +430,7 @@ type Backend[H runtime.Hash, N runtime.Number] interface {
 	// ///
 	// /// When constructing the genesis, this is called with all-zero hash.
 	// fn begin_operation(&self) -> sp_blockchain::Result<Self::BlockImportOperation>;
+	BeginOperation() (BlockImportOperation[N, H, T], error)
 
 	// /// Note an operation to contain state transition.
 	// fn begin_state_operation(
@@ -444,7 +444,7 @@ type Backend[H runtime.Hash, N runtime.Number] interface {
 	// 	&self,
 	// 	transaction: Self::BlockImportOperation,
 	// ) -> sp_blockchain::Result<()>;
-	CommitOperation(transaction BlockImportOperation[N, H]) error
+	CommitOperation(transaction BlockImportOperation[N, H, T]) error
 
 	// /// Finalize block with given `hash`.
 	// ///
@@ -486,9 +486,11 @@ type Backend[H runtime.Hash, N runtime.Number] interface {
 	// fn have_state_at(&self, hash: Block::Hash, _number: NumberFor<Block>) -> bool {
 	// 	self.state_at(hash).is_ok()
 	// }
+	HaveStateAt(hash H, number N) bool
 
 	// /// Returns state backend with post-state of given block.
 	// fn state_at(&self, hash: Block::Hash) -> sp_blockchain::Result<Self::State>;
+	StateAt(hash H) (statemachine.Backend[H, T], error)
 
 	// /// Attempts to revert the chain by `n` blocks. If `revert_finalized` is set it will attempt to
 	// /// revert past any finalized block, this is unsafe and can potentially leave the node in an
@@ -532,6 +534,7 @@ type Backend[H runtime.Hash, N runtime.Number] interface {
 	// /// something that the import of a block would interfere with, e.g. importing
 	// /// a new block or calculating the best head.
 	// fn get_import_lock(&self) -> &RwLock<()>;
+	GetImportLock() *sync.RWMutex
 
 	// /// Tells whether the backend requires full-sync mode.
 	// fn requires_full_sync(&self) -> bool;

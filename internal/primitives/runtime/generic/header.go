@@ -1,12 +1,13 @@
 package generic
 
 import (
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // / Abstraction over a block header for a substrate chain.
-type Header[N runtime.Number, H runtime.Hash] struct {
+type Header[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	/// The parent hash.
 	// pub parent_hash: Hash::Output,
 	parentHash H
@@ -26,61 +27,58 @@ type Header[N runtime.Number, H runtime.Hash] struct {
 	extrinsicsRoot H
 	/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
 	digest runtime.Digest
-
-	// store associated Hashing
-	hasher runtime.Hasher[H]
 }
 
-func (h Header[N, H]) Number() N {
+func (h Header[N, H, Hasher]) Number() N {
 	return h.number
 }
 
 // / Sets the header number.
-func (h *Header[N, H]) SetNumber(number N) {
+func (h *Header[N, H, Hasher]) SetNumber(number N) {
 	h.number = number
 }
 
 // / Returns a reference to the extrinsics root.
-func (h Header[N, H]) ExtrinsicsRoot() H {
+func (h Header[N, H, Hasher]) ExtrinsicsRoot() H {
 	return h.extrinsicsRoot
 }
 
 // / Sets the extrinsic root.
-func (h *Header[N, H]) SetExtrinsicsRoot(root H) {
+func (h *Header[N, H, Hasher]) SetExtrinsicsRoot(root H) {
 	h.extrinsicsRoot = root
 }
 
 // / Returns a reference to the state root.
-func (h Header[N, H]) StateRoot() H {
+func (h Header[N, H, Hasher]) StateRoot() H {
 	return h.stateRoot
 }
 
 // / Sets the state root.
-func (h *Header[N, H]) SetStateRoot(root H) {
+func (h *Header[N, H, Hasher]) SetStateRoot(root H) {
 	h.stateRoot = root
 }
 
 // / Returns a reference to the parent hash.
-func (h Header[N, H]) ParentHash() H {
+func (h Header[N, H, Hasher]) ParentHash() H {
 	return h.parentHash
 }
 
 // / Sets the parent hash.
-func (h *Header[N, H]) SetParentHash(hash H) {
+func (h *Header[N, H, Hasher]) SetParentHash(hash H) {
 	h.parentHash = hash
 }
 
 // / Returns a reference to the digest.
-func (h Header[N, H]) Digest() runtime.Digest {
+func (h Header[N, H, Hasher]) Digest() runtime.Digest {
 	return h.digest
 }
 
 // / Get a mutable reference to the digest.
-func (h Header[N, H]) DigestMut() *runtime.Digest {
+func (h Header[N, H, Hasher]) DigestMut() *runtime.Digest {
 	return &h.digest
 }
 
-func (h Header[N, H]) MarshalSCALE() ([]byte, error) {
+func (h Header[N, H, Hasher]) MarshalSCALE() ([]byte, error) {
 	type helper struct {
 		ParentHash H
 		// uses compact encoding so we need to cast to uint
@@ -95,28 +93,25 @@ func (h Header[N, H]) MarshalSCALE() ([]byte, error) {
 }
 
 // / Returns the hash of the header.
-func (h Header[N, H]) Hash() H {
-	return h.hasher.HashOf(h)
+func (h Header[N, H, Hasher]) Hash() H {
+	hasher := *new(Hasher)
+	return hasher.HashOf(h)
 }
 
-func (h Header[N, H]) Hasher() runtime.Hasher[H] {
-	return h.hasher
-}
-
-func NewHeader[N runtime.Number, H runtime.Hash](
+func NewHeader[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]](
 	number N,
 	extrinsicsRoot H,
 	stateRoot H,
 	parentHash H,
 	digest runtime.Digest,
-	hasher runtime.Hasher[H],
-) Header[N, H] {
-	return Header[N, H]{
+) Header[N, H, Hasher] {
+	return Header[N, H, Hasher]{
 		number:         number,
 		extrinsicsRoot: extrinsicsRoot,
 		stateRoot:      stateRoot,
 		parentHash:     parentHash,
 		digest:         digest,
-		hasher:         hasher,
 	}
 }
+
+var _ runtime.Header[uint64, hash.H256] = &Header[uint64, hash.H256, runtime.BlakeTwo256]{}

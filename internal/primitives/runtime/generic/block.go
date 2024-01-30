@@ -39,35 +39,36 @@ type BlockIDNumber[N any] struct {
 //		/// The accompanying extrinsics.
 //		pub extrinsics: Vec<Extrinsic>,
 //	}
-type Block[N runtime.Number, H runtime.Hash] struct {
+type Block[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	/// The block header.
 	header runtime.Header[N, H]
 	/// The accompanying extrinsics.
 	extrinsics []runtime.Extrinsic
 }
 
-func (b Block[N, H]) Header() runtime.Header[N, H] {
+func (b Block[N, H, Hasher]) Header() runtime.Header[N, H] {
 	return b.header
 }
 
-func (b Block[N, H]) Extrinsics() []runtime.Extrinsic {
+func (b Block[N, H, Hasher]) Extrinsics() []runtime.Extrinsic {
 	return b.extrinsics
 }
 
-func (b Block[N, H]) Deconstruct() (header runtime.Header[N, H], extrinsics []runtime.Extrinsic) {
+func (b Block[N, H, Hasher]) Deconstruct() (header runtime.Header[N, H], extrinsics []runtime.Extrinsic) {
 	panic("unimplemented")
 	return nil, nil
 }
 
-func (b Block[N, H]) Hash() H {
-	hasher := b.header.Hasher()
+func (b Block[N, H, Hasher]) Hash() H {
+	hasher := *new(Hasher)
 	return hasher.HashOf(b.header)
 }
 
-var _ runtime.Block[uint, hash.H256] = Block[uint, hash.H256]{}
+var _ runtime.Block[uint, hash.H256] = Block[uint, hash.H256, runtime.BlakeTwo256]{}
 
-func NewBlock[N runtime.Number, H runtime.Hash](header runtime.Header[N, H], extrinsics []runtime.Extrinsic) Block[N, H] {
-	return Block[N, H]{
+func NewBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]](
+	header runtime.Header[N, H], extrinsics []runtime.Extrinsic) Block[N, H, Hasher] {
+	return Block[N, H, Hasher]{
 		header:     header,
 		extrinsics: extrinsics,
 	}

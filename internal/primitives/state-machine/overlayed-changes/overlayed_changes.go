@@ -2,6 +2,7 @@ package overlayedchanges
 
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
 // / Storage key.
@@ -34,6 +35,26 @@ type OffchainChangesCollection []struct {
 		Key    []byte
 	}
 	ValueOperation offchain.OffchainOverlayedChange
+}
+
+// / The set of changes that are overlaid onto the backend.
+// /
+// / It allows changes to be modified using nestable transactions.
+// #[derive(Debug, Default, Clone)]
+// pub struct OverlayedChanges {
+type OverlayedChanges struct {
+	// /// Top level storage changes.
+	// top: OverlayedChangeSet,
+	// /// Child storage changes. The map key is the child storage key without the common prefix.
+	// children: Map<StorageKey, (OverlayedChangeSet, ChildInfo)>,
+	// /// Offchain related changes.
+	// offchain: OffchainOverlayedChanges,
+	// /// Transaction index changes,
+	// transaction_index_ops: Vec<IndexOperation>,
+	// /// True if extrinsics stats must be collected.
+	// collect_extrinsics: bool,
+	// /// Collect statistic on this execution.
+	// stats: StateMachineStats,
 }
 
 // / Transaction index operation.
@@ -91,4 +112,17 @@ type StorageChanges[Transaction, H any] struct {
 	/// Changes to the transaction index,
 	// pub transaction_index_changes: Vec<IndexOperation>,
 	TransactionIndexChanges []IndexOperation
+}
+
+// / Storage transactions are calculated as part of the `storage_root`.
+// / These transactions can be reused for importing the block into the
+// / storage. So, we cache them to not require a recomputation of those transactions.
+// pub struct StorageTransactionCache<Transaction, H: Hasher> {
+type StorageTransactionCache[Transaction any, H runtime.Hash] struct {
+	// /// Contains the changes for the main and the child storages as one transaction.
+	// pub(crate) transaction: Option<Transaction>,
+	Transaction *Transaction
+	// /// The storage root after applying the transaction.
+	// pub(crate) transaction_storage_root: Option<H::Out>,
+	TransactionStorageRoot H
 }

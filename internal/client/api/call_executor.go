@@ -3,17 +3,20 @@ package api
 import (
 	executionextensions "github.com/ChainSafe/gossamer/internal/client/api/execution-extensions"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
+	"github.com/ChainSafe/gossamer/internal/primitives/api"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 )
 
 // / Executor Provider
 // pub trait ExecutorProvider<Block: BlockT> {
-type ExecutorProvider interface {
+type ExecutorProvider[H runtime.Hash, N runtime.Number] interface {
 	// 	/// executor instance
 	// 	type Executor: CallExecutor<Block>;
 
 	// 	/// Get call executor reference.
 	// 	fn executor(&self) -> &Self::Executor;
-	Executor() CallExecutor
+	Executor() CallExecutor[H, N]
 
 	// /// Get a reference to the execution extensions.
 	// fn execution_extensions(&self) -> &ExecutionExtensions<Block>;
@@ -22,7 +25,7 @@ type ExecutorProvider interface {
 
 // /// Method call executor.
 // pub trait CallExecutor<B: BlockT>: RuntimeVersionOf {
-type CallExecutor interface {
+type CallExecutor[H runtime.Hash, N runtime.Number] interface {
 	executor.RuntimeVersionOf
 	// 	/// Externalities error type.
 	// 	type Error: sp_state_machine::Error;
@@ -64,6 +67,15 @@ type CallExecutor interface {
 	// 		proof_recorder: &Option<ProofRecorder<B>>,
 	// 		context: ExecutionContext,
 	// 	) -> sp_blockchain::Result<Vec<u8>>;
+	ContextualCall(
+		atHash H,
+		method string,
+		callData []byte,
+		changes overlayedchanges.OverlayedChanges,
+		storageTransactionCache *api.StorageTransactionCache[H],
+		proofRecorder *api.ProofRecorder[H],
+		// context ExecutionContext,
+	) ([]byte, error)
 
 	// 	/// Extract RuntimeVersion of given block
 	// 	///

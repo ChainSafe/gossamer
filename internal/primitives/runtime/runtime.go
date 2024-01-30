@@ -135,9 +135,6 @@ type Header[N Number, H Hash] interface {
 
 	/// Returns the hash of the header.
 	Hash() H
-
-	// Returns Hasher instance
-	Hasher() Hasher[H]
 }
 
 // / Something which fulfills the abstract idea of a Substrate block. It has types for

@@ -1,8 +1,69 @@
 package api
 
+import (
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
+	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
+)
+
+// / A type that records all accessed trie nodes and generates a proof out of it.
+// #[cfg(feature = "std")]
+// pub type ProofRecorder<B> = sp_trie::recorder::Recorder<HashFor<B>>;
+type ProofRecorder[H runtime.Hash] recorder.Recorder[H]
+
+// / A type that is used as cache for the storage transactions.
+// #[cfg(feature = "std")]
+// pub type StorageTransactionCache<Block, Backend> = sp_state_machine::StorageTransactionCache<
+//
+//	<Backend as StateBackend<HashFor<Block>>>::Transaction,
+//	HashFor<Block>,
+//
+// >;
+type StorageTransactionCache[H runtime.Hash] overlayedchanges.StorageTransactionCache[statemachine.Transaction, H]
+
+// pub type StorageChanges<SBackend, Block> = sp_state_machine::StorageChanges<
+//
+//	<SBackend as StateBackend<HashFor<Block>>>::Transaction,
+//	HashFor<Block>,
+//
+// >;
+type StorageChanges[T statemachine.Transaction, H runtime.Hash] overlayedchanges.StorageChanges[T, H]
+
+// / Something that can be constructed to a runtime api.
+// #[cfg(feature = "std")]
+// pub trait ConstructRuntimeApi<Block: BlockT, C: CallApiAt<Block>> {
+type ConstructRuntimeAPI[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+	// 	/// The actual runtime api that will be constructed.
+	// 	type RuntimeApi: ApiExt<Block>;
+
+	// /// Construct an instance of the runtime api.
+	// fn construct_runtime_api(call: &C) -> ApiRef<Self::RuntimeApi>;
+	ConstructRuntimeAPI(call CallAPIAt[H, N]) APIExt[H, N, T]
+}
+
+// / The `Core` runtime api that every Substrate runtime needs to implement.
+// #[core_trait]
+// #[api_version(4)]
+// pub trait Core {
+type Core[H runtime.Hash, N runtime.Number] interface {
+	// NOTE: add `at` param to all methods so we can fetch the correct runtime
+	// /// Returns the version of the runtime.
+	// fn version() -> RuntimeVersion;
+	// /// Execute the given block.
+	// fn execute_block(block: Block);
+	ExecuteBlock(at H, block runtime.Block[N, H]) error
+
+	// /// Initialize a block with the given header.
+	// #[renamed("initialise_block", 2)]
+	// fn initialize_block(header: &<Block as BlockT>::Header);
+	InitializeBlock(at H, header runtime.Header[N, H]) error
+}
+
 // / Extends the runtime api implementation with some common functionality.
 // pub trait ApiExt<Block: BlockT> {
-type APIExt interface {
+type APIExt[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+	Core[H, N]
 	// 	/// The state backend that is used to store the block states.
 	// 	type StateBackend: StateBackend<HashFor<Block>>;
 
@@ -36,9 +97,11 @@ type APIExt interface {
 	// 	) -> Result<Option<u32>, ApiError>
 	// 	where
 	// 		Self: Sized;
+	APIVersion(at H) (*uint32, error)
 
 	// 	/// Start recording all accessed trie nodes for generating proofs.
 	// 	fn record_proof(&mut self);
+	RecordProof()
 
 	// 	/// Extract the recorded proof.
 	// 	///
@@ -64,11 +127,60 @@ type APIExt interface {
 	// where
 	//
 	//	Self: Sized;
+	IntoStorageChanges(backend statemachine.Backend[H, T], parentHash H) (StorageChanges[T, H], error)
+}
+
+// /// Parameters for [`CallApiAt::call_api_at`].
+// #[cfg(feature = "std")]
+// pub struct CallApiAtParams<'a, Block: BlockT, Backend: StateBackend<HashFor<Block>>> {
+type CallAPIAtParams[H runtime.Hash, N runtime.Number] struct {
+	// /// The block id that determines the state that should be setup when calling the function.
+	// pub at: Block::Hash,
+	At H
+	// /// The name of the function that should be called.
+	// pub function: &'static str,
+	Function string
+	// /// The encoded arguments of the function.
+	// pub arguments: Vec<u8>,
+	Arguments []byte
+	// /// The overlayed changes that are on top of the state.
+	// pub overlayed_changes: &'a RefCell<OverlayedChanges>,
+	OverlayedChanges overlayedchanges.OverlayedChanges
+	// /// The cache for storage transactions.
+	// pub storage_transaction_cache: &'a RefCell<StorageTransactionCache<Block, Backend>>,
+	StorageTransactionCache StorageTransactionCache[H]
+	// /// The context this function is executed in.
+	// pub context: ExecutionContext,
+	// /// The optional proof recorder for recording storage accesses.
+	// pub recorder: &'a Option<ProofRecorder<Block>>,
+	Recorder *ProofRecorder[H]
+}
+
+// /// Something that can call into the an api at a given block.
+// #[cfg(feature = "std")]
+// pub trait CallApiAt<Block: BlockT> {
+type CallAPIAt[H runtime.Hash, N runtime.Number] interface {
+	// 	/// The state backend that is used to store the block states.
+	// 	type StateBackend: StateBackend<HashFor<Block>> + AsTrieBackend<HashFor<Block>>;
+
+	// 	/// Calls the given api function with the given encoded arguments at the given block and returns
+	// 	/// the encoded result.
+	// 	fn call_api_at(
+	// 		&self,
+	// 		params: CallApiAtParams<Block, Self::StateBackend>,
+	// 	) -> Result<Vec<u8>, ApiError>;
+	CallAPIAt(params CallAPIAtParams[H, N]) ([]byte, error)
+
+	// 	/// Returns the runtime version at the given block.
+	// 	fn runtime_version_at(&self, at_hash: Block::Hash) -> Result<RuntimeVersion, ApiError>;
+
+	// /// Get the state `at` the given block.
+	// fn state_at(&self, at: Block::Hash) -> Result<Self::StateBackend, ApiError>;
 }
 
 // /// Something that provides a runtime api.
 // pub trait ProvideRuntimeApi<Block: BlockT> {
-type ProvideRuntimeAPI interface {
+type ProvideRuntimeAPI[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
 	// 	/// The concrete type that provides the api.
 	// 	type Api: ApiExt<Block>;
 
@@ -78,5 +190,5 @@ type ProvideRuntimeAPI interface {
 	// /// the modifications will be `discarded`. The modifications will not be applied to the
 	// /// storage, even on a `commit`.
 	// fn runtime_api(&self) -> ApiRef<Self::Api>;
-	RuntimeAPI() APIExt
+	RuntimeAPI() APIExt[H, N, T]
 }
