@@ -6,6 +6,7 @@ package collatorprotocol
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
@@ -195,26 +196,24 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	candidateRelayParent common.Hash,
 	candidateHash parachaintypes.CandidateHash,
 	parentHeadDataHash common.Hash,
-) bool {
+) (bool, error) {
+
 	canSecondRequest := backing.CanSecondMessage{
 		CandidateParaID:      candidateParaID,
 		CandidateRelayParent: candidateRelayParent,
 		CandidateHash:        candidateHash,
 		ParentHeadDataHash:   parentHeadDataHash,
+		ResponseCh:           make(chan bool),
 	}
 
-	responseChan := make(chan bool)
+	cpvs.SubSystemToOverseer <- canSecondRequest
 
-	cpvs.SubSystemToOverseer <- struct {
-		responseChan     chan bool
-		canSecondRequest backing.CanSecondMessage
-	}{
-		responseChan:     responseChan,
-		canSecondRequest: canSecondRequest,
+	select {
+	case canSecondResponse := <-canSecondRequest.ResponseCh:
+		return canSecondResponse, nil
+	case <-time.After(parachaintypes.SubsystemRequestTimeout):
+		return false, parachaintypes.ErrSubsystemRequestTimeout
 	}
-
-	// TODO: Add timeout
-	return <-responseChan
 }
 
 // Enqueue collation for fetching. The advertisement is expected to be
@@ -365,12 +364,20 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	/*NOTE:---------------------------------------Matters only in V2----------------------------------------------*/
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.IsEnabled || cpvs.canSecond(
-		collatorParaID,
-		relayParent,
-		prospectiveCandidate.CandidateHash,
-		prospectiveCandidate.ParentHeadDataHash,
-	)
+	var isSecondingAllowed bool
+	if !perRelayParent.prospectiveParachainMode.IsEnabled {
+		isSecondingAllowed = true
+	} else {
+		isSecondingAllowed, err = cpvs.canSecond(
+			collatorParaID,
+			relayParent,
+			prospectiveCandidate.CandidateHash,
+			prospectiveCandidate.ParentHeadDataHash,
+		)
+		if err != nil {
+			return fmt.Errorf("checking if seconding is allowed: %w", err)
+		}
+	}
 
 	if !isSecondingAllowed {
 		logger.Infof("Seconding is not allowed by backing, queueing advertisement,"+

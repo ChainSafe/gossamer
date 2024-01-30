@@ -583,8 +583,11 @@ func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed coll
 		newBlockedAdvertisements := []BlockedAdvertisement{}
 
 		for _, blockedAdvertisement := range blockedAdvertisements {
-			isSecondingAllowed := cpvs.canSecond(
+			isSecondingAllowed, err := cpvs.canSecond(
 				backed.ParaID, blockedAdvertisement.candidateRelayParent, blockedAdvertisement.candidateHash, backed.ParaHead)
+			if err != nil {
+				return fmt.Errorf("checking if seconding is allowed: %w", err)
+			}
 			fmt.Println("586")
 
 			if !isSecondingAllowed {
@@ -599,7 +602,7 @@ func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed coll
 			}
 			fmt.Println("597")
 
-			err := cpvs.enqueueCollation(
+			err = cpvs.enqueueCollation(
 				perRelayParent.collations,
 				blockedAdvertisement.candidateRelayParent,
 				backed.ParaID,

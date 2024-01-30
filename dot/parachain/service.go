@@ -35,6 +35,10 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, st *state.Service) (*Service, error) {
 	overseer := overseer.NewOverseer(st.Block)
+	err := overseer.Start()
+	if err != nil {
+		return nil, fmt.Errorf("starting overseer: %w", err)
+	}
 	genesisHash := st.Block.GenesisHash()
 
 	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st)

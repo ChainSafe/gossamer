@@ -3,6 +3,11 @@
 
 package parachaintypes
 
+import (
+	"errors"
+	"time"
+)
+
 type SubSystemName string
 
 const (
@@ -10,3 +15,6 @@ const (
 	CollationProtocol SubSystemName = "CollationProtocol"
 	AvailabilityStore SubSystemName = "AvailabilityStore"
 )
+
+var SubsystemRequestTimeout = 400 * time.Millisecond
+var ErrSubsystemRequestTimeout = errors.New("subsystem request timed out")
