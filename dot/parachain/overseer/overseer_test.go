@@ -14,6 +14,11 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	wazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -228,6 +233,7 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
 	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
 	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
+	blockState.EXPECT().GetRuntime(gomock.Any()).Return(wazero.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0942), nil)
 
 	overseer := NewOverseer(blockState)
 
