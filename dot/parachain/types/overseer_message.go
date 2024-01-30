@@ -52,6 +52,14 @@ func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
 // full candidates before the `Backed` notification, even in groups of size 1.
 type StatementDistributionMessageBacked CandidateHash
 
+// StatementDistributionMessageShare is a statement distribution message.
+// We have originated a signed statement in the context of
+// given relay-parent hash and it should be distributed to other validators.
+type StatementDistributionMessageShare struct {
+	RelayParent                common.Hash
+	SignedFullStatementWithPVD SignedFullStatementWithPVD
+}
+
 // ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
 // a previously introduced candidate has been successfully backed.

@@ -60,6 +60,8 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 			return nil
 		}
 	}
+
+	msg.ResponseCh <- false
 	return fmt.Errorf("%w; candidate hash: %s", errCandidateNotRecognised, msg.CandidateHash.Value)
 }
 
@@ -151,15 +153,11 @@ func (cb *CandidateBacking) secondingSanityCheck(
 		}
 	}
 
-	if len(membership) == 0 {
-		return nil, fmt.Errorf("%w: %s", errNoActiveLeaves, candidateRelayParent.String())
-	}
-
 	// At this point we've checked the depths of the candidate against all active leaves.
 	return membership, nil
 }
 
-func checkDepthsAgainstLeaftState(depths []uint, leafState activeLeafState, paraID parachaintypes.ParaID,
+func checkDepthsAgainstLeaftState(depths []uint, leafState *activeLeafState, paraID parachaintypes.ParaID,
 ) (bool, *uint) {
 	for _, depth := range depths {
 		if isSeconded := isSecondedAtDepth(depth, leafState, paraID); isSeconded {
@@ -169,7 +167,7 @@ func checkDepthsAgainstLeaftState(depths []uint, leafState activeLeafState, para
 	return false, nil
 }
 
-func isSecondedAtDepth(depth uint, leafState activeLeafState, candidateParaID parachaintypes.ParaID) bool {
+func isSecondedAtDepth(depth uint, leafState *activeLeafState, candidateParaID parachaintypes.ParaID) bool {
 	if bTreeMap, ok := leafState.secondedAtDepth[candidateParaID]; ok {
 		if _, ok := bTreeMap.Get(depth); ok {
 			return true

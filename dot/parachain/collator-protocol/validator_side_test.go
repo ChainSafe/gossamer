@@ -169,7 +169,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description: "SecondedOverseerMsg message fails with peer not found for collator and removes fetchedCandidate",
 			msg: collatorprotocolmessages.Seconded{
 				Parent: testRelayParent,
-				Stmt: func() parachaintypes.UncheckedSignedFullStatement {
+				Stmt: func() parachaintypes.SignedFullStatement {
 					vdt := parachaintypes.NewStatementVDT()
 					vdt.Set(parachaintypes.Seconded(
 						parachaintypes.CommittedCandidateReceipt{
@@ -177,7 +177,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 							Commitments: commitments,
 						},
 					))
-					return parachaintypes.UncheckedSignedFullStatement{
+					return parachaintypes.SignedFullStatement{
 						Payload: vdt,
 					}
 				}(),
@@ -201,7 +201,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description: "SecondedOverseerMsg message succceds, reports a good collator and removes fetchedCandidate",
 			msg: collatorprotocolmessages.Seconded{
 				Parent: testRelayParent,
-				Stmt: func() parachaintypes.UncheckedSignedFullStatement {
+				Stmt: func() parachaintypes.SignedFullStatement {
 					vdt := parachaintypes.NewStatementVDT()
 					vdt.Set(parachaintypes.Seconded(
 						parachaintypes.CommittedCandidateReceipt{
@@ -209,7 +209,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 							Commitments: commitments,
 						},
 					))
-					return parachaintypes.UncheckedSignedFullStatement{
+					return parachaintypes.SignedFullStatement{
 						Payload: vdt,
 					}
 				}(),

@@ -25,7 +25,7 @@ type NetworkBridgeUpdate struct {
 // successfully.
 type Seconded struct {
 	Parent common.Hash
-	Stmt   parachaintypes.UncheckedSignedFullStatement
+	Stmt   parachaintypes.SignedFullStatement
 }
 
 // Backed message indicates that the candidate received enough validity votes from the backing group.

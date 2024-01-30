@@ -39,7 +39,7 @@ type perRelayParentState struct {
 // importStatement imports a statement into the statement table and returns the summary of the import.
 func (rpState *perRelayParentState) importStatement(
 	subSystemToOverseer chan<- any,
-	signedStatementWithPVD SignedFullStatementWithPVD,
+	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState,
 ) (*Summary, error) {
 	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
@@ -366,17 +366,20 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		switch {
 		case storeAvailableDataError == nil:
 			bgValidationResult = backgroundValidationResult{
-				candidateReceipt:        &candidateReceipt,
-				candidateCommitments:    &validationResultRes.Data.CandidateCommitments,
-				persistedValidationData: &validationResultRes.Data.PersistedValidationData,
-				err:                     nil,
+				outputs: &backgroundValidationOutputs{
+					candidateReceipt:        candidateReceipt,
+					candidateCommitments:    validationResultRes.Data.CandidateCommitments,
+					persistedValidationData: validationResultRes.Data.PersistedValidationData,
+				},
+				candidate: nil,
+				err:       nil,
 			}
 		case errors.Is(storeAvailableDataError, errInvalidErasureRoot):
 			logger.Debug(errInvalidErasureRoot.Error())
-
 			bgValidationResult = backgroundValidationResult{
-				candidateReceipt: &candidateReceipt,
-				err:              errInvalidErasureRoot,
+				outputs:   nil,
+				candidate: &candidateReceipt,
+				err:       errInvalidErasureRoot,
 			}
 		default:
 			return fmt.Errorf("storing available data: %w", storeAvailableDataError)
@@ -385,8 +388,9 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	} else { // Invalid
 		logger.Error(validationResultRes.Data.Err.Error())
 		bgValidationResult = backgroundValidationResult{
-			candidateReceipt: &candidateReceipt,
-			err:              validationResultRes.Data.Err,
+			outputs:   nil,
+			candidate: &candidateReceipt,
+			err:       validationResultRes.Data.Err,
 		}
 	}
 
