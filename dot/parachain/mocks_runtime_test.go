@@ -39,6 +39,21 @@ func (m *MockRuntimeInstance) EXPECT() *MockRuntimeInstanceMockRecorder {
 	return m.recorder
 }
 
+// ParachainHostCandidateEvents mocks base method.
+func (m *MockRuntimeInstance) ParachainHostCandidateEvents() (*[]parachaintypes.CandidateEvent, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCandidateEvents")
+	ret0, _ := ret[0].(*[]parachaintypes.CandidateEvent)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCandidateEvents indicates an expected call of ParachainHostCandidateEvents.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCandidateEvents() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidateEvents", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostCandidateEvents))
+}
+
 // ParachainHostCheckValidationOutputs mocks base method.
 func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 uint32, arg1 parachaintypes.CandidateCommitments) (bool, error) {
 	m.ctrl.T.Helper()

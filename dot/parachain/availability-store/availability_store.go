@@ -8,16 +8,18 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
 	"time"
 
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
+	runtimewazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -101,6 +103,17 @@ type KnownUnfinalizedBlock struct {
 func (kud *KnownUnfinalizedBlock) isKnown(hash common.Hash) bool {
 	_, ok := kud.byHash[hash]
 	return ok
+}
+
+func (kud *KnownUnfinalizedBlock) insert(hash common.Hash, number parachaintypes.BlockNumber) {
+	if kud.byHash == nil {
+		kud.byHash = make(map[common.Hash]struct{})
+	}
+	if kud.byNumber == nil {
+		kud.byNumber = make(map[BlockEntry]struct{})
+	}
+	kud.byHash[hash] = struct{}{}
+	kud.byNumber[BlockEntry{number, hash}] = struct{}{}
 }
 
 // availabilityStore is the struct that holds data for the availability store
@@ -528,9 +541,9 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 		logger.Infof("newBlock %v %v", i, v)
 		// process new head
 
-		processNewHead(*tx, v.Hash)
+		av.processNewHead(tx, v.Hash, now, v.Header)
 		// add to known blocks
-		//av.knownBlocks.
+		av.knownBlocks.insert(v.Hash, parachaintypes.BlockNumber(v.Header.Number))
 
 		// end db batch
 		err := tx.flush()
@@ -540,17 +553,46 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 	}
 }
 
-func processNewHead(tx availabilityStoreBatch, hash common.Hash) {
+func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch, hash common.Hash, now BETimestamp,
+	header types.Header) {
 	logger.Infof("processNewHead")
-	// listen for candidateEvents
+	// TODO: call requestValidators to determine number of validators
+	nValidators := uint(0)
 
-	// We need to request the number of validators based on the parent state,
-	// as that is the number of validators used to create this block.
-	//nValidators  := util.request_validators(header.parent_hash, ctx.sender()).await.await??.len();
+	// call to get runtime
+	respChan := make(chan any)
+	message := parachain.RuntimeAPIMessage{Hash: hash, Resp: respChan}
 
+	rtRes, err := util.Call(av.SubSystemToOverseer, message, respChan)
+	if err != nil {
+		logger.Errorf("sending message to get block header: %w", err)
+	}
+	runtime := rtRes.(*runtimewazero.Instance)
+
+	candidateEvents, err := runtime.ParachainHostCandidateEvents()
+	if err != nil {
+		logger.Errorf("failed to get candidate events: %w", err)
+	}
+	logger.Infof("candidateEvents %v", candidateEvents)
+
+	for i, v := range candidateEvents.Types {
+		logger.Infof("candidateEvent %v %v", i, v)
+		event, err := v.Value()
+		if err != nil {
+			logger.Errorf("failed to get candidate event value: %w", err)
+		}
+		switch event := event.(type) {
+		case parachaintypes.CandidateBacked:
+			av.noteBlockBacked(tx, now, nValidators, event.CandidateReceipt)
+
+		case parachaintypes.CandidateIncluded:
+			av.noteBlockIncluded(tx, parachaintypes.BlockNumber(header.Number), header.Hash(),
+				event.CandidateReceipt)
+		}
+	}
 }
 
-func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch, now time.Duration, nValidators uint,
+func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch, now BETimestamp, nValidators uint,
 	candidate parachaintypes.CandidateReceipt) {
 	candidateHash, err := candidate.Hash()
 	if err != nil {
@@ -565,25 +607,33 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 
 	if meta == nil {
 		state := State{}.New()
-		state.Set(Unavailable{})
+		err := state.Set(Unavailable{now})
+		if err != nil {
+			logger.Errorf("failed to set state to unavailable: %w", err)
+		}
 		meta = &CandidateMeta{
 			State:         state,
 			DataAvailable: false,
 			ChunksStored:  make([]bool, nValidators),
 		}
-	}
+		// write meta
+		dataBytes, err := scale.Marshal(meta)
+		if err != nil {
+			logger.Errorf("marshalling meta for candidate: %w", err)
+		}
+		err = tx.meta.Put(candidateHash[:], dataBytes)
+		if err != nil {
+			logger.Errorf("storing metadata for candidate %v: %w", candidate, err)
+		}
 
-	dataBytes, err := scale.Marshal(meta)
-	if err != nil {
-		logger.Errorf("marshalling meta for candidate: %w", err)
+		// write pruning key
+		pruneAt := now + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
+		pruneKey := append(candidateHash[:], uint32ToBytes(uint32(pruneAt))...)
+		err = tx.pruneByTime.Put(pruneKey, nil)
+		if err != nil {
+			logger.Errorf("writing pruning key: %w", err)
+		}
 	}
-	err = tx.meta.Put(candidateHash[:], dataBytes)
-	if err != nil {
-		logger.Errorf("storing metadata for candidate %v: %w", candidate, err)
-	}
-
-	// TODO(ed): look at storeAvailableData to conrifm that this is the correct way to store pruning data
-	tx.pruneByTime.Put(candidateHash[:], nil)
 }
 
 func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBatch,
@@ -623,10 +673,16 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	key = append(key, blockHash[:]...)
 	key = append(key, candidateHash[:]...)
 
-	tx.unfinalized.Put(key, nil)
+	err = tx.unfinalized.Put(key, nil)
+	if err != nil {
+		logger.Errorf("failed to put unfinalized key: %w", err)
+	}
 
 	metaKey := append([]byte(metaPrefix), candidateHash[:]...)
-	tx.meta.Put(metaKey, nil)
+	err = tx.meta.Put(metaKey, nil)
+	if err != nil {
+		logger.Errorf("failed to put meta key: %w", err)
+	}
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
@@ -782,8 +838,8 @@ func finalizedBlockRange(finalized parachaintypes.BlockNumber) (start, end []byt
 	return
 }
 
-func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(batchNum int,
-	batchFinalizedHash common.Hash) (map[parachaintypes.CandidateHash]bool, error) {
+func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(blockNumber int,
+	finalizedHash common.Hash) (map[parachaintypes.CandidateHash]bool, error) {
 	result := make(map[parachaintypes.CandidateHash]bool)
 	iter, err := av.availabilityStore.meta.NewIterator()
 	if err != nil {
@@ -794,16 +850,16 @@ func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(batchNum int,
 	for iter.Next() {
 		key := iter.Key()
 		logger.Infof("key %s", key)
-		//if len(key) != 36 {
-		//	return nil, fmt.Errorf("invalid key length %d", len(key))
-		//}
-		//height := binary.BigEndian.Uint64(key[:8])
-		//if height != uint64(finalized) {
-		//	continue
-		//}
-		//hash := parachaintypes.CandidateHash{}
-		//copy(hash.Value[:], key[8:])
-		//result = append(result, hash)
+		if len(key) != 36 {
+			return nil, fmt.Errorf("invalid key length %d", len(key))
+		}
+		height := binary.BigEndian.Uint64(key[:8])
+		if height != uint64(blockNumber) {
+			break
+		}
+		// TODO:
+		// decode unfianlized key (to get blockHash and CandidateHash
+		// if blockHash == finalizedHash then candidatesInsert true, else insert false
 	}
 	return result, nil
 }

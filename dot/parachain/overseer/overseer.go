@@ -12,11 +12,13 @@ import (
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 var (
@@ -47,6 +49,7 @@ type BlockState interface {
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
+	GetRuntime(hash common.Hash) (runtime.Instance, error)
 }
 
 func NewOverseer(blockState BlockState) *Overseer {
@@ -107,7 +110,7 @@ func (o *Overseer) processMessages() {
 		case msg := <-o.SubsystemsToOverseer:
 			var subsystem Subsystem
 
-			switch msg.(type) {
+			switch msg := msg.(type) {
 			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
@@ -126,6 +129,15 @@ func (o *Overseer) processMessages() {
 
 			case util.ChainAPIMessage[util.Ancestors], util.ChainAPIMessage[util.BlockHeader]:
 				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
+
+			case parachain.RuntimeAPIMessage:
+				rt, err := o.blockState.GetRuntime(msg.Hash)
+				if err != nil {
+					logger.Errorf("failed to get runtime: %v", err)
+					continue
+				}
+				logger.Infof("runtime: %v", rt)
+				msg.Resp <- rt
 
 			default:
 				logger.Error("unknown message type")

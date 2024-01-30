@@ -158,7 +158,7 @@ import (
 
 type HashHeader struct {
 	Hash   common.Hash
-	header types.Header
+	Header types.Header
 }
 type ChainAPIMessage[message any] struct {
 	Message         message
@@ -201,14 +201,14 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 		return nil, fmt.Errorf("failed to deep copy header: %w", err)
 	}
 
-	ancestry = append(ancestry, HashHeader{Hash: head, header: *headerClone})
+	ancestry = append(ancestry, HashHeader{Hash: head, Header: *headerClone})
 
 	// Early exit if the parent hash is in the DB or no further blocks are needed.
 	if isKnown(header.ParentHash) || header.Number == minBlockNeeded {
 		return ancestry, nil
 	}
 
-	lastHeader := ancestry[len(ancestry)-1].header
+	lastHeader := ancestry[len(ancestry)-1].Header
 	// This is always non-zero as determined by the loop invariant above.
 	ancestryStep := min(4, (lastHeader.Number - minBlockNeeded))
 
@@ -293,8 +293,4 @@ func SendMessage(channel chan<- any, message any) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-}
-
-func RequestCandidateEvents(hash common.Hash) []parachaintypes.CandidateEvent {
-	return nil
 }
