@@ -11,13 +11,79 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type BabeDigestValues interface {
+	BabePrimaryPreDigest | BabeSecondaryPlainPreDigest | BabeSecondaryVRFPreDigest
+}
+
+type BabeDigest struct {
+	inner any
+}
+
+func setBabeDigest[Value BabeDigestValues](mvdt *BabeDigest, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *BabeDigest) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case BabePrimaryPreDigest:
+		setBabeDigest(mvdt, value)
+		return
+
+	case BabeSecondaryPlainPreDigest:
+		setBabeDigest(mvdt, value)
+		return
+
+	case BabeSecondaryVRFPreDigest:
+		setBabeDigest(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt BabeDigest) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case BabePrimaryPreDigest:
+		return 1, mvdt.inner, nil
+
+	case BabeSecondaryPlainPreDigest:
+		return 2, mvdt.inner, nil
+
+	case BabeSecondaryVRFPreDigest:
+		return 3, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt BabeDigest) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt BabeDigest) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return *new(BabePrimaryPreDigest), nil
+
+	case 2:
+		return *new(BabeSecondaryPlainPreDigest), nil
+
+	case 3:
+		return *new(BabeSecondaryVRFPreDigest), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
 // NewBabeDigest returns a new VaryingDataType to represent a BabeDigest
-func NewBabeDigest() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(BabePrimaryPreDigest{}, BabeSecondaryPlainPreDigest{}, BabeSecondaryVRFPreDigest{})
+func NewBabeDigest() BabeDigest {
+	return BabeDigest{}
 }
 
 // DecodeBabePreDigest decodes the input into a BabePreRuntimeDigest
-func DecodeBabePreDigest(in []byte) (scale.VaryingDataTypeValue, error) {
+func DecodeBabePreDigest(in []byte) (any, error) {
 	babeDigest := NewBabeDigest()
 	err := scale.Unmarshal(in, &babeDigest)
 	if err != nil {
@@ -61,9 +127,6 @@ func (d BabePrimaryPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	return toPreRuntimeDigest(d)
 }
 
-// Index returns VDT index
-func (BabePrimaryPreDigest) Index() uint { return 1 }
-
 func (d BabePrimaryPreDigest) String() string {
 	return fmt.Sprintf("BabePrimaryPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
 		"VRFOutput=0x%x, VRFProof=0x%x}",
@@ -88,9 +151,6 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 func (d BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, error) {
 	return toPreRuntimeDigest(d)
 }
-
-// Index returns VDT index
-func (BabeSecondaryPlainPreDigest) Index() uint { return 2 }
 
 func (d BabeSecondaryPlainPreDigest) String() string {
 	return fmt.Sprintf("BabeSecondaryPlainPreDigest{AuthorityIndex=%d, SlotNumber: %d}",
@@ -122,9 +182,6 @@ func (d BabeSecondaryVRFPreDigest) ToPreRuntimeDigest() (*PreRuntimeDigest, erro
 	return toPreRuntimeDigest(d)
 }
 
-// Index returns VDT index
-func (BabeSecondaryVRFPreDigest) Index() uint { return 3 }
-
 func (d BabeSecondaryVRFPreDigest) String() string {
 	return fmt.Sprintf("BabeSecondaryVRFPreDigest{AuthorityIndex=%d, SlotNumber=%d, "+
 		"VrfOutput=0x%x, VrfProof=0x%x",
@@ -132,9 +189,9 @@ func (d BabeSecondaryVRFPreDigest) String() string {
 }
 
 // toPreRuntimeDigest returns the VaryingDataTypeValue as a PreRuntimeDigest
-func toPreRuntimeDigest(value scale.VaryingDataTypeValue) (*PreRuntimeDigest, error) {
+func toPreRuntimeDigest(value any) (*PreRuntimeDigest, error) {
 	digest := NewBabeDigest()
-	err := digest.Set(value)
+	err := digest.SetValue(value)
 	if err != nil {
 		return nil, fmt.Errorf("cannot set varying data type value to babe digest: %w", err)
 	}

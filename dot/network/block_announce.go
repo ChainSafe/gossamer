@@ -27,7 +27,7 @@ type BlockAnnounceMessage struct {
 	Number         uint
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         scale.VaryingDataTypeSlice
+	Digest         types.Digest
 	BestBlock      bool
 }
 
