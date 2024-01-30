@@ -2,11 +2,11 @@ package chainapi
 
 import (
 	"context"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 

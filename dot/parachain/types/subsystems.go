@@ -15,6 +15,7 @@ const (
 	CollationProtocol SubSystemName = "CollationProtocol"
 	AvailabilityStore SubSystemName = "AvailabilityStore"
 	ChainAPI          SubSystemName = "ChainAPI"
+	RuntimeAPI        SubSystemName = "RuntimeAPI"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second
