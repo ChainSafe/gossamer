@@ -12,17 +12,17 @@ import (
 
 // Header is a state block header
 type Header struct {
-	ParentHash     common.Hash                `json:"parentHash"`
-	Number         uint                       `json:"number"`
-	StateRoot      common.Hash                `json:"stateRoot"`
-	ExtrinsicsRoot common.Hash                `json:"extrinsicsRoot"`
-	Digest         scale.VaryingDataTypeSlice `json:"digest"`
+	ParentHash     common.Hash `json:"parentHash"`
+	Number         uint        `json:"number"`
+	StateRoot      common.Hash `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
+	Digest         Digest      `json:"digest"`
 	hash           common.Hash
 }
 
 // NewHeader creates a new block header and sets its hash field
 func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash,
-	number uint, digest scale.VaryingDataTypeSlice) (blockHeader *Header) {
+	number uint, digest Digest) (blockHeader *Header) {
 	blockHeader = &Header{
 		ParentHash:     parentHash,
 		Number:         number,
@@ -36,9 +36,7 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash,
 
 // NewEmptyHeader returns a new header with all zero values
 func NewEmptyHeader() *Header {
-	return &Header{
-		Digest: NewDigest(),
-	}
+	return &Header{}
 }
 
 // Exists returns a boolean indicating if the header exists
@@ -52,7 +50,7 @@ func (bh *Header) Empty() bool {
 	if !bh.StateRoot.IsEmpty() || !bh.ExtrinsicsRoot.IsEmpty() || !bh.ParentHash.IsEmpty() {
 		return false
 	}
-	return bh.Number == 0 && len(bh.Digest.Types) == 0
+	return bh.Number == 0 && len(bh.Digest) == 0
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
@@ -64,18 +62,9 @@ func (bh *Header) DeepCopy() (*Header, error) {
 
 	cp.Number = bh.Number
 
-	if len(bh.Digest.Types) > 0 {
+	if len(bh.Digest) > 0 {
 		cp.Digest = NewDigest()
-		for _, d := range bh.Digest.Types {
-			digestValue, err := d.Value()
-			if err != nil {
-				return nil, fmt.Errorf("getting digest type value: %w", err)
-			}
-			err = cp.Digest.Add(digestValue)
-			if err != nil {
-				return nil, err
-			}
-		}
+		cp.Digest = append(cp.Digest, bh.Digest...)
 	}
 
 	return cp, nil

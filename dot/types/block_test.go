@@ -56,7 +56,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
+	header := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, nil)
 
 	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
 

@@ -31,7 +31,7 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 	}
 
 	var d = NewBabeConsensusDigest()
-	err = d.Set(NextEpochData{
+	err = d.SetValue(NextEpochData{
 		Authorities: []AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})

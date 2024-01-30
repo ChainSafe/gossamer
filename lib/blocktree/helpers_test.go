@@ -27,9 +27,9 @@ type testBranch struct {
 	arrivalTime int64
 }
 
-func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
+func createPrimaryBABEDigest(t testing.TB) types.Digest {
 	babeDigest := types.NewBabeDigest()
-	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	err := babeDigest.SetValue(types.BabePrimaryPreDigest{AuthorityIndex: 0})
 	require.NoError(t, err)
 
 	bdEnc, err := scale.Marshal(babeDigest)

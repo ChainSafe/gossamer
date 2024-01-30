@@ -125,6 +125,15 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		return
 	}
 
+	if dstv.CanAddr() {
+		addr := dstv.Addr()
+		vdt, ok := addr.Interface().(VaryingDataType)
+		if ok {
+			err = ds.decodeVaryingDataType(vdt)
+			return
+		}
+	}
+
 	in := dstv.Interface()
 	switch in.(type) {
 	case *big.Int:
@@ -143,10 +152,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeBool(dstv)
 	case Result:
 		err = ds.decodeResult(dstv)
-	case VaryingDataType:
-		err = ds.decodeVaryingDataType(dstv)
-	case VaryingDataTypeSlice:
-		err = ds.decodeVaryingDataTypeSlice(dstv)
 	default:
 		t := reflect.TypeOf(in)
 		switch t.Kind() {
@@ -157,12 +162,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Ptr:
 			err = ds.decodePointer(dstv)
 		case reflect.Struct:
-			ok := reflect.ValueOf(in).CanConvert(reflect.TypeOf(VaryingDataType{}))
-			if ok {
-				err = ds.decodeCustomVaryingDataType(dstv)
-			} else {
-				err = ds.decodeStruct(dstv)
-			}
+			err = ds.decodeStruct(dstv)
 		case reflect.Array:
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
@@ -339,66 +339,16 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	return
 }
 
-func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error) {
-	vdts := dstv.Interface().(VaryingDataTypeSlice)
-	l, err := ds.decodeLength()
-	if err != nil {
-		return
-	}
-	for i := uint(0); i < l; i++ {
-		vdt := vdts.VaryingDataType
-		vdtv := reflect.New(reflect.TypeOf(vdt))
-		vdtv.Elem().Set(reflect.ValueOf(vdt))
-		err = ds.unmarshal(vdtv.Elem())
-		if err != nil {
-			return
-		}
-		vdts.Types = append(vdts.Types, vdtv.Elem().Interface().(VaryingDataType))
-	}
-	dstv.Set(reflect.ValueOf(vdts))
-	return
-}
-
-func (ds *decodeState) decodeCustomVaryingDataType(dstv reflect.Value) (err error) {
-	initialType := dstv.Type()
-
-	methodVal := dstv.MethodByName("New")
-	if methodVal.IsValid() && !methodVal.IsZero() {
-		if methodVal.Type().Out(0).String() != dstv.Type().String() {
-			return fmt.Errorf("%s.New() returns %s instead of %s", dstv.Type(), methodVal.Type().Out(0), dstv.Type())
-		}
-
-		values := methodVal.Call(nil)
-		if len(values) > 1 {
-			return fmt.Errorf("%s.New() returns too many values", dstv.Type())
-		} else if len(values) == 0 {
-			return fmt.Errorf("%s.New() does not return a value", dstv.Type())
-		}
-		dstv.Set(values[0])
-	}
-
-	converted := dstv.Convert(reflect.TypeOf(VaryingDataType{}))
-	tempVal := reflect.New(converted.Type())
-	tempVal.Elem().Set(converted)
-	err = ds.decodeVaryingDataType(tempVal.Elem())
-	if err != nil {
-		return
-	}
-	dstv.Set(tempVal.Elem().Convert(initialType))
-	return
-}
-
-func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
+func (ds *decodeState) decodeVaryingDataType(vdt VaryingDataType) (err error) {
 	var b byte
 	b, err = ds.ReadByte()
 	if err != nil {
 		return
 	}
 
-	vdt := dstv.Interface().(VaryingDataType)
-	val, ok := vdt.cache[uint(b)]
-	if !ok {
-		err = fmt.Errorf("%w: for key %d", errUnknownVaryingDataTypeValue, uint(b))
+	val, err := vdt.ValueAt(uint(b))
+	if err != nil {
+		err = fmt.Errorf("%w: for key %d %v", ErrUnknownVaryingDataTypeValue, uint(b), err)
 		return
 	}
 
@@ -408,11 +358,7 @@ func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	if err != nil {
 		return
 	}
-	err = vdt.Set(tempVal.Elem().Interface().(VaryingDataTypeValue))
-	if err != nil {
-		return
-	}
-	dstv.Set(reflect.ValueOf(vdt))
+	err = vdt.SetValue(tempVal.Elem().Interface())
 	return
 }
 
