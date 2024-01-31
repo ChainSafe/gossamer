@@ -3,9 +3,6 @@
 
 package runtime
 
-// PageSize is 65kb
-const PageSize = 65536
-
 // Memory is the interface for WASM memory
 type Memory interface {
 	// Size returns the size in bytes available. e.g. If the underlying memory
@@ -29,6 +26,14 @@ type Memory interface {
 
 	// ReadByte reads a single byte from the underlying buffer at the offset or returns false if out of range.
 	ReadByte(offset uint32) (byte, bool) //nolint:govet
+
+	// ReadUint64Le reads a uint64 in little-endian encoding from the underlying buffer at the offset or returns false
+	// if out of range.
+	ReadUint64Le(offset uint32) (uint64, bool)
+
+	// WriteUint64Le writes the value in little-endian encoding to the underlying buffer at the offset in or returns
+	// false if out of range.
+	WriteUint64Le(offset uint32, v uint64) bool
 
 	// Read reads byteCount bytes from the underlying buffer at the offset or
 	// returns false if out of range.

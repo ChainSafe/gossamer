@@ -42,7 +42,10 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash()
+
+	// We are using state trie V0 since we are using the genesis trie where v0 is used
+	stateRoot := trie.V0.MustHash(genesisTrie)
+
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

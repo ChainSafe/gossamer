@@ -5,25 +5,20 @@ package polkadot
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
 var (
-	// defaultName Default node name
-	defaultName = "Polkadot"
-	// defaultID Default chain ID
-	defaultID = "polkadot"
-	// defaultBasePath Default node base directory path
-	defaultBasePath = "~/.gossamer/polkadot"
+	// defaultBasePath is default base directory path for polkadot node
+	defaultBasePath = xdg.DataHome + "/gossamer/polkadot"
 	// defaultChainSpec is the default chain spec configuration path
-	defaultChainSpec = "./chain/polkadot/genesis.json"
+	defaultChainSpec = "./chain/polkadot/chain-spec-raw.json"
 )
 
 // DefaultConfig returns a polkadot node configuration
 func DefaultConfig() *cfg.Config {
 	config := cfg.DefaultConfig()
 	config.BasePath = defaultBasePath
-	config.ID = defaultID
-	config.Name = defaultName
 	config.ChainSpec = defaultChainSpec
 	config.Core.BabeAuthority = false
 	config.Core.GrandpaAuthority = false

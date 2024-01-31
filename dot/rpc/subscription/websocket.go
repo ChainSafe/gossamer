@@ -36,6 +36,8 @@ var (
 	errUnexpectedParamLen      = errors.New("unexpected params length")
 	errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
 	errEmptyMethod             = errors.New("empty method")
+	errStorageNotSet           = errors.New("error StorageAPI not set")
+	errBlockAPINotSet          = errors.New("error BlockAPI not set")
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "rpc/subscription"))
@@ -155,8 +157,8 @@ func (c *WSConn) executeRPCCall(data []byte) {
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (Listener, error) {
 	if c.StorageAPI == nil {
-		c.safeSendError(reqID, nil, "error StorageAPI not set")
-		return nil, fmt.Errorf("error StorageAPI not set")
+		c.safeSendError(reqID, nil, errStorageNotSet.Error())
+		return nil, errStorageNotSet
 	}
 
 	stgobs := &StorageObserver{
@@ -213,8 +215,8 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 	bl := NewBlockListener(c)
 
 	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return nil, fmt.Errorf("error BlockAPI not set")
+		c.safeSendError(reqID, nil, errBlockAPINotSet.Error())
+		return nil, errBlockAPINotSet
 	}
 
 	bl.Channel = c.BlockAPI.GetImportedBlockNotifierChannel()
@@ -240,8 +242,8 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 	}
 
 	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return nil, fmt.Errorf("error BlockAPI not set")
+		c.safeSendError(reqID, nil, errBlockAPINotSet.Error())
+		return nil, errBlockAPINotSet
 	}
 
 	blockFinalizedListener.channel = c.BlockAPI.GetFinalisedNotifierChannel()
@@ -263,8 +265,8 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 	listener := newAllBlockListener(c)
 
 	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return nil, fmt.Errorf("error BlockAPI not set")
+		c.safeSendError(reqID, nil, errBlockAPINotSet.Error())
+		return nil, errBlockAPINotSet
 	}
 
 	listener.importedChan = c.BlockAPI.GetImportedBlockNotifierChannel()
@@ -311,7 +313,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	}
 
 	if c.BlockAPI == nil {
-		return nil, fmt.Errorf("error BlockAPI not set")
+		return nil, errBlockAPINotSet
 	}
 
 	txStatusChan := c.TxStateAPI.GetStatusNotifierChannel(extBytes)
@@ -381,8 +383,8 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 
 func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) (Listener, error) {
 	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return nil, fmt.Errorf("error BlockAPI not set")
+		c.safeSendError(reqID, nil, errBlockAPINotSet.Error())
+		return nil, errBlockAPINotSet
 	}
 
 	jl := &GrandpaJustificationListener{

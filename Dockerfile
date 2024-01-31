@@ -1,5 +1,5 @@
 ARG DEBIAN_VERSION=bullseye-slim
-ARG GO_VERSION=1.20-buster
+ARG GO_VERSION=1.21.1-bullseye
 
 FROM golang:${GO_VERSION} AS builder
 
@@ -17,6 +17,12 @@ RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash - && \
 RUN wget -O /usr/local/bin/subkey https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0 && \
     chmod +x /usr/local/bin/subkey
 
+# Get Rust; NOTE: using sh for better compatibility with other base images
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+# Add .cargo/bin to PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 WORKDIR /go/src/github.com/ChainSafe/gossamer
 
 # Go dependencies
@@ -25,6 +31,9 @@ RUN go mod download
 
 # Copy gossamer sources
 COPY . .
+
+# build erasure lib
+RUN cargo build --release --manifest-path=./lib/erasure/rustlib/Cargo.toml
 
 # Build
 ARG GO_BUILD_FLAGS
@@ -43,5 +52,8 @@ EXPOSE 7001 8546 8540
 
 ENTRYPOINT [ "/gossamer/bin/gossamer" ]
 
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
 COPY chain /gossamer/chain
+COPY --from=builder /go/src/github.com/ChainSafe/gossamer/lib/erasure/rustlib/target/release/liberasure.so /usr/local/lib/liberasure.so
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer

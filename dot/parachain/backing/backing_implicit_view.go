@@ -9,6 +9,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// ImplicitView handles the implicit view of the relay chain derived from the immediate/explicit view,
+// which is composed of active leaves, and the minimum relay-parents allowed for candidates of various
+// parachains at those leaves
 type ImplicitView interface {
 	knownAllowedRelayParentsUnder(blockHash common.Hash, paraID parachaintypes.ParaID) []common.Hash
 }

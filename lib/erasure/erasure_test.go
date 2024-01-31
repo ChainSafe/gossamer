@@ -9,6 +9,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
+	libtrie "github.com/ChainSafe/gossamer/lib/trie"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -354,7 +356,7 @@ func TestChunksToTrie(t *testing.T) {
 			trie, err := erasure.ChunksToTrie(chunks)
 			require.NoError(t, err)
 
-			root, err := trie.Hash()
+			root, err := trie.Hash(libtrie.NoMaxInlineValueSize)
 			require.NoError(t, err)
 
 			require.Equal(t, c.expectedRootHex, root.String())
