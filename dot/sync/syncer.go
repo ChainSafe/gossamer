@@ -89,7 +89,8 @@ func (s *Service) Stop() error {
 // HandleBlockAnnounceHandshake notifies the `chainSync` module that
 // we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
-	logger.Infof("received block announce handshake from: %s, #%d (%s)", from, msg.BestBlockNumber, msg.BestBlockHash.Short())
+	logger.Infof("received block announce handshake from: %s, #%d (%s)",
+		from, msg.BestBlockNumber, msg.BestBlockHash.Short())
 	return s.chainSync.onBlockAnnounceHandshake(from, msg.BestBlockHash, uint(msg.BestBlockNumber))
 }
 
