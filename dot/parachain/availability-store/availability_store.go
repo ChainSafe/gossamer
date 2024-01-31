@@ -625,6 +625,8 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 		if err != nil {
 			logger.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		}
+		logger.Infof("stored meta for candidate %x", candidateHash[:])
+		logger.Infof("data %v", dataBytes)
 
 		// write pruning key
 		pruneAt := now + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
