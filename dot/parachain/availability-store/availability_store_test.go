@@ -6,6 +6,8 @@ package availabilitystore
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"reflect"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -853,6 +855,185 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 				require.EqualError(t, err, tt.err.Error())
 			}
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
+	inmemoryDB := setupTestDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+	tx := newAvailabilityStoreBatch(as)
+
+	type fields struct {
+		availabilityStore availabilityStore
+	}
+	type args struct {
+		tx          *availabilityStoreBatch
+		now         BETimestamp
+		nValidators uint
+		candidate   parachaintypes.CandidateReceipt
+	}
+	tests := map[string]struct {
+		fields   fields
+		args     args
+		expected map[string][]byte
+	}{
+		"base_case": {
+			fields: fields{
+				availabilityStore: *as,
+			},
+			args: args{
+				tx: tx,
+			},
+			expected: map[string][]byte{
+				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}): []byte{24,
+					99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
+				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}): []byte{24,
+					99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24, 112, 114, 111, 111, 102, 50},
+				string([]byte{109, 101, 116, 97, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0}): []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+				string([]byte{109, 101, 116, 97, 115, 137, 2, 67, 55, 164, 51, 156, 149, 98, 11, 193, 131, 84, 203,
+					139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): []byte{1, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0},
+				string([]byte{112, 114, 117, 110, 101, 95, 98, 121, 95, 116, 105, 109, 101, 115, 137, 2, 67, 55, 164,
+					51, 156, 149, 98, 11, 193, 131, 84, 203, 139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9,
+					41, 1, 193, 202, 0, 0, 0, 0}): []byte{},
+			},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			av := &AvailabilityStoreSubsystem{
+				availabilityStore: tt.fields.availabilityStore,
+			}
+			av.noteBlockBacked(tt.args.tx, tt.args.now, tt.args.nValidators, tt.args.candidate)
+			err := tt.args.tx.flushAll()
+			require.NoError(t, err)
+			itr, err := inmemoryDB.NewIterator()
+			require.NoError(t, err)
+			defer itr.Release()
+			itr.First()
+			for itr.Next() {
+				key := itr.Key()
+				value := itr.Value()
+				fmt.Printf("key %v, value %v\n", key, value)
+				require.Equal(t, tt.expected[string(key)], value)
+			}
+		})
+	}
+}
+
+func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
+	inmemoryDB := setupTestDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+	tx := newAvailabilityStoreBatch(as)
+
+	type fields struct {
+		availabilityStore availabilityStore
+	}
+	type args struct {
+		tx          *availabilityStoreBatch
+		blockNumber parachaintypes.BlockNumber
+		blockHash   common.Hash
+		candidate   parachaintypes.CandidateReceipt
+	}
+	tests := map[string]struct {
+		fields   fields
+		args     args
+		expected map[string][]byte
+	}{
+		"baseCase": {
+			fields: fields{
+				availabilityStore: *as,
+			},
+			args: args{
+				tx: tx,
+			},
+			expected: map[string][]byte{
+				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}): []byte{24,
+					99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
+				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}): []byte{24,
+					99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24, 112, 114, 111, 111, 102, 50},
+				string([]byte{109, 101, 116, 97, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0}): []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+				string([]byte{109, 101, 116, 97, 109, 101, 116, 97, 115, 137, 2, 67, 55, 164, 51, 156, 149, 98, 11,
+					193, 131, 84, 203, 139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): []byte{},
+				string([]byte{117, 110, 102, 105, 110, 97, 108, 105, 122, 101, 100, 117, 110, 102, 105, 110, 97, 108,
+					105, 122, 101, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 115, 137, 2, 67, 55, 164, 51, 156, 149, 98, 11, 193, 131, 84, 203,
+					139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): []byte{},
+			},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			av := &AvailabilityStoreSubsystem{
+				availabilityStore: tt.fields.availabilityStore,
+			}
+			av.noteBlockIncluded(tt.args.tx, tt.args.blockNumber, tt.args.blockHash, tt.args.candidate)
+			err := tt.args.tx.flushAll()
+			require.NoError(t, err)
+			itr, err := inmemoryDB.NewIterator()
+			require.NoError(t, err)
+			defer itr.Release()
+			itr.First()
+			for itr.Next() {
+				key := itr.Key()
+				value := itr.Value()
+				fmt.Printf("key %v, value %v\n", key, value)
+				require.Equal(t, tt.expected[string(key)], value)
+			}
+		})
+	}
+}
+
+func TestAvailabilityStoreSubsystem_loadAllAtFinalizedHeight(t *testing.T) {
+	inmemoryDB := setupTestDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+
+	type fields struct {
+		availabilityStore availabilityStore
+	}
+	type args struct {
+		blockNumber   int
+		finalizedHash common.Hash
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    map[parachaintypes.CandidateHash]bool
+		wantErr bool
+	}{
+		{
+			name: "baseCase",
+			fields: fields{
+				availabilityStore: *as,
+			},
+			args: args{
+				blockNumber: 1,
+			},
+			want:    map[parachaintypes.CandidateHash]bool{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			av := &AvailabilityStoreSubsystem{
+				availabilityStore: tt.fields.availabilityStore,
+			}
+			got, err := av.loadAllAtFinalizedHeight(tt.args.blockNumber, tt.args.finalizedHash)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadAllAtFinalizedHeight() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("loadAllAtFinalizedHeight() got = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
