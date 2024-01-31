@@ -541,9 +541,6 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("setting finalised hash: %w", err)
 	}
 
-	logger.Debugf(
-		"set finalised block with hash %s, round %d and set id %d",
-		hash, fj.Round, setID)
 	return nil
 }
 
