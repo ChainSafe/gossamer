@@ -549,7 +549,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	return nil
 }
 
-func (cs *chainSync) showWorkersStats(syncBegin time.Time, expectedSyncedBlocks uint32) {
+func (cs *chainSync) showSyncStats(syncBegin time.Time, syncedBlocks int) {
 	finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		logger.Criticalf("getting highest finalized header: %w", err)
@@ -557,10 +557,10 @@ func (cs *chainSync) showWorkersStats(syncBegin time.Time, expectedSyncedBlocks 
 	}
 
 	totalSyncAndImportSeconds := time.Since(syncBegin).Seconds()
-	bps := float64(expectedSyncedBlocks) / totalSyncAndImportSeconds
+	bps := float64(syncedBlocks) / totalSyncAndImportSeconds
 	logger.Infof("⛓️ synced %d blocks, "+
 		"took: %.2f seconds, bps: %.2f blocks/second",
-		expectedSyncedBlocks, totalSyncAndImportSeconds, bps)
+		syncedBlocks, totalSyncAndImportSeconds, bps)
 
 	logger.Infof(
 		"🚣 currently syncing, %d peers connected, "+
@@ -584,9 +584,7 @@ func (cs *chainSync) showWorkersStats(syncBegin time.Time, expectedSyncedBlocks 
 // TODO: handle only justification requests
 func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
-
 	startTime := time.Now()
-	defer cs.showWorkersStats(startTime, expectedSyncedBlocks)
 
 	syncingChain := make([]*types.BlockData, expectedSyncedBlocks)
 	// the total numbers of blocks is missing in the syncing chain
@@ -732,6 +730,7 @@ taskResultLoop:
 		}
 	}
 
+	cs.showSyncStats(startTime, len(syncingChain))
 	return nil
 }
 
