@@ -17,7 +17,6 @@ var (
 	errProspectiveParachainsModeDisabled = errors.New("async backing is disabled")
 	errCandidateNotRecognised            = errors.New("candidate not recognised by any fragment tree")
 	errLeafOccupied                      = errors.New("can't second the candidate, leaf is already occupied")
-	errNoActiveLeaves                    = errors.New("no active leaves found for the candidate relay parent")
 	errDepthOccupied                     = errors.New("can't second the candidate, depth is already occupied")
 )
 

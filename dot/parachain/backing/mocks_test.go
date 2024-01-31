@@ -9,7 +9,7 @@ import (
 
 	types "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTable is a mock of Table interface.
@@ -36,7 +36,7 @@ func (m *MockTable) EXPECT() *MockTableMockRecorder {
 }
 
 // attestedCandidate mocks base method.
-func (m *MockTable) attestedCandidate(arg0 *types.CandidateHash, arg1 *TableContext) (*AttestedCandidate, error) {
+func (m *MockTable) attestedCandidate(arg0 types.CandidateHash, arg1 *TableContext) (*AttestedCandidate, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "attestedCandidate", arg0, arg1)
 	ret0, _ := ret[0].(*AttestedCandidate)

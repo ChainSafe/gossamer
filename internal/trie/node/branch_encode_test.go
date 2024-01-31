@@ -8,9 +8,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // Opportunistic parallel:	13781602 ns/op	14419488 B/op	  323575 allocs/op
@@ -23,7 +23,7 @@ func Benchmark_encodeChildrenOpportunisticParallel(b *testing.B) {
 
 	b.Run("", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = encodeChildrenOpportunisticParallel(children, io.Discard)
+			_ = encodeChildrenOpportunisticParallel(children, NoMaxInlineValueSize, io.Discard)
 		}
 	})
 }
@@ -139,7 +139,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeChildrenOpportunisticParallel(testCase.children, buffer)
+			err := encodeChildrenOpportunisticParallel(testCase.children, NoMaxInlineValueSize, buffer)
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)
@@ -164,7 +164,7 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 
 		// Note this may run in parallel or not depending on other tests
 		// running in parallel.
-		err := encodeChildrenOpportunisticParallel(children, buffer)
+		err := encodeChildrenOpportunisticParallel(children, NoMaxInlineValueSize, buffer)
 
 		require.NoError(t, err)
 		expectedBytes := []byte{
@@ -178,100 +178,6 @@ func Test_encodeChildrenOpportunisticParallel(t *testing.T) {
 			0xc, 0x80, 0x0, 0x0, 0xc, 0x80, 0x0, 0x0}
 		assert.Equal(t, expectedBytes, buffer.Bytes())
 	})
-}
-
-func Test_encodeChildrenSequentially(t *testing.T) {
-	t.Parallel()
-
-	testCases := map[string]struct {
-		children   []*Node
-		writes     []writeCall
-		wrappedErr error
-		errMessage string
-	}{
-		"no_children": {},
-		"first_child_not_nil": {
-			children: []*Node{
-				{PartialKey: []byte{1}, StorageValue: []byte{2}},
-			},
-			writes: []writeCall{
-				{written: []byte{16}},
-				{written: []byte{65, 1, 4, 2}},
-			},
-		},
-		"last_child_not_nil": {
-			children: []*Node{
-				nil, nil, nil, nil, nil,
-				nil, nil, nil, nil, nil,
-				nil, nil, nil, nil, nil,
-				{PartialKey: []byte{1}, StorageValue: []byte{2}},
-			},
-			writes: []writeCall{
-				{written: []byte{16}},
-				{written: []byte{65, 1, 4, 2}},
-			},
-		},
-		"first_two_children_not_nil": {
-			children: []*Node{
-				{PartialKey: []byte{1}, StorageValue: []byte{2}},
-				{PartialKey: []byte{3}, StorageValue: []byte{4}},
-			},
-			writes: []writeCall{
-				{written: []byte{16}},
-				{written: []byte{65, 1, 4, 2}},
-				{written: []byte{16}},
-				{written: []byte{65, 3, 4, 4}},
-			},
-		},
-		"encoding_error": {
-			children: []*Node{
-				nil, nil, nil, nil,
-				nil, nil, nil, nil,
-				nil, nil, nil,
-				{PartialKey: []byte{1}, StorageValue: []byte{2}},
-				nil, nil, nil, nil,
-			},
-			writes: []writeCall{
-				{
-					written: []byte{16},
-					err:     errTest,
-				},
-			},
-			wrappedErr: errTest,
-			errMessage: "encoding child at index 11: " +
-				"scale encoding Merkle value: test error",
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			ctrl := gomock.NewController(t)
-
-			buffer := NewMockWriter(ctrl)
-			var previousCall *gomock.Call
-			for _, write := range testCase.writes {
-				call := buffer.EXPECT().
-					Write(write.written).
-					Return(write.n, write.err)
-
-				if previousCall != nil {
-					call.After(previousCall)
-				}
-				previousCall = call
-			}
-
-			err := encodeChildrenSequentially(testCase.children, buffer)
-
-			if testCase.wrappedErr != nil {
-				assert.ErrorIs(t, err, testCase.wrappedErr)
-				assert.EqualError(t, err, testCase.errMessage)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
 }
 
 func Test_encodeChild(t *testing.T) {
@@ -349,7 +255,7 @@ func Test_encodeChild(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeChild(testCase.child, buffer)
+			err := encodeChild(testCase.child, NoMaxInlineValueSize, buffer)
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)

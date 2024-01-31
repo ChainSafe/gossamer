@@ -232,10 +232,6 @@ func (o *Overseer) Stop() error {
 	// close the errorChan to unblock any listeners on the errChan
 	close(o.errChan)
 
-	for _, sub := range o.subsystems {
-		close(sub)
-	}
-
 	// wait for subsystems to stop
 	// TODO: determine reasonable timeout duration for production, currently this is just for testing
 	timedOut := waitTimeout(&o.wg, 500*time.Millisecond)

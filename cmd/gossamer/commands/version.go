@@ -6,18 +6,16 @@ package commands
 import (
 	"fmt"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-
 	"github.com/spf13/cobra"
 )
 
-// VersionCmd returns the gossamer version
+// VersionCmd returns the Gossamer version
 var VersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "gossamer version",
 	Long:  `gossamer version`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Printf("%s version %s\n", cfg.DefaultSystemName, cfg.DefaultSystemVersion)
+		fmt.Printf("%s version %s\n", config.System.SystemName, config.System.SystemVersion)
 		return nil
 	},
 }

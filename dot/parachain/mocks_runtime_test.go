@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRuntimeInstance is a mock of RuntimeInstance interface.

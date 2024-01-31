@@ -137,7 +137,12 @@ func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.State
 
 // GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
-type GetBackedCandidatesMessage []struct {
+type GetBackedCandidatesMessage struct {
+	Candidates []*CandidateHashAndRelayParent
+	ResCh      chan []*parachaintypes.BackedCandidate
+}
+
+type CandidateHashAndRelayParent struct {
 	CandidateHash        parachaintypes.CandidateHash
 	CandidateRelayParent common.Hash
 }
@@ -225,14 +230,14 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 	switch msg := msg.(type) {
 	case GetBackedCandidatesMessage:
-		cb.handleGetBackedCandidatesMessage()
+		cb.handleGetBackedCandidatesMessage(msg)
 	case CanSecondMessage:
 		err := cb.handleCanSecondMessage(msg)
 		if err != nil {
 			logger.Debug(fmt.Sprintf("can't second the candidate: %s", err))
 		}
 	case SecondMessage:
-		cb.handleSecondMessage()
+		return cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
@@ -251,14 +256,6 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
 
 func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
 	// TODO #3644
-}
-
-func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
-	// TODO: Implement this #3504
-}
-
-func (cb *CandidateBacking) handleSecondMessage() {
-	// TODO: Implement this #3506
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.

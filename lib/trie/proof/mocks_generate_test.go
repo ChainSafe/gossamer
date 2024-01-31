@@ -3,4 +3,4 @@
 
 package proof
 
-//go:generate mockgen -destination=database_mocks_test.go -package=$GOPACKAGE . Database
+//go:generate mockgen -destination=database_mocks_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/lib/trie/db DBGetter

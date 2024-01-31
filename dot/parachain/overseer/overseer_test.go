@@ -7,14 +7,15 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 type TestSubsystem struct {
@@ -88,39 +89,20 @@ func TestHandleBlockEvents(t *testing.T) {
 	var finalizedCounter atomic.Int32
 	var importedCounter atomic.Int32
 
+	var wg sync.WaitGroup
+	wg.Add(4) // number of subsystems * 2
+
+	// mocked subsystems
 	go func() {
 		for {
 			select {
 			case msg := <-overseerToSubSystem1:
-				if msg == nil {
-					continue
-				}
-
-				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
-				if ok {
-					finalizedCounter.Add(1)
-				}
-
-				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
-				if ok {
-					importedCounter.Add(1)
-				}
+				go incrementCounters(t, msg, &finalizedCounter, &importedCounter)
+				wg.Done()
 			case msg := <-overseerToSubSystem2:
-				if msg == nil {
-					continue
-				}
-
-				_, ok := msg.(parachaintypes.BlockFinalizedSignal)
-				if ok {
-					finalizedCounter.Add(1)
-				}
-
-				_, ok = msg.(parachaintypes.ActiveLeavesUpdateSignal)
-				if ok {
-					importedCounter.Add(1)
-				}
+				go incrementCounters(t, msg, &finalizedCounter, &importedCounter)
+				wg.Done()
 			}
-
 		}
 	}()
 
@@ -129,11 +111,26 @@ func TestHandleBlockEvents(t *testing.T) {
 	finalizedNotifierChan <- &types.FinalisationInfo{}
 	importedBlockNotiferChan <- &types.Block{}
 
-	time.Sleep(1000 * time.Millisecond)
+	wg.Wait()
 
 	err = overseer.Stop()
 	require.NoError(t, err)
 
 	require.Equal(t, int32(2), finalizedCounter.Load())
 	require.Equal(t, int32(2), importedCounter.Load())
+}
+
+func incrementCounters(t *testing.T, msg any, finalizedCounter *atomic.Int32, importedCounter *atomic.Int32) {
+	t.Helper()
+
+	if msg == nil {
+		return
+	}
+
+	switch msg.(type) {
+	case parachaintypes.BlockFinalizedSignal:
+		finalizedCounter.Add(1)
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		importedCounter.Add(1)
+	}
 }

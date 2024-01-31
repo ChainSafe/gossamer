@@ -10,9 +10,9 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func TestProcessOverseerMessage(t *testing.T) {

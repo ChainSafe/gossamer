@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adrg/xdg"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,13 +57,7 @@ func ExpandDir(targetPath string) string {
 func BasePath(name string) string {
 	home := HomeDir()
 	if home != "" {
-		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "Gossamer", name)
-		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "Gossamer", name)
-		} else {
-			return filepath.Join(home, ".gossamer", name)
-		}
+		return filepath.Join(xdg.DataHome, "gossamer", name)
 	}
 	return name
 }
@@ -138,31 +133,31 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 // GetWestendDevHumanReadableGenesisPath gets the westend-dev human readable spec filepath
 func GetWestendDevHumanReadableGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec.json")
+	return filepath.Join(GetProjectRootPathTest(t), "chain", "westend-dev", "westend-dev-spec.json")
 }
 
 // GetWestendDevRawGenesisPath gets the westend-dev genesis raw path
 func GetWestendDevRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-dev/westend-dev-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "chain", "westend-dev", "westend-dev-spec-raw.json")
 }
 
 // GetWestendLocalRawGenesisPath gets the westend-local genesis raw path
 func GetWestendLocalRawGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/westend-local/westend-local-spec-raw.json")
+	return filepath.Join(GetProjectRootPathTest(t), "chain", "westend-local", "westend-local-spec-raw.json")
 }
 
 // GetKusamaGenesisPath gets the Kusama genesis path
 func GetKusamaGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/kusama/genesis.json")
+	return filepath.Join(GetProjectRootPathTest(t), "chain", "kusama", "chain-spec-raw.json")
 }
 
 // GetPolkadotGenesisPath gets the Polkadot genesis path
 func GetPolkadotGenesisPath(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(GetProjectRootPathTest(t), "./chain/polkadot/genesis.json")
+	return filepath.Join(GetProjectRootPathTest(t), "chain", "polkadot", "chain-spec-raw.json")
 }
 
 // GetProjectRootPathTest finds the root of the project where `go.mod` is
