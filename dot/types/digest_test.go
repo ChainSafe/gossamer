@@ -16,31 +16,32 @@ func Test_Digest_String(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		digestBuilder func() scale.VaryingDataTypeSlice
+		digestBuilder func() Digest
 		s             string
 	}{
 		"empty": {
-			digestBuilder: func() scale.VaryingDataTypeSlice {
-				return scale.VaryingDataTypeSlice{}
+			digestBuilder: func() Digest {
+				return Digest{}
 			},
 			s: "[]",
 		},
 		"all_digests": {
-			digestBuilder: func() scale.VaryingDataTypeSlice {
-				digest := NewDigest()
-				digest.Add(PreRuntimeDigest{
-					ConsensusEngineID: ConsensusEngineID{'a', 'b', 'c', 'd'},
-					Data:              []byte{1, 2, 3, 4},
-				})
-				digest.Add(ConsensusDigest{
-					ConsensusEngineID: ConsensusEngineID{'f', 'f', 'g', 'g'},
-					Data:              []byte{5, 6},
-				})
-				digest.Add(SealDigest{
-					ConsensusEngineID: ConsensusEngineID{'x', 'y', 'w', 'z'},
-					Data:              []byte{7, 8},
-				})
-				digest.Add(RuntimeEnvironmentUpdated{})
+			digestBuilder: func() Digest {
+				digest := Digest{
+					newDigestItem(PreRuntimeDigest{
+						ConsensusEngineID: ConsensusEngineID{'a', 'b', 'c', 'd'},
+						Data:              []byte{1, 2, 3, 4},
+					}),
+					newDigestItem(ConsensusDigest{
+						ConsensusEngineID: ConsensusEngineID{'f', 'f', 'g', 'g'},
+						Data:              []byte{5, 6},
+					}),
+					newDigestItem(SealDigest{
+						ConsensusEngineID: ConsensusEngineID{'x', 'y', 'w', 'z'},
+						Data:              []byte{7, 8},
+					}),
+					newDigestItem(RuntimeEnvironmentUpdated{}),
+				}
 				return digest
 			},
 			s: "[" +
@@ -107,7 +108,7 @@ func TestDecodeSingleDigest(t *testing.T) {
 	}
 
 	di := NewDigestItem()
-	err := di.Set(d)
+	err := di.SetValue(d)
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(di)
@@ -132,7 +133,7 @@ func TestDecodeDigest(t *testing.T) {
 	v := NewDigest()
 	err := scale.Unmarshal(d, &v)
 	require.NoError(t, err)
-	require.Equal(t, 3, len(v.Types))
+	require.Equal(t, 3, len(v))
 
 	enc, err := scale.Marshal(v)
 	require.NoError(t, err)
@@ -147,7 +148,7 @@ func TestPreRuntimeDigest(t *testing.T) {
 	}
 
 	di := NewDigestItem()
-	err := di.Set(d)
+	err := di.SetValue(d)
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(di)
@@ -174,7 +175,7 @@ func TestConsensusDigest(t *testing.T) {
 	}
 
 	di := NewDigestItem()
-	err := di.Set(d)
+	err := di.SetValue(d)
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(di)
@@ -198,7 +199,7 @@ func TestRuntimeEnvironmentUpdatedDigest(t *testing.T) {
 	d := RuntimeEnvironmentUpdated{}
 
 	di := NewDigestItem()
-	err := di.Set(d)
+	err := di.SetValue(d)
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(di)
@@ -225,7 +226,7 @@ func TestSealDigest(t *testing.T) {
 	}
 
 	di := NewDigestItem()
-	err := di.Set(d)
+	err := di.SetValue(d)
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(di)

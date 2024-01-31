@@ -88,7 +88,7 @@ func NewGrandpaState(db database.Database, bs *BlockState, telemetry Telemetry) 
 }
 
 // HandleGRANDPADigest receives a decoded GRANDPA digest and calls the right function to handles the digest
-func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest scale.VaryingDataType) error {
+func (s *GrandpaState) HandleGRANDPADigest(header *types.Header, digest types.GrandpaConsensusDigest) error {
 	digestValue, err := digest.Value()
 	if err != nil {
 		return fmt.Errorf("getting digest value: %w", err)

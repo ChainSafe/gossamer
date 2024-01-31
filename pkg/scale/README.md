@@ -210,12 +210,26 @@ func ExampleResult() {
 
 ### Varying Data Type
 
-A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` needs to be constructed using the  `NewVaryingDataType` constructor.  `VaryingDataTypeValue` is an
-interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum to ensure interopability.  To set the value of the `VaryingDataType`, the `VaryingDataType.Set()` function should be called with an associated `VaryingDataTypeValue`.
+A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` is an interface that needs to be implemented.  From the Polkadot spec there are values associated to a `VaryingDataType`, which is analagous to a rust enum variant.  Each value has an associated index integer value which is used to determine which value type go-scale should decode to. The following interface needs to be implemented for go-scale to be able to marshal from or unmarshal into.    
+```go
+type EncodeVaryingDataType interface {
+	IndexValue() (index uint, value any, err error)
+	Value() (value any, err error)
+	ValueAt(index uint) (value any, err error)
+}
 
+type VaryingDataType interface {
+	EncodeVaryingDataType
+	SetValue(value any) (err error)
+}
+
+```
+Example implementation of `VaryingDataType`:
 ```go
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -225,33 +239,75 @@ type MyStruct struct {
 	Foo []byte
 }
 
-func (ms MyStruct) Index() uint {
-	return 1
-}
-
 type MyOtherStruct struct {
 	Foo string
 	Bar uint64
 	Baz uint
 }
 
-func (mos MyOtherStruct) Index() uint {
-	return 2
-}
-
 type MyInt16 int16
 
-func (mi16 MyInt16) Index() uint {
-	return 3
+type MyVaryingDataType struct {
+	inner any
+}
+
+type MyVaryingDataTypeValues interface {
+	MyStruct | MyOtherStruct | MyInt16
+}
+
+func setMyVaryingDataType[Value MyVaryingDataTypeValues](mvdt *MyVaryingDataType, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case MyStruct:
+		setMyVaryingDataType(mvdt, value)
+		return
+	case MyOtherStruct:
+		setMyVaryingDataType(mvdt, value)
+		return
+	case MyInt16:
+		setMyVaryingDataType(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case MyStruct:
+		return 1, mvdt.inner, nil
+	case MyOtherStruct:
+		return 2, mvdt.inner, nil
+	case MyInt16:
+		return 3, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt MyVaryingDataType) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return MyStruct{}, nil
+	case 2:
+		return MyOtherStruct{}, nil
+	case 3:
+		return MyInt16(0), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 func ExampleVaryingDataType() {
-	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
-	if err != nil {
-		panic(err)
-	}
+	vdt := MyVaryingDataType{}
 
-	err = vdt.Set(MyStruct{
+	err := vdt.SetValue(MyStruct{
 		Baz: true,
 		Bar: 999,
 		Foo: []byte{1, 2},
@@ -265,258 +321,14 @@ func ExampleVaryingDataType() {
 		panic(err)
 	}
 
-	vdt1, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
+	dst := MyVaryingDataType{}
+
+	err = scale.Unmarshal(bytes, &dst)
 	if err != nil {
 		panic(err)
 	}
-
-	err = scale.Unmarshal(bytes, &vdt1)
-	if err != nil {
-		panic(err)
-	}
-
-	if !reflect.DeepEqual(vdt, vdt1) {
-		panic(fmt.Errorf("uh oh: %+v %+v", vdt, vdt1))
-	}
-}
-```
-
-A `VaryingDataTypeSlice` is a slice containing multiple `VaryingDataType` elements.  Each `VaryingDataTypeValue` must be of a supported type of the `VaryingDataType` passed into the `NewVaryingDataTypeSlice` constructor.  The method to call to add `VaryingDataTypeValue` instances is `VaryingDataTypeSlice.Add()`.
-
-```
-func ExampleVaryingDataTypeSlice() {
-	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
-	if err != nil {
-		panic(err)
-	}
-
-	vdts := scale.NewVaryingDataTypeSlice(vdt)
-
-	err = vdts.Add(
-		MyStruct{
-			Baz: true,
-			Bar: 999,
-			Foo: []byte{1, 2},
-		},
-		MyInt16(1),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	bytes, err := scale.Marshal(vdts)
-	if err != nil {
-		panic(err)
-	}
-
-	vdts1 := scale.NewVaryingDataTypeSlice(vdt)
-	if err != nil {
-		panic(err)
-	}
-
-	err = scale.Unmarshal(bytes, &vdts1)
-	if err != nil {
-		panic(err)
-	}
-
-	if !reflect.DeepEqual(vdts, vdts1) {
-		panic(fmt.Errorf("uh oh: %+v %+v", vdts, vdts1))
-	}
-}
-```
-
-#### Nested VaryingDataType
-
-See `varying_data_type_nested_example.go` for a working example of a custom `VaryingDataType` with another custom `VaryingDataType` as a value of the parent `VaryingDataType`.  In the case of nested `VaryingDataTypes`, a custom type needs to be created for the child `VaryingDataType` because it needs to fulfill the `VaryingDataTypeValue` interface.
-
-```go
-import (
-	"fmt"
-	"reflect"
-
-	"github.com/ChainSafe/gossamer/pkg/scale"
-)
-
-// ParentVDT is a VaryingDataType that consists of multiple nested VaryingDataType
-// instances (aka. a rust enum containing multiple enum options)
-type ParentVDT scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (pvdt *ParentVDT) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*pvdt)
-	err = vdt.Set(val)
-	if err != nil {
-		return
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*pvdt = ParentVDT(vdt)
-	return
-}
-
-// Value will return value from underying VaryingDataType
-func (pvdt *ParentVDT) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*pvdt)
-	return vdt.Value()
-}
-
-// NewParentVDT is constructor for ParentVDT
-func NewParentVDT() ParentVDT {
-	// use standard VaryingDataType constructor to construct a VaryingDataType
-	vdt, err := scale.NewVaryingDataType(NewChildVDT(), NewOtherChildVDT())
-	if err != nil {
-		panic(err)
-	}
-	// cast to ParentVDT
-	return ParentVDT(vdt)
-}
-
-// ChildVDT type is used as a VaryingDataTypeValue for ParentVDT
-type ChildVDT scale.VaryingDataType
-
-// Index fulfills the VaryingDataTypeValue interface.  T
-func (cvdt ChildVDT) Index() uint {
-	return 1
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cvdt *ChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*cvdt)
-	err = vdt.Set(val)
-	if err != nil {
-		return
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*cvdt = ChildVDT(vdt)
-	return
-}
-
-// Value will return value from underying VaryingDataType
-func (cvdt *ChildVDT) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*cvdt)
-	return vdt.Value()
-}
-
-// NewChildVDT is constructor for ChildVDT
-func NewChildVDT() ChildVDT {
-	// use standard VaryingDataType constructor to construct a VaryingDataType
-	// constarined to types ChildInt16, ChildStruct, and ChildString
-	vdt, err := scale.NewVaryingDataType(ChildInt16(0), ChildStruct{}, ChildString(""))
-	if err != nil {
-		panic(err)
-	}
-	// cast to ParentVDT
-	return ChildVDT(vdt)
-}
-
-// OtherChildVDT type is used as a VaryingDataTypeValue for ParentVDT
-type OtherChildVDT scale.VaryingDataType
-
-// Index fulfills the VaryingDataTypeValue interface.
-func (ocvdt OtherChildVDT) Index() uint {
-	return 2
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (cvdt *OtherChildVDT) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*cvdt)
-	err = vdt.Set(val)
-	if err != nil {
-		return
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*cvdt = OtherChildVDT(vdt)
-	return
-}
-
-// NewOtherChildVDT is constructor for OtherChildVDT
-func NewOtherChildVDT() OtherChildVDT {
-	// use standard VaryingDataType constructor to construct a VaryingDataType
-	// constarined to types ChildInt16 and ChildStruct
-	vdt, err := scale.NewVaryingDataType(ChildInt16(0), ChildStruct{}, ChildString(""))
-	if err != nil {
-		panic(err)
-	}
-	// cast to ParentVDT
-	return OtherChildVDT(vdt)
-}
-
-// ChildInt16 is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
-type ChildInt16 int16
-
-// Index fulfills the VaryingDataTypeValue interface.  The ChildVDT type is used as a
-// VaryingDataTypeValue for ParentVDT
-func (ci ChildInt16) Index() uint {
-	return 1
-}
-
-// ChildStruct is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
-type ChildStruct struct {
-	A string
-	B bool
-}
-
-// Index fulfills the VaryingDataTypeValue interface
-func (cs ChildStruct) Index() uint {
-	return 2
-}
-
-// ChildString is used as a VaryingDataTypeValue for ChildVDT and OtherChildVDT
-type ChildString string
-
-// Index fulfills the VaryingDataTypeValue interface
-func (cs ChildString) Index() uint {
-	return 3
-}
-
-func ExampleNestedVaryingDataType() {
-	parent := NewParentVDT()
-
-	// populate parent with ChildVDT
-	child := NewChildVDT()
-	child.Set(ChildInt16(888))
-	err := parent.Set(child)
-	if err != nil {
-		panic(err)
-	}
-
-	// validate ParentVDT.Value()
-	parentValue, err := parent.Value()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("parent.Value(): %+v\n", parentValue)
-	// should cast to ChildVDT, since that was set earlier
-	valChildVDT := parentValue.(ChildVDT)
-	// validate ChildVDT.Value() as ChildInt16(888)
-	valChildVDTValue, err := valChildVDT.Value()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("child.Value(): %+v\n", valChildVDTValue)
-
-	// marshal into scale encoded bytes
-	bytes, err := scale.Marshal(parent)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("bytes: % x\n", bytes)
-
-	// unmarshal into another ParentVDT
-	dstParent := NewParentVDT()
-	err = scale.Unmarshal(bytes, &dstParent)
-	if err != nil {
-		panic(err)
-	}
-	// assert both ParentVDT instances are the same
-	fmt.Println(reflect.DeepEqual(parent, dstParent))
-
-	// Output:
-	// parent.Value(): {value:888 cache:map[1:0 2:{A: B:false} 3:]}
-	// child.Value(): 888
-	// bytes: 01 01 78 03
-	// true
+	
+	fmt.Println(reflect.DeepEqual(vdt, dst))
+	// Output: true
 }
 ```

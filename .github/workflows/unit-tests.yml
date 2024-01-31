@@ -23,7 +23,7 @@ jobs:
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           all_but_latest: true
 
@@ -89,7 +89,7 @@ jobs:
       - name: Test - Race
         run: make test-using-race-detector
 
-      - uses: codecov/codecov-action@v3.1.4
+      - uses: codecov/codecov-action@v3.1.5
         with:
           if_ci_failed: success
           informational: true

@@ -18,7 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,10 +65,10 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 	errTest := errors.New("test error")
 	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
-		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
 		emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
-		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 2, nil)
 
 	testCases := map[string]struct {
 		waitBootstrapSync   bool
@@ -248,10 +247,10 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 
 	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
-		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
 		emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
-		common.Hash{}, 130, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 130, nil)
 
 	blockStateMock := NewMockBlockState(ctrl)
 	blockStateMock.EXPECT().
@@ -1251,7 +1250,7 @@ func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
 	tsRoot := emptyTrieState.MustRoot(trie.NoMaxInlineValueSize)
 
 	firstHeader := types.NewHeader(parentHeader, tsRoot, common.Hash{},
-		uint(startingAt), scale.VaryingDataTypeSlice{})
+		uint(startingAt), nil)
 	response.BlockData[0] = &types.BlockData{
 		Hash:          firstHeader.Hash(),
 		Header:        firstHeader,
@@ -1263,7 +1262,7 @@ func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
 	for idx := 1; idx < numBlocks; idx++ {
 		blockNumber := idx + startingAt
 		header := types.NewHeader(parentHash, tsRoot, common.Hash{},
-			uint(blockNumber), scale.VaryingDataTypeSlice{})
+			uint(blockNumber), nil)
 		response.BlockData[idx] = &types.BlockData{
 			Hash:          header.Hash(),
 			Header:        header,

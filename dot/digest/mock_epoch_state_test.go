@@ -13,7 +13,6 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
-	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -84,7 +83,7 @@ func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 any) *gomock.Call {
 }
 
 // HandleBABEDigest mocks base method.
-func (m *MockEpochState) HandleBABEDigest(arg0 *types.Header, arg1 scale.VaryingDataType) error {
+func (m *MockEpochState) HandleBABEDigest(arg0 *types.Header, arg1 types.BabeConsensusDigest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleBABEDigest", arg0, arg1)
 	ret0, _ := ret[0].(error)

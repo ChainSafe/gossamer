@@ -24,7 +24,7 @@ func NewBlockImportHandler(epochState EpochState, grandpaState GrandpaState) *Bl
 
 // HandleDigests handles consensus digests for an imported block
 func (h *BlockImportHandler) HandleDigests(header *types.Header) error {
-	consensusDigests := toConsensusDigests(header.Digest.Types)
+	consensusDigests := toConsensusDigests(header.Digest)
 	consensusDigests, err := checkForGRANDPAForcedChanges(consensusDigests)
 	if err != nil {
 		return fmt.Errorf("failed while checking GRANDPA digests: %w", err)
@@ -76,7 +76,7 @@ func (h *BlockImportHandler) handleConsensusDigest(d *types.ConsensusDigest, hea
 }
 
 // toConsensusDigests converts a slice of scale.VaryingDataType to a slice of types.ConsensusDigest.
-func toConsensusDigests(scaleVaryingTypes []scale.VaryingDataType) []types.ConsensusDigest {
+func toConsensusDigests(scaleVaryingTypes types.Digest) []types.ConsensusDigest {
 	consensusDigests := make([]types.ConsensusDigest, 0, len(scaleVaryingTypes))
 
 	for _, d := range scaleVaryingTypes {
