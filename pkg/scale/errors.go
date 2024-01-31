@@ -11,7 +11,7 @@ var (
 	ErrUnsupportedType                 = errors.New("unsupported type")
 	ErrUnsupportedResult               = errors.New("unsupported result")
 	errUnsupportedOption               = errors.New("unsupported option")
-	errUnknownVaryingDataTypeValue     = errors.New("unable to find VaryingDataTypeValue with index")
+	ErrUnknownVaryingDataTypeValue     = errors.New("unable to find VaryingDataTypeValue with index")
 	errUint128IsNil                    = errors.New("uint128 in nil")
 	ErrResultNotSet                    = errors.New("result not set")
 	ErrResultAlreadySet                = errors.New("result already has an assigned value")

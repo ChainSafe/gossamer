@@ -44,7 +44,7 @@ func TestService_reportEquivocation(t *testing.T) {
 	}
 
 	equivocationVote := types.NewGrandpaEquivocation()
-	err := equivocationVote.Set(types.PreVote(grandpaEquivocation))
+	err := equivocationVote.SetValue(types.PreVote(grandpaEquivocation))
 	require.NoError(t, err)
 
 	equivocationProof := types.GrandpaEquivocationProof{

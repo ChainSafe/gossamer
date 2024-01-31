@@ -16,23 +16,54 @@ var errInvalidTypeCast = errors.New("invalid type cast")
 // TransactionValidityError Information on a transaction's validity and, if valid,
 // on how it relates to other transactions. It is a result of the form:
 // Result<transaction.Validity, TransactionValidityError>
-type TransactionValidityError scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (tve *TransactionValidityError) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*tve)
-	err = vdt.Set(val)
-	if err != nil {
-		return err
-	}
-	*tve = TransactionValidityError(vdt)
-	return nil
+type TransactionValidityError struct {
+	inner any
 }
 
-// Value will return the value from the underlying VaryingDataType
-func (tve *TransactionValidityError) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*tve)
-	return vdt.Value()
+type TransactionValidityErrorValues interface {
+	InvalidTransaction | UnknownTransaction
+}
+
+func setMyVaryingDataType[Value TransactionValidityErrorValues](mvdt *TransactionValidityError, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *TransactionValidityError) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case InvalidTransaction:
+		setMyVaryingDataType(mvdt, value)
+		return
+	case UnknownTransaction:
+		setMyVaryingDataType(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt TransactionValidityError) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case InvalidTransaction:
+		return 0, mvdt.inner, nil
+	case UnknownTransaction:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt TransactionValidityError) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt TransactionValidityError) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return InvalidTransaction{}, nil
+	case 1:
+		return UnknownTransaction{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // Error will return the error underlying TransactionValidityError
@@ -50,12 +81,7 @@ func (tve TransactionValidityError) Error() string { //skipcq: GO-W1029
 
 // NewTransactionValidityError is constructor for TransactionValidityError
 func NewTransactionValidityError() *TransactionValidityError {
-	vdt, err := scale.NewVaryingDataType(NewInvalidTransaction(), NewUnknownTransaction())
-	if err != nil {
-		panic(err)
-	}
-	tve := TransactionValidityError(vdt)
-	return &tve
+	return &TransactionValidityError{}
 }
 
 // UnmarshalTransactionValidity takes the result of the validateTransaction runtime call and unmarshalls it

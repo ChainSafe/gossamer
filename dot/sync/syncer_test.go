@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,9 +68,9 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 	const somePeer = peer.ID("abc")
 
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
-		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
-		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 2, nil)
 
 	testCases := map[string]struct {
 		serviceBuilder      func(ctrl *gomock.Controller) *Service

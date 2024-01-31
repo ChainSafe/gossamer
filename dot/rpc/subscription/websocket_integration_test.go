@@ -528,7 +528,9 @@ func TestWSConn_InitExtrinsicWatch(t *testing.T) {
 
 	// test initExtrinsicWatch with invalid transaction
 	invalidTransaction := runtime.NewInvalidTransaction()
-	err := invalidTransaction.Set(runtime.Future{})
+	err := invalidTransaction.SetValue(runtime.Future{})
+	require.NoError(t, err)
+
 	require.NoError(t, err)
 	coreAPI := mocks.NewMockCoreAPI(ctrl)
 	wsconn.CoreAPI = coreAPI

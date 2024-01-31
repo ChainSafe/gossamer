@@ -6,7 +6,6 @@ package scale_test
 import (
 	"fmt"
 	"reflect"
-	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -17,43 +16,75 @@ type MyStruct struct {
 	Foo []byte
 }
 
-func (MyStruct) Index() uint {
-	return 1
-}
-
-func (m MyStruct) String() string {
-	return fmt.Sprintf("MyStruct{Baz: %t, Bar: %d, Foo: %x}", m.Baz, m.Bar, m.Foo)
-}
-
 type MyOtherStruct struct {
 	Foo string
 	Bar uint64
 	Baz uint
 }
 
-func (MyOtherStruct) Index() uint {
-	return 2
-}
-
-func (m MyOtherStruct) String() string {
-	return fmt.Sprintf("MyOtherStruct{Foo: %s, Bar: %d, Baz: %d}", m.Foo, m.Bar, m.Baz)
-}
-
 type MyInt16 int16
 
-func (MyInt16) Index() uint {
-	return 3
+type MyVaryingDataType struct {
+	inner any
 }
 
-func (m MyInt16) String() string { return fmt.Sprintf("MyInt16(%d)", m) }
+type MyVaryingDataTypeValues interface {
+	MyStruct | MyOtherStruct | MyInt16
+}
+
+func setMyVaryingDataType[Value MyVaryingDataTypeValues](mvdt *MyVaryingDataType, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case MyStruct:
+		setMyVaryingDataType(mvdt, value)
+		return
+	case MyOtherStruct:
+		setMyVaryingDataType(mvdt, value)
+		return
+	case MyInt16:
+		setMyVaryingDataType(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case MyStruct:
+		return 0, mvdt.inner, nil
+	case MyOtherStruct:
+		return 1, mvdt.inner, nil
+	case MyInt16:
+		return 2, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt MyVaryingDataType) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return MyStruct{}, nil
+	case 1:
+		return MyOtherStruct{}, nil
+	case 2:
+		return MyInt16(0), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
 
 func ExampleVaryingDataType() {
-	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
-	if err != nil {
-		panic(err)
-	}
+	vdt := MyVaryingDataType{}
 
-	err = vdt.Set(MyStruct{
+	err := vdt.SetValue(MyStruct{
 		Baz: true,
 		Bar: 999,
 		Foo: []byte{1, 2},
@@ -67,62 +98,13 @@ func ExampleVaryingDataType() {
 		panic(err)
 	}
 
-	vdt1, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
+	dst := MyVaryingDataType{}
+
+	err = scale.Unmarshal(bytes, &dst)
 	if err != nil {
 		panic(err)
 	}
 
-	err = scale.Unmarshal(bytes, &vdt1)
-	if err != nil {
-		panic(err)
-	}
-
-	if !reflect.DeepEqual(vdt, vdt1) {
-		panic(fmt.Errorf("uh oh: %+v %+v", vdt, vdt1))
-	}
-}
-
-func ExampleVaryingDataTypeSlice() {
-	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
-	if err != nil {
-		panic(err)
-	}
-
-	vdts := scale.NewVaryingDataTypeSlice(vdt)
-
-	err = vdts.Add(
-		MyStruct{
-			Baz: true,
-			Bar: 999,
-			Foo: []byte{1, 2},
-		},
-		MyInt16(1),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	bytes, err := scale.Marshal(vdts)
-	if err != nil {
-		panic(err)
-	}
-
-	vdts1 := scale.NewVaryingDataTypeSlice(vdt)
-	if err != nil {
-		panic(err)
-	}
-
-	err = scale.Unmarshal(bytes, &vdts1)
-	if err != nil {
-		panic(err)
-	}
-
-	if !reflect.DeepEqual(vdts, vdts1) {
-		panic(fmt.Errorf("uh oh: %+v %+v", vdts, vdts1))
-	}
-}
-
-func TestExamples(_ *testing.T) {
-	ExampleVaryingDataType()
-	ExampleVaryingDataTypeSlice()
+	fmt.Println(reflect.DeepEqual(vdt, dst))
+	// Output: true
 }
