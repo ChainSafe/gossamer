@@ -45,8 +45,45 @@ type backgroundValidationOutputs struct {
 type relayParentAndCommand struct {
 	relayParent   common.Hash
 	command       validatedCandidateCommand
-	validationRes *backgroundValidationResult
-	candidateHash parachaintypes.CandidateHash
+	validationRes *backgroundValidationResult   // set value if command is `second` or `attest`. nil if command is `attestNoPoV`
+	candidateHash *parachaintypes.CandidateHash // set value if command is `attestNoPoV`. nil if command is `second` or `attest`
+}
+
+func (r relayParentAndCommand) getCandidateHash() (parachaintypes.CandidateHash, error) {
+	if r.command == attestNoPoV {
+		return *r.candidateHash, nil
+	}
+
+	// validationRes should not be nil if command is second or attest.
+	if r.validationRes == nil {
+		return parachaintypes.CandidateHash{}, errNilBackgroundValidationResult
+	}
+
+	if r.validationRes.err != nil {
+		// candidate should not be nil if there is an error in validationRes.
+		if r.validationRes.candidate == nil {
+			return parachaintypes.CandidateHash{}, errNilCandidateInBgValidationResult
+		}
+
+		hash, err := r.validationRes.candidate.Hash()
+		if err != nil {
+			return parachaintypes.CandidateHash{}, fmt.Errorf("hashing candidate receipt: %w", err)
+		}
+
+		return parachaintypes.CandidateHash{Value: hash}, nil
+	}
+
+	// outputs should not be nil if there is no error in validationRes.
+	if r.validationRes.outputs == nil {
+		return parachaintypes.CandidateHash{}, errNilOutputsInBackgroundValidationResult
+	}
+
+	hash, err := r.validationRes.outputs.candidateReceipt.Hash()
+	if err != nil {
+		return parachaintypes.CandidateHash{}, fmt.Errorf("hashing candidate receipt: %w", err)
+	}
+
+	return parachaintypes.CandidateHash{Value: hash}, nil
 }
 
 // validatedCandidateCommand represents commands for handling validated candidates.
@@ -72,48 +109,47 @@ func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd relayParen
 		return fmt.Errorf("%w; relay parent: %s", errNilRelayParentState, rpAndCmd.relayParent)
 	}
 
-	delete(rpState.awaitingValidation, rpAndCmd.candidateHash)
+	// in this func, we are also checking if values in rpAndCmd has been set correctly.
+	// so no need to check them again while handling the command.
+	candidateHash, err := rpAndCmd.getCandidateHash()
+	if err != nil {
+		return fmt.Errorf("getting candidate hash: %w", err)
+	}
+
+	delete(rpState.awaitingValidation, candidateHash)
 
 	switch rpAndCmd.command {
 	case second:
-		err := cb.handleCommandSecond(rpAndCmd.validationRes, rpAndCmd.candidateHash, rpState)
+		err := cb.handleCommandSecond(*rpAndCmd.validationRes, candidateHash, rpState)
 		if err != nil {
-			return fmt.Errorf("unable to second the candidate: %w", err)
+			return fmt.Errorf("second: %w", err)
 		}
 		return nil
 	case attest:
-		handleCommandAttest(*rpAndCmd.validationRes)
+		err := cb.handleCommandAttest(*rpAndCmd.validationRes, candidateHash, rpState)
+		if err != nil {
+			return fmt.Errorf("attest: %w", err)
+		}
+		return nil
 	case attestNoPoV:
-		handleCommandAttestNoPoV(rpAndCmd.candidateHash)
+		handleCommandAttestNoPoV(candidateHash)
 	}
 
 	return nil
 }
 
 func (cb *CandidateBacking) handleCommandSecond(
-	bgValidationResult *backgroundValidationResult,
+	bgValidationResult backgroundValidationResult,
 	candidateHash parachaintypes.CandidateHash,
 	rpState *perRelayParentState,
 ) error {
-	if bgValidationResult == nil {
-		return errNilBackgroundValidationResult
-	}
-
 	// If there is an error, we notify collator protocol about it.
 	if bgValidationResult.err != nil {
-		if bgValidationResult.candidate == nil {
-			return errNilCandidateInBgValidationResult
-		}
-
 		cb.SubSystemToOverseer <- collatorprotocolmessages.Invalid{
 			Parent:           rpState.relayParent,
 			CandidateReceipt: *bgValidationResult.candidate,
 		}
 		return nil
-	}
-
-	if bgValidationResult.outputs == nil {
-		return errNilOutputsInBackgroundValidationResult
 	}
 
 	if rpState.issuedStatements[candidateHash] {
@@ -153,7 +189,7 @@ func (cb *CandidateBacking) handleCommandSecond(
 	// sanity check that we're allowed to second the candidate and that it doesn't conflict with other candidates we've seconded.
 	fragmentTreeMembership, err := cb.secondingSanityCheck(hypotheticalCandidate, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("not allowed to second: %w", err)
 	}
 
 	statement := parachaintypes.NewStatementVDT()
@@ -213,7 +249,33 @@ func (cb *CandidateBacking) handleCommandSecond(
 	return nil
 }
 
-func handleCommandAttest(bgValidationResult backgroundValidationResult)   {}
+func (cb *CandidateBacking) handleCommandAttest(bgValidationResult backgroundValidationResult, candidateHash parachaintypes.CandidateHash, rpState *perRelayParentState) error {
+	// We are done - no need to validate this candidate again.
+	delete(rpState.fallbacks, candidateHash)
+
+	// sanity check.
+	if rpState.issuedStatements[candidateHash] {
+		logger.Debugf("processing attest command: already issued a statement for candidate: %s", candidateHash)
+		return nil
+	}
+
+	statement := parachaintypes.NewStatementVDT()
+	err := statement.Set(parachaintypes.Valid(candidateHash))
+	if err != nil {
+		return fmt.Errorf("setting statement: %w", err)
+	}
+
+	if bgValidationResult.err == nil {
+		_, err := signImportAndDistributeStatement(cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, nil, cb.keystore)
+		if err != nil {
+			return err
+		}
+	}
+
+	rpState.issuedStatements[candidateHash] = true
+	return nil
+}
+
 func handleCommandAttestNoPoV(candidateHash parachaintypes.CandidateHash) {}
 
 func signImportAndDistributeStatement(

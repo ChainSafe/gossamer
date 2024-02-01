@@ -394,11 +394,17 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 	}
 
+	// nil if command is not attestNoPoV
+	var candidateHashAccordingToCommand *parachaintypes.CandidateHash
+	if makeCommand == attestNoPoV {
+		candidateHashAccordingToCommand = &candidateHash
+	}
+
 	chRelayParentAndCommand <- relayParentAndCommand{
 		relayParent:   relayParent,
 		command:       makeCommand,
 		validationRes: &bgValidationResult,
-		candidateHash: candidateHash,
+		candidateHash: candidateHashAccordingToCommand,
 	}
 	return nil
 }
