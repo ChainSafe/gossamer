@@ -63,6 +63,7 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 		})
 
 		// Iterates children
+	childrens:
 		for {
 			// Decode node
 			decodedNode, err := l.layout.Codec().Decode(*nodeData)
@@ -111,6 +112,7 @@ func (l Lookup[H]) lookupWithoutCache(nibbleKey *nibble.NibbleSlice) ([]byte, er
 				if err != nil {
 					return nil, InvalidHash
 				}
+				break childrens
 			case node.Inline:
 				nodeData = &n.Data
 			}
