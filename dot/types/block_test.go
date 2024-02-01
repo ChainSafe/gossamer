@@ -131,3 +131,14 @@ func TestMustEncodeBlock(t *testing.T) {
 		})
 	}
 }
+
+func TestScaleUnmarshal(t *testing.T) {
+	block := NewBlock(*NewEmptyHeader(), Body{})
+	err := scale.Unmarshal(
+		[]byte{48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 4, 48, 48, 48, 48, 19, 48, 48, 48, 48, 48, 48, 48, 48}, //nolint
+		&block,
+	)
+
+	require.EqualError(t, err,
+		"decoding struct: unmarshalling field at index 0: decoding struct: unmarshalling field at index 4: decoding struct: unmarshalling field at index 1: byte array length 3472328296227680304 exceeds maximum of 16777216") //nolint
+}
