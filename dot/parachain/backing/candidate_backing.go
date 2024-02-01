@@ -127,7 +127,8 @@ type validator struct {
 }
 
 // sign method signs a given payload with the validator and returns a SignedFullStatement.
-func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.StatementVDT) (parachaintypes.SignedFullStatement, error) {
+func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.StatementVDT,
+) (parachaintypes.SignedFullStatement, error) {
 	statement := parachaintypes.SignedFullStatement{
 		Payload:        payload,
 		ValidatorIndex: v.index,

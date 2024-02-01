@@ -43,10 +43,12 @@ type backgroundValidationOutputs struct {
 // relayParentAndCommand contains the relay parent and the command to be executed on validated candidate,
 // along with the result of the background validation.
 type relayParentAndCommand struct {
-	relayParent   common.Hash
-	command       validatedCandidateCommand
-	validationRes *backgroundValidationResult   // set value if command is `second` or `attest`. nil if command is `attestNoPoV`
-	candidateHash *parachaintypes.CandidateHash // set value if command is `attestNoPoV`. nil if command is `second` or `attest`
+	relayParent common.Hash
+	command     validatedCandidateCommand
+	// set value if command is `second` or `attest`. nil if command is `attestNoPoV`
+	validationRes *backgroundValidationResult
+	// set value if command is `attestNoPoV`. nil if command is `second` or `attest`
+	candidateHash *parachaintypes.CandidateHash
 }
 
 func (r relayParentAndCommand) getCandidateHash() (parachaintypes.CandidateHash, error) {
@@ -149,7 +151,7 @@ func (cb *CandidateBacking) handleCommandSecond(
 			Parent:           rpState.relayParent,
 			CandidateReceipt: *bgValidationResult.candidate,
 		}
-		return nil
+		return fmt.Errorf("validation result: %w", bgValidationResult.err)
 	}
 
 	if rpState.issuedStatements[candidateHash] {
@@ -186,7 +188,7 @@ func (cb *CandidateBacking) handleCommandSecond(
 		PersistedValidationData:   pvd,
 	}
 
-	// sanity check that we're allowed to second the candidate and that it doesn't conflict with other candidates we've seconded.
+	// sanity check that we're allowed to second the candidate.
 	fragmentTreeMembership, err := cb.secondingSanityCheck(hypotheticalCandidate, false)
 	if err != nil {
 		return fmt.Errorf("not allowed to second: %w", err)
@@ -249,7 +251,11 @@ func (cb *CandidateBacking) handleCommandSecond(
 	return nil
 }
 
-func (cb *CandidateBacking) handleCommandAttest(bgValidationResult backgroundValidationResult, candidateHash parachaintypes.CandidateHash, rpState *perRelayParentState) error {
+func (cb *CandidateBacking) handleCommandAttest(
+	bgValidationResult backgroundValidationResult,
+	candidateHash parachaintypes.CandidateHash,
+	rpState *perRelayParentState,
+) error {
 	// We are done - no need to validate this candidate again.
 	delete(rpState.fallbacks, candidateHash)
 
@@ -260,14 +266,14 @@ func (cb *CandidateBacking) handleCommandAttest(bgValidationResult backgroundVal
 	}
 
 	statement := parachaintypes.NewStatementVDT()
-	err := statement.Set(parachaintypes.Valid(candidateHash))
-	if err != nil {
+	if err := statement.Set(parachaintypes.Valid(candidateHash)); err != nil {
 		return fmt.Errorf("setting statement: %w", err)
 	}
 
 	if bgValidationResult.err == nil {
-		_, err := signImportAndDistributeStatement(cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, nil, cb.keystore)
-		if err != nil {
+		if _, err := signImportAndDistributeStatement(
+			cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, nil, cb.keystore,
+		); err != nil {
 			return err
 		}
 	}

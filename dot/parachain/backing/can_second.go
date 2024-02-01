@@ -73,7 +73,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 // Returns error if the candidate cannot be seconded.
 func (cb *CandidateBacking) secondingSanityCheck(
 	hypotheticalCandidate parachaintypes.HypotheticalCandidate,
-	backedInPathOnly bool, //nolint:unparam
+	backedInPathOnly bool,
 ) (map[common.Hash][]uint, error) {
 	var (
 		candidateParaID      parachaintypes.ParaID
