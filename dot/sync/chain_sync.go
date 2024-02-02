@@ -114,6 +114,7 @@ type chainSync struct {
 
 	minPeers     int
 	slotDuration time.Duration
+	isStartup    bool
 
 	storageState       StorageState
 	transactionState   TransactionState
@@ -205,6 +206,8 @@ func (cs *chainSync) start() {
 	// since the default status from sync mode is syncMode(tip)
 	isSyncedGauge.Set(1)
 
+	cs.isStartup = true
+
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
@@ -238,7 +241,17 @@ func (cs *chainSync) stop() error {
 	}
 }
 
-func (cs *chainSync) currentSyncInformations() (bestBlockHeader *types.Header,
+func (cs *chainSync) initialSyncInformation() (highestFinalisedHeader *types.Header,
+	isBootstrap bool, err error) {
+	highestFinalisedHeader, err = cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, false, fmt.Errorf("getting finalized block header: %w", err)
+	}
+
+	return highestFinalisedHeader, true, nil
+}
+
+func (cs *chainSync) currentSyncInformation() (bestBlockHeader *types.Header,
 	isBootstrap bool, err error) {
 	bestBlockHeader, err = cs.blockState.BestBlockHeader()
 	if err != nil {
@@ -262,10 +275,22 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, isBootstrap, err := cs.currentSyncInformations()
-		if err != nil {
-			logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
-			return
+		var bestBlockHeader *types.Header
+		var isBootstrap bool
+		var err error
+		if cs.isStartup {
+			bestBlockHeader, isBootstrap, err = cs.initialSyncInformation()
+			if err != nil {
+				logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
+				return
+			}
+			cs.isStartup = false
+		} else {
+			bestBlockHeader, isBootstrap, err = cs.currentSyncInformation()
+			if err != nil {
+				logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
+				return
+			}
 		}
 
 		if isBootstrap {
@@ -297,7 +322,7 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 		return nil
 	}
 
-	_, isBootstrap, err := cs.currentSyncInformations()
+	_, isBootstrap, err := cs.currentSyncInformation()
 	if err != nil {
 		return fmt.Errorf("getting current sync info: %w", err)
 	}
@@ -333,7 +358,7 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	bestBlockHeader, isFarFromTarget, err := cs.currentSyncInformations()
+	bestBlockHeader, isFarFromTarget, err := cs.currentSyncInformation()
 	if err != nil {
 		return fmt.Errorf("getting current sync info: %w", err)
 	}
