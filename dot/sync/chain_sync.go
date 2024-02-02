@@ -114,6 +114,7 @@ type chainSync struct {
 
 	minPeers     int
 	slotDuration time.Duration
+	isStartup    bool
 
 	storageState       StorageState
 	transactionState   TransactionState
@@ -204,6 +205,7 @@ func (cs *chainSync) waitWorkersAndTarget() {
 func (cs *chainSync) start() {
 	// since the default status from sync mode is syncMode(tip)
 	isSyncedGauge.Set(1)
+	cs.isStartup = true
 
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
@@ -251,6 +253,17 @@ func (cs *chainSync) currentSyncInformations() (bestBlockHeader *types.Header,
 	return bestBlockHeader, isBootstrap, nil
 }
 
+func (cs *chainSync) initialSyncInformation() (bestBlockHeader *types.Header,
+	isBootstrap bool, err error) {
+
+	finalizedBlockHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, false, fmt.Errorf("getting finalized block header: %w", err)
+	}
+
+	return finalizedBlockHeader, true, nil
+}
+
 func (cs *chainSync) bootstrapSync() {
 	defer cs.wg.Done()
 
@@ -262,10 +275,24 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, isBootstrap, err := cs.currentSyncInformations()
-		if err != nil {
-			logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
-			return
+		var bestBlockHeader *types.Header
+		var isBootstrap bool
+		var err error
+
+		if cs.isStartup {
+			// get finalized
+			bestBlockHeader, isBootstrap, err = cs.initialSyncInformation()
+			if err != nil {
+				logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
+				return
+			}
+			cs.isStartup = false
+		} else {
+			bestBlockHeader, isBootstrap, err = cs.currentSyncInformations()
+			if err != nil {
+				logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
+				return
+			}
 		}
 
 		if isBootstrap {

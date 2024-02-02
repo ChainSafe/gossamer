@@ -55,18 +55,33 @@ func (p *PebbleDB) Put(key, value []byte) error {
 	return nil
 }
 
-func (p *PebbleDB) Get(key []byte) (value []byte, err error) {
+func (p *PebbleDB) Get(key []byte) ([]byte, error) {
+
+	//exists, err := p.Has(key)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//if !exists {
+	//	fmt.Println("doesnt exist ahhhhh")
+	//	//panic("DOESNT EXIST WTH")
+	//}
+
 	value, closer, err := p.db.Get(key)
 	if err != nil {
+		fmt.Printf("returning error %v\n", err)
 		return nil, err
 	}
+
+	valueCpy := make([]byte, len(value))
+	copy(valueCpy, value)
 
 	if err := closer.Close(); err != nil {
 		return nil, fmt.Errorf("closing after get: %w", err)
 	}
 
-	valueCpy := make([]byte, len(value))
-	copy(valueCpy, value)
+	//valueCpy := make([]byte, len(value))
+	//copy(valueCpy, value)
 	return valueCpy, err
 }
 
