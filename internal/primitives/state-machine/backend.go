@@ -1,7 +1,7 @@
 package statemachine
 
 import (
-	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
+	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/stats"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"golang.org/x/exp/constraints"
@@ -13,7 +13,7 @@ type Consolidate interface {
 }
 
 type Transaction interface {
-	Consolidate
+	// Consolidate
 }
 
 // / The output type of the `Hasher`
@@ -130,7 +130,7 @@ type StorageIterator[H HasherOut, T Transaction] interface {
 	// 		&mut self,
 	// 		backend: &Self::Backend,
 	// 	) -> Option<core::result::Result<StorageKey, Self::Error>>;
-	NextKey(backend Backend[H, T]) (StorageKey, error)
+	NextKey(backend Backend[H, T]) (overlayedchanges.StorageKey, error)
 
 	// 	/// Fetches the next key and value from the storage.
 	// 	fn next_pair(
@@ -138,8 +138,8 @@ type StorageIterator[H HasherOut, T Transaction] interface {
 	// 		backend: &Self::Backend,
 	// 	) -> Option<core::result::Result<(StorageKey, StorageValue), Self::Error>>;
 	NextPair(backend Backend[H, T]) (struct {
-		StorageKey
-		StorageValue
+		overlayedchanges.StorageKey
+		overlayedchanges.StorageValue
 	}, error)
 
 	/// Returns whether the end of iteration was reached without an error.
@@ -188,7 +188,7 @@ type KeysIter[H HasherOut, T Transaction] struct {
 type Backend[H HasherOut, T Transaction] interface {
 	/// Get keyed storage or None if there is nothing associated.
 	// fn storage(&self, key: &[u8]) -> Result<Option<StorageValue>, Self::Error>;
-	Storage(key []byte) (*StorageValue, error)
+	Storage(key []byte) (*overlayedchanges.StorageValue, error)
 
 	/// Get keyed storage value hash or None if there is nothing associated.
 	// fn storage_hash(&self, key: &[u8]) -> Result<Option<H::Out>, Self::Error>;
@@ -200,7 +200,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 	child_info: &ChildInfo,
 	// 	key: &[u8],
 	// ) -> Result<Option<StorageValue>, Self::Error>;
-	ChildStorage(childInfo storage.ChildInfo, key []byte) (*StorageValue, error)
+	ChildStorage(childInfo storage.ChildInfo, key []byte) (*overlayedchanges.StorageValue, error)
 
 	/// Get child keyed storage value hash or None if there is nothing associated.
 	// fn child_storage_hash(
@@ -228,7 +228,7 @@ type Backend[H HasherOut, T Transaction] interface {
 
 	/// Return the next key in storage in lexicographic order or `None` if there is no value.
 	// fn next_storage_key(&self, key: &[u8]) -> Result<Option<StorageKey>, Self::Error>;
-	NextStorageKey(key []byte) (*StorageKey, error)
+	NextStorageKey(key []byte) (*overlayedchanges.StorageKey, error)
 
 	/// Return the next key in child storage in lexicographic order or `None` if there is no value.
 	// fn next_child_storage_key(
@@ -236,7 +236,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 	child_info: &ChildInfo,
 	// 	key: &[u8],
 	// ) -> Result<Option<StorageKey>, Self::Error>;
-	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (*StorageKey, error)
+	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (*overlayedchanges.StorageKey, error)
 
 	/// Calculate the storage root, with given delta over what is already stored in
 	/// the backend, and produce a "transaction" that can be used to commit.
@@ -346,7 +346,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// ) -> Result<(), Self::Error> {
 	// 	unimplemented!()
 	// }
-	Commit(H, Transaction, StorageCollection, ChildStorageCollection) error
+	Commit(H, Transaction, overlayedchanges.StorageCollection, overlayedchanges.ChildStorageCollection) error
 
 	/// Get the read/write count of the db
 	// fn read_write_count(&self) -> (u32, u32, u32, u32) {
@@ -386,31 +386,4 @@ type Backend[H HasherOut, T Transaction] interface {
 		Write       uint32
 		Whitelisted bool
 	}
-}
-
-// / Storage key.
-type StorageValue []byte
-
-// / Storage value.
-type StorageKey []byte
-
-// / In memory array of storage values.
-// pub type StorageCollection = Vec<(StorageKey, Option<StorageValue>)>;
-type StorageCollection []struct {
-	StorageKey
-	*StorageValue
-}
-
-// / In memory arrays of storage values for multiple child tries.
-// pub type ChildStorageCollection = Vec<(StorageKey, StorageCollection)>;
-type ChildStorageCollection []struct {
-	StorageKey
-	StorageCollection
-}
-
-// / In memory array of storage values.
-// pub type OffchainChangesCollection = Vec<((Vec<u8>, Vec<u8>), OffchainOverlayedChange)>;
-type OffchainChangesCollection []struct {
-	KeyValue [2][]byte
-	offchain.OffchainOverlayedChange
 }

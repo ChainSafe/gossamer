@@ -57,7 +57,7 @@ func TestFinalityProof_FailsIfNoMoreLastFinalizedBlocks(t *testing.T) {
 	mockBlockchain := mocks.NewBlockchainBackend[hash.H256, uint32](t)
 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
 
-	mockBackend := mocks.NewBackend[hash.H256, uint32](t)
+	mockBackend := mocks.NewBackend[hash.H256, uint32, []byte](t)
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Once()
 
 	// The last finalized block is 4, so we cannot provide further justifications.
@@ -80,7 +80,7 @@ func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint32(4)).Return(dummyHash, nil).Once()
 	mockBlockchain.EXPECT().Justifications(dummyHash).Return(nil, nil).Once()
 
-	mockBackend := mocks.NewBackend[hash.H256, uint32](t)
+	mockBackend := mocks.NewBackend[hash.H256, uint32, []byte](t)
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(3)
 
 	authoritySetChanges := AuthoritySetChanges[uint32]{}
@@ -192,7 +192,7 @@ func createCommit[H runtime.Hash, N runtime.Number](
 	}
 }
 
-func newHeader(t *testing.T, number uint64) *generic.Header[uint64, hash.H256] {
+func newHeader(t *testing.T, number uint64) *generic.Header[uint64, hash.H256, runtime.BlakeTwo256] {
 	// var defaultHash = [32]byte{}
 	var parentHash = hash.H256("")
 	switch number {
@@ -200,7 +200,7 @@ func newHeader(t *testing.T, number uint64) *generic.Header[uint64, hash.H256] {
 	default:
 		parentHash = newHeader(t, number-1).Hash()
 	}
-	header := generic.NewHeader(number, hash.H256(""), hash.H256(""), parentHash, runtime.Digest{}, runtime.BlakeTwo256{})
+	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](number, hash.H256(""), hash.H256(""), parentHash, runtime.Digest{})
 	return &header
 }
 
@@ -214,7 +214,7 @@ func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	alice := ed25519.Alice
 	var setID SetID = 1
 	var round uint64 = 8
-	var block = generic.NewBlock[uint64, hash.H256](newHeader(t, 7), nil)
+	var block = generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
 	commit := createCommit(t, block, round, setID, []ed25519.Keyring{alice})
 
 	var client blockchain.HeaderBackend[hash.H256, uint64]
@@ -250,7 +250,7 @@ func TestFinalityProof_UsingAuthoritySetChangesFailsWithUndefinedStart(t *testin
 	mockBlockchainBackend := mocks.NewBlockchainBackend[hash.H256, uint64](t)
 	mockBlockchainBackend.EXPECT().Info().Return(info).Once()
 
-	mockBackend := mocks.NewBackend[hash.H256, uint64](t)
+	mockBackend := mocks.NewBackend[hash.H256, uint64, []byte](t)
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchainBackend).Once()
 
 	// We are missing the block for the preceding set the start is not well-defined.
@@ -270,8 +270,8 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 	// let (client, backend, blocks) = test_blockchain(8, &[4, 5]);
 	// let block7 = &blocks[6];
 	// let block8 = &blocks[7];
-	block7 := generic.NewBlock[uint64, hash.H256](newHeader(t, 6), nil)
-	block8 := generic.NewBlock[uint64, hash.H256](newHeader(t, 6), nil)
+	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 6), nil)
+	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 6), nil)
 
 	// let round = 8;
 	// let commit = create_commit(block8.clone(), round, 1, &[Ed25519Keyring::Alice]);

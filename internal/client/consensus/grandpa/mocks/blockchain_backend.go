@@ -140,6 +140,64 @@ func (_c *BlockchainBackend_BlockNumberFromID_Call[Hash, N]) RunAndReturn(run fu
 	return _c
 }
 
+// DisplacedLeavesAfterFinalizing provides a mock function with given fields: blockNumber
+func (_m *BlockchainBackend[Hash, N]) DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error) {
+	ret := _m.Called(blockNumber)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DisplacedLeavesAfterFinalizing")
+	}
+
+	var r0 []Hash
+	var r1 error
+	if rf, ok := ret.Get(0).(func(N) ([]Hash, error)); ok {
+		return rf(blockNumber)
+	}
+	if rf, ok := ret.Get(0).(func(N) []Hash); ok {
+		r0 = rf(blockNumber)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]Hash)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(N) error); ok {
+		r1 = rf(blockNumber)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// BlockchainBackend_DisplacedLeavesAfterFinalizing_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DisplacedLeavesAfterFinalizing'
+type BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash runtime.Hash, N runtime.Number] struct {
+	*mock.Call
+}
+
+// DisplacedLeavesAfterFinalizing is a helper method to define mock.On call
+//   - blockNumber N
+func (_e *BlockchainBackend_Expecter[Hash, N]) DisplacedLeavesAfterFinalizing(blockNumber interface{}) *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N] {
+	return &BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N]{Call: _e.mock.On("DisplacedLeavesAfterFinalizing", blockNumber)}
+}
+
+func (_c *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N]) Run(run func(blockNumber N)) *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(N))
+	})
+	return _c
+}
+
+func (_c *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N]) Return(_a0 []Hash, _a1 error) *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N]) RunAndReturn(run func(N) ([]Hash, error)) *BlockchainBackend_DisplacedLeavesAfterFinalizing_Call[Hash, N] {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ExpectBlockHashFromID provides a mock function with given fields: id
 func (_m *BlockchainBackend[Hash, N]) ExpectBlockHashFromID(id generic.BlockID) (Hash, error) {
 	ret := _m.Called(id)
@@ -311,22 +369,24 @@ func (_c *BlockchainBackend_ExpectHeader_Call[Hash, N]) RunAndReturn(run func(Ha
 }
 
 // Hash provides a mock function with given fields: number
-func (_m *BlockchainBackend[Hash, N]) Hash(number N) (Hash, error) {
+func (_m *BlockchainBackend[Hash, N]) Hash(number N) (*Hash, error) {
 	ret := _m.Called(number)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Hash")
 	}
 
-	var r0 Hash
+	var r0 *Hash
 	var r1 error
-	if rf, ok := ret.Get(0).(func(N) (Hash, error)); ok {
+	if rf, ok := ret.Get(0).(func(N) (*Hash, error)); ok {
 		return rf(number)
 	}
-	if rf, ok := ret.Get(0).(func(N) Hash); ok {
+	if rf, ok := ret.Get(0).(func(N) *Hash); ok {
 		r0 = rf(number)
 	} else {
-		r0 = ret.Get(0).(Hash)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*Hash)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(N) error); ok {
@@ -356,12 +416,12 @@ func (_c *BlockchainBackend_Hash_Call[Hash, N]) Run(run func(number N)) *Blockch
 	return _c
 }
 
-func (_c *BlockchainBackend_Hash_Call[Hash, N]) Return(_a0 Hash, _a1 error) *BlockchainBackend_Hash_Call[Hash, N] {
+func (_c *BlockchainBackend_Hash_Call[Hash, N]) Return(_a0 *Hash, _a1 error) *BlockchainBackend_Hash_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_Hash_Call[Hash, N]) RunAndReturn(run func(N) (Hash, error)) *BlockchainBackend_Hash_Call[Hash, N] {
+func (_c *BlockchainBackend_Hash_Call[Hash, N]) RunAndReturn(run func(N) (*Hash, error)) *BlockchainBackend_Hash_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -424,9 +484,32 @@ func (_c *BlockchainBackend_Header_Call[Hash, N]) RunAndReturn(run func(Hash) (*
 	return _c
 }
 
-// HeaderMetadata provides a mock function with given fields:
-func (_m *BlockchainBackend[Hash, N]) HeaderMetadata() {
-	_m.Called()
+// HeaderMetadata provides a mock function with given fields: hash
+func (_m *BlockchainBackend[Hash, N]) HeaderMetadata(hash Hash) (blockchain.CachedHeaderMetadata[Hash, N], error) {
+	ret := _m.Called(hash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HeaderMetadata")
+	}
+
+	var r0 blockchain.CachedHeaderMetadata[Hash, N]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(Hash) (blockchain.CachedHeaderMetadata[Hash, N], error)); ok {
+		return rf(hash)
+	}
+	if rf, ok := ret.Get(0).(func(Hash) blockchain.CachedHeaderMetadata[Hash, N]); ok {
+		r0 = rf(hash)
+	} else {
+		r0 = ret.Get(0).(blockchain.CachedHeaderMetadata[Hash, N])
+	}
+
+	if rf, ok := ret.Get(1).(func(Hash) error); ok {
+		r1 = rf(hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // BlockchainBackend_HeaderMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HeaderMetadata'
@@ -435,23 +518,24 @@ type BlockchainBackend_HeaderMetadata_Call[Hash runtime.Hash, N runtime.Number] 
 }
 
 // HeaderMetadata is a helper method to define mock.On call
-func (_e *BlockchainBackend_Expecter[Hash, N]) HeaderMetadata() *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
-	return &BlockchainBackend_HeaderMetadata_Call[Hash, N]{Call: _e.mock.On("HeaderMetadata")}
+//   - hash Hash
+func (_e *BlockchainBackend_Expecter[Hash, N]) HeaderMetadata(hash interface{}) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
+	return &BlockchainBackend_HeaderMetadata_Call[Hash, N]{Call: _e.mock.On("HeaderMetadata", hash)}
 }
 
-func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) Run(run func()) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
+func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) Run(run func(hash Hash)) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		run(args[0].(Hash))
 	})
 	return _c
 }
 
-func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) Return() *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
-	_c.Call.Return()
+func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) Return(_a0 blockchain.CachedHeaderMetadata[Hash, N], _a1 error) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) RunAndReturn(run func()) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
+func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) RunAndReturn(run func(Hash) (blockchain.CachedHeaderMetadata[Hash, N], error)) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -593,23 +677,137 @@ func (_c *BlockchainBackend_Justifications_Call[Hash, N]) RunAndReturn(run func(
 	return _c
 }
 
+// LastFinalized provides a mock function with given fields:
+func (_m *BlockchainBackend[Hash, N]) LastFinalized() (Hash, error) {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for LastFinalized")
+	}
+
+	var r0 Hash
+	var r1 error
+	if rf, ok := ret.Get(0).(func() (Hash, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() Hash); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(Hash)
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// BlockchainBackend_LastFinalized_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LastFinalized'
+type BlockchainBackend_LastFinalized_Call[Hash runtime.Hash, N runtime.Number] struct {
+	*mock.Call
+}
+
+// LastFinalized is a helper method to define mock.On call
+func (_e *BlockchainBackend_Expecter[Hash, N]) LastFinalized() *BlockchainBackend_LastFinalized_Call[Hash, N] {
+	return &BlockchainBackend_LastFinalized_Call[Hash, N]{Call: _e.mock.On("LastFinalized")}
+}
+
+func (_c *BlockchainBackend_LastFinalized_Call[Hash, N]) Run(run func()) *BlockchainBackend_LastFinalized_Call[Hash, N] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *BlockchainBackend_LastFinalized_Call[Hash, N]) Return(_a0 Hash, _a1 error) *BlockchainBackend_LastFinalized_Call[Hash, N] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *BlockchainBackend_LastFinalized_Call[Hash, N]) RunAndReturn(run func() (Hash, error)) *BlockchainBackend_LastFinalized_Call[Hash, N] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Leaves provides a mock function with given fields:
+func (_m *BlockchainBackend[Hash, N]) Leaves() ([]Hash, error) {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Leaves")
+	}
+
+	var r0 []Hash
+	var r1 error
+	if rf, ok := ret.Get(0).(func() ([]Hash, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() []Hash); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]Hash)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// BlockchainBackend_Leaves_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Leaves'
+type BlockchainBackend_Leaves_Call[Hash runtime.Hash, N runtime.Number] struct {
+	*mock.Call
+}
+
+// Leaves is a helper method to define mock.On call
+func (_e *BlockchainBackend_Expecter[Hash, N]) Leaves() *BlockchainBackend_Leaves_Call[Hash, N] {
+	return &BlockchainBackend_Leaves_Call[Hash, N]{Call: _e.mock.On("Leaves")}
+}
+
+func (_c *BlockchainBackend_Leaves_Call[Hash, N]) Run(run func()) *BlockchainBackend_Leaves_Call[Hash, N] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *BlockchainBackend_Leaves_Call[Hash, N]) Return(_a0 []Hash, _a1 error) *BlockchainBackend_Leaves_Call[Hash, N] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *BlockchainBackend_Leaves_Call[Hash, N]) RunAndReturn(run func() ([]Hash, error)) *BlockchainBackend_Leaves_Call[Hash, N] {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Number provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) Number(hash Hash) (N, error) {
+func (_m *BlockchainBackend[Hash, N]) Number(hash Hash) (*N, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Number")
 	}
 
-	var r0 N
+	var r0 *N
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (N, error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) (*N, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) N); ok {
+	if rf, ok := ret.Get(0).(func(Hash) *N); ok {
 		r0 = rf(hash)
 	} else {
-		r0 = ret.Get(0).(N)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*N)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(Hash) error); ok {
@@ -639,12 +837,12 @@ func (_c *BlockchainBackend_Number_Call[Hash, N]) Run(run func(hash Hash)) *Bloc
 	return _c
 }
 
-func (_c *BlockchainBackend_Number_Call[Hash, N]) Return(_a0 N, _a1 error) *BlockchainBackend_Number_Call[Hash, N] {
+func (_c *BlockchainBackend_Number_Call[Hash, N]) Return(_a0 *N, _a1 error) *BlockchainBackend_Number_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_Number_Call[Hash, N]) RunAndReturn(run func(Hash) (N, error)) *BlockchainBackend_Number_Call[Hash, N] {
+func (_c *BlockchainBackend_Number_Call[Hash, N]) RunAndReturn(run func(Hash) (*N, error)) *BlockchainBackend_Number_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }

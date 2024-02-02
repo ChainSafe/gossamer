@@ -1,5 +1,11 @@
 package blockchain
 
+import (
+	"slices"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+)
+
 // / Hash and number of a block.
 type HashNumber[H any, N any] struct {
 	/// The hash of the block.
@@ -41,6 +47,93 @@ type TreeRoute[H, N any] struct {
 	pivot uint
 }
 
+// / Creates a new `TreeRoute`.
+// /
+// / To preserve the structure safety invariats it is required that `pivot < route.len()`.
+func NewTreeRoute[H runtime.Hash, N runtime.Number](backend HeaderMetaData[H, N], from H, to H) (TreeRoute[H, N], error) {
+	fromData, err := backend.HeaderMetadata(from)
+	if err != nil {
+		return TreeRoute[H, N]{}, err
+	}
+	toData, err := backend.HeaderMetadata(to)
+	if err != nil {
+		return TreeRoute[H, N]{}, err
+	}
+
+	var (
+		fromBranch []HashNumber[H, N]
+		toBranch   []HashNumber[H, N]
+	)
+
+	for toData.Number > fromData.Number {
+		toBranch = append(toBranch, HashNumber[H, N]{toData.Hash, toData.Number})
+		toData, err = backend.HeaderMetadata(toData.Parent)
+		if err != nil {
+			return TreeRoute[H, N]{}, err
+		}
+	}
+
+	for fromData.Number > toData.Number {
+		fromBranch = append(fromBranch, HashNumber[H, N]{fromData.Hash, fromData.Number})
+		fromData, err = backend.HeaderMetadata(fromData.Parent)
+		if err != nil {
+			return TreeRoute[H, N]{}, err
+		}
+	}
+
+	// numbers are equal now. walk backwards until the block is the same
+	for toData.Hash != fromData.Hash {
+		toBranch = append(toBranch, HashNumber[H, N]{toData.Hash, toData.Number})
+		toData, err = backend.HeaderMetadata(toData.Parent)
+		if err != nil {
+			return TreeRoute[H, N]{}, err
+		}
+
+		fromBranch = append(fromBranch, HashNumber[H, N]{fromData.Hash, fromData.Number})
+		fromData, err = backend.HeaderMetadata(fromData.Parent)
+		if err != nil {
+			return TreeRoute[H, N]{}, err
+		}
+	}
+
+	// add the pivot block. and append the reversed to-branch
+	// (note that it's reverse order originals)
+	pivot := uint(len(fromBranch))
+	fromBranch = append(fromBranch, HashNumber[H, N]{toData.Hash, toData.Number})
+	slices.Reverse(toBranch)
+	fromBranch = append(fromBranch, toBranch...)
+
+	return TreeRoute[H, N]{
+		route: fromBranch,
+		pivot: pivot,
+	}, nil
+}
+
+// / Get a slice of all retracted blocks in reverse order (towards common ancestor).
+func (tr TreeRoute[H, N]) Retratcted() []HashNumber[H, N] {
+	return tr.route[0:tr.pivot]
+}
+
+// / Get the common ancestor block. This might be one of the two blocks of the
+// / route.
+func (tr TreeRoute[H, N]) CommonBlock() HashNumber[H, N] {
+	// self.route.get(self.pivot).expect(
+	// 		"tree-routes are computed between blocks; \
+	// 		which are included in the route; \
+	// 		thus it is never empty; qed",
+	// 	)
+	return tr.route[tr.pivot]
+}
+
+// / Get a slice of enacted blocks (descendents of the common ancestor)
+func (tr TreeRoute[H, N]) Enacted() []HashNumber[H, N] {
+	return tr.route[tr.pivot+1:]
+}
+
+func (tr TreeRoute[H, N]) Last() *HashNumber[H, N] {
+	return &tr.route[len(tr.route)-1]
+}
+
 // / Handles header metadata: hash, number, parent hash, etc.
 // pub trait HeaderMetadata<Block: BlockT> {
 type HeaderMetaData[H, N any] interface {
@@ -48,7 +141,7 @@ type HeaderMetaData[H, N any] interface {
 	// 	&self,
 	// 	hash: Block::Hash,
 	// ) -> Result<CachedHeaderMetadata<Block>, Self::Error>;
-	HeaderMetadata()
+	HeaderMetadata(hash H) (CachedHeaderMetadata[H, N], error)
 	// fn insert_header_metadata(
 	// 	&self,
 	// 	hash: Block::Hash,

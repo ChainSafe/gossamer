@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -46,8 +47,9 @@ const maxUnknownHeaders = 100_000
 type FinalityProofProvider[
 	Hash runtime.Hash,
 	N runtime.Number,
+	T statemachine.Transaction,
 ] struct {
-	backend            api.Backend[Hash, N]
+	backend            api.Backend[Hash, N, T]
 	sharedAuthoritySet *SharedAuthoritySet[Hash, N]
 }
 
@@ -59,11 +61,12 @@ type FinalityProofProvider[
 func NewFinalityProofProvider[
 	Hash runtime.Hash,
 	N runtime.Number,
+	T statemachine.Transaction,
 ](
-	backend api.Backend[Hash, N],
+	backend api.Backend[Hash, N, T],
 	sharedAuthSet *SharedAuthoritySet[Hash, N],
-) *FinalityProofProvider[Hash, N] {
-	return &FinalityProofProvider[Hash, N]{
+) *FinalityProofProvider[Hash, N, T] {
+	return &FinalityProofProvider[Hash, N, T]{
 		backend:            backend,
 		sharedAuthoritySet: sharedAuthSet,
 	}
@@ -71,7 +74,7 @@ func NewFinalityProofProvider[
 
 // ProveFinality Prove finality for the given block number by returning a Justification for the last block of
 // the authority set in bytes.
-func (provider FinalityProofProvider[Hash, N]) ProveFinality(block N) (*[]byte, error) {
+func (provider FinalityProofProvider[Hash, N, T]) ProveFinality(block N) (*[]byte, error) {
 	proof, err := provider.proveFinalityProof(block, true)
 	if err != nil {
 		return nil, err
@@ -93,7 +96,7 @@ func (provider FinalityProofProvider[Hash, N]) ProveFinality(block N) (*[]byte, 
 //
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
-func (provider FinalityProofProvider[Hash, N]) proveFinalityProof(
+func (provider FinalityProofProvider[Hash, N, T]) proveFinalityProof(
 	block N,
 	collectUnknownHeaders bool) (*FinalityProof[Hash, N], error) {
 	if provider.sharedAuthoritySet == nil {
@@ -129,8 +132,9 @@ type FinalityProof[Hash runtime.Hash, N runtime.Number] struct {
 func proveFinality[
 	Hash runtime.Hash,
 	N runtime.Number,
+	T statemachine.Transaction,
 ](
-	backend api.Backend[Hash, N],
+	backend api.Backend[Hash, N, T],
 	authSetChanges AuthoritySetChanges[N],
 	block N,
 	collectUnknownHeaders bool,
