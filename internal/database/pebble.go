@@ -55,7 +55,7 @@ func (p *PebbleDB) Put(key, value []byte) error {
 	return nil
 }
 
-func (p *PebbleDB) Get(key []byte) ([]byte, error) {
+func (p *PebbleDB) Get(key []byte) (value []byte, err error) {
 	value, closer, err := p.db.Get(key)
 	if err != nil {
 		return nil, err
