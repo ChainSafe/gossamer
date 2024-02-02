@@ -62,3 +62,34 @@ type Digest struct {
 	/// A list of logs in the digest.
 	Logs []DigestItem
 }
+
+// impl Digest {
+// 	/// Get reference to all digest items.
+// 	pub fn logs(&self) -> &[DigestItem] {
+// 		&self.logs
+// 	}
+
+// /// Push new digest item.
+func (d *Digest) Push(item DigestItem) {
+	d.Logs = append(d.Logs, item)
+}
+
+// 	pub fn push(&mut self, item: DigestItem) {
+// 		self.logs.push(item);
+// 	}
+
+// 	/// Pop a digest item.
+// 	pub fn pop(&mut self) -> Option<DigestItem> {
+// 		self.logs.pop()
+// 	}
+
+// 	/// Get reference to the first digest item that matches the passed predicate.
+// 	pub fn log<T: ?Sized, F: Fn(&DigestItem) -> Option<&T>>(&self, predicate: F) -> Option<&T> {
+// 		self.logs().iter().find_map(predicate)
+// 	}
+
+// 	/// Get a conversion of the first digest item that successfully converts using the function.
+// 	pub fn convert_first<T, F: Fn(&DigestItem) -> Option<T>>(&self, predicate: F) -> Option<T> {
+// 		self.logs().iter().find_map(predicate)
+// 	}
+// }

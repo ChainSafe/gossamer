@@ -56,7 +56,7 @@ type BlockchainEvents[H runtime.Hash, N runtime.Number, T statemachine.Transacti
 // pub type AuxDataOperations = Vec<(Vec<u8>, Option<Vec<u8>>)>;
 type AuxDataOperation struct {
 	Key  []byte
-	Data []byte
+	Data *[]byte
 }
 type AuxDataOperations []AuxDataOperation
 
@@ -152,6 +152,6 @@ func NewBlockImportNotificationFromSummary[H runtime.Hash, N runtime.Number](
 		Origin:    summary.Origin,
 		Header:    summary.Header,
 		IsNewBest: summary.IsNewBest,
-		TreeRoute: &summary.TreeRoute,
+		TreeRoute: summary.TreeRoute,
 	}
 }

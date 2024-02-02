@@ -89,11 +89,13 @@ type Backend[Hash runtime.Hash, N runtime.Number] interface {
 	Justifications(hash Hash) (*runtime.Justifications, error)
 	// /// Get last finalized block hash.
 	// fn last_finalized(&self) -> Result<Block::Hash>;
+	LastFinalized() (Hash, error)
 
 	// /// Returns hashes of all blocks that are leaves of the block tree.
 	// /// in other words, that have no children, are chain heads.
 	// /// Results must be ordered best (longest, highest) chain first.
 	// fn leaves(&self) -> Result<Vec<Block::Hash>>;
+	Leaves() ([]Hash, error)
 
 	// /// Returns displaced leaves after the given block would be finalized.
 	// ///
@@ -102,6 +104,7 @@ type Backend[Hash runtime.Hash, N runtime.Number] interface {
 	// 	&self,
 	// 	block_number: NumberFor<Block>,
 	// ) -> Result<Vec<Block::Hash>>;
+	DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error)
 
 	// /// Return hashes of all blocks that are children of the block with `parent_hash`.
 	// fn children(&self, parent_hash: Block::Hash) -> Result<Vec<Block::Hash>>;

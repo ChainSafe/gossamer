@@ -46,14 +46,14 @@ type ImportSummary[N runtime.Number, H runtime.Hash] struct {
 	//		/// Optional storage changes.
 	//		pub storage_changes: Option<(StorageCollection, ChildStorageCollection)>,
 	StorageChanges *struct {
-		statemachine.StorageCollection
-		statemachine.ChildStorageCollection
+		overlayedchanges.StorageCollection
+		overlayedchanges.ChildStorageCollection
 	}
 	/// Tree route from old best to new best.
 	///
 	/// If `None`, there was no re-org while importing.
 	// pub tree_route: Option<sp_blockchain::TreeRoute<Block>>,
-	TreeRoute blockchain.TreeRoute[H, N]
+	TreeRoute *blockchain.TreeRoute[H, N]
 	/// What notify action to take for this import.
 	// pub import_notification_action: ImportNotificationAction,
 	ImportNotificationAction ImportNotificationAction
@@ -120,7 +120,7 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash, T statemachine.Trans
 	// 		justifications: Option<Justifications>,
 	// 		state: NewBlockState,
 	// 	) -> sp_blockchain::Result<()>;
-	SetBlockData(header runtime.Header[N, H], body []runtime.Extrinsic, indexedBody [][]byte, justifications *runtime.Justifications, state NewBlockState) error
+	SetBlockData(header runtime.Header[N, H], body *[]runtime.Extrinsic, indexedBody [][]byte, justifications *runtime.Justifications, state NewBlockState) error
 
 	/// Inject storage data into the database.
 	// 	fn update_db_storage(
@@ -153,7 +153,7 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash, T statemachine.Trans
 	// 		update: StorageCollection,
 	// 		child_update: ChildStorageCollection,
 	// 	) -> sp_blockchain::Result<()>;
-	UpdateStorage(update statemachine.StorageCollection, childUpdate statemachine.ChildStorageCollection) error
+	UpdateStorage(update overlayedchanges.StorageCollection, childUpdate overlayedchanges.ChildStorageCollection) error
 
 	/// Write offchain storage changes to the database.
 	// 	fn update_offchain_storage(
@@ -162,7 +162,7 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash, T statemachine.Trans
 	// 	) -> sp_blockchain::Result<()> {
 	// 		Ok(())
 	// 	}
-	UpdateOffchainStorage(offchainUpdate statemachine.OffchainChangesCollection) error
+	UpdateOffchainStorage(offchainUpdate overlayedchanges.OffchainChangesCollection) error
 
 	/// Insert auxiliary keys.
 	///
@@ -438,6 +438,7 @@ type Backend[H runtime.Hash, N runtime.Number, T statemachine.Transaction] inter
 	// 	operation: &mut Self::BlockImportOperation,
 	// 	block: Block::Hash,
 	// ) -> sp_blockchain::Result<()>;
+	BeginStateOperation(operation *BlockImportOperation[N, H, T], block H) error
 
 	// /// Commit block insertion.
 	// fn commit_operation(

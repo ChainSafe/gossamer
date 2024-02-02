@@ -18,12 +18,12 @@ type StorageNotification[H any] struct {
 // pub struct StorageChangeSet {
 type StorageChangeSet struct {
 	// changes: Arc<[(StorageKey, Option<StorageData>)]>,
-	changes []struct {
+	Changes []struct {
 		StorageKey  []byte
 		StorageData *[]byte
 	}
 	// child_changes: Arc<[(StorageKey, Vec<(StorageKey, Option<StorageData>)>)]>,
-	childChanges []struct {
+	ChildChanges []struct {
 		StorageKey []byte
 		KeyData    []struct {
 			StorageKey  []byte
@@ -35,6 +35,10 @@ type StorageChangeSet struct {
 	// child_filters: ChildKeys,
 	childFilters ChildKeys[string]
 }
+
+// / Manages storage listeners.
+// pub struct StorageNotifications<Block: BlockT>(Hub<StorageNotification<Block::Hash>, Registry>);
+type StorageNotifications[H any] chan StorageNotification[H]
 
 // / Type that implements `futures::Stream` of storage change events.
 // pub struct StorageEventStream<H>(Receiver<StorageNotification<H>, Registry>);

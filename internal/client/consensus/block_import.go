@@ -190,8 +190,8 @@ type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
 	/// than updating `AuxStore` directly.
 	// pub auxiliary: Vec<(Vec<u8>, Option<Vec<u8>>)>,
 	Auxiliary []struct {
-		Key   []byte
-		Value *[]byte
+		Key  []byte
+		Data *[]byte
 	}
 	/// Fork choice strategy of this import. This should only be set by a
 	/// synchronous import, otherwise it may race against other imports.
