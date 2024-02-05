@@ -28,7 +28,7 @@ const (
 
 type Service struct {
 	Network  Network
-	overseer *overseer.Overseer
+	overseer overseer.OverseerSystem
 }
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
@@ -41,7 +41,7 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 	}
 	genesisHash := st.Block.GenesisHash()
 
-	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st.DB())
+	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB())
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
@@ -85,7 +85,7 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
-	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
+	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (Service) Stop() error {
 func (s Service) run() {
 	overseer := s.overseer
 
-	candidateBacking := backing.New(overseer.SubsystemsToOverseer)
+	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel())
 	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)
 
 	// TODO: Add `Prospective Parachains` Subsystem. create an issue.

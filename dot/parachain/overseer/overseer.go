@@ -25,6 +25,13 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-overseer"))
 )
 
+type OverseerSystem interface {
+	Start() error
+	RegisterSubsystem(subsystem Subsystem) chan any
+	Stop() error
+	GetSubsystemToOverseerChannel() chan any
+}
+
 type Overseer struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -52,7 +59,7 @@ type BlockState interface {
 	GetRuntime(hash common.Hash) (runtime.Instance, error)
 }
 
-func NewOverseer(blockState BlockState) *Overseer {
+func NewOverseer(blockState BlockState) OverseerSystem {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -66,6 +73,10 @@ func NewOverseer(blockState BlockState) *Overseer {
 		subsystems:           make(map[Subsystem]chan any),
 		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
 	}
+}
+
+func (o *Overseer) GetSubsystemToOverseerChannel() chan any {
+	return o.SubsystemsToOverseer
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,

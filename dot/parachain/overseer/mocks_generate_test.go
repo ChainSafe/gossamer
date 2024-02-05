@@ -3,4 +3,4 @@
 
 package overseer
 
-//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . BlockState
+//go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . BlockState,OverseerSystem
