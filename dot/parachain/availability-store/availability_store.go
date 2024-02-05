@@ -849,6 +849,9 @@ func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(blockNumber int,
 	}
 	defer iter.Release()
 
+	// TODO: use finalizedHash
+	logger.Infof("finalizedHash %s", finalizedHash)
+
 	for iter.Next() {
 		key := iter.Key()
 		logger.Infof("key %s", key)

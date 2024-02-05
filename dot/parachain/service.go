@@ -42,7 +42,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	genesisHash := st.Block.GenesisHash()
 
-	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st.DB())
+	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB())
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
