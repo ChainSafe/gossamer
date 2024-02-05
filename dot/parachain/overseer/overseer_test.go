@@ -244,12 +244,12 @@ func TestSignalAvailabilityStore(t *testing.T) {
 
 	inmemoryDB := setupTestDB(t)
 
-	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, inmemoryDB)
+	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
 	require.NoError(t, err)
 
 	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
 
-	chainApi, err := chainapi.Register(overseer.SubsystemsToOverseer)
+	chainApi, err := chainapi.Register(overseer.GetSubsystemToOverseerChannel())
 	require.NoError(t, err)
 	chainApi.OverseerToSubSystem = overseer.RegisterSubsystem(chainApi)
 
@@ -269,3 +269,66 @@ func setupTestDB(t *testing.T) database.Database {
 	inmemoryDB := state.NewInMemoryDB(t)
 	return inmemoryDB
 }
+
+func TestRuntimeApiErrorDoesNotStopTheSubsystem(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	overseer := NewMockOverseerSystem(ctrl)
+	subToOverseer := make(chan any)
+
+	// TODO: add error to availability store to test this
+	overseer.EXPECT().GetSubsystemToOverseerChannel().Return(subToOverseer).AnyTimes()
+	overseer.EXPECT().RegisterSubsystem(gomock.Any()).Return(subToOverseer).AnyTimes()
+	overseer.EXPECT().Start().Return(nil)
+	overseer.EXPECT().Stop().Return(nil)
+
+	require.NotNil(t, overseer)
+
+	stateService := state.NewService(state.Config{})
+	stateService.UseMemDB()
+
+	inmemoryDB := setupTestDB(t)
+
+	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
+	require.NoError(t, err)
+
+	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+
+	chainApi, err := chainapi.Register(overseer.GetSubsystemToOverseerChannel())
+	require.NoError(t, err)
+	chainApi.OverseerToSubSystem = overseer.RegisterSubsystem(chainApi)
+
+	err = overseer.Start()
+	require.NoError(t, err)
+
+	time.Sleep(1000 * time.Millisecond)
+
+	err = overseer.Stop()
+	require.NoError(t, err)
+}
+
+// fn runtime_api_error_does_not_stop_the_subsystem()
+
+// fn store_chunk_works()
+
+// fn store_chunk_does_nothing_if_no_entry_already()
+
+// fn query_chunk_checks_meta()
+
+// fn store_available_data_erasure_mismatch()
+
+// fn store_block_works()
+
+// fn store_pov_and_query_chunk_works()
+
+// fn query_all_chunks_works()
+
+// fn stored_but_not_included_data_is_pruned()
+
+// fn stored_data_kept_until_finalized()
+
+// fn we_dont_miss_anything_if_import_notifications_are_missed()
+
+// fn forkfullness_works()
+
+// fn query_chunk_size_works()
