@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 )
 
-func Register(overseerChan chan<- any, db database.Database) (*AvailabilityStoreSubsystem, error) {
+func CreateAndRegister(overseerChan chan<- any, db database.Database) (*AvailabilityStoreSubsystem, error) {
 	availabilityStore := NewAvailabilityStore(db)
 
 	ctx := context.Background()

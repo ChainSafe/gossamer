@@ -171,7 +171,7 @@ func TestSignalAvailabilityStore(t *testing.T) {
 
 	inmemoryDB := setupTestDB(t)
 
-	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
+	availabilityStore, err := availability_store.CreateAndRegister(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
 	require.NoError(t, err)
 
 	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
@@ -206,6 +206,8 @@ func setupTestDB(t *testing.T) database.Database {
 	return inmemoryDB
 }
 
+// TODO: consider removing this test since and replacing with the test harness tests since there is more control over
+// the subsystems and the overseer
 func TestRuntimeApiErrorDoesNotStopTheSubsystem(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -225,7 +227,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystem(t *testing.T) {
 
 	inmemoryDB := setupTestDB(t)
 
-	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
+	availabilityStore, err := availability_store.CreateAndRegister(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
 	require.NoError(t, err)
 
 	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
@@ -268,3 +270,131 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystem(t *testing.T) {
 // fn forkfullness_works()
 
 // fn query_chunk_size_works()
+
+type testOverseer struct {
+	ctx context.Context
+
+	subsystems           map[Subsystem]chan any
+	SubsystemsToOverseer chan any
+	wg                   sync.WaitGroup
+}
+
+func NewTestOverseer() *testOverseer {
+	ctx := context.Background()
+	return &testOverseer{
+		ctx:                  ctx,
+		subsystems:           make(map[Subsystem]chan any),
+		SubsystemsToOverseer: make(chan any),
+	}
+}
+
+func (to *testOverseer) RegisterSubsystem(subsystem Subsystem) chan any {
+	overseerToSubSystem := make(chan any)
+	to.subsystems[subsystem] = overseerToSubSystem
+
+	return overseerToSubSystem
+}
+
+func (to *testOverseer) Start() error {
+	// start subsystems
+	for subsystem, overseerToSubSystem := range to.subsystems {
+		to.wg.Add(1)
+		go func(sub Subsystem, overseerToSubSystem chan any) {
+			sub.Run(to.ctx, overseerToSubSystem, to.SubsystemsToOverseer)
+			logger.Infof("subsystem %v stopped", sub)
+			to.wg.Done()
+		}(subsystem, overseerToSubSystem)
+	}
+
+	return nil
+}
+
+func (to *testOverseer) Stop() error {
+	return nil
+}
+
+func (to *testOverseer) GetSubsystemToOverseerChannel() chan any {
+	return to.SubsystemsToOverseer
+}
+
+func (to *testOverseer) broadcast(msg any) {
+	for _, overseerToSubSystem := range to.subsystems {
+		overseerToSubSystem <- msg
+	}
+}
+
+type testHarness struct {
+	overseer          *testOverseer
+	broadcastMessages []any
+	broadcastIndex    int
+	expectedMessages  []any
+}
+
+func newTestHarness() *testHarness {
+	overseer := NewTestOverseer()
+	return &testHarness{
+		overseer:       overseer,
+		broadcastIndex: 0,
+	}
+}
+
+func (h *testHarness) triggerBroadcast() {
+	h.overseer.broadcast(h.broadcastMessages[h.broadcastIndex])
+	h.broadcastIndex++
+}
+
+func (h *testHarness) processMessages() {
+	processIndex := 0
+	for {
+		select {
+		case msg := <-h.overseer.SubsystemsToOverseer:
+			fmt.Printf("harness received from subsystem %v\n", msg)
+			fmt.Printf("comparing messages: %v %v\n", msg, h.expectedMessages[processIndex])
+			processIndex++
+		case <-h.overseer.ctx.Done():
+			if err := h.overseer.ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
+			h.overseer.wg.Done()
+			return
+		}
+	}
+}
+
+func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
+	harness := newTestHarness()
+
+	// TODO: add error to availability store to test this
+
+	stateService := state.NewService(state.Config{})
+	stateService.UseMemDB()
+
+	inmemoryDB := setupTestDB(t)
+
+	availabilityStore, err := availability_store.CreateAndRegister(harness.overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
+	require.NoError(t, err)
+
+	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+
+	activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash:   common.Hash{},
+			Number: uint32(1),
+		},
+		Deactivated: []common.Hash{common.Hash{}},
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, activeLeavesUpdate)
+	harness.expectedMessages = append(harness.expectedMessages, activeLeavesUpdate)
+
+	err = harness.overseer.Start()
+	require.NoError(t, err)
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+
+	time.Sleep(1000 * time.Millisecond)
+
+	err = harness.overseer.Stop()
+	require.NoError(t, err)
+}
