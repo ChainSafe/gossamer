@@ -42,7 +42,7 @@ var (
 	errStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
 	errNilRelayParentState             = errors.New("relay parent state is nil")
 	errCandidateStateNotFound          = errors.New("candidate state not found")
-	errAttestingDataNotFound           = errors.New("attesting data not found")
+	errFallbackNotAvailable            = errors.New("no fallback available for the candidate")
 )
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
@@ -198,7 +198,7 @@ func (cb *CandidateBacking) runUtil() {
 	for {
 		select {
 		case rpAndCmd := <-chRelayParentAndCommand:
-			if err := cb.processValidatedCandidateCommand(rpAndCmd); err != nil {
+			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
 		case msg := <-cb.OverseerToSubSystem:
@@ -315,7 +315,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
 			// polkadot-sdk returs nil error here
-			return errAttestingDataNotFound
+			return errFallbackNotAvailable
 		}
 
 		ourIndex := rpState.tableContext.validator.index

@@ -19,6 +19,7 @@ var (
 	errRelayParentNoLongerRelevent            = errors.New("relay parent is no longer relevant")
 	errNilCandidateInBgValidationResult       = errors.New("candidate receipt is nil in background validation result")
 	errNilOutputsInBackgroundValidationResult = errors.New("outputs is nil in background validation result")
+	errNoMoreBackingValidatorsAvailable       = errors.New("no more backing validators available")
 )
 
 type backgroundValidationResult struct {
@@ -102,7 +103,9 @@ const (
 )
 
 // processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly..
-func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd relayParentAndCommand) error {
+func (cb *CandidateBacking) processValidatedCandidateCommand(
+	rpAndCmd relayParentAndCommand, chRelayParentAndCommand chan relayParentAndCommand,
+) error {
 	rpState, ok := cb.perRelayParent[rpAndCmd.relayParent]
 	if !ok {
 		return fmt.Errorf("%w: %s", errRelayParentNoLongerRelevent, rpAndCmd.relayParent)
@@ -126,17 +129,17 @@ func (cb *CandidateBacking) processValidatedCandidateCommand(rpAndCmd relayParen
 		if err != nil {
 			return fmt.Errorf("second: %w", err)
 		}
-		return nil
 	case attest:
 		err := cb.handleCommandAttest(*rpAndCmd.validationRes, candidateHash, rpState)
 		if err != nil {
 			return fmt.Errorf("attest: %w", err)
 		}
-		return nil
 	case attestNoPoV:
-		handleCommandAttestNoPoV(candidateHash)
+		err := cb.handleCommandAttestNoPoV(candidateHash, rpState, chRelayParentAndCommand)
+		if err != nil {
+			return fmt.Errorf("attestNoPoV: %w", err)
+		}
 	}
-
 	return nil
 }
 
@@ -261,7 +264,7 @@ func (cb *CandidateBacking) handleCommandAttest(
 
 	// sanity check.
 	if rpState.issuedStatements[candidateHash] {
-		logger.Debugf("processing attest command: already issued a statement for candidate: %s", candidateHash)
+		// already issued a statement for this candidate
 		return nil
 	}
 
@@ -282,7 +285,36 @@ func (cb *CandidateBacking) handleCommandAttest(
 	return nil
 }
 
-func handleCommandAttestNoPoV(candidateHash parachaintypes.CandidateHash) {}
+func (cb *CandidateBacking) handleCommandAttestNoPoV(
+	candidateHash parachaintypes.CandidateHash,
+	rpState *perRelayParentState,
+	chRelayParentAndCommand chan relayParentAndCommand,
+) error {
+	attesting, ok := rpState.fallbacks[candidateHash]
+	if !ok {
+		return fmt.Errorf("%w: %s", errFallbackNotAvailable, candidateHash)
+	}
+
+	numBackingValidators := len(attesting.backing)
+	if numBackingValidators == 0 {
+		return errNoMoreBackingValidatorsAvailable
+	}
+
+	// pop the last backing validator index
+	validatorIndex := attesting.backing[numBackingValidators-1]
+	attesting.backing = attesting.backing[:numBackingValidators-1]
+
+	// update the attesting data
+	attesting.fromValidator = validatorIndex
+	rpState.fallbacks[candidateHash] = attesting
+
+	candidateState, ok := cb.perCandidate[candidateHash]
+	if ok {
+		return rpState.kickOffValidationWork(
+			cb.SubSystemToOverseer, chRelayParentAndCommand, candidateState.persistedValidationData, attesting)
+	}
+	return nil
+}
 
 func signImportAndDistributeStatement(
 	subSystemToOverseer chan<- any,

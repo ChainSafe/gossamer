@@ -922,7 +922,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Payload: statementVDTValid,
 				},
 			},
-			err: errAttestingDataNotFound.Error(),
+			err: errFallbackNotAvailable.Error(),
 		},
 
 		{
