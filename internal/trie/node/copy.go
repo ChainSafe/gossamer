@@ -59,6 +59,7 @@ func (n *Node) Copy(settings CopySettings) *Node {
 		Generation:    n.Generation,
 		Descendants:   n.Descendants,
 		IsHashedValue: n.IsHashedValue,
+		MustBeHashed:  n.MustBeHashed,
 	}
 
 	if n.Kind() == Branch {

@@ -34,6 +34,7 @@ type Storage interface {
 	CommitTransaction()
 	RollbackTransaction()
 	LoadCode() []byte
+	SetVersion(v trie.TrieLayout)
 }
 
 // BasicNetwork interface for functions used by runtime network state function

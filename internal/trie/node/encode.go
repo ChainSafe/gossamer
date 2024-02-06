@@ -15,8 +15,9 @@ import (
 // The encoding format is documented in the README.md
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
-func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
-	err = encodeHeader(n, maxInlineValue, buffer)
+func (n *Node) Encode(buffer Buffer) (err error) {
+	// TODO: move trie layout
+	err = encodeHeader(n, n.MustBeHashed, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -46,7 +47,8 @@ func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
 	// even if it is empty. Do not encode if the branch is without value.
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
-		if len(n.StorageValue) > maxInlineValue && n.IsHashedValue {
+		switch {
+		case n.MustBeHashed:
 			hashedValue, err := common.Blake2bHash(n.StorageValue)
 			if err != nil {
 				return fmt.Errorf("hashing storage value: %w", err)
@@ -56,7 +58,7 @@ func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
 			if err != nil {
 				return fmt.Errorf("scale encoding storage value: %w", err)
 			}
-		} else {
+		default:
 			encoder := scale.NewEncoder(buffer)
 			err = encoder.Encode(n.StorageValue)
 			if err != nil {
@@ -66,7 +68,7 @@ func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
 	}
 
 	if nodeIsBranch {
-		err = encodeChildrenOpportunisticParallel(n.Children, maxInlineValue, buffer)
+		err = encodeChildrenOpportunisticParallel(n.Children, buffer)
 		if err != nil {
 			return fmt.Errorf("cannot encode children of branch: %w", err)
 		}

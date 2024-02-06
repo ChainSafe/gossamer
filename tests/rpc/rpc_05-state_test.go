@@ -56,7 +56,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 		newTrie, err := trie.LoadFromMap(entries)
 		require.NoError(t, err)
 
-		trieHash := newTrie.MustHash(trie.V0.MaxInlineValue())
+		trieHash := newTrie.MustHash()
 		require.Equal(t, westendDevStateRoot, trieHash.String())
 	})
 

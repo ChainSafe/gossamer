@@ -2187,8 +2187,8 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 	key := read(m, keySpan)
 
 	next := storage.NextKey(key)
-	fmt.Printf(
-		"[ext_storage_next_key_version_1] key: 0x%x; next key 0x%x\n",
+	logger.Debugf(
+		"[ext_storage_next_key_version_1] key: 0x%x; next key 0x%x",
 		key, next)
 
 	var encodedOption []byte

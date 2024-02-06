@@ -197,7 +197,7 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			merkleValue, err := testCase.node.CalculateMerkleValue(NoMaxInlineValueSize)
+			merkleValue, err := testCase.node.CalculateMerkleValue()
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -259,7 +259,7 @@ func Test_Node_CalculateRootMerkleValue(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			merkleValue, err := testCase.node.CalculateRootMerkleValue(NoMaxInlineValueSize)
+			merkleValue, err := testCase.node.CalculateRootMerkleValue()
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -346,7 +346,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.node.EncodeAndHash(NoMaxInlineValueSize)
+			encoding, hash, err := testCase.node.EncodeAndHash()
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -400,7 +400,7 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.node.EncodeAndHashRoot(NoMaxInlineValueSize)
+			encoding, hash, err := testCase.node.EncodeAndHashRoot()
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

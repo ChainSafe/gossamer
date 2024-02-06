@@ -417,8 +417,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 
 	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
-
-	return &Instance{
+	instance = &Instance{
 		Runtime: rt,
 		Context: &runtime.Context{
 			Storage:         cfg.Storage,
@@ -433,7 +432,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
-	}, nil
+	}
+
+	return instance, nil
 }
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
@@ -854,6 +855,17 @@ func (in *Instance) Validator() bool {
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.Lock()
 	defer in.Unlock()
+
+	if in.Context.Version == nil {
+		panic("expected runtime version")
+	}
+
+	runtimeStateVersion, err := trie.ParseVersion(in.Context.Version.StateVersion)
+	if err != nil {
+		panic(err)
+	}
+
+	s.SetVersion(runtimeStateVersion)
 	in.Context.Storage = s
 }
 

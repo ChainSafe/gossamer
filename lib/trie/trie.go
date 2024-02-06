@@ -25,6 +25,7 @@ type Trie struct {
 	root                *Node
 	childTries          map[common.Hash]*Trie
 	db                  db.Database
+	version             TrieLayout
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
@@ -46,7 +47,12 @@ func NewTrie(root *Node, db db.Database) *Trie {
 		db:         db,
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
+		version:    V0,
 	}
+}
+
+func (t *Trie) SetVersion(v TrieLayout) {
+	t.version = v
 }
 
 // Equal is to compare one trie with other, this method will ignore the shared db instance
@@ -79,10 +85,9 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 			generation: childTrie.generation + 1,
 			root:       childTrie.root.Copy(rootCopySettings),
 			deltas:     childTrie.deltas.DeepCopy(),
+			version:    t.version,
 		}
 	}
-
-	fmt.Printf("len of deltas updated: %d\n", len(t.deltas.Updated()))
 
 	return &Trie{
 		generation: t.generation + 1,
@@ -90,16 +95,18 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 		db:         t.db,
 		childTries: childTries,
 		deltas:     t.deltas.DeepCopy(),
+		version:    t.version,
 	}
 }
 
 // handleTrackedDeltas sets the pending deleted node hashes in
 // the trie deltas tracker if and only if success is true.
 func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas tracking.Getter) {
-	if !success || t.generation == 0 {
-		// Do not persist tracked deleted node hashes if the operation failed or
-		// if the trie generation is zero (first block, no trie snapshot done yet).
-	}
+	// if !success || t.generation == 0 {
+	// 	// Do not persist tracked deleted node hashes if the operation failed or
+	// 	// if the trie generation is zero (first block, no trie snapshot done yet).
+	// 	return
+	// }
 	t.deltas.MergeWith(pendingDeltas)
 }
 
@@ -119,6 +126,7 @@ func (t *Trie) prepForMutation(currentNode *Node,
 		newNode = currentNode.Copy(copySettings)
 		newNode.Generation = t.generation
 	}
+
 	newNode.SetDirty()
 	return newNode, nil
 }
@@ -160,6 +168,7 @@ func (t *Trie) DeepCopy() (trieCopy *Trie) {
 	trieCopy = &Trie{
 		generation: t.generation,
 		db:         t.db,
+		version:    t.version,
 	}
 
 	if t.deltas != nil {
@@ -192,8 +201,8 @@ func (t *Trie) RootNode() *Node {
 
 // MustHash returns the hashed root of the trie.
 // It panics if it fails to hash the root node.
-func (t *Trie) MustHash(maxInlineValue int) common.Hash {
-	h, err := t.Hash(maxInlineValue)
+func (t *Trie) MustHash() common.Hash {
+	h, err := t.Hash()
 	if err != nil {
 		panic(err)
 	}
@@ -201,39 +210,13 @@ func (t *Trie) MustHash(maxInlineValue int) common.Hash {
 	return h
 }
 
-func (t *Trie) HashOnlyDeltas(maxInlineValue int) {
-	fmt.Println("hashing only deltas...")
-	updatedDeltas := t.deltas.Updated()
-
-	fmt.Println("len of updated:", len(updatedDeltas))
-
-	for _, entries := range updatedDeltas {
-		t.MarkAsV1HashedNode(entries.Key)
-	}
-}
-
 // Hash returns the hashed root of the trie.
-func (t *Trie) Hash(maxInlineValue int) (rootHash common.Hash, err error) {
+func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	if t.root == nil {
 		return EmptyHash, nil
 	}
 
-	// TODO: Critical changing the child trie root hash in the state
-	// needs to reflect also in the childTries map
-	// or we can use a snapshot to perform the hash encoding
-	// if maxInlineValue == V1MaxInlineValueSize {
-	// 	fmt.Printf("child tries len: %d\n", len(t.childTries))
-	// 	for _, childTrie := range t.childTries {
-	// 		v1Hash, err := childTrie.Hash(maxInlineValue)
-	// 		if err != nil {
-	// 			return rootHash, err
-	// 		}
-
-	// 		t.Put(childTrie.childTriePartialKey, v1Hash[:])
-	// 	}
-	// }
-
-	merkleValue, err := t.root.CalculateRootMerkleValue(maxInlineValue)
+	merkleValue, err := t.root.CalculateRootMerkleValue()
 	if err != nil {
 		return rootHash, err
 	}
@@ -370,59 +353,6 @@ func findNextKeyChild(children []*Node, startIndex byte,
 
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
-func (t *Trie) MarkAsV1HashedNode(keyLE []byte) {
-	t.markAsHashed(keyLE)
-}
-
-func (t *Trie) markAsHashed(keyLE []byte) {
-	nibblesKey := codec.KeyLEToNibbles(keyLE)
-	t.findAndMarkNode(t.root, nibblesKey)
-}
-
-func (t *Trie) findAndMarkNode(parent *Node, key []byte) {
-	if parent == nil {
-		return
-	}
-
-	if parent.Kind() == node.Branch {
-		t.findAndMarkInBranch(parent, key)
-		return
-	}
-
-	t.findAndMarkInLeaf(parent, key)
-}
-
-func (t *Trie) findAndMarkInLeaf(parentLeaf *Node, key []byte) {
-	if bytes.Equal(parentLeaf.PartialKey, key) {
-		parentLeaf.IsHashedValue = true
-	}
-}
-
-func (t *Trie) findAndMarkInBranch(parentBranch *Node, key []byte) {
-	if bytes.Equal(parentBranch.PartialKey, key) {
-		parentBranch.IsHashedValue = true
-		return
-	}
-
-	if bytes.HasPrefix(key, parentBranch.PartialKey) {
-		// key is included in parent branch key
-		commonPrefixLength := lenCommonPrefix(key, parentBranch.PartialKey)
-		childIndex := key[commonPrefixLength]
-		remainingKey := key[commonPrefixLength+1:]
-		child := parentBranch.Children[childIndex]
-
-		if child == nil {
-			return
-		}
-
-		//parentBranch.IsHashedValue = true
-		t.findAndMarkNode(child, remainingKey)
-		return
-	}
-}
-
-// Put inserts a value into the trie at the
-// key specified in little Endian format.
 func (t *Trie) Put(keyLE, value []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
@@ -430,9 +360,7 @@ func (t *Trie) Put(keyLE, value []byte) (err error) {
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
 
-	//fmt.Printf("recording key: 0x%x\n", keyLE)
-	t.deltas.RecordUpdated(keyLE, value)
-
+	pendingDeltas.RecordUpdated(keyLE, value)
 	err = t.insertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err
@@ -465,9 +393,11 @@ func (t *Trie) insert(parent *Node, key, value []byte, pendingDeltas DeltaRecord
 	if parent == nil {
 		mutated = true
 		nodesCreated = 1
+
 		return &Node{
 			PartialKey:   key,
 			StorageValue: value,
+			MustBeHashed: mustBeHashed(t.version, value),
 			Generation:   t.generation,
 			Dirty:        true,
 		}, mutated, nodesCreated, nil
@@ -499,6 +429,8 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
+		parentLeaf.MustBeHashed = mustBeHashed(t.version, value)
+		parentLeaf.SetDirty()
 
 		if parentLeaf.StorageValueEqual(value) {
 			mutated = false
@@ -527,10 +459,12 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		Children:   make([]*node.Node, node.ChildrenCapacity),
 		Dirty:      true,
 	}
+
 	parentLeafKey := parentLeaf.PartialKey
 
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
+		newBranchParent.MustBeHashed = mustBeHashed(t.version, value)
 		newBranchParent.StorageValue = value
 		if len(key) < len(parentLeafKey) {
 			// Move the current leaf parent as a child to the new branch.
@@ -578,6 +512,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		StorageValue: value,
 		Generation:   t.generation,
 		Dirty:        true,
+		MustBeHashed: mustBeHashed(t.version, value),
 	}
 	newBranchParent.Children[childIndex] = newLeaf
 	newBranchParent.Descendants++
@@ -592,10 +527,14 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
+		parentBranch.MustBeHashed = mustBeHashed(t.version, value)
+		parentBranch.SetDirty()
+
 		if parentBranch.StorageValueEqual(value) {
 			mutated = false
-			return parentBranch, mutated, 0, nil
+			return parentBranch, mutated, nodesCreated, nil
 		}
+
 		parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("preparing branch for mutation: %w", err)
@@ -618,6 +557,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 				StorageValue: value,
 				Generation:   t.generation,
 				Dirty:        true,
+				MustBeHashed: mustBeHashed(t.version, value),
 			}
 			nodesCreated = 1
 			parentBranch, err = t.prepForMutation(parentBranch, copySettings, pendingDeltas)
@@ -675,6 +615,7 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 
 	if len(key) <= commonPrefixLength {
 		newParentBranch.StorageValue = value
+		newParentBranch.MustBeHashed = mustBeHashed(t.version, value)
 	} else {
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
@@ -1499,12 +1440,12 @@ func (t *Trie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
 	}
 
 	if parent == t.root {
-		_, err = parent.CalculateRootMerkleValue(NoMaxInlineValueSize)
+		_, err = parent.CalculateRootMerkleValue()
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of root node: %w", err)
 		}
 	} else {
-		_, err = parent.CalculateMerkleValue(NoMaxInlineValueSize)
+		_, err = parent.CalculateMerkleValue()
 		if err != nil {
 			return fmt.Errorf("calculating Merkle value of node: %w", err)
 		}
@@ -1558,4 +1499,8 @@ func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concat
 
 func intToByteSlice(n int) (slice []byte) {
 	return []byte{byte(n)}
+}
+
+func mustBeHashed(trieVersion TrieLayout, storageValue []byte) bool {
+	return trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
 }

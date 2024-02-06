@@ -55,12 +55,12 @@ func hashEncoding(encoding []byte, writer io.Writer) (err error) {
 }
 
 // CalculateMerkleValue returns the Merkle value of the non-root node.
-func (n *Node) CalculateMerkleValue(maxInlineValue int) (merkleValue []byte, err error) {
+func (n *Node) CalculateMerkleValue() (merkleValue []byte, err error) {
 	if !n.Dirty && n.MerkleValue != nil {
 		return n.MerkleValue, nil
 	}
 
-	_, merkleValue, err = n.EncodeAndHash(maxInlineValue)
+	_, merkleValue, err = n.EncodeAndHash()
 	if err != nil {
 		return nil, fmt.Errorf("encoding and hashing node: %w", err)
 	}
@@ -69,13 +69,13 @@ func (n *Node) CalculateMerkleValue(maxInlineValue int) (merkleValue []byte, err
 }
 
 // CalculateRootMerkleValue returns the Merkle value of the root node.
-func (n *Node) CalculateRootMerkleValue(maxInlineValue int) (merkleValue []byte, err error) {
+func (n *Node) CalculateRootMerkleValue() (merkleValue []byte, err error) {
 	const rootMerkleValueLength = 32
-	// if !n.Dirty && len(n.MerkleValue) == rootMerkleValueLength {
-	// 	return n.MerkleValue, nil
-	// }
+	if !n.Dirty && len(n.MerkleValue) == rootMerkleValueLength {
+		return n.MerkleValue, nil
+	}
 
-	_, merkleValue, err = n.EncodeAndHashRoot(maxInlineValue)
+	_, merkleValue, err = n.EncodeAndHashRoot()
 	if err != nil {
 		return nil, fmt.Errorf("encoding and hashing root node: %w", err)
 	}
@@ -89,9 +89,9 @@ func (n *Node) CalculateRootMerkleValue(maxInlineValue int) (merkleValue []byte,
 // TODO change this function to write to an encoding writer
 // and a merkle value writer, such that buffer sync pools can be used
 // by the caller.
-func (n *Node) EncodeAndHash(maxInlineValue int) (encoding, merkleValue []byte, err error) {
+func (n *Node) EncodeAndHash() (encoding, merkleValue []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = n.Encode(encodingBuffer, maxInlineValue)
+	err = n.Encode(encodingBuffer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding node: %w", err)
 	}
@@ -115,9 +115,9 @@ func (n *Node) EncodeAndHash(maxInlineValue int) (encoding, merkleValue []byte, 
 // TODO change this function to write to an encoding writer
 // and a merkle value writer, such that buffer sync pools can be used
 // by the caller.
-func (n *Node) EncodeAndHashRoot(maxInlineValue int) (encoding, merkleValue []byte, err error) {
+func (n *Node) EncodeAndHashRoot() (encoding, merkleValue []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = n.Encode(encodingBuffer, maxInlineValue)
+	err = n.Encode(encodingBuffer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding node: %w", err)
 	}
@@ -130,7 +130,6 @@ func (n *Node) EncodeAndHashRoot(maxInlineValue int) (encoding, merkleValue []by
 		return nil, nil, fmt.Errorf("merkle value: %w", err)
 	}
 	merkleValue = merkleValueBuffer.Bytes()
-	fmt.Printf("caching merkle value using %v\n", maxInlineValue)
 	n.MerkleValue = merkleValue // no need to copy
 
 	return encoding, merkleValue, nil

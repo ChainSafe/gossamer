@@ -90,7 +90,7 @@ func TestService_Initialise(t *testing.T) {
 	require.NoError(t, err)
 
 	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
-		genTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 
 	err = state.Initialise(&genData, genesisHeaderPtr, genTrieCopy)
 	require.NoError(t, err)
@@ -287,7 +287,7 @@ func TestService_PruneStorage(t *testing.T) {
 		copiedTrie := trieState.Trie().DeepCopy()
 
 		var rootHash common.Hash
-		rootHash, err = copiedTrie.Hash(trie.NoMaxInlineValueSize)
+		rootHash, err = copiedTrie.Hash()
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
@@ -400,7 +400,7 @@ func TestService_Import(t *testing.T) {
 	require.NoError(t, err)
 	header := &types.Header{
 		Number:    77,
-		StateRoot: tr.MustHash(trie.NoMaxInlineValueSize),
+		StateRoot: tr.MustHash(),
 		Digest:    digest,
 	}
 
@@ -440,7 +440,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	err = trieState.Put(key, value)
 	require.NoError(t, err)
 
-	trieStateRoot, err := trieState.Root(trie.NoMaxInlineValueSize)
+	trieStateRoot, err := trieState.Root(trie.V0.MaxInlineValue())
 	require.NoError(t, err)
 
 	if parent == nil {

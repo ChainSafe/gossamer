@@ -106,7 +106,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 
 		s.tries.softSet(*root, t)
-	} else if t.MustHash(trie.NoMaxInlineValueSize) != *root {
+	} else if t.MustHash() != *root {
 		panic("trie does not have expected root")
 	}
 
@@ -125,7 +125,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	s.tries.softSet(t.MustHash(trie.NoMaxInlineValueSize), t)
+	s.tries.softSet(t.MustHash(), t)
 	return t, nil
 }
 

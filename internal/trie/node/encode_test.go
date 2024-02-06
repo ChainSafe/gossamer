@@ -5,7 +5,6 @@ package node
 
 import (
 	"errors"
-	"math"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,8 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
-
-const NoMaxInlineValueSize = math.MaxInt
 
 type writeCall struct {
 	written []byte
@@ -31,15 +28,13 @@ func Test_Node_Encode(t *testing.T) {
 	hashedLargeValue := common.MustBlake2bHash(largeValue).ToBytes()
 
 	testCases := map[string]struct {
-		node               *Node
-		maxInlineValueSize int
-		writes             []writeCall
-		wrappedErr         error
-		errMessage         string
+		node       *Node
+		writes     []writeCall
+		wrappedErr error
+		errMessage string
 	}{
 		"nil_node": {
-			node:               nil,
-			maxInlineValueSize: NoMaxInlineValueSize,
+			node: nil,
 			writes: []writeCall{
 				{
 					written: []byte{emptyVariant.bits},
@@ -50,7 +45,6 @@ func Test_Node_Encode(t *testing.T) {
 			node: &Node{
 				PartialKey: make([]byte, 1),
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 1},
@@ -65,7 +59,6 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
@@ -83,7 +76,6 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
@@ -104,7 +96,6 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{4, 5, 6},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{
 					written: []byte{leafVariant.bits | 3}, // partial key length 3
@@ -119,7 +110,6 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{written: []byte{leafVariant.bits | 3}}, // partial key length 3
 				{written: []byte{0x01, 0x23}},           // partial key
@@ -131,8 +121,8 @@ func Test_Node_Encode(t *testing.T) {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: largeValue,
+				MustBeHashed: true,
 			},
-			maxInlineValueSize: 32,
 			writes: []writeCall{
 				{
 					written: []byte{leafWithHashedValueVariant.bits | 3},
@@ -146,8 +136,8 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:    []byte{1, 2, 3},
 				StorageValue:  largeValue,
 				IsHashedValue: true,
+				MustBeHashed:  false,
 			},
-			maxInlineValueSize: 32,
 			writes: []writeCall{
 				{
 					written: []byte{leafWithHashedValueVariant.bits | 3},
@@ -183,7 +173,6 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{100},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -205,7 +194,6 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -230,7 +218,6 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -258,7 +245,6 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -291,7 +277,6 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithValueVariant.bits | 3}, // partial key length 3
@@ -321,7 +306,6 @@ func Test_Node_Encode(t *testing.T) {
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: NoMaxInlineValueSize,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchVariant.bits | 3}, // partial key length 3
@@ -344,12 +328,12 @@ func Test_Node_Encode(t *testing.T) {
 			node: &Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: largeValue,
+				MustBeHashed: true,
 				Children: []*Node{
 					nil, nil, nil, {PartialKey: []byte{9}, StorageValue: []byte{1}},
 					nil, nil, nil, {PartialKey: []byte{11}, StorageValue: []byte{1}},
 				},
 			},
-			maxInlineValueSize: 32,
 			writes: []writeCall{
 				{ // header
 					written: []byte{branchWithHashedValueVariant.bits | 3}, // partial key length 3
@@ -392,7 +376,7 @@ func Test_Node_Encode(t *testing.T) {
 				previousCall = call
 			}
 
-			err := testCase.node.Encode(buffer, testCase.maxInlineValueSize)
+			err := testCase.node.Encode(buffer)
 
 			if testCase.wrappedErr != nil {
 				assert.ErrorIs(t, err, testCase.wrappedErr)

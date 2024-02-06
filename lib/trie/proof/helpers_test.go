@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +23,7 @@ func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
 func encodeNode(t *testing.T, node node.Node) (encoded []byte) {
 	t.Helper()
 	buffer := bytes.NewBuffer(nil)
-	err := node.Encode(buffer, trie.NoMaxInlineValueSize)
+	err := node.Encode(buffer)
 	require.NoError(t, err)
 	return buffer.Bytes()
 }

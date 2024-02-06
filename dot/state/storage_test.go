@@ -102,7 +102,7 @@ func TestStorage_TrieState(t *testing.T) {
 	storage.blockState.tries.delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
-	require.Equal(t, ts.Trie().MustHash(trie.NoMaxInlineValueSize), ts3.Trie().MustHash(trie.NoMaxInlineValueSize))
+	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
@@ -211,7 +211,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	err = storage.StoreTrie(trieState, header)
 	require.NoError(t, err)
 
-	rootHash, err := genTrie.Hash(trie.NoMaxInlineValueSize)
+	rootHash, err := genTrie.Hash()
 	require.NoError(t, err)
 
 	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))

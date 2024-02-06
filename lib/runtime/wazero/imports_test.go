@@ -567,7 +567,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	tt.Put([]byte("noot"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
-	expected := tt.MustHash(trie.NoMaxInlineValueSize)
+	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
 }
 
@@ -599,7 +599,7 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	tt.Put([]byte("dimartiro"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
-	expected := tt.MustHash(stateVersion.MaxInlineValue())
+	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
 }
 
