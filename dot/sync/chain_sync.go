@@ -293,7 +293,12 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 		return nil
 	}
 
-	isBootstrap := cs.isBootstrapSync(bestNumber)
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	isBootstrap := cs.isBootstrapSync(bestBlockHeader.Number)
 	if !isBootstrap {
 		return nil
 	}
@@ -310,7 +315,7 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	// TODO: https://github.com/ChainSafe/gossamer/issues/3432
-	cs.workerPool.fromBlockAnnounce(announced.who)
+	//cs.workerPool.fromBlockAnnounce(announced.who)
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
 		return fmt.Errorf("%w: block #%d (%s)",
 			errAlreadyInDisjointSet, announced.header.Number, announced.header.Hash())
