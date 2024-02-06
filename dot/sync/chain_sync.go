@@ -114,7 +114,6 @@ type chainSync struct {
 
 	minPeers     int
 	slotDuration time.Duration
-	isStartup    bool
 
 	storageState       StorageState
 	transactionState   TransactionState
@@ -206,8 +205,6 @@ func (cs *chainSync) start() {
 	// since the default status from sync mode is syncMode(tip)
 	isSyncedGauge.Set(1)
 
-	cs.isStartup = true
-
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
@@ -241,31 +238,17 @@ func (cs *chainSync) stop() error {
 	}
 }
 
-func (cs *chainSync) initialSyncInformation() (highestFinalisedHeader *types.Header,
-	isBootstrap bool, err error) {
-	highestFinalisedHeader, err = cs.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return nil, false, fmt.Errorf("getting finalized block header: %w", err)
-	}
-
-	return highestFinalisedHeader, true, nil
-}
-
-func (cs *chainSync) currentSyncInformation() (bestBlockHeader *types.Header,
-	isBootstrap bool, err error) {
-	bestBlockHeader, err = cs.blockState.BestBlockHeader()
-	if err != nil {
-		return nil, false, fmt.Errorf("getting best block header: %w", err)
-	}
-
+func (cs *chainSync) isBootstrapSync(currentBlockNumber uint) bool {
 	syncTarget := cs.peerViewSet.getTarget()
-	bestBlockNumber := bestBlockHeader.Number
-	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, isBootstrap, nil
+	return currentBlockNumber+network.MaxBlocksInResponse < syncTarget
 }
 
 func (cs *chainSync) bootstrapSync() {
 	defer cs.wg.Done()
+	currentBlock, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		panic("cannot find highest finalised header")
+	}
 
 	for {
 		select {
@@ -275,29 +258,17 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		var bestBlockHeader *types.Header
-		var isBootstrap bool
-		var err error
-		if cs.isStartup {
-			bestBlockHeader, isBootstrap, err = cs.initialSyncInformation()
-			if err != nil {
-				logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
-				return
-			}
-			cs.isStartup = false
-		} else {
-			bestBlockHeader, isBootstrap, err = cs.currentSyncInformation()
-			if err != nil {
-				logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
-				return
-			}
-		}
-
+		isBootstrap := cs.isBootstrapSync(currentBlock.Number)
 		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
-			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
+			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
 				logger.Errorf("requesting max blocks from best block header: %s", err)
+			}
+
+			currentBlock, err = cs.blockState.BestBlockHeader()
+			if err != nil {
+				logger.Errorf("getting best block header: %v", err)
 			}
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
@@ -322,11 +293,7 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 		return nil
 	}
 
-	_, isBootstrap, err := cs.currentSyncInformation()
-	if err != nil {
-		return fmt.Errorf("getting current sync info: %w", err)
-	}
-
+	isBootstrap := cs.isBootstrapSync(bestNumber)
 	if !isBootstrap {
 		return nil
 	}
@@ -358,12 +325,13 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	bestBlockHeader, isFarFromTarget, err := cs.currentSyncInformation()
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		return fmt.Errorf("getting current sync info: %w", err)
+		return fmt.Errorf("getting best block header: %w", err)
 	}
 
-	if !isFarFromTarget {
+	isBootstrap := cs.isBootstrapSync(bestBlockHeader.Number)
+	if !isBootstrap {
 		return cs.requestAnnouncedBlock(bestBlockHeader, announced)
 	}
 
