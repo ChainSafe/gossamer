@@ -102,11 +102,11 @@ func (t *Trie) Snapshot() (newTrie *Trie) {
 // handleTrackedDeltas sets the pending deleted node hashes in
 // the trie deltas tracker if and only if success is true.
 func (t *Trie) handleTrackedDeltas(success bool, pendingDeltas tracking.DeletedGetter) {
-	// if !success || t.generation == 0 {
-	// 	// Do not persist tracked deleted node hashes if the operation failed or
-	// 	// if the trie generation is zero (first block, no trie snapshot done yet).
-	// 	return
-	// }
+	if !success || t.generation == 0 {
+		// Do not persist tracked deleted node hashes if the operation failed or
+		// if the trie generation is zero (first block, no trie snapshot done yet).
+		return
+	}
 	t.deltas.MergeWith(pendingDeltas)
 }
 

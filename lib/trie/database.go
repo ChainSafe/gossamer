@@ -137,7 +137,6 @@ func loadStorageValue(db db.DBGetter, node *Node) error {
 		return nil
 	}
 
-	fmt.Println("loading a hashed value!!")
 	prefixedKey := bytes.Join([][]byte{node.PartialKey, node.StorageValue[:]}, nil)
 	rawStorageValue, err := db.Get(prefixedKey)
 	if err != nil {

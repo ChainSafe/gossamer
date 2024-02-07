@@ -435,7 +435,11 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		codeHash: cfg.CodeHash,
 	}
 
-	instance.version()
+	err = instance.version()
+	if err != nil {
+		return nil, fmt.Errorf("while getting runtime version: %w", err)
+	}
+
 	return instance, nil
 }
 

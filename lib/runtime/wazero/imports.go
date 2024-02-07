@@ -2319,6 +2319,8 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 		panic(err)
 	}
 
+	logger.Debugf("root hash is: %s", root)
+
 	rootSpan, err := write(m, rtCtx.Allocator, root[:])
 	if err != nil {
 		logger.Errorf("failed to allocate: %s", err)

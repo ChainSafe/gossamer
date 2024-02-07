@@ -74,7 +74,6 @@ func (t *TrieState) CommitTransaction() {
 func (t *TrieState) SetVersion(v trie.TrieLayout) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	fmt.Println("setting curent trie to vesion: ", v)
 	t.getCurrentTrie().SetVersion(v)
 }
 

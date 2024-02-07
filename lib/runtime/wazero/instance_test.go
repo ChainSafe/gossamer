@@ -5,7 +5,6 @@ package wazero_runtime
 
 import (
 	_ "embed"
-	"fmt"
 
 	"bytes"
 	"encoding/json"
@@ -1277,29 +1276,6 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	}
 	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	require.NoError(t, err)
-}
-
-func TestTrie(t *testing.T) {
-	tt := trie.NewEmptyTrie()
-	tt.Put([]byte("a"), make([]byte, 40))
-	tt.Put([]byte("al"), make([]byte, 40))
-	tt.Put([]byte("alfa"), make([]byte, 40))
-
-	hash, err := tt.Hash()
-	require.NoError(t, err)
-
-	fmt.Printf("%s\n", hash.String()) // 0xdf1012a786cddcdfa4a8cf015e873677bc2e7a3c8b3579d9bae93117cbcfb7c1
-
-	tt = trie.NewEmptyTrie()
-	tt.Put([]byte("a"), make([]byte, 40))
-	tt.Put([]byte("al"), make([]byte, 40))
-	tt.Put([]byte("alfa"), make([]byte, 40))
-
-	tt.SetVersion(trie.V1)
-	hash, err = tt.Hash()
-	require.NoError(t, err)
-
-	fmt.Printf("%s\n", hash.String()) // 0x99a5fee4d1d352a6e6530ce4c965d1063abe92e2a3327da07061c6730f221583
 }
 
 func TestDebugWestendBlock14576855(t *testing.T) {
