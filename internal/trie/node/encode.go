@@ -16,7 +16,6 @@ import (
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
 func (n *Node) Encode(buffer Buffer) (err error) {
-	// TODO: move trie layout
 	err = encodeHeader(n, n.MustBeHashed, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)

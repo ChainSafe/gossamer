@@ -44,7 +44,6 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	fmt.Println("START TRANSACTION")
 	t.transactions.PushBack(t.getCurrentTrie().Snapshot())
 }
 
@@ -68,8 +67,6 @@ func (t *TrieState) CommitTransaction() {
 	if t.transactions.Len() <= 1 {
 		panic("no transactions to commit")
 	}
-
-	fmt.Println("COMMIT TRANSACTION")
 
 	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 }
