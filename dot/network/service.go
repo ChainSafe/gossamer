@@ -392,13 +392,13 @@ func (s *Service) getNumStreams(protocolID MessageType, inbound bool) (count int
 }
 
 func (s *Service) logPeerCount() {
-	ticker := time.NewTicker(time.Second * 30)
+	ticker := time.NewTicker(time.Second * 3)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			logger.Debugf("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
+			logger.Infof("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
 		case <-s.ctx.Done():
 			return
 		}
@@ -696,7 +696,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	}
 	switch msg.Status {
 	case peerset.Connect:
-		logger.Infof("PROCESS MESSGE CONNECT %v", msg)
+		logger.Infof("PROCESS MESSGE CONNECT %+v", msg)
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
@@ -714,6 +714,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 		}
 		logger.Infof("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
+		logger.Infof("!!!!!PROCESS MESSGE DROP %+v", msg)
 		err := s.host.closePeer(peerID)
 		if err != nil {
 			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)

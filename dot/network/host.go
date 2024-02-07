@@ -302,6 +302,7 @@ func (h *host) registerStreamHandler(pid protocol.ID, handler func(network.Strea
 
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
+	// TODO: Why are we doing this again???
 	h.p2pHost.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
