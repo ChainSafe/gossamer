@@ -5,8 +5,7 @@ package tracking
 
 import "github.com/ChainSafe/gossamer/lib/common"
 
-// Getter gets deleted node hashes.
-type Getter interface {
+// DeletedGetter gets deleted node hashes.
+type DeletedGetter interface {
 	Deleted() (nodeHashes map[common.Hash]struct{})
-	Updated() []DeltaEntry
 }
