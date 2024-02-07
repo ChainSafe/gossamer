@@ -2273,23 +2273,17 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	}
 	storage := rtCtx.Storage
 
-	fmt.Printf("ext_storage_root_version_2 with pre parsed: %v\n", version)
-
 	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	fmt.Printf("ext_storage_root_version_2 with pos parsed: %s\n", stateVersion.String())
-
 	root, err := storage.Root(stateVersion.MaxInlineValue())
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
 	}
-
-	fmt.Printf("root v1 hash is: %s\n", root.String())
 
 	rootSpan, err := write(m, rtCtx.Allocator, root[:])
 	if err != nil {

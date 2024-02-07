@@ -92,7 +92,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while getting best block state root: %w", err)
 		}
 		root = &sr
 	}
@@ -102,7 +102,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		var err error
 		t, err = s.LoadFromDB(*root)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while loading from database: %w", err)
 		}
 
 		s.tries.softSet(*root, t)

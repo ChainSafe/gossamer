@@ -27,7 +27,6 @@ func (t *Trie) Load(db db.DBGetter, rootHash common.Hash) error {
 		return nil
 	}
 	rootHashBytes := rootHash.ToBytes()
-
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to find root key %s: %w", rootHash, err)

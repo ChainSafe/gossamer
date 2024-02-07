@@ -217,15 +217,14 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return ErrNilBlockHandlerParameter
 	}
 
-	// store updates state trie nodes in database
-	// err := s.storageState.StoreTrie(state, &block.Header)
-	// if err != nil {
-	// 	logger.Warnf("failed to store state trie for imported block %s: %s",
-	// 		block.Header.Hash(), err)
-	// 	return err
-	// }
+	//store updates state trie nodes in database
+	err := s.storageState.StoreTrie(state, &block.Header)
+	if err != nil {
+		logger.Warnf("failed to store state trie for imported block %s: %s",
+			block.Header.Hash(), err)
+		return err
+	}
 
-	var err error
 	// store block in database
 	if err = s.blockState.AddBlock(block); err != nil {
 		if errors.Is(err, blocktree.ErrParentNotFound) && block.Header.Number != 0 {
