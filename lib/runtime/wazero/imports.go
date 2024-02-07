@@ -1104,19 +1104,19 @@ func ext_default_child_storage_clear_prefix_version_1(
 
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
 func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType {
-	killStorageResult := scale.MustNewVaryingDataType(new(noneRemain), new(someRemain))
+	killStorageResult := killStorageResult{}
 
 	var err error
 	if allDeleted {
-		err = killStorageResult.Set(noneRemain(deleted))
+		err = killStorageResult.SetValue(noneRemain(deleted))
 	} else {
-		err = killStorageResult.Set(someRemain(deleted))
+		err = killStorageResult.SetValue(someRemain(deleted))
 	}
-
 	if err != nil {
 		panic(err)
 	}
-	return killStorageResult
+
+	return &killStorageResult
 }
 
 //export ext_default_child_storage_clear_prefix_version_2
@@ -1340,15 +1340,58 @@ func ext_default_child_storage_storage_kill_version_2(
 	return 0
 }
 
+type killStorageResult struct {
+	inner any
+}
+type killStorageResultValues interface {
+	noneRemain | someRemain
+}
+
+func setkillStorageResult[Value killStorageResultValues](mvdt *killStorageResult, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *killStorageResult) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case noneRemain:
+		setkillStorageResult(mvdt, value)
+		return
+	case someRemain:
+		setkillStorageResult(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt killStorageResult) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case noneRemain:
+		return 0, mvdt.inner, nil
+	case someRemain:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt killStorageResult) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt killStorageResult) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return noneRemain(0), nil
+	case 1:
+		return someRemain(0), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
 type noneRemain uint32
 
-func (noneRemain) Index() uint       { return 0 }
-func (nr noneRemain) String() string { return fmt.Sprintf("noneRemain(%d)", nr) }
-
 type someRemain uint32
-
-func (someRemain) Index() uint       { return 1 }
-func (sr someRemain) String() string { return fmt.Sprintf("someRemain(%d)", sr) }
 
 func ext_default_child_storage_storage_kill_version_3(
 	ctx context.Context, m api.Module, childStorageKeySpan, lim uint64) (pointerSize uint64) {
@@ -1383,15 +1426,12 @@ func ext_default_child_storage_storage_kill_version_3(
 		return ret
 	}
 
-	vdt, err := scale.NewVaryingDataType(noneRemain(0), someRemain(0))
-	if err != nil {
-		logger.Warnf("cannot create new varying data type: %s", err)
-	}
+	vdt := killStorageResult{}
 
 	if all {
-		err = vdt.Set(noneRemain(deleted))
+		err = vdt.SetValue(noneRemain(deleted))
 	} else {
-		err = vdt.Set(someRemain(deleted))
+		err = vdt.SetValue(someRemain(deleted))
 	}
 	if err != nil {
 		logger.Warnf("cannot set varying data type: %s", err)

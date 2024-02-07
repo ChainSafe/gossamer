@@ -671,7 +671,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	b.Header.Digest = types.NewDigest()
 
 	// remove seal digest only
-	for _, d := range block.Header.Digest.Types {
+	for _, d := range block.Header.Digest {
 		digestValue, err := d.Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting digest type value: %w", err)

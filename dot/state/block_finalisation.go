@@ -182,6 +182,9 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.lastFinalised = hash
+
+	logger.Infof(
+		"🔨 finalised block #%d (%s), round %d, set id %d", header.Number, hash, round, setID)
 	return nil
 }
 
