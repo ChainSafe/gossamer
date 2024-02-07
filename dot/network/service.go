@@ -16,7 +16,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/mdns"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
@@ -193,13 +194,8 @@ func NewService(cfg *Config) (*Service, error) {
 		},
 	}
 
-	serviceTag := string(host.protocolID)
-	notifee := mdns.NewNotifeeTracker(host.p2pHost.Peerstore(), host.cm.peerSetHandler)
-	mdnsLogger := log.NewFromGlobal(log.AddContext("module", "mdns"))
-	mdnsLogger.Debugf(
-		"Creating mDNS discovery service with host %s and protocol %s...",
-		host.id(), host.protocolID)
-	mdnsService := mdns.NewService(host.p2pHost, serviceTag, mdnsLogger, notifee)
+	notifee := NewNotifeeTracker(host.p2pHost.Peerstore(), host.cm.peerSetHandler)
+	mdnsService := mdns.NewMdnsService(host.p2pHost, string(host.protocolID), notifee)
 
 	network := &Service{
 		ctx:                    ctx,
@@ -323,14 +319,12 @@ func (s *Service) Start() error {
 		}
 	}
 
-	if !s.noDiscover {
-		go func() {
-			err = s.host.discovery.start()
-			if err != nil {
-				logger.Errorf("failed to begin DHT discovery: %s", err)
-			}
-		}()
-	}
+	go func() {
+		err = s.host.discovery.start()
+		if err != nil {
+			panic(fmt.Errorf("failed to begin DHT discovery: %w", err))
+		}
+	}()
 
 	time.Sleep(time.Millisecond * 500)
 
@@ -467,7 +461,7 @@ func (s *Service) Stop() error {
 	s.cancel()
 
 	// close mDNS discovery service
-	err := s.mdns.Stop()
+	err := s.mdns.Close()
 	if err != nil {
 		logger.Errorf("Failed to close mDNS discovery service: %s", err)
 	}
@@ -702,10 +696,11 @@ func (s *Service) processMessage(msg peerset.Message) {
 	}
 	switch msg.Status {
 	case peerset.Connect:
+		logger.Infof("PROCESS MESSGE CONNECT %v", msg)
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
-			addrInfo, err = s.host.discovery.findPeer(peerID)
+			addrInfo, err = s.host.discovery.dht.FindPeer(s.host.discovery.ctx, peerID)
 			if err != nil {
 				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
@@ -717,7 +712,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
-		logger.Debugf("connection successful with peer %s", peerID)
+		logger.Infof("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {

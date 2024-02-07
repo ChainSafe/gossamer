@@ -5,7 +5,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
@@ -28,7 +27,7 @@ const (
 var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
-	tryAdvertiseTimeout         = time.Second * 30
+	retryAdvertiseTimeout       = time.Second * 10
 	connectToPeersTimeout       = time.Minute
 	findPeersTimeout            = time.Minute
 )
@@ -61,48 +60,10 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 	}
 }
 
-func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
-	// get all currently connected peers and use them to bootstrap the DHT
-
-	currentPeers := d.h.Network().Peers()
-
-	t := time.NewTicker(startDHTTimeout)
-	defer t.Stop()
-
-	for len(currentPeers) == 0 {
-		select {
-		case <-t.C:
-			logger.Debug("no peers yet, waiting to start DHT...")
-			// wait for peers to connect before starting DHT, otherwise DHT bootstrap nodes
-			// will be empty and we will fail to fill the routing table
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		}
-
-		currentPeers = d.h.Network().Peers()
-	}
-
-	peers = make([]peer.AddrInfo, len(currentPeers))
-	for idx, peer := range currentPeers {
-		peers[idx] = d.h.Peerstore().PeerInfo(peer)
-	}
-
-	return peers, nil
-}
-
-// start creates the DHT.
+// start initiates DHT structure with bootnodes if they are provided. Starts nodes discovery with bootstrap process
 func (d *discovery) start() error {
-	if len(d.bootnodes) == 0 {
-		peers, err := d.waitForPeers()
-		if err != nil {
-			return fmt.Errorf("failed while waiting for peers: %w", err)
-		}
-
-		d.bootnodes = peers
-	}
-
-	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
-	logger.Debugf("V1ProtocolOverride %v...", d.pid+"/kad")
+	logger.Infof("starting DHT with bootnodes %v...", d.bootnodes)
+	logger.Infof("V1ProtocolOverride %v...", d.pid+"/kad")
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
@@ -121,14 +82,18 @@ func (d *discovery) start() error {
 		})),
 	}
 
+	if len(d.bootnodes) == 0 {
+		dhtOpts = append(dhtOpts, dual.DHTOption(kaddht.Mode(kaddht.ModeServer)))
+	}
+
 	// create DHT service
 	dht, err := dual.New(d.ctx, d.h, dhtOpts...)
 	if err != nil {
 		return err
 	}
-
 	d.dht = dht
-	return d.discoverAndAdvertise()
+	go d.discoverAndAdvertise()
+	return nil
 }
 
 func (d *discovery) stop() error {
@@ -142,46 +107,54 @@ func (d *discovery) stop() error {
 	return d.dht.Close()
 }
 
-func (d *discovery) discoverAndAdvertise() error {
+//
+//func (d *discovery) discoverAndAdvertise() error {
+//	d.rd = routing.NewRoutingDiscovery(d.dht)
+//
+//	err := d.dht.Bootstrap(d.ctx)
+//	if err != nil {
+//		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+//	}
+//
+//	// wait to connect to bootstrap peers
+//	time.Sleep(time.Second)
+//	go d.advertise()
+//	go d.checkPeerCount()
+//
+//	return nil
+//}
+
+// discoverAndAdvertise
+func (d *discovery) discoverAndAdvertise() {
 	d.rd = routing.NewRoutingDiscovery(d.dht)
+	bootstrapTimer := time.NewTimer(initialAdvertisementTimeout)
+	advertismentTimer := time.NewTimer(initialAdvertisementTimeout)
 
-	err := d.dht.Bootstrap(d.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
-	}
-
-	// wait to connect to bootstrap peers
-	time.Sleep(time.Second)
-	go d.advertise()
 	go d.checkPeerCount()
 
-	logger.Debug("DHT discovery started!")
-	return nil
-}
-
-func (d *discovery) advertise() {
-	ttl := initialAdvertisementTimeout
-
 	for {
-		timer := time.NewTimer(ttl)
-
 		select {
 		case <-d.ctx.Done():
-			timer.Stop()
+			bootstrapTimer.Stop()
+			advertismentTimer.Stop()
 			return
-		case <-timer.C:
-			logger.Debug("advertising ourselves in the DHT...")
+		case <-bootstrapTimer.C:
 			err := d.dht.Bootstrap(d.ctx)
+			bootstrapTimer = time.NewTimer(retryAdvertiseTimeout)
+			bootstrapTimer = time.NewTimer(time.Second * 5)
 			if err != nil {
 				logger.Warnf("failed to bootstrap DHT: %s", err)
 				continue
 			}
-
-			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
+		case <-advertismentTimer.C:
+			advTTL, err := d.rd.Advertise(d.ctx, string(d.pid))
 			if err != nil {
 				logger.Warnf("failed to advertise in the DHT: %s", err)
-				ttl = tryAdvertiseTimeout
+				advertismentTimer = time.NewTimer(retryAdvertiseTimeout)
+				continue
 			}
+			advertismentTimer = time.NewTimer(advTTL)
+			advertismentTimer = time.NewTimer(time.Second * 15)
 		}
 	}
 }
@@ -198,7 +171,6 @@ func (d *discovery) checkPeerCount() {
 			if len(d.h.Network().Peers()) >= d.maxPeers {
 				continue
 			}
-
 			d.findPeers()
 		}
 	}
@@ -223,7 +195,7 @@ func (d *discovery) findPeers() {
 			if peer.ID == d.h.ID() || peer.ID == "" {
 				continue
 			}
-
+			logger.Infof("Found peer %v", peer)
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
@@ -231,6 +203,31 @@ func (d *discovery) findPeers() {
 	}
 }
 
-func (d *discovery) findPeer(peerID peer.ID) (peer.AddrInfo, error) {
-	return d.dht.FindPeer(d.ctx, peerID)
+// waitForPeers passively checks connected peers.
+func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
+	// get all currently connected peers and use them to bootstrap the DHT
+	currentPeers := d.h.Network().Peers()
+
+	t := time.NewTicker(startDHTTimeout)
+	defer t.Stop()
+
+	for len(currentPeers) == 0 {
+		select {
+		case <-t.C:
+			logger.Info("no peers yet, waiting to start DHT...")
+			// wait for peers to connect before starting DHT, otherwise DHT bootstrap nodes
+			// will be empty and we will fail to fill the routing table
+		case <-d.ctx.Done():
+			return nil, d.ctx.Err()
+		}
+
+		currentPeers = d.h.Network().Peers()
+	}
+
+	peers = make([]peer.AddrInfo, len(currentPeers))
+	for idx, peer := range currentPeers {
+		peers[idx] = d.h.Peerstore().PeerInfo(peer)
+	}
+
+	return peers, nil
 }

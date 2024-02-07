@@ -5,6 +5,7 @@ package rpc
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -38,7 +39,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.Core.BabeAuthority = true
 	con.Log.Sync = "trace"
 
-	babeAuthorityNode := node.New(t, con, node.SetIndex(0))
+	babeAuthorityNode := node.New(t, con, node.SetIndex(0), node.SetWriter(os.Stdout))
 
 	peerConfig := cfg.Copy(&con)
 	peerConfig.Core.BabeAuthority = false
@@ -68,7 +69,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
 		for _, node := range nodes {
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			t.Logf("starting node %s with port %s", node.String(), endpoint)
+			t.Logf("requesting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
 			t.Logf("Response: %+v", response)

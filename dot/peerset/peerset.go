@@ -542,7 +542,7 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
 			return nil
 		}
-
+		logger.Infof("PESRSET ADD PEER %v", pid)
 		ps.peerState.discover(setID, pid)
 		if err := ps.allocSlots(setID); err != nil {
 			return fmt.Errorf("could not allocate slots: %w", err)
