@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/chyeh/pubip"
+	"github.com/ChainSafe/gossamer/internal/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
