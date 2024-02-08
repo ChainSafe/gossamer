@@ -238,6 +238,7 @@ func (s *Service) Rewind(toBlock uint) error {
 
 // Stop closes each state database
 func (s *Service) Stop() error {
+	logger.Warn("Stopping State Service")
 	close(s.closeCh)
 
 	hash, err := s.Block.GetHighestFinalisedHash()

@@ -55,13 +55,23 @@ func (s *ServiceRegistry) StartAll() {
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
 	s.logger.Infof("Stopping services: %v", s.serviceTypes)
-	for _, typ := range s.serviceTypes {
-		s.logger.Debugf("Stopping service %s", typ)
-		err := s.services[typ].Stop()
-		if err != nil {
-			s.logger.Errorf("Error stopping service %s: %s", typ, err)
-		}
-	}
+
+	panic("This is actually better than our shutdown process, wild")
+
+	//for i := len(s.serviceTypes) - 1; i >= 0; i-- {
+	//	err := s.services[s.serviceTypes[i]].Stop()
+	//	if err != nil {
+	//		s.logger.Errorf("Error stopping service %s: %s", s.serviceTypes[i], err)
+	//	}
+	//}
+
+	//for _, typ := range s.serviceTypes {
+	//	s.logger.Debugf("Stopping service %s", typ)
+	//	err := s.services[typ].Stop()
+	//	if err != nil {
+	//		s.logger.Errorf("Error stopping service %s: %s", typ, err)
+	//	}
+	//}
 	s.logger.Debug("All services stopped.")
 }
 

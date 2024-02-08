@@ -185,6 +185,7 @@ func (s *Service) Start() error {
 
 // Stop stops the GRANDPA finality service
 func (s *Service) Stop() error {
+	logger.Errorf("Stopping Grandpa")
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
