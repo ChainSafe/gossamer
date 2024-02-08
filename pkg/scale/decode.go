@@ -9,11 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"reflect"
 )
 
-var maxDecodableBytes = uint(1024 * 1024 * 16)
+// var maxDecodableBytes = uint(1024 * 1024 * 16)
+var maxDecodableBytes = uint(math.MaxInt32)
+
+const maxPreAllocation = 4 * 1024
 
 // indirect walks down v allocating pointers as needed,
 // until it gets to a non-pointer.
@@ -477,6 +481,7 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	return
 }
 
+// TODO: Should this be renamed to decodeCompactInt?
 // decodeUint will decode unsigned integer
 func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	const maxUint32 = ^uint32(0)
@@ -493,8 +498,10 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	var value uint64
 	switch mode {
 	case 0:
+		// 0b00: single-byte mode; upper six bits are the LE encoding of the value (valid only for values of 0-63).
 		value = uint64(prefix >> 2)
 	case 1:
+		// 0b01: two-byte mode: upper six bits and the following byte is the LE encoding of the value (valid only for values 64-(2**14-1))
 		buf, err := ds.ReadByte()
 		if err != nil {
 			return fmt.Errorf("reading byte: %w", err)
@@ -504,6 +511,7 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("%w: %d (%b)", ErrU16OutOfRange, value, value)
 		}
 	case 2:
+		// 0b10: four-byte mode: upper six bits and the following three bytes are the LE encoding of the value (valid only for values (2**14)-(2**30-1)).
 		buf := make([]byte, 3)
 		_, err = ds.Read(buf)
 		if err != nil {
@@ -514,6 +522,8 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
 		}
 	case 3:
+		// 0b11: Big-integer mode: The upper six bits are the number of bytes following, plus four. The value is contained, LE encoded,
+		// in the bytes following. The final (most significant) byte must be non-zero. Valid only for values (2**30)-(2**536-1).
 		byteLen := (prefix >> 2) + 4
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
@@ -572,9 +582,12 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 		return
 	}
 
-	if length > maxDecodableBytes {
-		return fmt.Errorf("byte array length %d exceeds maximum of %d", length, maxDecodableBytes)
-	}
+	fmt.Println("length", length)
+	fmt.Println("maxDecodableBytes", maxDecodableBytes)
+	fmt.Println("math.MaxUint32", math.MaxUint32)
+	// if length > maxDecodableBytes {
+	// 	return fmt.Errorf("byte array length %d exceeds maximum of %d", length, maxDecodableBytes)
+	// }
 
 	b := make([]byte, length)
 
