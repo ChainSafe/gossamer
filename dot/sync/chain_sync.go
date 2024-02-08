@@ -213,6 +213,7 @@ func (cs *chainSync) start() {
 }
 
 func (cs *chainSync) stop() error {
+	logger.Errorf("Stopping Chain_sync")
 	err := cs.workerPool.stop()
 	if err != nil {
 		return fmt.Errorf("stopping worker poll: %w", err)
