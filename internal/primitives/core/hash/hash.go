@@ -1,6 +1,8 @@
 package hash
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"io"
 
@@ -33,4 +35,17 @@ func (h256 *H256) UnmarshalSCALE(r io.Reader) error {
 	}
 	*h256 = H256(arr[:])
 	return nil
+}
+
+func NewH256FromLowUint64BigEndian(v uint64) H256 {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, v)
+	full := append(b, make([]byte, 24)...)
+	return H256(full)
+}
+
+func NewRandomH256() H256 {
+	token := make([]byte, 32)
+	rand.Read(token)
+	return H256(token)
 }
