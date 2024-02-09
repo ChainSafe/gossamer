@@ -40,7 +40,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
+					gomock.AssignableToTypeOf(&parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
@@ -58,7 +58,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
+					gomock.AssignableToTypeOf(&parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(nil, nil)
 
@@ -76,7 +76,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
+					gomock.AssignableToTypeOf(&parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 

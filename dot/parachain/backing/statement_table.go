@@ -8,7 +8,7 @@ import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 type Table interface {
 	getCandidate(parachaintypes.CandidateHash) (*parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*TableContext, SignedFullStatementWithPVD) (*Summary, error)
-	attestedCandidate(parachaintypes.CandidateHash, *TableContext) (*AttestedCandidate, error)
+	attestedCandidate(*parachaintypes.CandidateHash, *TableContext) (*AttestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
