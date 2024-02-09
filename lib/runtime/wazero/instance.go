@@ -439,7 +439,10 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("while getting runtime version: %w", err)
 	}
 
-	instance.SetContextStorage(cfg.Storage)
+	if cfg.Storage != nil {
+		instance.SetContextStorage(cfg.Storage)
+	}
+
 	return instance, nil
 }
 

@@ -220,7 +220,7 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 		return EmptyHash, nil
 	}
 
-	fmt.Printf("trie version while hashing: %d\n", t.version)
+	fmt.Printf("trie version: %v\n", t.version)
 
 	merkleValue, err := t.root.CalculateRootMerkleValue()
 	if err != nil {
