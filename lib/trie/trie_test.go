@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/trie/codec"
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -4370,4 +4371,102 @@ func Benchmark_concatSlices(b *testing.B) {
 			concatenated[0] = 1
 		}
 	})
+}
+
+func TestTrieVersionAndMustHash(t *testing.T) {
+	newTrie := NewEmptyTrie()
+
+	// setting trie version to 0
+	// no entry should be hashed (no matter its size)
+	newTrie.SetVersion(0)
+
+	type testStruct struct {
+		key          []byte
+		nibbles      []byte
+		storageValue []byte
+		mustBeHashed bool
+	}
+
+	testCases := []testStruct{
+		{
+			key:          []byte{1, 2, 3, 4},
+			nibbles:      codec.KeyLEToNibbles([]byte{1, 2, 3, 4}),
+			storageValue: make([]byte, 66),
+			mustBeHashed: false,
+		},
+		{
+			key:          []byte{2, 4, 5, 6},
+			nibbles:      codec.KeyLEToNibbles([]byte{2, 4, 5, 6}),
+			storageValue: make([]byte, 66),
+			mustBeHashed: false,
+		},
+	}
+
+	// inserting the key and values to the trie
+	for _, tt := range testCases {
+		require.NoError(
+			t,
+			newTrie.Put(tt.key, tt.storageValue),
+		)
+	}
+
+	// asserting each trie node
+	for _, tt := range testCases {
+		node := findNode(t, newTrie.root, tt.nibbles)
+		require.NotNil(t, node)
+		require.Equal(t, node.MustBeHashed, tt.mustBeHashed)
+	}
+
+	// setting trie version to 1 a new inserted node
+	// with storage value greater than 32 should be marked as MustBeHashed
+	newTrie.SetVersion(1)
+
+	nodeCKey := []byte{9, 8, 7, 5}
+	nodeDKey := []byte{4, 4, 7, 2}
+	nodeEKey := []byte{6, 7, 0xa, 0xb}
+
+	require.NoError(
+		t,
+		newTrie.Put(nodeCKey, make([]byte, 66)),
+	)
+
+	require.NoError(
+		t,
+		newTrie.Put(nodeDKey, make([]byte, 66)),
+	)
+
+	require.NoError(
+		t,
+		newTrie.Put(nodeEKey, make([]byte, 10)),
+	)
+
+	testCases = append(testCases, testStruct{nibbles: codec.KeyLEToNibbles(nodeCKey), mustBeHashed: true})
+	testCases = append(testCases, testStruct{nibbles: codec.KeyLEToNibbles(nodeDKey), mustBeHashed: true})
+	testCases = append(testCases, testStruct{nibbles: codec.KeyLEToNibbles(nodeEKey), mustBeHashed: false})
+
+	for _, tt := range testCases {
+		node := findNode(t, newTrie.root, tt.nibbles)
+		require.NotNil(t, node)
+		require.Equal(t, tt.mustBeHashed, node.MustBeHashed)
+	}
+}
+
+func findNode(t *testing.T, currNode *Node, nibbles []byte) *Node {
+	t.Helper()
+
+	if bytes.Equal(currNode.PartialKey, nibbles) {
+		return currNode
+	}
+
+	if currNode.Kind() == node.Leaf {
+		return nil
+	}
+
+	commonLen := lenCommonPrefix(currNode.PartialKey, nibbles)
+	child := currNode.Children[nibbles[commonLen]]
+	if child == nil {
+		return nil
+	}
+
+	return findNode(t, child, nibbles[commonLen+1:])
 }
