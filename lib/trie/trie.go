@@ -52,6 +52,10 @@ func NewTrie(root *Node, db db.Database) *Trie {
 }
 
 func (t *Trie) SetVersion(v TrieLayout) {
+	if v < t.version {
+		panic("cannot regress trie version")
+	}
+
 	t.version = v
 }
 
