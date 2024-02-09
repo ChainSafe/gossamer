@@ -421,7 +421,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	instance = &Instance{
 		Runtime: rt,
 		Context: &runtime.Context{
-			Storage:         cfg.Storage,
 			Allocator:       allocator,
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
@@ -440,6 +439,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("while getting runtime version: %w", err)
 	}
 
+	instance.SetContextStorage(cfg.Storage)
 	return instance, nil
 }
 
