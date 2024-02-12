@@ -26,7 +26,8 @@ type refWindow[BlockHash Hash, Key Hash] struct {
 }
 
 func newRefWindow[BlockHash Hash, Key Hash](
-	db MetaDB, windowSize uint32, countInsertions bool,
+	db MetaDB, windowSize uint32,
+	// countInsertions bool,
 ) (refWindow[BlockHash, Key], error) {
 	// the block number of the first block in the queue or the next block number if the queue is
 	// empty
@@ -59,10 +60,6 @@ func newRefWindow[BlockHash Hash, Key Hash](
 	// 	}
 	// 	lastCanonicalizedNumber = &dst.Block
 	// }
-
-	if !countInsertions {
-		panic("currently only support counted insertions in memory")
-	}
 
 	if windowSize > 1000 {
 		log.Printf(
