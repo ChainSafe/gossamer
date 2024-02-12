@@ -22,7 +22,7 @@ func (cb *CandidateBacking) handleGetBackedCandidatesMessage(requestedCandidates
 			continue
 		}
 
-		attested, err := rpState.table.attestedCandidate(&candidate.CandidateHash, &rpState.tableContext)
+		attested, err := rpState.table.attestedCandidate(candidate.CandidateHash, &rpState.tableContext)
 		if err != nil {
 			logger.Debugf("getting attested candidate: %w", err)
 			continue
