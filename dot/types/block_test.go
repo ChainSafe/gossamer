@@ -140,5 +140,5 @@ func TestScaleUnmarshal(t *testing.T) {
 	)
 
 	require.EqualError(t, err,
-		"decoding struct: unmarshalling field at index 0: decoding struct: unmarshalling field at index 4: decoding struct: unmarshalling field at index 1: byte array length 3472328296227680304 exceeds maximum of 16777216") //nolint
+		"decoding struct: unmarshalling field at index 0: decoding struct: unmarshalling field at index 4: decoding struct: unmarshalling field at index 1: byte array length 3472328296227680304 exceeds max value of uint32") //nolint
 }
