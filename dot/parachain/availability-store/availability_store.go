@@ -382,9 +382,13 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 			return branches{}, fmt.Errorf("putting chunk %d in trie: %w", i, err)
 		}
 	}
+	branchHash, err := trie.V1.Hash(tr)
+	if err != nil {
+		return branches{}, fmt.Errorf("hashing trie: %w", err)
+	}
 	b := branches{
 		trieStorage: tr,
-		root:        trie.V0.MustHash(*tr),
+		root:        branchHash,
 		chunks:      chunks,
 		currentPos:  0,
 	}
