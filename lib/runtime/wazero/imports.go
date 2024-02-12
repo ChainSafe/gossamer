@@ -830,6 +830,7 @@ func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Modul
 
 func ext_trie_blake2_256_ordered_root_version_2(
 	ctx context.Context, m api.Module, dataSpan uint64, version uint32) uint32 {
+	fmt.Println("executing: ext_trie_blake2_256_ordered_root_version_2")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2301,6 +2302,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 }
 
 func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 { //skipcq: RVV-B0012
+	fmt.Println("executing: ext_storage_root_version_2")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")

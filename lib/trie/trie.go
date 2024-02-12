@@ -365,6 +365,7 @@ func (t *Trie) Put(keyLE, value []byte) (err error) {
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
 
+	fmt.Printf("inserting a value, trie version: %d\n", t.version)
 	err = t.insertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err
@@ -1506,5 +1507,9 @@ func intToByteSlice(n int) (slice []byte) {
 }
 
 func mustBeHashed(trieVersion TrieLayout, storageValue []byte) bool {
-	return trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
+	mustBe := trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
+	if mustBe {
+		fmt.Printf("must be hashed: %v\n", mustBe)
+	}
+	return mustBe
 }
