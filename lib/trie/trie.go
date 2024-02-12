@@ -56,6 +56,7 @@ func (t *Trie) SetVersion(v TrieLayout) {
 		panic("cannot regress trie version")
 	}
 
+	fmt.Printf("setting trie version to: %d\n", v)
 	t.version = v
 }
 
@@ -219,8 +220,6 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 	if t.root == nil {
 		return EmptyHash, nil
 	}
-
-	fmt.Printf("trie version: %v\n", t.version)
 
 	merkleValue, err := t.root.CalculateRootMerkleValue()
 	if err != nil {

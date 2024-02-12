@@ -1285,6 +1285,11 @@ func TestDebugWestendBlock14576855And14576856(t *testing.T) {
 	require.Equal(t, expectedStorageRootHash, trie.V0.MustHash(*wnd14576854StateTrie))
 
 	state := storage.NewTrieState(wnd14576854StateTrie)
+	codeHash, err := state.LoadCodeHash()
+	require.NoError(t, err)
+
+	fmt.Printf("code hash at start: %s\n", codeHash.String())
+
 	cfg := Config{
 		Storage: state,
 		LogLvl:  log.Critical,
@@ -1311,12 +1316,17 @@ func TestDebugWestendBlock14576855And14576856(t *testing.T) {
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 
+	codeHash, err = state.LoadCodeHash()
+	require.NoError(t, err)
+
+	fmt.Printf("code hash from updated state: %s\n", codeHash.String())
+
 	// wnd14576855StateTrie := newTrieFromRPC(t, "../test_data/14576855trie_state_data.json")
 	// expectedStorageRootHash := common.MustHexToHash("0xe8c4636bd5f01d9f9a18fa96949787975c9c3b78a0624ae95e3078da20c33605")
 	// require.Equal(t, expectedStorageRootHash, trie.V0.MustHash(*wnd14576855StateTrie))
 
 	// state := storage.NewTrieState(wnd14576855StateTrie)
-	instance, err = NewInstanceFromTrie(wnd14576854StateTrie, Config{
+	instance, err = NewInstanceFromTrie(state.Trie(), Config{
 		Storage: state,
 		LogLvl:  log.Critical,
 	})
