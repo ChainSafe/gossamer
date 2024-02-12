@@ -36,7 +36,7 @@ func (m *MockTable) EXPECT() *MockTableMockRecorder {
 }
 
 // attestedCandidate mocks base method.
-func (m *MockTable) attestedCandidate(arg0 *types.CandidateHash, arg1 *TableContext) (*AttestedCandidate, error) {
+func (m *MockTable) attestedCandidate(arg0 types.CandidateHash, arg1 *TableContext) (*AttestedCandidate, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "attestedCandidate", arg0, arg1)
 	ret0, _ := ret[0].(*AttestedCandidate)
