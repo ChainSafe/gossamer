@@ -14,11 +14,6 @@ import (
 	"reflect"
 )
 
-// var maxDecodableBytes = uint(1024 * 1024 * 16)
-var maxDecodableBytes = uint(math.MaxInt32)
-
-const maxPreAllocation = 4 * 1024
-
 // indirect walks down v allocating pointers as needed,
 // until it gets to a non-pointer.
 func indirect(dstv reflect.Value) (elem reflect.Value) {
@@ -582,12 +577,10 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 		return
 	}
 
-	fmt.Println("length", length)
-	fmt.Println("maxDecodableBytes", maxDecodableBytes)
-	fmt.Println("math.MaxUint32", math.MaxUint32)
-	// if length > maxDecodableBytes {
-	// 	return fmt.Errorf("byte array length %d exceeds maximum of %d", length, maxDecodableBytes)
-	// }
+	// bytes length in encoded as Compact<u32>, so it can't be more than math.MaxUint32
+	if length > math.MaxUint32 {
+		return fmt.Errorf("byte array length %d exceeds max value of uint32", length)
+	}
 
 	b := make([]byte, length)
 
