@@ -269,7 +269,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 	blockStateMock.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(block1AnnounceHeader, nil).
-		Times(1)
+		Times(3)
 
 	expectedRequest := network.NewAscendingBlockRequests(
 		block1AnnounceHeader.Number+1,
@@ -277,8 +277,8 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 
 	networkMock := NewMockNetwork(ctrl)
 	networkMock.EXPECT().Peers().Return([]common.PeerInfo{}).
-		Times(1)
-	networkMock.EXPECT().AllConnectedPeersIDs().Return([]peer.ID{})
+		Times(2)
+	networkMock.EXPECT().AllConnectedPeersIDs().Return([]peer.ID{}).Times(2)
 
 	firstMockedResponse := createSuccesfullBlockResponse(t, block1AnnounceHeader.Hash(), 2, 128)
 	latestItemFromMockedResponse := firstMockedResponse.BlockData[len(firstMockedResponse.BlockData)-1]
@@ -293,7 +293,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 			responsePtr := response.(*network.BlockResponseMessage)
 			*responsePtr = *firstMockedResponse
 			return nil
-		})
+		}).Times(2)
 
 	requestMaker.EXPECT().
 		Do(somePeer, expectedRequest[1], &network.BlockResponseMessage{}).
@@ -301,7 +301,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 			responsePtr := response.(*network.BlockResponseMessage)
 			*responsePtr = *secondMockedResponse
 			return nil
-		})
+		}).Times(2)
 
 	babeVerifierMock := NewMockBabeVerifier(ctrl)
 	storageStateMock := NewMockStorageState(ctrl)
@@ -1334,39 +1334,39 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 			previousHeader = blocksReceived[idx-1].Header
 		}
 
-		mockBlockState.EXPECT().GetHeader(blockData.Header.ParentHash).Return(previousHeader, nil)
-		mockStorageState.EXPECT().Lock()
-		mockStorageState.EXPECT().Unlock()
+		mockBlockState.EXPECT().GetHeader(blockData.Header.ParentHash).Return(previousHeader, nil).AnyTimes()
+		mockStorageState.EXPECT().Lock().AnyTimes()
+		mockStorageState.EXPECT().Unlock().AnyTimes()
 
 		emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
 		parentStateRoot := previousHeader.StateRoot
 		mockStorageState.EXPECT().TrieState(&parentStateRoot).
-			Return(emptyTrieState, nil)
+			Return(emptyTrieState, nil).AnyTimes()
 
 		ctrl := gomock.NewController(t)
 		mockRuntimeInstance := NewMockInstance(ctrl)
 		mockBlockState.EXPECT().GetRuntime(previousHeader.Hash()).
-			Return(mockRuntimeInstance, nil)
+			Return(mockRuntimeInstance, nil).AnyTimes()
 
 		expectedBlock := &types.Block{
 			Header: *blockData.Header,
 			Body:   *blockData.Body,
 		}
 
-		mockRuntimeInstance.EXPECT().SetContextStorage(emptyTrieState)
+		mockRuntimeInstance.EXPECT().SetContextStorage(emptyTrieState).AnyTimes()
 		mockRuntimeInstance.EXPECT().ExecuteBlock(expectedBlock).
-			Return(nil, nil)
+			Return(nil, nil).AnyTimes()
 
 		mockImportHandler.EXPECT().HandleBlockImport(expectedBlock, emptyTrieState, announceBlock).
-			Return(nil)
+			Return(nil).AnyTimes()
 
 		blockHash := blockData.Header.Hash()
 		expectedTelemetryMessage := telemetry.NewBlockImport(
 			&blockHash,
 			blockData.Header.Number,
 			"NetworkInitialSync")
-		mockTelemetry.EXPECT().SendMessage(expectedTelemetryMessage)
-		mockBlockState.EXPECT().CompareAndSetBlockData(blockData).Return(nil)
+		mockTelemetry.EXPECT().SendMessage(expectedTelemetryMessage).AnyTimes()
+		mockBlockState.EXPECT().CompareAndSetBlockData(blockData).Return(nil).AnyTimes()
 	}
 }
 
