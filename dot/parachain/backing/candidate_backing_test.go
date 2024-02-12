@@ -369,7 +369,7 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 	mockTable.EXPECT().drainMisbehaviors().
 		Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 	mockTable.EXPECT().attestedCandidate(
-		gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+		gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 		gomock.AssignableToTypeOf(new(TableContext)),
 	).Return(&attestedToReturn, nil)
 
@@ -419,7 +419,7 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
@@ -444,7 +444,7 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(&AttestedCandidate{
 					GroupID:   4,
@@ -469,7 +469,7 @@ func TestPostImportStatement(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(&AttestedCandidate{
 					GroupID:   3,
@@ -869,7 +869,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
@@ -904,7 +904,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
@@ -941,7 +941,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
@@ -981,7 +981,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
@@ -1024,7 +1024,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 
@@ -1074,7 +1074,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(
@@ -1117,7 +1117,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(new(parachaintypes.CandidateHash)),
+					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(
