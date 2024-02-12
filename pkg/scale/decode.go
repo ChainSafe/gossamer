@@ -493,10 +493,12 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	var value uint64
 	switch mode {
 	case 0:
-		// 0b00: single-byte mode; upper six bits are the LE encoding of the value (valid only for values of 0-63).
+		// 0b00: single-byte mode; upper six bits are the LE encoding of the value (valid only for
+		// values of 0-63).
 		value = uint64(prefix >> 2)
 	case 1:
-		// 0b01: two-byte mode: upper six bits and the following byte is the LE encoding of the value (valid only for values 64-(2**14-1))
+		// 0b01: two-byte mode: upper six bits and the following byte is the LE encoding of the
+		// value (valid only for values 64-(2**14-1))
 		buf, err := ds.ReadByte()
 		if err != nil {
 			return fmt.Errorf("reading byte: %w", err)
@@ -506,7 +508,8 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("%w: %d (%b)", ErrU16OutOfRange, value, value)
 		}
 	case 2:
-		// 0b10: four-byte mode: upper six bits and the following three bytes are the LE encoding of the value (valid only for values (2**14)-(2**30-1)).
+		// 0b10: four-byte mode: upper six bits and the following three bytes are the LE encoding
+		// of the value (valid only for values (2**14)-(2**30-1)).
 		buf := make([]byte, 3)
 		_, err = ds.Read(buf)
 		if err != nil {
@@ -517,8 +520,9 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
 		}
 	case 3:
-		// 0b11: Big-integer mode: The upper six bits are the number of bytes following, plus four. The value is contained, LE encoded,
-		// in the bytes following. The final (most significant) byte must be non-zero. Valid only for values (2**30)-(2**536-1).
+		// 0b11: Big-integer mode: The upper six bits are the number of bytes following, plus four.
+		// The value is contained, LE encoded, in the bytes following. The final (most significant)
+		// byte must be non-zero. Valid only for values (2**30)-(2**536-1).
 		byteLen := (prefix >> 2) + 4
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
