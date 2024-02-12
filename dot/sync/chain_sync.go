@@ -885,6 +885,7 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 		return err
 	}
 
+	fmt.Printf("RUNTIME HASH: %s\n", rt.GetCodeHash().String())
 	rt.SetContextStorage(ts)
 
 	_, err = rt.ExecuteBlock(block)
