@@ -224,7 +224,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 			logger.Debug(fmt.Sprintf("can't second the candidate: %s", err))
 		}
 	case SecondMessage:
-		cb.handleSecondMessage()
+		return cb.handleSecondMessage(msg.CandidateReceipt, msg.PersistedValidationData, msg.PoV, chRelayParentAndCommand)
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
@@ -247,10 +247,6 @@ func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
 
 func (cb *CandidateBacking) handleGetBackedCandidatesMessage() {
 	// TODO: Implement this #3504
-}
-
-func (cb *CandidateBacking) handleSecondMessage() {
-	// TODO: Implement this #3506
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.
