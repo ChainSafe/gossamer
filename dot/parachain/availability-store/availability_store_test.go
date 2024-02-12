@@ -247,7 +247,8 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	// delete height, (block 1)
 	batch = newAvailabilityStoreBatch(as)
 	keyPrefix := append([]byte(unfinalizedPrefix), uint32ToBytesBigEndian(uint32(blockNumber))...)
-	itr := as.unfinalized.NewIterator()
+	itr, err := as.unfinalized.NewIterator()
+	require.NoError(t, err)
 	defer itr.Release()
 
 	for itr.First(); itr.Valid(); itr.Next() {
