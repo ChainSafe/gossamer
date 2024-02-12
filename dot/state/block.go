@@ -51,11 +51,11 @@ var (
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
 type BlockState struct {
-	bt        *blocktree.BlockTree
-	baseState *BaseState
-	dbPath    string
-	db        BlockStateDatabase
-	sync.RWMutex
+	bt                *blocktree.BlockTree
+	baseState         *BaseState
+	dbPath            string
+	db                BlockStateDatabase
+	lock              sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
 	unfinalisedBlocks *hashToBlockMap
@@ -334,7 +334,7 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 		return nil, fmt.Errorf("failed to get descendants: %w", err)
 	}
 
-	blocksWithGivenSlot := []common.Hash{}
+	var blocksWithGivenSlot []common.Hash
 
 	for _, desc := range descendants {
 		descSlot, err := bs.GetSlotForBlock(desc)
@@ -380,8 +380,8 @@ func (bs *BlockState) GetBlockByNumber(num uint) (*types.Block, error) {
 
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-	bs.RLock()
-	defer bs.RUnlock()
+	bs.lock.RLock()
+	defer bs.lock.RUnlock()
 
 	block := bs.unfinalisedBlocks.getBlock(hash)
 	if block != nil {
@@ -413,8 +413,8 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 // HasBlockBody returns true if the db contains the block body
 func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
-	bs.RLock()
-	defer bs.RUnlock()
+	bs.lock.RLock()
+	defer bs.lock.RUnlock()
 
 	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
@@ -471,8 +471,8 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
-	bs.Lock()
-	defer bs.Unlock()
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
@@ -490,21 +490,6 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	bs.unfinalisedBlocks.store(block)
 	go bs.notifyImported(block)
 	return nil
-}
-
-// AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
-// TODO: remove this func and usage from sync (after sync refactor?)
-func (bs *BlockState) AddBlockToBlockTree(block *types.Block) error {
-	bs.Lock()
-	defer bs.Unlock()
-
-	arrivalTime, err := bs.GetArrivalTime(block.Header.Hash())
-	if err != nil {
-		arrivalTime = time.Now()
-	}
-
-	bs.unfinalisedBlocks.store(block)
-	return bs.bt.AddBlock(&block.Header, arrivalTime)
 }
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
@@ -693,8 +678,7 @@ func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []co
 		return nil, fmt.Errorf("retrieving range from database: %w", err)
 	}
 
-	hashes = append(inDatabaseHashes, inMemoryHashes...)
-	return hashes, nil
+	return append(inDatabaseHashes, inMemoryHashes...), nil
 }
 
 var ErrStartHashMismatch = errors.New("start hash mismatch")
@@ -721,11 +705,8 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 
 	lastPosition := blocksInRange - 1
 
-	hashes[0] = startHash
-	hashes[lastPosition] = endHeader.Hash()
-
-	inLoopHash := endHeader.ParentHash
-	for currentPosition := lastPosition - 1; currentPosition > 0; currentPosition-- {
+	inLoopHash := endHeader.Hash()
+	for currentPosition := int(lastPosition); currentPosition >= 0; currentPosition-- {
 		hashes[currentPosition] = inLoopHash
 
 		inLoopHeader, err := bs.loadHeaderFromDatabase(inLoopHash)
@@ -736,9 +717,9 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 		inLoopHash = inLoopHeader.ParentHash
 	}
 
-	// here we ensure that we finished up the loop
+	// here we ensure that we finished up the loop with the hash we used as start
 	// with the same hash as the startHash
-	if inLoopHash != startHash {
+	if hashes[0] != startHash {
 		return nil, fmt.Errorf("%w: expecting %s, found: %s", ErrStartHashMismatch, startHash.Short(), inLoopHash.Short())
 	}
 

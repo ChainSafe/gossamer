@@ -4,7 +4,6 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/trie/codec"
@@ -12,14 +11,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var ErrEncodeHashedValueTooShort = errors.New("hashed storage value too short")
-
 // Encode encodes the node to the buffer given.
 // The encoding format is documented in the README.md
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
-func (n *Node) Encode(buffer Buffer) (err error) {
-	err = encodeHeader(n, buffer)
+func (n *Node) Encode(buffer Buffer, maxInlineValue int) (err error) {
+	err = encodeHeader(n, maxInlineValue, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -49,11 +46,12 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	// even if it is empty. Do not encode if the branch is without value.
 	// Note leaves and branches with value cannot have a `nil` storage value.
 	if n.StorageValue != nil {
-		if n.HashedValue {
-			if len(n.StorageValue) != common.HashLength {
-				return fmt.Errorf("%w: expected %d, got: %d", ErrEncodeHashedValueTooShort, common.HashLength, len(n.StorageValue))
+		if len(n.StorageValue) > maxInlineValue {
+			hashedValue, err := common.Blake2bHash(n.StorageValue)
+			if err != nil {
+				return fmt.Errorf("hashing storage value: %w", err)
 			}
-			_, err := buffer.Write(n.StorageValue)
+			_, err = buffer.Write(hashedValue.ToBytes())
 			if err != nil {
 				return fmt.Errorf("encoding hashed storage value: %w", err)
 			}
@@ -67,7 +65,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	}
 
 	if nodeIsBranch {
-		err = encodeChildrenOpportunisticParallel(n.Children, buffer)
+		err = encodeChildrenOpportunisticParallel(n.Children, maxInlineValue, buffer)
 		if err != nil {
 			return fmt.Errorf("cannot encode children of branch: %w", err)
 		}

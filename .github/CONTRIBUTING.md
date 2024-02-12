@@ -121,6 +121,78 @@ func TestLargeStringTest(t *testing.T) {
 }
 ```
 
+
+## PR & Commit Standards
+The purpose of this section is to outline the standard naming conventions approved by the Gossamer team for Pull Requests and commit messages. The reasoning is to have improved understanding and auto generated changelogs for releases.
+
+### PR and final commit message should follow:
+
+`**TYPE:[SCOPE]: brief description**`
+
+**TYPEs**:
+
+- **fix** = patches a bug or a resolves a particular issue
+- **feat** = introduces new functionality
+- **chore** = regular code maintenance
+- **docs** = anything related to documentation
+- **style** = updates related to styling (e.g. logs)
+- **test** = anything related to tests
+- **refactor** = refactoring a section of the code base
+
+**[SCOPE]**
+
+- name of primary package that changes were introduced (e.g. lib/runtime)
+
+### Example PR names:
+
+- fix(dot/rpc): fixed return type for chain head
+
+- feat(dot/rpc): Add support for submit and watch extrinisic
+
+- docs: Updated usage section for running a gossamer node
+
+- tests(lib/runtime): Added additional test coverage for allocator
+
+- chore(lib/runtime): Bumped wasmer to 1.0
+
+- style(cmd/gossamer): Updated CLI arguments format
+
+- refactor(lib/trie): Refactored how trie is pruned
+
+
+> For improved Git commit messages refer to:  
+> https://www.freecodecamp.org/news/writing-good-commit-messages-a-practical-guide/
+
+
+## Merge Process
+
+### In General
+
+A Pull Request (PR) needs to be reviewed and approved by project maintainers.
+If a change does not alter any logic (e.g. comments, dependencies, docs), then it may be tagged
+`C-simple` and merged faster.
+
+###  Labels
+
+The set of labels and their description can be found [here](../docs/docs/repo/labels.md).
+To change labels update [labels.yml](./labels.yml) file
+
+### Process
+
+1. Please use our [Pull Request Template](./PULL_REQUEST_TEMPLATE.md) and make sure all relevant
+   information is reflected in your PR.
+2. Please tag each PR with minimum one `S-*` (scope) label. The respective `S-*` labels should signal the
+   component that was changed, they are also used by downstream users to track changes and to
+   include these changes properly into their own releases.
+3. If you’re still working on your PR, please submit as “Draft”. Once a PR is ready for review change
+   the status to “Open”, so that the maintainers get to review your PR. Generally PRs should sit for
+   48 hours in order to garner feedback. It may be merged before if all relevant parties had a look at it.
+4. PRs will be able to be merged once all reviewers' comments are addressed and CI is successful.
+
+**Noting breaking changes:**
+When breaking APIs, the PR description should mention what was changed alongside some examples on how
+to change the code to make it work/compile.
+
 ## Contributor Responsibilities
 
 We consider two types of contributions to our repo and categorize them as follows:

@@ -9,8 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_NewTries(t *testing.T) {
@@ -49,17 +49,17 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 func Test_Tries_SetTrie(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
-	dbGetter := NewMockDBGetter(ctrl)
-	dbGetter.EXPECT().Get(gomock.Any()).Times(0)
+	db := NewMockDatabase(ctrl)
+	db.EXPECT().Get(gomock.Any()).Times(0)
 
-	tr := trie.NewTrie(&node.Node{PartialKey: []byte{1}}, dbGetter)
+	tr := trie.NewTrie(&node.Node{PartialKey: []byte{1}}, db)
 
 	tries := NewTries()
 	tries.SetTrie(tr)
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
-			tr.MustHash(): tr,
+			tr.MustHash(trie.NoMaxInlineValueSize): tr,
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
@@ -192,8 +192,8 @@ func Test_Tries_delete(t *testing.T) {
 func Test_Tries_get(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
-	dbGetter := NewMockDBGetter(ctrl)
-	dbGetter.EXPECT().Get(gomock.Any()).Times(0)
+	db := NewMockDatabase(ctrl)
+	db.EXPECT().Get(gomock.Any()).Times(0)
 
 	testCases := map[string]struct {
 		tries *Tries
@@ -206,14 +206,14 @@ func Test_Tries_get(t *testing.T) {
 					{1, 2, 3}: trie.NewTrie(&node.Node{
 						PartialKey:   []byte{1, 2, 3},
 						StorageValue: []byte{1},
-					}, dbGetter),
+					}, db),
 				},
 			},
 			root: common.Hash{1, 2, 3},
 			trie: trie.NewTrie(&node.Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
-			}, dbGetter),
+			}, db),
 		},
 		"not_found_in_map": {
 			// similar to not found in database

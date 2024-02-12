@@ -8,9 +8,9 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/btree"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func ignoreChanVal(t *testing.T, ch chan bool) {

@@ -384,7 +384,7 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 	}
 	b := branches{
 		trieStorage: tr,
-		root:        tr.MustHash(),
+		root:        tr.MustHash(trie.NoMaxInlineValueSize),
 		chunks:      chunks,
 		currentPos:  0,
 	}

@@ -4,6 +4,8 @@
 package wazero_runtime
 
 import (
+	_ "embed"
+
 	"bytes"
 	_ "embed"
 	"encoding/json"
@@ -265,7 +267,7 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 
 	genesisHeader := &types.Header{
 		Number:    0,
-		StateRoot: genTrie.MustHash(),
+		StateRoot: trie.V0.MustHash(genTrie), // Get right state version from runtime
 	}
 
 	extHex := runtime.NewTestExtrinsic(t, rt, genesisHeader.Hash(), genesisHeader.Hash(),
@@ -440,6 +442,136 @@ func TestInstance_BabeConfiguration_WestendRuntime_NoAuthorities(t *testing.T) {
 	require.Equal(t, expected, cfg)
 }
 
+func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
+	tests := map[string]struct {
+		setupRuntime  func(t *testing.T) (*Instance, *types.Header)
+		expectedError []byte
+	}{
+		"westend_dev_runtime_should_fail_with_bad_signature": {
+			expectedError: []byte{1, 0, 0xa},
+			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
+				genesisPath := utils.GetWestendDevRawGenesisPath(t)
+				gen := genesisFromRawJSON(t, genesisPath)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
+				require.NoError(t, err)
+
+				// set state to genesis state
+				genState := storage.NewTrieState(&genTrie)
+
+				cfg := Config{
+					Storage: genState,
+					LogLvl:  log.Critical,
+				}
+
+				rt, err := NewRuntimeFromGenesis(cfg)
+				require.NoError(t, err)
+
+				// reset state back to parent state before executing
+				parentState := storage.NewTrieState(&genTrie)
+				rt.SetContextStorage(parentState)
+
+				genesisHeader := &types.Header{
+					Number:    0,
+					StateRoot: trie.V0.MustHash(genTrie), // Use right version from runtime
+				}
+
+				header := &types.Header{
+					ParentHash: genesisHeader.Hash(),
+					Number:     1,
+					Digest:     types.NewDigest(),
+				}
+
+				return rt, header
+			},
+		},
+		"westend_0912_runtime_should_fail_with_invalid_payment": {
+			expectedError: []byte{1, 0, 1},
+			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
+				genesisPath := utils.GetWestendDevRawGenesisPath(t)
+				gen := genesisFromRawJSON(t, genesisPath)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
+				require.NoError(t, err)
+
+				rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0912)
+				parentState := storage.NewTrieState(&genTrie)
+				rt.SetContextStorage(parentState)
+
+				genesisHeader := &types.Header{
+					Number:    0,
+					StateRoot: trie.V0.MustHash(genTrie), // Use right version from runtime
+				}
+
+				header := &types.Header{
+					ParentHash: genesisHeader.Hash(),
+					Number:     1,
+					Digest:     types.NewDigest(),
+				}
+
+				return rt, header
+			},
+		},
+	}
+
+	for tname, tt := range tests {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			instance, header := tt.setupRuntime(t)
+
+			err := instance.InitializeBlock(header)
+			require.NoError(t, err)
+
+			idata := types.NewInherentData()
+			err = idata.SetInherent(types.Timstap0, uint64(5))
+			require.NoError(t, err)
+
+			err = idata.SetInherent(types.Babeslot, uint64(1))
+			require.NoError(t, err)
+
+			ienc, err := idata.Encode()
+			require.NoError(t, err)
+
+			// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
+			inherentExts, err := instance.InherentExtrinsics(ienc)
+			require.NoError(t, err)
+
+			// decode inherent extrinsics
+			cp := make([]byte, len(inherentExts))
+			copy(cp, inherentExts)
+			var inExts [][]byte
+			err = scale.Unmarshal(cp, &inExts)
+			require.NoError(t, err)
+
+			// apply each inherent extrinsic
+			for _, inherent := range inExts {
+				in, err := scale.Marshal(inherent)
+				require.NoError(t, err)
+
+				ret, err := instance.ApplyExtrinsic(in)
+				require.NoError(t, err)
+				require.Equal(t, ret, []byte{0, 0})
+			}
+
+			keyring, err := signature.KeyringPairFromSecret(
+				"0x00000000000000000000000000000000000000000000000000000"+
+					"00000000000000000000000000000000000000000000000000000"+
+					"0000000000000000000000", 42)
+			require.NoError(t, err)
+
+			extHex := runtime.NewTestExtrinsic(t, instance, header.ParentHash, header.ParentHash,
+				0, keyring, "System.remark", []byte{0xab, 0xcd})
+
+			res, err := instance.ApplyExtrinsic(common.MustHexToBytes(extHex))
+			require.NoError(t, err)
+
+			// should fail with transaction validity error: invalid payment for runtime 0.9.12
+			// should fail with transaction validity error: bad signature for runtime version greater than 0.9.12
+			require.Equal(t, tt.expectedError, res)
+		})
+	}
+
+}
+
 func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
@@ -509,7 +641,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(nil)
+	parentState := storage.NewTrieState(trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -539,7 +671,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 
 	genesisHeader := &types.Header{
 		Number:    0,
-		StateRoot: genTrie.MustHash(),
+		StateRoot: trie.V0.MustHash(genTrie), // Use right version from runtime
 	}
 	header := &types.Header{
 		ParentHash: genesisHeader.Hash(),
@@ -566,7 +698,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(nil)
+	parentState := storage.NewTrieState(trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -580,7 +712,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
-	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
 	genState := storage.NewTrieState(&genTrie)
@@ -630,7 +762,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
-	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
 	genState := storage.NewTrieState(&genTrie)
@@ -676,7 +808,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
-	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
+	require.Equal(t, expectedRoot, trie.V0.MustHash(*gossTrie3783))
 
 	// set state to genesis state
 	state3783 := storage.NewTrieState(gossTrie3783)
@@ -722,7 +854,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
-	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
+	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie901441))
 
 	// set state to genesis state
 	state901441 := storage.NewTrieState(ksmTrie901441)
@@ -768,7 +900,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -814,7 +946,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -861,7 +993,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
-	require.Equal(t, expectedRoot, dotTrie.MustHash())
+	require.Equal(t, expectedRoot, trie.V0.MustHash(*dotTrie))
 
 	// set state to genesis state
 	state := storage.NewTrieState(dotTrie)
@@ -1195,7 +1327,7 @@ func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 	expectedPVD := parachaintypes.PersistedValidationData{
 		ParentHead:             parachaintypes.HeadData{Data: common.MustHexToBytes("0xd91574d9e4897d88a7fb40130cf6c7900b5cb7238036726cd6c07a2255c8ed1c32a018010915879f32707df4a034c9a329ca83a80fab304d1a860690def304379ac236284091930e2b657bf56c4353bdca877b2c8a6bc33ba1611a5d79b2858b00bc707f08066175726120f4635e08000000000561757261010172b799cfe3e2ba2bd80349c7c92d1d84ff01ad6b3d491ff523ee2759e81dc22d58a94cd968ed300dbbc725144a04fa3622a11b2614255b802261d03c53af6f8e")}, //nolint:lll
 		RelayParentNumber:      uint32(15946390),
-		RelayParentStorageRoot: common.MustHexToHash("0xdf650f4c6b9bfcc8f768c4d3037fafbd6831ff23473e090d443684fb5e305bd6"),
+		RelayParentStorageRoot: common.MustHexToHash("0x0c4a2ea5dea6f3674d582478b16489a0d3e25e69aeba094543e2669f05b01242"),
 		MaxPovSize:             1024 * 1024 * 5,
 	}
 

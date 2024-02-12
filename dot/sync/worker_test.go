@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/golang/mock/gomock"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestWorker(t *testing.T) {

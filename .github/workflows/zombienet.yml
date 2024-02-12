@@ -7,9 +7,9 @@ jobs:
   zombienet-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
+          go-version: "1.21"
           stable: true
           check-latest: true
 
@@ -20,14 +20,14 @@ jobs:
           echo "::set-output name=go-mod::$(go env GOMODCACHE)"
       - uses: actions/checkout@v4
       - name: Go build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.go-cache-paths.outputs.go-build }}
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-build
 
       - name: Go modules cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.go-cache-paths.outputs.go-mod }}
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}

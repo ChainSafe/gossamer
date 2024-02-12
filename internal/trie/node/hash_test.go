@@ -7,8 +7,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_MerkleValue(t *testing.T) {
@@ -197,7 +197,7 @@ func Test_Node_CalculateMerkleValue(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			merkleValue, err := testCase.node.CalculateMerkleValue()
+			merkleValue, err := testCase.node.CalculateMerkleValue(NoMaxInlineValueSize)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -259,7 +259,7 @@ func Test_Node_CalculateRootMerkleValue(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			merkleValue, err := testCase.node.CalculateRootMerkleValue()
+			merkleValue, err := testCase.node.CalculateRootMerkleValue(NoMaxInlineValueSize)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -346,7 +346,7 @@ func Test_Node_EncodeAndHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.node.EncodeAndHash()
+			encoding, hash, err := testCase.node.EncodeAndHash(NoMaxInlineValueSize)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -400,7 +400,7 @@ func Test_Node_EncodeAndHashRoot(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			encoding, hash, err := testCase.node.EncodeAndHashRoot()
+			encoding, hash, err := testCase.node.EncodeAndHashRoot(NoMaxInlineValueSize)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

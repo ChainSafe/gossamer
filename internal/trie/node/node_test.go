@@ -27,6 +27,7 @@ func Test_Node_String(t *testing.T) {
 ├── Dirty: true
 ├── Key: 0x0102
 ├── Storage value: 0x0304
+├── IsHashed: false
 └── Merkle value: nil`,
 		},
 		"leaf_with_storage_value_higher_than_1024": {
@@ -40,6 +41,7 @@ func Test_Node_String(t *testing.T) {
 ├── Dirty: true
 ├── Key: 0x0102
 ├── Storage value: 0x0000000000000000...0000000000000000
+├── IsHashed: false
 └── Merkle value: nil`,
 		},
 		"branch_with_storage_value_smaller_than_1024": {
@@ -66,6 +68,7 @@ func Test_Node_String(t *testing.T) {
 ├── Dirty: true
 ├── Key: 0x0102
 ├── Storage value: 0x0304
+├── IsHashed: false
 ├── Descendants: 3
 ├── Merkle value: nil
 ├── Child 3
@@ -74,6 +77,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Storage value: nil
+|       ├── IsHashed: false
 |       └── Merkle value: nil
 ├── Child 7
 |   └── Branch
@@ -81,6 +85,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Storage value: nil
+|       ├── IsHashed: false
 |       ├── Descendants: 1
 |       ├── Merkle value: nil
 |       └── Child 0
@@ -89,6 +94,7 @@ func Test_Node_String(t *testing.T) {
 |               ├── Dirty: false
 |               ├── Key: nil
 |               ├── Storage value: nil
+|               ├── IsHashed: false
 |               └── Merkle value: nil
 └── Child 11
     └── Leaf
@@ -96,6 +102,7 @@ func Test_Node_String(t *testing.T) {
         ├── Dirty: false
         ├── Key: nil
         ├── Storage value: nil
+        ├── IsHashed: false
         └── Merkle value: nil`,
 		},
 		"branch_with_storage_value_higher_than_1024": {
@@ -122,6 +129,7 @@ func Test_Node_String(t *testing.T) {
 ├── Dirty: true
 ├── Key: 0x0102
 ├── Storage value: 0x0000000000000000...0000000000000000
+├── IsHashed: false
 ├── Descendants: 3
 ├── Merkle value: nil
 ├── Child 3
@@ -130,6 +138,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Storage value: nil
+|       ├── IsHashed: false
 |       └── Merkle value: nil
 ├── Child 7
 |   └── Branch
@@ -137,6 +146,7 @@ func Test_Node_String(t *testing.T) {
 |       ├── Dirty: false
 |       ├── Key: nil
 |       ├── Storage value: nil
+|       ├── IsHashed: false
 |       ├── Descendants: 1
 |       ├── Merkle value: nil
 |       └── Child 0
@@ -145,6 +155,7 @@ func Test_Node_String(t *testing.T) {
 |               ├── Dirty: false
 |               ├── Key: nil
 |               ├── Storage value: nil
+|               ├── IsHashed: false
 |               └── Merkle value: nil
 └── Child 11
     └── Leaf
@@ -152,6 +163,7 @@ func Test_Node_String(t *testing.T) {
         ├── Dirty: false
         ├── Key: nil
         ├── Storage value: nil
+        ├── IsHashed: false
         └── Merkle value: nil`,
 		},
 	}

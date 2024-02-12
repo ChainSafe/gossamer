@@ -460,7 +460,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 
 		receipt, ok := statementV.(parachaintypes.Seconded)
 		if !ok {
-			return fmt.Errorf("statement value expectedb: Seconded, got: %T", statementV)
+			return fmt.Errorf("statement value expected: Seconded, got: %T", statementV)
 		}
 
 		candidateReceipt := parachaintypes.CommittedCandidateReceipt(receipt)

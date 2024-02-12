@@ -20,8 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
@@ -236,9 +236,9 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	require.NoError(t, err)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
-		Authorities: []types.Authority{{
-			Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{{
+			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
 	})
 	require.NoError(t, err)
@@ -286,9 +286,9 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.SetEpochData(futureEpoch, &types.EpochData{
-		Authorities: []types.Authority{{
-			Key: keyring.Alice().(*sr25519.Keypair).Public(),
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{{
+			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
 	})
 	require.NoError(t, err)
@@ -664,13 +664,8 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, len(authorities[3:]), len(verifierInfo.authorities))
-		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
+		require.ElementsMatch(t, authorities[3:], verifierInfo.authorities)
 
-		for i, auth := range verifierInfo.authorities {
-			rawAuthorities[i] = *auth.ToRaw()
-		}
-
-		require.ElementsMatch(t, authorities[3:], rawAuthorities)
 		require.True(t, verifierInfo.secondarySlots)
 		require.Equal(t, expectedThreshold, verifierInfo.threshold)
 	}
@@ -686,14 +681,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, len(authorities[6:]), len(verifierInfo.authorities))
-		rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
-
-		for i, auth := range verifierInfo.authorities {
-			rawAuthorities[i] = *auth.ToRaw()
-		}
-
 		// should keep the original authorities
-		require.ElementsMatch(t, authorities[6:], rawAuthorities)
+		require.ElementsMatch(t, authorities[6:], verifierInfo.authorities)
+
 		require.True(t, verifierInfo.secondarySlots)
 		require.Equal(t, expectedThreshold, verifierInfo.threshold)
 	}
@@ -719,14 +709,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, len(authorities[6:]), len(verifierInfo.authorities))
-	rawAuthorities := make([]types.AuthorityRaw, len(verifierInfo.authorities))
-
-	for i, auth := range verifierInfo.authorities {
-		rawAuthorities[i] = *auth.ToRaw()
-	}
-
 	// should keep the original authorities
-	require.ElementsMatch(t, authorities[6:], rawAuthorities)
+	require.ElementsMatch(t, authorities[6:], verifierInfo.authorities)
+
 	require.True(t, verifierInfo.secondarySlots)
 	require.Equal(t, expectedThreshold, verifierInfo.threshold)
 }
