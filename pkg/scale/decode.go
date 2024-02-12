@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"reflect"
 )
@@ -475,6 +476,7 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	return
 }
 
+// TODO: Should this be renamed to decodeCompactInt?
 // decodeUint will decode unsigned integer
 func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	const maxUint32 = ^uint32(0)
@@ -491,8 +493,12 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	var value uint64
 	switch mode {
 	case 0:
+		// 0b00: single-byte mode; upper six bits are the LE encoding of the value (valid only for
+		// values of 0-63).
 		value = uint64(prefix >> 2)
 	case 1:
+		// 0b01: two-byte mode: upper six bits and the following byte is the LE encoding of the
+		// value (valid only for values 64-(2**14-1))
 		buf, err := ds.ReadByte()
 		if err != nil {
 			return fmt.Errorf("reading byte: %w", err)
@@ -502,6 +508,8 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("%w: %d (%b)", ErrU16OutOfRange, value, value)
 		}
 	case 2:
+		// 0b10: four-byte mode: upper six bits and the following three bytes are the LE encoding
+		// of the value (valid only for values (2**14)-(2**30-1)).
 		buf := make([]byte, 3)
 		_, err = ds.Read(buf)
 		if err != nil {
@@ -512,6 +520,9 @@ func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 			return fmt.Errorf("%w: %d (%b)", ErrU32OutOfRange, value, value)
 		}
 	case 3:
+		// 0b11: Big-integer mode: The upper six bits are the number of bytes following, plus four.
+		// The value is contained, LE encoded, in the bytes following. The final (most significant)
+		// byte must be non-zero. Valid only for values (2**30)-(2**536-1).
 		byteLen := (prefix >> 2) + 4
 		buf := make([]byte, byteLen)
 		_, err = ds.Read(buf)
@@ -557,7 +568,7 @@ func (ds *decodeState) decodeLength() (l uint, err error) {
 	dstv := reflect.New(reflect.TypeOf(l))
 	err = ds.decodeUint(dstv.Elem())
 	if err != nil {
-		return
+		return 0, fmt.Errorf("decoding uint: %w", err)
 	}
 	l = dstv.Elem().Interface().(uint)
 	return
@@ -568,6 +579,11 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 	length, err := ds.decodeLength()
 	if err != nil {
 		return
+	}
+
+	// bytes length in encoded as Compact<u32>, so it can't be more than math.MaxUint32
+	if length > math.MaxUint32 {
+		return fmt.Errorf("byte array length %d exceeds max value of uint32", length)
 	}
 
 	b := make([]byte, length)
