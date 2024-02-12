@@ -10,7 +10,7 @@ import (
 
 func TestRefWindow_CreatedFromEmptyDB(t *testing.T) {
 	db := NewTestDB(nil)
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(0), pruning.base)
 	queue := pruning.queue.(*deathRowQueueInMem[hash.H256, hash.H256])
@@ -20,7 +20,7 @@ func TestRefWindow_CreatedFromEmptyDB(t *testing.T) {
 
 func TestRefWindow_PruneEmpty(t *testing.T) {
 	db := NewTestDB(nil)
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	var commit CommitSet[hash.H256]
 	assert.ErrorIs(t, pruning.PruneOne(&commit), ErrBlockUnavailable)
@@ -39,7 +39,7 @@ func TestRefWindow_PruneEmpty(t *testing.T) {
 //	}
 func checkJournal(t *testing.T, pruning refWindow[hash.H256, hash.H256], db TestDB) {
 	t.Helper()
-	restored, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	restored, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	assert.Equal(t, pruning.base, restored.base)
 	queue := pruning.queue.(*deathRowQueueInMem[hash.H256, hash.H256])
@@ -61,7 +61,7 @@ func checkJournal(t *testing.T, pruning refWindow[hash.H256, hash.H256], db Test
 
 func TestRefWindow_PruneOne(t *testing.T) {
 	db := NewTestDB([]uint64{1, 2, 3})
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	commit := NewCommit([]uint64{4, 5}, []uint64{1, 3})
 	h := hash.NewRandomH256()
@@ -89,7 +89,7 @@ func TestRefWindow_PruneOne(t *testing.T) {
 
 func TestRefWindow_PruneTwo(t *testing.T) {
 	db := NewTestDB([]uint64{1, 2, 3})
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	commit := NewCommit([]uint64{4}, []uint64{1})
 	err = pruning.NoteCanonical(hash.NewRandomH256(), 0, &commit)
@@ -116,7 +116,7 @@ func TestRefWindow_PruneTwo(t *testing.T) {
 
 func TestRefWindow_PruneTwoPending(t *testing.T) {
 	db := NewTestDB([]uint64{1, 2, 3})
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	commit := NewCommit([]uint64{4}, []uint64{1})
 	err = pruning.NoteCanonical(hash.NewRandomH256(), 0, &commit)
@@ -140,7 +140,7 @@ func TestRefWindow_PruneTwoPending(t *testing.T) {
 
 func TestRefWindow_ReinsertedSurvives(t *testing.T) {
 	db := NewTestDB([]uint64{1, 2, 3})
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	commit := NewCommit([]uint64{}, []uint64{2})
 	err = pruning.NoteCanonical(hash.NewRandomH256(), 0, &commit)
@@ -175,7 +175,7 @@ func TestRefWindow_ReinsertedSurvives(t *testing.T) {
 
 func TestRefWindow_ReinsertedSurvivesPending(t *testing.T) {
 	db := NewTestDB([]uint64{1, 2, 3})
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	commit := NewCommit([]uint64{}, []uint64{2})
 	err = pruning.NoteCanonical(hash.NewRandomH256(), 0, &commit)
@@ -222,7 +222,7 @@ func pushLastCanonicalized[H Hash](hash H, block uint64, commit *CommitSet[H]) {
 // / `pruning` still knows that this block was imported.
 func TestRefWindow_StoreCorrectStateAfterWarpSyncing(t *testing.T) {
 	db := NewTestDB([]uint64{})
-	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err := newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	block := uint64(10000)
 
@@ -238,7 +238,7 @@ func TestRefWindow_StoreCorrectStateAfterWarpSyncing(t *testing.T) {
 
 	// load a new queue from db
 	// `cache` should be the same
-	pruning, err = newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint, true)
+	pruning, err = newRefWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	assert.Equal(t, haveBlockYes, pruning.HaveBlock(h, block))
 }
