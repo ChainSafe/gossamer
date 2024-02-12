@@ -48,6 +48,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 	if n.StorageValue != nil {
 		switch {
 		case n.MustBeHashed:
+			fmt.Println("beign hashed")
 			hashedValue, err := common.Blake2bHash(n.StorageValue)
 			if err != nil {
 				return fmt.Errorf("hashing storage value: %w", err)

@@ -111,7 +111,7 @@ func Test_Trie_handleTrackedDeltas(t *testing.T) {
 	testCases := map[string]struct {
 		trie          Trie
 		success       bool
-		pendingDeltas tracking.DeletedGetter
+		pendingDeltas tracking.Getter
 		expectedTrie  Trie
 	}{
 		"no_success_and_generation_1": {
