@@ -61,9 +61,10 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 	}
 }
 
+// waitForPeers periodically checks kadDHT peers store for new peers adn returns them,
+// this function used for local setups to prepopulate bootnodes from mDNS without hardcoding them
 func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	// get all currently connected peers and use them to bootstrap the DHT
-
 	currentPeers := d.h.Network().Peers()
 
 	t := time.NewTicker(startDHTTimeout)
@@ -92,6 +93,9 @@ func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 
 // start creates the DHT.
 func (d *discovery) start() error {
+	// this basically only works with enabled mDNS which is used only for local test setups. Without bootnodes kademilia
+	// would not bee able to connect to any peers and mDNS is used to find peers in local network.
+	// TODO: this is an ugly solution and needs to be refactored
 	if len(d.bootnodes) == 0 {
 		peers, err := d.waitForPeers()
 		if err != nil {
@@ -100,7 +104,6 @@ func (d *discovery) start() error {
 
 		d.bootnodes = peers
 	}
-
 	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
 	logger.Debugf("V1ProtocolOverride %v...", d.pid+"/kad")
 

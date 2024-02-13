@@ -270,14 +270,19 @@ func (ps *PeersState) highestNotConnectedPeer(set int) (highestPeerID peer.ID) {
 	return highestPeerID
 }
 
+// hasFreeOutgoingSlot check does number of connected out peers is less then max amount allowed connected peers.
+// numOut
+// maxOut is defined as config param as. TODO describe how value is defined
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
+	logger.Infof("hasFreeOutgoingSlot %v, numout %v maxout %v", set, ps.sets[set].numOut, ps.sets[set].maxOut)
 	return ps.sets[set].numOut < ps.sets[set].maxOut
 }
 
 // Note: that it is possible for numIn to be strictly superior to the max, in case we were
 // connected to reserved node then marked them as not reserved.
+// maxIn is defined as config param. TODO describe how value is defined
 func (ps *PeersState) hasFreeIncomingSlot(set int) bool {
-	return ps.sets[set].numIn >= ps.sets[set].maxIn
+	return ps.sets[set].numIn < ps.sets[set].maxIn
 }
 
 // addNoSlotNode adds a node to the list of nodes that don't occupy slots.
@@ -367,17 +372,15 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	return nil
 }
 
-// discover takes input for set id and create a node and insert in the list.
+// insertPeer takes input for set id and create a node and insert in the list.
 // the initial Reputation of the peer will be 0 and ingoing notMember state.
-func (ps *PeersState) discover(set int, peerID peer.ID) {
+func (ps *PeersState) insertPeer(set int, peerID peer.ID) {
 	ps.Lock()
 	defer ps.Unlock()
 
-	numSet := len(ps.sets)
-
 	_, has := ps.nodes[peerID]
 	if !has {
-		n := newNode(numSet)
+		n := newNode(len(ps.sets))
 		n.state[set] = notConnected
 		ps.nodes[peerID] = n
 	}
@@ -472,7 +475,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 	_, isNoSlotOccupied := ps.sets[setID].noSlotNodes[peerID]
 
 	// if slot is not available and the node is not a reserved node then error
-	if ps.hasFreeIncomingSlot(setID) && !isNoSlotOccupied {
+	if !ps.hasFreeIncomingSlot(setID) && !isNoSlotOccupied {
 		return ErrIncomingSlotsUnavailable
 	}
 
