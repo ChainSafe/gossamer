@@ -18,7 +18,6 @@ import (
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
 	sync.Mutex
-	host              *host
 	connectHandler    func(peer.ID)
 	disconnectHandler func(peer.ID)
 

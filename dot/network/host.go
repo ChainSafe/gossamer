@@ -258,8 +258,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		bwc:             bwc,
 		externalAddr:    externalAddr,
 	}
-
-	cm.host = host
 	return host, nil
 }
 
